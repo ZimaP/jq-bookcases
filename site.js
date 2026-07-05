@@ -3,7 +3,6 @@ const navItems = [
   { label: "Materials", href: "materials.html", page: "materials" },
   { label: "Inspiration", href: "inspiration.html", page: "inspiration" },
   { label: "About Us", href: "about.html", page: "about" },
-  { label: "For Pros", href: "contact.html#for-pros", page: "pros" },
   { label: "FAQ", href: "faq.html", page: "faq" }
 ];
 
@@ -90,7 +89,7 @@ function injectHeader() {
       <nav class="navbar" aria-label="Primary navigation">
         <a class="brand" href="index.html" aria-label="JQ Bookcases home">
           <span class="brand-main">JQ BOOKCASES</span>
-          <span class="brand-sub">Built-Ins &amp; Millwork</span>
+          <span class="brand-sub">BUILT-INS &amp; MILLWORK</span>
         </a>
         <div class="nav-links" id="primary-navigation">
           ${links}
@@ -117,7 +116,7 @@ function injectFooter() {
         <div>
           <a class="footer-brand" href="index.html">
             <span class="brand-main">JQ BOOKCASES</span>
-            <span class="brand-sub">Built-Ins &amp; Millwork</span>
+            <span class="brand-sub">BUILT-INS &amp; MILLWORK</span>
           </a>
           <p>Semi-custom built-in bookcases, designed online and refined through a measured shop process.</p>
           <p style="margin-top:16px;">Proudly serving NYC &amp; Tri-State Area.</p>
@@ -137,7 +136,6 @@ function injectFooter() {
             <li><a href="about.html">About Us</a></li>
             <li><a href="how-it-works.html">How It Works</a></li>
             <li><a href="faq.html">FAQ</a></li>
-            <li><a href="contact.html#for-pros">For Pros</a></li>
           </ul>
         </div>
         <div>

@@ -1,6 +1,6 @@
 # Image Slots
 
-The site currently uses premium temporary asset slots instead of fake render imagery. Most visual slots carry a small `JQ-*` staging tag through the `data-slot` attribute. The homepage hero currently uses the live CSS bookcase preview instead of a labeled slot so the first viewport feels more product-led while approved imagery is pending.
+The site currently uses premium temporary asset slots instead of fake render imagery. Most visual slots carry a small `JQ-*` staging tag through the `data-slot` attribute. The homepage hero uses `assets/photos/hero-product.jpg` because it is the closest available match to the approved screenshot direction, but it is still a low-resolution reference asset and must be replaced before production.
 
 Any existing JPEGs under `assets/photos/` should be treated as non-production until they are replaced with approved real photography or approved professional renders from the list below.
 
@@ -16,7 +16,7 @@ Use real project photography or genuinely high-end professional renders only. Av
 
 | Slot ID | Target file | Needed image |
 |---|---|---|
-| JQ-HERO-01 | `assets/photos/hero-product.jpg` | Optional future homepage hero asset: finished built-in bookcase, straight-on or slight angle, light background, open shelves plus lower cabinets, minimum 2400px wide. |
+| JQ-HERO-01 | `assets/photos/hero-product.jpg` | Production homepage bookcase visual: finished white built-in bookcase, straight-on or slight angle, open shelves plus lower cabinets, crown/base detail, optional dimension labels, minimum 2400px wide. |
 | JQ-MAT-01 | `assets/photos/material-plywood.jpg` | Close-up of premium plywood edge layers or panels, clean shop lighting, minimum 1600px wide. |
 | JQ-MAT-02 | `assets/photos/material-paint.jpg` | Paint-grade finish close-up showing a crisp cabinet edge or panel, minimum 1600px wide. |
 | JQ-MAT-03 | `assets/photos/material-veneer.jpg` | Wood veneer grain detail with warm natural tone, minimum 1600px wide. |

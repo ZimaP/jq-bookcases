@@ -8,70 +8,16 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <script src="site.js" defer></script>
+  <script type="module" src="configurator-3d.js"></script>
 </head>
 <body data-page="home">
   <a class="skip-link" href="#main">Skip to content</a>
   <div data-site-header></div>
 
   <main id="main">
-    <section class="hero-home">
+    <section class="builder-hero" aria-label="3D bookcase configurator">
       <div class="container">
-        <div class="home-grid">
-          <div class="hero-copy">
-            <span class="eyebrow">JQ Bookcases</span>
-            <h1>Premium Built-In Bookcases, Designed Online</h1>
-            <p class="lead">Choose your size, layout, finish, and installation options, then see your estimated price update instantly. Custom-quality millwork without the traditional custom-project chaos.</p>
-            <div class="hero-actions">
-              <a class="button button-primary" href="configurator.html">Start Designing</a>
-              <a class="button button-secondary" href="how-it-works.html">See How It Works</a>
-            </div>
-          </div>
-
-          <div class="visual-wrap">
-            <div class="bookcase-stage hero-bookcase-stage" aria-label="Dimensioned built-in bookcase preview">
-              <div data-bookcase data-width="96" data-height="96" data-depth="15" data-sections="3" data-shelves="4" data-doors="6" data-finish="alabaster"></div>
-              <div class="dimension dimension-width"><span>Width <strong>96"</strong></span></div>
-              <div class="dimension dimension-height"><span>Height <strong>96"</strong></span></div>
-              <div class="dimension dimension-depth"><span>Depth <strong>15"</strong></span></div>
-              <div class="dimension dimension-count"><span>Sections <strong>3</strong></span><span>Shelves <strong>4</strong></span></div>
-            </div>
-          </div>
-
-          <aside class="preview-card" aria-label="Configurator preview">
-            <h2>Design Preview</h2>
-            <div class="preview-row"><span>Size</span><strong class="preview-value">96" W x 96" H x 15" D</strong></div>
-            <div class="preview-row"><span>Layout</span><strong class="preview-value">3 sections / 4 shelves</strong></div>
-            <div class="preview-row"><span>Lower cabinet doors</span><strong class="preview-value">6 doors</strong></div>
-            <div class="preview-row"><span>Finish color</span><strong class="preview-value">Alabaster</strong></div>
-            <div class="preview-row"><span>Hardware style</span><strong class="preview-value">Brass</strong></div>
-            <div class="preview-row"><span>Delivery option</span><strong class="preview-value">Standard delivery</strong></div>
-            <div class="preview-row"><span>Installation</span><strong class="preview-value">Professional</strong></div>
-            <div class="price-block">
-              <span>Estimated Price</span>
-              <div class="price">$6,850</div>
-              <p class="disclaimer">Online pricing is an estimate. Final pricing is confirmed after field measurement and review of site conditions, access, materials, and installation details.</p>
-            </div>
-          </aside>
-        </div>
-
-        <div class="trust-strip" aria-label="Project benefits">
-          <div class="trust-item">
-            <span class="line-icon" data-icon="shield"></span>
-            <p><strong>Custom Quality</strong><span>Built for your home.</span></p>
-          </div>
-          <div class="trust-item">
-            <span class="line-icon" data-icon="dollar"></span>
-            <p><strong>Transparent Pricing</strong><span>Clear estimate up front.</span></p>
-          </div>
-          <div class="trust-item">
-            <span class="line-icon" data-icon="truck"></span>
-            <p><strong>Professional Installation</strong><span>Available in the NYC area.</span></p>
-          </div>
-          <div class="trust-item">
-            <span class="line-icon" data-icon="leaf"></span>
-            <p><strong>Material Guidance</strong><span>Selected for long-term use.</span></p>
-          </div>
-        </div>
+        <div data-bookcase-builder data-mode="home"></div>
       </div>
     </section>
 
@@ -145,31 +91,31 @@
         </div>
         <div class="grid-7">
           <article class="card material-card">
-            <div class="material-visual plywood" data-slot="JQ-MAT-01 / Premium plywood detail"></div>
+            <div class="material-visual plywood has-image" data-slot="JQ-MAT-01 / Premium plywood detail" style="--slot-image: url('assets/photos/material-plywood.jpg')"></div>
             <div class="material-copy"><h3>Premium plywood</h3><p>Stable panels for long-term built-in strength.</p></div>
           </article>
           <article class="card material-card">
-            <div class="material-visual paint" data-slot="JQ-MAT-02 / Paint-grade finish detail"></div>
+            <div class="material-visual paint has-image" data-slot="JQ-MAT-02 / Paint-grade finish detail" style="--slot-image: url('assets/photos/material-paint.jpg')"></div>
             <div class="material-copy"><h3>Paint-grade finishes</h3><p>Smooth, durable finish options for refined interiors.</p></div>
           </article>
           <article class="card material-card">
-            <div class="material-visual veneer" data-slot="JQ-MAT-03 / Wood veneer detail"></div>
+            <div class="material-visual veneer has-image" data-slot="JQ-MAT-03 / Wood veneer detail" style="--slot-image: url('assets/photos/material-veneer.jpg')"></div>
             <div class="material-copy"><h3>Wood veneer options</h3><p>Natural grain choices for warmer rooms.</p></div>
           </article>
           <article class="card material-card">
-            <div class="material-visual hardware" data-slot="JQ-MAT-04 / Hardware detail"></div>
+            <div class="material-visual hardware has-image" data-slot="JQ-MAT-04 / Hardware detail" style="--slot-image: url('assets/photos/material-hardware.jpg')"></div>
             <div class="material-copy"><h3>Durable hardware</h3><p>Quality hinges, pulls, and functional details.</p></div>
           </article>
           <article class="card material-card">
-            <div class="material-visual doors" data-slot="JQ-MAT-05 / Cabinet door detail"></div>
+            <div class="material-visual doors has-image" data-slot="JQ-MAT-05 / Cabinet door detail" style="--slot-image: url('assets/photos/material-doors.jpg')"></div>
             <div class="material-copy"><h3>Cabinet doors</h3><p>Classic lower storage with crisp panel details.</p></div>
           </article>
           <article class="card material-card">
-            <div class="material-visual shelves" data-slot="JQ-MAT-06 / Adjustable shelf detail"></div>
+            <div class="material-visual shelves has-image" data-slot="JQ-MAT-06 / Adjustable shelf detail" style="--slot-image: url('assets/photos/material-shelves.jpg')"></div>
             <div class="material-copy"><h3>Adjustable shelves</h3><p>Flexible shelf positions for changing needs.</p></div>
           </article>
           <article class="card material-card">
-            <div class="material-visual finishing" data-slot="JQ-MAT-07 / Professional finishing detail"></div>
+            <div class="material-visual finishing has-image" data-slot="JQ-MAT-07 / Professional finishing detail" style="--slot-image: url('assets/photos/material-finishing.jpg')"></div>
             <div class="material-copy"><h3>Professional finishing</h3><p>Fine prep and topcoat application for a lasting look.</p></div>
           </article>
         </div>
@@ -188,15 +134,15 @@
         </div>
         <div class="grid-3">
           <article class="project-card">
-            <div class="shop-art shop-cabinetmakers" data-slot="JQ-SHOP-02 / Cabinetmaker at bench"></div>
+            <div class="shop-art shop-cabinetmakers has-image" data-slot="JQ-SHOP-02 / Cabinetmaker at bench" style="--slot-image: url('assets/photos/shop-cabinetmakers.jpg')"></div>
             <div class="project-caption">Expert Cabinetmakers <span class="arrow">&rarr;</span></div>
           </article>
           <article class="project-card">
-            <div class="shop-art shop-tables" data-slot="JQ-SHOP-03 / Fabrication tables"></div>
+            <div class="shop-art shop-tables has-image" data-slot="JQ-SHOP-03 / Fabrication tables" style="--slot-image: url('assets/photos/shop-tables.jpg')"></div>
             <div class="project-caption">Precision Fabrication <span class="arrow">&rarr;</span></div>
           </article>
           <article class="project-card">
-            <div class="shop-art shop-install" data-slot="JQ-SHOP-07 / Installation in home"></div>
+            <div class="shop-art shop-install has-image" data-slot="JQ-SHOP-07 / Installation in home" style="--slot-image: url('assets/photos/shop-install.jpg')"></div>
             <div class="project-caption">Professional Installation <span class="arrow">&rarr;</span></div>
           </article>
         </div>
@@ -211,19 +157,19 @@
         </div>
         <div class="grid-4">
           <a class="project-card" href="inspiration.html">
-            <div class="room-art room-living" data-slot="JQ-ROOM-01 / Living room built-in"></div>
+            <div class="room-art room-living has-image" data-slot="JQ-ROOM-01 / Living room built-in" style="--slot-image: url('assets/photos/inspiration-living.jpg')"></div>
             <div class="project-caption">Living room built-in <span class="arrow">&rarr;</span></div>
           </a>
           <a class="project-card" href="inspiration.html">
-            <div class="room-art room-office" data-slot="JQ-ROOM-02 / Home office wall"></div>
+            <div class="room-art room-office has-image" data-slot="JQ-ROOM-02 / Home office wall" style="--slot-image: url('assets/photos/inspiration-office.jpg')"></div>
             <div class="project-caption">Home office wall <span class="arrow">&rarr;</span></div>
           </a>
           <a class="project-card" href="inspiration.html">
-            <div class="room-art room-library" data-slot="JQ-ROOM-03 / Library wall"></div>
+            <div class="room-art room-library has-image" data-slot="JQ-ROOM-03 / Library wall" style="--slot-image: url('assets/photos/inspiration-library.jpg')"></div>
             <div class="project-caption">Library wall <span class="arrow">&rarr;</span></div>
           </a>
           <a class="project-card" href="inspiration.html">
-            <div class="room-art room-walnut" data-slot="JQ-ROOM-07 / Walnut modern style"></div>
+            <div class="room-art room-walnut has-image" data-slot="JQ-ROOM-07 / Walnut modern style" style="--slot-image: url('assets/photos/inspiration-walnut.jpg')"></div>
             <div class="project-caption">Walnut modern style <span class="arrow">&rarr;</span></div>
           </a>
         </div>
