@@ -69,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initMobileNav();
   initBookcases();
   initConfigurator();
+  initHeaderBuilderActions();
   initAccordions();
   initContactForm();
   initNewsletter();
@@ -84,6 +85,13 @@ function injectHeader() {
     return `<a class="nav-link${active}" href="${item.href}">${item.label}</a>`;
   }).join("");
 
+  const headerActions = current === "home"
+    ? `
+          <button class="header-save-button" type="button" data-header-save-design>Save Design</button>
+          <button class="button button-primary" type="button" data-header-request-quote>Request Quote</button>
+        `
+    : `<a class="button button-primary" href="configurator.html">Start Designing</a>`;
+
   host.innerHTML = `
     <header class="site-header">
       <nav class="navbar" aria-label="Primary navigation">
@@ -96,7 +104,7 @@ function injectHeader() {
           <a class="button button-primary mobile-cta" href="configurator.html">Start Designing</a>
         </div>
         <div class="header-actions">
-          <a class="button button-primary" href="configurator.html">Start Designing</a>
+          ${headerActions}
           <button class="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-navigation">
             <span></span><span></span><span></span>
           </button>
@@ -104,6 +112,16 @@ function injectHeader() {
       </nav>
     </header>
   `;
+}
+
+function initHeaderBuilderActions() {
+  document.querySelector("[data-header-save-design]")?.addEventListener("click", () => {
+    document.querySelector("[data-bookcase-builder] [data-save-design]")?.click();
+  });
+
+  document.querySelector("[data-header-request-quote]")?.addEventListener("click", () => {
+    document.querySelector("[data-bookcase-builder] [data-open-order]")?.click();
+  });
 }
 
 function injectFooter() {

@@ -22,10 +22,18 @@ export function calculateBookcasePrice(config) {
   }[state.doorStyle] : 0;
   const hardwareAdd = state.lowerCabinets ? {
     brass_knob: 150,
+    brass_pull: 225,
+    matte_black_knob: 125,
     matte_black_pull: 175,
-    polished_nickel_knob: 175,
+    polished_nickel_pull: 225,
     push_latch: 250
   }[state.hardware] : 0;
+  const lightingAdd = {
+    no_lighting: 0,
+    warm_pucks: 450,
+    vertical_led: 650,
+    shelf_accent: 850
+  }[state.lighting] || 0;
   const crownAdd = {
     none: 0,
     slim_cap: 250,
@@ -45,13 +53,14 @@ export function calculateBookcasePrice(config) {
   }[state.delivery];
 
   const subtotal = (
-    2800 +
+    1900 +
     squareFootFactor +
     sectionsCost +
     shelfCost +
     lowerCabinetCost +
     doorStyleAdd +
     hardwareAdd +
+    lightingAdd +
     crownAdd +
     baseAdd +
     installationAdd +

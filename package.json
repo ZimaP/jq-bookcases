@@ -1,0 +1,5 @@
+{
+  "scripts": {
+    "build": "node --check site.js && node --check configurator-3d.js && node --check bookcase-config.js && node --check bookcase-pricing.js"
+  }
+}

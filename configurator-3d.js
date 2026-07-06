@@ -11,6 +11,8 @@ import {
   hardwareOptions,
   inchesToUnits,
   installationOptions,
+  layoutPresets,
+  lightingOptions,
   normalizeBookcaseConfig,
   optionLabels
 } from "./bookcase-config.js";
@@ -18,11 +20,11 @@ import { calculateBookcasePrice, formatPrice } from "./bookcase-pricing.js";
 
 const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "doorCount"]);
 const finishPalette = {
-  alabaster: { case: 0xeee6dc, side: 0xd6caba, inside: 0xd9ccbc, edge: 0x8f806e },
-  warm_white: { case: 0xf6efe4, side: 0xdfd4c4, inside: 0xe6dacb, edge: 0x9b8b78 },
-  soft_black: { case: 0x272520, side: 0x151411, inside: 0x201e1a, edge: 0x5a554d },
-  natural_oak: { case: 0xc59a61, side: 0xaa7d48, inside: 0xb88954, edge: 0x6d4d2c },
-  walnut: { case: 0x6e4b35, side: 0x4f3425, inside: 0x5b3c2d, edge: 0xa98765 }
+  alabaster: { case: 0xf3eadf, side: 0xd9c9b7, inside: 0xcdbcaa, edge: 0x89725b },
+  warm_white: { case: 0xf8f0e6, side: 0xe1d2bf, inside: 0xd8c6b2, edge: 0x95785f },
+  soft_black: { case: 0x262119, side: 0x12100d, inside: 0x1d1914, edge: 0x6f6559 },
+  natural_oak: { case: 0xc49a64, side: 0xa97b4a, inside: 0xb78b58, edge: 0x6c472d },
+  walnut: { case: 0x704b33, side: 0x4c3021, inside: 0x5f402c, edge: 0xb68b55 }
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -36,7 +38,9 @@ class BookcaseConfigurator {
     this.host = host;
     this.id = `jq-builder-${index + 1}`;
     this.state = normalizeBookcaseConfig(defaultBookcaseConfig);
+    this.activeView = "three-quarter";
     this.doorOptionKey = "";
+    this.activeRangeDrag = null;
     this.render();
     this.cacheElements();
     this.viewer = this.createViewer();
@@ -69,78 +73,45 @@ class BookcaseConfigurator {
   render() {
     this.host.innerHTML = `
       <div class="builder-shell">
-        <div class="builder-intro">
-          <span class="eyebrow">Custom-quality bookcases without <span class="nowrap">custom-project chaos.</span></span>
-          <div class="builder-intro-grid">
-            <div>
-              <h1 id="${this.id}-title">Premium Built-In Bookcases, Designed Online</h1>
-              <p class="lead">Choose your dimensions, layout, finish, cabinet options, and installation preferences - then see your 3D model and estimated price update instantly.</p>
-            </div>
-            <div class="builder-intro-actions" aria-label="Builder actions">
-              <button class="button button-primary" type="button" data-focus-controls>Start Designing</button>
-              <button class="button button-secondary" type="button" data-open-order="measurement">Request Final Measurement</button>
-            </div>
+        <section class="studio-intro-panel" aria-labelledby="${this.id}-title">
+          <h1 id="${this.id}-title">Design your bookcase your way.</h1>
+          <p>Create a custom built-in in minutes. Adjust sizes, layout, finishes and details to see your price update in real time.</p>
+        </section>
+
+        <section class="studio-model" aria-labelledby="${this.id}-viewer-title">
+          <h2 id="${this.id}-viewer-title" class="sr-only">Interactive 3D built-in bookcase model</h2>
+          <div class="viewer-stage" data-3d-viewer tabindex="0" role="img" aria-label="Interactive 3D built-in bookcase model"></div>
+          <div class="view-controls" aria-label="3D view controls">
+            <button type="button" data-view="reset"><span class="view-icon view-icon-reset" aria-hidden="true"></span>Reset</button>
+            <button type="button" data-view="front"><span class="view-icon view-icon-front" aria-hidden="true"></span>Front</button>
+            <button type="button" data-view="three-quarter"><span class="view-icon view-icon-cube" aria-hidden="true"></span>3/4 View</button>
+            <button type="button" data-view="side"><span class="view-icon view-icon-side" aria-hidden="true"></span>Side</button>
           </div>
-        </div>
+          <p class="viewer-helper-line">Drag to rotate &middot; Scroll to zoom &middot; Arrow keys rotate</p>
+        </section>
 
-        <div class="builder-workspace">
-          <section class="viewer-card" aria-labelledby="${this.id}-viewer-title">
-            <div class="viewer-card-top">
-              <div>
-                <span class="section-kicker">Interactive 3D model</span>
-                <h2 id="${this.id}-viewer-title">Rotate your built-in in real time.</h2>
-              </div>
-              <p class="viewer-help">Drag to rotate &bull; Scroll to zoom &bull; Arrow keys rotate</p>
-            </div>
-            <div class="viewer-stage" data-3d-viewer tabindex="0" role="img" aria-label="Interactive 3D built-in bookcase model"></div>
-            <div class="view-controls" aria-label="3D view controls">
-              <button type="button" data-view="reset">Reset View</button>
-              <button type="button" data-view="front">Front View</button>
-              <button type="button" data-view="three-quarter">3/4 View</button>
-              <button type="button" data-view="side">Side View</button>
-            </div>
-            <div class="viewer-spec-strip" aria-label="Current design summary">
-              <span><strong data-live-width>96&quot;</strong> width</span>
-              <span><strong data-live-height>96&quot;</strong> height</span>
-              <span><strong data-live-depth>15&quot;</strong> depth</span>
-              <span><strong data-live-sections>3</strong> sections</span>
-              <span><strong data-live-shelves>4</strong> shelves</span>
-            </div>
-          </section>
+        <aside class="builder-panel studio-control-dock" aria-label="Configuration panel">
+          <form class="builder-form" data-builder-form>
+            ${this.renderDimensionsGroup()}
+            ${this.renderLayoutGroup()}
+            ${this.renderFinishGroup()}
+            ${this.renderHardwareGroup()}
+            ${this.renderLightingGroup()}
+          </form>
+          <p class="status-message" data-builder-status role="status"></p>
+          <div class="builder-action-proxies" hidden>
+            <button type="button" data-save-design>Save Design</button>
+            <button type="button" data-open-order="measurement">Request Quote</button>
+          </div>
+        </aside>
 
-          <aside class="builder-panel" aria-label="Configuration panel">
-            <div class="price-summary">
-              <span>Estimated Price</span>
-              <strong data-price>${formatPrice(calculateBookcasePrice(this.state))}</strong>
-              <p>Online pricing is an estimate. Final price is confirmed after field measurement, wall condition review, delivery access, and installation requirements.</p>
-            </div>
-
-            <form class="builder-form" data-builder-form>
-              ${this.renderDimensionsGroup()}
-              ${this.renderLayoutGroup()}
-              ${this.renderLowerStorageGroup()}
-              ${this.renderFinishGroup()}
-              ${this.renderHardwareGroup()}
-              ${this.renderTopBaseGroup()}
-              ${this.renderServicesGroup()}
-            </form>
-
-            <div class="quote-summary builder-quote-summary" aria-label="Selected design summary">
-              <div class="preview-row"><span>Size</span><strong class="preview-value" data-summary-size></strong></div>
-              <div class="preview-row"><span>Layout</span><strong class="preview-value" data-summary-layout></strong></div>
-              <div class="preview-row"><span>Lower</span><strong class="preview-value" data-summary-lower></strong></div>
-              <div class="preview-row"><span>Finish</span><strong class="preview-value" data-summary-finish></strong></div>
-              <div class="preview-row"><span>Hardware</span><strong class="preview-value" data-summary-hardware></strong></div>
-              <div class="preview-row"><span>Top / Base</span><strong class="preview-value" data-summary-details></strong></div>
-              <p class="status-message" data-builder-status role="status"></p>
-              <div class="quote-actions">
-                <button class="button button-primary" type="button" data-open-order="continue">Continue</button>
-                <button class="button button-secondary" type="button" data-save-design>Save My Design</button>
-                <button class="button button-soft" type="button" data-open-order="review">Order Review</button>
-              </div>
-            </div>
-          </aside>
-        </div>
+        ${this.renderPresetTray()}
+        <section class="studio-price-note" aria-label="Estimated price">
+          <span>Estimated Price</span>
+          <strong data-price>${formatPrice(calculateBookcasePrice(this.state))}</strong>
+          <small>* Online pricing is an estimate.</small>
+        </section>
+        ${this.renderTrustRow()}
       </div>
 
       <div class="order-drawer" data-order-drawer aria-hidden="true">
@@ -163,8 +134,8 @@ class BookcaseConfigurator {
               ${this.renderTextField("email", "Email", "email", "you@example.com")}
               ${this.renderTextField("phone", "Phone", "tel", "(555) 000-0000")}
               ${this.renderTextField("zip", "ZIP code", "text", "10001")}
-              ${this.renderTextField("address", "Project address / city", "text", "Street, city")}
-              ${this.renderTextField("installDate", "Desired install date", "date", "")}
+              ${this.renderTextField("address", "Project city/address", "text", "Street, city")}
+              ${this.renderTextField("installDate", "Desired installation timeline", "text", "Example: 6-8 weeks")}
               ${this.renderTextField("wallWidth", "Wall width", "text", "96 inches")}
               ${this.renderTextField("ceilingHeight", "Ceiling height", "text", "96 inches")}
             </div>
@@ -175,10 +146,6 @@ class BookcaseConfigurator {
                 <div class="segment"><input id="${this.id}-order-install-no" name="orderInstallation" type="radio" value="no"><label for="${this.id}-order-install-no">No</label></div>
               </div>
             </fieldset>
-            <div class="field">
-              <label for="${this.id}-wall-photo">Upload wall photo placeholder</label>
-              <input id="${this.id}-wall-photo" name="wallPhoto" type="file" accept="image/*">
-            </div>
             <div class="field">
               <label for="${this.id}-notes">Notes</label>
               <textarea id="${this.id}-notes" name="notes" placeholder="Tell us about outlets, baseboards, radiators, access, or design preferences."></textarea>
@@ -194,31 +161,98 @@ class BookcaseConfigurator {
     `;
   }
 
+  renderPresetTray() {
+    return `
+      <section class="preset-tray" aria-label="Layout presets">
+        <div class="preset-tray-heading">
+          <span class="section-kicker">Choose a layout</span>
+          <button class="preset-scroll preset-scroll-prev" type="button" data-preset-scroll="-1" aria-label="Scroll layouts left"></button>
+        </div>
+        <div class="preset-list">
+          ${layoutPresets.map((preset, index) => `
+            <button class="preset-card" type="button" data-preset-id="${preset.id}" aria-label="Use ${preset.name} preset">
+              ${this.renderPresetMini(preset, index + 1)}
+              <span class="preset-card-title">${index + 1}. ${this.formatPresetName(preset.name)}</span>
+              <span class="preset-check" aria-hidden="true">&#10003;</span>
+            </button>
+          `).join("")}
+        </div>
+        <button class="preset-scroll preset-scroll-next" type="button" data-preset-scroll="1" aria-label="Scroll layouts right"></button>
+      </section>
+    `;
+  }
+
+  renderTrustRow() {
+    const items = [
+      ["delivery", "Delivery", "Standard"],
+      ["install", "Installation", "Professional"],
+      ["warranty", "Warranty", "Lifetime"]
+    ];
+    return `
+      <section class="studio-trust-row" aria-label="Builder assurances">
+        ${items.map(([icon, title, copy]) => `
+          <div class="studio-trust-item">
+            <span class="studio-trust-icon studio-trust-icon-${icon}" aria-hidden="true"></span>
+            <span><strong>${title}</strong><small>${copy}</small></span>
+          </div>
+        `).join("")}
+      </section>
+    `;
+  }
+
+  formatPresetName(name) {
+    return name
+      .replace("Media Wall with TV Opening", "Media Wall (TV Opening)")
+      .replace("Home Office / Desk Niche", "Desk Niche (Home Office)")
+      .replace("Modern Asymmetrical Shelves", "Asymmetrical Modern")
+      .replace("Tall Storage + Open Shelves", "Tall Storage + Shelves");
+  }
+
+  renderPresetMini(preset, index) {
+    const sections = Math.min(5, preset.config.sections || 3);
+    const shelves = Math.min(5, preset.config.shelves || 4);
+    const bays = Array.from({ length: sections }, (_, bayIndex) => {
+      const special = preset.config.centerOpening && bayIndex === Math.floor(sections / 2)
+        ? " is-media"
+        : preset.config.deskOpening && bayIndex === Math.floor(sections / 2)
+          ? " is-desk"
+          : preset.config.tallDoors && (bayIndex === 0 || bayIndex === sections - 1)
+            ? " is-tall"
+            : "";
+      const marker = special.includes("is-media")
+        ? `<span class="mini-tv" aria-hidden="true"></span>`
+        : special.includes("is-desk")
+          ? `<span class="mini-desk" aria-hidden="true"></span>`
+          : "";
+      return `<span class="preset-bay${special}" style="--mini-shelves:${shelves}">${marker}</span>`;
+    }).join("");
+    return `
+      <span class="preset-mini" data-mini-layout="${preset.config.layoutType || preset.id}" data-mini-preset="${preset.id}">
+        <span class="preset-number">${index}</span>
+        <span class="preset-crown"></span>
+        <span class="preset-bays" style="grid-template-columns:repeat(${sections}, minmax(0, 1fr));">${bays}</span>
+        <span class="preset-base${preset.config.lowerCabinets ? " has-doors" : ""}"></span>
+      </span>
+    `;
+  }
+
   renderDimensionsGroup() {
     return `
-      <details class="control-section" open>
-        <summary>Dimensions</summary>
-        ${this.renderRangeControl("width", "Width", 48, 180, 1, "in")}
+      <section class="control-section control-section-dimensions">
+        <h3>Dimensions</h3>
+        ${this.renderRangeControl("width", "Width", 24, 144, 1, "in")}
         ${this.renderRangeControl("height", "Height", 72, 120, 1, "in")}
         ${this.renderRangeControl("depth", "Depth", 10, 24, 1, "in")}
-      </details>
+      </section>
     `;
   }
 
   renderLayoutGroup() {
     return `
-      <details class="control-section" open>
-        <summary>Layout</summary>
-        ${this.renderRangeControl("sections", "Vertical sections", 1, 6, 1, "")}
-        ${this.renderRangeControl("shelves", "Shelves per section", 2, 8, 1, "")}
-      </details>
-    `;
-  }
-
-  renderLowerStorageGroup() {
-    return `
-      <details class="control-section" open>
-        <summary>Lower Storage</summary>
+      <section class="control-section control-section-layout">
+        <h3>Layout</h3>
+        ${this.renderStepperControl("sections", "Sections", 1, 6)}
+        ${this.renderStepperControl("shelves", "Shelves per section", 2, 8)}
         <div class="toggle-row premium-toggle">
           <label for="${this.id}-lowerCabinets">Lower cabinets</label>
           <label class="switch">
@@ -226,43 +260,69 @@ class BookcaseConfigurator {
             <span aria-hidden="true"></span>
           </label>
         </div>
-        <fieldset class="field lower-dependent" data-lower-dependent>
-          <legend class="fieldset-label">Door count</legend>
-          <div class="segment-group three" data-door-options></div>
-        </fieldset>
-        ${this.renderSegmentField("doorStyle", "Door style", doorStyleOptions, "lower-dependent")}
-      </details>
+      </section>
     `;
   }
 
   renderFinishGroup() {
-    const swatches = finishOptions.map((option) => `
+    const order = ["alabaster", "warm_white", "natural_oak", "walnut", "soft_black"];
+    const orderedOptions = order.map((value) => finishOptions.find((option) => option.value === value)).filter(Boolean);
+    const swatches = orderedOptions.map((option) => `
       <div class="finish-swatch">
         <input id="${this.id}-finish-${option.value}" data-field="finish" name="${this.id}-finish" type="radio" value="${option.value}">
-        <label for="${this.id}-finish-${option.value}">
+        <label for="${this.id}-finish-${option.value}" title="${option.label}" aria-label="${option.label}">
           <span class="finish-dot" style="--swatch:${option.swatch}"></span>
-          ${option.label}
+          <span class="sr-only">${option.label}</span>
         </label>
       </div>
     `).join("");
 
     return `
-      <details class="control-section" open>
-        <summary>Finish</summary>
+      <section class="control-section control-section-finish">
+        <h3>Finish</h3>
         <fieldset class="field">
           <legend class="fieldset-label">Finish swatches</legend>
           <div class="finish-grid">${swatches}</div>
         </fieldset>
-      </details>
+      </section>
     `;
   }
 
   renderHardwareGroup() {
+    const hardware = hardwareOptions.map((option) => `
+      <div class="hardware-swatch">
+        <input id="${this.id}-hardware-${option.value}" data-field="hardware" name="${this.id}-hardware" type="radio" value="${option.value}">
+        <label for="${this.id}-hardware-${option.value}" title="${option.label}" aria-label="${option.label}">
+          <span class="hardware-dot hardware-dot-${option.value}" aria-hidden="true"></span>
+          <span class="sr-only">${option.label}</span>
+        </label>
+      </div>
+    `).join("");
+
     return `
-      <details class="control-section" open>
-        <summary>Hardware</summary>
-        ${this.renderSegmentField("hardware", "Hardware options", hardwareOptions, "lower-dependent")}
-      </details>
+      <section class="control-section control-section-hardware">
+        <h3>Hardware</h3>
+        <fieldset class="field lower-dependent" data-lower-dependent>
+          <legend class="fieldset-label">Hardware options</legend>
+          <div class="hardware-grid">${hardware}</div>
+        </fieldset>
+      </section>
+    `;
+  }
+
+  renderLightingGroup() {
+    const options = lightingOptions.map((option) => `
+      <option value="${option.value}">${option.label}</option>
+    `).join("");
+
+    return `
+      <section class="control-section control-section-lighting">
+        <h3>Lighting</h3>
+        <label class="lighting-select-label" for="${this.id}-lighting">Lighting options</label>
+        <select class="lighting-select" id="${this.id}-lighting" data-field="lighting" name="${this.id}-lighting">
+          ${options}
+        </select>
+      </section>
     `;
   }
 
@@ -272,16 +332,6 @@ class BookcaseConfigurator {
         <summary>Top &amp; Base Detail</summary>
         ${this.renderSegmentField("crownStyle", "Crown style", crownStyleOptions)}
         ${this.renderSegmentField("baseStyle", "Base style", baseStyleOptions)}
-      </details>
-    `;
-  }
-
-  renderServicesGroup() {
-    return `
-      <details class="control-section">
-        <summary>Services</summary>
-        ${this.renderSegmentField("delivery", "Delivery option", deliveryOptions)}
-        ${this.renderSegmentField("installation", "Installation option", installationOptions)}
       </details>
     `;
   }
@@ -297,6 +347,20 @@ class BookcaseConfigurator {
           </div>
         </div>
         <input id="${this.id}-${name}-range" data-field="${name}" type="range" min="${min}" max="${max}" step="${step}">
+        <div class="range-bounds" aria-hidden="true"><span>${min}</span><span>${max}</span></div>
+      </div>
+    `;
+  }
+
+  renderStepperControl(name, label, min, max) {
+    return `
+      <div class="stepper-control" data-stepper-control="${name}">
+        <span>${label}</span>
+        <div class="stepper">
+          <button type="button" data-step-field="${name}" data-step-direction="-1" aria-label="Decrease ${label}">&minus;</button>
+          <input id="${this.id}-${name}-number" data-field="${name}" type="number" min="${min}" max="${max}" step="1" inputmode="numeric" aria-label="${label}">
+          <button type="button" data-step-field="${name}" data-step-direction="1" aria-label="Increase ${label}">+</button>
+        </div>
       </div>
     `;
   }
@@ -340,6 +404,16 @@ class BookcaseConfigurator {
   }
 
   bindEvents() {
+    this.host.addEventListener("pointerdown", (event) => {
+      const range = event.target.closest?.('.range-control input[type="range"][data-field]');
+      if (!range || !this.host.contains(range)) return;
+      this.beginRangeDrag(event, range);
+    });
+
+    this.host.addEventListener("pointermove", (event) => this.updateRangeDrag(event));
+    this.host.addEventListener("pointerup", (event) => this.endRangeDrag(event));
+    this.host.addEventListener("pointercancel", (event) => this.endRangeDrag(event));
+
     this.host.addEventListener("input", (event) => {
       if (event.target.matches("[data-field]")) this.handleFieldChange(event.target);
     });
@@ -348,8 +422,22 @@ class BookcaseConfigurator {
       if (event.target.matches("[data-field]")) this.handleFieldChange(event.target);
     });
 
+    this.host.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-step-field]");
+      if (!button || !this.host.contains(button)) return;
+      this.handleStepperClick(button);
+    });
+
     this.host.querySelectorAll("[data-view]").forEach((button) => {
-      button.addEventListener("click", () => this.viewer.setView(button.dataset.view));
+      button.addEventListener("click", () => this.setView(button.dataset.view));
+    });
+
+    this.host.querySelectorAll("[data-preset-id]").forEach((button) => {
+      button.addEventListener("click", () => this.applyPreset(button.dataset.presetId));
+    });
+
+    this.host.querySelectorAll("[data-preset-scroll]").forEach((button) => {
+      button.addEventListener("click", () => this.scrollPresetTray(Number(button.dataset.presetScroll)));
     });
 
     this.host.querySelectorAll("[data-save-design]").forEach((button) => {
@@ -357,6 +445,11 @@ class BookcaseConfigurator {
         const design = this.saveCurrentDesign();
         this.showStatus(`Saved design ${design.id}.`);
       });
+    });
+
+    this.host.querySelector("[data-favorite-design]")?.addEventListener("click", () => {
+      const design = this.saveCurrentDesign();
+      this.showStatus(`Favorited design ${design.id}.`);
     });
 
     this.host.querySelectorAll("[data-open-order]").forEach((button) => {
@@ -395,10 +488,90 @@ class BookcaseConfigurator {
     });
   }
 
+  beginRangeDrag(event, range) {
+    if (event.button != null && event.button !== 0) return;
+    this.activeRangeDrag = { range, pointerId: event.pointerId };
+    range.focus({ preventScroll: true });
+    range.setPointerCapture?.(event.pointerId);
+    this.applyRangePointerValue(event, range);
+    event.preventDefault();
+  }
+
+  updateRangeDrag(event) {
+    if (!this.activeRangeDrag || event.pointerId !== this.activeRangeDrag.pointerId) return;
+    this.applyRangePointerValue(event, this.activeRangeDrag.range);
+    event.preventDefault();
+  }
+
+  endRangeDrag(event) {
+    if (!this.activeRangeDrag) return;
+    const { range, pointerId } = this.activeRangeDrag;
+    if (!event || event.pointerId === pointerId) {
+      range.releasePointerCapture?.(pointerId);
+      this.activeRangeDrag = null;
+    }
+  }
+
+  applyRangePointerValue(event, range) {
+    const rect = range.getBoundingClientRect();
+    const min = Number(range.min);
+    const max = Number(range.max);
+    const step = Number(range.step) || 1;
+    const ratio = clamp((event.clientX - rect.left) / Math.max(rect.width, 1), 0, 1);
+    const rawValue = min + ratio * (max - min);
+    const steppedValue = min + Math.round((rawValue - min) / step) * step;
+    const value = clamp(steppedValue, min, max);
+    range.value = String(value);
+    this.syncMatchingInputs(range.dataset.field, range.value, range);
+    this.update(this.readStateFromControls());
+  }
+
+  setView(view) {
+    this.viewer.setView(view);
+    this.activeView = view === "reset" ? "three-quarter" : view;
+    this.syncViewButtons();
+  }
+
+  syncViewButtons() {
+    this.host.querySelectorAll("[data-view]").forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.view === this.activeView);
+    });
+  }
+
+  applyPreset(presetId) {
+    const preset = layoutPresets.find((item) => item.id === presetId);
+    if (!preset) return;
+    this.update({
+      ...this.state,
+      ...preset.config,
+      layoutPreset: preset.id
+    });
+    this.showStatus(`${preset.name} preset applied. You can keep customizing from here.`);
+  }
+
+  scrollPresetTray(direction) {
+    const list = this.host.querySelector(".preset-list");
+    if (!list) return;
+    list.scrollBy({ left: direction * list.clientWidth * 0.72, behavior: "smooth" });
+  }
+
   handleFieldChange(target) {
     if (target.type !== "radio" && target.type !== "checkbox") {
       this.syncMatchingInputs(target.dataset.field, target.value, target);
     }
+    this.update(this.readStateFromControls());
+  }
+
+  handleStepperClick(button) {
+    const fieldName = button.dataset.stepField;
+    const input = this.host.querySelector(`input[data-field="${fieldName}"]`);
+    if (!input) return;
+    const direction = Number(button.dataset.stepDirection) || 0;
+    const min = Number(input.min) || Number.NEGATIVE_INFINITY;
+    const max = Number(input.max) || Number.POSITIVE_INFINITY;
+    const step = Number(input.step) || 1;
+    const nextValue = clamp((Number(input.value) || min) + direction * step, min, max);
+    input.value = nextValue;
     this.update(this.readStateFromControls());
   }
 
@@ -423,11 +596,13 @@ class BookcaseConfigurator {
     this.renderDoorOptions();
     this.syncControls();
     this.syncLowerDependentControls();
+    this.syncPresetCards();
     this.updatePriceAndSummary();
     this.viewer.update(this.state);
   }
 
   renderDoorOptions() {
+    if (!this.elements.doorOptions) return;
     const options = getDoorCountOptions(this.state.width, this.state.sections);
     const key = options.join(",");
     if (key === this.doorOptionKey) return;
@@ -453,11 +628,13 @@ class BookcaseConfigurator {
       });
     });
 
-    this.host.querySelector("[data-live-width]").textContent = `${this.state.width}"`;
-    this.host.querySelector("[data-live-height]").textContent = `${this.state.height}"`;
-    this.host.querySelector("[data-live-depth]").textContent = `${this.state.depth}"`;
-    this.host.querySelector("[data-live-sections]").textContent = this.state.sections;
-    this.host.querySelector("[data-live-shelves]").textContent = this.state.shelves;
+    const liveWidth = this.host.querySelector("[data-live-width]");
+    const liveHeight = this.host.querySelector("[data-live-height]");
+    const liveDepth = this.host.querySelector("[data-live-depth]");
+    if (liveWidth) liveWidth.textContent = `${this.state.width}"`;
+    if (liveHeight) liveHeight.textContent = `${this.state.height}"`;
+    if (liveDepth) liveDepth.textContent = `${this.state.depth}"`;
+    this.syncViewButtons();
   }
 
   syncMatchingInputs(fieldName, value, source) {
@@ -475,19 +652,39 @@ class BookcaseConfigurator {
     });
   }
 
+  syncPresetCards() {
+    const currentPreset = layoutPresets.find((preset) => preset.id === this.state.layoutPreset) || layoutPresets[1];
+    const activePreset = this.host.querySelector("[data-active-preset]");
+    const presetDescription = this.host.querySelector("[data-preset-description]");
+    if (activePreset) activePreset.textContent = currentPreset.name;
+    if (presetDescription) presetDescription.textContent = currentPreset.description;
+    this.host.querySelectorAll("[data-preset-id]").forEach((button) => {
+      const isActive = button.dataset.presetId === currentPreset.id;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", String(isActive));
+    });
+  }
+
   updatePriceAndSummary() {
     const price = calculateBookcasePrice(this.state);
+    const currentPreset = layoutPresets.find((preset) => preset.id === this.state.layoutPreset);
     this.elements.price.textContent = formatPrice(price);
-    this.host.querySelector("[data-summary-size]").textContent = `${this.state.width}" W x ${this.state.height}" H x ${this.state.depth}" D`;
-    this.host.querySelector("[data-summary-layout]").textContent = `${this.state.sections} sections / ${this.state.shelves} shelves`;
-    this.host.querySelector("[data-summary-lower]").textContent = this.state.lowerCabinets
-      ? `${this.state.doorCount} ${optionLabels.doorStyle[this.state.doorStyle]} doors`
-      : "Open lower shelves";
-    this.host.querySelector("[data-summary-finish]").textContent = optionLabels.finish[this.state.finish];
-    this.host.querySelector("[data-summary-hardware]").textContent = this.state.lowerCabinets
-      ? optionLabels.hardware[this.state.hardware]
-      : "No lower hardware";
-    this.host.querySelector("[data-summary-details]").textContent = `${optionLabels.crownStyle[this.state.crownStyle]} / ${optionLabels.baseStyle[this.state.baseStyle]}`;
+    this.setOptionalText("[data-summary-preset]", currentPreset?.name || "Custom");
+    this.setOptionalText("[data-summary-sections]", this.state.sections);
+    this.setOptionalText("[data-summary-shelves]", this.state.shelves);
+    this.setOptionalText("[data-summary-finish]", optionLabels.finish[this.state.finish]);
+    const hardwareLabel = optionLabels.hardware[this.state.hardware]
+      .replace("Brushed ", "")
+      .replace("Slim ", "")
+      .replace(" / No Hardware", "")
+      .replace(" / Push Latch", "");
+    this.setOptionalText("[data-summary-hardware]", `${hardwareLabel} / ${optionLabels.lighting[this.state.lighting]}`);
+    this.setOptionalText("[data-summary-installation]", optionLabels.installation[this.state.installation].replace(" Installation", ""));
+  }
+
+  setOptionalText(selector, value) {
+    const element = this.host.querySelector(selector);
+    if (element) element.textContent = value;
   }
 
   saveCurrentDesign() {
@@ -543,12 +740,17 @@ class BookcaseViewer3D {
     this.camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1;
+    this.renderer.setClearColor(0xe1d2c0, 0);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.root.appendChild(this.renderer.domElement);
     this.target = new THREE.Vector3(0, inchesToUnits(this.state.height) / 2, 0);
-    this.theta = -0.58;
-    this.phi = 0.23;
+    this.theta = -0.28;
+    this.phi = 0.16;
+    this.previewMode = false;
     this.baseRadius = 12;
     this.radius = 0;
     this.drag = null;
@@ -564,11 +766,13 @@ class BookcaseViewer3D {
   }
 
   setupEnvironment() {
-    this.scene.add(new THREE.HemisphereLight(0xfffbf2, 0xc3b3a0, 2.4));
-    const key = new THREE.DirectionalLight(0xfff4df, 3.1);
-    key.position.set(5, 8, 7);
+    this.scene.fog = new THREE.FogExp2(0xe4d7c8, 0.018);
+    this.scene.add(new THREE.HemisphereLight(0xfff3e3, 0xb8a088, 1.65));
+
+    const key = new THREE.DirectionalLight(0xffecd0, 3.45);
+    key.position.set(4.8, 8.2, 6.8);
     key.castShadow = true;
-    key.shadow.mapSize.set(1024, 1024);
+    key.shadow.mapSize.set(1536, 1536);
     key.shadow.camera.near = 1;
     key.shadow.camera.far = 30;
     key.shadow.camera.left = -9;
@@ -577,22 +781,34 @@ class BookcaseViewer3D {
     key.shadow.camera.bottom = -9;
     this.scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0xffffff, 0.72);
-    fill.position.set(-5, 4, 5);
+    const fill = new THREE.DirectionalLight(0xfffbf3, 0.62);
+    fill.position.set(-6, 4.6, 5.4);
     this.scene.add(fill);
 
-    const floorMaterial = new THREE.MeshStandardMaterial({ color: 0xeee4d6, roughness: 0.86, metalness: 0 });
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(28, 22), floorMaterial);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.set(0, -0.02, 1.2);
-    floor.receiveShadow = true;
-    this.scene.add(floor);
+    const rim = new THREE.DirectionalLight(0xfff6e8, 0.46);
+    rim.position.set(-4.8, 5.8, -4.6);
+    this.scene.add(rim);
 
-    const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xf7f2ea, roughness: 0.92, metalness: 0 });
-    const wall = new THREE.Mesh(new THREE.PlaneGeometry(28, 14), wallMaterial);
-    wall.position.set(0, 5.3, -2.4);
-    wall.receiveShadow = true;
-    this.scene.add(wall);
+    const leftGlow = new THREE.PointLight(0xffe8c3, 0.42, 18);
+    leftGlow.position.set(-7.2, 4.2, 2.7);
+    this.scene.add(leftGlow);
+
+    const rightGlow = new THREE.PointLight(0xffe8c3, 0.34, 18);
+    rightGlow.position.set(7.2, 4.0, 2.8);
+    this.scene.add(rightGlow);
+
+    const contactMaterial = new THREE.MeshBasicMaterial({
+      map: createContactShadowTexture(),
+      transparent: true,
+      opacity: 0.22,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    const contact = new THREE.Mesh(new THREE.PlaneGeometry(42, 16), contactMaterial);
+    contact.rotation.x = -Math.PI / 2;
+    contact.position.set(0, -0.038, 0.25);
+    this.scene.add(contact);
+
   }
 
   bindControls() {
@@ -625,7 +841,7 @@ class BookcaseViewer3D {
 
     this.root.addEventListener("wheel", (event) => {
       event.preventDefault();
-      this.radius = clamp(this.radius + event.deltaY * 0.008, this.baseRadius * 0.58, this.baseRadius * 1.85);
+      this.radius = clamp(this.radius + event.deltaY * 0.008, this.baseRadius * 0.82, this.baseRadius * 1.58);
       this.updateCamera();
     }, { passive: false });
 
@@ -634,8 +850,8 @@ class BookcaseViewer3D {
       else if (event.key === "ArrowRight") this.theta += 0.12;
       else if (event.key === "ArrowUp") this.phi = clamp(this.phi + 0.08, -0.12, 0.72);
       else if (event.key === "ArrowDown") this.phi = clamp(this.phi - 0.08, -0.12, 0.72);
-      else if (event.key === "+" || event.key === "=") this.radius = clamp(this.radius * 0.9, this.baseRadius * 0.58, this.baseRadius * 1.85);
-      else if (event.key === "-") this.radius = clamp(this.radius * 1.1, this.baseRadius * 0.58, this.baseRadius * 1.85);
+      else if (event.key === "+" || event.key === "=") this.radius = clamp(this.radius * 0.9, this.baseRadius * 0.82, this.baseRadius * 1.58);
+      else if (event.key === "-") this.radius = clamp(this.radius * 1.1, this.baseRadius * 0.82, this.baseRadius * 1.58);
       else return;
       event.preventDefault();
       this.updateCamera();
@@ -650,10 +866,23 @@ class BookcaseViewer3D {
       this.theta = Math.PI / 2;
       this.phi = 0.12;
     } else {
-      this.theta = -0.58;
-      this.phi = 0.23;
+      this.theta = -0.28;
+      this.phi = 0.16;
     }
     if (view === "reset") this.radius = this.baseRadius;
+    this.updateCamera();
+  }
+
+  setPreviewMode(enabled) {
+    this.previewMode = Boolean(enabled);
+    this.renderer.toneMappingExposure = this.previewMode ? 1.18 : 1;
+    if (this.previewMode) {
+      this.theta = -0.22;
+      this.phi = 0.1;
+      this.radius = this.baseRadius * 0.78;
+    } else {
+      this.radius = clamp(this.radius || this.baseRadius, this.baseRadius * 0.82, this.baseRadius * 1.58);
+    }
     this.updateCamera();
   }
 
@@ -673,8 +902,10 @@ class BookcaseViewer3D {
     const heightUnits = inchesToUnits(this.state.height);
     const depthUnits = inchesToUnits(this.state.depth);
     this.target.set(0, heightUnits * 0.52, 0);
-    this.baseRadius = Math.max(widthUnits, heightUnits, depthUnits) * 2.08;
-    this.radius = this.radius ? clamp(this.radius, this.baseRadius * 0.7, this.baseRadius * 1.85) : this.baseRadius;
+    const aspect = this.camera.aspect || 1;
+    const compositionScale = aspect < 0.95 ? 3.35 : aspect < 1.15 ? 2.55 : 1.84;
+    this.baseRadius = Math.max(widthUnits, heightUnits, depthUnits) * compositionScale;
+    this.radius = this.previewMode ? this.baseRadius * 0.78 : this.radius ? clamp(this.radius, this.baseRadius * 0.82, this.baseRadius * 1.58) : this.baseRadius;
     this.updateCamera();
   }
 
@@ -726,7 +957,12 @@ function buildBookcaseModel(state) {
 
   for (let index = 1; index < config.sections; index += 1) {
     const x = -innerWidth / 2 + index * (bayWidth + partition) - partition / 2;
-    addBox(group, [partition, height - outer * 2, shelfDepth], [x, height / 2, 0.015], materials.case);
+    if (isPartitionInsideClearOpening(config, index)) {
+      const lowerPartitionHeight = Math.max(0.4, lowerHeight - outer * 0.8);
+      addBox(group, [partition, lowerPartitionHeight, shelfDepth], [x, lowerPartitionHeight / 2 + outer * 0.2, 0.015], materials.case);
+    } else {
+      addBox(group, [partition, height - outer * 2, shelfDepth], [x, height / 2, 0.015], materials.case);
+    }
   }
 
   const upperBottom = config.lowerCabinets ? lowerHeight + shelf * 0.8 : outer + shelf * 0.5;
@@ -734,86 +970,455 @@ function buildBookcaseModel(state) {
   const shelfSpan = Math.max(0.8, upperTop - upperBottom);
 
   for (let bay = 0; bay < config.sections; bay += 1) {
-    const bayX = -innerWidth / 2 + bayWidth / 2 + bay * (bayWidth + partition);
+    const bayX = getBayX(bay, innerWidth, bayWidth, partition);
     for (let row = 1; row <= config.shelves; row += 1) {
-      const y = upperBottom + (shelfSpan / (config.shelves + 1)) * row;
-      addBox(group, [bayWidth, shelf, shelfDepth], [bayX, y, 0.02], materials.case);
+      if (shouldSkipShelf(config, bay, row)) continue;
+      const y = getShelfY(config, bay, row, upperBottom, upperTop, shelfSpan);
+      addShelf(group, materials, [bayWidth, shelf, shelfDepth], [bayX, y, 0.02], depth);
       addShelfObjects(group, materials, bayX, bayWidth, y + shelf / 2, shelfDepth, bay, row);
     }
   }
+  const metrics = { width, height, depth, outer, partition, shelf, lowerHeight, innerWidth, bayWidth, shelfDepth, upperBottom, upperTop, shelfSpan };
 
   if (config.lowerCabinets) {
-    addLowerCabinets(group, config, materials, width, depth, lowerHeight);
+    addLowerCabinets(group, config, materials, metrics);
   } else {
-    addBox(group, [innerWidth, shelf, shelfDepth], [0, lowerHeight + 0.32, 0.02], materials.case);
+    addShelf(group, materials, [innerWidth, shelf, shelfDepth], [0, lowerHeight + 0.32, 0.02], depth);
   }
+
+  if (config.centerOpening) addMediaOpening(group, config, materials, metrics);
+  if (config.deskOpening) addDeskNiche(group, config, materials, metrics);
+  if (config.layoutType === "display_wall") addDisplayWallMoment(group, config, materials, metrics);
+  if (config.layoutType === "asymmetric" || config.layoutType === "walnut_modern") addAsymmetricAccents(group, config, materials, metrics);
+  if (config.layoutType === "glass_library") addUpperGlassDoors(group, config, materials, metrics);
+  if (config.tallDoors) addTallStorageDoors(group, config, materials, metrics);
+  addPuckLights(group, config, materials, metrics);
+  addFaceFrameDetails(group, config, materials, metrics);
 
   addCrown(group, config, materials, width, height, depth);
   addBase(group, config, materials, width, depth);
   return group;
 }
 
-function addLowerCabinets(group, config, materials, width, depth, lowerHeight) {
-  const faceZ = depth / 2 + 0.034;
-  const railHeight = 0.16;
-  addBox(group, [width - 0.05, railHeight, depth], [0, lowerHeight + railHeight / 2, 0], materials.case);
-  addBox(group, [width - 0.1, lowerHeight - 0.12, 0.06], [0, lowerHeight / 2 + 0.03, faceZ - 0.01], materials.case);
+function createContactShadowTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 128;
+  const context = canvas.getContext("2d");
+  const gradient = context.createRadialGradient(128, 64, 8, 128, 64, 120);
+  gradient.addColorStop(0, "rgba(20, 16, 12, 0.22)");
+  gradient.addColorStop(0.42, "rgba(20, 16, 12, 0.09)");
+  gradient.addColorStop(1, "rgba(20, 16, 12, 0)");
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
 
-  const doorGap = 0.035;
-  const doorWidth = (width - 0.34) / config.doorCount;
-  const doorHeight = lowerHeight - 0.46;
-  const startX = -width / 2 + 0.17 + doorWidth / 2;
-  for (let index = 0; index < config.doorCount; index += 1) {
-    const x = startX + index * doorWidth;
-    addDoor(group, config, materials, [doorWidth - doorGap, doorHeight, 0.065], [x, lowerHeight / 2 + 0.04, faceZ]);
-    addHardware(group, config, materials, x, doorWidth, lowerHeight, faceZ + 0.05, index);
+function getBayX(bay, innerWidth, bayWidth, partition) {
+  return -innerWidth / 2 + bayWidth / 2 + bay * (bayWidth + partition);
+}
+
+function addShelf(group, materials, size, position, depth) {
+  const [width, height, shelfDepth] = size;
+  const [x, y, z] = position;
+  addBox(group, size, position, materials.case);
+  addBox(group, [width + 0.035, height * 1.15, 0.075], [x, y, depth / 2 - 0.045], materials.case, false);
+  addBox(group, [width + 0.02, 0.018, 0.035], [x, y - height / 2 - 0.018, depth / 2 - 0.08], materials.reveal, false);
+  addBox(group, [width * 0.94, 0.018, 0.035], [x, y + height / 2 + 0.018, -shelfDepth / 2 + 0.08], materials.shadow, false);
+}
+
+function addShelfPinRows(group, config, materials, metrics) {
+  if (metrics.shelfSpan < 1.2) return;
+  const holeCount = Math.min(9, Math.max(5, config.shelves + 3));
+  const frontZ = metrics.depth / 2 - 0.23;
+  const backZ = metrics.depth / 2 - 0.43;
+  const yStart = metrics.upperBottom + 0.34;
+  const yEnd = metrics.upperTop - 0.34;
+  const span = Math.max(0.1, yEnd - yStart);
+
+  for (let bay = 0; bay < config.sections; bay += 1) {
+    if (config.tallDoors && (bay === 0 || bay === config.sections - 1)) continue;
+    const bayX = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
+    const sideXs = [bayX - metrics.bayWidth / 2 + 0.035, bayX + metrics.bayWidth / 2 - 0.035];
+    for (let index = 0; index < holeCount; index += 1) {
+      const y = yStart + (span / Math.max(1, holeCount - 1)) * index;
+      sideXs.forEach((x) => {
+        addBox(group, [0.008, 0.024, 0.024], [x, y, frontZ], materials.pinHole, false);
+        addBox(group, [0.008, 0.02, 0.02], [x, y, backZ], materials.pinHole, false);
+      });
+    }
   }
 }
 
-function addDoor(group, config, materials, size, position) {
+function addFaceFrameDetails(group, config, materials, metrics) {
+  const faceZ = metrics.depth / 2 + 0.018;
+  const stile = 0.105;
+  const topY = metrics.height - metrics.outer / 2;
+  const bottomY = metrics.outer / 2;
+
+  addBox(group, [stile, metrics.height - metrics.outer * 0.5, 0.08], [-metrics.width / 2 + metrics.outer / 2, metrics.height / 2, faceZ], materials.case, false);
+  addBox(group, [stile, metrics.height - metrics.outer * 0.5, 0.08], [metrics.width / 2 - metrics.outer / 2, metrics.height / 2, faceZ], materials.case, false);
+  for (let index = 1; index < config.sections; index += 1) {
+    const x = -metrics.innerWidth / 2 + index * (metrics.bayWidth + metrics.partition) - metrics.partition / 2;
+    if (isPartitionInsideClearOpening(config, index)) {
+      const lowerStileHeight = Math.max(0.4, metrics.lowerHeight + 0.08);
+      addBox(group, [stile, lowerStileHeight, 0.08], [x, lowerStileHeight / 2, faceZ], materials.case, false);
+    } else {
+      addBox(group, [stile, metrics.height - metrics.outer * 1.7, 0.08], [x, metrics.height / 2, faceZ], materials.case, false);
+    }
+  }
+
+  addBox(group, [metrics.width + 0.03, 0.095, 0.08], [0, topY, faceZ], materials.case, false);
+  addBox(group, [metrics.width + 0.03, 0.08, 0.08], [0, bottomY, faceZ], materials.case, false);
+  if (config.lowerCabinets) {
+    addBox(group, [metrics.width + 0.02, 0.115, 0.085], [0, metrics.lowerHeight + 0.05, faceZ + 0.01], materials.case, false);
+  }
+}
+
+function getCenterRange(config, wide = false) {
+  const span = wide && config.sections >= 4 ? 2 : 1;
+  const start = Math.max(0, Math.floor((config.sections - span) / 2));
+  return { start, end: start + span - 1, span };
+}
+
+function isBayInRange(bay, range) {
+  return bay >= range.start && bay <= range.end;
+}
+
+function isPartitionInsideClearOpening(config, partitionIndex) {
+  if (!config.centerOpening && !config.deskOpening) return false;
+  const range = getCenterRange(config, true);
+  return partitionIndex > range.start && partitionIndex <= range.end;
+}
+
+function shouldSkipShelf(config, bay, row) {
+  if (config.tallDoors && (bay === 0 || bay === config.sections - 1)) return true;
+  if (config.centerOpening && isBayInRange(bay, getCenterRange(config, true))) return true;
+  if (config.deskOpening && isBayInRange(bay, getCenterRange(config, true))) return true;
+  if (config.layoutType === "display_wall" && bay === Math.floor(config.sections / 2) && row === 2) return true;
+  if (config.layoutType === "asymmetric") return (bay === 1 && row === 2) || (bay === 2 && row === 3) || (bay === 3 && row === 1);
+  if (config.layoutType === "walnut_modern") return (bay === 0 && row === 3) || (bay === 2 && row === 1);
+  return false;
+}
+
+function getShelfY(config, bay, row, upperBottom, upperTop, shelfSpan) {
+  const baseY = getAlignedShelfY(config, row, upperBottom, shelfSpan);
+  if (config.layoutType !== "asymmetric") return baseY;
+  const offsets = [0.12, -0.16, 0.08, -0.08, 0.15, -0.12];
+  const offset = offsets[bay % offsets.length] * (shelfSpan / Math.max(config.shelves, 2));
+  return clamp(baseY + offset, upperBottom + 0.28, upperTop - 0.18);
+}
+
+function getAlignedShelfY(config, row, upperBottom, shelfSpan) {
+  return upperBottom + (shelfSpan / (config.shelves + 1)) * row;
+}
+
+function addMediaOpening(group, config, materials, metrics) {
+  const range = getCenterRange(config, true);
+  const openingWidth = metrics.bayWidth * range.span + metrics.partition * (range.span - 1);
+  const centerBay = (range.start + range.end) / 2;
+  const x = getBayX(centerBay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
+  const backZ = -metrics.depth / 2 + 0.088;
+  const screenWidth = openingWidth * 0.76;
+  const screenHeight = Math.min(metrics.shelfSpan * 0.52, 2.5);
+  const screenY = metrics.upperBottom + metrics.shelfSpan * 0.42;
+
+  addBox(group, [openingWidth, metrics.shelf * 1.1, metrics.shelfDepth], [x, metrics.upperBottom + metrics.shelf * 0.5, 0.02], materials.case);
+  addBox(group, [openingWidth, metrics.shelf * 1.1, metrics.shelfDepth], [x, metrics.upperTop - metrics.shelf * 1.2, 0.02], materials.case);
+  addBox(group, [screenWidth + 0.16, screenHeight + 0.16, 0.035], [x, screenY, backZ - 0.012], materials.edgeBlock, false);
+  addBox(group, [screenWidth, screenHeight, 0.04], [x, screenY, backZ + 0.016], materials.shadow, false);
+  addBox(group, [screenWidth * 0.74, 0.03, 0.032], [x, screenY - screenHeight / 2 - 0.14, backZ + 0.032], materials.case, false);
+}
+
+function addDeskNiche(group, config, materials, metrics) {
+  const range = getCenterRange(config, true);
+  const openingWidth = metrics.bayWidth * range.span + metrics.partition * (range.span - 1);
+  const centerBay = (range.start + range.end) / 2;
+  const x = getBayX(centerBay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
+  const faceZ = metrics.depth / 2 + 0.035;
+  const deskY = metrics.lowerHeight + 0.22;
+  const backHeight = Math.min(metrics.shelfSpan * 0.5, 2.45);
+  const backY = deskY + backHeight / 2 + 0.08;
+
+  addBox(group, [openingWidth + 0.1, 0.12, metrics.depth - 0.08], [x, deskY, 0.03], materials.edgeBlock);
+  addBox(group, [openingWidth * 0.94, backHeight, 0.045], [x, backY, -metrics.depth / 2 + 0.09], materials.inset, false);
+  addBox(group, [openingWidth * 0.22, 0.035, 0.12], [x - openingWidth * 0.18, deskY + 0.08, faceZ], materials.hardware, false);
+}
+
+function addDisplayWallMoment(group, config, materials, metrics) {
+  const bay = Math.floor(config.sections / 2);
+  const bayX = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
+  const faceZ = metrics.depth / 2 - 0.14;
+  const artHeight = Math.min(metrics.shelfSpan * 0.34, 1.52);
+  const artY = metrics.upperBottom + metrics.shelfSpan * 0.45;
+
+  addBox(group, [metrics.bayWidth * 0.52, artHeight, 0.045], [bayX, artY, faceZ], materials.inset, false);
+  addBox(group, [metrics.bayWidth * 0.62, 0.045, 0.055], [bayX, artY + artHeight / 2 + 0.04, faceZ + 0.02], materials.edgeBlock, false);
+  addBox(group, [metrics.bayWidth * 0.62, 0.045, 0.055], [bayX, artY - artHeight / 2 - 0.04, faceZ + 0.02], materials.edgeBlock, false);
+  addBox(group, [0.045, artHeight + 0.12, 0.055], [bayX - metrics.bayWidth * 0.31, artY, faceZ + 0.02], materials.edgeBlock, false);
+  addBox(group, [0.045, artHeight + 0.12, 0.055], [bayX + metrics.bayWidth * 0.31, artY, faceZ + 0.02], materials.edgeBlock, false);
+}
+
+function addAsymmetricAccents(group, config, materials, metrics) {
+  const dividerHeight = metrics.shelfSpan * 0.42;
+  const dividerY = metrics.upperBottom + metrics.shelfSpan * 0.46;
+  const bay = Math.min(config.sections - 1, 2);
+  const bayX = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
+  addBox(group, [0.08, dividerHeight, metrics.shelfDepth], [bayX + metrics.bayWidth * 0.22, dividerY, 0.02], materials.case);
+
+  const longBay = config.sections > 3 ? 0 : config.sections - 1;
+  const longBayX = getBayX(longBay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
+  addBox(group, [metrics.bayWidth * 0.7, 0.08, metrics.shelfDepth], [longBayX + metrics.bayWidth * 0.08, metrics.upperBottom + metrics.shelfSpan * 0.68, 0.02], materials.case);
+}
+
+function addUpperGlassDoors(group, config, materials, metrics) {
+  const faceZ = metrics.depth / 2 + 0.04;
+  const glassConfig = { ...config, doorStyle: "glass" };
+  const doorHeight = metrics.upperTop - metrics.upperBottom + 0.08;
+  for (let bay = 0; bay < config.sections; bay += 1) {
+    const x = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
+    const doorCenterY = metrics.upperBottom + doorHeight / 2 - 0.02;
+    const openingSide = bay % 2 === 0 ? "right" : "left";
+    addDoor(group, glassConfig, materials, [metrics.bayWidth * 0.94, doorHeight, 0.045], [x, doorCenterY, faceZ], { openingSide });
+    addHardware(group, config, materials, {
+      doorX: x,
+      doorWidth: metrics.bayWidth * 0.94,
+      doorHeight,
+      doorCenterY,
+      z: faceZ + 0.05,
+      openingSide,
+      placement: "upper",
+      scale: 0.82
+    });
+  }
+}
+
+function addTallStorageDoors(group, config, materials, metrics) {
+  const faceZ = metrics.depth / 2 + 0.06;
+  const doorHeight = metrics.height - metrics.outer * 2 - 0.34;
+  [0, config.sections - 1].forEach((bay, index) => {
+    const x = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
+    const doorCenterY = metrics.outer + doorHeight / 2 + 0.18;
+    const openingSide = index === 0 ? "right" : "left";
+    addDoor(group, config, materials, [metrics.bayWidth * 0.94, doorHeight, 0.07], [x, doorCenterY, faceZ], { openingSide });
+    addHardware(group, config, materials, {
+      doorX: x,
+      doorWidth: metrics.bayWidth * 0.94,
+      doorHeight,
+      doorCenterY,
+      z: faceZ + 0.052,
+      openingSide,
+      placement: "tall",
+      scale: 0.92
+    });
+  });
+}
+
+function addPuckLights(group, config, materials, metrics) {
+  if (config.lighting === "no_lighting") return;
+  const lightBays = [];
+  for (let bay = 0; bay < config.sections; bay += 1) {
+    if (config.tallDoors && (bay === 0 || bay === config.sections - 1)) continue;
+    if (config.centerOpening && isBayInRange(bay, getCenterRange(config, true))) continue;
+    if (config.deskOpening && isBayInRange(bay, getCenterRange(config, true))) continue;
+    lightBays.push(bay);
+  }
+
+  if (config.lighting === "vertical_led") {
+    addVerticalLedStrips(group, materials, metrics, lightBays);
+    return;
+  }
+
+  if (config.lighting === "shelf_accent") {
+    addShelfAccentLights(group, config, materials, metrics, lightBays);
+    return;
+  }
+
+  lightBays.slice(0, 6).forEach((bay) => {
+    const x = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
+    const y = metrics.upperTop - metrics.shelf * 0.62;
+    const z = metrics.depth / 2 - 0.26;
+    const puck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.018, 18), materials.puckLight);
+    puck.position.set(x, y, z);
+    puck.castShadow = false;
+    group.add(puck);
+
+    const glow = new THREE.PointLight(0xffd89b, 0.18, 1.8);
+    glow.position.set(x, y - 0.14, z - 0.08);
+    group.add(glow);
+  });
+}
+
+function addVerticalLedStrips(group, materials, metrics, lightBays) {
+  const stripHeight = Math.max(0.8, metrics.upperTop - metrics.upperBottom - 0.36);
+  const stripY = metrics.upperBottom + stripHeight / 2 + 0.16;
+  const stripZ = metrics.depth / 2 - 0.22;
+
+  lightBays.forEach((bay, index) => {
+    const bayX = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
+    const sideOffset = metrics.bayWidth / 2 - 0.065;
+    const stripXs = [bayX - sideOffset, bayX + sideOffset];
+    stripXs.forEach((x) => {
+      addBox(group, [0.018, stripHeight, 0.018], [x, stripY, stripZ], materials.ledStrip, false);
+    });
+    if (index < 4) {
+      const glow = new THREE.PointLight(0xffd4a2, 0.11, 2.4);
+      glow.position.set(bayX, stripY, stripZ - 0.14);
+      group.add(glow);
+    }
+  });
+}
+
+function addShelfAccentLights(group, config, materials, metrics, lightBays) {
+  lightBays.forEach((bay) => {
+    const bayX = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
+    for (let row = 1; row <= Math.min(config.shelves, 5); row += 1) {
+      if (shouldSkipShelf(config, bay, row)) continue;
+      const shelfY = getShelfY(config, bay, row, metrics.upperBottom, metrics.upperTop, metrics.shelfSpan);
+      const y = shelfY - metrics.shelf * 0.68;
+      const z = metrics.depth / 2 - 0.16;
+      addBox(group, [metrics.bayWidth * 0.62, 0.014, 0.018], [bayX, y, z], materials.ledStrip, false);
+      if (row <= 2) {
+        const glow = new THREE.PointLight(0xffd7a0, 0.065, 1.35);
+        glow.position.set(bayX, y - 0.08, z - 0.08);
+        group.add(glow);
+      }
+    }
+  });
+}
+
+function addLowerCabinets(group, config, materials, metrics) {
+  const { width, depth, lowerHeight } = metrics;
+  const faceZ = depth / 2 + 0.034;
+  const topRailHeight = 0.16;
+  const sideReveal = 0.18;
+  const pairGap = 0.045;
+  const centerGap = 0.026;
+  const pairCount = Math.max(1, Math.floor(config.doorCount / 2));
+  const doorHeight = lowerHeight - 0.24;
+  const doorCenterY = lowerHeight / 2 + 0.015;
+  addBox(group, [width - 0.05, topRailHeight, depth], [0, lowerHeight + topRailHeight / 2, 0], materials.case);
+  addBox(group, [width - 0.1, lowerHeight - 0.14, 0.06], [0, lowerHeight / 2 + 0.02, faceZ - 0.025], materials.reveal);
+
+  const addDoorPair = (pairX, pairWidth) => {
+    const doorWidth = (pairWidth - centerGap) / 2;
+    const leftX = pairX - centerGap / 2 - doorWidth / 2;
+    const rightX = pairX + centerGap / 2 + doorWidth / 2;
+
+    addBox(group, [0.018, doorHeight + 0.08, 0.025], [pairX, doorCenterY, faceZ + 0.025], materials.reveal, false);
+    addDoor(group, config, materials, [doorWidth, doorHeight, 0.07], [leftX, doorCenterY, faceZ], { openingSide: "right" });
+    addDoor(group, config, materials, [doorWidth, doorHeight, 0.07], [rightX, doorCenterY, faceZ], { openingSide: "left" });
+    addHardware(group, config, materials, {
+      doorX: leftX,
+      doorWidth,
+      doorHeight,
+      doorCenterY,
+      z: faceZ + 0.052,
+      openingSide: "right",
+      placement: "lower"
+    });
+    addHardware(group, config, materials, {
+      doorX: rightX,
+      doorWidth,
+      doorHeight,
+      doorCenterY,
+      z: faceZ + 0.052,
+      openingSide: "left",
+      placement: "lower"
+    });
+  };
+
+  if (config.tallDoors && config.sections > 2) {
+    for (let bay = 1; bay < config.sections - 1; bay += 1) {
+      addDoorPair(getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition), metrics.bayWidth * 0.92);
+    }
+    return;
+  }
+
+  const usableWidth = width - sideReveal * 2 - pairGap * Math.max(0, pairCount - 1);
+  const pairWidth = usableWidth / pairCount;
+  const startX = -width / 2 + sideReveal + pairWidth / 2;
+
+  for (let pair = 0; pair < pairCount; pair += 1) {
+    addDoorPair(startX + pair * (pairWidth + pairGap), pairWidth);
+  }
+}
+
+function addDoor(group, config, materials, size, position, options = {}) {
   const [width, height, depth] = size;
+  const revealPad = 0.026;
+  addBox(group, [width + revealPad, height + revealPad, 0.018], [position[0], position[1], position[2] - depth / 2 - 0.006], materials.reveal, false);
   addBox(group, size, position, materials.case);
   const z = position[2] + depth / 2 + 0.012;
-  const rail = config.doorStyle === "slim_shaker" ? 0.055 : 0.09;
+  const rail = config.doorStyle === "slim_shaker" ? 0.062 : 0.105;
 
   if (config.doorStyle === "flat") {
-    addBox(group, [width * 0.86, 0.018, 0.022], [position[0], position[1] + height * 0.35, z], materials.edgeBlock, false);
-    addBox(group, [width * 0.86, 0.018, 0.022], [position[0], position[1] - height * 0.35, z], materials.edgeBlock, false);
+    addBox(group, [width * 0.92, 0.014, 0.022], [position[0], position[1] + height * 0.38, z], materials.reveal, false);
+    addBox(group, [width * 0.92, 0.014, 0.022], [position[0], position[1] - height * 0.38, z], materials.reveal, false);
+    if (options.openingSide) {
+      const stileX = position[0] + (options.openingSide === "right" ? width / 2 - 0.045 : -width / 2 + 0.045);
+      addBox(group, [0.014, height * 0.82, 0.024], [stileX, position[1], z + 0.004], materials.reveal, false);
+    }
     return;
   }
 
   if (config.doorStyle === "glass") {
-    addBox(group, [width - rail * 2.4, height - rail * 2.4, 0.025], [position[0], position[1], z + 0.004], materials.glass, false);
+    addBox(group, [width - rail * 2.25, height - rail * 2.25, 0.026], [position[0], position[1], z + 0.004], materials.glass, false);
+    addBox(group, [0.012, height - rail * 2.55, 0.03], [position[0], position[1], z + 0.025], materials.glassLine, false);
   } else {
-    addBox(group, [width - rail * 2.2, height - rail * 2.2, 0.025], [position[0], position[1], z - 0.004], materials.inset, false);
+    addBox(group, [width - rail * 2.3, height - rail * 2.3, 0.028], [position[0], position[1], z - 0.006], materials.inset, false);
   }
 
-  addBox(group, [width - rail, rail, 0.032], [position[0], position[1] + height / 2 - rail / 2, z], materials.case, false);
-  addBox(group, [width - rail, rail, 0.032], [position[0], position[1] - height / 2 + rail / 2, z], materials.case, false);
-  addBox(group, [rail, height - rail, 0.032], [position[0] - width / 2 + rail / 2, position[1], z], materials.case, false);
-  addBox(group, [rail, height - rail, 0.032], [position[0] + width / 2 - rail / 2, position[1], z], materials.case, false);
+  addBox(group, [width - rail, rail, 0.038], [position[0], position[1] + height / 2 - rail / 2, z], materials.case, false);
+  addBox(group, [width - rail, rail, 0.038], [position[0], position[1] - height / 2 + rail / 2, z], materials.case, false);
+  addBox(group, [rail, height - rail, 0.038], [position[0] - width / 2 + rail / 2, position[1], z], materials.case, false);
+  addBox(group, [rail, height - rail, 0.038], [position[0] + width / 2 - rail / 2, position[1], z], materials.case, false);
 }
 
-function addHardware(group, config, materials, doorX, doorWidth, lowerHeight, z, index) {
+function addHardware(group, config, materials, options) {
   if (config.hardware === "push_latch") return;
-  const handedOffset = index % 2 === 0 ? doorWidth * 0.26 : -doorWidth * 0.26;
-  const x = doorX + handedOffset;
-  const y = lowerHeight * 0.53;
+  const {
+    doorX,
+    doorWidth,
+    doorHeight,
+    doorCenterY,
+    z,
+    openingSide,
+    placement,
+    scale = 1
+  } = options;
+  const railInset = clamp(doorWidth * 0.18, 0.105, 0.18);
+  const x = doorX + (openingSide === "right" ? doorWidth / 2 - railInset : -doorWidth / 2 + railInset);
+  const doorTop = doorCenterY + doorHeight / 2;
+  const y = placement === "tall"
+    ? clamp(3.55, doorCenterY - doorHeight * 0.2, doorTop - 0.42)
+    : placement === "upper"
+      ? doorCenterY - doorHeight * 0.1
+      : doorTop - clamp(doorHeight * 0.18, 0.24, 0.34);
 
-  if (config.hardware === "matte_black_pull") {
-    const pull = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.42, 16), materials.hardware);
+  if (config.hardware.endsWith("_pull")) {
+    const pullHeight = (placement === "tall" ? 0.66 : 0.46) * scale;
+    const pull = new THREE.Mesh(new THREE.CylinderGeometry(0.023 * scale, 0.023 * scale, pullHeight, 16), materials.hardware);
     pull.position.set(x, y, z + 0.028);
     pull.castShadow = true;
     group.add(pull);
-    addBox(group, [0.08, 0.035, 0.045], [x, y + 0.16, z + 0.01], materials.hardware, false);
-    addBox(group, [0.08, 0.035, 0.045], [x, y - 0.16, z + 0.01], materials.hardware, false);
+    addBox(group, [0.062 * scale, 0.03 * scale, 0.048], [x, y + pullHeight * 0.36, z + 0.01], materials.hardware, false);
+    addBox(group, [0.062 * scale, 0.03 * scale, 0.048], [x, y - pullHeight * 0.36, z + 0.01], materials.hardware, false);
     return;
   }
 
-  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.065, 18, 14), materials.hardware);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.058 * scale, 20, 16), materials.hardware);
   knob.position.set(x, y, z + 0.04);
   knob.castShadow = true;
   group.add(knob);
+  const rosette = new THREE.Mesh(new THREE.CylinderGeometry(0.072 * scale, 0.072 * scale, 0.014, 22), materials.hardware);
+  rosette.rotation.x = Math.PI / 2;
+  rosette.position.set(x, y, z + 0.016);
+  rosette.castShadow = true;
+  group.add(rosette);
 }
 
 function addCrown(group, config, materials, width, height, depth) {
@@ -850,9 +1455,9 @@ function addBase(group, config, materials, width, depth) {
 }
 
 function addShelfObjects(group, materials, bayX, bayWidth, shelfY, shelfDepth, bay, row) {
-  if ((bay + row) % 2 === 0) {
+  if ((bay + row) % 2 === 0 || row === 1) {
     const bookCount = Math.min(5, Math.max(2, Math.floor(bayWidth * 1.7)));
-    const start = bayX - bayWidth * 0.28;
+    const start = bayX - bayWidth * (row % 2 === 0 ? 0.28 : 0.12);
     for (let index = 0; index < bookCount; index += 1) {
       const bookWidth = 0.055 + (index % 2) * 0.02;
       const bookHeight = 0.34 + ((index + bay) % 3) * 0.05;
@@ -866,32 +1471,136 @@ function addShelfObjects(group, materials, bayX, bayWidth, shelfY, shelfDepth, b
     vase.castShadow = true;
     group.add(vase);
   }
+
+  if ((bay + row) % 4 === 1) {
+    const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.13, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.48), materials.decorBowl);
+    bowl.position.set(bayX - bayWidth * 0.22, shelfY + 0.08, shelfDepth / 2 - 0.3);
+    bowl.scale.y = 0.48;
+    bowl.castShadow = true;
+    group.add(bowl);
+  }
+
+  if ((bay + row) % 5 === 2) {
+    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.13, 14), materials.decorVase);
+    pot.position.set(bayX + bayWidth * 0.18, shelfY + 0.065, shelfDepth / 2 - 0.28);
+    pot.castShadow = true;
+    group.add(pot);
+
+    [
+      [0, 0.2, 0, 1.15, 0.7, 0.9],
+      [-0.08, 0.18, 0.02, 0.95, 0.62, 0.78],
+      [0.08, 0.17, -0.01, 0.95, 0.6, 0.78]
+    ].forEach(([xOffset, yOffset, zOffset, scaleX, scaleY, scaleZ]) => {
+      const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 8), materials.decorPlant);
+      leaf.position.set(bayX + bayWidth * 0.18 + xOffset, shelfY + yOffset, shelfDepth / 2 - 0.28 + zOffset);
+      leaf.scale.set(scaleX, scaleY, scaleZ);
+      leaf.castShadow = true;
+      group.add(leaf);
+    });
+  }
+}
+
+function createFinishTexture(finish, baseColor, lineColor, surface) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 96;
+  canvas.height = 192;
+  const context = canvas.getContext("2d");
+  const base = `#${baseColor.toString(16).padStart(6, "0")}`;
+  const line = `#${lineColor.toString(16).padStart(6, "0")}`;
+  context.fillStyle = base;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  const isWood = finish === "natural_oak" || finish === "walnut";
+  const lineCount = isWood ? 58 : 34;
+  context.lineCap = "round";
+  for (let index = 0; index < lineCount; index += 1) {
+    const x = (index * 17 + (index % 7) * 5) % canvas.width;
+    const wobble = isWood ? 8 : 2;
+    const alpha = isWood ? 0.11 + (index % 5) * 0.025 : 0.025 + (index % 3) * 0.012;
+    context.strokeStyle = hexToRgba(line, alpha);
+    context.lineWidth = isWood ? 0.8 + (index % 3) * 0.55 : 0.45;
+    context.beginPath();
+    context.moveTo(x, -10);
+    for (let y = 0; y <= canvas.height + 12; y += 24) {
+      const wave = Math.sin((y + index * 13) * 0.055) * wobble;
+      context.lineTo(x + wave, y);
+    }
+    context.stroke();
+  }
+
+  if (isWood) {
+    context.fillStyle = hexToRgba(line, finish === "walnut" ? 0.08 : 0.05);
+    for (let index = 0; index < 20; index += 1) {
+      const x = (index * 23) % canvas.width;
+      const y = (index * 37) % canvas.height;
+      context.beginPath();
+      context.ellipse(x, y, 2 + (index % 4), 10 + (index % 5) * 2, 0.25, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(surface === "back" ? 2.4 : 1.4, surface === "inset" ? 2.2 : 3.4);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function hexToRgba(hex, alpha) {
+  const value = Number.parseInt(hex.slice(1), 16);
+  const red = (value >> 16) & 255;
+  const green = (value >> 8) & 255;
+  const blue = value & 255;
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
 }
 
 function createMaterials(palette, config) {
   const hardwareColor = {
     brass_knob: 0xb38a4a,
+    brass_pull: 0xb38a4a,
+    matte_black_knob: 0x171614,
     matte_black_pull: 0x171614,
-    polished_nickel_knob: 0xd8d9d2,
+    polished_nickel_pull: 0xd8d9d2,
     push_latch: 0xb38a4a
   }[config.hardware];
+  const isBlackHardware = config.hardware.startsWith("matte_black");
+  const isNickelHardware = config.hardware.startsWith("polished_nickel");
+  const caseTexture = createFinishTexture(config.finish, palette.case, palette.edge, "case");
+  const sideTexture = createFinishTexture(config.finish, palette.side, palette.edge, "side");
+  const backTexture = createFinishTexture(config.finish, palette.inside, palette.edge, "back");
+  const insetTexture = createFinishTexture(config.finish, palette.inside, palette.edge, "inset");
+  const isWood = config.finish === "natural_oak" || config.finish === "walnut";
+  const paintBump = isWood ? 0.018 : 0.004;
 
   return {
-    case: new THREE.MeshStandardMaterial({ color: palette.case, roughness: 0.66, metalness: 0 }),
-    side: new THREE.MeshStandardMaterial({ color: palette.side, roughness: 0.72, metalness: 0 }),
-    back: new THREE.MeshStandardMaterial({ color: palette.inside, roughness: 0.84, metalness: 0 }),
-    inset: new THREE.MeshStandardMaterial({ color: palette.inside, roughness: 0.78, metalness: 0 }),
-    edgeBlock: new THREE.MeshStandardMaterial({ color: palette.edge, roughness: 0.84, metalness: 0 }),
+    case: new THREE.MeshStandardMaterial({ color: palette.case, map: caseTexture, bumpMap: caseTexture, bumpScale: paintBump, roughness: isWood ? 0.64 : 0.74, metalness: 0 }),
+    side: new THREE.MeshStandardMaterial({ color: palette.side, map: sideTexture, bumpMap: sideTexture, bumpScale: paintBump, roughness: isWood ? 0.68 : 0.78, metalness: 0 }),
+    back: new THREE.MeshStandardMaterial({ color: palette.inside, map: backTexture, bumpMap: backTexture, bumpScale: paintBump * 0.7, roughness: 0.88, metalness: 0 }),
+    inset: new THREE.MeshStandardMaterial({ color: palette.inside, map: insetTexture, bumpMap: insetTexture, bumpScale: paintBump * 0.8, roughness: 0.82, metalness: 0 }),
+    edgeBlock: new THREE.MeshStandardMaterial({ color: palette.edge, roughness: 0.86, metalness: 0 }),
     shadow: new THREE.MeshStandardMaterial({ color: 0x24211d, roughness: 0.88, metalness: 0 }),
-    glass: new THREE.MeshPhysicalMaterial({ color: 0xdedbd2, roughness: 0.18, metalness: 0, transparent: true, opacity: 0.42 }),
-    hardware: new THREE.MeshStandardMaterial({ color: hardwareColor, roughness: config.hardware === "matte_black_pull" ? 0.62 : 0.34, metalness: config.hardware === "matte_black_pull" ? 0.2 : 0.82 }),
+    reveal: new THREE.MeshStandardMaterial({ color: 0x5a4939, roughness: 0.92, metalness: 0 }),
+    pinHole: new THREE.MeshStandardMaterial({ color: 0x4e4034, roughness: 0.96, metalness: 0 }),
+    glass: new THREE.MeshPhysicalMaterial({ color: 0xe7edf0, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.1, depthWrite: false, clearcoat: 0.85, clearcoatRoughness: 0.08, transmission: 0.35 }),
+    glassLine: new THREE.MeshPhysicalMaterial({ color: 0xfffbf2, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.16, depthWrite: false, clearcoat: 0.8 }),
+    hardware: new THREE.MeshStandardMaterial({
+      color: hardwareColor,
+      roughness: isBlackHardware ? 0.62 : isNickelHardware ? 0.26 : 0.34,
+      metalness: isBlackHardware ? 0.2 : 0.84
+    }),
     edgeLine: new THREE.LineBasicMaterial({ color: palette.edge, transparent: true, opacity: config.finish === "soft_black" ? 0.24 : 0.18 }),
+    puckLight: new THREE.MeshStandardMaterial({ color: 0xfff1cd, emissive: 0xffc46f, emissiveIntensity: 1.4, roughness: 0.35, metalness: 0.1 }),
+    ledStrip: new THREE.MeshStandardMaterial({ color: 0xffedca, emissive: 0xffc77c, emissiveIntensity: 1.2, roughness: 0.28, metalness: 0.1 }),
     decorBooks: [
       new THREE.MeshStandardMaterial({ color: 0x8a7966, roughness: 0.8 }),
       new THREE.MeshStandardMaterial({ color: 0x4b4a43, roughness: 0.82 }),
       new THREE.MeshStandardMaterial({ color: 0xb69662, roughness: 0.72 })
     ],
-    decorVase: new THREE.MeshStandardMaterial({ color: 0x7b756a, roughness: 0.86 })
+    decorVase: new THREE.MeshStandardMaterial({ color: 0x7b756a, roughness: 0.86 }),
+    decorBowl: new THREE.MeshStandardMaterial({ color: 0x9d8264, roughness: 0.76 }),
+    decorPlant: new THREE.MeshStandardMaterial({ color: 0x4e633f, roughness: 0.82 })
   };
 }
 
@@ -918,7 +1627,12 @@ function disposeObject(object) {
     if (child.geometry) child.geometry.dispose();
     if (child.material) {
       const materials = Array.isArray(child.material) ? child.material : [child.material];
-      materials.forEach((material) => material.dispose?.());
+      materials.forEach((material) => {
+        ["map", "bumpMap", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap"].forEach((key) => {
+          material[key]?.dispose?.();
+        });
+        material.dispose?.();
+      });
     }
   });
 }
