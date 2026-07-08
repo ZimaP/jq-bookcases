@@ -9,12 +9,14 @@ export const defaultBookcaseConfig = {
   lowerCabinets: true,
   centerOpening: false,
   deskOpening: false,
+  featureOpening: false,
   tallDoors: false,
   doorStyle: "shaker",
   doorCount: 8,
   hardware: "brass_knob",
   lighting: "warm_pucks",
-  finish: "alabaster",
+  finish: "white_dove",
+  customPaintColor: "",
   crownStyle: "classic_crown",
   baseStyle: "plinth",
   installation: "professional",
@@ -22,11 +24,12 @@ export const defaultBookcaseConfig = {
 };
 
 export const finishOptions = [
-  { value: "alabaster", label: "Painted Alabaster", swatch: "#eee6dc" },
-  { value: "warm_white", label: "Warm White / Greige", swatch: "#f7efe4" },
-  { value: "soft_black", label: "Charcoal / Soft Black", swatch: "#25231f" },
-  { value: "natural_oak", label: "Natural Oak", swatch: "#c59a61" },
-  { value: "walnut", label: "Walnut", swatch: "#6e4b35" }
+  { value: "white_dove", label: "White Dove OC-17", swatch: "#eee9dc" },
+  { value: "simply_white", label: "Simply White OC-117", swatch: "#f5f0e4" },
+  { value: "chantilly_lace", label: "Chantilly Lace OC-65", swatch: "#f7f5ee" },
+  { value: "swiss_coffee", label: "Swiss Coffee OC-45", swatch: "#ebe2d1" },
+  { value: "revere_pewter", label: "Revere Pewter HC-172", swatch: "#b8afa2" },
+  { value: "custom_bm", label: "Custom Color", swatch: "#d3c8b8", custom: true }
 ];
 
 export const hardwareOptions = [
@@ -91,8 +94,9 @@ export const layoutPresets = [
       lowerCabinets: false,
       centerOpening: false,
       deskOpening: false,
+      featureOpening: false,
       tallDoors: false,
-      finish: "alabaster",
+      finish: "white_dove",
       crownStyle: "slim_cap",
       baseStyle: "plinth"
     }
@@ -111,12 +115,13 @@ export const layoutPresets = [
       lowerCabinets: true,
       centerOpening: false,
       deskOpening: false,
+      featureOpening: false,
       tallDoors: false,
       doorStyle: "shaker",
       doorCount: 8,
       hardware: "brass_knob",
       lighting: "warm_pucks",
-      finish: "alabaster",
+      finish: "white_dove",
       crownStyle: "classic_crown",
       baseStyle: "plinth"
     }
@@ -135,8 +140,9 @@ export const layoutPresets = [
       lowerCabinets: false,
       centerOpening: false,
       deskOpening: false,
+      featureOpening: false,
       tallDoors: false,
-      finish: "warm_white",
+      finish: "swiss_coffee",
       crownStyle: "classic_crown",
       baseStyle: "plinth"
     }
@@ -155,12 +161,13 @@ export const layoutPresets = [
       lowerCabinets: true,
       centerOpening: true,
       deskOpening: false,
+      featureOpening: false,
       tallDoors: false,
       doorStyle: "flat",
       doorCount: 8,
       hardware: "matte_black_pull",
       lighting: "shelf_accent",
-      finish: "warm_white",
+      finish: "swiss_coffee",
       crownStyle: "modern_soffit",
       baseStyle: "plinth"
     }
@@ -179,12 +186,13 @@ export const layoutPresets = [
       lowerCabinets: true,
       centerOpening: false,
       deskOpening: true,
+      featureOpening: false,
       tallDoors: false,
       doorStyle: "shaker",
       doorCount: 8,
       hardware: "brass_knob",
       lighting: "warm_pucks",
-      finish: "alabaster",
+      finish: "white_dove",
       crownStyle: "slim_cap",
       baseStyle: "plinth"
     }
@@ -203,12 +211,13 @@ export const layoutPresets = [
       lowerCabinets: true,
       centerOpening: false,
       deskOpening: false,
+      featureOpening: false,
       tallDoors: false,
       doorStyle: "slim_shaker",
       doorCount: 6,
       hardware: "brass_knob",
       lighting: "warm_pucks",
-      finish: "warm_white",
+      finish: "simply_white",
       crownStyle: "slim_cap",
       baseStyle: "furniture_base"
     }
@@ -227,12 +236,13 @@ export const layoutPresets = [
       lowerCabinets: true,
       centerOpening: false,
       deskOpening: false,
+      featureOpening: false,
       tallDoors: false,
       doorStyle: "glass",
       doorCount: 8,
       hardware: "polished_nickel_pull",
       lighting: "shelf_accent",
-      finish: "alabaster",
+      finish: "chantilly_lace",
       crownStyle: "classic_crown",
       baseStyle: "plinth"
     }
@@ -251,12 +261,13 @@ export const layoutPresets = [
       lowerCabinets: true,
       centerOpening: false,
       deskOpening: false,
+      featureOpening: false,
       tallDoors: false,
       doorStyle: "flat",
       doorCount: 8,
       hardware: "push_latch",
       lighting: "no_lighting",
-      finish: "walnut",
+      finish: "revere_pewter",
       crownStyle: "none",
       baseStyle: "toe_kick"
     }
@@ -275,38 +286,40 @@ export const layoutPresets = [
       lowerCabinets: true,
       centerOpening: false,
       deskOpening: false,
+      featureOpening: false,
       tallDoors: true,
       doorStyle: "shaker",
       doorCount: 6,
       hardware: "brass_pull",
       lighting: "vertical_led",
-      finish: "warm_white",
+      finish: "swiss_coffee",
       crownStyle: "classic_crown",
       baseStyle: "plinth"
     }
   },
   {
-    id: "walnut-modern",
-    name: "Walnut Modern Wall",
-    description: "Warm walnut built-in with clean details.",
+    id: "feature-wall",
+    name: "Fireplace / Feature Wall",
+    description: "Shelving around a framed feature opening.",
     config: {
-      layoutType: "walnut_modern",
-      width: 120,
+      layoutType: "feature_wall",
+      width: 132,
       height: 96,
       depth: 15,
-      sections: 4,
+      sections: 5,
       shelves: 4,
       lowerCabinets: true,
       centerOpening: false,
       deskOpening: false,
+      featureOpening: true,
       tallDoors: false,
-      doorStyle: "flat",
+      doorStyle: "shaker",
       doorCount: 8,
-      hardware: "matte_black_pull",
-      lighting: "shelf_accent",
-      finish: "walnut",
-      crownStyle: "none",
-      baseStyle: "toe_kick"
+      hardware: "brass_knob",
+      lighting: "warm_pucks",
+      finish: "swiss_coffee",
+      crownStyle: "classic_crown",
+      baseStyle: "plinth"
     }
   }
 ];
@@ -345,12 +358,14 @@ export function normalizeBookcaseConfig(config = {}) {
     lowerCabinets: merged.lowerCabinets !== false && merged.lowerCabinets !== "false",
     centerOpening: merged.centerOpening === true || merged.centerOpening === "true",
     deskOpening: merged.deskOpening === true || merged.deskOpening === "true",
+    featureOpening: merged.featureOpening === true || merged.featureOpening === "true",
     tallDoors: merged.tallDoors === true || merged.tallDoors === "true",
     doorStyle: normalizeOption(merged.doorStyle, doorStyleOptions, defaultBookcaseConfig.doorStyle),
     doorCount,
     hardware: normalizeOption(merged.hardware, hardwareOptions, defaultBookcaseConfig.hardware),
     lighting: normalizeOption(merged.lighting, lightingOptions, defaultBookcaseConfig.lighting),
     finish: normalizeOption(merged.finish, finishOptions, defaultBookcaseConfig.finish),
+    customPaintColor: typeof merged.customPaintColor === "string" ? merged.customPaintColor.trim().slice(0, 80) : "",
     crownStyle: normalizeOption(merged.crownStyle, crownStyleOptions, defaultBookcaseConfig.crownStyle),
     baseStyle: normalizeOption(merged.baseStyle, baseStyleOptions, defaultBookcaseConfig.baseStyle),
     installation: normalizeOption(merged.installation, installationOptions, defaultBookcaseConfig.installation),
@@ -362,6 +377,11 @@ function normalizeLegacyConfigValues(config) {
   const next = { ...config };
   if (next.hardware === "polished_nickel_knob") next.hardware = "polished_nickel_pull";
   if (next.lighting === "shelf_wash") next.lighting = "shelf_accent";
+  if (next.finish === "alabaster") next.finish = "white_dove";
+  if (next.finish === "warm_white" || next.finish === "warm-white") next.finish = "swiss_coffee";
+  if (next.finish === "soft_black" || next.finish === "black" || next.finish === "natural_oak" || next.finish === "natural-oak" || next.finish === "walnut") {
+    next.finish = "revere_pewter";
+  }
   return next;
 }
 

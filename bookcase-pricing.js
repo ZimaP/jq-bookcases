@@ -8,12 +8,13 @@ export function calculateBookcasePrice(config) {
   const shelfCost = state.sections * state.shelves * 55;
   const lowerCabinetCost = state.lowerCabinets ? state.width * 18 : 0;
   const finishMultiplier = {
-    alabaster: 1,
-    warm_white: 1,
-    soft_black: 1.08,
-    natural_oak: 1.18,
-    walnut: 1.28
-  }[state.finish];
+    white_dove: 1,
+    simply_white: 1,
+    chantilly_lace: 1,
+    swiss_coffee: 1,
+    revere_pewter: 1,
+    custom_bm: 1
+  }[state.finish] || 1;
   const doorStyleAdd = state.lowerCabinets ? {
     shaker: 0,
     flat: 0,

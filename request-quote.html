@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Request a Quote | JQ Bookcases</title>
+  <meta name="description" content="Tell JQ Bookcases about your space and receive a personalized estimate for a custom-quality built-in bookcase.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=bm-finishes-20260708c">
+  <script src="site.js?v=bm-finishes-20260708c" defer></script>
+</head>
+<body data-page="quote">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div data-site-header></div>
+
+  <main id="main" class="interior-page">
+    <section class="interior-hero interior-hero-centered">
+      <div class="container">
+        <span class="section-kicker">Request Quote</span>
+        <h1>Request a Quote</h1>
+        <p class="lead">Tell us about your space and we'll prepare a personalized estimate for your built-in bookcase.</p>
+      </div>
+    </section>
+
+    <section class="interior-section">
+      <div class="container quote-layout">
+        <form class="glass-panel quote-form" data-quote-form>
+          <p class="status-message" data-quote-status role="status"></p>
+
+          <fieldset>
+            <legend>Project Information</legend>
+            <div class="quote-grid">
+              <label>Full Name<input name="fullName" type="text" autocomplete="name" required></label>
+              <label>Email Address<input name="email" type="email" autocomplete="email" required></label>
+              <label>Phone Number<input name="phone" type="tel" autocomplete="tel"></label>
+              <label>Project Address<input name="address" type="text" autocomplete="street-address"></label>
+              <label>City<input name="city" type="text" autocomplete="address-level2"></label>
+              <label>State<input name="state" type="text" autocomplete="address-level1"></label>
+              <label>Zip Code<input name="zip" type="text" inputmode="numeric" autocomplete="postal-code"></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Project Details</legend>
+            <div class="quote-grid">
+              <label>Room / Space
+                <select name="room">
+                  <option>Living Room</option>
+                  <option>Home Office</option>
+                  <option>Library</option>
+                  <option>Media Wall</option>
+                  <option>Fireplace Wall</option>
+                  <option>Other</option>
+                </select>
+              </label>
+              <label>Wall Width<input name="wallWidth" type="text" placeholder='Example: 120"'></label>
+              <label>Ceiling Height<input name="ceilingHeight" type="text" placeholder='Example: 96"'></label>
+              <label>Desired Bookcase Height<input name="bookcaseHeight" type="text" placeholder='Example: 96"'></label>
+              <label>Desired Depth<input name="depth" type="text" placeholder='Example: 15"'></label>
+              <label>Lower Cabinets
+                <select name="lowerCabinets">
+                  <option>Yes</option>
+                  <option>No</option>
+                  <option>Not Sure</option>
+                </select>
+              </label>
+              <label class="field-full">Preferred Layout
+                <select name="layout">
+                  <option>Classic Open Shelves</option>
+                  <option>Lower Cabinets</option>
+                  <option>Full Library Wall</option>
+                  <option>Media Wall</option>
+                  <option>Desk Niche</option>
+                  <option>Display Wall</option>
+                  <option>Glass Door Library</option>
+                  <option>Asymmetrical Modern</option>
+                  <option>Tall Storage + Shelves</option>
+                  <option>Fireplace / Feature Wall</option>
+                  <option>Not Sure</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Paint Finish</legend>
+            <div class="quote-grid">
+              <label class="field-full">Preferred Benjamin Moore Color
+                <select name="paintFinish" data-quote-finish>
+                  <option value="white_dove">White Dove OC-17</option>
+                  <option value="simply_white">Simply White OC-117</option>
+                  <option value="chantilly_lace">Chantilly Lace OC-65</option>
+                  <option value="swiss_coffee">Swiss Coffee OC-45</option>
+                  <option value="revere_pewter">Revere Pewter HC-172</option>
+                  <option value="custom_bm">Custom Benjamin Moore Color</option>
+                </select>
+              </label>
+              <label class="field-full" data-custom-bm-quote hidden>Benjamin Moore color name/code
+                <input name="customBmColor" type="text" placeholder="Example: Hale Navy HC-154" autocomplete="off">
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Options</legend>
+            <div class="quote-check-grid">
+              <label><input type="checkbox" name="options" value="lighting"> Integrated lighting</label>
+              <label><input type="checkbox" name="options" value="crown"> Crown molding</label>
+              <label><input type="checkbox" name="options" value="hardware"> Decorative hardware</label>
+              <label><input type="checkbox" name="options" value="shelves"> Adjustable shelves</label>
+              <label><input type="checkbox" name="options" value="tv"> Around TV</label>
+              <label><input type="checkbox" name="options" value="fireplace"> Around fireplace</label>
+              <label><input type="checkbox" name="options" value="guidance"> Need design guidance</label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Timeline / Notes</legend>
+            <div class="quote-grid">
+              <label>Desired timeline
+                <select name="timeline">
+                  <option>As soon as possible</option>
+                  <option>1-2 months</option>
+                  <option>3-6 months</option>
+                  <option>Just planning</option>
+                </select>
+              </label>
+              <label class="field-full">Additional notes
+                <textarea name="notes" placeholder="Tell us anything important about your space, style, or project."></textarea>
+              </label>
+            </div>
+          </fieldset>
+
+          <button class="button button-primary" type="submit">Submit Quote Request</button>
+        </form>
+
+        <aside class="quote-side">
+          <section class="glass-panel photo-card">
+            <span class="line-icon" data-icon="layers"></span>
+            <h2>Project Photos</h2>
+            <div class="upload-placeholder" aria-hidden="true">
+              <span>Upload area</span>
+              <small>Visual placeholder for the next backend phase</small>
+            </div>
+            <p>Photos help us understand the space, wall conditions, outlets, ceiling height, and surrounding trim.</p>
+          </section>
+
+          <section class="glass-panel next-card">
+            <span class="section-kicker">What happens next</span>
+            <ol class="next-list">
+              <li><span>1</span><p>We review your dimensions and photos.</p></li>
+              <li><span>2</span><p>We confirm layout, paint finish, and details.</p></li>
+              <li><span>3</span><p>You receive a personalized quote.</p></li>
+              <li><span>4</span><p>We schedule measurement and installation planning.</p></li>
+            </ol>
+            <p class="disclaimer">Final pricing depends on field measurements, selected paint color, finish level, site conditions, and installation requirements.</p>
+          </section>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <div data-site-footer></div>
+</body>
+</html>

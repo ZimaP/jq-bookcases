@@ -15,16 +15,33 @@ import {
   lightingOptions,
   normalizeBookcaseConfig,
   optionLabels
-} from "./bookcase-config.js";
-import { calculateBookcasePrice, formatPrice } from "./bookcase-pricing.js";
+} from "./bookcase-config.js?v=bm-finishes-20260708c";
+import { calculateBookcasePrice, formatPrice } from "./bookcase-pricing.js?v=bm-finishes-20260708c";
 
 const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "doorCount"]);
+const benjaminMooreColorsUrl = "https://www.benjaminmoore.com/en-us/paint-colors";
+const lineIconSvg = (paths) => `
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    ${paths}
+  </svg>
+`;
+const builderIcons = {
+  reset: lineIconSvg(`<path d="M4.8 9.1a7.4 7.4 0 1 1 1.9 7.6"/><path d="M4.8 9.1V4.7"/><path d="M4.8 9.1h4.4"/>`),
+  cube: lineIconSvg(`<path d="M12 3.7 19.2 8v8L12 20.3 4.8 16V8L12 3.7z"/><path d="M4.8 8 12 12.3 19.2 8"/><path d="M12 12.3v8"/>`),
+  front: lineIconSvg(`<rect x="5.2" y="4.6" width="13.6" height="14.8" rx="1.2"/><path d="M8.2 8.2h7.6"/><path d="M8.2 12h7.6"/><path d="M8.2 15.8h7.6"/>`),
+  threeQuarter: lineIconSvg(`<path d="M7 6.2h9.8l2.5 2.5v8.9H7z"/><path d="M16.8 6.2v11.4"/><path d="M7 9h12.3"/><path d="M10 12.6h4"/><path d="M10 15.6h4"/>`),
+  side: lineIconSvg(`<path d="M6.4 5.2h9.8l1.4 1.4v12.2H7.8l-1.4-1.4z"/><path d="M7.8 6.6h9.8"/><path d="M7.8 6.6v12.2"/><path d="M10.4 9.8h4.8"/><path d="M10.4 14.2h4.8"/>`),
+  delivery: lineIconSvg(`<path d="M3.8 7.1h9.5v8.2H3.8z"/><path d="M13.3 10h3.6l3 3v2.3h-6.6z"/><path d="M5.8 17.2a1.8 1.8 0 1 0 3.6 0 1.8 1.8 0 0 0-3.6 0z"/><path d="M15.5 17.2a1.8 1.8 0 1 0 3.6 0 1.8 1.8 0 0 0-3.6 0z"/><path d="M3.8 15.3h2"/><path d="M9.4 15.3h6.1"/>`),
+  install: lineIconSvg(`<path d="m4.5 19.5 6.7-6.7"/><path d="m9.1 10.7 4.1-4.1a3.7 3.7 0 0 1 5-.3l-3.1 3.1 2.2 2.2 3.1-3.1a3.7 3.7 0 0 1-.3 5l-4.1 4.1"/><path d="m4.8 4.7 5.6 5.6"/><path d="M3.9 6.8 6.8 3.9"/>`),
+  warranty: lineIconSvg(`<path d="M12 3.6 18.7 6v5.2c0 4.5-2.8 7.7-6.7 9.2-3.9-1.5-6.7-4.7-6.7-9.2V6L12 3.6z"/><path d="m8.8 12.1 2.1 2.1 4.4-4.6"/>`)
+};
 const finishPalette = {
-  alabaster: { case: 0xf3eadf, side: 0xd9c9b7, inside: 0xcdbcaa, edge: 0x89725b },
-  warm_white: { case: 0xf8f0e6, side: 0xe1d2bf, inside: 0xd8c6b2, edge: 0x95785f },
-  soft_black: { case: 0x262119, side: 0x12100d, inside: 0x1d1914, edge: 0x6f6559 },
-  natural_oak: { case: 0xc49a64, side: 0xa97b4a, inside: 0xb78b58, edge: 0x6c472d },
-  walnut: { case: 0x704b33, side: 0x4c3021, inside: 0x5f402c, edge: 0xb68b55 }
+  white_dove: { case: 0xd6d0c3, side: 0xc3baab, inside: 0xa39a8d, edge: 0x776e63 },
+  simply_white: { case: 0xe1dbd0, side: 0xc9c0b1, inside: 0xa89f92, edge: 0x7d7468 },
+  chantilly_lace: { case: 0xe7e3da, side: 0xcdc6ba, inside: 0xaaa398, edge: 0x7c746a },
+  swiss_coffee: { case: 0xd2c7b7, side: 0xbdb2a2, inside: 0x9f9588, edge: 0x776d61 },
+  revere_pewter: { case: 0xb4aca0, side: 0x9f978b, inside: 0x82796f, edge: 0x665d53 },
+  custom_bm: { case: 0xd3c8b8, side: 0xbeb3a3, inside: 0x9f9588, edge: 0x756b5f }
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -74,7 +91,7 @@ class BookcaseConfigurator {
     this.host.innerHTML = `
       <div class="builder-shell">
         <section class="studio-intro-panel" aria-labelledby="${this.id}-title">
-          <h1 id="${this.id}-title">Design your bookcase your way.</h1>
+          <h1 id="${this.id}-title"><span>Design your</span><span>bookcase your way.</span></h1>
           <p>Create a custom built-in in minutes. Adjust sizes, layout, finishes and details to see your price update in real time.</p>
         </section>
 
@@ -82,10 +99,11 @@ class BookcaseConfigurator {
           <h2 id="${this.id}-viewer-title" class="sr-only">Interactive 3D built-in bookcase model</h2>
           <div class="viewer-stage" data-3d-viewer tabindex="0" role="img" aria-label="Interactive 3D built-in bookcase model"></div>
           <div class="view-controls" aria-label="3D view controls">
-            <button type="button" data-view="reset"><span class="view-icon view-icon-reset" aria-hidden="true"></span>Reset</button>
-            <button type="button" data-view="front"><span class="view-icon view-icon-front" aria-hidden="true"></span>Front</button>
-            <button type="button" data-view="three-quarter"><span class="view-icon view-icon-cube" aria-hidden="true"></span>3/4 View</button>
-            <button type="button" data-view="side"><span class="view-icon view-icon-side" aria-hidden="true"></span>Side</button>
+            <button type="button" data-view="reset"><span class="view-icon view-icon-reset" aria-hidden="true">${builderIcons.reset}</span>Reset</button>
+            <button type="button" data-view="three-dimensional"><span class="view-icon view-icon-cube" aria-hidden="true">${builderIcons.cube}</span>3D View</button>
+            <button type="button" data-view="front"><span class="view-icon view-icon-front" aria-hidden="true">${builderIcons.front}</span>Front</button>
+            <button type="button" data-view="three-quarter"><span class="view-icon view-icon-three-quarter" aria-hidden="true">${builderIcons.threeQuarter}</span>3/4 View</button>
+            <button type="button" data-view="side"><span class="view-icon view-icon-side" aria-hidden="true">${builderIcons.side}</span>Side</button>
           </div>
           <p class="viewer-helper-line">Drag to rotate &middot; Scroll to zoom &middot; Arrow keys rotate</p>
         </section>
@@ -110,6 +128,7 @@ class BookcaseConfigurator {
           <span>Estimated Price</span>
           <strong data-price>${formatPrice(calculateBookcasePrice(this.state))}</strong>
           <small>* Online pricing is an estimate.</small>
+          <small class="studio-price-disclaimer">Final pricing depends on field measurements, selected paint color, finish level, site conditions, and installation requirements.</small>
         </section>
         ${this.renderTrustRow()}
       </div>
@@ -162,6 +181,11 @@ class BookcaseConfigurator {
   }
 
   renderPresetTray() {
+    const presets = [
+      ...layoutPresets.filter((preset) => preset.id === defaultBookcaseConfig.layoutPreset),
+      ...layoutPresets.filter((preset) => preset.id !== defaultBookcaseConfig.layoutPreset)
+    ];
+
     return `
       <section class="preset-tray" aria-label="Layout presets">
         <div class="preset-tray-heading">
@@ -169,7 +193,7 @@ class BookcaseConfigurator {
           <button class="preset-scroll preset-scroll-prev" type="button" data-preset-scroll="-1" aria-label="Scroll layouts left"></button>
         </div>
         <div class="preset-list">
-          ${layoutPresets.map((preset, index) => `
+          ${presets.map((preset, index) => `
             <button class="preset-card" type="button" data-preset-id="${preset.id}" aria-label="Use ${preset.name} preset">
               ${this.renderPresetMini(preset, index + 1)}
               <span class="preset-card-title">${index + 1}. ${this.formatPresetName(preset.name)}</span>
@@ -192,7 +216,7 @@ class BookcaseConfigurator {
       <section class="studio-trust-row" aria-label="Builder assurances">
         ${items.map(([icon, title, copy]) => `
           <div class="studio-trust-item">
-            <span class="studio-trust-icon studio-trust-icon-${icon}" aria-hidden="true"></span>
+            <span class="studio-trust-icon studio-trust-icon-${icon}" aria-hidden="true">${builderIcons[icon]}</span>
             <span><strong>${title}</strong><small>${copy}</small></span>
           </div>
         `).join("")}
@@ -205,16 +229,24 @@ class BookcaseConfigurator {
       .replace("Media Wall with TV Opening", "Media Wall (TV Opening)")
       .replace("Home Office / Desk Niche", "Desk Niche (Home Office)")
       .replace("Modern Asymmetrical Shelves", "Asymmetrical Modern")
-      .replace("Tall Storage + Open Shelves", "Tall Storage + Shelves");
+      .replace("Tall Storage + Open Shelves", "Tall Storage + Shelves")
+      .replace("Fireplace / Feature Wall", "Feature Wall");
   }
 
   renderPresetMini(preset, index) {
     const sections = Math.min(5, preset.config.sections || 3);
     const shelves = Math.min(5, preset.config.shelves || 4);
+    const layoutType = preset.config.layoutType || preset.id;
+    const centerBay = Math.floor(sections / 2);
+    const featureSpan = preset.config.featureOpening && sections >= 4 ? 2 : 1;
+    const featureStart = Math.max(0, Math.floor((sections - featureSpan) / 2));
+    const featureEnd = featureStart + featureSpan - 1;
     const bays = Array.from({ length: sections }, (_, bayIndex) => {
-      const special = preset.config.centerOpening && bayIndex === Math.floor(sections / 2)
+      const special = preset.config.featureOpening && bayIndex >= featureStart && bayIndex <= featureEnd
+        ? " is-feature"
+        : preset.config.centerOpening && bayIndex === centerBay
         ? " is-media"
-        : preset.config.deskOpening && bayIndex === Math.floor(sections / 2)
+        : preset.config.deskOpening && bayIndex === centerBay
           ? " is-desk"
           : preset.config.tallDoors && (bayIndex === 0 || bayIndex === sections - 1)
             ? " is-tall"
@@ -223,11 +255,13 @@ class BookcaseConfigurator {
         ? `<span class="mini-tv" aria-hidden="true"></span>`
         : special.includes("is-desk")
           ? `<span class="mini-desk" aria-hidden="true"></span>`
-          : "";
+          : special.includes("is-feature") && bayIndex === featureStart
+            ? `<span class="mini-fireplace" aria-hidden="true"></span>`
+            : "";
       return `<span class="preset-bay${special}" style="--mini-shelves:${shelves}">${marker}</span>`;
     }).join("");
     return `
-      <span class="preset-mini" data-mini-layout="${preset.config.layoutType || preset.id}" data-mini-preset="${preset.id}">
+      <span class="preset-mini is-${layoutType.replace(/_/g, "-")}" data-mini-layout="${layoutType}" data-mini-preset="${preset.id}">
         <span class="preset-number">${index}</span>
         <span class="preset-crown"></span>
         <span class="preset-bays" style="grid-template-columns:repeat(${sections}, minmax(0, 1fr));">${bays}</span>
@@ -265,24 +299,32 @@ class BookcaseConfigurator {
   }
 
   renderFinishGroup() {
-    const order = ["alabaster", "warm_white", "natural_oak", "walnut", "soft_black"];
-    const orderedOptions = order.map((value) => finishOptions.find((option) => option.value === value)).filter(Boolean);
-    const swatches = orderedOptions.map((option) => `
-      <div class="finish-swatch">
-        <input id="${this.id}-finish-${option.value}" data-field="finish" name="${this.id}-finish" type="radio" value="${option.value}">
-        <label for="${this.id}-finish-${option.value}" title="${option.label}" aria-label="${option.label}">
-          <span class="finish-dot" style="--swatch:${option.swatch}"></span>
-          <span class="sr-only">${option.label}</span>
-        </label>
-      </div>
-    `).join("");
+    const swatches = finishOptions.map((option) => {
+      const swatchLabel = option.custom ? "Custom Benjamin Moore Color" : option.label;
+      return `
+        <div class="finish-swatch${option.custom ? " is-custom-finish" : ""}">
+          <input id="${this.id}-finish-${option.value}" data-field="finish" name="${this.id}-finish" type="radio" value="${option.value}">
+          <label for="${this.id}-finish-${option.value}" title="${swatchLabel}" aria-label="${swatchLabel}">
+            <span class="finish-dot" style="--swatch:${option.swatch}">${option.custom ? "<span class=\"finish-custom-plus\">+</span><span class=\"finish-custom-text\">Custom</span>" : ""}</span>
+            <span class="sr-only">${swatchLabel}</span>
+          </label>
+        </div>
+      `;
+    }).join("");
 
     return `
       <section class="control-section control-section-finish">
-        <h3>Finish</h3>
+        <h3>PAINT FINISH</h3>
+        <p class="finish-helper">Recommended Benjamin Moore colors.</p>
         <fieldset class="field">
-          <legend class="fieldset-label">Finish swatches</legend>
+          <legend class="fieldset-label">Choose from recommended Benjamin Moore colors or enter your preferred Benjamin Moore color.</legend>
           <div class="finish-grid">${swatches}</div>
+          <p class="selected-finish-line" data-selected-finish></p>
+          <div class="custom-paint-panel" data-custom-bm-fields hidden>
+            <label for="${this.id}-customPaintColor">Benjamin Moore color name/code</label>
+            <input id="${this.id}-customPaintColor" data-field="customPaintColor" type="text" maxlength="80" placeholder="Example: Hale Navy HC-154" autocomplete="off">
+            <a href="${benjaminMooreColorsUrl}" target="_blank" rel="noopener noreferrer">Browse Benjamin Moore colors</a>
+          </div>
         </fieldset>
       </section>
     `;
@@ -528,7 +570,7 @@ class BookcaseConfigurator {
 
   setView(view) {
     this.viewer.setView(view);
-    this.activeView = view === "reset" ? "three-quarter" : view;
+    this.activeView = view === "reset" ? "three-dimensional" : view;
     this.syncViewButtons();
   }
 
@@ -634,7 +676,25 @@ class BookcaseConfigurator {
     if (liveWidth) liveWidth.textContent = `${this.state.width}"`;
     if (liveHeight) liveHeight.textContent = `${this.state.height}"`;
     if (liveDepth) liveDepth.textContent = `${this.state.depth}"`;
+    this.syncPaintFinishControls();
     this.syncViewButtons();
+  }
+
+  getFinishLabel() {
+    const baseLabel = optionLabels.finish[this.state.finish] || "Paint finish";
+    if (this.state.finish !== "custom_bm") return baseLabel;
+    return this.state.customPaintColor ? `${baseLabel}: ${this.state.customPaintColor}` : `${baseLabel} selected`;
+  }
+
+  syncPaintFinishControls() {
+    const customSelected = this.state.finish === "custom_bm";
+    this.host.querySelector(".builder-shell")?.classList.toggle("is-custom-paint-selected", customSelected);
+
+    const selectedLine = this.host.querySelector("[data-selected-finish]");
+    if (selectedLine) selectedLine.textContent = `Selected: ${this.getFinishLabel()}`;
+
+    const customPanel = this.host.querySelector("[data-custom-bm-fields]");
+    if (customPanel) customPanel.hidden = !customSelected;
   }
 
   syncMatchingInputs(fieldName, value, source) {
@@ -672,7 +732,7 @@ class BookcaseConfigurator {
     this.setOptionalText("[data-summary-preset]", currentPreset?.name || "Custom");
     this.setOptionalText("[data-summary-sections]", this.state.sections);
     this.setOptionalText("[data-summary-shelves]", this.state.shelves);
-    this.setOptionalText("[data-summary-finish]", optionLabels.finish[this.state.finish]);
+    this.setOptionalText("[data-summary-finish]", this.getFinishLabel());
     const hardwareLabel = optionLabels.hardware[this.state.hardware]
       .replace("Brushed ", "")
       .replace("Slim ", "")
@@ -742,14 +802,14 @@ class BookcaseViewer3D {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1;
-    this.renderer.setClearColor(0xe1d2c0, 0);
+    this.renderer.toneMappingExposure = 1.08;
+    this.renderer.setClearColor(0x6a6258, 0);
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.root.appendChild(this.renderer.domElement);
     this.target = new THREE.Vector3(0, inchesToUnits(this.state.height) / 2, 0);
-    this.theta = -0.28;
-    this.phi = 0.16;
+    this.theta = -0.14;
+    this.phi = 0.12;
     this.previewMode = false;
     this.baseRadius = 12;
     this.radius = 0;
@@ -766,11 +826,11 @@ class BookcaseViewer3D {
   }
 
   setupEnvironment() {
-    this.scene.fog = new THREE.FogExp2(0xe4d7c8, 0.018);
-    this.scene.add(new THREE.HemisphereLight(0xfff3e3, 0xb8a088, 1.65));
+    this.scene.fog = new THREE.FogExp2(0x6b6359, 0.014);
+    this.scene.add(new THREE.HemisphereLight(0xf8f0e5, 0x665e55, 2.05));
 
-    const key = new THREE.DirectionalLight(0xffecd0, 3.45);
-    key.position.set(4.8, 8.2, 6.8);
+    const key = new THREE.DirectionalLight(0xf7ecdf, 3.62);
+    key.position.set(4.2, 8.6, 6.4);
     key.castShadow = true;
     key.shadow.mapSize.set(1536, 1536);
     key.shadow.camera.near = 1;
@@ -781,32 +841,32 @@ class BookcaseViewer3D {
     key.shadow.camera.bottom = -9;
     this.scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0xfffbf3, 0.62);
+    const fill = new THREE.DirectionalLight(0xeee6db, 1.14);
     fill.position.set(-6, 4.6, 5.4);
     this.scene.add(fill);
 
-    const rim = new THREE.DirectionalLight(0xfff6e8, 0.46);
+    const rim = new THREE.DirectionalLight(0xdccfc0, 0.7);
     rim.position.set(-4.8, 5.8, -4.6);
     this.scene.add(rim);
 
-    const leftGlow = new THREE.PointLight(0xffe8c3, 0.42, 18);
+    const leftGlow = new THREE.PointLight(0xe8dccb, 0.34, 18);
     leftGlow.position.set(-7.2, 4.2, 2.7);
     this.scene.add(leftGlow);
 
-    const rightGlow = new THREE.PointLight(0xffe8c3, 0.34, 18);
+    const rightGlow = new THREE.PointLight(0xe8dccb, 0.3, 18);
     rightGlow.position.set(7.2, 4.0, 2.8);
     this.scene.add(rightGlow);
 
     const contactMaterial = new THREE.MeshBasicMaterial({
       map: createContactShadowTexture(),
       transparent: true,
-      opacity: 0.22,
+      opacity: 0.32,
       depthWrite: false,
       side: THREE.DoubleSide
     });
-    const contact = new THREE.Mesh(new THREE.PlaneGeometry(42, 16), contactMaterial);
+    const contact = new THREE.Mesh(new THREE.PlaneGeometry(48, 18.5), contactMaterial);
     contact.rotation.x = -Math.PI / 2;
-    contact.position.set(0, -0.038, 0.25);
+    contact.position.set(0, -0.048, 0.3);
     this.scene.add(contact);
 
   }
@@ -865,9 +925,12 @@ class BookcaseViewer3D {
     } else if (view === "side") {
       this.theta = Math.PI / 2;
       this.phi = 0.12;
+    } else if (view === "three-quarter") {
+      this.theta = -0.14;
+      this.phi = 0.12;
     } else {
-      this.theta = -0.28;
-      this.phi = 0.16;
+      this.theta = -0.14;
+      this.phi = 0.12;
     }
     if (view === "reset") this.radius = this.baseRadius;
     this.updateCamera();
@@ -875,7 +938,7 @@ class BookcaseViewer3D {
 
   setPreviewMode(enabled) {
     this.previewMode = Boolean(enabled);
-    this.renderer.toneMappingExposure = this.previewMode ? 1.18 : 1;
+    this.renderer.toneMappingExposure = this.previewMode ? 1.18 : 1.08;
     if (this.previewMode) {
       this.theta = -0.22;
       this.phi = 0.1;
@@ -903,8 +966,9 @@ class BookcaseViewer3D {
     const depthUnits = inchesToUnits(this.state.depth);
     this.target.set(0, heightUnits * 0.52, 0);
     const aspect = this.camera.aspect || 1;
-    const compositionScale = aspect < 0.95 ? 3.35 : aspect < 1.15 ? 2.55 : 1.84;
-    this.baseRadius = Math.max(widthUnits, heightUnits, depthUnits) * compositionScale;
+    const compositionScale = aspect < 0.95 ? 3.25 : aspect < 1.15 ? 2.22 : 1.62;
+    const wideLayoutScale = 1 + Math.max(0, widthUnits - 10) * 0.08;
+    this.baseRadius = Math.max(widthUnits, heightUnits, depthUnits) * compositionScale * wideLayoutScale;
     this.radius = this.previewMode ? this.baseRadius * 0.78 : this.radius ? clamp(this.radius, this.baseRadius * 0.82, this.baseRadius * 1.58) : this.baseRadius;
     this.updateCamera();
   }
@@ -938,18 +1002,20 @@ function buildBookcaseModel(state) {
   const materials = createMaterials(palette, config);
   const group = new THREE.Group();
   group.userData.edgeLine = materials.edgeLine;
-  const width = inchesToUnits(config.width);
-  const height = inchesToUnits(config.height);
-  const depth = inchesToUnits(config.depth);
-  const outer = 0.16;
-  const partition = 0.115;
-  const shelf = 0.095;
-  const lowerHeight = config.lowerCabinets ? Math.min(2.55, height * 0.34) : outer + 0.12;
+  const measuredHeight = inchesToUnits(config.height);
+  const width = inchesToUnits(config.width) * 1.18;
+  const height = measuredHeight * 0.92;
+  const depth = inchesToUnits(config.depth) * 1.08;
+  const outer = 0.175;
+  const partition = 0.128;
+  const shelf = 0.105;
+  const lowerHeight = config.lowerCabinets ? Math.min(2.42, height * 0.318) : outer + 0.12;
   const innerWidth = width - outer * 2;
   const bayWidth = (innerWidth - partition * (config.sections - 1)) / config.sections;
   const shelfDepth = depth - 0.18;
 
   addBox(group, [width, height, 0.055], [0, height / 2, -depth / 2 + 0.028], materials.back, true);
+  addBox(group, [width * 0.96, height * 0.98, 0.018], [0, height / 2, -depth / 2 + 0.064], materials.backShade, false);
   addBox(group, [outer, height, depth], [-width / 2 + outer / 2, height / 2, 0], materials.side);
   addBox(group, [outer, height, depth], [width / 2 - outer / 2, height / 2, 0], materials.side);
   addBox(group, [width, outer, depth], [0, height - outer / 2, 0], materials.case);
@@ -965,20 +1031,21 @@ function buildBookcaseModel(state) {
     }
   }
 
-  const upperBottom = config.lowerCabinets ? lowerHeight + shelf * 0.8 : outer + shelf * 0.5;
+  const upperBottom = config.lowerCabinets ? lowerHeight + shelf * 1.28 : outer + shelf * 0.5;
   const upperTop = height - outer - 0.2;
   const shelfSpan = Math.max(0.8, upperTop - upperBottom);
+  const renderedShelfCount = getRenderedShelfCount(config);
 
   for (let bay = 0; bay < config.sections; bay += 1) {
     const bayX = getBayX(bay, innerWidth, bayWidth, partition);
-    for (let row = 1; row <= config.shelves; row += 1) {
+    for (let row = 1; row <= renderedShelfCount; row += 1) {
       if (shouldSkipShelf(config, bay, row)) continue;
-      const y = getShelfY(config, bay, row, upperBottom, upperTop, shelfSpan);
+      const y = getShelfY(config, bay, row, upperBottom, upperTop, shelfSpan, renderedShelfCount);
       addShelf(group, materials, [bayWidth, shelf, shelfDepth], [bayX, y, 0.02], depth);
       addShelfObjects(group, materials, bayX, bayWidth, y + shelf / 2, shelfDepth, bay, row);
     }
   }
-  const metrics = { width, height, depth, outer, partition, shelf, lowerHeight, innerWidth, bayWidth, shelfDepth, upperBottom, upperTop, shelfSpan };
+  const metrics = { width, height, depth, outer, partition, shelf, lowerHeight, innerWidth, bayWidth, shelfDepth, upperBottom, upperTop, shelfSpan, renderedShelfCount };
 
   if (config.lowerCabinets) {
     addLowerCabinets(group, config, materials, metrics);
@@ -986,8 +1053,10 @@ function buildBookcaseModel(state) {
     addShelf(group, materials, [innerWidth, shelf, shelfDepth], [0, lowerHeight + 0.32, 0.02], depth);
   }
 
+  addShelfPinRows(group, config, materials, metrics);
   if (config.centerOpening) addMediaOpening(group, config, materials, metrics);
   if (config.deskOpening) addDeskNiche(group, config, materials, metrics);
+  if (config.featureOpening) addFeatureWallOpening(group, config, materials, metrics);
   if (config.layoutType === "display_wall") addDisplayWallMoment(group, config, materials, metrics);
   if (config.layoutType === "asymmetric" || config.layoutType === "walnut_modern") addAsymmetricAccents(group, config, materials, metrics);
   if (config.layoutType === "glass_library") addUpperGlassDoors(group, config, materials, metrics);
@@ -997,6 +1066,7 @@ function buildBookcaseModel(state) {
 
   addCrown(group, config, materials, width, height, depth);
   addBase(group, config, materials, width, depth);
+  group.position.y = measuredHeight - height;
   return group;
 }
 
@@ -1006,8 +1076,8 @@ function createContactShadowTexture() {
   canvas.height = 128;
   const context = canvas.getContext("2d");
   const gradient = context.createRadialGradient(128, 64, 8, 128, 64, 120);
-  gradient.addColorStop(0, "rgba(20, 16, 12, 0.22)");
-  gradient.addColorStop(0.42, "rgba(20, 16, 12, 0.09)");
+  gradient.addColorStop(0, "rgba(20, 16, 12, 0.28)");
+  gradient.addColorStop(0.42, "rgba(20, 16, 12, 0.13)");
   gradient.addColorStop(1, "rgba(20, 16, 12, 0)");
   context.fillStyle = gradient;
   context.fillRect(0, 0, canvas.width, canvas.height);
@@ -1025,9 +1095,10 @@ function addShelf(group, materials, size, position, depth) {
   const [width, height, shelfDepth] = size;
   const [x, y, z] = position;
   addBox(group, size, position, materials.case);
-  addBox(group, [width + 0.035, height * 1.15, 0.075], [x, y, depth / 2 - 0.045], materials.case, false);
-  addBox(group, [width + 0.02, 0.018, 0.035], [x, y - height / 2 - 0.018, depth / 2 - 0.08], materials.reveal, false);
-  addBox(group, [width * 0.94, 0.018, 0.035], [x, y + height / 2 + 0.018, -shelfDepth / 2 + 0.08], materials.shadow, false);
+  addBox(group, [width + 0.04, height * 1.08, 0.078], [x, y + height * 0.02, depth / 2 - 0.044], materials.case, false);
+  addBox(group, [width + 0.01, 0.014, 0.028], [x, y + height / 2 + 0.016, depth / 2 - 0.076], materials.highlight, false);
+  addBox(group, [width + 0.018, 0.016, 0.032], [x, y - height / 2 - 0.012, depth / 2 - 0.086], materials.reveal, false);
+  addBox(group, [width * 0.94, 0.018, 0.045], [x, y + height / 2 + 0.014, -shelfDepth / 2 + 0.078], materials.innerShadow, false);
 }
 
 function addShelfPinRows(group, config, materials, metrics) {
@@ -1061,20 +1132,27 @@ function addFaceFrameDetails(group, config, materials, metrics) {
 
   addBox(group, [stile, metrics.height - metrics.outer * 0.5, 0.08], [-metrics.width / 2 + metrics.outer / 2, metrics.height / 2, faceZ], materials.case, false);
   addBox(group, [stile, metrics.height - metrics.outer * 0.5, 0.08], [metrics.width / 2 - metrics.outer / 2, metrics.height / 2, faceZ], materials.case, false);
+  addBox(group, [0.018, metrics.height - metrics.outer * 0.8, 0.032], [-metrics.width / 2 + metrics.outer + 0.018, metrics.height / 2, faceZ + 0.044], materials.highlight, false);
+  addBox(group, [0.018, metrics.height - metrics.outer * 0.8, 0.032], [metrics.width / 2 - metrics.outer - 0.018, metrics.height / 2, faceZ + 0.044], materials.innerShadow, false);
   for (let index = 1; index < config.sections; index += 1) {
     const x = -metrics.innerWidth / 2 + index * (metrics.bayWidth + metrics.partition) - metrics.partition / 2;
     if (isPartitionInsideClearOpening(config, index)) {
       const lowerStileHeight = Math.max(0.4, metrics.lowerHeight + 0.08);
       addBox(group, [stile, lowerStileHeight, 0.08], [x, lowerStileHeight / 2, faceZ], materials.case, false);
+      addBox(group, [0.016, lowerStileHeight * 0.96, 0.03], [x - stile * 0.25, lowerStileHeight / 2, faceZ + 0.044], materials.highlight, false);
     } else {
       addBox(group, [stile, metrics.height - metrics.outer * 1.7, 0.08], [x, metrics.height / 2, faceZ], materials.case, false);
+      addBox(group, [0.016, metrics.height - metrics.outer * 2.05, 0.03], [x - stile * 0.25, metrics.height / 2, faceZ + 0.044], materials.highlight, false);
     }
   }
 
   addBox(group, [metrics.width + 0.03, 0.095, 0.08], [0, topY, faceZ], materials.case, false);
   addBox(group, [metrics.width + 0.03, 0.08, 0.08], [0, bottomY, faceZ], materials.case, false);
+  addBox(group, [metrics.width * 0.98, 0.018, 0.032], [0, topY + 0.036, faceZ + 0.044], materials.highlight, false);
+  addBox(group, [metrics.width * 0.98, 0.018, 0.035], [0, bottomY - 0.034, faceZ + 0.046], materials.innerShadow, false);
   if (config.lowerCabinets) {
     addBox(group, [metrics.width + 0.02, 0.115, 0.085], [0, metrics.lowerHeight + 0.05, faceZ + 0.01], materials.case, false);
+    addBox(group, [metrics.width * 0.98, 0.018, 0.036], [0, metrics.lowerHeight + 0.108, faceZ + 0.06], materials.highlight, false);
   }
 }
 
@@ -1089,7 +1167,7 @@ function isBayInRange(bay, range) {
 }
 
 function isPartitionInsideClearOpening(config, partitionIndex) {
-  if (!config.centerOpening && !config.deskOpening) return false;
+  if (!config.centerOpening && !config.deskOpening && !config.featureOpening) return false;
   const range = getCenterRange(config, true);
   return partitionIndex > range.start && partitionIndex <= range.end;
 }
@@ -1098,22 +1176,27 @@ function shouldSkipShelf(config, bay, row) {
   if (config.tallDoors && (bay === 0 || bay === config.sections - 1)) return true;
   if (config.centerOpening && isBayInRange(bay, getCenterRange(config, true))) return true;
   if (config.deskOpening && isBayInRange(bay, getCenterRange(config, true))) return true;
+  if (config.featureOpening && isBayInRange(bay, getCenterRange(config, true))) return true;
   if (config.layoutType === "display_wall" && bay === Math.floor(config.sections / 2) && row === 2) return true;
   if (config.layoutType === "asymmetric") return (bay === 1 && row === 2) || (bay === 2 && row === 3) || (bay === 3 && row === 1);
   if (config.layoutType === "walnut_modern") return (bay === 0 && row === 3) || (bay === 2 && row === 1);
   return false;
 }
 
-function getShelfY(config, bay, row, upperBottom, upperTop, shelfSpan) {
-  const baseY = getAlignedShelfY(config, row, upperBottom, shelfSpan);
+function getRenderedShelfCount(config) {
+  return config.lowerCabinets ? Math.max(1, config.shelves - 1) : config.shelves;
+}
+
+function getShelfY(config, bay, row, upperBottom, upperTop, shelfSpan, shelfCount = config.shelves) {
+  const baseY = getAlignedShelfY(config, row, upperBottom, shelfSpan, shelfCount);
   if (config.layoutType !== "asymmetric") return baseY;
   const offsets = [0.12, -0.16, 0.08, -0.08, 0.15, -0.12];
-  const offset = offsets[bay % offsets.length] * (shelfSpan / Math.max(config.shelves, 2));
+  const offset = offsets[bay % offsets.length] * (shelfSpan / Math.max(shelfCount, 2));
   return clamp(baseY + offset, upperBottom + 0.28, upperTop - 0.18);
 }
 
-function getAlignedShelfY(config, row, upperBottom, shelfSpan) {
-  return upperBottom + (shelfSpan / (config.shelves + 1)) * row;
+function getAlignedShelfY(config, row, upperBottom, shelfSpan, shelfCount = config.shelves) {
+  return upperBottom + (shelfSpan / (shelfCount + 1)) * row;
 }
 
 function addMediaOpening(group, config, materials, metrics) {
@@ -1146,6 +1229,34 @@ function addDeskNiche(group, config, materials, metrics) {
   addBox(group, [openingWidth + 0.1, 0.12, metrics.depth - 0.08], [x, deskY, 0.03], materials.edgeBlock);
   addBox(group, [openingWidth * 0.94, backHeight, 0.045], [x, backY, -metrics.depth / 2 + 0.09], materials.inset, false);
   addBox(group, [openingWidth * 0.22, 0.035, 0.12], [x - openingWidth * 0.18, deskY + 0.08, faceZ], materials.hardware, false);
+}
+
+function addFeatureWallOpening(group, config, materials, metrics) {
+  const range = getCenterRange(config, true);
+  const openingWidth = metrics.bayWidth * range.span + metrics.partition * (range.span - 1);
+  const centerBay = (range.start + range.end) / 2;
+  const x = getBayX(centerBay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
+  const backZ = -metrics.depth / 2 + 0.088;
+  const faceZ = metrics.depth / 2 + 0.04;
+  const panelWidth = openingWidth * 0.84;
+  const panelHeight = Math.min(metrics.shelfSpan * 0.5, 2.24);
+  const panelY = metrics.upperBottom + metrics.shelfSpan * 0.55;
+  const mantelY = metrics.lowerHeight + Math.min(0.5, metrics.shelfSpan * 0.13);
+  const fireboxWidth = Math.min(openingWidth * 0.48, 1.25);
+  const fireboxHeight = Math.min(metrics.shelfSpan * 0.19, 0.78);
+  const fireboxY = mantelY - fireboxHeight * 0.66;
+
+  addBox(group, [openingWidth, metrics.shelf * 1.12, metrics.shelfDepth], [x, metrics.upperBottom + metrics.shelf * 0.5, 0.02], materials.case);
+  addBox(group, [openingWidth, metrics.shelf * 1.12, metrics.shelfDepth], [x, metrics.upperTop - metrics.shelf * 1.2, 0.02], materials.case);
+  addBox(group, [panelWidth, panelHeight, 0.04], [x, panelY, backZ], materials.inset, false);
+  addBox(group, [panelWidth * 1.08, 0.07, 0.065], [x, panelY + panelHeight / 2 + 0.04, backZ + 0.024], materials.edgeBlock, false);
+  addBox(group, [panelWidth * 1.08, 0.07, 0.065], [x, panelY - panelHeight / 2 - 0.04, backZ + 0.024], materials.edgeBlock, false);
+  addBox(group, [0.07, panelHeight + 0.14, 0.065], [x - panelWidth * 0.54, panelY, backZ + 0.024], materials.edgeBlock, false);
+  addBox(group, [0.07, panelHeight + 0.14, 0.065], [x + panelWidth * 0.54, panelY, backZ + 0.024], materials.edgeBlock, false);
+  addBox(group, [openingWidth * 0.72, 0.16, metrics.depth * 0.62], [x, mantelY, 0.03], materials.case);
+  addBox(group, [fireboxWidth + 0.22, fireboxHeight + 0.2, 0.052], [x, fireboxY, faceZ - 0.08], materials.edgeBlock, false);
+  addBox(group, [fireboxWidth, fireboxHeight, 0.06], [x, fireboxY, faceZ - 0.045], materials.shadow, false);
+  addBox(group, [fireboxWidth * 0.72, 0.025, 0.034], [x, fireboxY - fireboxHeight * 0.38, faceZ - 0.005], materials.hardware, false);
 }
 
 function addDisplayWallMoment(group, config, materials, metrics) {
@@ -1224,6 +1335,7 @@ function addPuckLights(group, config, materials, metrics) {
     if (config.tallDoors && (bay === 0 || bay === config.sections - 1)) continue;
     if (config.centerOpening && isBayInRange(bay, getCenterRange(config, true))) continue;
     if (config.deskOpening && isBayInRange(bay, getCenterRange(config, true))) continue;
+    if (config.featureOpening && isBayInRange(bay, getCenterRange(config, true))) continue;
     lightBays.push(bay);
   }
 
@@ -1239,7 +1351,7 @@ function addPuckLights(group, config, materials, metrics) {
 
   lightBays.slice(0, 6).forEach((bay) => {
     const x = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-    const y = metrics.upperTop - metrics.shelf * 0.62;
+    const y = Math.min(metrics.height - metrics.outer * 0.48, metrics.upperTop + metrics.shelf * 0.08);
     const z = metrics.depth / 2 - 0.26;
     const puck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.018, 18), materials.puckLight);
     puck.position.set(x, y, z);
@@ -1275,9 +1387,9 @@ function addVerticalLedStrips(group, materials, metrics, lightBays) {
 function addShelfAccentLights(group, config, materials, metrics, lightBays) {
   lightBays.forEach((bay) => {
     const bayX = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-    for (let row = 1; row <= Math.min(config.shelves, 5); row += 1) {
+    for (let row = 1; row <= Math.min(metrics.renderedShelfCount, 5); row += 1) {
       if (shouldSkipShelf(config, bay, row)) continue;
-      const shelfY = getShelfY(config, bay, row, metrics.upperBottom, metrics.upperTop, metrics.shelfSpan);
+      const shelfY = getShelfY(config, bay, row, metrics.upperBottom, metrics.upperTop, metrics.shelfSpan, metrics.renderedShelfCount);
       const y = shelfY - metrics.shelf * 0.68;
       const z = metrics.depth / 2 - 0.16;
       addBox(group, [metrics.bayWidth * 0.62, 0.014, 0.018], [bayX, y, z], materials.ledStrip, false);
@@ -1298,8 +1410,8 @@ function addLowerCabinets(group, config, materials, metrics) {
   const pairGap = 0.045;
   const centerGap = 0.026;
   const pairCount = Math.max(1, Math.floor(config.doorCount / 2));
-  const doorHeight = lowerHeight - 0.24;
-  const doorCenterY = lowerHeight / 2 + 0.015;
+  const doorHeight = lowerHeight - 0.28;
+  const doorCenterY = lowerHeight / 2 + 0.02;
   addBox(group, [width - 0.05, topRailHeight, depth], [0, lowerHeight + topRailHeight / 2, 0], materials.case);
   addBox(group, [width - 0.1, lowerHeight - 0.14, 0.06], [0, lowerHeight / 2 + 0.02, faceZ - 0.025], materials.reveal);
 
@@ -1370,12 +1482,16 @@ function addDoor(group, config, materials, size, position, options = {}) {
     addBox(group, [0.012, height - rail * 2.55, 0.03], [position[0], position[1], z + 0.025], materials.glassLine, false);
   } else {
     addBox(group, [width - rail * 2.3, height - rail * 2.3, 0.028], [position[0], position[1], z - 0.006], materials.inset, false);
+    addBox(group, [width - rail * 2.65, 0.018, 0.02], [position[0], position[1] + height / 2 - rail * 1.38, z + 0.012], materials.highlight, false);
+    addBox(group, [0.016, height - rail * 2.75, 0.02], [position[0] - width / 2 + rail * 1.36, position[1], z + 0.012], materials.highlight, false);
   }
 
   addBox(group, [width - rail, rail, 0.038], [position[0], position[1] + height / 2 - rail / 2, z], materials.case, false);
   addBox(group, [width - rail, rail, 0.038], [position[0], position[1] - height / 2 + rail / 2, z], materials.case, false);
   addBox(group, [rail, height - rail, 0.038], [position[0] - width / 2 + rail / 2, position[1], z], materials.case, false);
   addBox(group, [rail, height - rail, 0.038], [position[0] + width / 2 - rail / 2, position[1], z], materials.case, false);
+  addBox(group, [width - rail * 1.25, 0.014, 0.018], [position[0], position[1] + height / 2 - rail * 0.28, z + 0.028], materials.highlight, false);
+  addBox(group, [0.014, height - rail * 1.25, 0.018], [position[0] - width / 2 + rail * 0.28, position[1], z + 0.028], materials.highlight, false);
 }
 
 function addHardware(group, config, materials, options) {
@@ -1435,6 +1551,8 @@ function addCrown(group, config, materials, width, height, depth) {
   addBox(group, [width + 0.16, 0.1, depth + 0.08], [0, height + 0.05, 0], materials.case);
   addBox(group, [width + 0.34, 0.14, depth + 0.24], [0, height + 0.17, 0], materials.side);
   addBox(group, [width + 0.22, 0.1, depth + 0.14], [0, height + 0.3, 0], materials.case);
+  addBox(group, [width + 0.18, 0.018, 0.035], [0, height + 0.345, depth / 2 + 0.055], materials.highlight, false);
+  addBox(group, [width + 0.3, 0.02, 0.05], [0, height + 0.11, depth / 2 + 0.12], materials.innerShadow, false);
 }
 
 function addBase(group, config, materials, width, depth) {
@@ -1452,6 +1570,8 @@ function addBase(group, config, materials, width, depth) {
   }
   addBox(group, [width + 0.28, 0.26, depth + 0.14], [0, 0.13, 0], materials.side);
   addBox(group, [width + 0.08, 0.08, depth + 0.04], [0, 0.31, 0], materials.case);
+  addBox(group, [width + 0.18, 0.02, 0.035], [0, 0.45, depth / 2 + 0.04], materials.highlight, false);
+  addBox(group, [width + 0.36, 0.035, 0.06], [0, 0.035, depth / 2 + 0.08], materials.innerShadow, false);
 }
 
 function addShelfObjects(group, materials, bayX, bayWidth, shelfY, shelfDepth, bay, row) {
@@ -1510,15 +1630,14 @@ function createFinishTexture(finish, baseColor, lineColor, surface) {
   context.fillStyle = base;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  const isWood = finish === "natural_oak" || finish === "walnut";
-  const lineCount = isWood ? 58 : 34;
+  const lineCount = 34;
   context.lineCap = "round";
   for (let index = 0; index < lineCount; index += 1) {
     const x = (index * 17 + (index % 7) * 5) % canvas.width;
-    const wobble = isWood ? 8 : 2;
-    const alpha = isWood ? 0.11 + (index % 5) * 0.025 : 0.025 + (index % 3) * 0.012;
+    const wobble = 2;
+    const alpha = 0.025 + (index % 3) * 0.012;
     context.strokeStyle = hexToRgba(line, alpha);
-    context.lineWidth = isWood ? 0.8 + (index % 3) * 0.55 : 0.45;
+    context.lineWidth = 0.45;
     context.beginPath();
     context.moveTo(x, -10);
     for (let y = 0; y <= canvas.height + 12; y += 24) {
@@ -1526,17 +1645,6 @@ function createFinishTexture(finish, baseColor, lineColor, surface) {
       context.lineTo(x + wave, y);
     }
     context.stroke();
-  }
-
-  if (isWood) {
-    context.fillStyle = hexToRgba(line, finish === "walnut" ? 0.08 : 0.05);
-    for (let index = 0; index < 20; index += 1) {
-      const x = (index * 23) % canvas.width;
-      const y = (index * 37) % canvas.height;
-      context.beginPath();
-      context.ellipse(x, y, 2 + (index % 4), 10 + (index % 5) * 2, 0.25, 0, Math.PI * 2);
-      context.fill();
-    }
   }
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -1570,18 +1678,20 @@ function createMaterials(palette, config) {
   const caseTexture = createFinishTexture(config.finish, palette.case, palette.edge, "case");
   const sideTexture = createFinishTexture(config.finish, palette.side, palette.edge, "side");
   const backTexture = createFinishTexture(config.finish, palette.inside, palette.edge, "back");
-  const insetTexture = createFinishTexture(config.finish, palette.inside, palette.edge, "inset");
-  const isWood = config.finish === "natural_oak" || config.finish === "walnut";
-  const paintBump = isWood ? 0.018 : 0.004;
+  const insetTexture = createFinishTexture(config.finish, palette.side, palette.edge, "inset");
+  const paintBump = 0.004;
 
   return {
-    case: new THREE.MeshStandardMaterial({ color: palette.case, map: caseTexture, bumpMap: caseTexture, bumpScale: paintBump, roughness: isWood ? 0.64 : 0.74, metalness: 0 }),
-    side: new THREE.MeshStandardMaterial({ color: palette.side, map: sideTexture, bumpMap: sideTexture, bumpScale: paintBump, roughness: isWood ? 0.68 : 0.78, metalness: 0 }),
-    back: new THREE.MeshStandardMaterial({ color: palette.inside, map: backTexture, bumpMap: backTexture, bumpScale: paintBump * 0.7, roughness: 0.88, metalness: 0 }),
-    inset: new THREE.MeshStandardMaterial({ color: palette.inside, map: insetTexture, bumpMap: insetTexture, bumpScale: paintBump * 0.8, roughness: 0.82, metalness: 0 }),
+    case: new THREE.MeshStandardMaterial({ color: palette.case, map: caseTexture, bumpMap: caseTexture, bumpScale: paintBump * 0.66, roughness: 0.66, metalness: 0 }),
+    side: new THREE.MeshStandardMaterial({ color: palette.side, map: sideTexture, bumpMap: sideTexture, bumpScale: paintBump * 0.64, roughness: 0.7, metalness: 0 }),
+    back: new THREE.MeshStandardMaterial({ color: palette.inside, map: backTexture, bumpMap: backTexture, bumpScale: paintBump * 0.42, roughness: 0.84, metalness: 0, emissive: palette.inside, emissiveIntensity: 0.08 }),
+    inset: new THREE.MeshStandardMaterial({ color: palette.side, map: insetTexture, bumpMap: insetTexture, bumpScale: paintBump * 0.5, roughness: 0.74, metalness: 0, emissive: palette.side, emissiveIntensity: 0.03 }),
     edgeBlock: new THREE.MeshStandardMaterial({ color: palette.edge, roughness: 0.86, metalness: 0 }),
-    shadow: new THREE.MeshStandardMaterial({ color: 0x24211d, roughness: 0.88, metalness: 0 }),
-    reveal: new THREE.MeshStandardMaterial({ color: 0x5a4939, roughness: 0.92, metalness: 0 }),
+    shadow: new THREE.MeshStandardMaterial({ color: 0x2a251f, roughness: 0.9, metalness: 0 }),
+    reveal: new THREE.MeshStandardMaterial({ color: 0x514538, roughness: 0.92, metalness: 0 }),
+    innerShadow: new THREE.MeshBasicMaterial({ color: 0x211b16, transparent: true, opacity: 0.18, depthWrite: false }),
+    backShade: new THREE.MeshBasicMaterial({ color: 0x241e19, transparent: true, opacity: 0.08, depthWrite: false }),
+    highlight: new THREE.MeshBasicMaterial({ color: 0xfff6e9, transparent: true, opacity: 0.18, depthWrite: false }),
     pinHole: new THREE.MeshStandardMaterial({ color: 0x4e4034, roughness: 0.96, metalness: 0 }),
     glass: new THREE.MeshPhysicalMaterial({ color: 0xe7edf0, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.1, depthWrite: false, clearcoat: 0.85, clearcoatRoughness: 0.08, transmission: 0.35 }),
     glassLine: new THREE.MeshPhysicalMaterial({ color: 0xfffbf2, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.16, depthWrite: false, clearcoat: 0.8 }),
@@ -1590,7 +1700,7 @@ function createMaterials(palette, config) {
       roughness: isBlackHardware ? 0.62 : isNickelHardware ? 0.26 : 0.34,
       metalness: isBlackHardware ? 0.2 : 0.84
     }),
-    edgeLine: new THREE.LineBasicMaterial({ color: palette.edge, transparent: true, opacity: config.finish === "soft_black" ? 0.24 : 0.18 }),
+    edgeLine: new THREE.LineBasicMaterial({ color: palette.edge, transparent: true, opacity: 0.16 }),
     puckLight: new THREE.MeshStandardMaterial({ color: 0xfff1cd, emissive: 0xffc46f, emissiveIntensity: 1.4, roughness: 0.35, metalness: 0.1 }),
     ledStrip: new THREE.MeshStandardMaterial({ color: 0xffedca, emissive: 0xffc77c, emissiveIntensity: 1.2, roughness: 0.28, metalness: 0.1 }),
     decorBooks: [
