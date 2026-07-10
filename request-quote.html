@@ -6,8 +6,8 @@
   <title>Request a Quote | JQ Bookcases</title>
   <meta name="description" content="Tell JQ Bookcases about your space and receive a personalized estimate for a custom-quality built-in bookcase.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=bm-finishes-20260708c">
-  <script src="site.js?v=bm-finishes-20260708c" defer></script>
+  <link rel="stylesheet" href="styles.css?v=site-system-20260710a">
+  <script src="site.js?v=site-system-20260710a" defer></script>
 </head>
 <body data-page="quote">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -16,7 +16,8 @@
   <main id="main" class="interior-page">
     <section class="interior-hero interior-hero-centered">
       <div class="container">
-        <span class="section-kicker">Request Quote</span>
+        <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Home</a><span>&rsaquo;</span><span>Request a Quote</span></nav>
+        <span class="section-kicker">Request a Quote</span>
         <h1>Request a Quote</h1>
         <p class="lead">Tell us about your space and we'll prepare a personalized estimate for your built-in bookcase.</p>
       </div>
@@ -24,8 +25,10 @@
 
     <section class="interior-section">
       <div class="container quote-layout">
-        <form class="glass-panel quote-form" data-quote-form>
+        <form class="glass-panel quote-form" id="quote-request-form" data-quote-form enctype="multipart/form-data">
+          <input name="designId" type="hidden">
           <p class="status-message" data-quote-status role="status"></p>
+          <div class="saved-design-summary" data-saved-design-summary hidden aria-live="polite"></div>
 
           <fieldset>
             <legend>Project Information</legend>
@@ -66,17 +69,17 @@
               </label>
               <label class="field-full">Preferred Layout
                 <select name="layout">
-                  <option>Classic Open Shelves</option>
-                  <option>Lower Cabinets</option>
-                  <option>Full Library Wall</option>
-                  <option>Media Wall</option>
-                  <option>Desk Niche</option>
-                  <option>Display Wall</option>
-                  <option>Glass Door Library</option>
-                  <option>Asymmetrical Modern</option>
-                  <option>Tall Storage + Shelves</option>
-                  <option>Fireplace / Feature Wall</option>
-                  <option>Not Sure</option>
+                  <option value="lower-cabinets">Full Bookcase</option>
+                  <option value="classic-open">Open Shelves</option>
+                  <option value="media-wall">Media Wall</option>
+                  <option value="library-wall">Library Wall</option>
+                  <option value="display-wall">Display Wall</option>
+                  <option value="glass-library">Glass Door Library</option>
+                  <option value="desk-niche">Desk Center</option>
+                  <option value="feature-wall">Fireplace Surround</option>
+                  <option value="asymmetric-modern">Asymmetrical Modern</option>
+                  <option value="tall-storage">Tall Storage + Shelves</option>
+                  <option value="not-sure">Not Sure</option>
                 </select>
               </label>
             </div>
@@ -88,10 +91,10 @@
               <label class="field-full">Preferred Benjamin Moore Color
                 <select name="paintFinish" data-quote-finish>
                   <option value="white_dove">White Dove OC-17</option>
-                  <option value="simply_white">Simply White OC-117</option>
                   <option value="chantilly_lace">Chantilly Lace OC-65</option>
-                  <option value="swiss_coffee">Swiss Coffee OC-45</option>
-                  <option value="revere_pewter">Revere Pewter HC-172</option>
+                  <option value="simply_white">Simply White OC-117</option>
+                  <option value="cloud_white">Cloud White OC-130</option>
+                  <option value="silver_satin">Silver Satin OC-26</option>
                   <option value="custom_bm">Custom Benjamin Moore Color</option>
                 </select>
               </label>
@@ -138,14 +141,16 @@
           <section class="glass-panel photo-card">
             <span class="line-icon" data-icon="layers"></span>
             <h2>Project Photos</h2>
-            <div class="upload-placeholder" aria-hidden="true">
-              <span>Upload area</span>
-              <small>Visual placeholder for the next backend phase</small>
+            <div class="upload-placeholder">
+              <label for="quote-project-files">Upload wall photos, plans, or sketches</label>
+              <input id="quote-project-files" name="projectFiles" type="file" accept="image/*,.pdf,application/pdf" multiple form="quote-request-form">
+              <small data-upload-status>JPG, PNG, HEIC, or PDF</small>
             </div>
             <p>Photos help us understand the space, wall conditions, outlets, ceiling height, and surrounding trim.</p>
           </section>
 
           <section class="glass-panel next-card">
+            <h2 class="sr-only">What happens after your quote request</h2>
             <span class="section-kicker">What happens next</span>
             <ol class="next-list">
               <li><span>1</span><p>We review your dimensions and photos.</p></li>

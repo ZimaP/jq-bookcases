@@ -12,13 +12,20 @@ import {
   inchesToUnits,
   installationOptions,
   layoutPresets,
+  lightingWarmthOptions,
   lightingOptions,
   normalizeBookcaseConfig,
-  optionLabels
-} from "./bookcase-config.js?v=bm-finishes-20260708c";
-import { calculateBookcasePrice, formatPrice } from "./bookcase-pricing.js?v=bm-finishes-20260708c";
+  optionLabels,
+  shelfThicknessOptions
+} from "./bookcase-config.js?v=site-system-20260710a";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=site-system-20260710a";
+import { calculateBookcasePrice, formatPrice } from "./bookcase-pricing.js?v=site-system-20260710a";
+import {
+  findExactBenjaminMooreColor,
+  searchBenjaminMooreColors
+} from "./benjamin-moore-colors.js?v=site-system-20260710a";
 
-const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "doorCount"]);
+const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "shelfThickness", "lightingWarmth", "doorCount"]);
 const benjaminMooreColorsUrl = "https://www.benjaminmoore.com/en-us/paint-colors";
 const lineIconSvg = (paths) => `
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
@@ -26,6 +33,16 @@ const lineIconSvg = (paths) => `
   </svg>
 `;
 const builderIcons = {
+  dimensions: lineIconSvg(`<path d="m4.4 16.8 12.4-12.4 2.8 2.8L7.2 19.6z"/><path d="m8.6 16.1-1.7-1.7"/><path d="m11.3 13.4-1.7-1.7"/><path d="m14 10.7-1.7-1.7"/><path d="m16.7 8-1.7-1.7"/>`),
+  layout: lineIconSvg(`<path d="M4.5 5.2h6.2v5.1H4.5zM13.3 5.2h6.2v8.1h-6.2zM4.5 12.9h6.2v5.9H4.5zM13.3 15.9h6.2v2.9h-6.2z"/>`),
+  structure: lineIconSvg(`<path d="m12 3.5 7.2 4.2v8.5L12 20.5l-7.2-4.3V7.7z"/><path d="m8.6 9.6 3.4 2 3.4-2M12 11.6v4.6"/>`),
+  lighting: lineIconSvg(`<path d="M8.1 14.8c-1.3-1.1-2.1-2.7-2.1-4.5a6 6 0 1 1 12 0c0 1.8-.8 3.4-2.1 4.5-.8.7-1.1 1.4-1.2 2.2H9.3c-.1-.8-.4-1.5-1.2-2.2z"/><path d="M9.6 20h4.8M9.4 17h5.2"/>`),
+  finish: lineIconSvg(`<path d="M4.3 6.2h10.2v4.1H4.3z"/><path d="M7.1 10.3v2.6h4.7v7.2H7.1v-7.2M14.5 7.4h2.8c1.4 0 2.4 1 2.4 2.3v1.1"/>`),
+  hardware: lineIconSvg(`<path d="M4.2 8.2h15.6v7.6H4.2z"/><path d="M8.1 12h7.8M6.2 10.2v3.6M17.8 10.2v3.6"/>`),
+  bookmark: lineIconSvg(`<path d="M6.4 4.2h11.2v16l-5.6-3.5-5.6 3.5z"/><path d="M9.2 7.7h5.6"/>`),
+  search: lineIconSvg(`<circle cx="10.7" cy="10.7" r="5.8"/><path d="m15.1 15.1 4.4 4.4"/>`),
+  chevronLeft: lineIconSvg(`<path d="m14.7 5.5-6.5 6.5 6.5 6.5"/>`),
+  chevronRight: lineIconSvg(`<path d="m9.3 5.5 6.5 6.5-6.5 6.5"/>`),
   reset: lineIconSvg(`<path d="M4.8 9.1a7.4 7.4 0 1 1 1.9 7.6"/><path d="M4.8 9.1V4.7"/><path d="M4.8 9.1h4.4"/>`),
   cube: lineIconSvg(`<path d="M12 3.7 19.2 8v8L12 20.3 4.8 16V8L12 3.7z"/><path d="M4.8 8 12 12.3 19.2 8"/><path d="M12 12.3v8"/>`),
   front: lineIconSvg(`<rect x="5.2" y="4.6" width="13.6" height="14.8" rx="1.2"/><path d="M8.2 8.2h7.6"/><path d="M8.2 12h7.6"/><path d="M8.2 15.8h7.6"/>`),
@@ -35,13 +52,48 @@ const builderIcons = {
   install: lineIconSvg(`<path d="m4.5 19.5 6.7-6.7"/><path d="m9.1 10.7 4.1-4.1a3.7 3.7 0 0 1 5-.3l-3.1 3.1 2.2 2.2 3.1-3.1a3.7 3.7 0 0 1-.3 5l-4.1 4.1"/><path d="m4.8 4.7 5.6 5.6"/><path d="M3.9 6.8 6.8 3.9"/>`),
   warranty: lineIconSvg(`<path d="M12 3.6 18.7 6v5.2c0 4.5-2.8 7.7-6.7 9.2-3.9-1.5-6.7-4.7-6.7-9.2V6L12 3.6z"/><path d="m8.8 12.1 2.1 2.1 4.4-4.6"/>`)
 };
+
+const productPreviewSvg = (content) => `
+  <svg viewBox="0 0 64 36" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    ${content}
+  </svg>
+`;
+
+const basePreviewIcons = {
+  toe_kick: productPreviewSvg(`<path d="M10 8h44v17H10z"/><path d="M14 25h36v6H14"/><path d="M14 28h36"/>`),
+  plinth: productPreviewSvg(`<path d="M10 7h44v19H10z"/><path d="M8 26h48v5H8z"/>`),
+  furniture_base: productPreviewSvg(`<path d="M10 6h44v19H10z"/><path d="M7 25h50v4H7z"/><path d="M11 29v3M53 29v3"/>`)
+};
+
+const crownPreviewIcons = {
+  none: productPreviewSvg(`<path d="M10 12h44v17H10z"/><path d="M10 12h44"/>`),
+  slim_cap: productPreviewSvg(`<path d="M11 14h42v15H11z"/><path d="M8 11h48v3H8z"/>`),
+  classic_crown: productPreviewSvg(`<path d="M12 16h40v13H12z"/><path d="M7 9h50v3H7z"/><path d="M9 12c0 3 3 4 3 4h40s3-1 3-4"/>`),
+  modern_soffit: productPreviewSvg(`<path d="M12 9h40v20H12z"/><path d="M8 6h48v4H8z"/><path d="M10 10h44v4H10"/>`)
+};
+
+const lightingPreviewIcons = {
+  no_lighting: lineIconSvg(`<circle cx="12" cy="12" r="7.2"/><path d="m7 17 10-10"/>`),
+  warm_pucks: lineIconSvg(`<path d="M5 6.5h14"/><path d="M9 8.5c.6 2.3 1.6 3.5 3 3.5s2.4-1.2 3-3.5"/><path d="m9.2 15.2-1.6 2.1M12 15.7V19M14.8 15.2l1.6 2.1"/>`),
+  shelf_accent: lineIconSvg(`<path d="M4.5 7h15"/><path d="M6.5 10h11"/><path d="m8 13-1.8 4M12 13v4.5M16 13l1.8 4"/>`),
+  vertical_led: lineIconSvg(`<path d="M7 4.5v15M17 4.5v15"/><path d="M10 7h4M10 12h4M10 17h4"/>`),
+  full_package: lineIconSvg(`<path d="M8.5 14.7c-1.2-1-2-2.5-2-4.2a5.5 5.5 0 1 1 11 0c0 1.7-.8 3.2-2 4.2-.7.6-1 1.3-1.1 2H9.6c-.1-.7-.4-1.4-1.1-2z"/><path d="M9.8 19.5h4.4M4.2 8.5H2M22 8.5h-2.2M5.2 3.7 3.7 2.2M18.8 3.7l1.5-1.5"/>`)
+};
+
+const hardwarePreviewIcons = {
+  brass_knob: productPreviewSvg(`<circle cx="32" cy="15" r="7"/><path d="M32 22v7M27 30h10"/>`),
+  matte_black_knob: productPreviewSvg(`<circle cx="32" cy="15" r="7"/><path d="M32 22v7M27 30h10"/>`),
+  brass_pull: productPreviewSvg(`<path d="M14 19h36"/><path d="M18 19v7M46 19v7"/><path d="M15 16h34"/>`),
+  matte_black_pull: productPreviewSvg(`<path d="M14 19h36"/><path d="M18 19v7M46 19v7"/><path d="M15 16h34"/>`),
+  polished_nickel_pull: productPreviewSvg(`<path d="M14 19h36"/><path d="M18 19v7M46 19v7"/><path d="M15 16h34"/>`)
+};
 const finishPalette = {
-  white_dove: { case: 0xd6d0c3, side: 0xc3baab, inside: 0xa39a8d, edge: 0x776e63 },
-  simply_white: { case: 0xe1dbd0, side: 0xc9c0b1, inside: 0xa89f92, edge: 0x7d7468 },
-  chantilly_lace: { case: 0xe7e3da, side: 0xcdc6ba, inside: 0xaaa398, edge: 0x7c746a },
-  swiss_coffee: { case: 0xd2c7b7, side: 0xbdb2a2, inside: 0x9f9588, edge: 0x776d61 },
-  revere_pewter: { case: 0xb4aca0, side: 0x9f978b, inside: 0x82796f, edge: 0x665d53 },
-  custom_bm: { case: 0xd3c8b8, side: 0xbeb3a3, inside: 0x9f9588, edge: 0x756b5f }
+  white_dove: 0xeee9dc,
+  simply_white: 0xf5f0e4,
+  chantilly_lace: 0xf7f5ee,
+  cloud_white: 0xeee8dc,
+  silver_satin: 0xd8d7d2,
+  custom_bm: 0xd3c8b8
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -54,7 +106,7 @@ class BookcaseConfigurator {
   constructor(host, index) {
     this.host = host;
     this.id = `jq-builder-${index + 1}`;
-    this.state = normalizeBookcaseConfig(defaultBookcaseConfig);
+    this.state = normalizeBookcaseConfig(this.loadInitialConfig());
     this.activeView = "three-quarter";
     this.doorOptionKey = "";
     this.activeRangeDrag = null;
@@ -63,6 +115,26 @@ class BookcaseConfigurator {
     this.viewer = this.createViewer();
     this.bindEvents();
     this.update(this.state);
+  }
+
+  loadInitialConfig() {
+    const requestedPresetId = new URLSearchParams(window.location.search).get("preset");
+    const requestedPreset = layoutPresets.find((preset) => preset.id === requestedPresetId);
+    if (requestedPreset) {
+      return {
+        ...defaultBookcaseConfig,
+        ...requestedPreset.config,
+        layoutPreset: requestedPreset.id
+      };
+    }
+    try {
+      const stored = JSON.parse(localStorage.getItem("jqBookcasesDesign") || "null");
+      if (!stored || ![2, 3].includes(Number(stored.schemaVersion))) return defaultBookcaseConfig;
+      const candidate = normalizeBookcaseConfig(stored.config || stored.state || {});
+      return generateBookcaseLayout(candidate).validation.valid ? candidate : defaultBookcaseConfig;
+    } catch (error) {
+      return defaultBookcaseConfig;
+    }
   }
 
   createViewer() {
@@ -88,120 +160,90 @@ class BookcaseConfigurator {
   }
 
   render() {
-    this.host.innerHTML = `
-      <div class="builder-shell">
-        <section class="studio-intro-panel" aria-labelledby="${this.id}-title">
-          <h1 id="${this.id}-title"><span>Design your</span><span>bookcase your way.</span></h1>
-          <p>Create a custom built-in in minutes. Adjust sizes, layout, finishes and details to see your price update in real time.</p>
-        </section>
+    this.renderFullPageConfigurator();
+  }
 
-        <section class="studio-model" aria-labelledby="${this.id}-viewer-title">
-          <h2 id="${this.id}-viewer-title" class="sr-only">Interactive 3D built-in bookcase model</h2>
+  renderFullPageConfigurator() {
+    this.host.innerHTML = `
+      <form class="builder-shell configurator-shell" data-builder-form>
+        <h1 id="${this.id}-viewer-title" class="sr-only">3D Bookcase Configurator</h1>
+        <aside class="builder-panel configurator-panel configurator-panel-left" aria-label="Dimensions, layout, and structure controls">
+          ${this.renderDimensionsGroup()}
+          ${this.renderLayoutGroup()}
+          ${this.renderStructureGroup()}
+        </aside>
+
+        <section class="studio-model configurator-model" aria-labelledby="${this.id}-viewer-title">
           <div class="viewer-stage" data-3d-viewer tabindex="0" role="img" aria-label="Interactive 3D built-in bookcase model"></div>
-          <div class="view-controls" aria-label="3D view controls">
-            <button type="button" data-view="reset"><span class="view-icon view-icon-reset" aria-hidden="true">${builderIcons.reset}</span>Reset</button>
-            <button type="button" data-view="three-dimensional"><span class="view-icon view-icon-cube" aria-hidden="true">${builderIcons.cube}</span>3D View</button>
-            <button type="button" data-view="front"><span class="view-icon view-icon-front" aria-hidden="true">${builderIcons.front}</span>Front</button>
-            <button type="button" data-view="three-quarter"><span class="view-icon view-icon-three-quarter" aria-hidden="true">${builderIcons.threeQuarter}</span>3/4 View</button>
-            <button type="button" data-view="side"><span class="view-icon view-icon-side" aria-hidden="true">${builderIcons.side}</span>Side</button>
+          <div class="view-controls" role="group" aria-label="3D view controls">
+            <button type="button" data-view="reset"><span class="view-icon" aria-hidden="true">${builderIcons.reset}</span>Reset</button>
+            <button type="button" data-view="three-dimensional"><span class="view-icon" aria-hidden="true">${builderIcons.cube}</span>3D View</button>
+            <button type="button" data-view="front"><span class="view-icon" aria-hidden="true">${builderIcons.front}</span>Front</button>
+            <button type="button" data-view="three-quarter"><span class="view-icon" aria-hidden="true">${builderIcons.threeQuarter}</span>3/4 View</button>
+            <button type="button" data-view="side"><span class="view-icon" aria-hidden="true">${builderIcons.side}</span>Side</button>
           </div>
           <p class="viewer-helper-line">Drag to rotate &middot; Scroll to zoom &middot; Arrow keys rotate</p>
         </section>
 
-        <aside class="builder-panel studio-control-dock" aria-label="Configuration panel">
-          <form class="builder-form" data-builder-form>
-            ${this.renderDimensionsGroup()}
-            ${this.renderLayoutGroup()}
-            ${this.renderFinishGroup()}
-            ${this.renderHardwareGroup()}
-            ${this.renderLightingGroup()}
-          </form>
-          <p class="status-message" data-builder-status role="status"></p>
-          <div class="builder-action-proxies" hidden>
-            <button type="button" data-save-design>Save Design</button>
-            <button type="button" data-open-order="measurement">Request Quote</button>
-          </div>
+        <aside class="builder-panel configurator-panel configurator-panel-right" aria-label="Lighting, finish, and hardware controls">
+          ${this.renderLightingGroup()}
+          ${this.renderFinishGroup()}
+          ${this.renderHardwareGroup()}
         </aside>
 
         ${this.renderPresetTray()}
-        <section class="studio-price-note" aria-label="Estimated price">
-          <span>Estimated Price</span>
-          <strong data-price>${formatPrice(calculateBookcasePrice(this.state))}</strong>
-          <small>* Online pricing is an estimate.</small>
-          <small class="studio-price-disclaimer">Final pricing depends on field measurements, selected paint color, finish level, site conditions, and installation requirements.</small>
-        </section>
-        ${this.renderTrustRow()}
-      </div>
 
-      <div class="order-drawer" data-order-drawer aria-hidden="true">
-        <button class="order-scrim" type="button" data-close-order aria-label="Close order form"></button>
-        <aside class="order-panel" role="dialog" aria-modal="true" aria-labelledby="${this.id}-order-title">
-          <button class="order-close" type="button" data-close-order aria-label="Close order form">&times;</button>
-          <span class="section-kicker">Saved specification</span>
-          <h2 id="${this.id}-order-title">Request final measurement</h2>
-          <p class="lead">Send the current configuration for review. We will confirm field measurements, wall conditions, access, and installation requirements before final pricing.</p>
-          <div class="order-design-strip">
-            <span>Design ID <strong data-order-design-id></strong></span>
-            <span>Estimate <strong data-order-price></strong></span>
+        <section class="configurator-estimate-bar" aria-label="Estimate and next steps">
+          <div class="configurator-price-block">
+            <span class="price-kicker">Estimated Price</span>
+            <strong data-price>${formatPrice(calculateBookcasePrice(this.state))}</strong>
           </div>
-          <form class="order-form" data-order-form>
-            <input type="hidden" name="designId">
-            <input type="hidden" name="estimatedPrice">
-            <input type="hidden" name="configurationJson">
-            <div class="form-grid compact">
-              ${this.renderTextField("name", "Name", "text", "Your name")}
-              ${this.renderTextField("email", "Email", "email", "you@example.com")}
-              ${this.renderTextField("phone", "Phone", "tel", "(555) 000-0000")}
-              ${this.renderTextField("zip", "ZIP code", "text", "10001")}
-              ${this.renderTextField("address", "Project city/address", "text", "Street, city")}
-              ${this.renderTextField("installDate", "Desired installation timeline", "text", "Example: 6-8 weeks")}
-              ${this.renderTextField("wallWidth", "Wall width", "text", "96 inches")}
-              ${this.renderTextField("ceilingHeight", "Ceiling height", "text", "96 inches")}
-            </div>
-            <fieldset class="field">
-              <legend class="fieldset-label">Installation needed?</legend>
-              <div class="segment-group two">
-                <div class="segment"><input id="${this.id}-order-install-yes" name="orderInstallation" type="radio" value="yes" checked><label for="${this.id}-order-install-yes">Yes</label></div>
-                <div class="segment"><input id="${this.id}-order-install-no" name="orderInstallation" type="radio" value="no"><label for="${this.id}-order-install-no">No</label></div>
-              </div>
-            </fieldset>
-            <div class="field">
-              <label for="${this.id}-notes">Notes</label>
-              <textarea id="${this.id}-notes" name="notes" placeholder="Tell us about outlets, baseboards, radiators, access, or design preferences."></textarea>
-            </div>
-            <div class="order-actions">
-              <button class="button button-secondary" type="button" data-save-design>Save My Design</button>
-              <button class="button button-primary" type="submit">Request Final Measurement</button>
-            </div>
-          </form>
-          <div class="order-success" data-order-success hidden role="status"></div>
-        </aside>
-      </div>
+          <p class="configurator-quote-note">Final quote after<br>field verification.</p>
+          ${this.renderTrustRow()}
+          <div class="configurator-actions">
+            <button class="configurator-quote-button" type="button" data-open-order="measurement">Request a Quote</button>
+            <button class="configurator-save-button" type="button" data-save-design>${builderIcons.bookmark}<span>Save Design</span></button>
+          </div>
+        </section>
+
+        <p class="status-message" data-builder-status role="status"></p>
+        <div class="builder-action-proxies" hidden>
+          <button type="button" data-favorite-design>Favorite design</button>
+        </div>
+      </form>
     `;
   }
 
   renderPresetTray() {
-    const presets = [
-      ...layoutPresets.filter((preset) => preset.id === defaultBookcaseConfig.layoutPreset),
-      ...layoutPresets.filter((preset) => preset.id !== defaultBookcaseConfig.layoutPreset)
+    const preferredOrder = [
+      "lower-cabinets",
+      "classic-open",
+      "media-wall",
+      "library-wall",
+      "display-wall",
+      "glass-library",
+      "desk-niche",
+      "feature-wall",
+      "asymmetric-modern",
+      "tall-storage"
     ];
-
+    const presets = [...layoutPresets].sort((left, right) => preferredOrder.indexOf(left.id) - preferredOrder.indexOf(right.id));
     return `
       <section class="preset-tray" aria-label="Layout presets">
         <div class="preset-tray-heading">
           <span class="section-kicker">Choose a layout</span>
-          <button class="preset-scroll preset-scroll-prev" type="button" data-preset-scroll="-1" aria-label="Scroll layouts left"></button>
         </div>
+        <button class="preset-scroll preset-scroll-prev" type="button" data-preset-scroll="-1" aria-label="Scroll layouts left">${builderIcons.chevronLeft}</button>
         <div class="preset-list">
           ${presets.map((preset, index) => `
             <button class="preset-card" type="button" data-preset-id="${preset.id}" aria-label="Use ${preset.name} preset">
               ${this.renderPresetMini(preset, index + 1)}
-              <span class="preset-card-title">${index + 1}. ${this.formatPresetName(preset.name)}</span>
+              <span class="preset-card-title">${this.formatPresetName(preset.name)}</span>
               <span class="preset-check" aria-hidden="true">&#10003;</span>
             </button>
           `).join("")}
         </div>
-        <button class="preset-scroll preset-scroll-next" type="button" data-preset-scroll="1" aria-label="Scroll layouts right"></button>
+        <button class="preset-scroll preset-scroll-next" type="button" data-preset-scroll="1" aria-label="Scroll layouts right">${builderIcons.chevronRight}</button>
       </section>
     `;
   }
@@ -225,55 +267,70 @@ class BookcaseConfigurator {
   }
 
   formatPresetName(name) {
-    return name
-      .replace("Media Wall with TV Opening", "Media Wall (TV Opening)")
-      .replace("Home Office / Desk Niche", "Desk Niche (Home Office)")
-      .replace("Modern Asymmetrical Shelves", "Asymmetrical Modern")
-      .replace("Tall Storage + Open Shelves", "Tall Storage + Shelves")
-      .replace("Fireplace / Feature Wall", "Feature Wall");
+    return name;
   }
 
   renderPresetMini(preset, index) {
-    const sections = Math.min(5, preset.config.sections || 3);
-    const shelves = Math.min(5, preset.config.shelves || 4);
-    const layoutType = preset.config.layoutType || preset.id;
-    const centerBay = Math.floor(sections / 2);
-    const featureSpan = preset.config.featureOpening && sections >= 4 ? 2 : 1;
-    const featureStart = Math.max(0, Math.floor((sections - featureSpan) / 2));
-    const featureEnd = featureStart + featureSpan - 1;
-    const bays = Array.from({ length: sections }, (_, bayIndex) => {
-      const special = preset.config.featureOpening && bayIndex >= featureStart && bayIndex <= featureEnd
-        ? " is-feature"
-        : preset.config.centerOpening && bayIndex === centerBay
-        ? " is-media"
-        : preset.config.deskOpening && bayIndex === centerBay
-          ? " is-desk"
-          : preset.config.tallDoors && (bayIndex === 0 || bayIndex === sections - 1)
-            ? " is-tall"
-            : "";
-      const marker = special.includes("is-media")
-        ? `<span class="mini-tv" aria-hidden="true"></span>`
-        : special.includes("is-desk")
-          ? `<span class="mini-desk" aria-hidden="true"></span>`
-          : special.includes("is-feature") && bayIndex === featureStart
-            ? `<span class="mini-fireplace" aria-hidden="true"></span>`
-            : "";
-      return `<span class="preset-bay${special}" style="--mini-shelves:${shelves}">${marker}</span>`;
-    }).join("");
+    const layout = generateBookcaseLayout(preset.config);
+    const width = layout.config.width;
+    const height = layout.config.height;
+    const drawableRoles = new Set([
+      "base",
+      "side_panel",
+      "top_panel",
+      "bottom_panel",
+      "divider",
+      "shelf",
+      "fixed_shelf",
+      "door",
+      "drawer_front",
+      "crown",
+      "trim"
+    ]);
+    const rectangles = layout.components
+      .filter((component) => drawableRoles.has(component.role))
+      .map((component) => {
+        const role = component.role.replace(/_/g, "-");
+        const style = component.metadata?.style ? ` is-${component.metadata.style.replace(/_/g, "-")}` : "";
+        return `<rect class="mini-part mini-${role}${style}" x="${component.bounds.min.x}" y="${component.bounds.min.y}" width="${component.size.x}" height="${component.size.y}" rx="${component.role === "door" || component.role === "drawer_front" ? 0.35 : 0}"/>`;
+      }).join("");
+    const opening = layout.components.find((component) => component.id === "feature-opening");
+    const openingMarker = opening ? this.renderPresetOpening(opening) : "";
     return `
-      <span class="preset-mini is-${layoutType.replace(/_/g, "-")}" data-mini-layout="${layoutType}" data-mini-preset="${preset.id}">
+      <span class="preset-mini is-${layout.config.layoutType.replace(/_/g, "-")}" data-mini-layout="${layout.config.layoutType}" data-mini-preset="${preset.id}">
         <span class="preset-number">${index}</span>
-        <span class="preset-crown"></span>
-        <span class="preset-bays" style="grid-template-columns:repeat(${sections}, minmax(0, 1fr));">${bays}</span>
-        <span class="preset-base${preset.config.lowerCabinets ? " has-doors" : ""}"></span>
+        <svg viewBox="0 0 ${width + 4} ${height + 4}" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+          <g transform="translate(${width / 2 + 2} ${height + 2}) scale(1 -1)">
+            ${rectangles}
+            ${openingMarker}
+          </g>
+        </svg>
       </span>
     `;
+  }
+
+  renderPresetOpening(opening) {
+    const kind = opening.metadata?.kind;
+    const x = opening.bounds.min.x;
+    const y = opening.bounds.min.y;
+    const width = opening.size.x;
+    const height = opening.size.y;
+    if (kind === "media") {
+      return `<rect class="mini-opening mini-media-screen" x="${x + width * 0.14}" y="${y + height * 0.27}" width="${width * 0.72}" height="${height * 0.48}" rx="1.2"/>`;
+    }
+    if (kind === "feature") {
+      return `<rect class="mini-opening mini-firebox" x="${x + width * 0.25}" y="${y + height * 0.04}" width="${width * 0.5}" height="${height * 0.48}" rx="0.8"/><path class="mini-opening-line" d="M${x + width * 0.16} ${y + height * 0.56}H${x + width * 0.84}"/>`;
+    }
+    if (kind === "desk") {
+      return `<path class="mini-opening-line" d="M${x + width * 0.08} ${y + height * 0.37}H${x + width * 0.92}M${x + width * 0.16} ${y + height * 0.37}V${y + height * 0.08}M${x + width * 0.84} ${y + height * 0.37}V${y + height * 0.08}"/>`;
+    }
+    return "";
   }
 
   renderDimensionsGroup() {
     return `
       <section class="control-section control-section-dimensions">
-        <h3>Dimensions</h3>
+        <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.dimensions}</span>Dimensions</h2>
         ${this.renderRangeControl("width", "Width", 24, 144, 1, "in")}
         ${this.renderRangeControl("height", "Height", 72, 120, 1, "in")}
         ${this.renderRangeControl("depth", "Depth", 10, 24, 1, "in")}
@@ -284,7 +341,7 @@ class BookcaseConfigurator {
   renderLayoutGroup() {
     return `
       <section class="control-section control-section-layout">
-        <h3>Layout</h3>
+        <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.layout}</span>Layout</h2>
         ${this.renderStepperControl("sections", "Sections", 1, 6)}
         ${this.renderStepperControl("shelves", "Shelves per section", 2, 8)}
         <div class="toggle-row premium-toggle">
@@ -298,7 +355,88 @@ class BookcaseConfigurator {
     `;
   }
 
+  renderStructureGroup() {
+    const thicknesses = shelfThicknessOptions.map((option) => `
+      <div class="structure-choice">
+        <input id="${this.id}-shelfThickness-${option.value}" data-field="shelfThickness" name="${this.id}-shelfThickness" type="radio" value="${option.value}">
+        <label for="${this.id}-shelfThickness-${option.value}">${option.label}</label>
+      </div>
+    `).join("");
+    const baseChoices = baseStyleOptions.map((option) => `
+      <div class="style-choice" data-style="${option.value}">
+        <input id="${this.id}-baseStyle-${option.value}" data-field="baseStyle" name="${this.id}-baseStyle" type="radio" value="${option.value}">
+        <label for="${this.id}-baseStyle-${option.value}">
+          <span class="style-diagram style-diagram-base" aria-hidden="true">${basePreviewIcons[option.value]}</span>
+          <span>${option.label}</span>
+        </label>
+      </div>
+    `).join("");
+    const crownChoices = crownStyleOptions.map((option) => `
+      <div class="style-choice" data-style="${option.value}">
+        <input id="${this.id}-crownStyle-${option.value}" data-field="crownStyle" name="${this.id}-crownStyle" type="radio" value="${option.value}">
+        <label for="${this.id}-crownStyle-${option.value}">
+          <span class="style-diagram style-diagram-crown" aria-hidden="true">${crownPreviewIcons[option.value]}</span>
+          <span>${option.label}</span>
+        </label>
+      </div>
+    `).join("");
+
+    return `
+      <section class="control-section control-section-structure">
+        <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.structure}</span>Structure</h2>
+        <fieldset class="structure-field">
+          <legend>Shelf Thickness</legend>
+          <div class="thickness-grid">${thicknesses}</div>
+        </fieldset>
+        <fieldset class="structure-field">
+          <legend>Base Style</legend>
+          <div class="style-choice-grid base-choice-grid">${baseChoices}</div>
+        </fieldset>
+        <fieldset class="structure-field">
+          <legend>Crown / Top Style</legend>
+          <div class="style-choice-grid crown-choice-grid">${crownChoices}</div>
+        </fieldset>
+      </section>
+    `;
+  }
+
   renderFinishGroup() {
+    if (this.host.dataset.mode === "configurator") {
+      const swatches = finishOptions.filter((option) => !option.custom).map((option) => {
+        const match = option.label.match(/^(.*) (OC-\d+)$/);
+        const name = match?.[1] || option.label;
+        const code = match?.[2] || "";
+        return `
+          <div class="finish-choice">
+            <input id="${this.id}-finish-${option.value}" data-field="finish" name="${this.id}-finish" type="radio" value="${option.value}">
+            <label for="${this.id}-finish-${option.value}" title="${option.label}">
+              <span class="finish-choice-dot" style="--swatch:${option.swatch}" aria-hidden="true"></span>
+              <span>${name}<small>${code}</small></span>
+            </label>
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <section class="control-section control-section-finish">
+          <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.finish}</span>Finish</h2>
+          <fieldset class="finish-field">
+            <legend class="sr-only">Benjamin Moore paint finish</legend>
+            <div class="finish-choice-grid">${swatches}</div>
+          </fieldset>
+          <div class="bm-search" data-custom-bm-fields>
+            <label for="${this.id}-customPaintColor">Search Benjamin Moore colors</label>
+            <div class="bm-search-input">
+              <input id="${this.id}-customPaintColor" data-bm-query type="search" maxlength="80" placeholder="Name or code, e.g. HC-154" autocomplete="off">
+              <button type="button" data-search-bm aria-label="Search local Benjamin Moore color data">${builderIcons.search}</button>
+            </div>
+            <div class="bm-search-results" id="${this.id}-bm-results" data-bm-results hidden></div>
+            <p class="bm-search-status" data-bm-status>Local curated data · approximate only; verify with a physical sample.</p>
+          </div>
+        </section>
+      `;
+    }
+
     const swatches = finishOptions.map((option) => {
       const swatchLabel = option.custom ? "Custom Benjamin Moore Color" : option.label;
       return `
@@ -314,7 +452,7 @@ class BookcaseConfigurator {
 
     return `
       <section class="control-section control-section-finish">
-        <h3>PAINT FINISH</h3>
+        <h2>Paint Finish</h2>
         <p class="finish-helper">Recommended Benjamin Moore colors.</p>
         <fieldset class="field">
           <legend class="fieldset-label">Choose from recommended Benjamin Moore colors or enter your preferred Benjamin Moore color.</legend>
@@ -331,6 +469,27 @@ class BookcaseConfigurator {
   }
 
   renderHardwareGroup() {
+    if (this.host.dataset.mode === "configurator") {
+      const hardware = hardwareOptions.map((option) => `
+        <div class="hardware-choice" data-hardware="${option.value}">
+          <input id="${this.id}-hardware-${option.value}" data-field="hardware" name="${this.id}-hardware" type="radio" value="${option.value}">
+          <label for="${this.id}-hardware-${option.value}" title="${option.label}">
+            <span class="hardware-choice-icon" aria-hidden="true">${hardwarePreviewIcons[option.value]}</span>
+            <span>${option.label}</span>
+          </label>
+        </div>
+      `).join("");
+      return `
+        <section class="control-section control-section-hardware">
+          <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.hardware}</span>Hardware</h2>
+          <fieldset class="hardware-field lower-dependent" data-lower-dependent>
+            <legend class="sr-only">Hardware options</legend>
+            <div class="hardware-choice-grid">${hardware}</div>
+          </fieldset>
+        </section>
+      `;
+    }
+
     const hardware = hardwareOptions.map((option) => `
       <div class="hardware-swatch">
         <input id="${this.id}-hardware-${option.value}" data-field="hardware" name="${this.id}-hardware" type="radio" value="${option.value}">
@@ -343,7 +502,7 @@ class BookcaseConfigurator {
 
     return `
       <section class="control-section control-section-hardware">
-        <h3>Hardware</h3>
+        <h2>Hardware</h2>
         <fieldset class="field lower-dependent" data-lower-dependent>
           <legend class="fieldset-label">Hardware options</legend>
           <div class="hardware-grid">${hardware}</div>
@@ -353,28 +512,49 @@ class BookcaseConfigurator {
   }
 
   renderLightingGroup() {
+    if (this.host.dataset.mode === "configurator") {
+      const lighting = lightingOptions.map((option) => `
+        <div class="lighting-card" data-lighting="${option.value}">
+          <input id="${this.id}-lighting-${option.value}" data-field="lighting" name="${this.id}-lighting" type="radio" value="${option.value}">
+          <label for="${this.id}-lighting-${option.value}">
+            <span class="lighting-card-icon" aria-hidden="true">${lightingPreviewIcons[option.value]}</span>
+            <span>${option.label}</span>
+          </label>
+        </div>
+      `).join("");
+      const warmth = lightingWarmthOptions.map((option) => `
+        <div class="warmth-choice">
+          <input id="${this.id}-lightingWarmth-${option.value}" data-field="lightingWarmth" name="${this.id}-lightingWarmth" type="radio" value="${option.value}">
+          <label for="${this.id}-lightingWarmth-${option.value}"><strong>${option.label}</strong><small>${option.description}</small></label>
+        </div>
+      `).join("");
+      return `
+        <section class="control-section control-section-lighting">
+          <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.lighting}</span>Lighting</h2>
+          <fieldset class="lighting-field">
+            <legend class="sr-only">Lighting package</legend>
+            <div class="lighting-grid">${lighting}</div>
+          </fieldset>
+          <fieldset class="warmth-field">
+            <legend>Warmth</legend>
+            <div class="warmth-grid">${warmth}</div>
+          </fieldset>
+        </section>
+      `;
+    }
+
     const options = lightingOptions.map((option) => `
       <option value="${option.value}">${option.label}</option>
     `).join("");
 
     return `
       <section class="control-section control-section-lighting">
-        <h3>Lighting</h3>
+        <h2>Lighting</h2>
         <label class="lighting-select-label" for="${this.id}-lighting">Lighting options</label>
         <select class="lighting-select" id="${this.id}-lighting" data-field="lighting" name="${this.id}-lighting">
           ${options}
         </select>
       </section>
-    `;
-  }
-
-  renderTopBaseGroup() {
-    return `
-      <details class="control-section" open>
-        <summary>Top &amp; Base Detail</summary>
-        ${this.renderSegmentField("crownStyle", "Crown style", crownStyleOptions)}
-        ${this.renderSegmentField("baseStyle", "Base style", baseStyleOptions)}
-      </details>
     `;
   }
 
@@ -384,7 +564,7 @@ class BookcaseConfigurator {
         <div class="range-label">
           <label for="${this.id}-${name}-range">${label}</label>
           <div class="range-value">
-            <input id="${this.id}-${name}-number" data-field="${name}" type="number" min="${min}" max="${max}" step="${step}" inputmode="numeric">
+            <input id="${this.id}-${name}-number" data-field="${name}" type="number" min="${min}" max="${max}" step="${step}" inputmode="numeric" aria-label="${label} value">
             ${unit ? `<span>${unit}</span>` : ""}
           </div>
         </div>
@@ -407,41 +587,13 @@ class BookcaseConfigurator {
     `;
   }
 
-  renderSegmentField(name, label, options, extraClass = "") {
-    const segments = options.map((option) => `
-      <div class="segment">
-        <input id="${this.id}-${name}-${option.value}" data-field="${name}" name="${this.id}-${name}" type="radio" value="${option.value}">
-        <label for="${this.id}-${name}-${option.value}">${option.label}</label>
-      </div>
-    `).join("");
-
-    return `
-      <fieldset class="field ${extraClass}" ${extraClass ? "data-lower-dependent" : ""}>
-        <legend class="fieldset-label">${label}</legend>
-        <div class="segment-group">${segments}</div>
-      </fieldset>
-    `;
-  }
-
-  renderTextField(name, label, type, placeholder) {
-    return `
-      <div class="field">
-        <label for="${this.id}-order-${name}">${label}</label>
-        <input id="${this.id}-order-${name}" name="${name}" type="${type}" placeholder="${placeholder}" ${name === "name" || name === "email" || name === "phone" || name === "zip" ? "required" : ""}>
-      </div>
-    `;
-  }
-
   cacheElements() {
     this.elements = {
       viewer: this.host.querySelector("[data-3d-viewer]"),
       form: this.host.querySelector("[data-builder-form]"),
       price: this.host.querySelector("[data-price]"),
       status: this.host.querySelector("[data-builder-status]"),
-      doorOptions: this.host.querySelector("[data-door-options]"),
-      drawer: this.host.querySelector("[data-order-drawer]"),
-      orderForm: this.host.querySelector("[data-order-form]"),
-      orderSuccess: this.host.querySelector("[data-order-success]")
+      doorOptions: this.host.querySelector("[data-door-options]")
     };
   }
 
@@ -471,7 +623,22 @@ class BookcaseConfigurator {
     });
 
     this.host.querySelectorAll("[data-view]").forEach((button) => {
-      button.addEventListener("click", () => this.setView(button.dataset.view));
+      button.addEventListener("click", () => {
+        if (button.dataset.view === "reset") {
+          try {
+            localStorage.removeItem("jqBookcasesDesign");
+          } catch (error) {
+            // Reset still succeeds when local storage is unavailable.
+          }
+          this.update(defaultBookcaseConfig);
+          this.viewer.setView("reset");
+          this.activeView = "three-quarter";
+          this.syncViewButtons();
+          this.showStatus("Configuration reset to the Full Bookcase layout.");
+          return;
+        }
+        this.setView(button.dataset.view);
+      });
     });
 
     this.host.querySelectorAll("[data-preset-id]").forEach((button) => {
@@ -481,11 +648,17 @@ class BookcaseConfigurator {
     this.host.querySelectorAll("[data-preset-scroll]").forEach((button) => {
       button.addEventListener("click", () => this.scrollPresetTray(Number(button.dataset.presetScroll)));
     });
+    const presetList = this.host.querySelector(".preset-list");
+    presetList?.addEventListener("scroll", () => this.syncPresetScrollButtons(), { passive: true });
+    window.addEventListener("resize", () => this.syncPresetScrollButtons(), { passive: true });
+    window.requestAnimationFrame(() => this.syncPresetScrollButtons());
 
     this.host.querySelectorAll("[data-save-design]").forEach((button) => {
       button.addEventListener("click", () => {
         const design = this.saveCurrentDesign();
-        this.showStatus(`Saved design ${design.id}.`);
+        this.showStatus(design.persisted
+          ? `Saved design ${design.id}.`
+          : `Design ${design.id} is ready, but this browser could not store it.`);
       });
     });
 
@@ -494,12 +667,29 @@ class BookcaseConfigurator {
       this.showStatus(`Favorited design ${design.id}.`);
     });
 
-    this.host.querySelectorAll("[data-open-order]").forEach((button) => {
-      button.addEventListener("click", () => this.openOrderDrawer(button.dataset.openOrder));
+    const colorQuery = this.host.querySelector("[data-bm-query]");
+    colorQuery?.addEventListener("input", () => this.updateBenjaminMooreResults(colorQuery.value));
+    colorQuery?.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        this.closeBenjaminMooreResults();
+        return;
+      }
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      this.applyBenjaminMooreQuery(colorQuery.value);
+    });
+    this.host.querySelector("[data-search-bm]")?.addEventListener("click", () => {
+      this.applyBenjaminMooreQuery(colorQuery?.value || "");
+    });
+    this.host.addEventListener("click", (event) => {
+      const result = event.target.closest?.("[data-bm-code]");
+      if (!result || !this.host.contains(result)) return;
+      const color = findExactBenjaminMooreColor(result.dataset.bmCode);
+      if (color) this.applyBenjaminMooreColor(color);
     });
 
-    this.host.querySelectorAll("[data-close-order]").forEach((button) => {
-      button.addEventListener("click", () => this.closeOrderDrawer());
+    this.host.querySelectorAll("[data-open-order]").forEach((button) => {
+      button.addEventListener("click", () => this.openQuotePage());
     });
 
     this.host.querySelector("[data-focus-controls]")?.addEventListener("click", () => {
@@ -507,27 +697,6 @@ class BookcaseConfigurator {
       window.setTimeout(() => this.host.querySelector("[data-field]")?.focus(), 280);
     });
 
-    this.elements.orderForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const design = this.saveCurrentDesign();
-      const leadData = Object.fromEntries(new FormData(this.elements.orderForm).entries());
-      try {
-        localStorage.setItem(`jqBookcasesLead-${design.id}`, JSON.stringify({
-          ...leadData,
-          design,
-          submittedAt: new Date().toISOString()
-        }));
-      } catch (error) {
-        // Saving can fail in private browsing; the visible design ID still lets the customer continue.
-      }
-      this.elements.orderSuccess.hidden = false;
-      this.elements.orderSuccess.innerHTML = `<strong>Request saved.</strong> Your design ID is ${design.id}. We will use this configuration for measurement and order review.`;
-      this.elements.orderSuccess.focus?.();
-    });
-
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && this.elements.drawer.classList.contains("is-open")) this.closeOrderDrawer();
-    });
   }
 
   beginRangeDrag(event, range) {
@@ -583,9 +752,21 @@ class BookcaseConfigurator {
   applyPreset(presetId) {
     const preset = layoutPresets.find((item) => item.id === presetId);
     if (!preset) return;
+    const retainedSelections = {
+      finish: this.state.finish,
+      customPaintColor: this.state.customPaintColor,
+      customPaintCode: this.state.customPaintCode,
+      customPaintHex: this.state.customPaintHex,
+      hardware: this.state.hardware,
+      lighting: this.state.lighting,
+      lightingWarmth: this.state.lightingWarmth,
+      delivery: this.state.delivery,
+      installation: this.state.installation
+    };
     this.update({
       ...this.state,
       ...preset.config,
+      ...retainedSelections,
       layoutPreset: preset.id
     });
     this.showStatus(`${preset.name} preset applied. You can keep customizing from here.`);
@@ -595,13 +776,118 @@ class BookcaseConfigurator {
     const list = this.host.querySelector(".preset-list");
     if (!list) return;
     list.scrollBy({ left: direction * list.clientWidth * 0.72, behavior: "smooth" });
+    window.setTimeout(() => this.syncPresetScrollButtons(), 320);
+  }
+
+  syncPresetScrollButtons() {
+    const list = this.host.querySelector(".preset-list");
+    if (!list) return;
+    const maximum = Math.max(0, list.scrollWidth - list.clientWidth);
+    const previous = this.host.querySelector('[data-preset-scroll="-1"]');
+    const next = this.host.querySelector('[data-preset-scroll="1"]');
+    if (previous) previous.disabled = list.scrollLeft <= 1;
+    if (next) next.disabled = list.scrollLeft >= maximum - 1;
+  }
+
+  updateBenjaminMooreResults(query) {
+    const resultsHost = this.host.querySelector("[data-bm-results]");
+    const status = this.host.querySelector("[data-bm-status]");
+    const input = this.host.querySelector("[data-bm-query]");
+    if (!resultsHost || !status || !input) return;
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) {
+      resultsHost.hidden = true;
+      resultsHost.innerHTML = "";
+      status.textContent = "Local curated data · approximate only; verify with a physical sample.";
+      return;
+    }
+    const matches = searchBenjaminMooreColors(normalizedQuery, { limit: 5 });
+    if (!matches.length) {
+      resultsHost.hidden = true;
+      resultsHost.innerHTML = "";
+      status.textContent = `No local match for “${normalizedQuery}”. Try a full name or code.`;
+      return;
+    }
+    resultsHost.innerHTML = matches.map((color) => `
+      <button type="button" data-bm-code="${color.code}" aria-label="Apply ${color.name} ${color.code}">
+        <span class="bm-result-swatch" style="--bm-result-color:${color.approximateHex}" aria-hidden="true"></span>
+        <span><strong>${color.name}</strong><small>${color.code}</small></span>
+      </button>
+    `).join("");
+    resultsHost.hidden = false;
+    status.textContent = `${matches.length} local ${matches.length === 1 ? "match" : "matches"}. Select a color to apply it.`;
+  }
+
+  applyBenjaminMooreQuery(query) {
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) {
+      this.host.querySelector("[data-bm-query]")?.focus();
+      this.updateBenjaminMooreResults("");
+      return;
+    }
+    const exact = findExactBenjaminMooreColor(normalizedQuery);
+    if (exact) {
+      this.applyBenjaminMooreColor(exact);
+      return;
+    }
+    this.updateBenjaminMooreResults(normalizedQuery);
+  }
+
+  applyBenjaminMooreColor(color) {
+    this.update({
+      ...this.state,
+      finish: "custom_bm",
+      customPaintColor: color.name,
+      customPaintCode: color.code,
+      customPaintHex: color.approximateHex
+    });
+    const input = this.host.querySelector("[data-bm-query]");
+    if (input) input.value = `${color.name} ${color.code}`;
+    this.closeBenjaminMooreResults();
+    const status = this.host.querySelector("[data-bm-status]");
+    if (status) status.textContent = `Applied ${color.name} ${color.code}. Verify the final finish with a physical paint sample.`;
+    this.showStatus(`${color.name} ${color.code} applied to the full bookcase.`);
+  }
+
+  closeBenjaminMooreResults() {
+    const resultsHost = this.host.querySelector("[data-bm-results]");
+    const input = this.host.querySelector("[data-bm-query]");
+    if (resultsHost) resultsHost.hidden = true;
+  }
+
+  findMatchingPresetId(config) {
+    const keys = [
+      "layoutType",
+      "width",
+      "height",
+      "depth",
+      "sections",
+      "shelves",
+      "shelfThickness",
+      "lowerCabinets",
+      "lowerStorage",
+      "drawerCount",
+      "centerOpening",
+      "deskOpening",
+      "featureOpening",
+      "tallDoors",
+      "doorStyle",
+      "doorCount",
+      "crownStyle",
+      "baseStyle",
+      "layoutMetadata"
+    ];
+    const signature = JSON.stringify(keys.map((key) => config[key]));
+    return layoutPresets.find((preset) => JSON.stringify(keys.map((key) => preset.config[key])) === signature)?.id || "custom";
   }
 
   handleFieldChange(target) {
     if (target.type !== "radio" && target.type !== "checkbox") {
       this.syncMatchingInputs(target.dataset.field, target.value, target);
     }
-    this.update(this.readStateFromControls());
+    const next = this.readStateFromControls();
+    if (target.dataset.field === "customPaintColor" && target.value.trim()) next.finish = "custom_bm";
+    this.update(next);
   }
 
   handleStepperClick(button) {
@@ -634,13 +920,21 @@ class BookcaseConfigurator {
   }
 
   update(nextState) {
-    this.state = normalizeBookcaseConfig(nextState);
+    const normalizedState = normalizeBookcaseConfig(nextState);
+    this.layout = generateBookcaseLayout(normalizedState);
+    this.state = normalizeBookcaseConfig({ ...normalizedState, ...this.layout.config });
+    this.state.layoutPreset = this.findMatchingPresetId(this.state);
     this.renderDoorOptions();
     this.syncControls();
     this.syncLowerDependentControls();
     this.syncPresetCards();
     this.updatePriceAndSummary();
-    this.viewer.update(this.state);
+    this.viewer.update(this.state, this.layout);
+    if (!this.layout.validation.valid) {
+      this.showStatus(this.layout.validation.errors[0]?.message || "This configuration is not structurally valid.", true);
+    } else if (this.layout.corrections.length) {
+      this.showStatus(this.layout.corrections.map((correction) => correction.message || correction).join(" "));
+    }
   }
 
   renderDoorOptions() {
@@ -667,6 +961,12 @@ class BookcaseConfigurator {
         } else {
           field.value = value;
         }
+        if (field.type === "range") {
+          const min = Number(field.min) || 0;
+          const max = Number(field.max) || 100;
+          const progress = ((Number(value) - min) / Math.max(1, max - min)) * 100;
+          field.style.setProperty("--range-progress", `${progress}%`);
+        }
       });
     });
 
@@ -683,7 +983,8 @@ class BookcaseConfigurator {
   getFinishLabel() {
     const baseLabel = optionLabels.finish[this.state.finish] || "Paint finish";
     if (this.state.finish !== "custom_bm") return baseLabel;
-    return this.state.customPaintColor ? `${baseLabel}: ${this.state.customPaintColor}` : `${baseLabel} selected`;
+    const selected = [this.state.customPaintColor, this.state.customPaintCode].filter(Boolean).join(" ");
+    return selected || `${baseLabel} selected`;
   }
 
   syncPaintFinishControls() {
@@ -694,7 +995,20 @@ class BookcaseConfigurator {
     if (selectedLine) selectedLine.textContent = `Selected: ${this.getFinishLabel()}`;
 
     const customPanel = this.host.querySelector("[data-custom-bm-fields]");
-    if (customPanel) customPanel.hidden = !customSelected;
+    if (customPanel) {
+      const permanentSearch = this.host.dataset.mode === "configurator";
+      customPanel.hidden = permanentSearch ? false : !customSelected;
+      customPanel.classList.toggle("is-selected", customSelected);
+    }
+    const query = this.host.querySelector("[data-bm-query]");
+    if (query && document.activeElement !== query && customSelected) {
+      query.value = [this.state.customPaintColor, this.state.customPaintCode].filter(Boolean).join(" ");
+    } else if (query && document.activeElement !== query && !customSelected) {
+      query.value = "";
+      this.closeBenjaminMooreResults();
+      const searchStatus = this.host.querySelector("[data-bm-status]");
+      if (searchStatus) searchStatus.textContent = "Local curated data · approximate only; verify with a physical sample.";
+    }
   }
 
   syncMatchingInputs(fieldName, value, source) {
@@ -713,13 +1027,13 @@ class BookcaseConfigurator {
   }
 
   syncPresetCards() {
-    const currentPreset = layoutPresets.find((preset) => preset.id === this.state.layoutPreset) || layoutPresets[1];
+    const currentPreset = layoutPresets.find((preset) => preset.id === this.state.layoutPreset);
     const activePreset = this.host.querySelector("[data-active-preset]");
     const presetDescription = this.host.querySelector("[data-preset-description]");
-    if (activePreset) activePreset.textContent = currentPreset.name;
-    if (presetDescription) presetDescription.textContent = currentPreset.description;
+    if (activePreset) activePreset.textContent = currentPreset?.name || "Custom layout";
+    if (presetDescription) presetDescription.textContent = currentPreset?.description || "Customized from a JQ Bookcases layout.";
     this.host.querySelectorAll("[data-preset-id]").forEach((button) => {
-      const isActive = button.dataset.presetId === currentPreset.id;
+      const isActive = button.dataset.presetId === currentPreset?.id;
       button.classList.toggle("is-active", isActive);
       button.setAttribute("aria-pressed", String(isActive));
     });
@@ -751,44 +1065,36 @@ class BookcaseConfigurator {
     const price = calculateBookcasePrice(this.state);
     const id = createDesignId(this.state, price);
     const design = {
+      schemaVersion: 3,
       id,
       price,
       config: this.state,
       savedAt: new Date().toISOString()
     };
+    let persisted = false;
     try {
       localStorage.setItem("jqBookcasesDesign", JSON.stringify(design));
+      persisted = true;
     } catch (error) {
       // Local storage may be disabled; keep the visible ID available.
     }
-    return design;
+    return { ...design, persisted };
   }
 
-  openOrderDrawer() {
+  openQuotePage() {
     const design = this.saveCurrentDesign();
-    this.elements.drawer.classList.add("is-open");
-    this.elements.drawer.setAttribute("aria-hidden", "false");
-    document.body.classList.add("drawer-open");
-    this.elements.orderSuccess.hidden = true;
-    this.host.querySelector("[data-order-design-id]").textContent = design.id;
-    this.host.querySelector("[data-order-price]").textContent = formatPrice(design.price);
-    this.elements.orderForm.elements.designId.value = design.id;
-    this.elements.orderForm.elements.estimatedPrice.value = design.price;
-    this.elements.orderForm.elements.configurationJson.value = JSON.stringify(design.config);
-    this.elements.orderForm.elements.wallWidth.value = `${this.state.width} inches`;
-    this.elements.orderForm.elements.ceilingHeight.value = `${this.state.height} inches`;
-    window.setTimeout(() => this.elements.orderForm.elements.name.focus(), 80);
+    window.location.assign(`request-quote.html?design=${encodeURIComponent(design.id)}`);
   }
 
-  closeOrderDrawer() {
-    this.elements.drawer.classList.remove("is-open");
-    this.elements.drawer.setAttribute("aria-hidden", "true");
-    document.body.classList.remove("drawer-open");
-  }
-
-  showStatus(message) {
+  showStatus(message, persistent = false) {
+    window.clearTimeout(this.statusTimer);
     this.elements.status.textContent = message;
     this.elements.status.classList.add("is-visible");
+    if (!persistent) {
+      this.statusTimer = window.setTimeout(() => {
+        this.elements.status.classList.remove("is-visible");
+      }, 3200);
+    }
   }
 }
 
@@ -826,10 +1132,10 @@ class BookcaseViewer3D {
   }
 
   setupEnvironment() {
-    this.scene.fog = new THREE.FogExp2(0x6b6359, 0.014);
-    this.scene.add(new THREE.HemisphereLight(0xf8f0e5, 0x665e55, 2.05));
+    this.scene.fog = new THREE.FogExp2(0x302b26, 0.006);
+    this.scene.add(new THREE.HemisphereLight(0xf7f1e8, 0x2b2824, 1.7));
 
-    const key = new THREE.DirectionalLight(0xf7ecdf, 3.62);
+    const key = new THREE.DirectionalLight(0xf7ecdf, 3.15);
     key.position.set(4.2, 8.6, 6.4);
     key.castShadow = true;
     key.shadow.mapSize.set(1536, 1536);
@@ -841,32 +1147,32 @@ class BookcaseViewer3D {
     key.shadow.camera.bottom = -9;
     this.scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0xeee6db, 1.14);
+    const fill = new THREE.DirectionalLight(0xeee6db, 0.92);
     fill.position.set(-6, 4.6, 5.4);
     this.scene.add(fill);
 
-    const rim = new THREE.DirectionalLight(0xdccfc0, 0.7);
+    const rim = new THREE.DirectionalLight(0xdccfc0, 0.58);
     rim.position.set(-4.8, 5.8, -4.6);
     this.scene.add(rim);
 
-    const leftGlow = new THREE.PointLight(0xe8dccb, 0.34, 18);
+    const leftGlow = new THREE.PointLight(0xe8dccb, 0.22, 18);
     leftGlow.position.set(-7.2, 4.2, 2.7);
     this.scene.add(leftGlow);
 
-    const rightGlow = new THREE.PointLight(0xe8dccb, 0.3, 18);
+    const rightGlow = new THREE.PointLight(0xe8dccb, 0.2, 18);
     rightGlow.position.set(7.2, 4.0, 2.8);
     this.scene.add(rightGlow);
 
     const contactMaterial = new THREE.MeshBasicMaterial({
       map: createContactShadowTexture(),
       transparent: true,
-      opacity: 0.32,
+      opacity: 0.25,
       depthWrite: false,
       side: THREE.DoubleSide
     });
-    const contact = new THREE.Mesh(new THREE.PlaneGeometry(48, 18.5), contactMaterial);
+    const contact = new THREE.Mesh(new THREE.PlaneGeometry(13, 4.2), contactMaterial);
     contact.rotation.x = -Math.PI / 2;
-    contact.position.set(0, -0.048, 0.3);
+    contact.position.set(0, -0.025, 0.12);
     this.scene.add(contact);
 
   }
@@ -928,6 +1234,9 @@ class BookcaseViewer3D {
     } else if (view === "three-quarter") {
       this.theta = -0.14;
       this.phi = 0.12;
+    } else if (view === "three-dimensional") {
+      this.theta = -0.42;
+      this.phi = 0.2;
     } else {
       this.theta = -0.14;
       this.phi = 0.12;
@@ -956,27 +1265,46 @@ class BookcaseViewer3D {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
+    if (this.model?.children?.length) this.frameModel(true);
   }
 
-  update(nextState) {
+  update(nextState, precomputedLayout = null) {
     this.state = normalizeBookcaseConfig(nextState);
-    this.rebuildModel();
-    const widthUnits = inchesToUnits(this.state.width);
-    const heightUnits = inchesToUnits(this.state.height);
-    const depthUnits = inchesToUnits(this.state.depth);
-    this.target.set(0, heightUnits * 0.52, 0);
-    const aspect = this.camera.aspect || 1;
-    const compositionScale = aspect < 0.95 ? 3.25 : aspect < 1.15 ? 2.22 : 1.62;
-    const wideLayoutScale = 1 + Math.max(0, widthUnits - 10) * 0.08;
-    this.baseRadius = Math.max(widthUnits, heightUnits, depthUnits) * compositionScale * wideLayoutScale;
-    this.radius = this.previewMode ? this.baseRadius * 0.78 : this.radius ? clamp(this.radius, this.baseRadius * 0.82, this.baseRadius * 1.58) : this.baseRadius;
+    this.rebuildModel(precomputedLayout);
+    this.frameModel(true);
+  }
+
+  frameModel(preserveZoom = true) {
+    if (!this.model?.children?.length) return;
+    const previousRatio = preserveZoom && this.baseRadius > 0 && this.radius > 0
+      ? this.radius / this.baseRadius
+      : 1;
+    const bounds = new THREE.Box3().setFromObject(this.model);
+    const size = bounds.getSize(new THREE.Vector3());
+    const center = bounds.getCenter(new THREE.Vector3());
+    const verticalFov = THREE.MathUtils.degToRad(this.camera.fov);
+    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * Math.max(this.camera.aspect || 1, 0.3));
+    const heightDistance = size.y / (2 * Math.tan(verticalFov / 2));
+    const widthDistance = size.x / (2 * Math.tan(horizontalFov / 2));
+    const depthAllowance = size.z * 0.58;
+    const compactAspect = (this.camera.aspect || 1) < 0.85;
+    this.baseRadius = Math.max(heightDistance, widthDistance) * (compactAspect ? 1.28 : 1.21) + depthAllowance;
+    this.target.set(center.x, center.y + size.y * (compactAspect ? 0.01 : -0.025), center.z);
+    const ratio = this.previewMode ? 0.82 : clamp(previousRatio || 1, 0.84, 1.48);
+    this.radius = this.baseRadius * ratio;
     this.updateCamera();
   }
 
-  rebuildModel() {
+  rebuildModel(precomputedLayout = null) {
+    const nextModel = buildBookcaseModel(this.state, precomputedLayout);
+    this.lastLayout = nextModel.userData.layout;
+    if (!this.lastLayout.validation.valid) {
+      disposeObject(nextModel);
+      return;
+    }
     this.scene.remove(this.model);
     disposeObject(this.model);
-    this.model = buildBookcaseModel(this.state);
+    this.model = nextModel;
     this.scene.add(this.model);
   }
 
@@ -996,78 +1324,248 @@ class BookcaseViewer3D {
   }
 }
 
-function buildBookcaseModel(state) {
+function buildBookcaseModel(state, precomputedLayout = null) {
   const config = normalizeBookcaseConfig(state);
-  const palette = finishPalette[config.finish];
-  const materials = createMaterials(palette, config);
+  const layout = precomputedLayout || generateBookcaseLayout(config);
+  const finishColor = config.finish === "custom_bm" && config.customPaintHex
+    ? hexToNumber(config.customPaintHex, finishPalette.custom_bm)
+    : finishPalette[config.finish] || finishPalette.white_dove;
+  const materials = createMaterials(finishColor, config);
   const group = new THREE.Group();
-  group.userData.edgeLine = materials.edgeLine;
-  const measuredHeight = inchesToUnits(config.height);
-  const width = inchesToUnits(config.width) * 1.18;
-  const height = measuredHeight * 0.92;
-  const depth = inchesToUnits(config.depth) * 1.08;
-  const outer = 0.175;
-  const partition = 0.128;
-  const shelf = 0.105;
-  const lowerHeight = config.lowerCabinets ? Math.min(2.42, height * 0.318) : outer + 0.12;
-  const innerWidth = width - outer * 2;
-  const bayWidth = (innerWidth - partition * (config.sections - 1)) / config.sections;
-  const shelfDepth = depth - 0.18;
+  group.name = "bookcase-assembly";
+  group.userData = {
+    edgeLine: materials.edgeLine,
+    layout,
+    pointLightCount: 0
+  };
 
-  addBox(group, [width, height, 0.055], [0, height / 2, -depth / 2 + 0.028], materials.back, true);
-  addBox(group, [width * 0.96, height * 0.98, 0.018], [0, height / 2, -depth / 2 + 0.064], materials.backShade, false);
-  addBox(group, [outer, height, depth], [-width / 2 + outer / 2, height / 2, 0], materials.side);
-  addBox(group, [outer, height, depth], [width / 2 - outer / 2, height / 2, 0], materials.side);
-  addBox(group, [width, outer, depth], [0, height - outer / 2, 0], materials.case);
-  addBox(group, [width, outer, depth], [0, outer / 2, 0], materials.case);
+  const depth = inchesToUnits(layout.config.depth);
+  const logicalRoles = new Set(["assembly", "section", "section_group"]);
+  const componentGroups = new Map();
+  componentGroups.set("bookcase", group);
 
-  for (let index = 1; index < config.sections; index += 1) {
-    const x = -innerWidth / 2 + index * (bayWidth + partition) - partition / 2;
-    if (isPartitionInsideClearOpening(config, index)) {
-      const lowerPartitionHeight = Math.max(0.4, lowerHeight - outer * 0.8);
-      addBox(group, [partition, lowerPartitionHeight, shelfDepth], [x, lowerPartitionHeight / 2 + outer * 0.2, 0.015], materials.case);
-    } else {
-      addBox(group, [partition, height - outer * 2, shelfDepth], [x, height / 2, 0.015], materials.case);
+  layout.components.forEach((component) => {
+    if (component.role === "assembly") {
+      componentGroups.set(component.id, group);
+      return;
     }
-  }
+    const componentGroup = new THREE.Group();
+    componentGroup.name = component.id;
+    componentGroup.userData = {
+      componentId: component.id,
+      role: component.role,
+      parentId: component.parentId,
+      hostId: component.hostId,
+      bounds: component.bounds,
+      edgeLine: materials.edgeLine
+    };
+    componentGroups.set(component.id, componentGroup);
+  });
 
-  const upperBottom = config.lowerCabinets ? lowerHeight + shelf * 1.28 : outer + shelf * 0.5;
-  const upperTop = height - outer - 0.2;
-  const shelfSpan = Math.max(0.8, upperTop - upperBottom);
-  const renderedShelfCount = getRenderedShelfCount(config);
+  layout.components.forEach((component) => {
+    if (component.role === "assembly") return;
+    const componentGroup = componentGroups.get(component.id);
+    const parentGroup = componentGroups.get(component.parentId) || group;
+    parentGroup.add(componentGroup);
+  });
 
-  for (let bay = 0; bay < config.sections; bay += 1) {
-    const bayX = getBayX(bay, innerWidth, bayWidth, partition);
-    for (let row = 1; row <= renderedShelfCount; row += 1) {
-      if (shouldSkipShelf(config, bay, row)) continue;
-      const y = getShelfY(config, bay, row, upperBottom, upperTop, shelfSpan, renderedShelfCount);
-      addShelf(group, materials, [bayWidth, shelf, shelfDepth], [bayX, y, 0.02], depth);
-      addShelfObjects(group, materials, bayX, bayWidth, y + shelf / 2, shelfDepth, bay, row);
-    }
-  }
-  const metrics = { width, height, depth, outer, partition, shelf, lowerHeight, innerWidth, bayWidth, shelfDepth, upperBottom, upperTop, shelfSpan, renderedShelfCount };
+  layout.components.forEach((component, index) => {
+    if (logicalRoles.has(component.role)) return;
+    const componentGroup = componentGroups.get(component.id) || group;
+    renderLayoutComponent(componentGroup, group, component, config, materials, depth, index);
+  });
 
-  if (config.lowerCabinets) {
-    addLowerCabinets(group, config, materials, metrics);
-  } else {
-    addShelf(group, materials, [innerWidth, shelf, shelfDepth], [0, lowerHeight + 0.32, 0.02], depth);
-  }
-
-  addShelfPinRows(group, config, materials, metrics);
-  if (config.centerOpening) addMediaOpening(group, config, materials, metrics);
-  if (config.deskOpening) addDeskNiche(group, config, materials, metrics);
-  if (config.featureOpening) addFeatureWallOpening(group, config, materials, metrics);
-  if (config.layoutType === "display_wall") addDisplayWallMoment(group, config, materials, metrics);
-  if (config.layoutType === "asymmetric" || config.layoutType === "walnut_modern") addAsymmetricAccents(group, config, materials, metrics);
-  if (config.layoutType === "glass_library") addUpperGlassDoors(group, config, materials, metrics);
-  if (config.tallDoors) addTallStorageDoors(group, config, materials, metrics);
-  addPuckLights(group, config, materials, metrics);
-  addFaceFrameDetails(group, config, materials, metrics);
-
-  addCrown(group, config, materials, width, height, depth);
-  addBase(group, config, materials, width, depth);
-  group.position.y = measuredHeight - height;
   return group;
+}
+
+function renderLayoutComponent(componentGroup, rootGroup, component, config, materials, bookcaseDepth, index) {
+  const size = [
+    inchesToUnits(component.size.x),
+    inchesToUnits(component.size.y),
+    inchesToUnits(component.size.z)
+  ];
+  const position = [
+    inchesToUnits(component.position.x),
+    inchesToUnits(component.position.y),
+    bookcaseDepth / 2 - inchesToUnits(component.position.z)
+  ];
+  if (size.some((value) => !Number.isFinite(value) || value <= 0)) return;
+
+  if (component.role === "opening") {
+    renderLayoutOpening(componentGroup, component, materials, size, position, bookcaseDepth);
+    return;
+  }
+
+  if (component.role === "door" || component.role === "drawer_front") {
+    const doorConfig = component.role === "drawer_front"
+      ? { ...config, doorStyle: "flat" }
+      : { ...config, doorStyle: component.metadata?.style || config.doorStyle };
+    addDoor(componentGroup, doorConfig, materials, size, position, {
+      openingSide: component.metadata?.hingeSide || component.metadata?.openingSide
+    });
+    return;
+  }
+
+  if (component.role === "handle") {
+    addLayoutHandle(componentGroup, component, config, materials, size, position);
+    return;
+  }
+
+  if (component.role === "light") {
+    addLayoutLight(componentGroup, rootGroup, component, materials, size, position);
+    return;
+  }
+
+  if (component.role === "shelf") {
+    addShelf(componentGroup, materials, size, position, bookcaseDepth);
+    return;
+  }
+
+  if (component.role === "base") {
+    renderLayoutBase(componentGroup, component, config, materials, size, position);
+    return;
+  }
+
+  if (component.role === "crown") {
+    renderLayoutCrown(componentGroup, component, config, materials, bookcaseDepth);
+    return;
+  }
+
+  if (component.role === "trim" && component.metadata?.style === config.baseStyle) return;
+
+  const material = getLayoutMaterial(component, materials);
+  addBox(componentGroup, size, position, material, !["trim", "crown", "base"].includes(component.role));
+}
+
+function getLayoutMaterial(component, materials) {
+  if (component.role === "back_panel") return materials.back;
+  if (component.metadata?.purpose === "recess") return materials.shadow;
+  return materials.case;
+}
+
+function renderLayoutOpening(group, component, materials, size, position, bookcaseDepth) {
+  if (component.id !== "feature-opening") return;
+  const kind = component.metadata?.kind;
+  const backZ = -bookcaseDepth / 2 + 0.024;
+  const bottom = position[1] - size[1] / 2;
+  if (kind === "media") {
+    const screenWidth = size[0] * 0.72;
+    const screenHeight = Math.min(size[1] * 0.5, screenWidth * 0.56);
+    const screenY = bottom + size[1] * 0.56;
+    addBox(group, [screenWidth, screenHeight, 0.028], [position[0], screenY, backZ], materials.screen, false);
+    addBox(group, [screenWidth * 0.94, 0.012, 0.018], [position[0], screenY - screenHeight / 2 - 0.035, backZ + 0.018], materials.hardware, false);
+    return;
+  }
+  if (kind === "feature") {
+    const fireboxWidth = size[0] * 0.5;
+    const fireboxHeight = size[1] * 0.44;
+    const fireboxY = bottom + fireboxHeight / 2 + size[1] * 0.04;
+    addBox(group, [fireboxWidth, fireboxHeight, 0.045], [position[0], fireboxY, backZ + 0.014], materials.firebox, false);
+    addBox(group, [size[0] * 0.76, 0.075, 0.19], [position[0], bottom + size[1] * 0.56, backZ + 0.08], materials.case, false);
+  }
+}
+
+function renderLayoutBase(group, component, config, materials, size, position) {
+  const [width, height, depth] = size;
+  if (config.baseStyle === "toe_kick") {
+    addBox(group, size, position, materials.case);
+    addBox(group, [width * 0.97, height * 0.72, 0.018], [position[0], position[1] - height * 0.08, position[2] + depth / 2 + 0.008], materials.shadow, false);
+    return;
+  }
+  if (config.baseStyle === "furniture_base") {
+    const front = position[2] + depth / 2;
+    const apronHeight = height * 0.46;
+    const footWidth = Math.min(width * 0.08, 0.25);
+    addBox(group, [width * 0.94, height * 0.54, depth * 0.55], [position[0], position[1] + height * 0.23, position[2] - depth * 0.2], materials.case);
+    addBox(group, [width * 0.98, apronHeight, 0.16], [position[0], position[1] + height * 0.27, front - 0.08], materials.case);
+    [-1, 1].forEach((direction) => {
+      addBox(group, [footWidth, height * 0.64, 0.2], [position[0] + direction * (width / 2 - footWidth * 0.9), position[1] - height * 0.18, front - 0.1], materials.case);
+    });
+    return;
+  }
+  addBox(group, size, position, materials.case);
+  addBox(group, [width + 0.045, Math.min(0.065, height * 0.24), depth + 0.035], [position[0], position[1] + height / 2 - Math.min(0.032, height * 0.12), position[2]], materials.case);
+}
+
+function renderLayoutCrown(group, component, config, materials, bookcaseDepth) {
+  const purpose = component.metadata?.purpose;
+  if (config.crownStyle === "classic_crown" && purpose !== "classic_cap") return;
+  const width = inchesToUnits(config.width);
+  const top = inchesToUnits(config.height);
+  const depth = bookcaseDepth;
+  if (config.crownStyle === "slim_cap") {
+    addBox(group, [width + 0.08, 0.055, depth + 0.07], [0, top - 0.027, 0], materials.case);
+    addBox(group, [width + 0.03, 0.045, depth + 0.025], [0, top - 0.077, 0], materials.case);
+    return;
+  }
+  if (config.crownStyle === "modern_soffit") {
+    addBox(group, [width + 0.035, 0.2, depth + 0.03], [0, top - 0.1, 0], materials.case);
+    addBox(group, [width + 0.095, 0.045, depth + 0.09], [0, top - 0.022, 0], materials.case);
+    addBox(group, [width + 0.065, 0.04, depth + 0.055], [0, top - 0.2, 0], materials.case);
+    return;
+  }
+  addBox(group, [width + 0.04, 0.055, depth + 0.035], [0, top - 0.165, 0], materials.case);
+  addBox(group, [width + 0.1, 0.085, depth + 0.105], [0, top - 0.102, 0], materials.case);
+  addBox(group, [width + 0.16, 0.055, depth + 0.16], [0, top - 0.027, 0], materials.case);
+  addBox(group, [width + 0.12, 0.018, 0.02], [0, top - 0.07, depth / 2 + 0.07], materials.highlight, false);
+}
+
+function addLayoutHandle(group, component, config, materials, size, position) {
+  const hardwareType = component.metadata?.hardware || config.hardware;
+  if (hardwareType === "push_latch") return;
+  const isPull = hardwareType.endsWith("_pull") || component.metadata?.kind === "pull";
+  const hostPlane = position[2] - size[2] / 2;
+  const gripPlane = position[2] + size[2] / 2;
+
+  if (isPull) {
+    const length = Math.max(size[0], size[1], 0.26);
+    const pull = new THREE.Mesh(new THREE.CylinderGeometry(0.023, 0.023, length, 18), materials.hardware);
+    if (size[0] > size[1]) pull.rotation.z = Math.PI / 2;
+    pull.position.set(position[0], position[1], gripPlane - 0.012);
+    pull.castShadow = true;
+    group.add(pull);
+    const stemOffset = length * 0.34;
+    const horizontal = size[0] > size[1];
+    [-1, 1].forEach((direction) => {
+      const stemPosition = [...position];
+      if (horizontal) stemPosition[0] += direction * stemOffset;
+      else stemPosition[1] += direction * stemOffset;
+      stemPosition[2] = hostPlane + size[2] * 0.48;
+      addBox(group, [0.055, 0.03, Math.max(size[2] * 0.9, 0.04)], stemPosition, materials.hardware, false);
+    });
+    return;
+  }
+
+  const radius = clamp(Math.min(size[0], size[1]) * 0.5, 0.035, 0.064);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(radius, 20, 16), materials.hardware);
+  knob.position.set(position[0], position[1], hostPlane + size[2] * 0.72);
+  knob.castShadow = true;
+  group.add(knob);
+  const rosette = new THREE.Mesh(new THREE.CylinderGeometry(radius * 1.15, radius * 1.15, 0.014, 22), materials.hardware);
+  rosette.rotation.x = Math.PI / 2;
+  rosette.position.set(position[0], position[1], hostPlane + 0.008);
+  rosette.castShadow = true;
+  group.add(rosette);
+}
+
+function addLayoutLight(group, rootGroup, component, materials, size, position) {
+  const type = component.metadata?.lightType || "puck";
+  if (type === "puck") {
+    const puck = new THREE.Mesh(new THREE.CylinderGeometry(Math.max(size[0], size[2]) * 0.5, Math.max(size[0], size[2]) * 0.5, size[1], 20), materials.puckLight);
+    puck.position.set(...position);
+    puck.castShadow = false;
+    group.add(puck);
+  } else {
+    addBox(group, size, position, materials.ledStrip, false);
+  }
+
+  if (rootGroup.userData.pointLightCount >= 18) return;
+  const temperature = Number(component.metadata?.warmth) || 2700;
+  const color = getLightingTemperatureColor(temperature);
+  const glow = new THREE.PointLight(color, type === "puck" ? 0.4 : 0.11, type === "puck" ? 2.2 : 1.5);
+  glow.position.set(position[0], position[1] - (type === "vertical_led" ? 0 : 0.09), position[2] + 0.045);
+  group.add(glow);
+  rootGroup.userData.pointLightCount += 1;
 }
 
 function createContactShadowTexture() {
@@ -1463,9 +1961,22 @@ function addDoor(group, config, materials, size, position, options = {}) {
   const [width, height, depth] = size;
   const revealPad = 0.026;
   addBox(group, [width + revealPad, height + revealPad, 0.018], [position[0], position[1], position[2] - depth / 2 - 0.006], materials.reveal, false);
-  addBox(group, size, position, materials.case);
   const z = position[2] + depth / 2 + 0.012;
   const rail = config.doorStyle === "slim_shaker" ? 0.062 : 0.105;
+
+  if (config.doorStyle === "glass") {
+    const glassWidth = Math.max(0.04, width - rail * 2.25);
+    const glassHeight = Math.max(0.08, height - rail * 2.25);
+    addBox(group, [width - rail, rail, depth], [position[0], position[1] + height / 2 - rail / 2, position[2]], materials.case, false);
+    addBox(group, [width - rail, rail, depth], [position[0], position[1] - height / 2 + rail / 2, position[2]], materials.case, false);
+    addBox(group, [rail, height - rail, depth], [position[0] - width / 2 + rail / 2, position[1], position[2]], materials.case, false);
+    addBox(group, [rail, height - rail, depth], [position[0] + width / 2 - rail / 2, position[1], position[2]], materials.case, false);
+    addBox(group, [0.012, glassHeight, 0.012], [position[0], position[1], z + 0.012], materials.glassLine, false);
+    addBox(group, [glassWidth * 0.9, 0.01, 0.012], [position[0], position[1] + glassHeight * 0.42, z + 0.012], materials.glassLine, false);
+    return;
+  }
+
+  addBox(group, size, position, materials.case);
 
   if (config.doorStyle === "flat") {
     addBox(group, [width * 0.92, 0.014, 0.022], [position[0], position[1] + height * 0.38, z], materials.reveal, false);
@@ -1477,14 +1988,9 @@ function addDoor(group, config, materials, size, position, options = {}) {
     return;
   }
 
-  if (config.doorStyle === "glass") {
-    addBox(group, [width - rail * 2.25, height - rail * 2.25, 0.026], [position[0], position[1], z + 0.004], materials.glass, false);
-    addBox(group, [0.012, height - rail * 2.55, 0.03], [position[0], position[1], z + 0.025], materials.glassLine, false);
-  } else {
-    addBox(group, [width - rail * 2.3, height - rail * 2.3, 0.028], [position[0], position[1], z - 0.006], materials.inset, false);
-    addBox(group, [width - rail * 2.65, 0.018, 0.02], [position[0], position[1] + height / 2 - rail * 1.38, z + 0.012], materials.highlight, false);
-    addBox(group, [0.016, height - rail * 2.75, 0.02], [position[0] - width / 2 + rail * 1.36, position[1], z + 0.012], materials.highlight, false);
-  }
+  addBox(group, [width - rail * 2.3, height - rail * 2.3, 0.028], [position[0], position[1], z - 0.006], materials.inset, false);
+  addBox(group, [width - rail * 2.65, 0.018, 0.02], [position[0], position[1] + height / 2 - rail * 1.38, z + 0.012], materials.highlight, false);
+  addBox(group, [0.016, height - rail * 2.75, 0.02], [position[0] - width / 2 + rail * 1.36, position[1], z + 0.012], materials.highlight, false);
 
   addBox(group, [width - rail, rail, 0.038], [position[0], position[1] + height / 2 - rail / 2, z], materials.case, false);
   addBox(group, [width - rail, rail, 0.038], [position[0], position[1] - height / 2 + rail / 2, z], materials.case, false);
@@ -1574,60 +2080,12 @@ function addBase(group, config, materials, width, depth) {
   addBox(group, [width + 0.36, 0.035, 0.06], [0, 0.035, depth / 2 + 0.08], materials.innerShadow, false);
 }
 
-function addShelfObjects(group, materials, bayX, bayWidth, shelfY, shelfDepth, bay, row) {
-  if ((bay + row) % 2 === 0 || row === 1) {
-    const bookCount = Math.min(5, Math.max(2, Math.floor(bayWidth * 1.7)));
-    const start = bayX - bayWidth * (row % 2 === 0 ? 0.28 : 0.12);
-    for (let index = 0; index < bookCount; index += 1) {
-      const bookWidth = 0.055 + (index % 2) * 0.02;
-      const bookHeight = 0.34 + ((index + bay) % 3) * 0.05;
-      addBox(group, [bookWidth, bookHeight, 0.18], [start + index * 0.075, shelfY + bookHeight / 2, shelfDepth / 2 - 0.26], materials.decorBooks[index % materials.decorBooks.length], false);
-    }
-  }
-
-  if ((bay + row) % 3 === 0) {
-    const vase = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 0.28, 18), materials.decorVase);
-    vase.position.set(bayX + bayWidth * 0.24, shelfY + 0.14, shelfDepth / 2 - 0.28);
-    vase.castShadow = true;
-    group.add(vase);
-  }
-
-  if ((bay + row) % 4 === 1) {
-    const bowl = new THREE.Mesh(new THREE.SphereGeometry(0.13, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.48), materials.decorBowl);
-    bowl.position.set(bayX - bayWidth * 0.22, shelfY + 0.08, shelfDepth / 2 - 0.3);
-    bowl.scale.y = 0.48;
-    bowl.castShadow = true;
-    group.add(bowl);
-  }
-
-  if ((bay + row) % 5 === 2) {
-    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.13, 14), materials.decorVase);
-    pot.position.set(bayX + bayWidth * 0.18, shelfY + 0.065, shelfDepth / 2 - 0.28);
-    pot.castShadow = true;
-    group.add(pot);
-
-    [
-      [0, 0.2, 0, 1.15, 0.7, 0.9],
-      [-0.08, 0.18, 0.02, 0.95, 0.62, 0.78],
-      [0.08, 0.17, -0.01, 0.95, 0.6, 0.78]
-    ].forEach(([xOffset, yOffset, zOffset, scaleX, scaleY, scaleZ]) => {
-      const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.09, 12, 8), materials.decorPlant);
-      leaf.position.set(bayX + bayWidth * 0.18 + xOffset, shelfY + yOffset, shelfDepth / 2 - 0.28 + zOffset);
-      leaf.scale.set(scaleX, scaleY, scaleZ);
-      leaf.castShadow = true;
-      group.add(leaf);
-    });
-  }
-}
-
-function createFinishTexture(finish, baseColor, lineColor, surface) {
+function createFinishTexture(surface) {
   const canvas = document.createElement("canvas");
   canvas.width = 96;
   canvas.height = 192;
   const context = canvas.getContext("2d");
-  const base = `#${baseColor.toString(16).padStart(6, "0")}`;
-  const line = `#${lineColor.toString(16).padStart(6, "0")}`;
-  context.fillStyle = base;
+  context.fillStyle = "#ffffff";
   context.fillRect(0, 0, canvas.width, canvas.height);
 
   const lineCount = 34;
@@ -1635,8 +2093,8 @@ function createFinishTexture(finish, baseColor, lineColor, surface) {
   for (let index = 0; index < lineCount; index += 1) {
     const x = (index * 17 + (index % 7) * 5) % canvas.width;
     const wobble = 2;
-    const alpha = 0.025 + (index % 3) * 0.012;
-    context.strokeStyle = hexToRgba(line, alpha);
+    const alpha = 0.018 + (index % 3) * 0.008;
+    context.strokeStyle = `rgba(34, 29, 24, ${alpha})`;
     context.lineWidth = 0.45;
     context.beginPath();
     context.moveTo(x, -10);
@@ -1656,15 +2114,7 @@ function createFinishTexture(finish, baseColor, lineColor, surface) {
   return texture;
 }
 
-function hexToRgba(hex, alpha) {
-  const value = Number.parseInt(hex.slice(1), 16);
-  const red = (value >> 16) & 255;
-  const green = (value >> 8) & 255;
-  const blue = value & 255;
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-}
-
-function createMaterials(palette, config) {
+function createMaterials(baseColor, config) {
   const hardwareColor = {
     brass_knob: 0xb38a4a,
     brass_pull: 0xb38a4a,
@@ -1675,43 +2125,49 @@ function createMaterials(palette, config) {
   }[config.hardware];
   const isBlackHardware = config.hardware.startsWith("matte_black");
   const isNickelHardware = config.hardware.startsWith("polished_nickel");
-  const caseTexture = createFinishTexture(config.finish, palette.case, palette.edge, "case");
-  const sideTexture = createFinishTexture(config.finish, palette.side, palette.edge, "side");
-  const backTexture = createFinishTexture(config.finish, palette.inside, palette.edge, "back");
-  const insetTexture = createFinishTexture(config.finish, palette.side, palette.edge, "inset");
+  const caseTexture = createFinishTexture("case");
+  const sideTexture = createFinishTexture("side");
+  const backTexture = createFinishTexture("back");
+  const insetTexture = createFinishTexture("inset");
   const paintBump = 0.004;
+  const edgeColor = new THREE.Color(baseColor).lerp(new THREE.Color(0x342f2a), 0.5).getHex();
+  const revealColor = new THREE.Color(baseColor).lerp(new THREE.Color(0x211e1b), 0.66).getHex();
+  const lightColor = getLightingTemperatureColor(config.lightingWarmth);
 
   return {
-    case: new THREE.MeshStandardMaterial({ color: palette.case, map: caseTexture, bumpMap: caseTexture, bumpScale: paintBump * 0.66, roughness: 0.66, metalness: 0 }),
-    side: new THREE.MeshStandardMaterial({ color: palette.side, map: sideTexture, bumpMap: sideTexture, bumpScale: paintBump * 0.64, roughness: 0.7, metalness: 0 }),
-    back: new THREE.MeshStandardMaterial({ color: palette.inside, map: backTexture, bumpMap: backTexture, bumpScale: paintBump * 0.42, roughness: 0.84, metalness: 0, emissive: palette.inside, emissiveIntensity: 0.08 }),
-    inset: new THREE.MeshStandardMaterial({ color: palette.side, map: insetTexture, bumpMap: insetTexture, bumpScale: paintBump * 0.5, roughness: 0.74, metalness: 0, emissive: palette.side, emissiveIntensity: 0.03 }),
-    edgeBlock: new THREE.MeshStandardMaterial({ color: palette.edge, roughness: 0.86, metalness: 0 }),
-    shadow: new THREE.MeshStandardMaterial({ color: 0x2a251f, roughness: 0.9, metalness: 0 }),
-    reveal: new THREE.MeshStandardMaterial({ color: 0x514538, roughness: 0.92, metalness: 0 }),
+    case: new THREE.MeshStandardMaterial({ color: baseColor, map: caseTexture, bumpMap: caseTexture, bumpScale: paintBump * 0.66, roughness: 0.66, metalness: 0 }),
+    side: new THREE.MeshStandardMaterial({ color: baseColor, map: sideTexture, bumpMap: sideTexture, bumpScale: paintBump * 0.64, roughness: 0.7, metalness: 0 }),
+    back: new THREE.MeshStandardMaterial({ color: baseColor, map: backTexture, bumpMap: backTexture, bumpScale: paintBump * 0.42, roughness: 0.82, metalness: 0 }),
+    inset: new THREE.MeshStandardMaterial({ color: baseColor, map: insetTexture, bumpMap: insetTexture, bumpScale: paintBump * 0.5, roughness: 0.74, metalness: 0 }),
+    edgeBlock: new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.82, metalness: 0 }),
+    shadow: new THREE.MeshStandardMaterial({ color: 0x28241f, roughness: 0.92, metalness: 0 }),
+    reveal: new THREE.MeshStandardMaterial({ color: revealColor, roughness: 0.92, metalness: 0 }),
     innerShadow: new THREE.MeshBasicMaterial({ color: 0x211b16, transparent: true, opacity: 0.18, depthWrite: false }),
-    backShade: new THREE.MeshBasicMaterial({ color: 0x241e19, transparent: true, opacity: 0.08, depthWrite: false }),
-    highlight: new THREE.MeshBasicMaterial({ color: 0xfff6e9, transparent: true, opacity: 0.18, depthWrite: false }),
+    highlight: new THREE.MeshBasicMaterial({ color: 0xfffbf4, transparent: true, opacity: 0.15, depthWrite: false }),
     pinHole: new THREE.MeshStandardMaterial({ color: 0x4e4034, roughness: 0.96, metalness: 0 }),
-    glass: new THREE.MeshPhysicalMaterial({ color: 0xe7edf0, roughness: 0.05, metalness: 0, transparent: true, opacity: 0.1, depthWrite: false, clearcoat: 0.85, clearcoatRoughness: 0.08, transmission: 0.35 }),
-    glassLine: new THREE.MeshPhysicalMaterial({ color: 0xfffbf2, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.16, depthWrite: false, clearcoat: 0.8 }),
+    screen: new THREE.MeshStandardMaterial({ color: 0x17191a, roughness: 0.28, metalness: 0.08, emissive: 0x101213, emissiveIntensity: 0.12 }),
+    firebox: new THREE.MeshStandardMaterial({ color: 0x211f1c, roughness: 0.94, metalness: 0 }),
+    glass: new THREE.MeshPhysicalMaterial({ color: 0xe7edf0, roughness: 0.08, metalness: 0, transparent: true, opacity: 0.055, depthWrite: false, side: THREE.DoubleSide, clearcoat: 0.75, clearcoatRoughness: 0.1 }),
+    glassLine: new THREE.MeshPhysicalMaterial({ color: 0xfffbf2, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.2, depthWrite: false, clearcoat: 0.8 }),
     hardware: new THREE.MeshStandardMaterial({
       color: hardwareColor,
       roughness: isBlackHardware ? 0.62 : isNickelHardware ? 0.26 : 0.34,
       metalness: isBlackHardware ? 0.2 : 0.84
     }),
-    edgeLine: new THREE.LineBasicMaterial({ color: palette.edge, transparent: true, opacity: 0.16 }),
-    puckLight: new THREE.MeshStandardMaterial({ color: 0xfff1cd, emissive: 0xffc46f, emissiveIntensity: 1.4, roughness: 0.35, metalness: 0.1 }),
-    ledStrip: new THREE.MeshStandardMaterial({ color: 0xffedca, emissive: 0xffc77c, emissiveIntensity: 1.2, roughness: 0.28, metalness: 0.1 }),
-    decorBooks: [
-      new THREE.MeshStandardMaterial({ color: 0x8a7966, roughness: 0.8 }),
-      new THREE.MeshStandardMaterial({ color: 0x4b4a43, roughness: 0.82 }),
-      new THREE.MeshStandardMaterial({ color: 0xb69662, roughness: 0.72 })
-    ],
-    decorVase: new THREE.MeshStandardMaterial({ color: 0x7b756a, roughness: 0.86 }),
-    decorBowl: new THREE.MeshStandardMaterial({ color: 0x9d8264, roughness: 0.76 }),
-    decorPlant: new THREE.MeshStandardMaterial({ color: 0x4e633f, roughness: 0.82 })
+    edgeLine: new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.2 }),
+    puckLight: new THREE.MeshStandardMaterial({ color: lightColor, emissive: lightColor, emissiveIntensity: 1.25, roughness: 0.35, metalness: 0.08 }),
+    ledStrip: new THREE.MeshStandardMaterial({ color: lightColor, emissive: lightColor, emissiveIntensity: 1.05, roughness: 0.28, metalness: 0.08 })
   };
+}
+
+function getLightingTemperatureColor(temperature) {
+  const numeric = Number(temperature) || 2700;
+  return numeric >= 3400 ? 0xfff2dc : numeric >= 2900 ? 0xffe4bc : 0xffcf8d;
+}
+
+function hexToNumber(value, fallback) {
+  const match = String(value || "").trim().match(/^#?([0-9a-f]{6})$/i);
+  return match ? Number.parseInt(match[1], 16) : fallback;
 }
 
 function addBox(parent, size, position, material, edge = true) {
@@ -1733,18 +2189,24 @@ function addBox(parent, size, position, material, edge = true) {
 }
 
 function disposeObject(object) {
+  const geometries = new Set();
+  const materials = new Set();
+  const textures = new Set();
   object.traverse((child) => {
-    if (child.geometry) child.geometry.dispose();
+    if (child.geometry) geometries.add(child.geometry);
     if (child.material) {
-      const materials = Array.isArray(child.material) ? child.material : [child.material];
-      materials.forEach((material) => {
+      const childMaterials = Array.isArray(child.material) ? child.material : [child.material];
+      childMaterials.forEach((material) => {
+        materials.add(material);
         ["map", "bumpMap", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap"].forEach((key) => {
-          material[key]?.dispose?.();
+          if (material[key]) textures.add(material[key]);
         });
-        material.dispose?.();
       });
     }
   });
+  geometries.forEach((geometry) => geometry.dispose());
+  textures.forEach((texture) => texture.dispose());
+  materials.forEach((material) => material.dispose?.());
 }
 
 function isWebGLAvailable() {

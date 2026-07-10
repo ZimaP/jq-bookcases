@@ -1,4 +1,4 @@
-import { normalizeBookcaseConfig } from "./bookcase-config.js";
+import { normalizeBookcaseConfig } from "./bookcase-config.js?v=parametric-20260709g";
 
 export function calculateBookcasePrice(config) {
   const state = normalizeBookcaseConfig(config);
@@ -6,13 +6,14 @@ export function calculateBookcasePrice(config) {
   const depthMultiplier = state.depth > 15 ? 1.08 : 1;
   const sectionsCost = state.sections * 250;
   const shelfCost = state.sections * state.shelves * 55;
+  const shelfThicknessPremium = Math.max(0, state.shelfThickness - 0.75) * state.sections * state.shelves * 112.5;
   const lowerCabinetCost = state.lowerCabinets ? state.width * 18 : 0;
   const finishMultiplier = {
     white_dove: 1,
     simply_white: 1,
     chantilly_lace: 1,
-    swiss_coffee: 1,
-    revere_pewter: 1,
+    cloud_white: 1,
+    silver_satin: 1,
     custom_bm: 1
   }[state.finish] || 1;
   const doorStyleAdd = state.lowerCabinets ? {
@@ -26,14 +27,14 @@ export function calculateBookcasePrice(config) {
     brass_pull: 225,
     matte_black_knob: 125,
     matte_black_pull: 175,
-    polished_nickel_pull: 225,
-    push_latch: 250
+    polished_nickel_pull: 225
   }[state.hardware] : 0;
   const lightingAdd = {
     no_lighting: 0,
     warm_pucks: 450,
+    shelf_accent: 850,
     vertical_led: 650,
-    shelf_accent: 850
+    full_package: 1550
   }[state.lighting] || 0;
   const crownAdd = {
     none: 0,
@@ -58,6 +59,7 @@ export function calculateBookcasePrice(config) {
     squareFootFactor +
     sectionsCost +
     shelfCost +
+    shelfThicknessPremium +
     lowerCabinetCost +
     doorStyleAdd +
     hardwareAdd +

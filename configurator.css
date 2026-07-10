@@ -1,0 +1,2984 @@
+/*
+ * Full-page JQ configurator skin.
+ *
+ * The legacy stylesheet contains several generations of builder rules.  Keep
+ * every override on the configurator page so the home-page builder and the
+ * interior pages remain untouched.
+ */
+
+body[data-page="configurator"] {
+  --cfg-ivory: #f4efe8;
+  --cfg-muted: #d4cbc0;
+  --cfg-faint: rgba(244, 239, 232, 0.58);
+  --cfg-gold: #c69a62;
+  --cfg-gold-bright: #d8ad73;
+  --cfg-gold-deep: #8f6539;
+  --cfg-panel: rgba(62, 56, 48, 0.72);
+  --cfg-panel-strong: rgba(47, 42, 36, 0.82);
+  --cfg-line: rgba(235, 222, 204, 0.16);
+  --cfg-line-strong: rgba(235, 222, 204, 0.28);
+  --cfg-control: rgba(36, 32, 27, 0.28);
+  --cfg-panel-padding: var(--space-4);
+  --cfg-section-gap: var(--space-3);
+  --cfg-control-gap: var(--space-2);
+  min-height: 100svh;
+  overflow: hidden;
+  background-color: #29241f;
+  background-image:
+    radial-gradient(ellipse 58% 44% at 52% 18%, rgba(191, 167, 138, 0.2), transparent 72%),
+    radial-gradient(ellipse 82% 78% at 50% 42%, rgba(123, 103, 84, 0.13), transparent 72%),
+    linear-gradient(90deg, #211e1a 0%, #403830 27%, #4d4237 52%, #39322b 78%, #211e1a 100%);
+  color: var(--cfg-ivory);
+  font-family: var(--sans);
+  font-size: var(--type-label);
+  line-height: 1.45;
+  color-scheme: dark;
+}
+
+body[data-page="configurator"] [data-site-footer],
+body[data-page="configurator"] > .site-footer {
+  display: none !important;
+}
+
+body[data-page="configurator"] button,
+body[data-page="configurator"] input,
+body[data-page="configurator"] select,
+body[data-page="configurator"] textarea {
+  font: inherit;
+}
+
+body[data-page="configurator"] button {
+  color: inherit;
+}
+
+body[data-page="configurator"] :focus-visible {
+  outline: 2px solid var(--cfg-gold-bright);
+  outline-offset: 2px;
+}
+
+body[data-page="configurator"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+body[data-page="configurator"] ::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(211, 174, 122, 0.42);
+  background-clip: padding-box;
+}
+
+/* Header ------------------------------------------------------------------ */
+
+body[data-page="configurator"] [data-site-header],
+body[data-page="configurator"] .site-header {
+  height: 88px;
+  min-height: 88px;
+}
+
+body[data-page="configurator"] .site-header {
+  position: relative;
+  z-index: 40;
+  border: 0;
+  background: linear-gradient(180deg, rgba(17, 15, 13, 0.34), rgba(17, 15, 13, 0.08) 72%, transparent);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+body[data-page="configurator"] .navbar {
+  display: grid;
+  width: 100%;
+  max-width: none;
+  height: 88px;
+  min-height: 88px;
+  grid-template-columns: 300px minmax(0, 1fr) 310px;
+  gap: 0;
+  margin: 0;
+  padding: 0 30px 0 40px;
+}
+
+body[data-page="configurator"] .site-header .brand {
+  display: grid;
+  width: 228px;
+  gap: 6px;
+  align-content: center;
+  justify-items: start;
+  color: var(--cfg-ivory);
+}
+
+body[data-page="configurator"] .site-header .brand-main {
+  color: #f7f3ed;
+  font-family: var(--serif);
+  font-size: var(--type-brand);
+  font-weight: 400;
+  letter-spacing: 0.012em;
+  line-height: 0.95;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.32);
+}
+
+body[data-page="configurator"] .site-header .brand-sub {
+  position: relative;
+  display: block;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  color: rgba(244, 239, 232, 0.86);
+  font-family: var(--serif);
+  font-size: var(--type-logo-tagline);
+  font-weight: 500;
+  letter-spacing: 0.245em;
+  line-height: 1;
+}
+
+body[data-page="configurator"] .site-header .brand-sub::before,
+body[data-page="configurator"] .site-header .brand-sub::after {
+  position: absolute;
+  top: 50%;
+  width: 22px;
+  height: 1px;
+  background: rgba(207, 161, 99, 0.72);
+  display: none;
+  content: "";
+}
+
+body[data-page="configurator"] .site-header .brand-sub::before {
+  right: calc(100% + 9px);
+}
+
+body[data-page="configurator"] .site-header .brand-sub::after {
+  left: calc(100% + 7px);
+}
+
+body[data-page="configurator"] .nav-links {
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  gap: clamp(28px, 2.35vw, 38px);
+  min-width: 0;
+  margin: 0;
+}
+
+body[data-page="configurator"] .nav-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 0 0;
+  color: rgba(247, 243, 237, 0.93);
+  font-size: var(--type-label);
+  font-weight: 400;
+  line-height: 1;
+}
+
+body[data-page="configurator"] .nav-link::after {
+  bottom: 20px;
+  height: 1px;
+  background: var(--cfg-gold);
+}
+
+body[data-page="configurator"] .header-actions {
+  display: grid;
+  grid-template-columns: 126px 156px;
+  gap: 18px;
+  align-items: center;
+  justify-content: end;
+}
+
+body[data-page="configurator"] .header-save-button {
+  display: inline-flex;
+  min-height: 45px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: rgba(247, 243, 237, 0.94);
+  font-size: var(--type-caption);
+  font-weight: 400;
+  line-height: 1;
+}
+
+body[data-page="configurator"] .header-save-button [data-icon] {
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  place-items: center;
+  color: rgba(247, 243, 237, 0.94);
+}
+
+body[data-page="configurator"] .header-save-button [data-icon] svg {
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.55;
+}
+
+body[data-page="configurator"] .header-save-button::after {
+  display: none;
+  content: none;
+}
+
+body[data-page="configurator"] .header-save-button:hover {
+  color: var(--cfg-gold-bright);
+}
+
+body[data-page="configurator"] .header-actions .button-primary {
+  width: 156px;
+  min-width: 156px;
+  height: 45px;
+  min-height: 45px;
+  border: 1px solid rgba(224, 175, 110, 0.55);
+  border-radius: 7px;
+  background: linear-gradient(180deg, #bd8c55 0%, #92663a 100%);
+  padding: 0 22px;
+  color: #fff9f1;
+  box-shadow: 0 10px 23px rgba(13, 10, 8, 0.28), inset 0 1px rgba(255, 255, 255, 0.16);
+  font-size: var(--type-label);
+  font-weight: 500;
+}
+
+body[data-page="configurator"] .header-actions .button-primary:hover {
+  border-color: rgba(235, 194, 137, 0.78);
+  background: linear-gradient(180deg, #c89861 0%, #9f7040 100%);
+  box-shadow: 0 12px 27px rgba(13, 10, 8, 0.34), inset 0 1px rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Full-height studio and room -------------------------------------------- */
+
+body[data-page="configurator"] main {
+  height: calc(100vh - 88px);
+  height: calc(100dvh - 88px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+body[data-page="configurator"] .builder-hero,
+body[data-page="configurator"] .builder-page {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  isolation: isolate;
+}
+
+body[data-page="configurator"] .builder-hero::before {
+  display: none;
+  content: none;
+}
+
+body[data-page="configurator"] .builder-hero::after {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(13, 11, 9, 0.38), transparent 19%, transparent 78%, rgba(13, 11, 9, 0.38)),
+    linear-gradient(180deg, rgba(10, 8, 7, 0.1), transparent 22%, transparent 76%, rgba(12, 9, 7, 0.32));
+  content: "";
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .builder-hero > .container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body[data-page="configurator"] [data-bookcase-builder] {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+body[data-page="configurator"] .configurator-shell {
+  position: relative;
+  display: grid;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: clamp(318px, 23vw, 360px) minmax(0, 1fr) clamp(360px, 28vw, 433px);
+  grid-template-rows: minmax(0, 1fr) 148px minmax(92px, auto);
+  gap: 0;
+  overflow: hidden;
+  margin: 0;
+  color: var(--cfg-ivory);
+}
+
+/* Floating control panels ------------------------------------------------ */
+
+body[data-page="configurator"] .configurator-panel {
+  position: relative;
+  z-index: 5;
+  align-self: start;
+  display: block;
+  min-width: 0;
+  max-width: none;
+  border: 1px solid var(--cfg-line);
+  border-radius: 15px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.008)),
+    var(--cfg-panel);
+  padding: 0 var(--cfg-panel-padding);
+  color: var(--cfg-ivory);
+  box-shadow: 0 18px 42px rgba(12, 9, 7, 0.14), inset 0 1px rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(16px) saturate(0.92);
+}
+
+body[data-page="configurator"] .configurator-panel-left {
+  grid-column: 1;
+  grid-row: 1;
+  width: calc(100% - 24px);
+  height: calc(100% - 16px);
+  margin: 8px 0 8px 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body[data-page="configurator"] .configurator-panel-right {
+  grid-column: 3;
+  grid-row: 1;
+  width: calc(100% - 24px);
+  height: calc(100% - 16px);
+  margin: 8px 16px 8px 8px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body[data-page="configurator"] .configurator-panel .control-section {
+  display: block;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid rgba(238, 225, 207, 0.12);
+  margin: 0;
+  padding: var(--space-4) 0;
+}
+
+body[data-page="configurator"] .configurator-panel .control-section:last-child {
+  border-bottom: 0;
+}
+
+body[data-page="configurator"] .configurator-panel-left .control-section-dimensions {
+  height: auto;
+}
+
+body[data-page="configurator"] .configurator-panel-left .control-section-layout {
+  height: auto;
+}
+
+body[data-page="configurator"] .configurator-panel-left .control-section-structure {
+  height: auto;
+  padding-top: 13px;
+}
+
+body[data-page="configurator"] .configurator-panel-right .control-section-lighting {
+  height: auto;
+}
+
+body[data-page="configurator"] .configurator-panel-right .control-section-finish {
+  height: auto;
+}
+
+body[data-page="configurator"] .configurator-panel-right .control-section-hardware {
+  height: auto;
+}
+
+body[data-page="configurator"] .configurator-panel .control-section h2,
+body[data-page="configurator"] .configurator-panel .control-section h3,
+body[data-page="configurator"] .configurator-panel .control-section summary {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 0;
+  color: rgba(247, 243, 237, 0.96);
+  font-family: var(--sans);
+  font-size: var(--type-label);
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  line-height: var(--leading-ui);
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .configurator-panel .control-section h2::before,
+body[data-page="configurator"] .configurator-panel .control-section h3::before,
+body[data-page="configurator"] .configurator-panel .control-section summary::before {
+  display: block;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  background: var(--cfg-gold-bright);
+  content: "";
+  mask: var(--cfg-section-icon) center / 22px 22px no-repeat;
+  opacity: 0.9;
+}
+
+body[data-page="configurator"] .configurator-panel .control-section h2:has(.control-heading-icon)::before,
+body[data-page="configurator"] .configurator-panel .control-section h3:has(.control-heading-icon)::before {
+  display: none;
+}
+
+body[data-page="configurator"] .control-heading-icon {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  place-items: center;
+  color: var(--cfg-gold-bright);
+  opacity: 0.9;
+}
+
+body[data-page="configurator"] .control-heading-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+body[data-page="configurator"] .control-section-dimensions {
+  --cfg-section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4.4 16.8 12.4-12.4 2.8 2.8L7.2 19.6z'/%3E%3Cpath d='m8.6 16.1-1.7-1.7m4.4-1-1.7-1.7m4.4-1-1.7-1.7'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+body[data-page="configurator"] .control-section-layout {
+  --cfg-section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='1.35'%3E%3Cpath d='M4.5 5.2h6.2v5.1H4.5zM13.3 5.2h6.2v8.1h-6.2zM4.5 12.9h6.2v5.9H4.5zM13.3 15.9h6.2v2.9h-6.2z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+body[data-page="configurator"] .control-section-structure {
+  --cfg-section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='1.35' stroke-linejoin='round'%3E%3Cpath d='m12 3.5 7.2 4.2v8.5L12 20.5l-7.2-4.3V7.7z'/%3E%3Cpath d='m8.6 9.6 3.4 2 3.4-2M12 11.6v4.6'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+body[data-page="configurator"] .control-section-lighting {
+  --cfg-section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='1.35' stroke-linecap='round'%3E%3Cpath d='M8.1 14.8C6.8 13.7 6 12.1 6 10.3a6 6 0 1 1 12 0c0 1.8-.8 3.4-2.1 4.5-.8.7-1.1 1.4-1.2 2.2H9.3c-.1-.8-.4-1.5-1.2-2.2zM9.6 20h4.8M9.4 17h5.2'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+body[data-page="configurator"] .control-section-finish {
+  --cfg-section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='1.35' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.3 6.2h10.2v4.1H4.3zM7.1 10.3v2.6h4.7v7.2H7.1v-7.2M14.5 7.4h2.8c1.4 0 2.4 1 2.4 2.3v1.1'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+body[data-page="configurator"] .control-section-hardware {
+  --cfg-section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='1.35' stroke-linejoin='round'%3E%3Cpath d='M4.2 8.2h15.6v7.6H4.2zM8.1 12h7.8M6.2 10.2v3.6M17.8 10.2v3.6'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Dimensions */
+
+body[data-page="configurator"] .configurator-panel .range-control {
+  display: grid;
+  height: auto;
+  min-height: 44px;
+  grid-template-columns: 63px minmax(0, 1fr) 53px;
+  gap: 0;
+  align-items: center;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+body[data-page="configurator"] .configurator-panel .range-label {
+  display: contents;
+}
+
+body[data-page="configurator"] .configurator-panel .range-label > label {
+  grid-column: 1;
+  color: rgba(247, 243, 237, 0.94);
+  font-size: var(--type-label);
+  font-weight: 400;
+}
+
+body[data-page="configurator"] .configurator-panel .range-value {
+  display: flex;
+  width: 53px;
+  height: 36px;
+  grid-column: 3;
+  grid-row: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 1px solid rgba(238, 225, 207, 0.11);
+  border-radius: 6px;
+  background: rgba(33, 29, 24, 0.3);
+  color: rgba(247, 243, 237, 0.9);
+  font-size: var(--type-caption);
+}
+
+body[data-page="configurator"] .configurator-panel .range-value input {
+  width: 27px;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  text-align: right;
+  appearance: textfield;
+}
+
+body[data-page="configurator"] .configurator-panel .range-value input::-webkit-inner-spin-button,
+body[data-page="configurator"] .configurator-panel .range-value input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+body[data-page="configurator"] .configurator-panel .range-control > input[type="range"] {
+  width: calc(100% - 12px);
+  height: 44px;
+  grid-column: 2;
+  grid-row: 1;
+  border: 0;
+  background: transparent;
+  margin: 0 12px 0 0;
+  padding: 0;
+  appearance: none;
+  cursor: pointer;
+}
+
+body[data-page="configurator"] .configurator-panel input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d3a56b, #a77f50);
+}
+
+body[data-page="configurator"] .configurator-panel input[type="range"]::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: #c89b61;
+  margin-top: -7px;
+  box-shadow: 0 1px 4px rgba(18, 13, 9, 0.42);
+  appearance: none;
+}
+
+body[data-page="configurator"] .configurator-panel input[type="range"]::-moz-range-track {
+  height: 2px;
+  border: 0;
+  border-radius: 999px;
+  background: #b48956;
+}
+
+body[data-page="configurator"] .configurator-panel input[type="range"]::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 50%;
+  background: #c89b61;
+}
+
+body[data-page="configurator"] .configurator-panel .range-bounds {
+  display: none;
+}
+
+/* Layout steppers and toggle */
+
+body[data-page="configurator"] .configurator-panel .stepper-control,
+body[data-page="configurator"] .configurator-panel .toggle-row {
+  display: flex;
+  height: auto;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  margin: 0;
+  padding: 0 7px 0 0;
+  color: rgba(247, 243, 237, 0.94);
+  font-size: var(--type-label);
+}
+
+body[data-page="configurator"] .configurator-panel .stepper {
+  display: grid;
+  width: 140px;
+  height: 44px;
+  grid-template-columns: 44px 52px 44px;
+  align-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(34, 30, 25, 0.22);
+  box-shadow: 0 3px 8px rgba(18, 13, 9, 0.16);
+}
+
+body[data-page="configurator"] .configurator-panel .stepper button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid rgba(238, 225, 207, 0.13);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 0 0 2px;
+  color: rgba(247, 243, 237, 0.78);
+  font-size: 1.25rem;
+  font-weight: 300;
+  line-height: 1;
+}
+
+body[data-page="configurator"] .configurator-panel .stepper input {
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--cfg-ivory);
+  text-align: center;
+  appearance: textfield;
+}
+
+body[data-page="configurator"] .configurator-panel .stepper input::-webkit-inner-spin-button,
+body[data-page="configurator"] .configurator-panel .stepper input::-webkit-outer-spin-button {
+  appearance: none;
+}
+
+body[data-page="configurator"] .configurator-panel .switch {
+  position: relative;
+  display: block;
+  width: 44px;
+  height: var(--touch-target);
+  flex: 0 0 44px;
+}
+
+body[data-page="configurator"] .configurator-panel .switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+body[data-page="configurator"] .configurator-panel .switch > span {
+  position: absolute;
+  top: 9px;
+  right: 0;
+  bottom: 9px;
+  left: 0;
+  border: 1px solid rgba(238, 225, 207, 0.18);
+  border-radius: 999px;
+  background: rgba(39, 34, 29, 0.5);
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+body[data-page="configurator"] .configurator-panel .switch > span::after {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ede8e0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  content: "";
+  transition: transform 150ms ease;
+}
+
+body[data-page="configurator"] .configurator-panel .switch input:checked + span {
+  border-color: rgba(221, 176, 116, 0.42);
+  background: #b78951;
+}
+
+body[data-page="configurator"] .configurator-panel .switch input:checked + span::after {
+  transform: translateX(18px);
+}
+
+/* New structure/choice controls.  These selectors intentionally support
+   either input+label cards or button cards while the component markup evolves. */
+
+body[data-page="configurator"] .structure-group,
+body[data-page="configurator"] .structure-block,
+body[data-page="configurator"] .structure-field {
+  min-width: 0;
+}
+
+body[data-page="configurator"] .structure-field,
+body[data-page="configurator"] .lighting-field,
+body[data-page="configurator"] .warmth-field,
+body[data-page="configurator"] .finish-field,
+body[data-page="configurator"] .hardware-field {
+  min-width: 0;
+  border: 0;
+  margin-right: 0;
+  margin-left: 0;
+  padding: 0;
+}
+
+body[data-page="configurator"] .structure-block,
+body[data-page="configurator"] .structure-field {
+  margin: 0 0 10px;
+}
+
+body[data-page="configurator"] .structure-block:last-child,
+body[data-page="configurator"] .structure-field:last-child {
+  margin-bottom: 0;
+}
+
+body[data-page="configurator"] .structure-label,
+body[data-page="configurator"] .choice-label,
+body[data-page="configurator"] .warmth-label,
+body[data-page="configurator"] .structure-field > legend,
+body[data-page="configurator"] .warmth-field > legend {
+  display: block;
+  margin: 0 0 7px;
+  color: rgba(247, 243, 237, 0.92);
+  font-size: var(--type-label);
+  font-weight: 400;
+}
+
+body[data-page="configurator"] .thickness-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 5px;
+}
+
+body[data-page="configurator"] .structure-choice {
+  position: relative;
+  min-width: 0;
+}
+
+body[data-page="configurator"] .thickness-grid > label,
+body[data-page="configurator"] .thickness-grid > button,
+body[data-page="configurator"] .thickness-grid > * > label {
+  display: grid;
+  min-width: 0;
+  min-height: 44px;
+  place-items: center;
+  border: 1px solid rgba(238, 225, 207, 0.22);
+  border-radius: 6px;
+  background: rgba(32, 28, 24, 0.18);
+  padding: 3px;
+  color: rgba(247, 243, 237, 0.92);
+  font-size: var(--type-label);
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .thickness-grid input,
+body[data-page="configurator"] .style-choice input,
+body[data-page="configurator"] .lighting-card input,
+body[data-page="configurator"] .finish-choice input,
+body[data-page="configurator"] .hardware-choice input,
+body[data-page="configurator"] .warmth-grid input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .thickness-grid > button.is-active,
+body[data-page="configurator"] .thickness-grid > button[aria-pressed="true"],
+body[data-page="configurator"] .thickness-grid input:checked + label,
+body[data-page="configurator"] .thickness-grid > *:has(input:checked) label {
+  border-color: rgba(218, 168, 102, 0.9);
+  background: linear-gradient(180deg, rgba(190, 139, 77, 0.18), rgba(112, 77, 42, 0.15));
+  box-shadow: inset 0 0 14px rgba(211, 157, 91, 0.07);
+}
+
+body[data-page="configurator"] .thickness-grid > *:has(input:focus-visible) label,
+body[data-page="configurator"] .style-choice:has(input:focus-visible),
+body[data-page="configurator"] .lighting-card:has(input:focus-visible),
+body[data-page="configurator"] .finish-choice:has(input:focus-visible) label,
+body[data-page="configurator"] .hardware-choice:has(input:focus-visible),
+body[data-page="configurator"] .warmth-choice:has(input:focus-visible),
+body[data-page="configurator"] .switch:has(input:focus-visible) > span {
+  outline: 2px solid var(--cfg-gold-bright);
+  outline-offset: 3px;
+}
+
+body[data-page="configurator"] .style-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+  gap: 9px;
+}
+
+body[data-page="configurator"] .style-choice {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 82px;
+  border: 1px solid rgba(238, 225, 207, 0.2);
+  border-radius: 7px;
+  background: rgba(32, 28, 24, 0.14);
+  padding: 6px 4px 5px;
+  color: rgba(247, 243, 237, 0.88);
+  text-align: center;
+}
+
+body[data-page="configurator"] button.style-choice {
+  align-content: center;
+}
+
+body[data-page="configurator"] .style-choice > label {
+  display: grid;
+  height: 100%;
+  min-width: 0;
+  align-content: space-between;
+  justify-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+body[data-page="configurator"] .style-choice svg,
+body[data-page="configurator"] .style-choice-icon,
+body[data-page="configurator"] .style-choice-illustration,
+body[data-page="configurator"] .style-diagram {
+  position: relative;
+  display: block;
+  width: 58px;
+  max-width: 90%;
+  height: 35px;
+  color: rgba(232, 222, 209, 0.74);
+}
+
+body[data-page="configurator"] .style-diagram i,
+body[data-page="configurator"] .style-diagram b,
+body[data-page="configurator"] .style-diagram::before,
+body[data-page="configurator"] .style-diagram::after {
+  position: absolute;
+  display: block;
+  box-sizing: border-box;
+  content: "";
+}
+
+body[data-page="configurator"] .style-diagram-base i {
+  top: 8px;
+  right: 5px;
+  left: 5px;
+  height: 13px;
+  border: 1px solid currentColor;
+  border-bottom: 0;
+}
+
+body[data-page="configurator"] .style-diagram-base b {
+  right: 8px;
+  bottom: 7px;
+  left: 8px;
+  height: 7px;
+  border-top: 1px solid currentColor;
+  border-right: 1px solid currentColor;
+  border-left: 1px solid currentColor;
+}
+
+body[data-page="configurator"] .style-choice[data-style="toe_kick"] .style-diagram-base b {
+  right: 14px;
+  left: 14px;
+}
+
+body[data-page="configurator"] .style-choice[data-style="toe_kick"] .style-diagram-base::after {
+  right: 8px;
+  bottom: 6px;
+  left: 8px;
+  border-top: 1px solid currentColor;
+}
+
+body[data-page="configurator"] .style-choice[data-style="plinth"] .style-diagram-base b {
+  right: 5px;
+  left: 5px;
+}
+
+body[data-page="configurator"] .style-choice[data-style="furniture_base"] .style-diagram-base b {
+  right: 2px;
+  left: 2px;
+  height: 9px;
+  border-top-width: 2px;
+}
+
+body[data-page="configurator"] .style-diagram-crown i {
+  right: 5px;
+  bottom: 5px;
+  left: 5px;
+  height: 17px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  border-left: 1px solid currentColor;
+}
+
+body[data-page="configurator"] .style-diagram-crown b {
+  top: 7px;
+  right: 5px;
+  left: 5px;
+  border-top: 1px solid currentColor;
+}
+
+body[data-page="configurator"] .style-choice[data-style="slim_cap"] .style-diagram-crown b {
+  top: 4px;
+  right: 0;
+  left: 0;
+  height: 7px;
+  border-top: 1px solid currentColor;
+  border-right: 1px solid currentColor;
+  transform: skewX(-37deg);
+}
+
+body[data-page="configurator"] .style-choice[data-style="classic_crown"] .style-diagram-crown b {
+  top: 2px;
+  right: 0;
+  left: 0;
+  height: 12px;
+  border-top: 1px solid currentColor;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: skewX(-32deg);
+}
+
+body[data-page="configurator"] .style-choice[data-style="modern_soffit"] .style-diagram-crown b {
+  top: 1px;
+  right: 1px;
+  left: 1px;
+  height: 11px;
+  border: 1px solid currentColor;
+  border-bottom: 2px double currentColor;
+}
+
+body[data-page="configurator"] .style-choice-title,
+body[data-page="configurator"] .style-choice-name,
+body[data-page="configurator"] .style-choice > span:last-child,
+body[data-page="configurator"] .style-choice label > span:last-child {
+  font-size: var(--type-label);
+  line-height: 1.22;
+}
+
+body[data-page="configurator"] .style-choice.is-active,
+body[data-page="configurator"] .style-choice[aria-pressed="true"],
+body[data-page="configurator"] .style-choice:has(input:checked),
+body[data-page="configurator"] .style-choice input:checked + label {
+  border-color: rgba(218, 168, 102, 0.92);
+  background: linear-gradient(180deg, rgba(190, 139, 77, 0.19), rgba(112, 77, 42, 0.12));
+  box-shadow: inset 0 0 20px rgba(210, 158, 93, 0.06);
+}
+
+/* Lighting */
+
+body[data-page="configurator"] .lighting-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 1px;
+}
+
+body[data-page="configurator"] .lighting-field {
+  padding-top: 4px;
+}
+
+body[data-page="configurator"] .lighting-card {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 103px;
+  place-items: center;
+  border: 1px solid rgba(238, 225, 207, 0.18);
+  border-radius: 7px;
+  background: rgba(32, 28, 24, 0.12);
+  padding: 8px 4px 7px;
+  color: rgba(247, 243, 237, 0.91);
+  text-align: center;
+}
+
+body[data-page="configurator"] .lighting-card > label {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  align-content: space-between;
+  justify-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+body[data-page="configurator"] .lighting-card svg,
+body[data-page="configurator"] .lighting-icon,
+body[data-page="configurator"] .choice-icon,
+body[data-page="configurator"] .lighting-card-icon {
+  position: relative;
+  display: block;
+  width: 31px;
+  height: 38px;
+  color: #dcc49f;
+  filter: drop-shadow(0 4px 7px rgba(228, 178, 110, 0.16));
+}
+
+body[data-page="configurator"] .lighting-card-icon i,
+body[data-page="configurator"] .lighting-card-icon b,
+body[data-page="configurator"] .lighting-card-icon::before,
+body[data-page="configurator"] .lighting-card-icon::after {
+  position: absolute;
+  display: block;
+  box-sizing: border-box;
+  content: "";
+}
+
+body[data-page="configurator"] .lighting-card[data-lighting="no_lighting"] .lighting-card-icon {
+  width: 23px;
+  height: 23px;
+  border: 1px solid rgba(238, 225, 207, 0.45);
+  border-radius: 50%;
+  margin-top: 7px;
+}
+
+body[data-page="configurator"] .lighting-card[data-lighting="no_lighting"] .lighting-card-icon::before,
+body[data-page="configurator"] .lighting-card[data-lighting="no_lighting"] .lighting-card-icon::after {
+  top: 10px;
+  left: 2px;
+  width: 18px;
+  border-top: 1px solid rgba(238, 225, 207, 0.8);
+  transform: rotate(45deg);
+}
+
+body[data-page="configurator"] .lighting-card[data-lighting="no_lighting"] .lighting-card-icon::after {
+  transform: rotate(-45deg);
+}
+
+body[data-page="configurator"] .lighting-card[data-lighting="warm_pucks"] .lighting-card-icon i {
+  top: 8px;
+  left: 5px;
+  width: 21px;
+  height: 14px;
+  border-radius: 15px 15px 4px 4px;
+  background: linear-gradient(180deg, #e3c397, #987249);
+}
+
+body[data-page="configurator"] .lighting-card[data-lighting="warm_pucks"] .lighting-card-icon b {
+  top: 21px;
+  left: 2px;
+  width: 27px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(255, 220, 168, 0.7), transparent 70%);
+}
+
+body[data-page="configurator"] .lighting-card[data-lighting="shelf_accent"] .lighting-card-icon i {
+  top: 9px;
+  left: 1px;
+  width: 29px;
+  height: 5px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #d5c1a6, #81674d);
+}
+
+body[data-page="configurator"] .lighting-card[data-lighting="shelf_accent"] .lighting-card-icon b {
+  top: 13px;
+  left: 5px;
+  width: 21px;
+  height: 17px;
+  background: radial-gradient(ellipse at 50% 0, rgba(255, 220, 168, 0.62), transparent 70%);
+}
+
+body[data-page="configurator"] .lighting-card[data-lighting="vertical_led"] .lighting-card-icon i {
+  top: 1px;
+  left: 12px;
+  width: 6px;
+  height: 34px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #8c6e50, #ffe3b5 48%, #9d7952);
+  box-shadow: 0 0 7px rgba(255, 219, 164, 0.42);
+}
+
+body[data-page="configurator"] .lighting-card[data-lighting="vertical_led"] .lighting-card-icon b {
+  top: 11px;
+  left: 19px;
+  border-width: 4px 0 4px 5px;
+  border-style: solid;
+  border-color: transparent transparent transparent rgba(239, 220, 192, 0.72);
+}
+
+body[data-page="configurator"] .lighting-card[data-lighting="full_package"] .lighting-card-icon i {
+  top: 2px;
+  left: 7px;
+  width: 17px;
+  height: 18px;
+  border-radius: 50% 50% 44% 44%;
+  background: radial-gradient(circle at 42% 35%, #f3d7a9, #a97d4d 70%);
+  box-shadow: 0 0 9px rgba(255, 218, 158, 0.28);
+}
+
+body[data-page="configurator"] .lighting-card[data-lighting="full_package"] .lighting-card-icon b {
+  top: 19px;
+  left: 11px;
+  width: 9px;
+  height: 12px;
+  border-radius: 0 0 3px 3px;
+  background: repeating-linear-gradient(180deg, #c9a979 0 2px, #806346 2px 3px);
+}
+
+body[data-page="configurator"] .lighting-card-title,
+body[data-page="configurator"] .lighting-card-name,
+body[data-page="configurator"] .lighting-card > span:last-child,
+body[data-page="configurator"] .lighting-card label > span:last-child {
+  font-size: var(--type-label);
+  line-height: 1.3;
+}
+
+body[data-page="configurator"] .lighting-card.is-active,
+body[data-page="configurator"] .lighting-card[aria-pressed="true"],
+body[data-page="configurator"] .lighting-card:has(input:checked),
+body[data-page="configurator"] .lighting-card input:checked + label {
+  border-color: rgba(222, 173, 109, 0.9);
+  background: radial-gradient(circle at 50% 22%, rgba(235, 186, 119, 0.17), transparent 55%), rgba(122, 87, 52, 0.18);
+  box-shadow: 0 0 17px rgba(202, 148, 83, 0.08), inset 0 0 17px rgba(218, 167, 102, 0.06);
+}
+
+body[data-page="configurator"] .lighting-select-label {
+  display: block;
+  margin: 0 0 7px;
+  color: var(--cfg-muted);
+  font-size: var(--type-label);
+}
+
+body[data-page="configurator"] .lighting-select {
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--cfg-line-strong);
+  border-radius: 6px;
+  background: rgba(35, 31, 26, 0.44);
+  padding: 0 10px;
+  color: var(--cfg-ivory);
+}
+
+body[data-page="configurator"] .warmth-group {
+  margin-top: 18px;
+}
+
+body[data-page="configurator"] .warmth-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+}
+
+body[data-page="configurator"] .warmth-grid > label,
+body[data-page="configurator"] .warmth-grid > button,
+body[data-page="configurator"] .warmth-grid > * > label {
+  display: grid;
+  min-width: 0;
+  min-height: 35px;
+  place-items: center;
+  border: 1px solid rgba(238, 225, 207, 0.13);
+  border-radius: 6px;
+  background: rgba(31, 27, 23, 0.2);
+  padding: 4px;
+  font-size: var(--type-caption);
+}
+
+body[data-page="configurator"] .warmth-field {
+  margin-top: 22px;
+}
+
+body[data-page="configurator"] .warmth-choice {
+  position: relative;
+  min-width: 0;
+}
+
+body[data-page="configurator"] .warmth-grid .warmth-choice > label {
+  display: grid;
+  min-height: 53px;
+  grid-template-rows: 35px 14px;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+body[data-page="configurator"] .warmth-choice strong {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  height: 35px;
+  place-items: center;
+  border: 1px solid rgba(238, 225, 207, 0.13);
+  border-radius: 6px;
+  background: rgba(31, 27, 23, 0.2);
+  color: rgba(247, 243, 237, 0.92);
+  font-size: var(--type-caption);
+  font-weight: 400;
+}
+
+body[data-page="configurator"] .warmth-choice small {
+  color: rgba(247, 243, 237, 0.72);
+  font-size: var(--type-small);
+  font-weight: 400;
+  line-height: 14px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .warmth-grid button.is-active,
+body[data-page="configurator"] .warmth-grid button[aria-pressed="true"],
+body[data-page="configurator"] .warmth-grid input:checked + label,
+body[data-page="configurator"] .warmth-grid > *:has(input:checked) label {
+  border-color: rgba(218, 168, 102, 0.72);
+  background: linear-gradient(180deg, #b98a51, #92643a);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.13);
+}
+
+body[data-page="configurator"] .warmth-grid .warmth-choice:has(input:checked) > label {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body[data-page="configurator"] .warmth-choice input:checked + label strong {
+  border-color: rgba(218, 168, 102, 0.72);
+  background: linear-gradient(180deg, #b98a51, #92643a);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.13);
+}
+
+body[data-page="configurator"] .warmth-caption-grid,
+body[data-page="configurator"] .warmth-captions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  margin-top: 4px;
+  color: rgba(247, 243, 237, 0.72);
+  font-size: var(--type-small);
+  text-align: center;
+}
+
+/* Finish and Benjamin Moore search */
+
+body[data-page="configurator"] .finish-helper,
+body[data-page="configurator"] .configurator-panel .fieldset-label {
+  color: rgba(247, 243, 237, 0.62);
+}
+
+body[data-page="configurator"] .finish-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body[data-page="configurator"] .finish-choice {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: rgba(247, 243, 237, 0.87);
+  text-align: center;
+}
+
+body[data-page="configurator"] .finish-choice > label {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+body[data-page="configurator"] .finish-choice-dot,
+body[data-page="configurator"] .finish-choice-swatch,
+body[data-page="configurator"] .finish-choice > span:first-of-type {
+  display: block;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(50, 43, 36, 0.15);
+  border-radius: 50%;
+  background: var(--swatch, #ded8cf);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5), 0 2px 6px rgba(16, 12, 9, 0.14);
+}
+
+body[data-page="configurator"] .finish-choice-name,
+body[data-page="configurator"] .finish-choice-code,
+body[data-page="configurator"] .finish-choice > span:not(:first-of-type),
+body[data-page="configurator"] .finish-choice label > span:last-child {
+  width: 60px;
+  min-height: 38px;
+  font-size: var(--type-label);
+  line-height: 1.28;
+}
+
+body[data-page="configurator"] .finish-choice label > span:last-child small {
+  display: block;
+  color: rgba(247, 243, 237, 0.74);
+  font-size: var(--type-small);
+  font-weight: 400;
+  line-height: 1.28;
+}
+
+body[data-page="configurator"] .finish-choice.is-active .finish-choice-dot,
+body[data-page="configurator"] .finish-choice[aria-pressed="true"] .finish-choice-dot,
+body[data-page="configurator"] .finish-choice:has(input:checked) .finish-choice-dot,
+body[data-page="configurator"] .finish-choice input:checked + label .finish-choice-dot,
+body[data-page="configurator"] .finish-choice.is-active .finish-choice-swatch,
+body[data-page="configurator"] .finish-choice:has(input:checked) .finish-choice-swatch {
+  outline: 1px solid rgba(224, 177, 116, 0.94);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px rgba(216, 164, 95, 0.08), 0 6px 14px rgba(14, 10, 7, 0.16);
+}
+
+body[data-page="configurator"] .configurator-panel .finish-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+body[data-page="configurator"] .configurator-panel .finish-swatch {
+  display: grid;
+  place-items: center;
+}
+
+body[data-page="configurator"] .configurator-panel .finish-swatch label {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  padding: 3px;
+}
+
+body[data-page="configurator"] .configurator-panel .finish-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin: 0;
+}
+
+body[data-page="configurator"] .configurator-panel .finish-swatch input:checked + label {
+  border-color: var(--cfg-gold-bright);
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: 0 0 0 1px rgba(211, 166, 106, 0.2);
+}
+
+body[data-page="configurator"] .selected-finish-line {
+  min-height: 14px;
+  margin: 5px 0 0;
+  color: rgba(247, 243, 237, 0.72);
+  font-size: var(--type-small);
+  line-height: 1.25;
+}
+
+body[data-page="configurator"] .bm-search,
+body[data-page="configurator"] .custom-paint-panel {
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(238, 225, 207, 0.13);
+  border-radius: 10px;
+  background: rgba(30, 26, 22, 0.24);
+  margin: 28px 0 0;
+  padding: 13px 12px 12px;
+}
+
+body[data-page="configurator"] .finish-field {
+  padding-top: 10px;
+}
+
+body[data-page="configurator"] .bm-search label,
+body[data-page="configurator"] .custom-paint-panel label {
+  color: rgba(247, 243, 237, 0.86);
+  font-size: var(--type-label);
+  font-weight: 400;
+}
+
+body[data-page="configurator"] .bm-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 33px;
+  gap: 3px;
+}
+
+body[data-page="configurator"] .bm-search-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 33px;
+  gap: 3px;
+}
+
+body[data-page="configurator"] .bm-search input,
+body[data-page="configurator"] .custom-paint-panel input {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  border: 1px solid rgba(238, 225, 207, 0.2);
+  border-radius: 6px;
+  background: rgba(36, 31, 26, 0.25);
+  padding: 0 8px;
+  color: var(--cfg-ivory);
+  font-size: var(--type-label);
+}
+
+body[data-page="configurator"] .bm-search input::placeholder,
+body[data-page="configurator"] .custom-paint-panel input::placeholder {
+  color: rgba(247, 243, 237, 0.55);
+}
+
+body[data-page="configurator"] .bm-search button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid rgba(238, 225, 207, 0.2);
+  border-radius: 6px;
+  background: rgba(36, 31, 26, 0.25);
+  padding: 0;
+}
+
+body[data-page="configurator"] .bm-search small,
+body[data-page="configurator"] .bm-search-status,
+body[data-page="configurator"] .custom-paint-panel a,
+body[data-page="configurator"] .custom-paint-panel p {
+  margin: 0;
+  color: rgba(247, 243, 237, 0.67);
+  font-size: var(--type-small);
+  line-height: 1.2;
+}
+
+/* Hardware */
+
+body[data-page="configurator"] .hardware-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 9px;
+}
+
+body[data-page="configurator"] .hardware-choice {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: rgba(247, 243, 237, 0.88);
+  text-align: center;
+}
+
+body[data-page="configurator"] .hardware-choice > label {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+body[data-page="configurator"] .hardware-choice-preview,
+body[data-page="configurator"] .hardware-choice-dot,
+body[data-page="configurator"] .hardware-choice > span:first-of-type,
+body[data-page="configurator"] .hardware-choice-icon {
+  position: relative;
+  display: grid;
+  width: 54px;
+  height: 54px;
+  place-items: center;
+  border: 1px solid rgba(238, 225, 207, 0.26);
+  border-radius: 50%;
+  background: rgba(31, 27, 23, 0.18);
+  color: #d4af78;
+}
+
+body[data-page="configurator"] .hardware-choice-icon i,
+body[data-page="configurator"] .hardware-choice-icon b,
+body[data-page="configurator"] .hardware-choice-icon::before,
+body[data-page="configurator"] .hardware-choice-icon::after {
+  position: absolute;
+  display: block;
+  box-sizing: border-box;
+  content: "";
+}
+
+body[data-page="configurator"] .hardware-choice[data-hardware$="_knob"] .hardware-choice-icon i {
+  top: 13px;
+  left: 17px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 31%, #f4d69f, #ae7a3e 48%, #6c4829 76%);
+  box-shadow: 0 3px 5px rgba(11, 8, 6, 0.35);
+}
+
+body[data-page="configurator"] .hardware-choice[data-hardware$="_knob"] .hardware-choice-icon b {
+  top: 31px;
+  left: 23px;
+  width: 8px;
+  height: 10px;
+  border-radius: 0 0 3px 3px;
+  background: linear-gradient(90deg, #694529, #cb9554 52%, #714a2b);
+}
+
+body[data-page="configurator"] .hardware-choice[data-hardware^="matte_black"] .hardware-choice-icon i {
+  background: radial-gradient(circle at 38% 31%, #565653, #171819 55%, #060707 78%);
+}
+
+body[data-page="configurator"] .hardware-choice[data-hardware^="matte_black"] .hardware-choice-icon b {
+  background: linear-gradient(90deg, #060707, #242526 50%, #050606);
+}
+
+body[data-page="configurator"] .hardware-choice[data-hardware$="_pull"] .hardware-choice-icon i {
+  top: 24px;
+  right: 9px;
+  left: 9px;
+  height: 5px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #e2bd7c, #80572d);
+  box-shadow: 0 2px 3px rgba(11, 8, 6, 0.3);
+  transform: rotate(-8deg);
+}
+
+body[data-page="configurator"] .hardware-choice[data-hardware$="_pull"] .hardware-choice-icon b::before,
+body[data-page="configurator"] .hardware-choice[data-hardware$="_pull"] .hardware-choice-icon b::after {
+  position: absolute;
+  top: 27px;
+  width: 2px;
+  height: 6px;
+  background: #9f713c;
+  content: "";
+}
+
+body[data-page="configurator"] .hardware-choice[data-hardware$="_pull"] .hardware-choice-icon b::before {
+  left: 14px;
+}
+
+body[data-page="configurator"] .hardware-choice[data-hardware$="_pull"] .hardware-choice-icon b::after {
+  right: 14px;
+}
+
+body[data-page="configurator"] .hardware-choice[data-hardware="matte_black_pull"] .hardware-choice-icon i,
+body[data-page="configurator"] .hardware-choice[data-hardware="matte_black_pull"] .hardware-choice-icon b::before,
+body[data-page="configurator"] .hardware-choice[data-hardware="matte_black_pull"] .hardware-choice-icon b::after {
+  background: #111213;
+}
+
+body[data-page="configurator"] .hardware-choice[data-hardware="polished_nickel_pull"] .hardware-choice-icon i,
+body[data-page="configurator"] .hardware-choice[data-hardware="polished_nickel_pull"] .hardware-choice-icon b::before,
+body[data-page="configurator"] .hardware-choice[data-hardware="polished_nickel_pull"] .hardware-choice-icon b::after {
+  background: linear-gradient(180deg, #f1eee8, #77736e);
+}
+
+body[data-page="configurator"] .hardware-choice svg,
+body[data-page="configurator"] .hardware-choice img {
+  width: 42px;
+  height: 29px;
+  object-fit: contain;
+}
+
+body[data-page="configurator"] .hardware-choice-name,
+body[data-page="configurator"] .hardware-choice > span:not(:first-of-type),
+body[data-page="configurator"] .hardware-choice label > span:last-child {
+  font-size: var(--type-label);
+  line-height: 1.24;
+}
+
+body[data-page="configurator"] .hardware-choice.is-active .hardware-choice-preview,
+body[data-page="configurator"] .hardware-choice[aria-pressed="true"] .hardware-choice-preview,
+body[data-page="configurator"] .hardware-choice:has(input:checked) .hardware-choice-preview,
+body[data-page="configurator"] .hardware-choice input:checked + label .hardware-choice-preview,
+body[data-page="configurator"] .hardware-choice.is-active .hardware-choice-dot,
+body[data-page="configurator"] .hardware-choice:has(input:checked) .hardware-choice-dot,
+body[data-page="configurator"] .hardware-choice:has(input:checked) .hardware-choice-icon,
+body[data-page="configurator"] .hardware-choice input:checked + label .hardware-choice-icon {
+  border-color: rgba(218, 168, 102, 0.92);
+  box-shadow: 0 0 15px rgba(210, 153, 83, 0.1), inset 0 0 13px rgba(210, 153, 83, 0.05);
+}
+
+body[data-page="configurator"] .configurator-panel .hardware-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+body[data-page="configurator"] .configurator-panel-right .control-section-hardware h3 {
+  margin-bottom: 4px;
+}
+
+body[data-page="configurator"] .configurator-panel .hardware-swatch {
+  display: grid;
+  place-items: center;
+}
+
+body[data-page="configurator"] .configurator-panel .hardware-swatch label {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  min-height: 0;
+  place-items: center;
+  border: 1px solid rgba(238, 225, 207, 0.2);
+  border-radius: 50%;
+  background: rgba(32, 28, 24, 0.15);
+  padding: 7px;
+}
+
+body[data-page="configurator"] .configurator-panel .hardware-dot {
+  width: 34px;
+  height: 34px;
+  margin: 0;
+}
+
+body[data-page="configurator"] .configurator-panel .hardware-swatch input:checked + label {
+  border-color: var(--cfg-gold-bright);
+  background: rgba(130, 91, 48, 0.12);
+  box-shadow: 0 0 0 1px rgba(211, 166, 106, 0.12);
+}
+
+body[data-page="configurator"] .lower-dependent.is-disabled {
+  opacity: 0.38;
+}
+
+/* Shared optical sizing for current and forthcoming inline SVG previews. */
+body[data-page="configurator"] .style-diagram svg,
+body[data-page="configurator"] .lighting-card-icon svg,
+body[data-page="configurator"] .hardware-choice-icon svg,
+body[data-page="configurator"] .preset-mini svg,
+body[data-page="configurator"] .bm-search button svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+body[data-page="configurator"] .bm-search button svg {
+  width: 17px;
+  height: 17px;
+}
+
+body[data-page="configurator"] .preset-mini > svg {
+  object-fit: contain;
+}
+
+body[data-page="configurator"] .style-diagram:has(svg) > i,
+body[data-page="configurator"] .style-diagram:has(svg) > b,
+body[data-page="configurator"] .lighting-card-icon:has(svg) > i,
+body[data-page="configurator"] .lighting-card-icon:has(svg) > b,
+body[data-page="configurator"] .hardware-choice-icon:has(svg) > i,
+body[data-page="configurator"] .hardware-choice-icon:has(svg) > b {
+  display: none;
+}
+
+body[data-page="configurator"] .style-diagram:has(svg)::before,
+body[data-page="configurator"] .style-diagram:has(svg)::after,
+body[data-page="configurator"] .lighting-card-icon:has(svg)::before,
+body[data-page="configurator"] .lighting-card-icon:has(svg)::after,
+body[data-page="configurator"] .hardware-choice-icon:has(svg)::before,
+body[data-page="configurator"] .hardware-choice-icon:has(svg)::after {
+  content: none;
+}
+
+/* Model and camera toolbar ---------------------------------------------- */
+
+body[data-page="configurator"] .configurator-model {
+  position: relative;
+  z-index: 2;
+  align-self: start;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  grid-column: 2;
+  grid-row: 1;
+  overflow: visible;
+}
+
+body[data-page="configurator"] .configurator-model::after {
+  position: absolute;
+  right: 7%;
+  bottom: 40px;
+  left: 7%;
+  height: 45px;
+  border-radius: 50%;
+  background: rgba(16, 12, 9, 0.27);
+  content: "";
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .configurator-model .viewer-stage {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: grab;
+  touch-action: none;
+}
+
+body[data-page="configurator"] .configurator-model .viewer-stage.is-dragging {
+  cursor: grabbing;
+}
+
+body[data-page="configurator"] .configurator-model .viewer-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+body[data-page="configurator"] .configurator-model .view-controls {
+  position: absolute;
+  z-index: 4;
+  bottom: 8px;
+  left: 50%;
+  display: grid;
+  width: 433px;
+  height: auto;
+  min-height: 69px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 2px;
+  align-items: center;
+  border: 1px solid rgba(235, 222, 204, 0.17);
+  border-radius: 13px;
+  background: rgba(72, 62, 52, 0.57);
+  padding: 6px;
+  box-shadow: 0 9px 26px rgba(18, 13, 9, 0.16), inset 0 1px rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(12px);
+  transform: translateX(-50%);
+}
+
+body[data-page="configurator"] .configurator-model .view-controls button {
+  display: grid;
+  min-width: 0;
+  height: 55px;
+  min-height: 55px;
+  grid-template-rows: 27px auto;
+  gap: 3px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  padding: 5px 3px 4px;
+  color: rgba(247, 243, 237, 0.88);
+  font-size: var(--type-button);
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .configurator-model .view-controls button:hover {
+  background: rgba(255, 255, 255, 0.035);
+  color: #fffaf3;
+}
+
+body[data-page="configurator"] .configurator-model .view-controls button.is-active {
+  border-color: rgba(221, 171, 106, 0.82);
+  background: linear-gradient(180deg, rgba(174, 124, 65, 0.26), rgba(112, 77, 42, 0.18));
+  color: #f5d5a6;
+  box-shadow: inset 0 0 16px rgba(218, 165, 96, 0.06);
+}
+
+body[data-page="configurator"] .configurator-model .view-icon {
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  color: rgba(247, 243, 237, 0.8);
+}
+
+body[data-page="configurator"] .configurator-model .view-icon svg {
+  width: 23px;
+  height: 23px;
+}
+
+body[data-page="configurator"] .configurator-model .view-controls button.is-active .view-icon {
+  color: var(--cfg-gold-bright);
+}
+
+body[data-page="configurator"] .configurator-model .viewer-helper-line {
+  display: none;
+}
+
+/* Layout preset rail ----------------------------------------------------- */
+
+body[data-page="configurator"] .configurator-shell > .preset-tray {
+  position: relative;
+  z-index: 4;
+  align-self: stretch;
+  display: block;
+  min-width: 0;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(62, 54, 46, 0.08), rgba(29, 25, 21, 0.06));
+  padding: 22px clamp(68px, 6vw, 96px) 12px;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+body[data-page="configurator"] .preset-tray-heading {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  height: 19px;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .preset-tray-heading .section-kicker {
+  color: rgba(247, 243, 237, 0.9);
+  font-size: var(--type-small);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .preset-scroll {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid rgba(238, 225, 207, 0.43);
+  border-radius: 50%;
+  background: rgba(42, 36, 30, 0.18);
+  padding: 0;
+  color: var(--cfg-ivory);
+  backdrop-filter: blur(8px);
+}
+
+body[data-page="configurator"] .preset-scroll::before {
+  width: 10px;
+  height: 10px;
+  border-top: 1px solid currentColor;
+  border-right: 1px solid currentColor;
+  content: "";
+}
+
+body[data-page="configurator"] .preset-scroll-prev {
+  top: 55px;
+  left: clamp(16px, 2.5vw, 40px);
+  display: grid;
+  pointer-events: auto;
+}
+
+body[data-page="configurator"] .preset-scroll-next {
+  top: 55px;
+  right: clamp(16px, 2.5vw, 40px);
+}
+
+body[data-page="configurator"] .preset-scroll-prev::before {
+  transform: translateX(2px) rotate(-135deg);
+}
+
+body[data-page="configurator"] .preset-scroll-next::before {
+  transform: translateX(-2px) rotate(45deg);
+}
+
+body[data-page="configurator"] .preset-list {
+  display: grid;
+  height: auto;
+  min-height: 113px;
+  grid-auto-columns: 178px;
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  gap: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+
+body[data-page="configurator"] .preset-list::-webkit-scrollbar {
+  display: none;
+}
+
+body[data-page="configurator"] .preset-card {
+  position: relative;
+  display: grid;
+  width: 178px;
+  height: auto;
+  min-height: 113px;
+  min-width: 0;
+  grid-template-rows: 80px auto;
+  gap: 3px;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(235, 222, 204, 0.13);
+  border-radius: 11px;
+  background: rgba(67, 58, 49, 0.32);
+  padding: 7px 10px 3px;
+  color: rgba(247, 243, 237, 0.83);
+  text-align: center;
+  scroll-snap-align: start;
+  transform: none;
+}
+
+body[data-page="configurator"] .preset-card:hover,
+body[data-page="configurator"] .preset-card.is-active {
+  border-color: rgba(224, 177, 116, 0.62);
+  background: linear-gradient(180deg, rgba(121, 89, 55, 0.22), rgba(72, 61, 50, 0.34));
+  color: #fffaf3;
+  box-shadow: 0 8px 20px rgba(14, 10, 7, 0.12), inset 0 1px rgba(255, 255, 255, 0.035);
+  transform: none;
+}
+
+body[data-page="configurator"] .preset-mini {
+  position: relative;
+  display: grid;
+  min-height: 0;
+  height: 80px;
+  grid-template-rows: 6px minmax(0, 1fr) 13px;
+  overflow: hidden;
+  border: 1px solid rgba(235, 222, 204, 0.24);
+  border-radius: 7px;
+  background:
+    radial-gradient(ellipse at 50% 20%, rgba(219, 185, 143, 0.12), transparent 70%),
+    rgba(45, 39, 33, 0.28);
+  padding: 6px 9px 4px;
+}
+
+body[data-page="configurator"] .preset-card.is-active .preset-mini {
+  border-color: rgba(221, 169, 102, 0.92);
+  box-shadow: 0 0 13px rgba(209, 154, 86, 0.11), inset 0 0 14px rgba(209, 154, 86, 0.06);
+}
+
+body[data-page="configurator"] .preset-number,
+body[data-page="configurator"] .preset-check {
+  display: none;
+}
+
+body[data-page="configurator"] .preset-crown,
+body[data-page="configurator"] .preset-base {
+  background: rgba(219, 207, 190, 0.24);
+}
+
+body[data-page="configurator"] .preset-base.has-doors {
+  background:
+    repeating-linear-gradient(90deg, transparent 0 15px, rgba(232, 220, 202, 0.22) 15px 16px),
+    rgba(219, 207, 190, 0.2);
+}
+
+body[data-page="configurator"] .preset-bays {
+  border-color: rgba(232, 220, 202, 0.2);
+}
+
+body[data-page="configurator"] .preset-bay {
+  border-color: rgba(232, 220, 202, 0.2);
+  background:
+    repeating-linear-gradient(180deg, transparent 0 10px, rgba(232, 220, 202, 0.25) 10px 11px),
+    rgba(181, 162, 139, 0.08);
+}
+
+body[data-page="configurator"] .preset-card-title {
+  display: block;
+  min-width: 0;
+  overflow: visible;
+  color: inherit;
+  font-size: var(--type-label);
+  font-weight: 400;
+  line-height: var(--leading-ui);
+  text-align: center;
+  text-overflow: clip;
+  white-space: normal;
+  text-wrap: balance;
+}
+
+/* Persistent estimate bar ---------------------------------------------- */
+
+body[data-page="configurator"] .configurator-estimate-bar {
+  position: relative;
+  z-index: 8;
+  display: grid;
+  height: 100%;
+  min-height: 92px;
+  min-width: 0;
+  grid-column: 1 / -1;
+  grid-row: 3;
+  grid-template-columns: max-content minmax(190px, 230px) minmax(340px, 1fr) minmax(354px, auto);
+  align-items: stretch;
+  border-top: 1px solid rgba(238, 225, 207, 0.22);
+  background:
+    linear-gradient(90deg, rgba(27, 24, 20, 0.98), rgba(45, 39, 32, 0.97) 54%, rgba(27, 24, 20, 0.99)),
+    #211d18;
+  box-shadow: 0 -10px 30px rgba(13, 10, 8, 0.08);
+  color: var(--cfg-ivory);
+}
+
+body[data-page="configurator"] .configurator-price-block {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  padding: 1px 20px 0 67px;
+}
+
+body[data-page="configurator"] .configurator-price-block::before {
+  position: absolute;
+  top: 17px;
+  left: 49px;
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  border: 1px solid rgba(216, 174, 112, 0.34);
+  color: var(--cfg-gold-bright);
+  content: "$";
+  font-size: var(--type-small);
+  line-height: 1;
+  transform: scale(0.8);
+}
+
+body[data-page="configurator"] .price-kicker {
+  color: rgba(247, 243, 237, 0.9);
+  font-size: var(--type-small);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  margin-left: 10px;
+}
+
+body[data-page="configurator"] .configurator-price-block strong {
+  color: #fffaf3;
+  font-family: var(--sans);
+  font-size: 31px;
+  font-weight: 300;
+  letter-spacing: 0.01em;
+  line-height: 1.08;
+}
+
+body[data-page="configurator"] .configurator-quote-note {
+  display: flex;
+  align-items: center;
+  border-left: 1px solid rgba(238, 225, 207, 0.15);
+  margin: 15px 0;
+  padding: 0 22px;
+  color: rgba(247, 243, 237, 0.8);
+  font-size: var(--type-caption);
+  line-height: 1.45;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-row {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 10px;
+  align-content: center;
+  align-items: center;
+  border-left: 1px solid rgba(238, 225, 207, 0.07);
+  padding: 0 14px;
+  color: var(--cfg-gold-bright);
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item:first-child {
+  border-left: 0;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  color: var(--cfg-gold-bright) !important;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-icon svg {
+  width: 34px;
+  height: 34px;
+  color: inherit !important;
+  stroke: currentColor;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item strong,
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item small {
+  display: block;
+  color: rgba(247, 243, 237, 0.88);
+  font-size: var(--type-caption);
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item small {
+  color: rgba(247, 243, 237, 0.72);
+}
+
+body[data-page="configurator"] .configurator-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 178px));
+  gap: 17px;
+  align-items: center;
+  justify-content: end;
+  padding: 0 clamp(18px, 2vw, 30px) 0 0;
+}
+
+body[data-page="configurator"] .configurator-quote-button,
+body[data-page="configurator"] .configurator-save-button {
+  display: inline-flex;
+  width: 100%;
+  height: 49px;
+  min-height: 49px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 7px;
+  padding: 0 18px;
+  font-size: var(--type-button);
+  font-weight: 400;
+  line-height: 1;
+}
+
+body[data-page="configurator"] .configurator-quote-button {
+  border: 1px solid rgba(223, 176, 113, 0.58);
+  background: linear-gradient(180deg, #bd8c55, #92663a);
+  color: #fff9f1;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.14), 0 9px 20px rgba(10, 7, 5, 0.16);
+}
+
+body[data-page="configurator"] .configurator-save-button {
+  border: 1px solid rgba(216, 164, 95, 0.78);
+  background: rgba(28, 24, 20, 0.16);
+  color: #e5b777;
+}
+
+body[data-page="configurator"] .configurator-save-button svg {
+  width: 25px;
+  height: 25px;
+}
+
+body[data-page="configurator"] .configurator-quote-button:hover,
+body[data-page="configurator"] .configurator-save-button:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+body[data-page="configurator"] .configurator-shell > .status-message {
+  position: fixed;
+  z-index: 60;
+  bottom: 96px;
+  left: 50%;
+  min-height: 0;
+  max-width: min(520px, calc(100vw - 32px));
+  border: 1px solid rgba(220, 174, 111, 0.35);
+  border-radius: 7px;
+  background: rgba(29, 25, 21, 0.92);
+  margin: 0;
+  padding: 9px 14px;
+  color: var(--cfg-ivory);
+  font-size: var(--type-small);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 12px);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+body[data-page="configurator"] .configurator-shell > .status-message.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* Tablet / compact desktop: model first, controls follow. ---------------- */
+
+@media (max-width: 1280px) {
+  body[data-page="configurator"] {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body[data-page="configurator"] [data-site-header],
+  body[data-page="configurator"] .site-header,
+  body[data-page="configurator"] .navbar {
+    height: 76px;
+    min-height: 76px;
+  }
+
+  body[data-page="configurator"] .navbar {
+    grid-template-columns: 250px minmax(0, 1fr) 278px;
+    padding: 0 20px 0 24px;
+  }
+
+  body[data-page="configurator"] .site-header .brand-main {
+    font-size: var(--type-brand);
+  }
+
+  body[data-page="configurator"] .nav-links {
+    gap: 19px;
+  }
+
+  body[data-page="configurator"] .nav-link {
+    font-size: var(--type-label);
+  }
+
+  body[data-page="configurator"] .header-actions {
+    grid-template-columns: 116px 146px;
+    gap: 10px;
+  }
+
+  body[data-page="configurator"] .header-actions .button-primary {
+    width: 146px;
+    min-width: 146px;
+  }
+
+  body[data-page="configurator"] main,
+  body[data-page="configurator"] .builder-hero,
+  body[data-page="configurator"] .builder-page,
+  body[data-page="configurator"] .builder-hero > .container,
+  body[data-page="configurator"] [data-bookcase-builder] {
+    height: auto;
+    min-height: calc(100svh - 76px);
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .configurator-shell {
+    height: auto;
+    min-height: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: clamp(520px, 68svh, 680px) auto 148px auto;
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    width: 100%;
+    height: 100%;
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  body[data-page="configurator"] .configurator-panel-left,
+  body[data-page="configurator"] .configurator-panel-right {
+    display: block;
+    width: calc(100% - 18px);
+    height: auto;
+    grid-row: 2;
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .configurator-panel-left {
+    grid-column: 1;
+    margin: 0 6px 12px 12px;
+  }
+
+  body[data-page="configurator"] .configurator-panel-right {
+    grid-column: 2;
+    margin: 0 12px 12px 6px;
+  }
+
+  body[data-page="configurator"] .configurator-panel .control-section {
+    height: auto;
+    min-height: 0;
+  }
+
+  body[data-page="configurator"] .lighting-grid,
+  body[data-page="configurator"] .finish-choice-grid,
+  body[data-page="configurator"] .hardware-choice-grid {
+    gap: 7px;
+  }
+
+  body[data-page="configurator"] .configurator-shell > .preset-tray {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar {
+    height: auto;
+    min-height: 176px;
+    grid-column: 1 / -1;
+    grid-row: 4;
+    grid-template-columns: minmax(190px, 220px) minmax(190px, 230px) minmax(300px, 1fr);
+    grid-template-rows: minmax(86px, auto) minmax(82px, auto);
+  }
+
+  body[data-page="configurator"] .configurator-actions {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: repeat(2, minmax(170px, 220px));
+    justify-content: center;
+    padding: 12px 20px;
+  }
+}
+
+@media (max-width: 1120px) {
+  body[data-page="configurator"] .nav-toggle {
+    border-color: rgba(244, 239, 232, 0.22);
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--cfg-ivory);
+  }
+
+  body[data-page="configurator"] .nav-links {
+    top: 76px;
+    border-color: rgba(244, 239, 232, 0.14);
+    background: rgba(38, 33, 28, 0.98);
+    color: var(--cfg-ivory);
+  }
+
+  body[data-page="configurator"] .nav-link {
+    border-bottom-color: rgba(244, 239, 232, 0.1);
+    color: rgba(247, 243, 237, 0.9);
+  }
+}
+
+@media (max-width: 900px) and (min-width: 761px) {
+  body[data-page="configurator"] .configurator-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: clamp(500px, 66svh, 620px) auto auto 148px auto;
+  }
+
+  body[data-page="configurator"] .configurator-panel-left,
+  body[data-page="configurator"] .configurator-panel-right {
+    width: calc(100% - 24px);
+    grid-column: 1;
+    margin: 0 12px 12px;
+  }
+
+  body[data-page="configurator"] .configurator-panel-left {
+    grid-row: 2;
+  }
+
+  body[data-page="configurator"] .configurator-panel-right {
+    grid-row: 3;
+  }
+
+  body[data-page="configurator"] .configurator-shell > .preset-tray {
+    grid-row: 4;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar {
+    grid-row: 5;
+  }
+}
+
+/* Phone: model first, controls below ------------------------------------ */
+
+@media (max-width: 760px) {
+  body[data-page="configurator"] [data-site-header],
+  body[data-page="configurator"] .site-header,
+  body[data-page="configurator"] .navbar {
+    height: 68px;
+    min-height: 68px;
+  }
+
+  body[data-page="configurator"] .navbar {
+    display: flex;
+    padding: 0 14px 0 17px;
+  }
+
+  body[data-page="configurator"] .site-header .brand {
+    width: auto;
+    justify-items: start;
+  }
+
+  body[data-page="configurator"] .site-header .brand-main {
+    font-size: var(--type-brand);
+  }
+
+  body[data-page="configurator"] .site-header .brand-sub::before,
+  body[data-page="configurator"] .site-header .brand-sub::after,
+  body[data-page="configurator"] .header-actions > .header-save-button,
+  body[data-page="configurator"] .header-actions > .button {
+    display: none;
+  }
+
+  body[data-page="configurator"] .header-actions {
+    display: flex;
+    width: auto;
+    margin-left: auto;
+  }
+
+  body[data-page="configurator"] .nav-toggle {
+    display: inline-grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border-color: rgba(244, 239, 232, 0.22);
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--cfg-ivory);
+  }
+
+  body[data-page="configurator"] .nav-links {
+    top: 68px;
+    background: rgba(31, 27, 23, 0.98);
+  }
+
+  body[data-page="configurator"] main,
+  body[data-page="configurator"] .builder-hero,
+  body[data-page="configurator"] .builder-page,
+  body[data-page="configurator"] .builder-hero > .container,
+  body[data-page="configurator"] [data-bookcase-builder] {
+    min-height: calc(100svh - 68px);
+  }
+
+  body[data-page="configurator"] .configurator-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto 148px auto;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    width: 100%;
+    height: clamp(420px, 61svh, 540px);
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls {
+    bottom: 12px;
+    width: calc(100% - 24px);
+    max-width: 433px;
+    height: 62px;
+    padding: 4px;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls button {
+    height: 52px;
+    min-height: 52px;
+    grid-template-rows: 24px auto;
+    font-size: var(--type-button);
+  }
+
+  body[data-page="configurator"] .configurator-model .view-icon,
+  body[data-page="configurator"] .configurator-model .view-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  body[data-page="configurator"] .configurator-panel-left,
+  body[data-page="configurator"] .configurator-panel-right {
+    display: block;
+    width: calc(100% - 24px);
+    height: auto;
+    grid-column: 1;
+    margin: 0 12px 12px;
+    overflow: visible;
+    padding: 0 14px;
+  }
+
+  body[data-page="configurator"] .configurator-panel-left {
+    grid-row: 2;
+  }
+
+  body[data-page="configurator"] .configurator-panel-right {
+    grid-row: 3;
+  }
+
+  body[data-page="configurator"] .configurator-panel-left .control-section,
+  body[data-page="configurator"] .configurator-panel-right .control-section {
+    height: auto;
+    min-height: 0;
+    border-right: 0;
+    border-bottom: 1px solid rgba(238, 225, 207, 0.12);
+    padding: 17px 0;
+  }
+
+  body[data-page="configurator"] .configurator-panel-left .control-section:last-child,
+  body[data-page="configurator"] .configurator-panel-right .control-section:last-child {
+    border-bottom: 0;
+  }
+
+  body[data-page="configurator"] .configurator-panel .range-control {
+    height: 52px;
+    grid-template-columns: 63px minmax(0, 1fr) 58px;
+  }
+
+  body[data-page="configurator"] .configurator-panel .range-value {
+    width: 58px;
+    height: 38px;
+  }
+
+  body[data-page="configurator"] .configurator-panel .range-control > input[type="range"] {
+    height: var(--touch-target);
+  }
+
+  body[data-page="configurator"] .configurator-panel input[type="range"]::-webkit-slider-thumb {
+    width: 16px;
+    height: 16px;
+    margin-top: -7px;
+  }
+
+  body[data-page="configurator"] .configurator-panel input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+  }
+
+  body[data-page="configurator"] .configurator-panel .stepper-control,
+  body[data-page="configurator"] .configurator-panel .toggle-row {
+    height: 46px;
+    min-height: 46px;
+  }
+
+  body[data-page="configurator"] .configurator-panel .stepper {
+    width: 132px;
+    height: var(--touch-target);
+    grid-template-columns: var(--touch-target) 44px var(--touch-target);
+  }
+
+  body[data-page="configurator"] .configurator-panel .stepper button {
+    width: var(--touch-target);
+    height: var(--touch-target);
+  }
+
+  body[data-page="configurator"] .configurator-panel .stepper input {
+    height: var(--touch-target);
+  }
+
+  body[data-page="configurator"] .configurator-panel .switch {
+    width: 44px;
+    height: var(--touch-target);
+    flex-basis: 44px;
+  }
+
+  body[data-page="configurator"] .configurator-panel .switch > span::after {
+    width: 20px;
+    height: 20px;
+  }
+
+  body[data-page="configurator"] .configurator-panel .switch input:checked + span::after {
+    transform: translateX(18px);
+  }
+
+  body[data-page="configurator"] .thickness-grid > label,
+  body[data-page="configurator"] .thickness-grid > button,
+  body[data-page="configurator"] .thickness-grid > * > label,
+  body[data-page="configurator"] .warmth-choice strong {
+    min-height: var(--touch-target);
+  }
+
+  body[data-page="configurator"] .bm-search-input {
+    grid-template-columns: minmax(0, 1fr) 42px;
+  }
+
+  body[data-page="configurator"] .bm-search input,
+  body[data-page="configurator"] .bm-search button {
+    height: var(--touch-target);
+    min-height: var(--touch-target);
+  }
+
+  body[data-page="configurator"] .bm-search button {
+    width: var(--touch-target);
+  }
+
+  body[data-page="configurator"] .lighting-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body[data-page="configurator"] .finish-choice-grid,
+  body[data-page="configurator"] .hardware-choice-grid {
+    grid-template-columns: repeat(5, minmax(62px, 1fr));
+    overflow-x: auto;
+    padding: 3px 1px 8px;
+  }
+
+  body[data-page="configurator"] .style-choice-grid {
+    grid-template-columns: repeat(auto-fit, minmax(74px, 1fr));
+  }
+
+  body[data-page="configurator"] .configurator-shell > .preset-tray {
+    grid-column: 1;
+    grid-row: 4;
+    padding-right: 58px;
+    padding-left: 58px;
+  }
+
+  body[data-page="configurator"] .preset-list {
+    grid-auto-columns: 150px;
+    gap: 9px;
+  }
+
+  body[data-page="configurator"] .preset-card {
+    width: 150px;
+  }
+
+  body[data-page="configurator"] .preset-scroll-prev {
+    left: 7px;
+  }
+
+  body[data-page="configurator"] .preset-scroll-next {
+    right: 7px;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar {
+    position: sticky;
+    bottom: 0;
+    display: grid;
+    min-height: 100px;
+    grid-column: 1;
+    grid-row: 5;
+    grid-template-columns: 145px minmax(0, 1fr);
+    grid-template-rows: 1fr;
+    padding: 8px 12px;
+  }
+
+  body[data-page="configurator"] .configurator-price-block {
+    padding: 0 6px 0 20px;
+  }
+
+  body[data-page="configurator"] .configurator-price-block::before {
+    top: 10px;
+    left: 0;
+  }
+
+  body[data-page="configurator"] .price-kicker {
+    margin-left: 0;
+    font-size: var(--type-small);
+  }
+
+  body[data-page="configurator"] .configurator-price-block strong {
+    font-size: 24px;
+  }
+
+  body[data-page="configurator"] .configurator-quote-note,
+  body[data-page="configurator"] .configurator-estimate-bar .studio-trust-row {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-actions {
+    display: grid;
+    grid-column: 2;
+    grid-row: 1;
+    grid-template-columns: minmax(0, 1fr) 50px;
+    gap: 8px;
+    padding: 0;
+  }
+
+  body[data-page="configurator"] .configurator-quote-button,
+  body[data-page="configurator"] .configurator-save-button {
+    height: 50px;
+    min-height: 50px;
+    padding: 0 12px;
+    font-size: var(--type-button);
+  }
+
+  body[data-page="configurator"] .configurator-save-button {
+    padding: 0;
+  }
+
+  body[data-page="configurator"] .configurator-save-button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}
+
+/* Keep dense builder copy readable without letting any label dominate. */
+body[data-page="configurator"] .panel-title,
+body[data-page="configurator"] .control-label,
+body[data-page="configurator"] .dimension-row label,
+body[data-page="configurator"] .stepper-row label {
+  line-height: 1.3;
+}
+
+body[data-page="configurator"] .choice-label,
+body[data-page="configurator"] .preset-card-label,
+body[data-page="configurator"] .configurator-helper,
+body[data-page="configurator"] .bm-search label {
+  overflow-wrap: normal;
+  word-break: normal;
+  text-wrap: balance;
+}
+
+@media (max-width: 760px) {
+  body[data-page="configurator"] {
+    font-size: var(--type-body);
+    line-height: var(--leading-body);
+  }
+
+  body[data-page="configurator"] input,
+  body[data-page="configurator"] select,
+  body[data-page="configurator"] textarea {
+    font-size: 16px;
+  }
+
+  body[data-page="configurator"] .site-header .brand-main {
+    font-size: var(--type-brand);
+  }
+}
+
+@media (max-width: 390px) {
+  body[data-page="configurator"] .configurator-model {
+    height: 410px;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls button {
+    font-size: var(--type-button);
+  }
+
+  body[data-page="configurator"] .thickness-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body[data-page="configurator"] .lighting-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar {
+    grid-template-columns: 126px minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .configurator-price-block strong {
+    font-size: 21px;
+  }
+}
+
+/* Fluid desktop composition: no screenshot-specific fixed coordinates. */
+@media (min-width: 1281px) {
+  body[data-page="configurator"] .site-header .brand {
+    grid-column: 1;
+  }
+
+  body[data-page="configurator"] .nav-links {
+    position: static !important;
+    inset: auto;
+    grid-column: 2;
+    opacity: 1;
+    pointer-events: auto;
+    visibility: visible;
+    transform: none;
+  }
+
+  body[data-page="configurator"] .header-actions {
+    width: 310px;
+    grid-column: 3;
+  }
+
+  body[data-page="configurator"] .configurator-panel,
+  body[data-page="configurator"] .configurator-model,
+  body[data-page="configurator"] .configurator-shell > .preset-tray,
+  body[data-page="configurator"] .configurator-estimate-bar {
+    position: relative;
+    inset: auto;
+    transform: none;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+  }
+
+  body[data-page="configurator"] .configurator-panel-left,
+  body[data-page="configurator"] .configurator-panel-right {
+    align-self: stretch;
+  }
+
+  body[data-page="configurator"] .configurator-shell > .preset-tray {
+    width: auto;
+    height: auto;
+    margin: 0;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar {
+    width: auto;
+    height: 100%;
+    margin: 0;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar .studio-trust-row {
+    grid-column: auto;
+    grid-row: auto;
+  }
+}
+
+/* Preserve inspection space on shorter desktop displays. */
+@media (min-width: 1281px) and (max-height: 900px) {
+  body[data-page="configurator"] .configurator-shell {
+    grid-template-rows: minmax(0, 1fr) 126px 92px;
+  }
+
+  body[data-page="configurator"] .configurator-shell > .preset-tray {
+    padding-top: 20px;
+    padding-bottom: 8px;
+  }
+
+  body[data-page="configurator"] .preset-list,
+  body[data-page="configurator"] .preset-card {
+    height: 98px;
+  }
+
+  body[data-page="configurator"] .preset-card {
+    grid-template-rows: 67px 18px;
+  }
+
+  body[data-page="configurator"] .preset-mini {
+    height: 67px;
+  }
+
+  body[data-page="configurator"] .preset-scroll-prev,
+  body[data-page="configurator"] .preset-scroll-next {
+    top: 43px;
+  }
+}
+
+/* Canonical SVG product previews and local color-result overlay. */
+body[data-page="configurator"] .preset-mini {
+  display: block;
+  padding: 6px 8px;
+}
+
+body[data-page="configurator"] .preset-mini > svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+body[data-page="configurator"] .preset-mini .mini-part {
+  fill: rgba(224, 213, 197, 0.035);
+  stroke: rgba(232, 220, 202, 0.62);
+  stroke-width: 0.9;
+  vector-effect: non-scaling-stroke;
+}
+
+body[data-page="configurator"] .preset-mini .mini-door,
+body[data-page="configurator"] .preset-mini .mini-drawer-front {
+  fill: rgba(194, 155, 105, 0.09);
+  stroke: rgba(231, 209, 179, 0.7);
+}
+
+body[data-page="configurator"] .preset-mini .mini-crown,
+body[data-page="configurator"] .preset-mini .mini-base,
+body[data-page="configurator"] .preset-mini .mini-trim,
+body[data-page="configurator"] .preset-mini .mini-fixed-shelf {
+  fill: rgba(227, 214, 195, 0.12);
+}
+
+body[data-page="configurator"] .preset-mini .mini-opening {
+  fill: rgba(20, 18, 16, 0.62);
+  stroke: rgba(222, 196, 160, 0.62);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+body[data-page="configurator"] .preset-mini .mini-opening-line {
+  fill: none;
+  stroke: rgba(222, 196, 160, 0.72);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+}
+
+body[data-page="configurator"] .preset-card.is-active .preset-mini .mini-part,
+body[data-page="configurator"] .preset-card.is-active .preset-mini .mini-opening-line {
+  stroke: rgba(235, 194, 139, 0.88);
+}
+
+body[data-page="configurator"] .preset-scroll::before {
+  display: none;
+  content: none;
+}
+
+body[data-page="configurator"] .preset-scroll svg {
+  width: 18px;
+  height: 18px;
+}
+
+body[data-page="configurator"] .preset-scroll:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+body[data-page="configurator"] .bm-search {
+  position: relative;
+  margin-top: 14px;
+  padding: 10px;
+}
+
+body[data-page="configurator"] .bm-search.is-selected {
+  border-color: rgba(218, 168, 102, 0.48);
+  box-shadow: inset 0 0 0 1px rgba(218, 168, 102, 0.05);
+}
+
+body[data-page="configurator"] .bm-search-results {
+  position: absolute;
+  z-index: 30;
+  top: 62px;
+  right: 10px;
+  left: 10px;
+  display: grid;
+  max-height: 164px;
+  overflow-y: auto;
+  border: 1px solid rgba(224, 186, 135, 0.36);
+  border-radius: 8px;
+  background: rgba(31, 27, 23, 0.98);
+  padding: 4px;
+  box-shadow: 0 14px 30px rgba(9, 7, 5, 0.36);
+}
+
+body[data-page="configurator"] .bm-search-results[hidden] {
+  display: none;
+}
+
+body[data-page="configurator"] .bm-search-results > button {
+  display: grid;
+  width: 100%;
+  height: auto;
+  min-height: 42px;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 5px 7px;
+  color: rgba(247, 243, 237, 0.9);
+  text-align: left;
+}
+
+body[data-page="configurator"] .bm-search-results > button:hover,
+body[data-page="configurator"] .bm-search-results > button:focus-visible {
+  background: rgba(218, 168, 102, 0.11);
+}
+
+body[data-page="configurator"] .bm-result-swatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  background: var(--bm-result-color);
+}
+
+body[data-page="configurator"] .bm-search-results > button > span:last-child {
+  display: grid;
+  gap: 1px;
+}
+
+body[data-page="configurator"] .bm-search-results strong,
+body[data-page="configurator"] .bm-search-results small {
+  color: inherit;
+  font-size: var(--type-label);
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+body[data-page="configurator"] .bm-search-results small {
+  color: rgba(247, 243, 237, 0.62);
+  font-size: var(--type-small);
+}
+
+body[data-page="configurator"] .hardware-choice[data-hardware^="matte_black"] .hardware-choice-icon {
+  color: #858582;
+}
+
+body[data-page="configurator"] .hardware-choice[data-hardware="polished_nickel_pull"] .hardware-choice-icon {
+  color: #deddd8;
+}
+
+@media (max-width: 760px) {
+  body[data-page="configurator"] .bm-search-results {
+    top: 74px;
+  }
+}

@@ -6,7 +6,10 @@ export const defaultBookcaseConfig = {
   depth: 15,
   sections: 4,
   shelves: 4,
+  shelfThickness: 1.25,
   lowerCabinets: true,
+  lowerStorage: "doors",
+  drawerCount: 3,
   centerOpening: false,
   deskOpening: false,
   featureOpening: false,
@@ -15,37 +18,68 @@ export const defaultBookcaseConfig = {
   doorCount: 8,
   hardware: "brass_knob",
   lighting: "warm_pucks",
+  lightingWarmth: 2700,
   finish: "white_dove",
   customPaintColor: "",
+  customPaintCode: "",
+  customPaintHex: "",
   crownStyle: "classic_crown",
-  baseStyle: "plinth",
+  baseStyle: "furniture_base",
+  layoutMetadata: { sectionRatios: [1, 1, 1, 1] },
   installation: "professional",
   delivery: "standard"
 };
 
-export const finishOptions = [
+export const recommendedFinishOptions = [
   { value: "white_dove", label: "White Dove OC-17", swatch: "#eee9dc" },
-  { value: "simply_white", label: "Simply White OC-117", swatch: "#f5f0e4" },
   { value: "chantilly_lace", label: "Chantilly Lace OC-65", swatch: "#f7f5ee" },
-  { value: "swiss_coffee", label: "Swiss Coffee OC-45", swatch: "#ebe2d1" },
-  { value: "revere_pewter", label: "Revere Pewter HC-172", swatch: "#b8afa2" },
-  { value: "custom_bm", label: "Custom Color", swatch: "#d3c8b8", custom: true }
+  { value: "simply_white", label: "Simply White OC-117", swatch: "#f5f0e4" },
+  { value: "cloud_white", label: "Cloud White OC-130", swatch: "#eee8dc" },
+  { value: "silver_satin", label: "Silver Satin OC-26", swatch: "#d8d7d2" }
 ];
+
+export const customFinishOption = {
+  value: "custom_bm",
+  label: "Custom Benjamin Moore Color",
+  swatch: "#d3c8b8",
+  custom: true,
+  search: true,
+  library: "Benjamin Moore"
+};
+
+// Keep the established finishOptions API while exposing the five recommended
+// swatches and the library-search choice as distinct metadata exports.
+export const finishOptions = [...recommendedFinishOptions, customFinishOption];
 
 export const hardwareOptions = [
   { value: "brass_knob", label: "Brushed Brass Knob" },
-  { value: "brass_pull", label: "Slim Brass Pull" },
+  { value: "brass_pull", label: "Brass Pull" },
   { value: "matte_black_knob", label: "Matte Black Knob" },
   { value: "matte_black_pull", label: "Matte Black Pull" },
-  { value: "polished_nickel_pull", label: "Polished Nickel Pull" },
-  { value: "push_latch", label: "Push Latch / No Hardware" }
+  { value: "polished_nickel_pull", label: "Polished Nickel Pull" }
 ];
 
 export const lightingOptions = [
-  { value: "no_lighting", label: "No Lighting" },
-  { value: "warm_pucks", label: "Warm Puck Lights" },
-  { value: "vertical_led", label: "Vertical LED Strips" },
-  { value: "shelf_accent", label: "Shelf Accent Lighting" }
+  { value: "no_lighting", label: "No Lights" },
+  { value: "warm_pucks", label: "Top Puck Lights" },
+  { value: "shelf_accent", label: "Shelf LED Strips" },
+  { value: "vertical_led", label: "Side Vertical Lights" },
+  { value: "full_package", label: "Full Lighting Package" }
+];
+
+export const lightingWarmthOptions = [
+  { value: 2700, label: "2700K", description: "Warm White" },
+  { value: 3000, label: "3000K", description: "Soft White" },
+  { value: 3500, label: "3500K", description: "Neutral White" }
+];
+
+export const shelfThicknessOptions = [
+  { value: 0.75, label: '3/4"' },
+  { value: 1, label: '1"' },
+  { value: 1.25, label: '1 1/4"' },
+  { value: 1.5, label: '1 1/2"' },
+  { value: 1.75, label: '1 3/4"' },
+  { value: 2, label: '2"' }
 ];
 
 export const doorStyleOptions = [
@@ -56,16 +90,16 @@ export const doorStyleOptions = [
 ];
 
 export const crownStyleOptions = [
-  { value: "none", label: "None / Square Top" },
-  { value: "slim_cap", label: "Slim Cap" },
+  { value: "none", label: "Flat Top" },
+  { value: "slim_cap", label: "Modern Step Crown" },
   { value: "classic_crown", label: "Classic Crown" },
-  { value: "modern_soffit", label: "Modern Soffit Look" }
+  { value: "modern_soffit", label: "Tall Built-Up Crown" }
 ];
 
 export const baseStyleOptions = [
   { value: "toe_kick", label: "Recessed Toe Kick" },
-  { value: "plinth", label: "Plinth Base" },
-  { value: "furniture_base", label: "Furniture Base" }
+  { value: "plinth", label: "Flush Plinth Base" },
+  { value: "furniture_base", label: "Projected Furniture Base" }
 ];
 
 export const deliveryOptions = [
@@ -79,32 +113,11 @@ export const installationOptions = [
   { value: "professional", label: "Professional Installation" }
 ];
 
-export const layoutPresets = [
-  {
-    id: "classic-open",
-    name: "Classic Open Shelves",
-    description: "Open shelving with clean vertical bays.",
-    config: {
-      layoutType: "classic",
-      width: 96,
-      height: 96,
-      depth: 15,
-      sections: 4,
-      shelves: 4,
-      lowerCabinets: false,
-      centerOpening: false,
-      deskOpening: false,
-      featureOpening: false,
-      tallDoors: false,
-      finish: "white_dove",
-      crownStyle: "slim_cap",
-      baseStyle: "plinth"
-    }
-  },
+const layoutPresetDefinitions = [
   {
     id: "lower-cabinets",
-    name: "Lower Cabinets",
-    description: "Open shelves above closed storage.",
+    name: "Full Bookcase",
+    description: "Open shelving above full-width closed storage.",
     config: {
       layoutType: "lower_cabinets",
       width: 96,
@@ -113,194 +126,164 @@ export const layoutPresets = [
       sections: 4,
       shelves: 4,
       lowerCabinets: true,
+      lowerStorage: "doors",
       centerOpening: false,
       deskOpening: false,
       featureOpening: false,
       tallDoors: false,
       doorStyle: "shaker",
       doorCount: 8,
-      hardware: "brass_knob",
-      lighting: "warm_pucks",
-      finish: "white_dove",
       crownStyle: "classic_crown",
-      baseStyle: "plinth"
+      baseStyle: "furniture_base",
+      layoutMetadata: { sectionRatios: [1, 1, 1, 1] }
     }
   },
   {
-    id: "library-wall",
-    name: "Full Library Wall",
-    description: "Tall wall-to-wall shelving.",
+    id: "classic-open",
+    name: "Open Shelves",
+    description: "A clean full-height shelving wall without doors.",
     config: {
-      layoutType: "library",
-      width: 144,
-      height: 108,
+      layoutType: "classic",
+      width: 96,
+      height: 96,
       depth: 15,
-      sections: 5,
-      shelves: 6,
+      sections: 4,
+      shelves: 5,
       lowerCabinets: false,
       centerOpening: false,
       deskOpening: false,
       featureOpening: false,
       tallDoors: false,
-      finish: "swiss_coffee",
-      crownStyle: "classic_crown",
-      baseStyle: "plinth"
+      crownStyle: "slim_cap",
+      baseStyle: "plinth",
+      layoutMetadata: { sectionRatios: [1, 1, 1, 1] }
     }
   },
   {
     id: "media-wall",
-    name: "Media Wall with TV Opening",
-    description: "Center opening for TV with shelves around.",
+    name: "Media Wall",
+    description: "A broad centered television opening with side shelving.",
     config: {
       layoutType: "media_wall",
       width: 132,
       height: 96,
       depth: 15,
-      sections: 4,
+      sections: 5,
       shelves: 4,
       lowerCabinets: true,
+      lowerStorage: "doors",
       centerOpening: true,
       deskOpening: false,
       featureOpening: false,
       tallDoors: false,
       doorStyle: "flat",
-      doorCount: 8,
-      hardware: "matte_black_pull",
-      lighting: "shelf_accent",
-      finish: "swiss_coffee",
+      doorCount: 10,
       crownStyle: "modern_soffit",
-      baseStyle: "plinth"
+      baseStyle: "plinth",
+      layoutMetadata: { specialSpan: 3, sectionRatios: [0.82, 1, 1, 1, 0.82] }
     }
   },
   {
-    id: "desk-niche",
-    name: "Home Office / Desk Niche",
-    description: "Built-in desk opening with storage.",
+    id: "library-wall",
+    name: "Library Wall",
+    description: "Dense symmetrical shelving with lower closed storage.",
     config: {
-      layoutType: "desk_niche",
+      layoutType: "library",
       width: 120,
-      height: 96,
-      depth: 18,
-      sections: 4,
-      shelves: 4,
+      height: 108,
+      depth: 15,
+      sections: 5,
+      shelves: 6,
       lowerCabinets: true,
+      lowerStorage: "doors",
       centerOpening: false,
-      deskOpening: true,
+      deskOpening: false,
       featureOpening: false,
       tallDoors: false,
       doorStyle: "shaker",
-      doorCount: 8,
-      hardware: "brass_knob",
-      lighting: "warm_pucks",
-      finish: "white_dove",
-      crownStyle: "slim_cap",
-      baseStyle: "plinth"
+      doorCount: 10,
+      crownStyle: "classic_crown",
+      baseStyle: "plinth",
+      layoutMetadata: { sectionRatios: [1, 1, 1, 1, 1] }
     }
   },
   {
     id: "display-wall",
     name: "Display Wall",
-    description: "Balanced shelves for decor and books.",
+    description: "Wider display niches, fewer shelves, and mixed lower storage.",
     config: {
       layoutType: "display_wall",
-      width: 108,
+      width: 102,
       height: 96,
       depth: 15,
       sections: 3,
       shelves: 3,
       lowerCabinets: true,
+      lowerStorage: "doors",
       centerOpening: false,
       deskOpening: false,
       featureOpening: false,
       tallDoors: false,
       doorStyle: "slim_shaker",
       doorCount: 6,
-      hardware: "brass_knob",
-      lighting: "warm_pucks",
-      finish: "simply_white",
+      drawerCount: 3,
       crownStyle: "slim_cap",
-      baseStyle: "furniture_base"
+      baseStyle: "furniture_base",
+      layoutMetadata: { drawerSections: [1], sectionRatios: [1, 1.1, 1] }
     }
   },
   {
     id: "glass-library",
     name: "Glass Door Library",
-    description: "Library style with framed glass doors.",
+    description: "Glass-front upper display cabinets over closed storage.",
     config: {
       layoutType: "glass_library",
       width: 108,
       height: 96,
       depth: 15,
       sections: 4,
-      shelves: 5,
+      shelves: 4,
       lowerCabinets: true,
+      lowerStorage: "doors",
       centerOpening: false,
       deskOpening: false,
       featureOpening: false,
       tallDoors: false,
-      doorStyle: "glass",
+      doorStyle: "shaker",
       doorCount: 8,
-      hardware: "polished_nickel_pull",
-      lighting: "shelf_accent",
-      finish: "chantilly_lace",
       crownStyle: "classic_crown",
-      baseStyle: "plinth"
+      baseStyle: "plinth",
+      layoutMetadata: { sectionRatios: [1, 1, 1, 1] }
     }
   },
   {
-    id: "asymmetric-modern",
-    name: "Modern Asymmetrical Shelves",
-    description: "Modern display layout with varied openings.",
+    id: "desk-niche",
+    name: "Desk Center",
+    description: "An integrated central worktop with shelving and side storage.",
     config: {
-      layoutType: "asymmetric",
+      layoutType: "desk_niche",
       width: 120,
       height: 96,
-      depth: 15,
-      sections: 4,
+      depth: 18,
+      sections: 5,
       shelves: 4,
       lowerCabinets: true,
+      lowerStorage: "doors",
       centerOpening: false,
-      deskOpening: false,
+      deskOpening: true,
       featureOpening: false,
       tallDoors: false,
-      doorStyle: "flat",
-      doorCount: 8,
-      hardware: "push_latch",
-      lighting: "no_lighting",
-      finish: "revere_pewter",
-      crownStyle: "none",
-      baseStyle: "toe_kick"
-    }
-  },
-  {
-    id: "tall-storage",
-    name: "Tall Storage + Open Shelves",
-    description: "Tall closed storage mixed with open shelves.",
-    config: {
-      layoutType: "tall_storage",
-      width: 132,
-      height: 96,
-      depth: 16,
-      sections: 4,
-      shelves: 4,
-      lowerCabinets: true,
-      centerOpening: false,
-      deskOpening: false,
-      featureOpening: false,
-      tallDoors: true,
       doorStyle: "shaker",
-      doorCount: 6,
-      hardware: "brass_pull",
-      lighting: "vertical_led",
-      finish: "swiss_coffee",
-      crownStyle: "classic_crown",
-      baseStyle: "plinth"
+      doorCount: 4,
+      crownStyle: "slim_cap",
+      baseStyle: "plinth",
+      layoutMetadata: { specialSpan: 3, sectionRatios: [0.86, 1, 1, 1, 0.86] }
     }
   },
   {
     id: "feature-wall",
-    name: "Fireplace / Feature Wall",
-    description: "Shelving around a framed feature opening.",
+    name: "Fireplace Surround",
+    description: "A centered fireplace opening framed by side bookcases.",
     config: {
       layoutType: "feature_wall",
       width: 132,
@@ -309,25 +292,84 @@ export const layoutPresets = [
       sections: 5,
       shelves: 4,
       lowerCabinets: true,
+      lowerStorage: "doors",
       centerOpening: false,
       deskOpening: false,
       featureOpening: true,
       tallDoors: false,
       doorStyle: "shaker",
-      doorCount: 8,
-      hardware: "brass_knob",
-      lighting: "warm_pucks",
-      finish: "swiss_coffee",
+      doorCount: 4,
       crownStyle: "classic_crown",
-      baseStyle: "plinth"
+      baseStyle: "plinth",
+      layoutMetadata: { specialSpan: 3, sectionRatios: [0.82, 1, 1, 1, 0.82] }
+    }
+  },
+  {
+    id: "asymmetric-modern",
+    name: "Asymmetrical Modern",
+    description: "Varied bay widths and shelf heights with mixed lower storage.",
+    config: {
+      layoutType: "asymmetric",
+      width: 114,
+      height: 96,
+      depth: 15,
+      sections: 4,
+      shelves: 4,
+      lowerCabinets: true,
+      lowerStorage: "doors",
+      centerOpening: false,
+      deskOpening: false,
+      featureOpening: false,
+      tallDoors: false,
+      doorStyle: "flat",
+      doorCount: 8,
+      drawerCount: 3,
+      crownStyle: "none",
+      baseStyle: "toe_kick",
+      layoutMetadata: { drawerSections: [1, 3], sectionRatios: [0.72, 1.28, 0.9, 1.1] }
+    }
+  },
+  {
+    id: "tall-storage",
+    name: "Tall Storage + Shelves",
+    description: "Tall closed end towers with central open shelving.",
+    config: {
+      layoutType: "tall_storage",
+      width: 132,
+      height: 96,
+      depth: 16,
+      sections: 4,
+      shelves: 4,
+      lowerCabinets: true,
+      lowerStorage: "doors",
+      centerOpening: false,
+      deskOpening: false,
+      featureOpening: false,
+      tallDoors: true,
+      doorStyle: "shaker",
+      doorCount: 6,
+      crownStyle: "classic_crown",
+      baseStyle: "plinth",
+      layoutMetadata: { sectionRatios: [0.9, 1.1, 1.1, 0.9] }
     }
   }
 ];
+
+export const layoutPresets = layoutPresetDefinitions.map((preset) => ({
+  ...preset,
+  config: normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    ...preset.config,
+    layoutPreset: preset.id
+  })
+}));
 
 export const optionLabels = {
   finish: mapLabels(finishOptions),
   hardware: mapLabels(hardwareOptions),
   lighting: mapLabels(lightingOptions),
+  lightingWarmth: mapLabels(lightingWarmthOptions),
+  shelfThickness: mapLabels(shelfThicknessOptions),
   doorStyle: mapLabels(doorStyleOptions),
   crownStyle: mapLabels(crownStyleOptions),
   baseStyle: mapLabels(baseStyleOptions),
@@ -340,11 +382,11 @@ export function inchesToUnits(value) {
 }
 
 export function normalizeBookcaseConfig(config = {}) {
-  const merged = normalizeLegacyConfigValues({ ...defaultBookcaseConfig, ...config });
+  const merged = { ...defaultBookcaseConfig, ...normalizeLegacyConfigValues(config) };
   const sections = clampInt(merged.sections, 1, 6);
   const width = clampInt(merged.width, 24, 144);
   const doorOptions = getDoorCountOptions(width, sections);
-  const requestedDoorCount = clampInt(merged.doorCount ?? merged.doors, 2, 8);
+  const requestedDoorCount = clampInt(merged.doorCount ?? merged.doors, 2, 12);
   const doorCount = doorOptions.includes(requestedDoorCount) ? requestedDoorCount : doorOptions[doorOptions.length - 1];
 
   return {
@@ -355,7 +397,14 @@ export function normalizeBookcaseConfig(config = {}) {
     depth: clampInt(merged.depth, 10, 24),
     sections,
     shelves: clampInt(merged.shelves, 2, 8),
+    shelfThickness: normalizeNumericOption(
+      merged.shelfThickness ?? merged.shelf_thickness,
+      shelfThicknessOptions,
+      defaultBookcaseConfig.shelfThickness
+    ),
     lowerCabinets: merged.lowerCabinets !== false && merged.lowerCabinets !== "false",
+    lowerStorage: merged.lowerStorage === "drawers" ? "drawers" : "doors",
+    drawerCount: clampInt(merged.drawerCount, 2, 5),
     centerOpening: merged.centerOpening === true || merged.centerOpening === "true",
     deskOpening: merged.deskOpening === true || merged.deskOpening === "true",
     featureOpening: merged.featureOpening === true || merged.featureOpening === "true",
@@ -364,10 +413,18 @@ export function normalizeBookcaseConfig(config = {}) {
     doorCount,
     hardware: normalizeOption(merged.hardware, hardwareOptions, defaultBookcaseConfig.hardware),
     lighting: normalizeOption(merged.lighting, lightingOptions, defaultBookcaseConfig.lighting),
+    lightingWarmth: normalizeNumericOption(
+      merged.lightingWarmth ?? merged.warmth,
+      lightingWarmthOptions,
+      defaultBookcaseConfig.lightingWarmth
+    ),
     finish: normalizeOption(merged.finish, finishOptions, defaultBookcaseConfig.finish),
     customPaintColor: typeof merged.customPaintColor === "string" ? merged.customPaintColor.trim().slice(0, 80) : "",
+    customPaintCode: typeof merged.customPaintCode === "string" ? merged.customPaintCode.trim().slice(0, 20) : "",
+    customPaintHex: normalizeHexColor(merged.customPaintHex),
     crownStyle: normalizeOption(merged.crownStyle, crownStyleOptions, defaultBookcaseConfig.crownStyle),
     baseStyle: normalizeOption(merged.baseStyle, baseStyleOptions, defaultBookcaseConfig.baseStyle),
+    layoutMetadata: normalizeLayoutMetadata(merged.layoutMetadata, sections),
     installation: normalizeOption(merged.installation, installationOptions, defaultBookcaseConfig.installation),
     delivery: normalizeOption(merged.delivery, deliveryOptions, defaultBookcaseConfig.delivery)
   };
@@ -375,13 +432,21 @@ export function normalizeBookcaseConfig(config = {}) {
 
 function normalizeLegacyConfigValues(config) {
   const next = { ...config };
+  if (next.shelfThickness == null && next.shelf_thickness != null) next.shelfThickness = next.shelf_thickness;
+  if (next.lightingWarmth == null && next.warmth != null) next.lightingWarmth = next.warmth;
   if (next.hardware === "polished_nickel_knob") next.hardware = "polished_nickel_pull";
+  if (next.hardware === "push_latch") next.hardware = "matte_black_pull";
   if (next.lighting === "shelf_wash") next.lighting = "shelf_accent";
+  if (next.lighting === "top_puck_lights") next.lighting = "warm_pucks";
+  if (next.lighting === "shelf_led_strips") next.lighting = "shelf_accent";
+  if (next.lighting === "side_vertical_lights") next.lighting = "vertical_led";
+  if (next.lighting === "full_lighting_package") next.lighting = "full_package";
   if (next.finish === "alabaster") next.finish = "white_dove";
-  if (next.finish === "warm_white" || next.finish === "warm-white") next.finish = "swiss_coffee";
-  if (next.finish === "soft_black" || next.finish === "black" || next.finish === "natural_oak" || next.finish === "natural-oak" || next.finish === "walnut") {
-    next.finish = "revere_pewter";
+  if (next.finish === "warm_white" || next.finish === "warm-white" || next.finish === "swiss_coffee") next.finish = "cloud_white";
+  if (next.finish === "revere_pewter" || next.finish === "soft_black" || next.finish === "black" || next.finish === "natural_oak" || next.finish === "natural-oak" || next.finish === "walnut") {
+    next.finish = "silver_satin";
   }
+  if (next.baseStyle === "projected" || next.baseStyle === "projected_base" || next.baseStyle === "projected_furniture_base") next.baseStyle = "furniture_base";
   return next;
 }
 
@@ -390,13 +455,13 @@ export function getDoorCountOptions(width, sections) {
   const numericSections = Number(sections) || defaultBookcaseConfig.sections;
 
   if (numericWidth < 72 || numericSections <= 1) return [2];
-  if (numericSections <= 2) return [2, 4];
-  if (numericSections === 3) return [2, 4, 6];
-  return [2, 4, 6, 8];
+  const maximum = Math.min(12, Math.max(2, numericSections * 2));
+  return Array.from({ length: maximum / 2 }, (_, index) => (index + 1) * 2);
 }
 
 export function createDesignId(config, price) {
-  const source = JSON.stringify(normalizeBookcaseConfig(config)) + price;
+  const { layoutPreset: _layoutPreset, ...canonicalConfig } = normalizeBookcaseConfig(config);
+  const source = JSON.stringify(canonicalConfig) + price;
   let hash = 0;
   for (let index = 0; index < source.length; index += 1) {
     hash = ((hash << 5) - hash + source.charCodeAt(index)) | 0;
@@ -413,6 +478,52 @@ function mapLabels(options) {
 
 function normalizeOption(value, options, fallback) {
   return options.some((option) => option.value === value) ? value : fallback;
+}
+
+function normalizeNumericOption(value, options, fallback) {
+  const numericValue = parseNumericOption(value);
+  const match = options.find((option) => Math.abs(option.value - numericValue) < Number.EPSILON * 10);
+  return match ? match.value : fallback;
+}
+
+function normalizeLayoutMetadata(value, sections) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const metadata = {};
+  if (Number.isInteger(Number(value.specialSpan))) {
+    metadata.specialSpan = Math.min(sections, Math.max(1, Number(value.specialSpan)));
+  }
+  if (Array.isArray(value.sectionRatios)) {
+    const ratios = value.sectionRatios.slice(0, sections).map(Number);
+    if (ratios.length === sections && ratios.every((ratio) => Number.isFinite(ratio) && ratio > 0)) {
+      metadata.sectionRatios = ratios;
+    }
+  }
+  if (Array.isArray(value.drawerSections)) {
+    metadata.drawerSections = [...new Set(value.drawerSections.map(Number))]
+      .filter((index) => Number.isInteger(index) && index >= 0 && index < sections);
+  }
+  if (Array.isArray(value.sectionTypes)) {
+    metadata.sectionTypes = value.sectionTypes.slice(0, sections).map((type) => String(type));
+  }
+  return metadata;
+}
+
+function normalizeHexColor(value) {
+  const match = String(value || "").trim().match(/^#?([0-9a-f]{6})$/i);
+  return match ? `#${match[1].toLowerCase()}` : "";
+}
+
+function parseNumericOption(value) {
+  if (typeof value === "number") return value;
+  const normalized = String(value ?? "").trim().replace(/["k]/gi, "");
+  const mixedFraction = normalized.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+  if (mixedFraction) {
+    const [, whole, numerator, denominator] = mixedFraction;
+    return Number(whole) + Number(numerator) / Number(denominator);
+  }
+  const fraction = normalized.match(/^(\d+)\/(\d+)$/);
+  if (fraction) return Number(fraction[1]) / Number(fraction[2]);
+  return Number(normalized);
 }
 
 function clampInt(value, min, max) {

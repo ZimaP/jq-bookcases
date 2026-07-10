@@ -4,3 +4,7 @@ build
 .env
 .env.local
 .DS_Store
+
+# Local browser and visual QA artifacts
+qa/
+qa-*.png
