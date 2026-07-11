@@ -174,8 +174,12 @@ function patchConfigurator() {
 
   source = replaceOnce(
     source,
-    "    const price = calculateBookcasePrice(this.state);\n",
-    "    const price = this.pricing?.total ?? calculateBookcasePrice(this.state, this.layout);\n",
+`  updatePriceAndSummary() {
+    const price = calculateBookcasePrice(this.state);
+`,
+`  updatePriceAndSummary() {
+    const price = this.pricing?.total ?? calculateBookcasePrice(this.state, this.layout);
+`,
     "accepted summary price"
   );
 
