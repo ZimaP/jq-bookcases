@@ -1,4 +1,4 @@
-# JQ Bookcases Parametric Configurator Architecture
+# John Quinn Bookcases Parametric Configurator Architecture
 
 ## Purpose
 

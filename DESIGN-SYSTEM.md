@@ -1,11 +1,11 @@
-# JQ Bookcases Design System
+# John Quinn Bookcases Design System
 
 This file records the public brand vocabulary and shared interface scales used by the website and 3D configuration application. The source of truth for implementation tokens is `styles.css`.
 
 ## Official naming
 
-- Brand: **JQ Bookcases**
-- Brand lockup descriptor: **Built-Ins & Millwork**
+- Brand: **John Quinn Bookcases**
+- Brand lockup: **John Quinn** / **Bookcases · Built-Ins & Millwork**
 - Product: **3D Bookcase Configurator**
 - Primary design action: **Design Your Bookcase**
 - Quote action and page: **Request a Quote**

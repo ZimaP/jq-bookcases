@@ -1,4 +1,4 @@
-import { mountIcons, setIcon } from "./icon-system.js?v=site-system-20260711b";
+import { mountIcons, setIcon } from "./icon-system.js?v=site-system-20260711c";
 
 const navItems = [
   { label: "How It Works", href: "how-it-works.html", page: "how" },
@@ -10,14 +10,14 @@ const navItems = [
 
 const designBuilderHref = "configurator.html";
 const officialBrand = Object.freeze({
-  name: "JQ BOOKCASES",
-  descriptor: "BUILT-INS & MILLWORK",
+  name: "JOHN QUINN",
+  descriptor: "BOOKCASES · BUILT-INS & MILLWORK",
   product: "3D Bookcase Configurator"
 });
 
-function renderBrandLink(className = "brand") {
+function renderBrandLink(modifierClass = "brand--header") {
   return `
-    <a class="${className}" href="index.html" aria-label="JQ Bookcases home">
+    <a class="brand ${modifierClass}" href="index.html" aria-label="John Quinn Bookcases home">
       <span class="brand-main">${officialBrand.name}</span>
       <span class="brand-sub">${officialBrand.descriptor}</span>
     </a>
@@ -159,7 +159,7 @@ function injectFooter() {
         </div>
       </div>
       <div class="footer-bottom">
-        <span>&copy; 2026 JQ Bookcases. All rights reserved.</span>
+        <span>&copy; 2026 John Quinn Bookcases. All rights reserved.</span>
         <span class="footer-bottom-links">
           <a href="privacy.html">Privacy Policy</a>
           <a href="terms.html">Terms of Service</a>
@@ -223,7 +223,7 @@ function renderReferenceFooter(page) {
         ${materialsTrust}
       </div>
       <div class="ref-footer-bottom">
-        <span>&copy; 2024 JQ Bookcases. All rights reserved.</span>
+        <span>&copy; 2026 John Quinn Bookcases. All rights reserved.</span>
         <span><a href="privacy.html">Privacy Policy</a><i aria-hidden="true"></i><a href="terms.html">Terms of Service</a></span>
       </div>
     </footer>

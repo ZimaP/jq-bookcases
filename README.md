@@ -1,6 +1,6 @@
-# JQ Bookcases
+# John Quinn Bookcases
 
-Premium static website and parametric 3D configurator for JQ Bookcases -- Built-Ins & Millwork.
+Premium static website and parametric 3D configurator for John Quinn Bookcases -- Built-Ins & Millwork.
 
 ## Pages
 

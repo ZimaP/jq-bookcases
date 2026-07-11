@@ -1,4 +1,4 @@
-# JQ Bookcases Site Architecture
+# John Quinn Bookcases Site Architecture
 
 ## Canonical journeys
 

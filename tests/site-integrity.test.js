@@ -338,19 +338,20 @@ test("public sources contain no retired routes, newsletter UI, or fake backend c
   }
 });
 
-test("public branding and product vocabulary use the canonical JQ Bookcases names", () => {
+test("public branding and product vocabulary use the canonical John Quinn Bookcases names", () => {
   const publicSource = [...pageSource.values(), siteSource, configuratorSource].join("\n");
 
   for (const [file, html] of pageSource) {
     const title = normalizedText(html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] || "");
-    assert.match(title, /JQ Bookcases/, file + " title must use the canonical brand name");
+    assert.match(title, /John Quinn Bookcases/, file + " title must use the canonical brand name");
   }
 
   assert.match(pageSource.get("configurator.html"), /3D Bookcase Configurator/);
-  assert.match(siteSource, /JQ BOOKCASES/);
-  assert.match(siteSource, /BUILT-INS & MILLWORK/);
+  assert.match(siteSource, /JOHN QUINN/);
+  assert.match(siteSource, /BOOKCASES · BUILT-INS & MILLWORK/);
 
   const retiredVocabulary = [
+    [/\bJQ Bookcases\b/i, "JQ Bookcases"],
     [/\bJQ Woodworking\b/i, "JQ Woodworking"],
     [/\bBookcase Builder\b/i, "Bookcase Builder"],
     [/\bBookcase Specifier\b/i, "Bookcase Specifier"],

@@ -1,5 +1,5 @@
 /**
- * JQ Bookcases custom icon system.
+ * John Quinn Bookcases custom icon system.
  *
  * Registries contain SVG child markup only. Rendering stays deterministic and
  * DOM-free; the two mounting helpers are the only functions that touch a DOM
@@ -99,7 +99,7 @@ const safeLength = /^(?:0|[1-9]\d*)(?:\.\d+)?(?:px|em|rem|%|vw|vh)?$/;
 
 function warn(message) {
   if (typeof console !== "undefined" && typeof console.warn === "function") {
-    console.warn(`[JQ Bookcases icons] ${message}`);
+    console.warn(`[John Quinn Bookcases icons] ${message}`);
   }
 }
 

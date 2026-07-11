@@ -1,5 +1,5 @@
 import * as THREE from "./assets/vendor/three.module.js";
-import { diagramSvg, iconSvg } from "./icon-system.js?v=site-system-20260711b";
+import { diagramSvg, iconSvg } from "./icon-system.js?v=site-system-20260711c";
 import {
   baseStyleOptions,
   createDesignId,
@@ -1024,7 +1024,7 @@ class BookcaseConfigurator {
     const activePreset = this.host.querySelector("[data-active-preset]");
     const presetDescription = this.host.querySelector("[data-preset-description]");
     if (activePreset) activePreset.textContent = currentPreset?.name || "Custom layout";
-    if (presetDescription) presetDescription.textContent = currentPreset?.description || "Customized from a JQ Bookcases layout.";
+    if (presetDescription) presetDescription.textContent = currentPreset?.description || "Customized from a John Quinn Bookcases layout.";
     this.host.querySelectorAll("[data-preset-id]").forEach((button) => {
       const isActive = button.dataset.presetId === currentPreset?.id;
       button.classList.toggle("is-active", isActive);

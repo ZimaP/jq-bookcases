@@ -151,16 +151,17 @@ body[data-page="materials"] .ref-site-footer {
 }
 
 .ref-footer-brand {
+  width: 164px;
   gap: 4px;
 }
 
 .ref-footer-brand .brand-main {
-  font-size: 22px;
+  font-size: 18px;
   transform: none;
 }
 
 .ref-footer-brand .brand-sub {
-  font-size: 8px;
+  font-size: 5.7px;
 }
 
 .ref-footer-brand-column > p,

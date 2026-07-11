@@ -98,55 +98,17 @@ body[data-page="configurator"] .navbar {
 }
 
 body[data-page="configurator"] .site-header .brand {
-  display: grid;
-  width: 228px;
-  gap: 6px;
-  align-content: center;
-  justify-items: start;
+  width: var(--brand-header-width);
   color: var(--cfg-ivory);
 }
 
 body[data-page="configurator"] .site-header .brand-main {
   color: #f7f3ed;
-  font-family: var(--serif);
-  font-size: var(--type-brand);
-  font-weight: 400;
-  letter-spacing: 0.012em;
-  line-height: 0.95;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.32);
 }
 
 body[data-page="configurator"] .site-header .brand-sub {
-  position: relative;
-  display: block;
-  border: 0;
-  margin: 0;
-  padding: 0;
   color: rgba(244, 239, 232, 0.86);
-  font-family: var(--serif);
-  font-size: var(--type-logo-tagline);
-  font-weight: 500;
-  letter-spacing: 0.245em;
-  line-height: 1;
-}
-
-body[data-page="configurator"] .site-header .brand-sub::before,
-body[data-page="configurator"] .site-header .brand-sub::after {
-  position: absolute;
-  top: 50%;
-  width: 22px;
-  height: 1px;
-  background: rgba(207, 161, 99, 0.72);
-  display: none;
-  content: "";
-}
-
-body[data-page="configurator"] .site-header .brand-sub::before {
-  right: calc(100% + 9px);
-}
-
-body[data-page="configurator"] .site-header .brand-sub::after {
-  left: calc(100% + 7px);
 }
 
 body[data-page="configurator"] .nav-links {
@@ -1998,10 +1960,6 @@ body[data-page="configurator"] .configurator-shell > .status-message.is-visible 
     padding: 0 20px 0 24px;
   }
 
-  body[data-page="configurator"] .site-header .brand-main {
-    font-size: var(--type-brand);
-  }
-
   body[data-page="configurator"] .nav-links {
     gap: 19px;
   }
@@ -2176,12 +2134,8 @@ body[data-page="configurator"] .configurator-shell > .status-message.is-visible 
   }
 
   body[data-page="configurator"] .site-header .brand {
-    width: auto;
+    width: var(--brand-header-width);
     justify-items: start;
-  }
-
-  body[data-page="configurator"] .site-header .brand-main {
-    font-size: var(--type-brand);
   }
 
   body[data-page="configurator"] .site-header .brand-sub::before,
@@ -2502,9 +2456,6 @@ body[data-page="configurator"] .bm-search label {
     font-size: 16px;
   }
 
-  body[data-page="configurator"] .site-header .brand-main {
-    font-size: var(--type-brand);
-  }
 }
 
 @media (max-width: 390px) {

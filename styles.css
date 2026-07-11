@@ -1,5 +1,5 @@
 /*
- * JQ Bookcases shared visual system
+ * John Quinn Bookcases shared visual system
  * --------------------------------
  * One semantic, warm-taupe system for marketing pages, interior pages,
  * forms, shared navigation, and responsive marketing content.
@@ -99,6 +99,9 @@
   --type-small: 0.75rem;
   --type-brand: clamp(1.25rem, 1.65vw, 1.82rem);
   --type-logo-tagline: 0.625rem;
+  --brand-header-width: clamp(118px, 8.6vw, 132px);
+  --brand-header-name: clamp(15px, 1.08vw, 16.5px);
+  --brand-header-tagline: clamp(5px, 0.38vw, 5.8px);
   --leading-heading: 1.16;
   --leading-body: 1.58;
   --leading-ui: 1.3;
@@ -362,37 +365,38 @@ p {
   padding: 0 clamp(22px, 2.1vw, 32px);
 }
 
-.brand,
-.footer-brand {
+.brand {
   display: grid;
   align-content: center;
   justify-items: start;
-  width: clamp(165px, 14.32vw, 220px);
+  width: var(--brand-header-width);
   min-width: 0;
   color: var(--color-text);
 }
 
-.brand {
-  gap: 11px;
-  transform: translateY(5px);
+.brand--header {
+  gap: 4px;
+  transform: none;
 }
 
 .footer-brand {
+  width: clamp(148px, 12vw, 176px);
   gap: 5px;
 }
 
 .footer-brand .brand-main {
+  font-size: clamp(18px, 1.48vw, 22px);
   transform: none;
 }
 
 .brand-main {
   color: var(--color-text);
   font-family: var(--serif);
-  font-size: clamp(22px, 1.89vw, 29px);
+  font-size: var(--brand-header-name);
   font-weight: 400;
-  letter-spacing: 0.012em;
-  line-height: 0.95;
-  transform: scaleY(1.18);
+  letter-spacing: 0.055em;
+  line-height: 1;
+  transform: scaleY(1.05);
   transform-origin: center;
   white-space: nowrap;
 }
@@ -404,11 +408,15 @@ p {
   gap: 9px;
   color: rgba(248, 242, 234, 0.72);
   font-family: var(--serif);
-  font-size: clamp(7px, 0.59vw, 9px);
+  font-size: var(--brand-header-tagline);
   font-weight: 600;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.11em;
   line-height: 1.12;
   white-space: nowrap;
+}
+
+.footer-brand .brand-sub {
+  font-size: 6.5px;
 }
 
 .brand-sub::before,
