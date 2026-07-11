@@ -22,12 +22,39 @@ function monitorRuntime(page) {
   return errors;
 }
 
+async function settleFrames(page, count = 3) {
+  await page.evaluate(async (frameCount) => {
+    for (let index = 0; index < frameCount; index += 1) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+  }, count);
+}
+
+async function readRenderDiagnostics(viewer) {
+  return viewer.evaluate((element) => ({
+    valid: element.dataset.renderValid,
+    components: Number(element.dataset.renderComponents || 0),
+    expected: Number(element.dataset.renderExpected || 0),
+    geometries: Number(element.dataset.webglGeometries || 0),
+    textures: Number(element.dataset.webglTextures || 0),
+    calls: Number(element.dataset.webglCalls || 0),
+    triangles: Number(element.dataset.webglTriangles || 0)
+  }));
+}
+
 async function openVerifiedConfigurator(page) {
   await page.goto("/configurator.html", { waitUntil: "networkidle" });
   const viewer = page.locator("[data-3d-viewer]");
   await expect(viewer).toBeVisible();
   await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
   await expect(viewer.locator("canvas")).toHaveCount(1);
+  await settleFrames(page);
+  const diagnostics = await readRenderDiagnostics(viewer);
+  expect(diagnostics.components).toBeGreaterThan(0);
+  expect(diagnostics.components).toBe(diagnostics.expected);
+  expect(diagnostics.geometries).toBeGreaterThan(0);
+  expect(diagnostics.calls).toBeGreaterThan(0);
+  expect(diagnostics.triangles).toBeGreaterThan(0);
   return viewer;
 }
 
@@ -52,6 +79,13 @@ test("all ten commercial presets render through the descriptor contract", async 
     await expect(card).toHaveAttribute("aria-pressed", "true");
     await expect(viewer).toHaveAttribute("data-render-valid", "true");
     await expect(viewer.locator("canvas")).toHaveCount(1);
+    await settleFrames(page);
+    const diagnostics = await readRenderDiagnostics(viewer);
+    expect(diagnostics.components).toBe(diagnostics.expected);
+    await viewer.screenshot({
+      path: `test-results/preset-gallery/${presetId}.png`,
+      animations: "disabled"
+    });
   }
 
   expect(errors).toEqual([]);
@@ -68,6 +102,7 @@ test("an invalid candidate rolls controls and price back while preserving the ve
   await expect(width).toHaveValue("144");
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
   const acceptedPrice = await price.textContent();
+  const acceptedDiagnostics = await readRenderDiagnostics(viewer);
 
   await sections.fill("1");
   await expect(sections).toHaveValue("4");
@@ -75,6 +110,10 @@ test("an invalid candidate rolls controls and price back while preserving the ve
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
   await expect(page.locator("[data-builder-status]")).toContainText(/shelf span/i);
   await expect(viewer.locator("canvas")).toHaveCount(1);
+  await settleFrames(page);
+  const rejectedDiagnostics = await readRenderDiagnostics(viewer);
+  expect(rejectedDiagnostics.components).toBe(acceptedDiagnostics.components);
+  expect(rejectedDiagnostics.expected).toBe(acceptedDiagnostics.expected);
   expect(errors).toEqual([]);
 });
 
@@ -111,11 +150,12 @@ test("saved schema-v4 design is canonical, reloadable, and quote-ready", async (
   expect(errors).toEqual([]);
 });
 
-test("rapid preset cycling leaves one canvas and a verified final model", async ({ page }) => {
+test("rapid preset cycling is leak-bounded and leaves one verified model", async ({ page }) => {
   const errors = monitorRuntime(page);
   const viewer = await openVerifiedConfigurator(page);
+  const baseline = await readRenderDiagnostics(viewer);
 
-  for (let cycle = 0; cycle < 3; cycle += 1) {
+  for (let cycle = 0; cycle < 10; cycle += 1) {
     for (const presetId of presetIds) {
       await page.locator(`[data-preset-id="${presetId}"]`).click();
     }
@@ -126,6 +166,13 @@ test("rapid preset cycling leaves one canvas and a verified final model", async 
   await expect(page.locator('[data-preset-id="lower-cabinets"]')).toHaveAttribute("aria-pressed", "true");
   await expect(viewer.locator("canvas")).toHaveCount(1);
   await expect(page.locator("[data-bookcase-builder] canvas")).toHaveCount(1);
+  await settleFrames(page, 6);
+
+  const final = await readRenderDiagnostics(viewer);
+  expect(final.components).toBe(final.expected);
+  expect(final.components).toBe(baseline.components);
+  expect(final.geometries).toBeLessThanOrEqual(baseline.geometries + 2);
+  expect(final.textures).toBeLessThanOrEqual(baseline.textures + 2);
   expect(errors).toEqual([]);
 });
 
@@ -139,5 +186,11 @@ test("mobile viewport keeps controls usable and the accepted model valid", async
   await page.locator('[data-preset-id="classic-open"]').click();
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
   await expect(page.locator('[data-preset-id="classic-open"]')).toHaveAttribute("aria-pressed", "true");
+  await settleFrames(page);
+  await page.screenshot({
+    path: "test-results/preset-gallery/mobile-classic-open.png",
+    fullPage: true,
+    animations: "disabled"
+  });
   expect(errors).toEqual([]);
 });
