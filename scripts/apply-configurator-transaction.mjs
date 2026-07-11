@@ -99,7 +99,7 @@ function patchConfigurator() {
       ...retainedSelections,
       layoutPreset: preset.id
     });
-    this.showStatus(\`${preset.name} preset applied. You can keep customizing from here.\`);
+    this.showStatus(\`\${preset.name} preset applied. You can keep customizing from here.\`);
 `,
 `    const applied = this.update({
       ...this.state,
@@ -107,7 +107,7 @@ function patchConfigurator() {
       ...retainedSelections,
       layoutPreset: preset.id
     });
-    if (applied) this.showStatus(\`${preset.name} preset applied. You can keep customizing from here.\`);
+    if (applied) this.showStatus(\`\${preset.name} preset applied. You can keep customizing from here.\`);
 `,
     "preset transaction result"
   );
