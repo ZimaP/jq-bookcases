@@ -8,3 +8,5 @@ build
 # Local browser and visual QA artifacts
 qa/
 qa-*.png
+playwright-report/
+test-results/
