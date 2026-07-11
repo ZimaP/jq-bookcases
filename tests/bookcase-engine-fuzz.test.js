@@ -19,7 +19,8 @@ import {
   validateBookcaseLayout
 } from "../bookcase-layout.js";
 
-const clone = (value) => JSON.parse(JSON.stringify(value));
+const clone = (value) => structuredClone(value);
+const jsonRoundTrip = (value) => JSON.parse(JSON.stringify(value));
 const values = (options) => options.map((option) => option.value);
 const PHYSICAL_ROLES = new Set([
   "base",
@@ -150,7 +151,7 @@ function assertDescriptorGraph(layout, context) {
     `${context}: generated drawer metric`
   );
 
-  const restored = clone(layout);
+  const restored = jsonRoundTrip(layout);
   const restoredValidation = validateBookcaseLayout(restored);
   assert.equal(restoredValidation.valid, true, `${context}: JSON round-trip ${JSON.stringify(restoredValidation.errors)}`);
   assert.deepEqual(restored.components, layout.components, `${context}: JSON round-trip changed components`);
