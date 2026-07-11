@@ -10,7 +10,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: engine-quality-${{ github.ref }}
@@ -46,3 +46,43 @@ jobs:
 
       - name: Run complete test suite
         run: npm test
+
+  apply-transaction:
+    name: Apply atomic configurator integration
+    if: github.event_name == 'pull_request' && github.head_ref == 'engine-hardening-supervisor'
+    needs: node-engine
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out pull-request branch
+        uses: actions/checkout@v4
+        with:
+          ref: engine-hardening-supervisor
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Apply deterministic source patch
+        run: node scripts/apply-configurator-transaction.mjs
+
+      - name: Verify patched application
+        run: |
+          npm run build
+          npm test
+          git diff --check
+
+      - name: Commit patched source
+        run: |
+          if git diff --quiet; then
+            echo "No source changes were produced."
+            exit 0
+          fi
+          git config user.name "JQ Engine Supervisor"
+          git config user.email "actions@users.noreply.github.com"
+          git add configurator-3d.js site.js bookcase-bom.js
+          git commit -m "Make configurator updates atomic and persistence versioned"
+          git push origin HEAD:engine-hardening-supervisor
