@@ -6,8 +6,9 @@ import {
   calculateBookcasePriceBreakdown
 } from "./bookcase-pricing.js?v=engine-hardening-20260711a";
 
-export const ENGINE_VERSION = "2026.07-hardening-v1";
+export const ENGINE_VERSION = "2026.07-hardening-v2";
 export const DESIGN_SCHEMA_VERSION = 4;
+export const DESIGN_SELECTION_FINGERPRINT_VERSION = 1;
 
 /**
  * Evaluate a customer change without mutating the currently accepted design.
@@ -72,6 +73,34 @@ export function evaluateBookcaseCandidate(input = {}, options = {}) {
 }
 
 /**
+ * Fingerprint accepted selections that are intentionally outside the physical
+ * descriptor graph. Physical geometry/hardware/lighting is already covered by
+ * layoutFingerprint; this key covers finish and fulfillment selections.
+ */
+export function createDesignSelectionFingerprint(config = {}) {
+  const state = normalizeBookcaseConfig(config);
+  const finish = state.finish === "custom_bm"
+    ? {
+        finish: state.finish,
+        customPaintColor: state.customPaintColor,
+        customPaintCode: state.customPaintCode,
+        customPaintHex: state.customPaintHex
+      }
+    : { finish: state.finish };
+  const source = stableStringify({
+    fingerprintVersion: DESIGN_SELECTION_FINGERPRINT_VERSION,
+    finish,
+    installation: state.installation,
+    delivery: state.delivery
+  });
+  return `jq-selection-v${DESIGN_SELECTION_FINGERPRINT_VERSION}-${hashString(source)
+    .toString(36)
+    .toUpperCase()
+    .padStart(7, "0")
+    .slice(-7)}`;
+}
+
+/**
  * Build the only payload that should be persisted or forwarded to quoting.
  */
 export function createAcceptedDesignSnapshot(evaluation, options = {}) {
@@ -80,10 +109,12 @@ export function createAcceptedDesignSnapshot(evaluation, options = {}) {
   }
 
   const savedAt = options.savedAt || new Date().toISOString();
+  const selectionFingerprint = createDesignSelectionFingerprint(evaluation.state);
   const id = options.id || createAcceptedDesignId(
     evaluation.layoutFingerprint,
     evaluation.pricing.total,
-    evaluation.pricing.pricingVersion
+    evaluation.pricing.pricingVersion,
+    selectionFingerprint
   );
 
   return {
@@ -93,6 +124,7 @@ export function createAcceptedDesignSnapshot(evaluation, options = {}) {
     id,
     canonicalConfig: evaluation.state,
     layoutFingerprint: evaluation.layoutFingerprint,
+    selectionFingerprint,
     bom: evaluation.bom,
     priceBreakdown: serializePriceBreakdown(evaluation.pricing),
     total: evaluation.pricing.total,
@@ -100,14 +132,19 @@ export function createAcceptedDesignSnapshot(evaluation, options = {}) {
   };
 }
 
-export function createAcceptedDesignId(layoutFingerprint, total, pricingVersion = PRICING_VERSION) {
-  const source = `${layoutFingerprint}|${pricingVersion}|${Number(total) || 0}`;
-  let hash = 2166136261;
-  for (let index = 0; index < source.length; index += 1) {
-    hash ^= source.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return `JQ-${(hash >>> 0).toString(36).toUpperCase().padStart(7, "0").slice(-7)}`;
+export function createAcceptedDesignId(
+  layoutFingerprint,
+  total,
+  pricingVersion = PRICING_VERSION,
+  selectionFingerprint = ""
+) {
+  const source = [
+    layoutFingerprint,
+    pricingVersion,
+    Number(total) || 0,
+    selectionFingerprint
+  ].join("|");
+  return `JQ-${hashString(source).toString(36).toUpperCase().padStart(7, "0").slice(-7)}`;
 }
 
 /**
@@ -135,18 +172,66 @@ export function restoreAcceptedDesignSnapshot(payload) {
   const expectedFingerprint = typeof payload.layoutFingerprint === "string"
     ? payload.layoutFingerprint
     : null;
-  const compatible = !expectedFingerprint || expectedFingerprint === evaluation.layoutFingerprint;
-  const errors = compatible ? [] : [{
-    code: "LAYOUT_FINGERPRINT_MISMATCH",
-    severity: "error",
-    message: "The saved design was created by an incompatible geometry result and must be reviewed."
-  }];
+  if (expectedFingerprint && expectedFingerprint !== evaluation.layoutFingerprint) {
+    return {
+      ...evaluation,
+      accepted: false,
+      compatible: false,
+      errors: [{
+        code: "LAYOUT_FINGERPRINT_MISMATCH",
+        severity: "error",
+        message: "The saved design was created by an incompatible geometry result and must be reviewed."
+      }]
+    };
+  }
+
+  const selectionFingerprint = createDesignSelectionFingerprint(evaluation.state);
+  const expectedSelectionFingerprint = typeof payload.selectionFingerprint === "string"
+    ? payload.selectionFingerprint
+    : null;
+  if (expectedSelectionFingerprint && expectedSelectionFingerprint !== selectionFingerprint) {
+    return {
+      ...evaluation,
+      accepted: false,
+      compatible: false,
+      selectionFingerprint,
+      errors: [{
+        code: "SELECTION_FINGERPRINT_MISMATCH",
+        severity: "error",
+        message: "The saved finish or fulfillment selections no longer match the regenerated design."
+      }]
+    };
+  }
+
+  const regeneratedId = createAcceptedDesignId(
+    evaluation.layoutFingerprint,
+    evaluation.pricing.total,
+    evaluation.pricing.pricingVersion,
+    selectionFingerprint
+  );
+  if (
+    expectedSelectionFingerprint &&
+    typeof payload.id === "string" &&
+    payload.id !== regeneratedId
+  ) {
+    return {
+      ...evaluation,
+      accepted: false,
+      compatible: false,
+      selectionFingerprint,
+      errors: [{
+        code: "DESIGN_ID_MISMATCH",
+        severity: "error",
+        message: "The saved design ID does not match its regenerated accepted artifacts."
+      }]
+    };
+  }
 
   return {
     ...evaluation,
-    accepted: evaluation.accepted && compatible,
-    compatible,
-    errors
+    compatible: true,
+    selectionFingerprint,
+    errors: []
   };
 }
 
@@ -179,6 +264,29 @@ function serializePriceBreakdown(pricing) {
     roundingIncrement: pricing.roundingIncrement,
     total: pricing.total
   };
+}
+
+function stableStringify(value) {
+  return JSON.stringify(sortValue(value));
+}
+
+function sortValue(value) {
+  if (Array.isArray(value)) return value.map((item) => sortValue(item));
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.keys(value)
+      .sort()
+      .map((key) => [key, sortValue(value[key])])
+  );
+}
+
+function hashString(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
 
 // Exported for tests and migration diagnostics.
