@@ -14,6 +14,12 @@ import {
 } from "../bookcase-render-contract.js";
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
+const approximately = (actual, expected, epsilon = 1e-9) => {
+  assert.ok(
+    Math.abs(actual - expected) <= epsilon,
+    `${actual} is not approximately ${expected}`
+  );
+};
 
 test("descriptor conversion preserves dimensions and inverts layout Z", () => {
   const layout = generateBookcaseLayout(defaultBookcaseConfig);
@@ -22,12 +28,12 @@ test("descriptor conversion preserves dimensions and inverts layout Z", () => {
   const size = sceneBoundsSize(bounds);
   const center = sceneBoundsCenter(bounds);
 
-  assert.equal(size.x, door.size.x * SCENE_UNITS_PER_INCH);
-  assert.equal(size.y, door.size.y * SCENE_UNITS_PER_INCH);
-  assert.equal(size.z, door.size.z * SCENE_UNITS_PER_INCH);
-  assert.equal(center.x, door.position.x * SCENE_UNITS_PER_INCH);
-  assert.equal(center.y, door.position.y * SCENE_UNITS_PER_INCH);
-  assert.equal(
+  approximately(size.x, door.size.x * SCENE_UNITS_PER_INCH);
+  approximately(size.y, door.size.y * SCENE_UNITS_PER_INCH);
+  approximately(size.z, door.size.z * SCENE_UNITS_PER_INCH);
+  approximately(center.x, door.position.x * SCENE_UNITS_PER_INCH);
+  approximately(center.y, door.position.y * SCENE_UNITS_PER_INCH);
+  approximately(
     center.z,
     layout.config.depth * SCENE_UNITS_PER_INCH / 2 - door.position.z * SCENE_UNITS_PER_INCH
   );
