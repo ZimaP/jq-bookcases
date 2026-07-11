@@ -1170,7 +1170,9 @@ class BookcaseViewer3D {
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(this.root);
     this.resize();
-    this.update(this.state);
+    if (!this.update(this.state)) {
+      throw new Error("The initial 3D model failed the descriptor render contract.");
+    }
     this.animate();
   }
 
@@ -1360,6 +1362,8 @@ class BookcaseViewer3D {
     this.model = nextModel;
     this.scene.add(this.model);
     this.root.dataset.renderValid = "true";
+    this.root.dataset.renderComponents = String(this.lastRenderAudit.renderedCount || 0);
+    this.root.dataset.renderExpected = String(this.lastRenderAudit.expectedCount || 0);
     return true;
   }
 
@@ -1375,6 +1379,12 @@ class BookcaseViewer3D {
 
   animate() {
     this.renderer.render(this.scene, this.camera);
+    const memory = this.renderer.info.memory;
+    const render = this.renderer.info.render;
+    this.root.dataset.webglGeometries = String(memory.geometries || 0);
+    this.root.dataset.webglTextures = String(memory.textures || 0);
+    this.root.dataset.webglCalls = String(render.calls || 0);
+    this.root.dataset.webglTriangles = String(render.triangles || 0);
     window.requestAnimationFrame(() => this.animate());
   }
 }
