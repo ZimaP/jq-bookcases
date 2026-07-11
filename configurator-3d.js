@@ -1,7 +1,6 @@
 import * as THREE from "./assets/vendor/three.module.js";
 import {
   baseStyleOptions,
-  createDesignId,
   crownStyleOptions,
   defaultBookcaseConfig,
   deliveryOptions,
@@ -20,6 +19,11 @@ import {
 } from "./bookcase-config.js?v=site-system-20260710a";
 import { generateBookcaseLayout } from "./bookcase-layout.js?v=site-system-20260710a";
 import { calculateBookcasePrice, formatPrice } from "./bookcase-pricing.js?v=site-system-20260710a";
+import {
+  createAcceptedDesignSnapshot,
+  evaluateBookcaseCandidate,
+  restoreAcceptedDesignSnapshot
+} from "./bookcase-engine.js?v=engine-hardening-20260711a";
 import {
   findExactBenjaminMooreColor,
   searchBenjaminMooreColors
@@ -106,7 +110,16 @@ class BookcaseConfigurator {
   constructor(host, index) {
     this.host = host;
     this.id = `jq-builder-${index + 1}`;
-    this.state = normalizeBookcaseConfig(this.loadInitialConfig());
+    const initialEvaluation = evaluateBookcaseCandidate(this.loadInitialConfig());
+    const acceptedInitial = initialEvaluation.accepted
+      ? initialEvaluation
+      : evaluateBookcaseCandidate(defaultBookcaseConfig);
+    if (!acceptedInitial.accepted) throw new Error("The default bookcase configuration must be valid.");
+    this.acceptedEvaluation = acceptedInitial;
+    this.state = acceptedInitial.state;
+    this.layout = acceptedInitial.layout;
+    this.bom = acceptedInitial.bom;
+    this.pricing = acceptedInitial.pricing;
     this.activeView = "three-quarter";
     this.doorOptionKey = "";
     this.activeRangeDrag = null;
@@ -114,7 +127,7 @@ class BookcaseConfigurator {
     this.cacheElements();
     this.viewer = this.createViewer();
     this.bindEvents();
-    this.update(this.state);
+    this.update(this.state, { silent: true });
   }
 
   loadInitialConfig() {
@@ -129,9 +142,9 @@ class BookcaseConfigurator {
     }
     try {
       const stored = JSON.parse(localStorage.getItem("jqBookcasesDesign") || "null");
-      if (!stored || ![2, 3].includes(Number(stored.schemaVersion))) return defaultBookcaseConfig;
-      const candidate = normalizeBookcaseConfig(stored.config || stored.state || {});
-      return generateBookcaseLayout(candidate).validation.valid ? candidate : defaultBookcaseConfig;
+      if (!stored || ![2, 3, 4].includes(Number(stored.schemaVersion))) return defaultBookcaseConfig;
+      const restored = restoreAcceptedDesignSnapshot(stored);
+      return restored.accepted ? restored.state : defaultBookcaseConfig;
     } catch (error) {
       return defaultBookcaseConfig;
     }
@@ -196,7 +209,7 @@ class BookcaseConfigurator {
         <section class="configurator-estimate-bar" aria-label="Estimate and next steps">
           <div class="configurator-price-block">
             <span class="price-kicker">Estimated Price</span>
-            <strong data-price>${formatPrice(calculateBookcasePrice(this.state))}</strong>
+            <strong data-price>${formatPrice(this.pricing?.total ?? calculateBookcasePrice(this.state, this.layout))}</strong>
           </div>
           <p class="configurator-quote-note">Final quote after<br>field verification.</p>
           ${this.renderTrustRow()}
@@ -763,13 +776,13 @@ class BookcaseConfigurator {
       delivery: this.state.delivery,
       installation: this.state.installation
     };
-    this.update({
+    const applied = this.update({
       ...this.state,
       ...preset.config,
       ...retainedSelections,
       layoutPreset: preset.id
     });
-    this.showStatus(`${preset.name} preset applied. You can keep customizing from here.`);
+    if (applied) this.showStatus(`${preset.name} preset applied. You can keep customizing from here.`);
   }
 
   scrollPresetTray(direction) {
@@ -919,22 +932,41 @@ class BookcaseConfigurator {
     return normalizeBookcaseConfig(next);
   }
 
-  update(nextState) {
-    const normalizedState = normalizeBookcaseConfig(nextState);
-    this.layout = generateBookcaseLayout(normalizedState);
-    this.state = normalizeBookcaseConfig({ ...normalizedState, ...this.layout.config });
-    this.state.layoutPreset = this.findMatchingPresetId(this.state);
+  update(nextState, options = {}) {
+    const evaluation = evaluateBookcaseCandidate(nextState);
+    if (!evaluation.accepted) {
+      this.syncControls();
+      const errorMessage = evaluation.errors[0]?.message || "This configuration is not structurally valid.";
+      this.showStatus(errorMessage, true);
+      return false;
+    }
+
+    const layoutPreset = this.findMatchingPresetId(evaluation.state);
+    const state = normalizeBookcaseConfig({ ...evaluation.state, layoutPreset });
+    const committedEvaluation = {
+      ...evaluation,
+      state,
+      pricing: { ...evaluation.pricing, state }
+    };
+
+    this.acceptedEvaluation = committedEvaluation;
+    this.state = state;
+    this.layout = evaluation.layout;
+    this.bom = evaluation.bom;
+    this.pricing = committedEvaluation.pricing;
     this.renderDoorOptions();
     this.syncControls();
     this.syncLowerDependentControls();
     this.syncPresetCards();
     this.updatePriceAndSummary();
     this.viewer.update(this.state, this.layout);
-    if (!this.layout.validation.valid) {
-      this.showStatus(this.layout.validation.errors[0]?.message || "This configuration is not structurally valid.", true);
-    } else if (this.layout.corrections.length) {
-      this.showStatus(this.layout.corrections.map((correction) => correction.message || correction).join(" "));
+
+    if (!options.silent && evaluation.corrections.length) {
+      this.showStatus(evaluation.corrections.map((correction) => correction.message || correction).join(" "));
+    } else if (!options.silent) {
+      this.clearStatus();
     }
+    return true;
   }
 
   renderDoorOptions() {
@@ -1040,7 +1072,7 @@ class BookcaseConfigurator {
   }
 
   updatePriceAndSummary() {
-    const price = calculateBookcasePrice(this.state);
+    const price = this.pricing?.total ?? calculateBookcasePrice(this.state, this.layout);
     const currentPreset = layoutPresets.find((preset) => preset.id === this.state.layoutPreset);
     this.elements.price.textContent = formatPrice(price);
     this.setOptionalText("[data-summary-preset]", currentPreset?.name || "Custom");
@@ -1062,15 +1094,7 @@ class BookcaseConfigurator {
   }
 
   saveCurrentDesign() {
-    const price = calculateBookcasePrice(this.state);
-    const id = createDesignId(this.state, price);
-    const design = {
-      schemaVersion: 3,
-      id,
-      price,
-      config: this.state,
-      savedAt: new Date().toISOString()
-    };
+    const design = createAcceptedDesignSnapshot(this.acceptedEvaluation);
     let persisted = false;
     try {
       localStorage.setItem("jqBookcasesDesign", JSON.stringify(design));
@@ -1084,6 +1108,12 @@ class BookcaseConfigurator {
   openQuotePage() {
     const design = this.saveCurrentDesign();
     window.location.assign(`request-quote.html?design=${encodeURIComponent(design.id)}`);
+  }
+
+  clearStatus() {
+    window.clearTimeout(this.statusTimer);
+    this.elements.status.textContent = "";
+    this.elements.status.classList.remove("is-visible");
   }
 
   showStatus(message, persistent = false) {

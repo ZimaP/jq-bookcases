@@ -28,7 +28,6 @@ export function createLayoutFingerprint(layout) {
     fingerprintVersion: LAYOUT_FINGERPRINT_VERSION,
     schemaVersion: layout.schemaVersion,
     coordinateSystem: layout.coordinateSystem,
-    config: layout.config,
     components: layout.components.map((component) => ({
       id: component.id,
       role: component.role,
