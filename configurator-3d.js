@@ -1,7 +1,6 @@
 import * as THREE from "./assets/vendor/three.module.js";
 import {
   baseStyleOptions,
-  createDesignId,
   crownStyleOptions,
   defaultBookcaseConfig,
   deliveryOptions,
@@ -20,6 +19,15 @@ import {
 } from "./bookcase-config.js?v=site-system-20260710a";
 import { generateBookcaseLayout } from "./bookcase-layout.js?v=site-system-20260710a";
 import { calculateBookcasePrice, formatPrice } from "./bookcase-pricing.js?v=site-system-20260710a";
+import {
+  createAcceptedDesignSnapshot,
+  evaluateBookcaseCandidate,
+  restoreAcceptedDesignSnapshot
+} from "./bookcase-engine.js?v=engine-hardening-20260711a";
+import {
+  createExpectedRenderManifest,
+  validateRenderedManifest
+} from "./bookcase-render-contract.js?v=engine-hardening-20260711a";
 import {
   findExactBenjaminMooreColor,
   searchBenjaminMooreColors
@@ -106,7 +114,16 @@ class BookcaseConfigurator {
   constructor(host, index) {
     this.host = host;
     this.id = `jq-builder-${index + 1}`;
-    this.state = normalizeBookcaseConfig(this.loadInitialConfig());
+    const initialEvaluation = evaluateBookcaseCandidate(this.loadInitialConfig());
+    const acceptedInitial = initialEvaluation.accepted
+      ? initialEvaluation
+      : evaluateBookcaseCandidate(defaultBookcaseConfig);
+    if (!acceptedInitial.accepted) throw new Error("The default bookcase configuration must be valid.");
+    this.acceptedEvaluation = acceptedInitial;
+    this.state = acceptedInitial.state;
+    this.layout = acceptedInitial.layout;
+    this.bom = acceptedInitial.bom;
+    this.pricing = acceptedInitial.pricing;
     this.activeView = "three-quarter";
     this.doorOptionKey = "";
     this.activeRangeDrag = null;
@@ -114,7 +131,7 @@ class BookcaseConfigurator {
     this.cacheElements();
     this.viewer = this.createViewer();
     this.bindEvents();
-    this.update(this.state);
+    this.update(this.state, { silent: true });
   }
 
   loadInitialConfig() {
@@ -129,9 +146,9 @@ class BookcaseConfigurator {
     }
     try {
       const stored = JSON.parse(localStorage.getItem("jqBookcasesDesign") || "null");
-      if (!stored || ![2, 3].includes(Number(stored.schemaVersion))) return defaultBookcaseConfig;
-      const candidate = normalizeBookcaseConfig(stored.config || stored.state || {});
-      return generateBookcaseLayout(candidate).validation.valid ? candidate : defaultBookcaseConfig;
+      if (!stored || ![2, 3, 4].includes(Number(stored.schemaVersion))) return defaultBookcaseConfig;
+      const restored = restoreAcceptedDesignSnapshot(stored);
+      return restored.accepted ? restored.state : defaultBookcaseConfig;
     } catch (error) {
       return defaultBookcaseConfig;
     }
@@ -154,8 +171,9 @@ class BookcaseConfigurator {
       </div>
     `;
     return {
-      update: () => {},
-      setView: () => {}
+      update: () => true,
+      setView: () => {},
+      lastRenderAudit: { valid: true, issues: [] }
     };
   }
 
@@ -196,7 +214,7 @@ class BookcaseConfigurator {
         <section class="configurator-estimate-bar" aria-label="Estimate and next steps">
           <div class="configurator-price-block">
             <span class="price-kicker">Estimated Price</span>
-            <strong data-price>${formatPrice(calculateBookcasePrice(this.state))}</strong>
+            <strong data-price>${formatPrice(this.pricing?.total ?? calculateBookcasePrice(this.state, this.layout))}</strong>
           </div>
           <p class="configurator-quote-note">Final quote after<br>field verification.</p>
           ${this.renderTrustRow()}
@@ -763,13 +781,13 @@ class BookcaseConfigurator {
       delivery: this.state.delivery,
       installation: this.state.installation
     };
-    this.update({
+    const applied = this.update({
       ...this.state,
       ...preset.config,
       ...retainedSelections,
       layoutPreset: preset.id
     });
-    this.showStatus(`${preset.name} preset applied. You can keep customizing from here.`);
+    if (applied) this.showStatus(`${preset.name} preset applied. You can keep customizing from here.`);
   }
 
   scrollPresetTray(direction) {
@@ -919,22 +937,49 @@ class BookcaseConfigurator {
     return normalizeBookcaseConfig(next);
   }
 
-  update(nextState) {
-    const normalizedState = normalizeBookcaseConfig(nextState);
-    this.layout = generateBookcaseLayout(normalizedState);
-    this.state = normalizeBookcaseConfig({ ...normalizedState, ...this.layout.config });
-    this.state.layoutPreset = this.findMatchingPresetId(this.state);
+  update(nextState, options = {}) {
+    const evaluation = evaluateBookcaseCandidate(nextState);
+    if (!evaluation.accepted) {
+      this.syncControls();
+      const errorMessage = evaluation.errors[0]?.message || "This configuration is not structurally valid.";
+      this.showStatus(errorMessage, true);
+      return false;
+    }
+
+    const layoutPreset = this.findMatchingPresetId(evaluation.state);
+    const state = normalizeBookcaseConfig({ ...evaluation.state, layoutPreset });
+    const committedEvaluation = {
+      ...evaluation,
+      state,
+      pricing: { ...evaluation.pricing, state }
+    };
+
+    const rendered = this.viewer.update(state, evaluation.layout);
+    if (rendered === false) {
+      this.syncControls();
+      const renderMessage = this.viewer.lastRenderAudit?.issues?.[0]?.message ||
+        "The 3D renderer rejected this configuration and kept the last verified model.";
+      this.showStatus(renderMessage, true);
+      return false;
+    }
+
+    this.acceptedEvaluation = committedEvaluation;
+    this.state = state;
+    this.layout = evaluation.layout;
+    this.bom = evaluation.bom;
+    this.pricing = committedEvaluation.pricing;
     this.renderDoorOptions();
     this.syncControls();
     this.syncLowerDependentControls();
     this.syncPresetCards();
     this.updatePriceAndSummary();
-    this.viewer.update(this.state, this.layout);
-    if (!this.layout.validation.valid) {
-      this.showStatus(this.layout.validation.errors[0]?.message || "This configuration is not structurally valid.", true);
-    } else if (this.layout.corrections.length) {
-      this.showStatus(this.layout.corrections.map((correction) => correction.message || correction).join(" "));
+
+    if (!options.silent && evaluation.corrections.length) {
+      this.showStatus(evaluation.corrections.map((correction) => correction.message || correction).join(" "));
+    } else if (!options.silent) {
+      this.clearStatus();
     }
+    return true;
   }
 
   renderDoorOptions() {
@@ -1040,7 +1085,7 @@ class BookcaseConfigurator {
   }
 
   updatePriceAndSummary() {
-    const price = calculateBookcasePrice(this.state);
+    const price = this.pricing?.total ?? calculateBookcasePrice(this.state, this.layout);
     const currentPreset = layoutPresets.find((preset) => preset.id === this.state.layoutPreset);
     this.elements.price.textContent = formatPrice(price);
     this.setOptionalText("[data-summary-preset]", currentPreset?.name || "Custom");
@@ -1062,15 +1107,7 @@ class BookcaseConfigurator {
   }
 
   saveCurrentDesign() {
-    const price = calculateBookcasePrice(this.state);
-    const id = createDesignId(this.state, price);
-    const design = {
-      schemaVersion: 3,
-      id,
-      price,
-      config: this.state,
-      savedAt: new Date().toISOString()
-    };
+    const design = createAcceptedDesignSnapshot(this.acceptedEvaluation);
     let persisted = false;
     try {
       localStorage.setItem("jqBookcasesDesign", JSON.stringify(design));
@@ -1084,6 +1121,12 @@ class BookcaseConfigurator {
   openQuotePage() {
     const design = this.saveCurrentDesign();
     window.location.assign(`request-quote.html?design=${encodeURIComponent(design.id)}`);
+  }
+
+  clearStatus() {
+    window.clearTimeout(this.statusTimer);
+    this.elements.status.textContent = "";
+    this.elements.status.classList.remove("is-visible");
   }
 
   showStatus(message, persistent = false) {
@@ -1127,7 +1170,9 @@ class BookcaseViewer3D {
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(this.root);
     this.resize();
-    this.update(this.state);
+    if (!this.update(this.state)) {
+      throw new Error("The initial 3D model failed the descriptor render contract.");
+    }
     this.animate();
   }
 
@@ -1269,9 +1314,12 @@ class BookcaseViewer3D {
   }
 
   update(nextState, precomputedLayout = null) {
-    this.state = normalizeBookcaseConfig(nextState);
-    this.rebuildModel(precomputedLayout);
+    const candidateState = normalizeBookcaseConfig(nextState);
+    const rebuilt = this.rebuildModel(candidateState, precomputedLayout);
+    if (!rebuilt) return false;
+    this.state = candidateState;
     this.frameModel(true);
+    return true;
   }
 
   frameModel(preserveZoom = true) {
@@ -1295,17 +1343,28 @@ class BookcaseViewer3D {
     this.updateCamera();
   }
 
-  rebuildModel(precomputedLayout = null) {
-    const nextModel = buildBookcaseModel(this.state, precomputedLayout);
+  rebuildModel(nextState, precomputedLayout = null) {
+    const nextModel = buildBookcaseModel(nextState, precomputedLayout);
     this.lastLayout = nextModel.userData.layout;
-    if (!this.lastLayout.validation.valid) {
+    this.lastRenderAudit = nextModel.userData.renderAudit;
+    const layoutValid = Boolean(this.lastLayout?.validation?.valid);
+    const renderValid = Boolean(this.lastRenderAudit?.valid);
+    if (!layoutValid || !renderValid) {
+      this.root.dataset.renderValid = "false";
+      if (this.lastRenderAudit?.issues?.length) {
+        console.error("JQ Bookcases render contract rejected a model", this.lastRenderAudit.issues);
+      }
       disposeObject(nextModel);
-      return;
+      return false;
     }
     this.scene.remove(this.model);
     disposeObject(this.model);
     this.model = nextModel;
     this.scene.add(this.model);
+    this.root.dataset.renderValid = "true";
+    this.root.dataset.renderComponents = String(this.lastRenderAudit.renderedCount || 0);
+    this.root.dataset.renderExpected = String(this.lastRenderAudit.expectedCount || 0);
+    return true;
   }
 
   updateCamera() {
@@ -1320,6 +1379,12 @@ class BookcaseViewer3D {
 
   animate() {
     this.renderer.render(this.scene, this.camera);
+    const memory = this.renderer.info.memory;
+    const render = this.renderer.info.render;
+    this.root.dataset.webglGeometries = String(memory.geometries || 0);
+    this.root.dataset.webglTextures = String(memory.textures || 0);
+    this.root.dataset.webglCalls = String(render.calls || 0);
+    this.root.dataset.webglTriangles = String(render.triangles || 0);
     window.requestAnimationFrame(() => this.animate());
   }
 }
@@ -1336,7 +1401,9 @@ function buildBookcaseModel(state, precomputedLayout = null) {
   group.userData = {
     edgeLine: materials.edgeLine,
     layout,
-    pointLightCount: 0
+    pointLightCount: 0,
+    renderRecords: [],
+    renderAudit: { valid: false, issues: [] }
   };
 
   const depth = inchesToUnits(layout.config.depth);
@@ -1369,16 +1436,30 @@ function buildBookcaseModel(state, precomputedLayout = null) {
     parentGroup.add(componentGroup);
   });
 
-  layout.components.forEach((component, index) => {
+  layout.components.forEach((component) => {
     if (logicalRoles.has(component.role)) return;
     const componentGroup = componentGroups.get(component.id) || group;
-    renderLayoutComponent(componentGroup, group, component, config, materials, depth, index);
+    renderLayoutComponent(componentGroup, group, component, config, materials, depth);
   });
+
+  if (layout.validation?.valid) {
+    group.updateMatrixWorld(true);
+    const renderRecords = collectRenderedComponentRecords(layout, componentGroups);
+    group.userData.renderRecords = renderRecords;
+    group.userData.renderAudit = validateRenderedManifest(layout, renderRecords);
+  } else {
+    group.userData.renderAudit = {
+      valid: false,
+      expectedCount: 0,
+      renderedCount: 0,
+      issues: layout.validation?.errors || []
+    };
+  }
 
   return group;
 }
 
-function renderLayoutComponent(componentGroup, rootGroup, component, config, materials, bookcaseDepth, index) {
+function renderLayoutComponent(componentGroup, rootGroup, component, config, materials, bookcaseDepth) {
   const size = [
     inchesToUnits(component.size.x),
     inchesToUnits(component.size.y),
@@ -1395,52 +1476,167 @@ function renderLayoutComponent(componentGroup, rootGroup, component, config, mat
     renderLayoutOpening(componentGroup, component, materials, size, position, bookcaseDepth);
     return;
   }
-
   if (component.role === "door" || component.role === "drawer_front") {
-    const doorConfig = component.role === "drawer_front"
-      ? { ...config, doorStyle: "flat" }
-      : { ...config, doorStyle: component.metadata?.style || config.doorStyle };
-    addDoor(componentGroup, doorConfig, materials, size, position, {
-      openingSide: component.metadata?.hingeSide || component.metadata?.openingSide
-    });
+    renderDescriptorDoor(componentGroup, component, config, materials, size, position);
     return;
   }
-
   if (component.role === "handle") {
-    addLayoutHandle(componentGroup, component, config, materials, size, position);
+    renderDescriptorHandle(componentGroup, component, config, materials, size, position);
     return;
   }
-
   if (component.role === "light") {
-    addLayoutLight(componentGroup, rootGroup, component, materials, size, position);
+    renderDescriptorLight(componentGroup, rootGroup, component, materials, size, position);
     return;
   }
-
-  if (component.role === "shelf") {
-    addShelf(componentGroup, materials, size, position, bookcaseDepth);
-    return;
-  }
-
-  if (component.role === "base") {
-    renderLayoutBase(componentGroup, component, config, materials, size, position);
-    return;
-  }
-
-  if (component.role === "crown") {
-    renderLayoutCrown(componentGroup, component, config, materials, bookcaseDepth);
-    return;
-  }
-
-  if (component.role === "trim" && component.metadata?.style === config.baseStyle) return;
 
   const material = getLayoutMaterial(component, materials);
-  addBox(componentGroup, size, position, material, !["trim", "crown", "base"].includes(component.role));
+  const showEdges = !["trim", "crown", "base"].includes(component.role);
+  addBox(componentGroup, size, position, material, showEdges);
 }
 
 function getLayoutMaterial(component, materials) {
   if (component.role === "back_panel") return materials.back;
   if (component.metadata?.purpose === "recess") return materials.shadow;
   return materials.case;
+}
+
+function renderDescriptorDoor(group, component, config, materials, size, position) {
+  const [width, height, depth] = size;
+  const [x, y, z] = position;
+  const style = component.role === "drawer_front"
+    ? "flat"
+    : component.metadata?.style || config.doorStyle;
+
+  if (style === "flat") {
+    addBox(group, size, position, materials.case);
+    return;
+  }
+
+  const rail = clamp(
+    style === "slim_shaker" ? Math.min(width, height) * 0.065 : Math.min(width, height) * 0.095,
+    Math.min(width, height) * 0.04,
+    Math.min(width, height) * 0.22
+  );
+  const backingDepth = depth * 0.46;
+  const faceDepth = depth - backingDepth;
+  const backZ = z - depth / 2 + backingDepth / 2;
+  const faceZ = z + depth / 2 - faceDepth / 2;
+  const centerWidth = Math.max(width - rail * 2, width * 0.25);
+  const centerHeight = Math.max(height - rail * 2, height * 0.25);
+
+  addBox(
+    group,
+    [width, height, backingDepth],
+    [x, y, backZ],
+    style === "glass" ? materials.glass : materials.inset,
+    false
+  );
+  addBox(group, [width, rail, faceDepth], [x, y + height / 2 - rail / 2, faceZ], materials.case, false);
+  addBox(group, [width, rail, faceDepth], [x, y - height / 2 + rail / 2, faceZ], materials.case, false);
+  addBox(group, [rail, centerHeight, faceDepth], [x - width / 2 + rail / 2, y, faceZ], materials.case, false);
+  addBox(group, [rail, centerHeight, faceDepth], [x + width / 2 - rail / 2, y, faceZ], materials.case, false);
+
+  if (style !== "glass") {
+    const panelDepth = Math.min(faceDepth * 0.48, depth * 0.28);
+    addBox(
+      group,
+      [centerWidth, centerHeight, panelDepth],
+      [x, y, z + depth / 2 - faceDepth + panelDepth / 2],
+      materials.inset,
+      false
+    );
+  }
+}
+
+function renderDescriptorHandle(group, component, config, materials, size, position) {
+  const hardwareType = component.metadata?.hardware || config.hardware;
+  if (hardwareType === "push_latch") return;
+  const orientation = component.metadata?.orientation || (size[0] > size[1] ? "horizontal" : "vertical");
+  const isPull = hardwareType.endsWith("_pull");
+
+  if (isPull) {
+    const horizontal = orientation === "horizontal";
+    const length = (horizontal ? size[0] : size[1]) * 0.72;
+    const crossA = horizontal ? size[1] : size[0];
+    const radius = Math.max(0.003, Math.min(crossA, size[2]) * 0.24);
+    const pull = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length, 18), materials.hardware);
+    if (horizontal) pull.rotation.z = Math.PI / 2;
+    pull.position.set(...position);
+    pull.castShadow = true;
+    group.add(pull);
+    return;
+  }
+
+  const radius = Math.max(0.004, Math.min(size[0], size[1], size[2]) * 0.38);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(radius, 20, 16), materials.hardware);
+  knob.position.set(...position);
+  knob.castShadow = true;
+  group.add(knob);
+}
+
+function renderDescriptorLight(group, rootGroup, component, materials, size, position) {
+  const type = component.metadata?.lightType || "puck";
+  if (type === "puck") {
+    const radius = Math.max(0.003, Math.min(size[0], size[2]) * 0.45);
+    const puck = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, size[1] * 0.8, 20), materials.puckLight);
+    puck.position.set(...position);
+    puck.castShadow = false;
+    group.add(puck);
+  } else {
+    addBox(
+      group,
+      [size[0] * 0.88, size[1] * 0.88, size[2] * 0.88],
+      position,
+      materials.ledStrip,
+      false
+    );
+  }
+
+  if (rootGroup.userData.pointLightCount >= 18) return;
+  const temperature = Number(component.metadata?.warmth) || 2700;
+  const color = getLightingTemperatureColor(temperature);
+  const glow = new THREE.PointLight(color, type === "puck" ? 0.4 : 0.11, type === "puck" ? 2.2 : 1.5);
+  glow.position.set(position[0], position[1] - (type === "vertical_led" ? 0 : 0.09), position[2] + 0.045);
+  group.add(glow);
+  rootGroup.userData.pointLightCount += 1;
+}
+
+function collectRenderedComponentRecords(layout, componentGroups) {
+  const expected = createExpectedRenderManifest(layout);
+  const records = [];
+  for (const descriptor of expected) {
+    const componentGroup = componentGroups.get(descriptor.componentId);
+    const record = componentGroup ? collectOwnedMeshRecord(componentGroup, descriptor.componentId) : null;
+    if (record) records.push(record);
+  }
+  return records;
+}
+
+function collectOwnedMeshRecord(componentGroup, componentId) {
+  const bounds = new THREE.Box3().makeEmpty();
+  let meshCount = 0;
+
+  const visit = (object) => {
+    if (object !== componentGroup && object.userData?.componentId) return;
+    if (object.isMesh && object.geometry) {
+      if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
+      const meshBounds = object.geometry.boundingBox.clone().applyMatrix4(object.matrixWorld);
+      bounds.union(meshBounds);
+      meshCount += 1;
+    }
+    object.children.forEach(visit);
+  };
+  visit(componentGroup);
+
+  if (!meshCount || bounds.isEmpty()) return null;
+  return {
+    componentId,
+    meshCount,
+    bounds: {
+      min: { x: bounds.min.x, y: bounds.min.y, z: bounds.min.z },
+      max: { x: bounds.max.x, y: bounds.max.y, z: bounds.max.z }
+    }
+  };
 }
 
 function renderLayoutOpening(group, component, materials, size, position, bookcaseDepth) {

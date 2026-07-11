@@ -311,8 +311,8 @@ function initQuoteForm() {
 
   if (activeDesignId && savedSummary) {
     const matchingStoredDesign = storedDesign?.id === activeDesignId ? storedDesign : null;
-    const config = matchingStoredDesign?.config || matchingStoredDesign?.state || {};
-    const designDetails = [formatStoredPrice(matchingStoredDesign?.price), formatPresetLabel(config.layoutPreset)].filter(Boolean).map(escapeHtml).join(" &middot; ");
+    const config = matchingStoredDesign?.canonicalConfig || matchingStoredDesign?.config || matchingStoredDesign?.state || {};
+    const designDetails = [formatStoredPrice(matchingStoredDesign?.total ?? matchingStoredDesign?.price), formatPresetLabel(config.layoutPreset)].filter(Boolean).map(escapeHtml).join(" &middot; ");
     savedSummary.hidden = false;
     savedSummary.innerHTML = `<span>Saved design</span><strong>${escapeHtml(activeDesignId)}</strong><small>${designDetails}</small>`;
     setFormValue(form, "designId", activeDesignId);
