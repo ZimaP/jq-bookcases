@@ -1,0 +1,316 @@
+/* Inspiration — matched to the 1122 × 1402 reference composition. */
+
+body[data-page="inspiration"] {
+  background:
+    radial-gradient(ellipse 92% 58% at 50% 20%, rgba(244, 228, 207, 0.27), transparent 72%),
+    linear-gradient(135deg, #554b43 0%, #665b51 48%, #4d443d 100%);
+}
+
+.ref-inspiration-hero {
+  height: 165px;
+  padding-top: 18px;
+  text-align: center;
+}
+
+.ref-inspiration-hero h1 {
+  max-width: none;
+  font-size: 50px;
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+}
+
+.ref-inspiration-hero p {
+  margin-top: 11px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.ref-inspiration-gallery-section {
+  padding: 0;
+}
+
+.ref-inspiration-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ref-gallery-card {
+  display: grid;
+  height: 379px;
+  grid-template-rows: 328px 51px;
+  overflow: hidden;
+  border: 1px solid var(--ref-border);
+  border-radius: 5px;
+  background: rgba(103, 91, 80, 0.42);
+}
+
+.ref-gallery-card img {
+  width: 100%;
+  height: 328px;
+  object-fit: cover;
+  object-position: center;
+}
+
+.ref-gallery-card:nth-child(n + 4) {
+  height: 341px;
+  grid-template-rows: 292px 49px;
+}
+
+.ref-gallery-card:nth-child(n + 4) img {
+  height: 292px;
+}
+
+.ref-gallery-card > span {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--ref-border-soft);
+  padding: 0 16px;
+  color: var(--ref-ivory);
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.ref-gallery-card > span [data-icon],
+.ref-gallery-card > span svg {
+  width: 18px;
+  height: 18px;
+  color: var(--ref-ivory);
+}
+
+.ref-inspiration-cta-section {
+  height: 158px;
+  padding-top: 20px;
+}
+
+.ref-inspiration-cta {
+  display: grid;
+  height: 137px;
+  grid-template-columns: minmax(0, 1fr) 1px 122px 260px;
+  gap: 32px;
+  align-items: center;
+  border: 1px solid var(--ref-border);
+  border-radius: 5px;
+  padding: 20px 68px;
+  background: rgba(80, 70, 62, 0.2);
+}
+
+.ref-inspiration-cta h2 {
+  font-size: 27px;
+  line-height: 1.1;
+}
+
+.ref-inspiration-cta p {
+  margin-top: 10px;
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.ref-inspiration-divider {
+  width: 1px;
+  height: 88px;
+  background: var(--ref-border-soft);
+}
+
+.ref-inspiration-medallion {
+  display: grid;
+  width: 88px;
+  height: 88px;
+  place-items: center;
+  justify-self: center;
+  border: 1px solid var(--ref-brass-soft);
+  border-radius: 50%;
+  color: var(--ref-brass-soft);
+}
+
+.ref-inspiration-medallion svg {
+  width: 44px;
+  height: 44px;
+}
+
+.ref-inspiration-cta .ref-gold-button {
+  width: 218px;
+  min-height: 49px;
+  justify-self: end;
+}
+
+.ref-inspiration-benefits {
+  height: 74px;
+  border-bottom: 1px solid var(--ref-border-soft);
+}
+
+.ref-inspiration-benefit-grid {
+  display: grid;
+  height: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+}
+
+.ref-inspiration-benefit-grid article {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  border-right: 1px solid var(--ref-border-soft);
+  padding: 0 24px;
+}
+
+.ref-inspiration-benefit-grid article:first-child {
+  padding-left: 42px;
+}
+
+.ref-inspiration-benefit-grid article:last-child {
+  border-right: 0;
+}
+
+.ref-inspiration-benefit-grid [data-icon] {
+  width: 32px;
+  height: 32px;
+  color: var(--ref-muted);
+}
+
+.ref-inspiration-benefit-grid h3 {
+  font-family: var(--sans);
+  font-size: 10.5px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.ref-inspiration-benefit-grid p {
+  margin-top: 5px;
+  color: var(--ref-muted);
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+@media (max-width: 1024px) {
+  .ref-inspiration-hero h1 {
+    font-size: 45px;
+  }
+
+  .ref-gallery-card {
+    height: 340px;
+    grid-template-rows: 290px 50px;
+  }
+
+  .ref-gallery-card img {
+    height: 290px;
+  }
+
+  .ref-inspiration-cta {
+    grid-template-columns: minmax(0, 1fr) 1px 100px 220px;
+    gap: 22px;
+    padding-inline: 40px;
+  }
+
+  .ref-inspiration-benefit-grid article {
+    padding-inline: 14px;
+  }
+
+  .ref-inspiration-benefit-grid article:first-child {
+    padding-left: 14px;
+  }
+}
+
+@media (max-width: 920px) {
+  .ref-inspiration-hero {
+    height: auto;
+    padding: 54px 0 42px;
+  }
+
+  .ref-inspiration-hero p br,
+  .ref-inspiration-cta p br {
+    display: none;
+  }
+
+  .ref-inspiration-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ref-inspiration-cta-section {
+    height: auto;
+    padding: 28px 0;
+  }
+
+  .ref-inspiration-cta {
+    height: auto;
+    grid-template-columns: minmax(0, 1fr) 100px;
+    gap: 24px;
+    padding: 32px;
+  }
+
+  .ref-inspiration-divider {
+    display: none;
+  }
+
+  .ref-inspiration-cta .ref-gold-button {
+    width: min(100%, 250px);
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+
+  .ref-inspiration-benefits {
+    height: auto;
+    padding: 22px 0;
+  }
+
+  .ref-inspiration-benefit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 0;
+  }
+
+  .ref-inspiration-benefit-grid article:nth-child(2) {
+    border-right: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .ref-inspiration-hero h1 {
+    font-size: 36px;
+  }
+
+  .ref-inspiration-hero p {
+    font-size: 14px;
+  }
+
+  .ref-inspiration-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ref-gallery-card,
+  .ref-gallery-card:nth-child(n + 4) {
+    height: 386px;
+    grid-template-rows: 332px 54px;
+  }
+
+  .ref-gallery-card img,
+  .ref-gallery-card:nth-child(n + 4) img {
+    height: 332px;
+  }
+
+  .ref-inspiration-cta {
+    grid-template-columns: 1fr;
+    padding: 30px 22px;
+    text-align: center;
+  }
+
+  .ref-inspiration-medallion {
+    grid-row: 1;
+    width: 78px;
+    height: 78px;
+  }
+
+  .ref-inspiration-benefit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ref-inspiration-benefit-grid article,
+  .ref-inspiration-benefit-grid article:nth-child(2) {
+    border-right: 0;
+  }
+}

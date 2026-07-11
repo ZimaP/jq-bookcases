@@ -1,0 +1,1203 @@
+/* How It Works — page-specific reconstruction of the 1122 × 1402 reference. */
+
+body[data-page="how"] {
+  background:
+    radial-gradient(ellipse at 54% 17%, rgba(229, 211, 187, 0.14), transparent 39%),
+    radial-gradient(ellipse at 15% 52%, rgba(255, 255, 255, 0.025), transparent 43%),
+    linear-gradient(110deg, #4b433c 0%, #685e54 48%, #403a34 100%);
+}
+
+body[data-page="how"] [data-site-footer] {
+  display: none;
+}
+
+.hiw-page {
+  --hiw-border: rgba(249, 242, 232, 0.2);
+  --hiw-border-soft: rgba(249, 242, 232, 0.13);
+  --hiw-panel: rgba(97, 87, 77, 0.19);
+  --hiw-panel-deep: rgba(49, 43, 38, 0.11);
+  --hiw-copy: rgba(255, 250, 242, 0.9);
+  --hiw-muted: rgba(255, 250, 242, 0.76);
+  --hiw-brass: #c29a63;
+  position: relative;
+  min-width: 0;
+  overflow: clip;
+  padding-bottom: 45px;
+}
+
+.hiw-page::before {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(110deg, rgba(255, 255, 255, 0.006) 0 1px, transparent 1px 4px),
+    radial-gradient(circle at 48% 27%, rgba(255, 255, 255, 0.035), transparent 29rem);
+  content: "";
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+.hiw-page > * {
+  position: relative;
+}
+
+.hiw-intro {
+  display: grid;
+  height: 158px;
+  align-content: start;
+  justify-items: center;
+  padding: 23px 24px 0;
+  text-align: center;
+}
+
+.hiw-intro h1 {
+  max-width: none;
+  color: #fbf6ee;
+  font-size: 55px;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1.06;
+  text-shadow: 0 2px 5px rgba(25, 20, 17, 0.22);
+}
+
+.hiw-intro p {
+  max-width: 610px;
+  margin-top: 8px;
+  color: var(--hiw-copy);
+  font-size: 14.5px;
+  line-height: 1.48;
+}
+
+.hiw-process {
+  width: 840px;
+  max-width: calc(100% - 120px);
+  margin-inline: auto;
+}
+
+.hiw-process-list {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hiw-process-list::before {
+  position: absolute;
+  z-index: 1;
+  top: 52px;
+  bottom: 52px;
+  left: 0;
+  border-left: 1px dashed rgba(235, 213, 181, 0.58);
+  content: "";
+}
+
+.hiw-step {
+  --hiw-panel-width: 336px;
+  --hiw-right-pad: 22px;
+  position: relative;
+  display: grid;
+  height: var(--hiw-row-height);
+  grid-template-columns: 100px minmax(0, 1fr) var(--hiw-panel-width);
+  gap: 14px;
+  align-items: center;
+  border: 1px solid var(--hiw-border);
+  border-radius: 7px;
+  background: linear-gradient(105deg, rgba(116, 106, 96, 0.72), rgba(135, 124, 113, 0.62));
+  padding: 14px var(--hiw-right-pad) 14px 41px;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.014);
+}
+
+.hiw-step-one {
+  --hiw-row-height: 135px;
+}
+
+.hiw-step-two {
+  --hiw-row-height: 161px;
+  --hiw-panel-width: 360px;
+}
+
+.hiw-step-three {
+  --hiw-row-height: 141px;
+  --hiw-panel-width: 410px;
+  --hiw-right-pad: 14px;
+  margin-top: 1px;
+}
+
+.hiw-step-four {
+  --hiw-row-height: 137px;
+  --hiw-panel-width: 410px;
+  --hiw-right-pad: 14px;
+  margin-top: 1px;
+}
+
+.hiw-step-five {
+  --hiw-row-height: 151px;
+  --hiw-panel-width: 404px;
+  --hiw-right-pad: 14px;
+}
+
+.hiw-step-number {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 0;
+  display: grid;
+  width: 53px;
+  height: 53px;
+  place-items: center;
+  border: 1px solid rgba(244, 219, 180, 0.76);
+  border-radius: 50%;
+  background: linear-gradient(145deg, #b58b56, #89653d);
+  color: #fff9ef;
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.16), 0 3px 8px rgba(24, 19, 16, 0.15);
+}
+
+.hiw-step-icon {
+  --icon-size: 62px;
+  justify-self: center;
+  color: rgba(255, 252, 246, 0.92);
+}
+
+.hiw-step-icon svg {
+  stroke-width: 1.2;
+}
+
+.hiw-step-copy {
+  min-width: 0;
+}
+
+.hiw-step-copy h3 {
+  color: #fcf7ef;
+  font-size: 23px;
+  font-weight: 400;
+  letter-spacing: -0.022em;
+  line-height: 1.12;
+}
+
+.hiw-step-copy p {
+  max-width: 290px;
+  margin-top: 8px;
+  color: var(--hiw-copy);
+  font-size: 12.5px;
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+}
+
+.hiw-visual {
+  min-width: 0;
+  border: 1px solid var(--hiw-border-soft);
+  border-radius: 7px;
+  background: linear-gradient(110deg, rgba(91, 82, 74, 0.28), rgba(151, 137, 123, 0.16));
+}
+
+/* Step 1: bookcase choices. */
+.hiw-layout-choices {
+  display: grid;
+  height: 105px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: visible;
+}
+
+.hiw-layout-option {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 12px 10px 8px;
+}
+
+.hiw-layout-option.is-selected {
+  border-color: rgba(218, 170, 99, 0.88);
+}
+
+.hiw-layout-option [data-bookcase] {
+  width: 100%;
+}
+
+.hiw-layout-option .bookcase {
+  width: min(100%, 82px);
+  min-height: 72px;
+  grid-template-rows: 5px minmax(42px, 1fr) 20px 5px;
+  margin-inline: auto;
+  border-color: rgba(235, 226, 213, 0.58);
+  background: rgba(225, 217, 204, 0.18);
+  box-shadow: 0 7px 14px rgba(23, 18, 15, 0.13);
+}
+
+.hiw-layout-option .case-shelves {
+  gap: 1px;
+  padding: 3px;
+}
+
+.hiw-layout-option .case-lower {
+  min-height: 20px;
+  gap: 1px;
+  padding: 2px 3px;
+}
+
+.hiw-choice-check {
+  position: absolute;
+  right: 50%;
+  bottom: -11px;
+  display: grid;
+  width: 23px;
+  height: 23px;
+  place-items: center;
+  border-radius: 50%;
+  background: #b98a4d;
+  color: #fff9ef;
+  transform: translateX(50%);
+}
+
+.hiw-choice-check i,
+.hiw-choice-check svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* Step 2: dimension controls and measured bookcase. */
+.hiw-dimensions-panel {
+  display: grid;
+  height: 133px;
+  grid-template-columns: 190px minmax(0, 1fr);
+  overflow: hidden;
+  padding: 9px 10px 8px 15px;
+}
+
+.hiw-dimension-controls {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 4px;
+  align-items: center;
+  align-content: center;
+  margin: 0;
+  padding-right: 9px;
+  border-right: 1px solid rgba(248, 242, 232, 0.08);
+}
+
+.hiw-dimension-controls dt {
+  color: var(--hiw-copy);
+  font-size: 9px;
+  line-height: 1;
+}
+
+.hiw-dimension-controls dd {
+  margin: 0;
+}
+
+.hiw-stepper,
+.hiw-select {
+  display: grid;
+  height: 25px;
+  align-items: center;
+  border: 1px solid var(--hiw-border-soft);
+  border-radius: 5px;
+  background: rgba(58, 51, 46, 0.11);
+  color: #fffaf2;
+  font-size: 10px;
+}
+
+.hiw-stepper {
+  grid-template-columns: minmax(0, 1fr) 21px 21px;
+}
+
+.hiw-stepper b {
+  padding-left: 17px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.hiw-stepper i {
+  display: grid;
+  width: 21px;
+  height: 100%;
+  place-items: center;
+  border-left: 1px solid rgba(248, 242, 232, 0.09);
+  color: rgba(255, 250, 242, 0.76);
+}
+
+.hiw-stepper i svg {
+  width: 10px;
+  height: 10px;
+}
+
+.hiw-select {
+  grid-template-columns: 1fr 20px;
+  padding-left: 17px;
+}
+
+.hiw-select i,
+.hiw-select i svg {
+  width: 11px;
+  height: 11px;
+}
+
+.hiw-select i {
+  transform: rotate(90deg);
+}
+
+.hiw-dimension-drawing {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 4px 18px 18px 12px;
+}
+
+.hiw-dimension-drawing [data-bookcase] {
+  width: 90px;
+}
+
+.hiw-dimension-drawing .bookcase {
+  width: 90px;
+  min-height: 89px;
+  grid-template-rows: 5px minmax(53px, 1fr) 25px 5px;
+  border-color: rgba(238, 229, 216, 0.54);
+  box-shadow: 0 7px 15px rgba(23, 18, 15, 0.13);
+}
+
+.hiw-dimension-drawing .case-shelves {
+  gap: 1px;
+  padding: 3px;
+}
+
+.hiw-dimension-drawing .case-lower {
+  min-height: 25px;
+}
+
+.hiw-measure {
+  position: absolute;
+  color: rgba(255, 251, 244, 0.92);
+  font-size: 10px;
+}
+
+.hiw-measure::before,
+.hiw-measure::after {
+  position: absolute;
+  background: rgba(248, 240, 229, 0.66);
+  content: "";
+}
+
+.hiw-measure-width {
+  right: 28px;
+  bottom: 8px;
+  left: 24px;
+  height: 8px;
+  border-top: 1px solid rgba(248, 240, 229, 0.55);
+  text-align: center;
+}
+
+.hiw-measure-width::before,
+.hiw-measure-width::after {
+  top: -3px;
+  width: 1px;
+  height: 5px;
+}
+
+.hiw-measure-width::before {
+  left: 0;
+}
+
+.hiw-measure-width::after {
+  right: 0;
+}
+
+.hiw-measure-width span {
+  position: relative;
+  top: -1px;
+  padding-inline: 4px;
+  background: #665d54;
+}
+
+.hiw-measure-height {
+  top: 7px;
+  right: 8px;
+  bottom: 21px;
+  width: 14px;
+  border-left: 1px solid rgba(248, 240, 229, 0.55);
+}
+
+.hiw-measure-height::before,
+.hiw-measure-height::after {
+  left: -3px;
+  width: 5px;
+  height: 1px;
+}
+
+.hiw-measure-height::before {
+  top: 0;
+}
+
+.hiw-measure-height::after {
+  bottom: 0;
+}
+
+.hiw-measure-height span {
+  position: absolute;
+  top: 50%;
+  left: 5px;
+  transform: translateY(-50%);
+}
+
+/* Step 3: finish, hardware, and door selections. */
+.hiw-options-panel {
+  display: grid;
+  height: 111px;
+  grid-template-columns: minmax(0, 1fr) 90px 85px;
+  overflow: hidden;
+}
+
+.hiw-finish-options {
+  display: grid;
+  align-content: center;
+  padding: 13px 16px;
+}
+
+.hiw-mini-label {
+  color: rgba(255, 250, 242, 0.9);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.hiw-swatches {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.hiw-swatches > span {
+  position: relative;
+  display: block;
+  width: 37px;
+  height: 37px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.15);
+}
+
+.hiw-swatches > span.is-selected::after {
+  position: absolute;
+  inset: -4px;
+  border: 2px solid #bd955e;
+  border-radius: 50%;
+  content: "";
+}
+
+.hiw-option-sample {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  border-left: 1px solid rgba(248, 242, 232, 0.08);
+}
+
+.hiw-option-sample .hiw-mini-label {
+  margin-bottom: 8px;
+}
+
+.hiw-knob {
+  position: relative;
+  display: block;
+  width: 47px;
+  height: 48px;
+  border: 1px solid rgba(250, 239, 221, 0.14);
+  border-radius: 6px;
+  background: rgba(50, 43, 37, 0.09);
+}
+
+.hiw-knob::before {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 25px;
+  height: 22px;
+  border: 1px solid rgba(245, 217, 169, 0.48);
+  border-radius: 50%;
+  background: radial-gradient(circle at 37% 31%, #d6b37b 0 9%, #a77a43 34%, #6e4b2d 74%);
+  box-shadow: 0 3px 7px rgba(23, 17, 13, 0.28);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.hiw-knob::after {
+  position: absolute;
+  bottom: 7px;
+  left: 50%;
+  width: 14px;
+  height: 7px;
+  border-radius: 50%;
+  background: linear-gradient(#9a6b39, #68462a);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.hiw-door {
+  position: relative;
+  display: block;
+  width: 47px;
+  height: 60px;
+  border: 2px solid rgba(219, 210, 197, 0.38);
+  background: rgba(215, 205, 191, 0.2);
+  box-shadow: inset 0 0 0 3px rgba(56, 49, 43, 0.12), 0 4px 8px rgba(21, 17, 14, 0.12);
+}
+
+.hiw-door::after {
+  position: absolute;
+  inset: 8px 7px;
+  border: 1px solid rgba(229, 219, 204, 0.28);
+  content: "";
+}
+
+/* Step 4: live price and rendered bookcase. */
+.hiw-price-panel {
+  display: grid;
+  height: 109px;
+  grid-template-columns: 192px minmax(0, 1fr);
+  overflow: hidden;
+  padding-left: 21px;
+}
+
+.hiw-price-copy {
+  display: grid;
+  align-content: center;
+}
+
+.hiw-price-copy strong {
+  margin-top: 4px;
+  color: #fffaf2;
+  font-family: var(--serif);
+  font-size: 31px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+}
+
+.hiw-price-copy small {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  margin-top: 9px;
+  color: var(--hiw-copy);
+  font-size: 9px;
+}
+
+.hiw-price-copy small i,
+.hiw-price-copy small i svg {
+  width: 15px;
+  height: 15px;
+}
+
+.hiw-price-copy small i {
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 250, 242, 0.52);
+  border-radius: 50%;
+  color: #fffaf2;
+  padding: 2px;
+}
+
+.hiw-price-bookcase {
+  display: grid;
+  align-items: end;
+  padding: 7px 7px 7px 0;
+}
+
+.hiw-price-bookcase .bookcase {
+  width: 100%;
+  min-height: 96px;
+  grid-template-rows: 6px minmax(55px, 1fr) 29px 6px;
+  border-color: rgba(218, 205, 188, 0.42);
+  background: rgba(203, 193, 177, 0.2);
+  box-shadow: -8px 9px 16px rgba(24, 18, 14, 0.22);
+}
+
+.hiw-price-bookcase .case-shelves {
+  gap: 1px;
+  padding: 4px;
+}
+
+.hiw-price-bookcase .case-lower {
+  min-height: 29px;
+}
+
+/* Step 5: field measure, shop build, and install flow. */
+.hiw-install-flow {
+  display: grid;
+  height: 123px;
+  grid-template-columns: minmax(0, 1fr) 21px minmax(0, 1fr) 21px minmax(0, 1.1fr);
+  align-items: center;
+  overflow: hidden;
+  padding: 10px 9px;
+}
+
+.hiw-install-flow > div {
+  display: grid;
+  min-width: 0;
+  justify-items: center;
+  text-align: center;
+}
+
+.hiw-flow-icon {
+  display: grid;
+  width: 53px;
+  height: 53px;
+  place-items: center;
+  border: 1px solid rgba(255, 250, 242, 0.24);
+  border-radius: 50%;
+  color: rgba(255, 250, 242, 0.9);
+}
+
+.hiw-flow-icon i,
+.hiw-flow-icon svg {
+  width: 31px;
+  height: 31px;
+}
+
+.hiw-install-flow strong {
+  margin-top: 7px;
+  color: #fffaf2;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.hiw-install-flow small {
+  margin-top: 3px;
+  color: var(--hiw-muted);
+  font-size: 8px;
+  line-height: 1.2;
+}
+
+.hiw-flow-arrow {
+  width: 18px;
+  height: 18px;
+  color: rgba(255, 250, 242, 0.84);
+}
+
+/* Benefit panel and final support strip. */
+.hiw-benefits,
+.hiw-support {
+  width: 956px;
+  max-width: calc(100% - 64px);
+  margin-inline: auto;
+  border: 1px solid var(--hiw-border);
+  border-radius: 7px;
+  background: linear-gradient(110deg, rgba(49, 43, 38, 0.14), rgba(116, 103, 91, 0.1));
+}
+
+.hiw-benefits {
+  display: grid;
+  height: 205px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 16px;
+  overflow: hidden;
+  padding-block: 29px;
+}
+
+.hiw-benefits article {
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  min-width: 0;
+  border-right: 1px solid rgba(228, 198, 150, 0.38);
+  padding: 0 29px;
+  text-align: center;
+}
+
+.hiw-benefits article:last-child {
+  border-right: 0;
+}
+
+.hiw-benefits article > i {
+  width: 51px;
+  height: 51px;
+  color: #c9a36e;
+}
+
+.hiw-benefits article > i svg {
+  stroke-width: 1.25;
+}
+
+.hiw-benefits h3 {
+  margin-top: 7px;
+  color: #fff9f1;
+  font-size: 18px;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+}
+
+.hiw-benefits p {
+  max-width: 190px;
+  margin-top: 7px;
+  color: var(--hiw-copy);
+  font-size: 13px;
+  line-height: 1.48;
+}
+
+.hiw-support {
+  display: grid;
+  height: 100px;
+  grid-template-columns: 1fr 220px 1fr;
+  gap: 32px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 0 82px;
+}
+
+.hiw-support-message {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  justify-self: start;
+}
+
+.hiw-support-message > span {
+  display: grid;
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(235, 196, 139, 0.72);
+  border-radius: 50%;
+  color: #fffaf2;
+}
+
+.hiw-support-message > span i,
+.hiw-support-message > span svg {
+  width: 31px;
+  height: 31px;
+}
+
+.hiw-support-message h2 {
+  color: #fffaf2;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.hiw-support-message p {
+  margin-top: 2px;
+  color: var(--hiw-copy);
+  font-size: 13px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.hiw-start-button {
+  display: inline-grid;
+  width: 220px;
+  height: 53px;
+  place-items: center;
+  justify-self: center;
+  border: 1px solid rgba(238, 202, 148, 0.52);
+  border-radius: 7px;
+  background: linear-gradient(100deg, #bd915a, #aa7f49);
+  color: #fffaf2;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.13);
+}
+
+.hiw-start-button:hover {
+  border-color: rgba(249, 218, 169, 0.7);
+  background: linear-gradient(100deg, #c89c62, #b38851);
+}
+
+.hiw-inspiration-link {
+  display: inline-flex;
+  gap: 12px;
+  align-items: center;
+  justify-self: end;
+  color: #fffaf2;
+  font-family: var(--serif);
+  font-size: 16px;
+}
+
+.hiw-inspiration-link i,
+.hiw-inspiration-link svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Compact desktop: retain the reference proportions while respecting gutters. */
+@media (max-width: 1024px) {
+  .hiw-process {
+    width: calc(100% - 144px);
+    max-width: 840px;
+  }
+
+  .hiw-step {
+    grid-template-columns: 88px minmax(0, 1fr) var(--hiw-panel-width);
+    padding-left: 34px;
+  }
+
+  .hiw-step-icon {
+    --icon-size: 55px;
+  }
+
+  .hiw-step-copy h3 {
+    font-size: 21px;
+  }
+
+  .hiw-benefits,
+  .hiw-support {
+    max-width: calc(100% - 56px);
+  }
+
+  .hiw-benefits article {
+    padding-inline: 20px;
+  }
+
+  .hiw-support {
+    gap: 24px;
+    padding-inline: 55px;
+  }
+}
+
+/* Tablet: stack each visual below its step copy and use a two-up benefit band. */
+@media (max-width: 920px) {
+  .hiw-page {
+    padding-bottom: 34px;
+  }
+
+  .hiw-intro {
+    height: auto;
+    padding: 38px 24px 34px;
+  }
+
+  .hiw-intro h1 {
+    font-size: clamp(42px, 8vw, 54px);
+  }
+
+  .hiw-intro p {
+    font-size: 15px;
+  }
+
+  .hiw-process {
+    width: calc(100% - 80px);
+    max-width: none;
+  }
+
+  .hiw-process-list {
+    gap: 16px;
+  }
+
+  .hiw-step,
+  .hiw-step-one,
+  .hiw-step-two,
+  .hiw-step-three,
+  .hiw-step-four,
+  .hiw-step-five {
+    display: grid;
+    height: auto;
+    min-height: 0;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 16px 14px;
+    margin-top: 0;
+    padding: 24px 22px 22px 32px;
+  }
+
+  .hiw-step-icon {
+    --icon-size: 52px;
+  }
+
+  .hiw-step-copy p {
+    max-width: 420px;
+  }
+
+  .hiw-visual {
+    width: 100%;
+    grid-column: 2;
+  }
+
+  .hiw-process-list::before {
+    top: 52px;
+    bottom: 52px;
+  }
+
+  .hiw-benefits {
+    height: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: calc(100% - 48px);
+    padding-block: 0;
+  }
+
+  .hiw-benefits article {
+    min-height: 185px;
+    align-content: center;
+    padding: 24px;
+  }
+
+  .hiw-benefits article:nth-child(2n) {
+    border-right: 0;
+  }
+
+  .hiw-benefits article:nth-child(n + 3) {
+    border-top: 1px solid rgba(228, 198, 150, 0.38);
+  }
+
+  .hiw-support {
+    height: auto;
+    grid-template-columns: 1fr 220px;
+    max-width: calc(100% - 48px);
+    gap: 20px 28px;
+    padding: 26px 34px;
+  }
+
+  .hiw-inspiration-link {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+}
+
+/* Mobile: a single reading column with all detailed panels kept intact. */
+@media (max-width: 560px) {
+  .hiw-intro {
+    padding: 30px 18px 28px;
+  }
+
+  .hiw-intro h1 {
+    font-size: 41px;
+  }
+
+  .hiw-intro p {
+    font-size: 14px;
+  }
+
+  .hiw-intro p br {
+    display: none;
+  }
+
+  .hiw-process {
+    width: calc(100% - 36px);
+  }
+
+  .hiw-process-list::before {
+    display: none;
+  }
+
+  .hiw-step,
+  .hiw-step-one,
+  .hiw-step-two,
+  .hiw-step-three,
+  .hiw-step-four,
+  .hiw-step-five {
+    grid-template-columns: 52px minmax(0, 1fr);
+    gap: 17px 13px;
+    padding: 82px 14px 16px;
+  }
+
+  .hiw-step-number {
+    top: 16px;
+    left: 16px;
+    width: 49px;
+    height: 49px;
+    font-size: 23px;
+    transform: none;
+  }
+
+  .hiw-step-icon {
+    --icon-size: 45px;
+  }
+
+  .hiw-step-copy h3 {
+    font-size: 20px;
+  }
+
+  .hiw-step-copy p {
+    font-size: 13px;
+  }
+
+  .hiw-visual {
+    grid-column: 1 / -1;
+  }
+
+  .hiw-layout-choices {
+    height: 112px;
+  }
+
+  .hiw-layout-option {
+    padding-inline: 5px;
+  }
+
+  .hiw-layout-option .bookcase {
+    width: min(100%, 72px);
+  }
+
+  .hiw-dimensions-panel {
+    height: 139px;
+    grid-template-columns: 168px minmax(0, 1fr);
+    padding-left: 9px;
+  }
+
+  .hiw-dimension-controls {
+    grid-template-columns: 66px minmax(0, 1fr);
+  }
+
+  .hiw-stepper b,
+  .hiw-select {
+    padding-left: 10px;
+  }
+
+  .hiw-dimension-drawing [data-bookcase],
+  .hiw-dimension-drawing .bookcase {
+    width: 74px;
+  }
+
+  .hiw-options-panel {
+    height: auto;
+    grid-template-columns: 1fr 72px 72px;
+  }
+
+  .hiw-finish-options {
+    padding-inline: 11px;
+  }
+
+  .hiw-swatches {
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+
+  .hiw-swatches > span {
+    width: 31px;
+    height: 31px;
+  }
+
+  .hiw-price-panel {
+    height: 118px;
+    grid-template-columns: 148px minmax(0, 1fr);
+    padding-left: 14px;
+  }
+
+  .hiw-price-copy strong {
+    font-size: 26px;
+  }
+
+  .hiw-price-copy small {
+    font-size: 8px;
+  }
+
+  .hiw-install-flow {
+    height: auto;
+    grid-template-columns: 1fr;
+    gap: 11px;
+    padding: 17px;
+  }
+
+  .hiw-install-flow > div {
+    width: 100%;
+    grid-template-columns: 52px minmax(0, 1fr);
+    justify-items: start;
+    text-align: left;
+  }
+
+  .hiw-flow-icon {
+    grid-row: 1 / span 2;
+    width: 44px;
+    height: 44px;
+  }
+
+  .hiw-flow-icon i,
+  .hiw-flow-icon svg {
+    width: 25px;
+    height: 25px;
+  }
+
+  .hiw-install-flow strong {
+    align-self: end;
+    margin-top: 0;
+    font-size: 10px;
+  }
+
+  .hiw-install-flow small {
+    align-self: start;
+    grid-column: 2;
+    font-size: 9px;
+  }
+
+  .hiw-flow-arrow {
+    margin-left: 14px;
+    transform: rotate(90deg);
+  }
+
+  .hiw-benefits,
+  .hiw-support {
+    width: calc(100% - 36px);
+    max-width: none;
+  }
+
+  .hiw-benefits {
+    grid-template-columns: 1fr;
+  }
+
+  .hiw-benefits article {
+    min-height: 176px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(228, 198, 150, 0.38);
+  }
+
+  .hiw-benefits article:nth-child(n + 3) {
+    border-top: 0;
+  }
+
+  .hiw-benefits article:last-child {
+    border-bottom: 0;
+  }
+
+  .hiw-support {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+    padding: 26px 24px;
+  }
+
+  .hiw-support-message {
+    justify-self: center;
+  }
+
+  .hiw-start-button {
+    width: 100%;
+  }
+
+  .hiw-inspiration-link {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 390px) {
+  .hiw-intro {
+    padding-inline: 16px;
+  }
+
+  .hiw-step,
+  .hiw-step-one,
+  .hiw-step-two,
+  .hiw-step-three,
+  .hiw-step-four,
+  .hiw-step-five {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .hiw-dimensions-panel {
+    grid-template-columns: 164px minmax(0, 1fr);
+  }
+
+  .hiw-support {
+    padding-inline: 20px;
+  }
+}

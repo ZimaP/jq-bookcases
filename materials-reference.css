@@ -1,0 +1,586 @@
+/* Materials page — measured against the 1122 × 1402 reference artwork. */
+
+.materials-reference-page {
+  position: relative;
+  color: #f5efe7;
+  background:
+    radial-gradient(circle at 50% 6%, rgba(225, 205, 177, 0.12), transparent 34rem),
+    radial-gradient(circle at 7% 48%, rgba(255, 255, 255, 0.025), transparent 26rem),
+    linear-gradient(108deg, rgba(57, 50, 44, 0.2), rgba(109, 99, 89, 0.2) 51%, rgba(49, 44, 40, 0.22));
+  padding: 0 0 8px;
+}
+
+.materials-reference-shell {
+  width: min(calc(100% - 110px), 1012px);
+  margin-inline: auto;
+}
+
+.materials-reference-intro {
+  padding-top: 4px;
+}
+
+.materials-reference-breadcrumb {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 7px;
+  margin-left: -16px;
+  color: rgba(247, 241, 233, 0.82);
+  font-size: 11px;
+  line-height: 20px;
+}
+
+.materials-reference-breadcrumb a {
+  min-height: 20px;
+  text-decoration: underline;
+  text-decoration-color: rgba(247, 241, 233, 0.52);
+  text-underline-offset: 2px;
+}
+
+.materials-reference-breadcrumb a:hover {
+  color: #fffaf3;
+  text-decoration-color: currentColor;
+}
+
+.materials-reference-breadcrumb i {
+  display: inline-grid;
+  width: 11px;
+  height: 11px;
+  place-items: center;
+  color: rgba(247, 241, 233, 0.72);
+}
+
+.materials-reference-breadcrumb i > svg {
+  width: 100%;
+  height: 100%;
+}
+
+.materials-reference-intro h1 {
+  max-width: none;
+  margin: 9px auto 0;
+  color: #f3ede6;
+  font-size: 42px;
+  line-height: 1.04;
+  text-align: center;
+}
+
+.materials-reference-intro > p {
+  max-width: 590px;
+  margin: 9px auto 0;
+  color: rgba(249, 244, 237, 0.89);
+  font-size: 14px;
+  line-height: 1.58;
+  text-align: center;
+}
+
+.materials-reference-catalog {
+  margin-top: 34px;
+}
+
+.materials-reference-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px 18px;
+  align-items: stretch;
+}
+
+.materials-reference-card,
+.materials-reference-finishing,
+.materials-reference-benefits,
+.materials-reference-cta {
+  overflow: hidden;
+  border: 1px solid rgba(202, 166, 103, 0.58);
+  border-radius: 6px;
+  background: rgba(63, 56, 50, 0.7);
+  box-shadow: none;
+}
+
+.materials-reference-card {
+  display: grid;
+}
+
+.materials-reference-card:nth-child(-n + 3) {
+  height: 289px;
+  grid-template-rows: 152px 137px;
+}
+
+.materials-reference-card:nth-child(n + 4) {
+  height: 266px;
+  grid-template-rows: 145px 121px;
+}
+
+.materials-reference-card > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.materials-reference-card-copy {
+  display: grid;
+  grid-template-columns: 31px minmax(0, 1fr);
+  gap: 13px;
+  align-items: start;
+  padding: 15px 22px 12px;
+  background: rgba(104, 94, 84, 0.85);
+}
+
+.materials-reference-card:nth-child(-n + 3) .materials-reference-card-copy {
+  padding-top: 20px;
+}
+
+.materials-reference-card-icon,
+.materials-reference-finishing-icon,
+.materials-reference-benefit-icon {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: #c7a064;
+}
+
+.materials-reference-card-icon > svg,
+.materials-reference-finishing-icon > svg,
+.materials-reference-benefit-icon > svg {
+  width: 100%;
+  height: 100%;
+}
+
+.materials-reference-card h3,
+.materials-reference-finishing h3 {
+  color: #f2eae1;
+  font-size: 20px;
+  line-height: 1.13;
+  letter-spacing: -0.012em;
+}
+
+.materials-reference-card p,
+.materials-reference-finishing p {
+  margin-top: 7px;
+  color: rgba(248, 242, 234, 0.88);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.materials-reference-finishing {
+  display: grid;
+  min-height: 139px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 14px;
+}
+
+.materials-reference-finishing > img {
+  width: 100%;
+  height: 139px;
+  object-fit: cover;
+}
+
+.materials-reference-finishing-copy {
+  display: grid;
+  grid-template-columns: 35px minmax(0, 1fr);
+  gap: 13px;
+  align-items: start;
+  align-content: center;
+  padding: 18px 29px 18px 8px;
+  background: rgba(63, 56, 50, 0.72);
+}
+
+.materials-reference-finishing-icon {
+  width: 31px;
+  height: 31px;
+  margin-top: 2px;
+}
+
+.materials-reference-benefits {
+  display: grid;
+  min-height: 88px;
+  grid-template-columns: 24% 26% 24% 26%;
+  margin-top: 11px;
+}
+
+.materials-reference-benefits article {
+  position: relative;
+  display: grid;
+  grid-template-columns: 41px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 14px 10px 14px 29px;
+}
+
+.materials-reference-benefits article + article::before {
+  position: absolute;
+  top: 20px;
+  bottom: 20px;
+  left: 0;
+  width: 1px;
+  background: rgba(246, 236, 224, 0.23);
+  content: "";
+}
+
+.materials-reference-benefit-icon {
+  width: 39px;
+  height: 39px;
+}
+
+.materials-reference-benefits h3 {
+  color: #f3ece4;
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.materials-reference-benefits p {
+  margin-top: 4px;
+  color: rgba(248, 242, 234, 0.8);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.materials-reference-cta {
+  position: relative;
+  display: grid;
+  min-height: 122px;
+  grid-template-columns: minmax(0, 1.08fr) 218px minmax(245px, 0.7fr);
+  align-items: center;
+  margin-top: 14px;
+  background: rgba(60, 53, 47, 0.68);
+}
+
+.materials-reference-cta-copy {
+  position: relative;
+  z-index: 1;
+  padding: 20px 12px 20px 43px;
+}
+
+.materials-reference-cta h2 {
+  color: #f3ece5;
+  font-size: 27px;
+  line-height: 1.12;
+}
+
+.materials-reference-cta p {
+  margin-top: 8px;
+  color: rgba(248, 242, 234, 0.86);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+.materials-reference-cta-actions {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 9px;
+  justify-items: start;
+  padding-left: 8px;
+}
+
+.materials-reference-primary-button {
+  display: inline-flex;
+  width: 153px;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(237, 203, 150, 0.57);
+  border-radius: 5px;
+  background: linear-gradient(180deg, #bd945e, #9e7444);
+  color: #fff9f1;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.materials-reference-primary-button:hover {
+  border-color: rgba(247, 221, 180, 0.8);
+  background: linear-gradient(180deg, #c59c65, #aa7d4b);
+}
+
+.materials-reference-text-link {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 11px;
+  color: rgba(250, 245, 239, 0.9);
+  font-family: var(--serif);
+  font-size: 13px;
+  text-decoration: underline;
+  text-decoration-color: rgba(250, 245, 239, 0.44);
+  text-underline-offset: 3px;
+}
+
+.materials-reference-text-link i {
+  display: inline-grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  color: currentColor;
+}
+
+.materials-reference-text-link i > svg {
+  width: 100%;
+  height: 100%;
+}
+
+.materials-reference-line-art {
+  position: absolute;
+  z-index: 0;
+  top: 8px;
+  right: 14px;
+  bottom: 0;
+  display: grid;
+  width: 270px;
+  align-items: end;
+  justify-items: center;
+  overflow: hidden;
+  opacity: 0.23;
+}
+
+.materials-reference-line-art .bookcase {
+  --case-color: transparent;
+  --case-edge: rgba(224, 211, 195, 0.88);
+  width: 262px;
+  min-height: 112px;
+  border-color: var(--case-edge);
+  background: transparent;
+  box-shadow: none;
+  transform: perspective(500px) rotateY(-3deg);
+  transform-origin: bottom right;
+}
+
+.materials-reference-line-art :is(.case-crown, .case-base, .case-shelves, .case-lower) {
+  background: transparent;
+  box-shadow: none;
+}
+
+.materials-reference-line-art :is(.case-bay, .case-door) {
+  border-color: var(--case-edge);
+  background: transparent;
+}
+
+.materials-reference-line-art .shelf-cell {
+  border-color: var(--case-edge);
+}
+
+.materials-reference-line-art .case-door::after {
+  background: rgba(203, 171, 116, 0.7);
+}
+
+@media (max-width: 1024px) {
+  .materials-reference-shell {
+    width: min(calc(100% - 64px), 960px);
+  }
+
+  .materials-reference-grid {
+    gap-inline: 16px;
+  }
+
+  .materials-reference-card-copy {
+    padding-inline: 18px;
+  }
+
+  .materials-reference-benefits article {
+    padding-inline: 20px 15px;
+  }
+
+  .materials-reference-benefits h3 {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 768px) {
+  .materials-reference-page {
+    padding-bottom: 4px;
+  }
+
+  .materials-reference-shell {
+    width: calc(100% - 40px);
+  }
+
+  .materials-reference-breadcrumb {
+    margin-left: 0;
+  }
+
+  .materials-reference-intro h1 {
+    font-size: clamp(37px, 6.5vw, 46px);
+  }
+
+  .materials-reference-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .materials-reference-finishing-copy {
+    padding-right: 18px;
+  }
+
+  .materials-reference-benefits {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .materials-reference-benefits article:nth-child(odd)::before {
+    display: none;
+  }
+
+  .materials-reference-benefits article:nth-child(n + 3) {
+    border-top: 1px solid rgba(246, 236, 224, 0.18);
+  }
+
+  .materials-reference-cta {
+    grid-template-columns: minmax(0, 1fr) 190px;
+  }
+
+  .materials-reference-cta-copy {
+    padding-left: 28px;
+  }
+
+  .materials-reference-line-art {
+    right: -35px;
+    opacity: 0.14;
+  }
+}
+
+@media (max-width: 520px) {
+  .materials-reference-shell {
+    width: calc(100% - 32px);
+  }
+
+  .materials-reference-intro {
+    padding-top: 12px;
+  }
+
+  .materials-reference-intro h1 {
+    margin-top: 14px;
+    font-size: 35px;
+    line-height: 1.05;
+  }
+
+  .materials-reference-intro > p {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .materials-reference-desktop-break {
+    display: none;
+  }
+
+  .materials-reference-catalog {
+    margin-top: 25px;
+  }
+
+  .materials-reference-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .materials-reference-card-copy {
+    padding: 17px 20px 18px;
+  }
+
+  .materials-reference-card p {
+    font-size: 11.5px;
+  }
+
+  .materials-reference-finishing {
+    grid-template-columns: 1fr;
+  }
+
+  .materials-reference-finishing > img {
+    height: auto;
+    aspect-ratio: 507 / 139;
+  }
+
+  .materials-reference-finishing-copy {
+    padding: 19px 20px;
+  }
+
+  .materials-reference-finishing-copy p br {
+    display: none;
+  }
+
+  .materials-reference-benefits {
+    grid-template-columns: 1fr;
+  }
+
+  .materials-reference-benefits article {
+    min-height: 86px;
+    padding: 14px 25px;
+  }
+
+  .materials-reference-benefits article + article::before {
+    top: 0;
+    right: 20px;
+    bottom: auto;
+    left: 20px;
+    width: auto;
+    height: 1px;
+  }
+
+  .materials-reference-benefits article:nth-child(odd)::before {
+    display: block;
+  }
+
+  .materials-reference-benefits article:first-of-type::before {
+    display: none;
+  }
+
+  .materials-reference-benefits article:nth-child(n + 3) {
+    border-top: 0;
+  }
+
+  .materials-reference-benefits h3 {
+    font-size: 11px;
+  }
+
+  .materials-reference-benefits p {
+    font-size: 10.5px;
+  }
+
+  .materials-reference-cta {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 24px;
+  }
+
+  .materials-reference-cta-copy,
+  .materials-reference-cta-actions {
+    padding: 0;
+  }
+
+  .materials-reference-cta h2 {
+    font-size: 25px;
+  }
+
+  .materials-reference-cta-actions {
+    justify-items: start;
+  }
+
+  .materials-reference-line-art {
+    top: auto;
+    right: -66px;
+    bottom: -8px;
+    width: 225px;
+    height: 100px;
+    opacity: 0.1;
+  }
+
+  .materials-reference-line-art .bookcase {
+    width: 220px;
+    min-height: 94px;
+  }
+}
+
+@media (max-width: 390px) {
+  .materials-reference-shell {
+    width: calc(100% - 28px);
+  }
+
+  .materials-reference-intro h1 {
+    font-size: 33px;
+  }
+
+  .materials-reference-card h3,
+  .materials-reference-finishing h3 {
+    font-size: 19px;
+  }
+}

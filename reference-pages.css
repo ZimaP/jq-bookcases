@@ -1,0 +1,405 @@
+/* Shared foundation for the four reference-matched interior pages. */
+
+body:is([data-page="how"], [data-page="materials"], [data-page="about"], [data-page="inspiration"]) {
+  --ref-bg: #5b5148;
+  --ref-bg-deep: #403832;
+  --ref-panel: rgba(91, 81, 72, 0.34);
+  --ref-panel-soft: rgba(248, 242, 234, 0.025);
+  --ref-border: rgba(242, 231, 217, 0.25);
+  --ref-border-soft: rgba(242, 231, 217, 0.15);
+  --ref-ivory: #f5efe7;
+  --ref-copy: rgba(245, 239, 231, 0.9);
+  --ref-muted: rgba(245, 239, 231, 0.72);
+  --ref-brass: #c8a166;
+  --ref-brass-soft: #dfbd86;
+  background:
+    radial-gradient(circle at 50% 9%, rgba(235, 218, 194, 0.12), transparent 33rem),
+    radial-gradient(circle at 7% 54%, rgba(255, 255, 255, 0.035), transparent 30rem),
+    linear-gradient(135deg, #554b43 0%, #665b51 48%, #4d443d 100%);
+  color: var(--ref-ivory);
+}
+
+.reference-page {
+  position: relative;
+  overflow: clip;
+  color: var(--ref-ivory);
+}
+
+.ref-page-shell {
+  width: min(calc(100% - 92px), 1030px);
+  margin-inline: auto;
+}
+
+.reference-page h1,
+.reference-page h2,
+.reference-page h3 {
+  color: var(--ref-ivory);
+}
+
+.reference-page p {
+  color: var(--ref-copy);
+}
+
+.ref-eyebrow {
+  color: var(--ref-brass-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.ref-section-heading {
+  display: grid;
+  gap: 7px;
+  justify-items: center;
+  text-align: center;
+}
+
+.ref-section-heading h2 {
+  font-size: 25px;
+  line-height: 1.12;
+}
+
+.ref-section-heading p {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ref-gold-button,
+.ref-outline-button {
+  display: inline-flex;
+  min-width: 160px;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid rgba(235, 196, 137, 0.58);
+  border-radius: 4px;
+  padding: 9px 18px;
+  color: #fff9f1;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.ref-gold-button {
+  background: linear-gradient(180deg, #bd925a 0%, #a77943 100%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.11);
+}
+
+.ref-outline-button {
+  border-color: var(--ref-border);
+  background: rgba(45, 39, 34, 0.08);
+}
+
+.ref-gold-button [data-icon],
+.ref-outline-button [data-icon] {
+  width: 17px;
+  height: 17px;
+  color: inherit;
+}
+
+/* Reference footer ----------------------------------------------------- */
+
+.ref-site-footer {
+  height: 185px;
+  overflow: hidden;
+  border-top: 1px solid rgba(242, 231, 217, 0.12);
+  background: rgba(43, 37, 32, 0.64);
+  color: var(--ref-copy);
+  padding: 17px 58px 8px;
+}
+
+body[data-page="inspiration"] .ref-site-footer {
+  height: 182px;
+}
+
+body[data-page="materials"] .ref-site-footer {
+  height: 183px;
+}
+
+.ref-footer-inner {
+  display: grid;
+  position: relative;
+  width: min(100%, 1020px);
+  height: 126px;
+  grid-template-columns: 218px 133px 146px minmax(0, 1fr);
+  gap: 42px;
+  margin-inline: auto;
+}
+
+body[data-page="materials"] .ref-footer-inner {
+  height: 119px;
+  grid-template-columns: 221px 164px 142px 201px minmax(0, 1fr);
+  gap: 25px;
+}
+
+body:is([data-page="about"], [data-page="inspiration"]) .ref-site-footer {
+  background: rgba(70, 63, 56, 0.72);
+}
+
+body[data-page="materials"] .ref-site-footer {
+  background: rgba(32, 29, 27, 0.76);
+}
+
+.ref-footer-brand,
+.ref-footer-brand-column {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+}
+
+.ref-footer-brand {
+  gap: 4px;
+}
+
+.ref-footer-brand .brand-main {
+  font-size: 22px;
+  transform: none;
+}
+
+.ref-footer-brand .brand-sub {
+  font-size: 8px;
+}
+
+.ref-footer-brand-column > p,
+.ref-footer-interest > p {
+  max-width: 230px;
+  margin-top: 12px;
+  color: var(--ref-muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.ref-footer-column h3,
+.ref-footer-interest h3 {
+  margin: 1px 0 11px;
+  color: var(--ref-ivory);
+  font-family: var(--sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-transform: none;
+}
+
+.ref-footer-interest h3 {
+  text-transform: none;
+}
+
+body[data-page="materials"] :is(.ref-footer-column h3, .ref-footer-interest h3) {
+  text-transform: uppercase;
+}
+
+.ref-footer-social {
+  display: flex;
+  gap: 17px;
+  align-items: center;
+  margin-top: 12px;
+  color: var(--ref-muted);
+}
+
+.ref-footer-social [data-icon] {
+  display: inline-grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+}
+
+.ref-footer-social svg {
+  width: 100%;
+  height: 100%;
+}
+
+body[data-page="inspiration"] .ref-footer-social {
+  position: absolute;
+  right: 12px;
+  bottom: 21px;
+  margin-top: 0;
+}
+
+.ref-footer-column ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ref-footer-column a,
+.ref-footer-bottom,
+.ref-footer-contact {
+  color: var(--ref-muted);
+  font-size: 10px;
+}
+
+.ref-footer-interest > p {
+  margin-top: 0;
+}
+
+.ref-footer-contact {
+  display: flex;
+  width: min(100%, 224px);
+  height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  border: 1px solid var(--ref-border-soft);
+  border-radius: 3px;
+  background: rgba(35, 30, 27, 0.14);
+  overflow: hidden;
+}
+
+.ref-footer-contact > span {
+  padding: 7px 11px;
+}
+
+.ref-footer-contact > [data-icon] {
+  display: grid;
+  width: 38px;
+  height: 100%;
+  place-items: center;
+  border-left: 1px solid var(--ref-border-soft);
+  color: var(--ref-ivory);
+}
+
+.ref-footer-contact svg {
+  width: 15px;
+  height: 15px;
+}
+
+.ref-footer-trust {
+  display: grid;
+  gap: 11px;
+  align-content: center;
+  border-left: 1px solid var(--ref-border-soft);
+  padding-left: 28px;
+}
+
+.ref-footer-trust > span {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  color: var(--ref-muted);
+  font-size: 9px;
+}
+
+.ref-footer-trust [data-icon] {
+  width: 21px;
+  height: 21px;
+  color: var(--ref-muted);
+}
+
+.ref-footer-bottom {
+  display: flex;
+  width: min(100%, 1020px);
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-top: 1px solid rgba(242, 231, 217, 0.12);
+  margin: 6px auto 0;
+  padding-top: 8px;
+  font-size: 9px;
+}
+
+.ref-footer-bottom > span:last-child {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.ref-footer-bottom i {
+  display: block;
+  width: 1px;
+  height: 12px;
+  background: var(--ref-border);
+}
+
+@media (max-width: 1024px) {
+  .ref-page-shell {
+    width: min(calc(100% - 56px), 930px);
+  }
+
+  .ref-site-footer {
+    height: auto !important;
+    overflow: visible;
+    padding-inline: 32px;
+  }
+
+  .ref-footer-inner {
+    height: auto;
+    min-height: 112px;
+  }
+
+  .ref-footer-inner,
+  body[data-page="materials"] .ref-footer-inner {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 24px;
+  }
+
+  .ref-footer-trust {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid var(--ref-border-soft);
+    border-left: 0;
+    padding: 14px 0 0;
+  }
+
+  body[data-page="inspiration"] .ref-footer-social {
+    position: static;
+    margin-top: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .ref-page-shell {
+    width: min(calc(100% - 36px), 690px);
+  }
+
+  .ref-site-footer {
+    padding: 30px 24px 18px;
+  }
+
+  .ref-footer-inner,
+  body[data-page="materials"] .ref-footer-inner {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 30px 24px;
+  }
+
+  .ref-footer-brand-column,
+  .ref-footer-interest,
+  .ref-footer-trust {
+    grid-column: 1 / -1;
+  }
+
+  .ref-footer-contact {
+    width: min(100%, 320px);
+  }
+}
+
+@media (max-width: 520px) {
+  .ref-page-shell {
+    width: calc(100% - 32px);
+  }
+
+  .ref-gold-button,
+  .ref-outline-button {
+    width: 100%;
+  }
+
+  .ref-footer-inner,
+  body[data-page="materials"] .ref-footer-inner {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ref-footer-bottom {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ref-footer-trust {
+    grid-template-columns: 1fr;
+  }
+}

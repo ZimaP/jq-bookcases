@@ -1,4 +1,5 @@
 import * as THREE from "./assets/vendor/three.module.js";
+import { diagramSvg, iconSvg } from "./icon-system.js?v=site-system-20260711b";
 import {
   baseStyleOptions,
   createDesignId,
@@ -17,76 +18,68 @@ import {
   normalizeBookcaseConfig,
   optionLabels,
   shelfThicknessOptions
-} from "./bookcase-config.js?v=site-system-20260710a";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=site-system-20260710a";
-import { calculateBookcasePrice, formatPrice } from "./bookcase-pricing.js?v=site-system-20260710a";
+} from "./bookcase-config.js?v=site-system-20260710b";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=site-system-20260710b";
+import { calculateBookcasePrice, formatPrice } from "./bookcase-pricing.js?v=site-system-20260710b";
 import {
   findExactBenjaminMooreColor,
   searchBenjaminMooreColors
-} from "./benjamin-moore-colors.js?v=site-system-20260710a";
+} from "./benjamin-moore-colors.js?v=site-system-20260710b";
 
 const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "shelfThickness", "lightingWarmth", "doorCount"]);
 const benjaminMooreColorsUrl = "https://www.benjaminmoore.com/en-us/paint-colors";
-const lineIconSvg = (paths) => `
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-    ${paths}
-  </svg>
-`;
-const builderIcons = {
-  dimensions: lineIconSvg(`<path d="m4.4 16.8 12.4-12.4 2.8 2.8L7.2 19.6z"/><path d="m8.6 16.1-1.7-1.7"/><path d="m11.3 13.4-1.7-1.7"/><path d="m14 10.7-1.7-1.7"/><path d="m16.7 8-1.7-1.7"/>`),
-  layout: lineIconSvg(`<path d="M4.5 5.2h6.2v5.1H4.5zM13.3 5.2h6.2v8.1h-6.2zM4.5 12.9h6.2v5.9H4.5zM13.3 15.9h6.2v2.9h-6.2z"/>`),
-  structure: lineIconSvg(`<path d="m12 3.5 7.2 4.2v8.5L12 20.5l-7.2-4.3V7.7z"/><path d="m8.6 9.6 3.4 2 3.4-2M12 11.6v4.6"/>`),
-  lighting: lineIconSvg(`<path d="M8.1 14.8c-1.3-1.1-2.1-2.7-2.1-4.5a6 6 0 1 1 12 0c0 1.8-.8 3.4-2.1 4.5-.8.7-1.1 1.4-1.2 2.2H9.3c-.1-.8-.4-1.5-1.2-2.2z"/><path d="M9.6 20h4.8M9.4 17h5.2"/>`),
-  finish: lineIconSvg(`<path d="M4.3 6.2h10.2v4.1H4.3z"/><path d="M7.1 10.3v2.6h4.7v7.2H7.1v-7.2M14.5 7.4h2.8c1.4 0 2.4 1 2.4 2.3v1.1"/>`),
-  hardware: lineIconSvg(`<path d="M4.2 8.2h15.6v7.6H4.2z"/><path d="M8.1 12h7.8M6.2 10.2v3.6M17.8 10.2v3.6"/>`),
-  bookmark: lineIconSvg(`<path d="M6.4 4.2h11.2v16l-5.6-3.5-5.6 3.5z"/><path d="M9.2 7.7h5.6"/>`),
-  search: lineIconSvg(`<circle cx="10.7" cy="10.7" r="5.8"/><path d="m15.1 15.1 4.4 4.4"/>`),
-  chevronLeft: lineIconSvg(`<path d="m14.7 5.5-6.5 6.5 6.5 6.5"/>`),
-  chevronRight: lineIconSvg(`<path d="m9.3 5.5 6.5 6.5-6.5 6.5"/>`),
-  reset: lineIconSvg(`<path d="M4.8 9.1a7.4 7.4 0 1 1 1.9 7.6"/><path d="M4.8 9.1V4.7"/><path d="M4.8 9.1h4.4"/>`),
-  cube: lineIconSvg(`<path d="M12 3.7 19.2 8v8L12 20.3 4.8 16V8L12 3.7z"/><path d="M4.8 8 12 12.3 19.2 8"/><path d="M12 12.3v8"/>`),
-  front: lineIconSvg(`<rect x="5.2" y="4.6" width="13.6" height="14.8" rx="1.2"/><path d="M8.2 8.2h7.6"/><path d="M8.2 12h7.6"/><path d="M8.2 15.8h7.6"/>`),
-  threeQuarter: lineIconSvg(`<path d="M7 6.2h9.8l2.5 2.5v8.9H7z"/><path d="M16.8 6.2v11.4"/><path d="M7 9h12.3"/><path d="M10 12.6h4"/><path d="M10 15.6h4"/>`),
-  side: lineIconSvg(`<path d="M6.4 5.2h9.8l1.4 1.4v12.2H7.8l-1.4-1.4z"/><path d="M7.8 6.6h9.8"/><path d="M7.8 6.6v12.2"/><path d="M10.4 9.8h4.8"/><path d="M10.4 14.2h4.8"/>`),
-  delivery: lineIconSvg(`<path d="M3.8 7.1h9.5v8.2H3.8z"/><path d="M13.3 10h3.6l3 3v2.3h-6.6z"/><path d="M5.8 17.2a1.8 1.8 0 1 0 3.6 0 1.8 1.8 0 0 0-3.6 0z"/><path d="M15.5 17.2a1.8 1.8 0 1 0 3.6 0 1.8 1.8 0 0 0-3.6 0z"/><path d="M3.8 15.3h2"/><path d="M9.4 15.3h6.1"/>`),
-  install: lineIconSvg(`<path d="m4.5 19.5 6.7-6.7"/><path d="m9.1 10.7 4.1-4.1a3.7 3.7 0 0 1 5-.3l-3.1 3.1 2.2 2.2 3.1-3.1a3.7 3.7 0 0 1-.3 5l-4.1 4.1"/><path d="m4.8 4.7 5.6 5.6"/><path d="M3.9 6.8 6.8 3.9"/>`),
-  warranty: lineIconSvg(`<path d="M12 3.6 18.7 6v5.2c0 4.5-2.8 7.7-6.7 9.2-3.9-1.5-6.7-4.7-6.7-9.2V6L12 3.6z"/><path d="m8.8 12.1 2.1 2.1 4.4-4.6"/>`)
-};
+const builderIcons = Object.freeze({
+  dimensions: iconSvg("dimensions"),
+  layout: iconSvg("layouts"),
+  structure: iconSvg("materials"),
+  lighting: iconSvg("lighting"),
+  finish: iconSvg("paint-finish"),
+  hardware: iconSvg("hardware"),
+  bookmark: iconSvg("bookmark"),
+  search: iconSvg("search"),
+  chevronLeft: iconSvg("chevron-left"),
+  chevronRight: iconSvg("chevron-right"),
+  reset: iconSvg("reset"),
+  cube: iconSvg("view-3d"),
+  front: iconSvg("view-front"),
+  threeQuarter: iconSvg("view-three-quarter"),
+  side: iconSvg("view-side"),
+  delivery: iconSvg("delivery"),
+  install: iconSvg("installation"),
+  warranty: iconSvg("warranty"),
+  check: iconSvg("check"),
+  plus: iconSvg("plus"),
+  minus: iconSvg("minus")
+});
 
-const productPreviewSvg = (content) => `
-  <svg viewBox="0 0 64 36" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-    ${content}
-  </svg>
-`;
+const basePreviewIcons = Object.freeze({
+  toe_kick: diagramSvg("base-toe-kick"),
+  plinth: diagramSvg("base-plinth"),
+  furniture_base: diagramSvg("base-furniture")
+});
 
-const basePreviewIcons = {
-  toe_kick: productPreviewSvg(`<path d="M10 8h44v17H10z"/><path d="M14 25h36v6H14"/><path d="M14 28h36"/>`),
-  plinth: productPreviewSvg(`<path d="M10 7h44v19H10z"/><path d="M8 26h48v5H8z"/>`),
-  furniture_base: productPreviewSvg(`<path d="M10 6h44v19H10z"/><path d="M7 25h50v4H7z"/><path d="M11 29v3M53 29v3"/>`)
-};
+const crownPreviewIcons = Object.freeze({
+  none: diagramSvg("crown-none"),
+  slim_cap: diagramSvg("crown-slim"),
+  classic_crown: diagramSvg("crown-classic"),
+  modern_soffit: diagramSvg("crown-soffit")
+});
 
-const crownPreviewIcons = {
-  none: productPreviewSvg(`<path d="M10 12h44v17H10z"/><path d="M10 12h44"/>`),
-  slim_cap: productPreviewSvg(`<path d="M11 14h42v15H11z"/><path d="M8 11h48v3H8z"/>`),
-  classic_crown: productPreviewSvg(`<path d="M12 16h40v13H12z"/><path d="M7 9h50v3H7z"/><path d="M9 12c0 3 3 4 3 4h40s3-1 3-4"/>`),
-  modern_soffit: productPreviewSvg(`<path d="M12 9h40v20H12z"/><path d="M8 6h48v4H8z"/><path d="M10 10h44v4H10"/>`)
-};
+const lightingPreviewIcons = Object.freeze({
+  no_lighting: iconSvg("lighting-none"),
+  warm_pucks: iconSvg("lighting-pucks"),
+  shelf_accent: iconSvg("lighting-shelf"),
+  vertical_led: iconSvg("lighting-vertical"),
+  full_package: iconSvg("lighting-package")
+});
 
-const lightingPreviewIcons = {
-  no_lighting: lineIconSvg(`<circle cx="12" cy="12" r="7.2"/><path d="m7 17 10-10"/>`),
-  warm_pucks: lineIconSvg(`<path d="M5 6.5h14"/><path d="M9 8.5c.6 2.3 1.6 3.5 3 3.5s2.4-1.2 3-3.5"/><path d="m9.2 15.2-1.6 2.1M12 15.7V19M14.8 15.2l1.6 2.1"/>`),
-  shelf_accent: lineIconSvg(`<path d="M4.5 7h15"/><path d="M6.5 10h11"/><path d="m8 13-1.8 4M12 13v4.5M16 13l1.8 4"/>`),
-  vertical_led: lineIconSvg(`<path d="M7 4.5v15M17 4.5v15"/><path d="M10 7h4M10 12h4M10 17h4"/>`),
-  full_package: lineIconSvg(`<path d="M8.5 14.7c-1.2-1-2-2.5-2-4.2a5.5 5.5 0 1 1 11 0c0 1.7-.8 3.2-2 4.2-.7.6-1 1.3-1.1 2H9.6c-.1-.7-.4-1.4-1.1-2z"/><path d="M9.8 19.5h4.4M4.2 8.5H2M22 8.5h-2.2M5.2 3.7 3.7 2.2M18.8 3.7l1.5-1.5"/>`)
-};
-
-const hardwarePreviewIcons = {
-  brass_knob: productPreviewSvg(`<circle cx="32" cy="15" r="7"/><path d="M32 22v7M27 30h10"/>`),
-  matte_black_knob: productPreviewSvg(`<circle cx="32" cy="15" r="7"/><path d="M32 22v7M27 30h10"/>`),
-  brass_pull: productPreviewSvg(`<path d="M14 19h36"/><path d="M18 19v7M46 19v7"/><path d="M15 16h34"/>`),
-  matte_black_pull: productPreviewSvg(`<path d="M14 19h36"/><path d="M18 19v7M46 19v7"/><path d="M15 16h34"/>`),
-  polished_nickel_pull: productPreviewSvg(`<path d="M14 19h36"/><path d="M18 19v7M46 19v7"/><path d="M15 16h34"/>`)
-};
+const hardwarePreviewIcons = Object.freeze({
+  brass_knob: diagramSvg("hardware-brass-knob"),
+  matte_black_knob: diagramSvg("hardware-black-knob"),
+  brass_pull: diagramSvg("hardware-brass-pull"),
+  matte_black_pull: diagramSvg("hardware-black-pull"),
+  polished_nickel_pull: diagramSvg("hardware-nickel-pull")
+});
 const finishPalette = {
   white_dove: 0xeee9dc,
   simply_white: 0xf5f0e4,
@@ -198,7 +191,7 @@ class BookcaseConfigurator {
             <span class="price-kicker">Estimated Price</span>
             <strong data-price>${formatPrice(calculateBookcasePrice(this.state))}</strong>
           </div>
-          <p class="configurator-quote-note">Final quote after<br>field verification.</p>
+          <p class="configurator-quote-note">Final quote after<br> field verification.</p>
           ${this.renderTrustRow()}
           <div class="configurator-actions">
             <button class="configurator-quote-button" type="button" data-open-order="measurement">Request a Quote</button>
@@ -239,7 +232,7 @@ class BookcaseConfigurator {
             <button class="preset-card" type="button" data-preset-id="${preset.id}" aria-label="Use ${preset.name} preset">
               ${this.renderPresetMini(preset, index + 1)}
               <span class="preset-card-title">${this.formatPresetName(preset.name)}</span>
-              <span class="preset-check" aria-hidden="true">&#10003;</span>
+              <span class="preset-check" aria-hidden="true">${builderIcons.check}</span>
             </button>
           `).join("")}
         </div>
@@ -443,7 +436,7 @@ class BookcaseConfigurator {
         <div class="finish-swatch${option.custom ? " is-custom-finish" : ""}">
           <input id="${this.id}-finish-${option.value}" data-field="finish" name="${this.id}-finish" type="radio" value="${option.value}">
           <label for="${this.id}-finish-${option.value}" title="${swatchLabel}" aria-label="${swatchLabel}">
-            <span class="finish-dot" style="--swatch:${option.swatch}">${option.custom ? "<span class=\"finish-custom-plus\">+</span><span class=\"finish-custom-text\">Custom</span>" : ""}</span>
+            <span class="finish-dot" style="--swatch:${option.swatch}">${option.custom ? `<span class="finish-custom-plus" aria-hidden="true">${builderIcons.plus}</span><span class="finish-custom-text">Custom</span>` : ""}</span>
             <span class="sr-only">${swatchLabel}</span>
           </label>
         </div>
@@ -579,9 +572,9 @@ class BookcaseConfigurator {
       <div class="stepper-control" data-stepper-control="${name}">
         <span>${label}</span>
         <div class="stepper">
-          <button type="button" data-step-field="${name}" data-step-direction="-1" aria-label="Decrease ${label}">&minus;</button>
+          <button type="button" data-step-field="${name}" data-step-direction="-1" aria-label="Decrease ${label}">${builderIcons.minus}</button>
           <input id="${this.id}-${name}-number" data-field="${name}" type="number" min="${min}" max="${max}" step="1" inputmode="numeric" aria-label="${label}">
-          <button type="button" data-step-field="${name}" data-step-direction="1" aria-label="Increase ${label}">+</button>
+          <button type="button" data-step-field="${name}" data-step-direction="1" aria-label="Increase ${label}">${builderIcons.plus}</button>
         </div>
       </div>
     `;

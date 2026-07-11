@@ -7,8 +7,8 @@
  */
 
 body[data-page="configurator"] {
-  --cfg-ivory: #f4efe8;
-  --cfg-muted: #d4cbc0;
+  --cfg-ivory: var(--icon-ivory);
+  --cfg-muted: var(--icon-taupe);
   --cfg-faint: rgba(244, 239, 232, 0.58);
   --cfg-gold: #c69a62;
   --cfg-gold-bright: #d8ad73;
@@ -209,7 +209,7 @@ body[data-page="configurator"] .header-save-button [data-icon] {
 body[data-page="configurator"] .header-save-button [data-icon] svg {
   width: 100%;
   height: 100%;
-  stroke-width: 1.55;
+  stroke-width: 1.5;
 }
 
 body[data-page="configurator"] .header-save-button::after {
@@ -407,61 +407,19 @@ body[data-page="configurator"] .configurator-panel .control-section summary {
   text-transform: uppercase;
 }
 
-body[data-page="configurator"] .configurator-panel .control-section h2::before,
-body[data-page="configurator"] .configurator-panel .control-section h3::before,
-body[data-page="configurator"] .configurator-panel .control-section summary::before {
-  display: block;
-  flex: 0 0 24px;
-  width: 24px;
-  height: 24px;
-  background: var(--cfg-gold-bright);
-  content: "";
-  mask: var(--cfg-section-icon) center / 22px 22px no-repeat;
-  opacity: 0.9;
-}
-
-body[data-page="configurator"] .configurator-panel .control-section h2:has(.control-heading-icon)::before,
-body[data-page="configurator"] .configurator-panel .control-section h3:has(.control-heading-icon)::before {
-  display: none;
-}
-
 body[data-page="configurator"] .control-heading-icon {
   display: grid;
-  width: 24px;
-  height: 24px;
-  flex: 0 0 24px;
+  width: var(--icon-size-default);
+  height: var(--icon-size-default);
+  flex: 0 0 var(--icon-size-default);
   place-items: center;
-  color: var(--cfg-gold-bright);
+  color: var(--icon-brass);
   opacity: 0.9;
 }
 
 body[data-page="configurator"] .control-heading-icon svg {
-  width: 24px;
-  height: 24px;
-}
-
-body[data-page="configurator"] .control-section-dimensions {
-  --cfg-section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4.4 16.8 12.4-12.4 2.8 2.8L7.2 19.6z'/%3E%3Cpath d='m8.6 16.1-1.7-1.7m4.4-1-1.7-1.7m4.4-1-1.7-1.7'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-body[data-page="configurator"] .control-section-layout {
-  --cfg-section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='1.35'%3E%3Cpath d='M4.5 5.2h6.2v5.1H4.5zM13.3 5.2h6.2v8.1h-6.2zM4.5 12.9h6.2v5.9H4.5zM13.3 15.9h6.2v2.9h-6.2z'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-body[data-page="configurator"] .control-section-structure {
-  --cfg-section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='1.35' stroke-linejoin='round'%3E%3Cpath d='m12 3.5 7.2 4.2v8.5L12 20.5l-7.2-4.3V7.7z'/%3E%3Cpath d='m8.6 9.6 3.4 2 3.4-2M12 11.6v4.6'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-body[data-page="configurator"] .control-section-lighting {
-  --cfg-section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='1.35' stroke-linecap='round'%3E%3Cpath d='M8.1 14.8C6.8 13.7 6 12.1 6 10.3a6 6 0 1 1 12 0c0 1.8-.8 3.4-2.1 4.5-.8.7-1.1 1.4-1.2 2.2H9.3c-.1-.8-.4-1.5-1.2-2.2zM9.6 20h4.8M9.4 17h5.2'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-body[data-page="configurator"] .control-section-finish {
-  --cfg-section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='1.35' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.3 6.2h10.2v4.1H4.3zM7.1 10.3v2.6h4.7v7.2H7.1v-7.2M14.5 7.4h2.8c1.4 0 2.4 1 2.4 2.3v1.1'/%3E%3C/g%3E%3C/svg%3E");
-}
-
-body[data-page="configurator"] .control-section-hardware {
-  --cfg-section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='1.35' stroke-linejoin='round'%3E%3Cpath d='M4.2 8.2h15.6v7.6H4.2zM8.1 12h7.8M6.2 10.2v3.6M17.8 10.2v3.6'/%3E%3C/g%3E%3C/svg%3E");
+  width: var(--icon-size-default);
+  height: var(--icon-size-default);
 }
 
 /* Dimensions */
@@ -615,6 +573,11 @@ body[data-page="configurator"] .configurator-panel .stepper button {
   font-size: 1.25rem;
   font-weight: 300;
   line-height: 1;
+}
+
+body[data-page="configurator"] .configurator-panel .stepper button > svg.jq-icon {
+  width: var(--icon-size-utility);
+  height: var(--icon-size-utility);
 }
 
 body[data-page="configurator"] .configurator-panel .stepper input {
@@ -992,114 +955,11 @@ body[data-page="configurator"] .lighting-icon,
 body[data-page="configurator"] .choice-icon,
 body[data-page="configurator"] .lighting-card-icon {
   position: relative;
-  display: block;
-  width: 31px;
-  height: 38px;
-  color: #dcc49f;
-  filter: drop-shadow(0 4px 7px rgba(228, 178, 110, 0.16));
-}
-
-body[data-page="configurator"] .lighting-card-icon i,
-body[data-page="configurator"] .lighting-card-icon b,
-body[data-page="configurator"] .lighting-card-icon::before,
-body[data-page="configurator"] .lighting-card-icon::after {
-  position: absolute;
-  display: block;
-  box-sizing: border-box;
-  content: "";
-}
-
-body[data-page="configurator"] .lighting-card[data-lighting="no_lighting"] .lighting-card-icon {
-  width: 23px;
-  height: 23px;
-  border: 1px solid rgba(238, 225, 207, 0.45);
-  border-radius: 50%;
-  margin-top: 7px;
-}
-
-body[data-page="configurator"] .lighting-card[data-lighting="no_lighting"] .lighting-card-icon::before,
-body[data-page="configurator"] .lighting-card[data-lighting="no_lighting"] .lighting-card-icon::after {
-  top: 10px;
-  left: 2px;
-  width: 18px;
-  border-top: 1px solid rgba(238, 225, 207, 0.8);
-  transform: rotate(45deg);
-}
-
-body[data-page="configurator"] .lighting-card[data-lighting="no_lighting"] .lighting-card-icon::after {
-  transform: rotate(-45deg);
-}
-
-body[data-page="configurator"] .lighting-card[data-lighting="warm_pucks"] .lighting-card-icon i {
-  top: 8px;
-  left: 5px;
-  width: 21px;
-  height: 14px;
-  border-radius: 15px 15px 4px 4px;
-  background: linear-gradient(180deg, #e3c397, #987249);
-}
-
-body[data-page="configurator"] .lighting-card[data-lighting="warm_pucks"] .lighting-card-icon b {
-  top: 21px;
-  left: 2px;
-  width: 27px;
-  height: 8px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(255, 220, 168, 0.7), transparent 70%);
-}
-
-body[data-page="configurator"] .lighting-card[data-lighting="shelf_accent"] .lighting-card-icon i {
-  top: 9px;
-  left: 1px;
-  width: 29px;
-  height: 5px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #d5c1a6, #81674d);
-}
-
-body[data-page="configurator"] .lighting-card[data-lighting="shelf_accent"] .lighting-card-icon b {
-  top: 13px;
-  left: 5px;
-  width: 21px;
-  height: 17px;
-  background: radial-gradient(ellipse at 50% 0, rgba(255, 220, 168, 0.62), transparent 70%);
-}
-
-body[data-page="configurator"] .lighting-card[data-lighting="vertical_led"] .lighting-card-icon i {
-  top: 1px;
-  left: 12px;
-  width: 6px;
-  height: 34px;
-  border-radius: 2px;
-  background: linear-gradient(90deg, #8c6e50, #ffe3b5 48%, #9d7952);
-  box-shadow: 0 0 7px rgba(255, 219, 164, 0.42);
-}
-
-body[data-page="configurator"] .lighting-card[data-lighting="vertical_led"] .lighting-card-icon b {
-  top: 11px;
-  left: 19px;
-  border-width: 4px 0 4px 5px;
-  border-style: solid;
-  border-color: transparent transparent transparent rgba(239, 220, 192, 0.72);
-}
-
-body[data-page="configurator"] .lighting-card[data-lighting="full_package"] .lighting-card-icon i {
-  top: 2px;
-  left: 7px;
-  width: 17px;
-  height: 18px;
-  border-radius: 50% 50% 44% 44%;
-  background: radial-gradient(circle at 42% 35%, #f3d7a9, #a97d4d 70%);
-  box-shadow: 0 0 9px rgba(255, 218, 158, 0.28);
-}
-
-body[data-page="configurator"] .lighting-card[data-lighting="full_package"] .lighting-card-icon b {
-  top: 19px;
-  left: 11px;
-  width: 9px;
-  height: 12px;
-  border-radius: 0 0 3px 3px;
-  background: repeating-linear-gradient(180deg, #c9a979 0 2px, #806346 2px 3px);
+  display: grid;
+  width: var(--icon-size-emphasis);
+  height: var(--icon-size-emphasis);
+  place-items: center;
+  color: var(--icon-taupe);
 }
 
 body[data-page="configurator"] .lighting-card-title,
@@ -1461,97 +1321,19 @@ body[data-page="configurator"] .hardware-choice > span:first-of-type,
 body[data-page="configurator"] .hardware-choice-icon {
   position: relative;
   display: grid;
-  width: 54px;
-  height: 54px;
+  width: 56px;
+  height: 32px;
   place-items: center;
-  border: 1px solid rgba(238, 225, 207, 0.26);
-  border-radius: 50%;
-  background: rgba(31, 27, 23, 0.18);
-  color: #d4af78;
-}
-
-body[data-page="configurator"] .hardware-choice-icon i,
-body[data-page="configurator"] .hardware-choice-icon b,
-body[data-page="configurator"] .hardware-choice-icon::before,
-body[data-page="configurator"] .hardware-choice-icon::after {
-  position: absolute;
-  display: block;
-  box-sizing: border-box;
-  content: "";
-}
-
-body[data-page="configurator"] .hardware-choice[data-hardware$="_knob"] .hardware-choice-icon i {
-  top: 13px;
-  left: 17px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 36% 31%, #f4d69f, #ae7a3e 48%, #6c4829 76%);
-  box-shadow: 0 3px 5px rgba(11, 8, 6, 0.35);
-}
-
-body[data-page="configurator"] .hardware-choice[data-hardware$="_knob"] .hardware-choice-icon b {
-  top: 31px;
-  left: 23px;
-  width: 8px;
-  height: 10px;
-  border-radius: 0 0 3px 3px;
-  background: linear-gradient(90deg, #694529, #cb9554 52%, #714a2b);
-}
-
-body[data-page="configurator"] .hardware-choice[data-hardware^="matte_black"] .hardware-choice-icon i {
-  background: radial-gradient(circle at 38% 31%, #565653, #171819 55%, #060707 78%);
-}
-
-body[data-page="configurator"] .hardware-choice[data-hardware^="matte_black"] .hardware-choice-icon b {
-  background: linear-gradient(90deg, #060707, #242526 50%, #050606);
-}
-
-body[data-page="configurator"] .hardware-choice[data-hardware$="_pull"] .hardware-choice-icon i {
-  top: 24px;
-  right: 9px;
-  left: 9px;
-  height: 5px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #e2bd7c, #80572d);
-  box-shadow: 0 2px 3px rgba(11, 8, 6, 0.3);
-  transform: rotate(-8deg);
-}
-
-body[data-page="configurator"] .hardware-choice[data-hardware$="_pull"] .hardware-choice-icon b::before,
-body[data-page="configurator"] .hardware-choice[data-hardware$="_pull"] .hardware-choice-icon b::after {
-  position: absolute;
-  top: 27px;
-  width: 2px;
-  height: 6px;
-  background: #9f713c;
-  content: "";
-}
-
-body[data-page="configurator"] .hardware-choice[data-hardware$="_pull"] .hardware-choice-icon b::before {
-  left: 14px;
-}
-
-body[data-page="configurator"] .hardware-choice[data-hardware$="_pull"] .hardware-choice-icon b::after {
-  right: 14px;
-}
-
-body[data-page="configurator"] .hardware-choice[data-hardware="matte_black_pull"] .hardware-choice-icon i,
-body[data-page="configurator"] .hardware-choice[data-hardware="matte_black_pull"] .hardware-choice-icon b::before,
-body[data-page="configurator"] .hardware-choice[data-hardware="matte_black_pull"] .hardware-choice-icon b::after {
-  background: #111213;
-}
-
-body[data-page="configurator"] .hardware-choice[data-hardware="polished_nickel_pull"] .hardware-choice-icon i,
-body[data-page="configurator"] .hardware-choice[data-hardware="polished_nickel_pull"] .hardware-choice-icon b::before,
-body[data-page="configurator"] .hardware-choice[data-hardware="polished_nickel_pull"] .hardware-choice-icon b::after {
-  background: linear-gradient(180deg, #f1eee8, #77736e);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--icon-brass);
 }
 
 body[data-page="configurator"] .hardware-choice svg,
 body[data-page="configurator"] .hardware-choice img {
-  width: 42px;
-  height: 29px;
+  width: 56px;
+  height: 32px;
   object-fit: contain;
 }
 
@@ -1570,8 +1352,10 @@ body[data-page="configurator"] .hardware-choice.is-active .hardware-choice-dot,
 body[data-page="configurator"] .hardware-choice:has(input:checked) .hardware-choice-dot,
 body[data-page="configurator"] .hardware-choice:has(input:checked) .hardware-choice-icon,
 body[data-page="configurator"] .hardware-choice input:checked + label .hardware-choice-icon {
-  border-color: rgba(218, 168, 102, 0.92);
-  box-shadow: 0 0 15px rgba(210, 153, 83, 0.1), inset 0 0 13px rgba(210, 153, 83, 0.05);
+  border-color: transparent;
+  color: var(--icon-brass);
+  filter: drop-shadow(0 2px 5px rgba(184, 154, 90, 0.2));
+  box-shadow: none;
 }
 
 body[data-page="configurator"] .configurator-panel .hardware-grid {
@@ -1592,8 +1376,8 @@ body[data-page="configurator"] .configurator-panel .hardware-swatch {
 
 body[data-page="configurator"] .configurator-panel .hardware-swatch label {
   display: grid;
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   min-height: 0;
   place-items: center;
   border: 1px solid rgba(238, 225, 207, 0.2);
@@ -1603,8 +1387,8 @@ body[data-page="configurator"] .configurator-panel .hardware-swatch label {
 }
 
 body[data-page="configurator"] .configurator-panel .hardware-dot {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   margin: 0;
 }
 
@@ -1623,7 +1407,9 @@ body[data-page="configurator"] .style-diagram svg,
 body[data-page="configurator"] .lighting-card-icon svg,
 body[data-page="configurator"] .hardware-choice-icon svg,
 body[data-page="configurator"] .preset-mini svg,
-body[data-page="configurator"] .bm-search button svg {
+body[data-page="configurator"] .bm-search button svg,
+body[data-page="configurator"] .jq-icon svg,
+body[data-page="configurator"] .jq-diagram svg {
   display: block;
   width: 100%;
   height: 100%;
@@ -1632,12 +1418,15 @@ body[data-page="configurator"] .bm-search button svg {
   stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+body[data-page="configurator"] :is(.jq-icon, .jq-diagram, .style-diagram, .lighting-card-icon, .hardware-choice-icon, .control-heading-icon, .view-icon, .studio-trust-icon, .preset-scroll, .preset-check) svg :is(path, line, polyline, polygon, rect, circle, ellipse) {
   vector-effect: non-scaling-stroke;
 }
 
 body[data-page="configurator"] .bm-search button svg {
-  width: 17px;
-  height: 17px;
+  width: var(--icon-size-control);
+  height: var(--icon-size-control);
 }
 
 body[data-page="configurator"] .preset-mini > svg {
@@ -1645,20 +1434,12 @@ body[data-page="configurator"] .preset-mini > svg {
 }
 
 body[data-page="configurator"] .style-diagram:has(svg) > i,
-body[data-page="configurator"] .style-diagram:has(svg) > b,
-body[data-page="configurator"] .lighting-card-icon:has(svg) > i,
-body[data-page="configurator"] .lighting-card-icon:has(svg) > b,
-body[data-page="configurator"] .hardware-choice-icon:has(svg) > i,
-body[data-page="configurator"] .hardware-choice-icon:has(svg) > b {
+body[data-page="configurator"] .style-diagram:has(svg) > b {
   display: none;
 }
 
 body[data-page="configurator"] .style-diagram:has(svg)::before,
-body[data-page="configurator"] .style-diagram:has(svg)::after,
-body[data-page="configurator"] .lighting-card-icon:has(svg)::before,
-body[data-page="configurator"] .lighting-card-icon:has(svg)::after,
-body[data-page="configurator"] .hardware-choice-icon:has(svg)::before,
-body[data-page="configurator"] .hardware-choice-icon:has(svg)::after {
+body[data-page="configurator"] .style-diagram:has(svg)::after {
   content: none;
 }
 
@@ -1771,19 +1552,19 @@ body[data-page="configurator"] .configurator-model .view-controls button.is-acti
 
 body[data-page="configurator"] .configurator-model .view-icon {
   display: grid;
-  width: 23px;
-  height: 23px;
+  width: var(--icon-size-control);
+  height: var(--icon-size-control);
   place-items: center;
   color: rgba(247, 243, 237, 0.8);
 }
 
 body[data-page="configurator"] .configurator-model .view-icon svg {
-  width: 23px;
-  height: 23px;
+  width: var(--icon-size-control);
+  height: var(--icon-size-control);
 }
 
 body[data-page="configurator"] .configurator-model .view-controls button.is-active .view-icon {
-  color: var(--cfg-gold-bright);
+  color: var(--icon-brass);
 }
 
 body[data-page="configurator"] .configurator-model .viewer-helper-line {
@@ -1846,14 +1627,6 @@ body[data-page="configurator"] .preset-scroll {
   backdrop-filter: blur(8px);
 }
 
-body[data-page="configurator"] .preset-scroll::before {
-  width: 10px;
-  height: 10px;
-  border-top: 1px solid currentColor;
-  border-right: 1px solid currentColor;
-  content: "";
-}
-
 body[data-page="configurator"] .preset-scroll-prev {
   top: 55px;
   left: clamp(16px, 2.5vw, 40px);
@@ -1864,14 +1637,6 @@ body[data-page="configurator"] .preset-scroll-prev {
 body[data-page="configurator"] .preset-scroll-next {
   top: 55px;
   right: clamp(16px, 2.5vw, 40px);
-}
-
-body[data-page="configurator"] .preset-scroll-prev::before {
-  transform: translateX(2px) rotate(-135deg);
-}
-
-body[data-page="configurator"] .preset-scroll-next::before {
-  transform: translateX(-2px) rotate(45deg);
 }
 
 body[data-page="configurator"] .preset-list {
@@ -1943,9 +1708,29 @@ body[data-page="configurator"] .preset-card.is-active .preset-mini {
   box-shadow: 0 0 13px rgba(209, 154, 86, 0.11), inset 0 0 14px rgba(209, 154, 86, 0.06);
 }
 
-body[data-page="configurator"] .preset-number,
-body[data-page="configurator"] .preset-check {
+body[data-page="configurator"] .preset-number {
   display: none;
+}
+
+body[data-page="configurator"] .preset-check {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  right: 8px;
+  display: none;
+  width: var(--icon-size-utility);
+  height: var(--icon-size-utility);
+  place-items: center;
+  color: var(--icon-brass);
+}
+
+body[data-page="configurator"] .preset-card.is-active .preset-check {
+  display: grid;
+}
+
+body[data-page="configurator"] .preset-check svg {
+  width: var(--icon-size-utility);
+  height: var(--icon-size-utility);
 }
 
 body[data-page="configurator"] .preset-crown,
@@ -2088,15 +1873,15 @@ body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item:fir
 
 body[data-page="configurator"] .configurator-estimate-bar .studio-trust-icon {
   display: grid;
-  width: 34px;
-  height: 34px;
+  width: var(--icon-size-emphasis);
+  height: var(--icon-size-emphasis);
   place-items: center;
-  color: var(--cfg-gold-bright) !important;
+  color: var(--icon-brass) !important;
 }
 
 body[data-page="configurator"] .configurator-estimate-bar .studio-trust-icon svg {
-  width: 34px;
-  height: 34px;
+  width: var(--icon-size-emphasis);
+  height: var(--icon-size-emphasis);
   color: inherit !important;
   stroke: currentColor;
 }
@@ -2158,8 +1943,8 @@ body[data-page="configurator"] .configurator-save-button {
 }
 
 body[data-page="configurator"] .configurator-save-button svg {
-  width: 25px;
-  height: 25px;
+  width: var(--icon-size-control);
+  height: var(--icon-size-control);
 }
 
 body[data-page="configurator"] .configurator-quote-button:hover,
@@ -2360,6 +2145,18 @@ body[data-page="configurator"] .configurator-shell > .status-message.is-visible 
 
   body[data-page="configurator"] .configurator-estimate-bar {
     grid-row: 5;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 6px;
+    padding: 0 8px;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar .studio-trust-icon,
+  body[data-page="configurator"] .configurator-estimate-bar .studio-trust-icon svg {
+    width: var(--icon-size-default);
+    height: var(--icon-size-default);
   }
 }
 
@@ -2876,14 +2673,9 @@ body[data-page="configurator"] .preset-card.is-active .preset-mini .mini-opening
   stroke: rgba(235, 194, 139, 0.88);
 }
 
-body[data-page="configurator"] .preset-scroll::before {
-  display: none;
-  content: none;
-}
-
 body[data-page="configurator"] .preset-scroll svg {
-  width: 18px;
-  height: 18px;
+  width: var(--icon-size-utility);
+  height: var(--icon-size-utility);
 }
 
 body[data-page="configurator"] .preset-scroll:disabled {

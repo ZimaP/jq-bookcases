@@ -1,3 +1,5 @@
+import { mountIcons, setIcon } from "./icon-system.js?v=site-system-20260711b";
+
 const navItems = [
   { label: "How It Works", href: "how-it-works.html", page: "how" },
   { label: "Materials", href: "materials.html", page: "materials" },
@@ -22,34 +24,11 @@ function renderBrandLink(className = "brand") {
   `;
 }
 
-const iconMap = {
-  shield: `<path d="M12 3.6 18.7 6v5.2c0 4.5-2.8 7.7-6.7 9.2-3.9-1.5-6.7-4.7-6.7-9.2V6L12 3.6z"/><path d="m8.8 12.1 2.1 2.1 4.4-4.6"/>`,
-  leaf: `<path d="M19.4 4.6c-6.6.7-11.5 4.2-12.6 10.8 4.9 1.2 9.4-1 11.9-6.3 1-2.1 1.2-3.6.7-4.5z"/><path d="M5.2 19.6c2.6-5.8 6.6-9.2 12.8-11.7"/>`,
-  truck: `<path d="M3.8 7.1h9.5v8.2H3.8z"/><path d="M13.3 10h3.6l3 3v2.3h-6.6z"/><path d="M5.8 17.2a1.8 1.8 0 1 0 3.6 0 1.8 1.8 0 0 0-3.6 0z"/><path d="M15.5 17.2a1.8 1.8 0 1 0 3.6 0 1.8 1.8 0 0 0-3.6 0z"/><path d="M3.8 15.3h2"/><path d="M9.4 15.3h6.1"/>`,
-  home: `<path d="m4 11 8-6.8 8 6.8"/><path d="M6.5 10.2v9.2h11v-9.2"/><path d="M10 19.4v-5.3h4v5.3"/>`,
-  grid: `<rect x="4.2" y="4.2" width="15.6" height="15.6" rx="1.2"/><path d="M4.2 10h15.6"/><path d="M4.2 15.8h15.6"/><path d="M10 4.2v15.6"/><path d="M15.8 4.2v15.6"/>`,
-  ruler: `<path d="m4.4 16.8 12.4-12.4 2.8 2.8L7.2 19.6z"/><path d="m8.6 16.1-1.7-1.7"/><path d="m11.3 13.4-1.7-1.7"/><path d="m14 10.7-1.7-1.7"/><path d="m16.7 8-1.7-1.7"/>`,
-  tag: `<path d="m20 12-8 8-8-8V4h8z"/><path d="M8.7 8.7h.1"/><circle cx="8.8" cy="8.8" r="1.35"/>`,
-  calendar: `<rect x="5" y="5.2" width="14" height="14.4" rx="1.4"/><path d="M8.2 3.4v3.7"/><path d="M15.8 3.4v3.7"/><path d="M5 10h14"/><path d="m9.1 15 1.8 1.8 4-4.2"/>`,
-  wrench: `<path d="m4.5 19.5 6.7-6.7"/><path d="m9.1 10.7 4.1-4.1a3.7 3.7 0 0 1 5-.3l-3.1 3.1 2.2 2.2 3.1-3.1a3.7 3.7 0 0 1-.3 5l-4.1 4.1"/><path d="m4.8 4.7 5.6 5.6"/><path d="M3.9 6.8 6.8 3.9"/>`,
-  people: `<path d="M8.2 11.2a3.8 3.8 0 1 0 0-7.6 3.8 3.8 0 0 0 0 7.6z"/><path d="M2.8 20.2c.7-3.2 2.6-5 5.4-5s4.7 1.8 5.4 5"/><path d="M16.4 10.9a3.1 3.1 0 1 0-.2-6.1"/><path d="M15.6 15.1c2.7.2 4.5 1.9 5.1 4.8"/>`,
-  flag: `<path d="M5.5 20.5V4.4"/><path d="M5.5 5.2c3.6-1.8 6.5 1.8 10.7 0v8.2c-4.2 1.8-7.1-1.8-10.7 0"/>`,
-  layers: `<path d="m12 3.8 8.5 4.6-8.5 4.7-8.5-4.7z"/><path d="m3.5 12.1 8.5 4.7 8.5-4.7"/><path d="m3.5 16 8.5 4.7 8.5-4.7"/>`,
-  tree: `<path d="m12 3.6 4.4 5.2h-2.6l3.8 4.5h-3.2l2.8 3.5H6.8l2.8-3.5H6.4l3.8-4.5H7.6z"/><path d="M12 16.8v3.6"/>`,
-  badge: `<path d="m12 3.5 2.6 1.7 3.2.5.5 3.2L20 12l-1.7 3.1-.5 3.2-3.2.5-2.6 1.7-2.6-1.7-3.2-.5-.5-3.2L4 12l1.7-3.1.5-3.2 3.2-.5z"/><path d="m8.8 12.1 2.1 2.1 4.4-4.6"/>`,
-  drill: `<path d="M4.3 7.9h9.2v5.1H4.3z"/><path d="M13.5 9.1h4.2l2.1 1.4-2.1 1.4h-4.2"/><path d="M7 13v5.9h4V13"/><path d="M6.2 18.9h5.6"/><path d="M9 7.9v-2h4.2"/>`,
-  headset: `<path d="M4.2 13v-1a7.8 7.8 0 0 1 15.6 0v1"/><path d="M4.2 13h3.7v5.8H4.2z"/><path d="M16.1 13h3.7v5.8h-3.7z"/><path d="M16.1 18.8c0 1.5-1.3 2.2-4.1 2.2"/>`,
-  pin: `<path d="M12 21s6.7-6 6.7-11.7a6.7 6.7 0 1 0-13.4 0C5.3 15 12 21 12 21z"/><circle cx="12" cy="9.3" r="2.35"/>`,
-  brush: `<path d="m14.2 4.2 5.6 5.6-7.5 7.5-5.6-5.6z"/><path d="M5.3 13.2c-1.5 1.2-1.7 3.3-.5 4.7 1.4 1.2 3.5 1 4.7-.5"/><path d="m12.3 17.3-2.8.1"/>`,
-  bookmark: `<path d="M6.4 4.2h11.2v16l-5.6-3.5-5.6 3.5z"/><path d="M9.2 7.7h5.6"/>`,
-  check: `<path d="M20 6 9 17l-5-5"/>`,
-  sparkle: `<path d="m12 3.6 1.7 4.9 4.9 1.7-4.9 1.7-1.7 4.9-1.7-4.9-4.9-1.7 4.9-1.7z"/><path d="m18.8 16.8.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>`
-};
-
 document.addEventListener("DOMContentLoaded", () => {
   injectHeader();
   injectFooter();
-  initIcons();
+  mountIcons();
+  initHeaderScrollState();
   initMobileNav();
   initBookcases();
   initHeaderBuilderActions();
@@ -70,17 +49,17 @@ function injectHeader() {
 
   const headerActions = current === "configurator"
     ? `
-          <button class="header-save-button" type="button" data-header-save-design><i data-icon="bookmark" aria-hidden="true"></i><span>Save Design</span></button>
-          <button class="button button-primary" type="button" data-header-request-quote>Request a Quote</button>
+          <button class="header-save-button" type="button" data-header-save-design><span>Save Design</span><i data-icon="heart" aria-hidden="true"></i></button>
+          <button class="button button-primary" type="button" data-header-request-quote>Request Quote</button>
         `
     : `
-          <a class="header-save-button" href="${designBuilderHref}"><i data-icon="grid" aria-hidden="true"></i><span>Design Your Bookcase</span></a>
-          <a class="button button-primary${current === "quote" ? " is-active" : ""}" href="request-quote.html"${current === "quote" ? ' aria-current="page"' : ""}>Request a Quote</a>
+          <a class="header-save-button" href="${designBuilderHref}"><span>Save Design</span><i data-icon="heart" aria-hidden="true"></i></a>
+          <a class="button button-primary${current === "quote" ? " is-active" : ""}" href="request-quote.html"${current === "quote" ? ' aria-current="page"' : ""}>Request Quote</a>
         `;
 
   const mobileCta = current === "configurator"
-    ? `<button class="button button-primary mobile-cta" type="button" data-header-request-quote>Request a Quote</button>`
-    : `<a class="mobile-design-link" href="configurator.html">Design Your Bookcase</a><a class="button button-primary mobile-cta" href="request-quote.html">Request a Quote</a>`;
+    ? `<button class="button button-primary mobile-cta" type="button" data-header-request-quote>Request Quote</button>`
+    : `<a class="mobile-design-link" href="configurator.html">Save Design</a><a class="button button-primary mobile-cta" href="request-quote.html">Request Quote</a>`;
 
   host.innerHTML = `
     <header class="site-header">
@@ -93,12 +72,21 @@ function injectHeader() {
         <div class="header-actions">
           ${headerActions}
           <button class="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-navigation">
-            <span></span><span></span><span></span>
+            <i data-icon="menu" aria-hidden="true"></i>
           </button>
         </div>
       </nav>
     </header>
   `;
+}
+
+function initHeaderScrollState() {
+  const header = document.querySelector(".site-header");
+  if (!header || document.body.dataset.page === "home") return;
+
+  const update = () => header.classList.toggle("is-scrolled", window.scrollY > 12);
+  update();
+  window.addEventListener("scroll", update, { passive: true });
 }
 
 function initHeaderBuilderActions() {
@@ -115,6 +103,8 @@ function initHeaderBuilderActions() {
       const navToggle = document.querySelector(".nav-toggle");
       navToggle?.setAttribute("aria-expanded", "false");
       navToggle?.setAttribute("aria-label", "Open navigation");
+      const navIcon = navToggle?.querySelector("[data-icon]");
+      if (navIcon) setIcon(navIcon, "menu");
     });
   });
 }
@@ -123,13 +113,18 @@ function injectFooter() {
   const host = document.querySelector("[data-site-footer]");
   if (!host) return;
 
+  if (host.dataset.footerVariant === "reference") {
+    host.innerHTML = renderReferenceFooter(document.body.dataset.page || "");
+    return;
+  }
+
   host.innerHTML = `
     <footer class="site-footer">
       <div class="footer-grid">
         <div>
           ${renderBrandLink("footer-brand")}
           <p>Premium built-ins, expertly crafted for your home.</p>
-          <a class="footer-design-link" href="configurator.html"><i data-icon="grid" aria-hidden="true"></i> Open the ${officialBrand.product}</a>
+          <a class="footer-design-link" href="configurator.html"><i data-icon="configurator-3d" aria-hidden="true"></i> Open the ${officialBrand.product}</a>
         </div>
         <div>
           <h3>Explore</h3>
@@ -154,13 +149,13 @@ function injectFooter() {
           <h3>Start with a layout. Finish with a measured plan.</h3>
           <div class="footer-project-actions">
             <a class="button button-primary" href="configurator.html">Design Your Bookcase</a>
-            <a class="text-link" href="request-quote.html">Request a Quote <span aria-hidden="true">&rarr;</span></a>
+            <a class="text-link" href="request-quote.html">Request a Quote <i class="utility-icon" data-icon="arrow-right" aria-hidden="true"></i></a>
           </div>
         </div>
         <div class="footer-benefits" aria-label="Project benefits">
-          <span><i data-icon="truck"></i>Delivery Standard</span>
-          <span><i data-icon="wrench"></i>Installation Professional</span>
-          <span><i data-icon="shield"></i>Warranty Lifetime</span>
+          <span><i data-icon="delivery" aria-hidden="true"></i>Delivery Standard</span>
+          <span><i data-icon="tools" aria-hidden="true"></i>Installation Professional</span>
+          <span><i data-icon="warranty" aria-hidden="true"></i>Warranty Lifetime</span>
         </div>
       </div>
       <div class="footer-bottom">
@@ -174,12 +169,65 @@ function injectFooter() {
   `;
 }
 
-function initIcons() {
-  document.querySelectorAll("[data-icon]").forEach((el) => {
-    const name = el.dataset.icon;
-    const paths = iconMap[name] || iconMap.sparkle;
-    el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${paths}</svg>`;
-  });
+function renderReferenceFooter(page) {
+  const brandCopy = page === "materials"
+    ? "Premium semi-custom built-ins, expertly crafted for your home."
+    : page === "about"
+      ? "Premium semi-custom built-ins, crafted for your home."
+      : "Premium built-ins, crafted for your home.";
+  const materialsTrust = page === "materials"
+    ? `
+      <div class="ref-footer-trust" aria-label="Project assurances">
+        <span><i data-icon="delivery" aria-hidden="true"></i>Delivery Standard</span>
+        <span><i data-icon="tools" aria-hidden="true"></i>Installation Professional</span>
+        <span><i data-icon="warranty" aria-hidden="true"></i>Warranty Lifetime</span>
+      </div>
+    `
+    : "";
+
+  return `
+    <footer class="ref-site-footer">
+      <div class="ref-footer-inner">
+        <div class="ref-footer-brand-column">
+          ${renderBrandLink("ref-footer-brand")}
+          <p>${brandCopy}</p>
+          <div class="ref-footer-social" aria-label="Social channels">
+            <span data-icon="instagram" role="img" aria-label="Instagram"></span>
+            <span data-icon="pinterest" role="img" aria-label="Pinterest"></span>
+            <span data-icon="houzz" role="img" aria-label="Houzz"></span>
+          </div>
+        </div>
+        <div class="ref-footer-column">
+          <h3>Company</h3>
+          <ul>
+            <li><a href="about.html">About Us</a></li>
+            <li><a href="how-it-works.html">Our Process</a></li>
+            <li><a href="materials.html">Materials &amp; Quality</a></li>
+            <li><a href="faq.html">Care &amp; Warranty</a></li>
+          </ul>
+        </div>
+        <div class="ref-footer-column">
+          <h3>Support</h3>
+          <ul>
+            <li><a href="faq.html">FAQ</a></li>
+            <li><a href="request-quote.html">Design Help</a></li>
+            <li><a href="faq.html#faq-6">Delivery &amp; Installation</a></li>
+            <li><a href="request-quote.html">Contact Us</a></li>
+          </ul>
+        </div>
+        <div class="ref-footer-interest">
+          <h3>Design ideas &amp; inspiration</h3>
+          <p>Talk with our team about ideas, materials, and your project.</p>
+          <a class="ref-footer-contact" href="request-quote.html"><span>Contact us</span><i data-icon="arrow-right" aria-hidden="true"></i></a>
+        </div>
+        ${materialsTrust}
+      </div>
+      <div class="ref-footer-bottom">
+        <span>&copy; 2024 JQ Bookcases. All rights reserved.</span>
+        <span><a href="privacy.html">Privacy Policy</a><i aria-hidden="true"></i><a href="terms.html">Terms of Service</a></span>
+      </div>
+    </footer>
+  `;
 }
 
 function initMobileNav() {
@@ -191,6 +239,8 @@ function initMobileNav() {
     document.body.classList.toggle("nav-open", open);
     toggle.setAttribute("aria-expanded", String(open));
     toggle.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
+    const toggleIcon = toggle.querySelector("[data-icon]");
+    if (toggleIcon) setIcon(toggleIcon, open ? "close" : "menu");
     if (open) window.requestAnimationFrame(() => nav.querySelector("a, button")?.focus());
     else if (restoreFocus) toggle.focus();
   };
@@ -272,19 +322,25 @@ function initAccordions() {
     accordion.querySelectorAll("[data-accordion-trigger]").forEach((trigger) => {
       const panel = document.getElementById(trigger.getAttribute("aria-controls"));
       const icon = trigger.querySelector(".accordion-icon");
-      if (icon) icon.setAttribute("aria-hidden", "true");
+      if (icon) {
+        icon.setAttribute("aria-hidden", "true");
+        setIcon(icon, trigger.getAttribute("aria-expanded") === "true" ? "minus" : "plus");
+      }
       if (panel) panel.hidden = trigger.getAttribute("aria-expanded") !== "true";
       trigger.addEventListener("click", () => {
         const isOpen = trigger.getAttribute("aria-expanded") === "true";
         accordion.querySelectorAll("[data-accordion-trigger]").forEach((otherTrigger) => {
           if (otherTrigger === trigger) return;
           otherTrigger.setAttribute("aria-expanded", "false");
+          const otherIcon = otherTrigger.querySelector(".accordion-icon");
+          if (otherIcon) setIcon(otherIcon, "plus");
           const otherPanel = document.getElementById(otherTrigger.getAttribute("aria-controls"));
           otherPanel?.classList.remove("is-open");
           if (otherPanel) otherPanel.hidden = true;
           otherTrigger.closest(".accordion-item")?.classList.remove("is-open");
         });
         trigger.setAttribute("aria-expanded", String(!isOpen));
+        if (icon) setIcon(icon, isOpen ? "plus" : "minus");
         if (panel) {
           panel.classList.toggle("is-open", !isOpen);
           panel.hidden = isOpen;

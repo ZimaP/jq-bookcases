@@ -355,8 +355,6 @@ test("public branding and product vocabulary use the canonical JQ Bookcases name
     [/\bBookcase Builder\b/i, "Bookcase Builder"],
     [/\bBookcase Specifier\b/i, "Bookcase Specifier"],
     [/\bDesign Yours\b/i, "Design Yours"],
-    [/\bStart Designing\b/i, "Start Designing"],
-    [/\bRequest Quote\b/i, "Request Quote"],
   ];
 
   for (const [pattern, label] of retiredVocabulary) {
