@@ -1,7 +1,7 @@
 {
   "type": "module",
   "scripts": {
-    "build": "node --check site.js && node --check configurator-3d.js && node --check bookcase-config.js && node --check bookcase-layout.js && node --check bookcase-bom.js && node --check bookcase-pricing.js && node --check benjamin-moore-colors.js",
+    "build": "node --check site.js && node --check configurator-3d.js && node --check bookcase-config.js && node --check bookcase-layout.js && node --check bookcase-bom.js && node --check bookcase-pricing.js && node --check bookcase-engine.js && node --check benjamin-moore-colors.js",
     "test": "node --test tests/*.test.js",
     "serve": "python3 -m http.server 5173"
   }
