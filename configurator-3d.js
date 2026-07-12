@@ -1,5 +1,5 @@
 import * as THREE from "./assets/vendor/three.module.js";
-import { diagramSvg, iconSvg } from "./icon-system.js?v=site-system-20260711d";
+import { diagramSvg, iconSvg } from "./icon-system.js?v=guided-repair-20260712b";
 import {
   baseStyleOptions,
   crownStyleOptions,
@@ -86,6 +86,13 @@ const crownPreviewIcons = Object.freeze({
   modern_soffit: diagramSvg("crown-soffit")
 });
 
+const doorPreviewIcons = Object.freeze({
+  shaker: diagramSvg("door-shaker"),
+  flat: diagramSvg("door-flat"),
+  slim_shaker: diagramSvg("door-slim-shaker"),
+  glass: diagramSvg("door-glass")
+});
+
 const lightingPreviewIcons = Object.freeze({
   no_lighting: iconSvg("lighting-none"),
   warm_pucks: iconSvg("lighting-pucks"),
@@ -135,7 +142,6 @@ class BookcaseConfigurator {
     this.mode = this.loadPreference(CONFIGURATOR_PREFERENCE_KEYS.mode, normalizeConfiguratorMode);
     this.guidedStep = this.loadPreference(CONFIGURATOR_PREFERENCE_KEYS.guidedStep, normalizeGuidedStep);
     this.expandedCategory = this.loadPreference(CONFIGURATOR_PREFERENCE_KEYS.allCategory, normalizeAllCategory);
-    this.appearanceTab = "finish";
     this.drafts = {};
     this.scrollPositions = { guided: 0, all: 0 };
     this.actionStartedAt = {};
@@ -296,10 +302,10 @@ class BookcaseConfigurator {
           </div>
           ${this.arEnabled ? `
             <div class="cabinet-ar-launch">
-              <button class="cabinet-ar-launch-button" type="button" data-open-ar aria-label="View this configured cabinet in your room">
-                <span class="view-icon" aria-hidden="true">${builderIcons.cube}</span><span>View in Your Room</span>
+              <button class="cabinet-ar-launch-button" type="button" data-open-ar aria-label="View in Your Room">
+                <span class="view-icon" aria-hidden="true">${builderIcons.cube}</span><span data-ar-label>View in Your Room</span>
               </button>
-              <small>See this cabinet at true scale in your space.</small>
+              <small class="cabinet-ar-launch-help">See this cabinet at true scale in your space.</small>
             </div>
           ` : ""}
         </section>
@@ -392,7 +398,7 @@ class BookcaseConfigurator {
           <button type="button" class="guided-back" data-guided-back ${stepIndex === 0 ? "disabled" : ""}>Back</button>
           ${step.id === "review"
             ? '<button type="button" class="guided-continue is-primary" data-open-order="measurement">Request a Quote</button>'
-            : '<button type="button" class="guided-continue is-primary" data-guided-continue>Continue</button>'}
+            : '<button type="button" class="guided-continue is-primary" data-guided-continue>Next</button>'}
         </nav>
       </div>
     `;
@@ -523,10 +529,19 @@ class BookcaseConfigurator {
   }
 
   renderDoorGroup() {
+    const descriptions = {
+      shaker: "Classic framed profile",
+      flat: "Clean slab front",
+      slim_shaker: "Narrow framed profile",
+      glass: "Framed glass display door"
+    };
     const styles = doorStyleOptions.map((option) => `
-      <label class="option-card compact-option-card">
+      <label class="door-style-card" data-door-style="${option.value}">
         <input data-field="doorStyle" name="${this.id}-doorStyle" type="radio" value="${option.value}">
-        <span><strong>${option.label}</strong><small>${option.value === "glass" ? "Framed glass display door" : "Furniture-grade cabinet front"}</small></span>
+        <span class="door-style-card-content">
+          <span class="door-style-illustration" aria-hidden="true">${doorPreviewIcons[option.value]}</span>
+          <span class="door-style-copy"><strong>${option.label}</strong><small>${descriptions[option.value]}</small></span>
+        </span>
       </label>
     `).join("");
     const counts = [2, 4, 6, 8, 10, 12].map((count) => `
@@ -536,7 +551,7 @@ class BookcaseConfigurator {
       <section class="control-section control-section-doors" data-applicability="doors">
         <fieldset class="choice-field" data-applicability="doors">
           <legend>Door style</legend>
-          <div class="option-card-grid">${styles}</div>
+          <div class="door-style-grid">${styles}</div>
         </fieldset>
         <fieldset class="choice-field" data-applicability="doors">
           <legend>Door count</legend>
@@ -548,21 +563,11 @@ class BookcaseConfigurator {
   }
 
   renderAppearanceExperience() {
-    const applicability = getApplicability(this.state, this.layout);
-    if (this.appearanceTab === "hardware" && !applicability.showHardware) this.appearanceTab = "finish";
-    const tabs = [
-      { id: "finish", label: "Finish", available: true },
-      { id: "hardware", label: "Hardware", available: applicability.showHardware },
-      { id: "lighting", label: "Lighting", available: true }
-    ];
     return `
-      <div class="appearance-tabs" role="tablist" aria-label="Appearance options">
-        ${tabs.filter((tab) => tab.available).map((tab) => `
-          <button id="${this.id}-appearance-${tab.id}" type="button" role="tab" data-appearance-tab="${tab.id}" aria-controls="${this.id}-appearance-panel" aria-selected="${this.appearanceTab === tab.id}" tabindex="${this.appearanceTab === tab.id ? "0" : "-1"}">${tab.label}</button>
-        `).join("")}
-      </div>
-      <div id="${this.id}-appearance-panel" class="appearance-panel" role="tabpanel" aria-labelledby="${this.id}-appearance-${this.appearanceTab}">
-        ${this.appearanceTab === "finish" ? this.renderFinishGroup() : this.appearanceTab === "hardware" ? this.renderHardwareGroup() : this.renderLightingGroup()}
+      <div class="appearance-sections" aria-label="Appearance options">
+        ${this.renderFinishGroup()}
+        ${this.renderHardwareGroup()}
+        ${this.renderLightingGroup()}
       </div>
     `;
   }
@@ -932,8 +937,6 @@ class BookcaseConfigurator {
         this.handleModeSelectorKeydown(event, modeButton);
         return;
       }
-      const appearanceButton = event.target.closest?.("[data-appearance-tab]");
-      if (appearanceButton) this.handleAppearanceTabsKeydown(event, appearanceButton);
       const colorQuery = event.target.closest?.("[data-bm-query]");
       if (!colorQuery) return;
       if (event.key === "Escape") this.closeBenjaminMooreResults();
@@ -975,11 +978,6 @@ class BookcaseConfigurator {
     const categoryTrigger = target.closest?.("[data-category-trigger]");
     if (categoryTrigger) {
       this.toggleCategory(categoryTrigger.dataset.categoryTrigger);
-      return;
-    }
-    const appearanceTab = target.closest?.("[data-appearance-tab]");
-    if (appearanceTab) {
-      this.setAppearanceTab(appearanceTab.dataset.appearanceTab, { focus: true });
       return;
     }
     const presetButton = target.closest?.("[data-preset-id]");
@@ -1092,19 +1090,6 @@ class BookcaseConfigurator {
     this.switchMode(buttons[nextIndex]?.dataset.configuratorMode);
   }
 
-  handleAppearanceTabsKeydown(event, button) {
-    const buttons = [...this.host.querySelectorAll("[data-appearance-tab]")];
-    const index = buttons.indexOf(button);
-    let nextIndex = index;
-    if (event.key === "ArrowRight") nextIndex = (index + 1) % buttons.length;
-    else if (event.key === "ArrowLeft") nextIndex = (index - 1 + buttons.length) % buttons.length;
-    else if (event.key === "Home") nextIndex = 0;
-    else if (event.key === "End") nextIndex = buttons.length - 1;
-    else return;
-    event.preventDefault();
-    this.setAppearanceTab(buttons[nextIndex]?.dataset.appearanceTab, { focus: true });
-  }
-
   switchMode(nextMode, options = {}) {
     const normalizedMode = normalizeConfiguratorMode(nextMode);
     const previousMode = this.mode;
@@ -1113,7 +1098,7 @@ class BookcaseConfigurator {
       && this.guidedStep === "review"
       && !options.category;
     if (normalizedMode === CONFIGURATOR_MODES.all) {
-      this.expandedCategory = normalizeAllCategory(options.category || categoryForGuidedStep(options.guidedStep || this.guidedStep, this.appearanceTab));
+      this.expandedCategory = normalizeAllCategory(options.category || categoryForGuidedStep(options.guidedStep || this.guidedStep));
       this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.allCategory, this.expandedCategory);
     } else {
       this.guidedStep = normalizeGuidedStep(options.guidedStep || guidedStepForCategory(this.expandedCategory));
@@ -1169,15 +1154,6 @@ class BookcaseConfigurator {
       if (icon) icon.textContent = open ? "−" : "+";
       if (panel) panel.hidden = !open;
     });
-  }
-
-  setAppearanceTab(tabId, options = {}) {
-    const applicability = getApplicability(this.state, this.layout);
-    const allowed = ["finish", "lighting", ...(applicability.showHardware ? ["hardware"] : [])];
-    this.appearanceTab = allowed.includes(tabId) ? tabId : "finish";
-    this.renderActiveControls({ previousMode: this.mode });
-    this.syncInterface();
-    if (options.focus) this.host.querySelector('[data-appearance-tab="' + this.appearanceTab + '"]')?.focus();
   }
 
   openReviewDialog() {
@@ -1560,10 +1536,6 @@ class BookcaseConfigurator {
     this.viewer.update(this.state, this.layout, changedFields);
     this.arController?.handleConfigurationChanged();
     if (changedFields.some((field) => ["finish", "customPaintColor", "customPaintCode", "customPaintHex", "paintSelection"].includes(field))) {
-      this.renderActiveControls({ previousMode: this.mode });
-    }
-    if (this.appearanceTab === "hardware" && !getApplicability(this.state, this.layout).showHardware) {
-      this.appearanceTab = "finish";
       this.renderActiveControls({ previousMode: this.mode });
     }
     this.renderDoorOptions();

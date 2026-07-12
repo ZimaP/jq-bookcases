@@ -316,7 +316,7 @@ export class CabinetArController {
     if (!button) return;
     button.disabled = loading;
     button.setAttribute("aria-busy", String(loading));
-    const label = button.querySelector("span");
+    const label = button.querySelector("[data-ar-label]");
     if (label) label.textContent = loading ? "Preparing Room View…" : "View in Your Room";
   }
 

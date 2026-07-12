@@ -97,7 +97,7 @@ body[data-page="configurator"] .configurator-mode-selector button:focus-visible,
 body[data-page="configurator"] .guided-progress button:focus-visible,
 body[data-page="configurator"] .configurator-category > h3 > button:focus-visible,
 body[data-page="configurator"] .layout-card:focus-visible,
-body[data-page="configurator"] .appearance-tabs button:focus-visible {
+body[data-page="configurator"] .door-style-card input:focus-visible + .door-style-card-content {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
@@ -643,30 +643,127 @@ body[data-page="configurator"] .additional-colors-button {
   color: #e8bc80;
 }
 
-body[data-page="configurator"] .appearance-tabs {
+body[data-page="configurator"] .appearance-sections {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-  border: 1px solid rgba(235, 218, 195, 0.16);
-  border-radius: 9px;
-  background: rgba(20, 17, 14, 0.2);
-  margin-bottom: 16px;
-  padding: 4px;
+  gap: 18px;
 }
 
-body[data-page="configurator"] .appearance-tabs button {
-  min-height: 44px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  color: rgba(247, 243, 237, 0.64);
-  font-size: 11px;
+body[data-page="configurator"] .appearance-sections > .control-section {
+  min-width: 0;
+  border-top: 1px solid rgba(235, 218, 195, 0.14);
+  padding: 18px 0 2px;
 }
 
-body[data-page="configurator"] .appearance-tabs button[aria-selected="true"] {
-  border-color: rgba(220, 171, 106, 0.54);
-  background: rgba(161, 112, 60, 0.2);
-  color: #fff5e7;
+body[data-page="configurator"] .appearance-sections > .control-section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+body[data-page="configurator"] .appearance-sections > .control-section > h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 11px;
+  color: #fff6e9;
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 400;
+}
+
+body[data-page="configurator"] .appearance-sections .control-heading-icon {
+  width: 20px;
+  height: 20px;
+  color: #d9aa6d;
+}
+
+body[data-page="configurator"] .door-style-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  gap: 8px;
+}
+
+body[data-page="configurator"] .door-style-card {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+body[data-page="configurator"] .door-style-card input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .door-style-card-content {
+  display: grid;
+  min-width: 0;
+  min-height: 84px;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  border: 1px solid rgba(234, 217, 195, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 9px;
+  color: rgba(247, 243, 237, 0.78);
+  cursor: pointer;
+}
+
+body[data-page="configurator"] .door-style-card:hover .door-style-card-content {
+  border-color: rgba(226, 181, 121, 0.45);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+body[data-page="configurator"] .door-style-card input:checked + .door-style-card-content {
+  border-color: rgba(224, 174, 108, 0.82);
+  background: linear-gradient(180deg, rgba(178, 127, 70, 0.18), rgba(93, 65, 38, 0.1));
+  color: #fff5e8;
+}
+
+body[data-page="configurator"] .door-style-illustration {
+  display: block;
+  width: 46px;
+  height: 56px;
+  color: rgba(232, 222, 209, 0.78);
+}
+
+body[data-page="configurator"] .door-style-illustration svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+body[data-page="configurator"] .door-style-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+body[data-page="configurator"] .door-style-copy strong,
+body[data-page="configurator"] .door-style-copy small {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+body[data-page="configurator"] .door-style-copy strong {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+body[data-page="configurator"] .door-style-copy small {
+  color: rgba(247, 243, 237, 0.62);
+  font-size: 10px;
+  line-height: 1.3;
 }
 
 /* All Controls accordions --------------------------------------------- */
@@ -759,8 +856,7 @@ body[data-page="configurator"] .configurator-category-panel {
   padding: 15px 13px 16px;
 }
 
-body[data-page="configurator"] .configurator-category-panel > .control-section > h2,
-body[data-page="configurator"] .appearance-panel > .control-section > h2 {
+body[data-page="configurator"] .configurator-category-panel > .control-section > h2 {
   display: none;
 }
 
@@ -1073,7 +1169,7 @@ body[data-page="configurator"] .warmth-choice label {
   }
 
   body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
-    position: sticky;
+    position: static;
     bottom: 0;
     height: auto;
     min-height: 104px;
@@ -1089,7 +1185,8 @@ body[data-page="configurator"] .warmth-choice label {
   }
 
   body[data-page="configurator"] .guided-navigation {
-    position: static;
+    position: sticky;
+    bottom: 0;
   }
 
   body[data-page="configurator"] .layout-card-grid {
@@ -1382,7 +1479,9 @@ body[data-page="configurator"] .cabinet-ar-launch {
 
 body[data-page="configurator"] .cabinet-ar-launch-button {
   display: inline-flex;
+  width: 184px;
   min-height: 44px;
+  justify-content: center;
   align-items: center;
   gap: 9px;
   border: 1px solid rgba(239, 194, 134, 0.76);
@@ -1393,7 +1492,9 @@ body[data-page="configurator"] .cabinet-ar-launch-button {
   box-shadow: 0 10px 25px rgba(25, 17, 10, 0.24);
   font-size: 13px;
   font-weight: 650;
+  line-height: 1.2;
   pointer-events: auto;
+  white-space: nowrap;
 }
 
 body[data-page="configurator"] .cabinet-ar-launch-button:hover {
@@ -1407,12 +1508,15 @@ body[data-page="configurator"] .cabinet-ar-launch-button svg {
   height: 20px;
 }
 
-body[data-page="configurator"] .cabinet-ar-launch > small {
+body[data-page="configurator"] .cabinet-ar-launch-help {
+  max-width: 224px;
   border-radius: 5px;
   background: rgba(28, 23, 19, 0.72);
   padding: 4px 7px;
   color: rgba(255, 250, 243, 0.82);
   font-size: 10px;
+  line-height: 1.35;
+  text-align: right;
 }
 
 body[data-page="configurator"] .cabinet-ar-dialog {
@@ -1675,18 +1779,21 @@ body[data-page="configurator"] .cabinet-ar-notice.is-error {
 
 @media (max-width: 760px) {
   body[data-page="configurator"] .cabinet-ar-launch {
+    left: 12px;
     right: 12px;
     bottom: 76px;
+    justify-items: stretch;
   }
 
-  body[data-page="configurator"] .cabinet-ar-launch > small {
+  body[data-page="configurator"] .cabinet-ar-launch-help {
     display: none;
   }
 
   body[data-page="configurator"] .cabinet-ar-launch-button {
-    min-height: 42px;
-    padding: 8px 11px;
-    font-size: 11px;
+    width: 100%;
+    min-height: 48px;
+    padding: 9px 12px;
+    font-size: 12px;
   }
 
   body[data-page="configurator"] .cabinet-ar-dialog {
