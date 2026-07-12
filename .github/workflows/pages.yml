@@ -1,0 +1,74 @@
+name: Deploy JQ Bookcases to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - codex/cabinet-ar-mvp
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Validate JavaScript
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Prepare static site
+        run: |
+          mkdir -p _site
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.gitignore' \
+            --exclude='_site/' \
+            --exclude='node_modules/' \
+            --exclude='tests/' \
+            --exclude='scripts/' \
+            --exclude='*.md' \
+            --exclude='package.json' \
+            --exclude='package-lock.json' \
+            ./ _site/
+          touch _site/.nojekyll
+          test -f _site/index.html
+          test -f _site/configurator.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+          include-hidden-files: true
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
