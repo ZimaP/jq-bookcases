@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>3D Bookcase Configurator | JQ Bookcases</title>
   <meta name="description" content="Design a semi-custom built-in bookcase and see your estimated JQ Bookcases project price update live.">
+  <meta name="jq-ar-model-endpoint" content="">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css?v=visual-system-20260712a">
   <link rel="stylesheet" href="configurator.css?v=benjamin-moore-20260712a">
-  <link rel="stylesheet" href="configurator-experience.css?v=benjamin-moore-20260712a">
+  <link rel="stylesheet" href="configurator-experience.css?v=cabinet-ar-20260712a">
   <link rel="stylesheet" href="visual-consistency.css?v=visual-system-20260712a">
   <script type="module" src="site.js?v=visual-system-20260712a" defer></script>
-  <script type="module" src="configurator-3d.js?v=benjamin-moore-20260712a"></script>
+  <script type="module" src="configurator-3d.js?v=cabinet-ar-20260712a"></script>
 </head>
 <body data-page="configurator">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -20,7 +21,7 @@
   <main id="main">
     <section class="builder-hero builder-page" aria-label="3D Bookcase Configurator">
       <div class="container">
-        <div data-bookcase-builder data-mode="configurator"></div>
+        <div data-bookcase-builder data-mode="configurator" data-enable-cabinet-ar="true"></div>
       </div>
     </section>
   </main>

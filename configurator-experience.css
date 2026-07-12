@@ -1366,3 +1366,353 @@ body[data-page="configurator"] .warmth-choice label {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* View in Your Room --------------------------------------------------- */
+
+body[data-page="configurator"] .cabinet-ar-launch {
+  position: absolute;
+  z-index: 5;
+  right: 18px;
+  bottom: 82px;
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .cabinet-ar-launch-button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(239, 194, 134, 0.76);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #bd925a, #956638);
+  padding: 10px 15px;
+  color: #fffaf3;
+  box-shadow: 0 10px 25px rgba(25, 17, 10, 0.24);
+  font-size: 13px;
+  font-weight: 650;
+  pointer-events: auto;
+}
+
+body[data-page="configurator"] .cabinet-ar-launch-button:hover {
+  border-color: #f2c88f;
+  background: linear-gradient(180deg, #c79a61, #a4713e);
+}
+
+body[data-page="configurator"] .cabinet-ar-launch-button .view-icon,
+body[data-page="configurator"] .cabinet-ar-launch-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+body[data-page="configurator"] .cabinet-ar-launch > small {
+  border-radius: 5px;
+  background: rgba(28, 23, 19, 0.72);
+  padding: 4px 7px;
+  color: rgba(255, 250, 243, 0.82);
+  font-size: 10px;
+}
+
+body[data-page="configurator"] .cabinet-ar-dialog {
+  width: min(1040px, calc(100vw - 32px));
+  max-height: min(860px, calc(100svh - 32px));
+  overflow: hidden;
+  border: 1px solid rgba(235, 211, 180, 0.32);
+  border-radius: 14px;
+  background: #443b34;
+  padding: 0;
+  color: var(--cfg-ivory);
+  box-shadow: 0 30px 90px rgba(12, 9, 7, 0.58);
+}
+
+body[data-page="configurator"] .cabinet-ar-dialog::backdrop {
+  background: rgba(20, 17, 14, 0.74);
+  backdrop-filter: blur(5px);
+}
+
+body[data-page="configurator"] .cabinet-ar-dialog-shell {
+  max-height: inherit;
+  overflow-y: auto;
+  padding: 23px;
+}
+
+body[data-page="configurator"] .cabinet-ar-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+body[data-page="configurator"] .cabinet-ar-heading h2 {
+  margin: 4px 0 0;
+  color: #fff8ef;
+  font-family: var(--serif);
+  font-size: clamp(25px, 3vw, 34px);
+  font-weight: 400;
+}
+
+body[data-page="configurator"] .cabinet-ar-heading > button {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(239, 222, 199, 0.22);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(255, 249, 241, 0.82);
+  font-size: 24px;
+}
+
+body[data-page="configurator"] .cabinet-ar-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(270px, 0.72fr);
+  gap: 18px;
+}
+
+body[data-page="configurator"] .cabinet-ar-viewer-panel,
+body[data-page="configurator"] .cabinet-ar-guidance {
+  min-width: 0;
+  border: 1px solid rgba(238, 222, 201, 0.16);
+  border-radius: 11px;
+  background: rgba(29, 25, 21, 0.19);
+}
+
+body[data-page="configurator"] .cabinet-ar-viewer-panel {
+  overflow: hidden;
+}
+
+body[data-page="configurator"] .cabinet-ar-viewer-panel model-viewer {
+  display: block;
+  width: 100%;
+  height: min(54svh, 550px);
+  min-height: 390px;
+  background: radial-gradient(circle at 50% 42%, #70665c 0, #554b43 52%, #3d3630 100%);
+  --poster-color: transparent;
+}
+
+body[data-page="configurator"] .cabinet-ar-enter-button {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  min-height: 46px;
+  border: 1px solid rgba(255, 223, 180, 0.86);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #bd925a, #956638);
+  padding: 10px 18px;
+  color: #fffaf3;
+  font-weight: 700;
+  box-shadow: 0 8px 22px rgba(20, 13, 8, 0.3);
+}
+
+body[data-page="configurator"] .cabinet-ar-scan-prompt {
+  display: none;
+}
+
+body[data-page="configurator"] model-viewer[ar-status="session-started"] .cabinet-ar-scan-prompt {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  left: 18px;
+  display: block;
+  border-radius: 8px;
+  background: rgba(35, 29, 24, 0.82);
+  padding: 11px;
+  color: #fffaf3;
+  text-align: center;
+}
+
+body[data-page="configurator"] .cabinet-ar-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid rgba(238, 222, 201, 0.14);
+  padding: 12px 15px;
+  color: rgba(255, 249, 241, 0.75);
+  font-size: 12px;
+}
+
+body[data-page="configurator"] .cabinet-ar-summary strong {
+  color: #fff8ef;
+}
+
+body[data-page="configurator"] .cabinet-ar-guidance {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 18px;
+}
+
+body[data-page="configurator"] .cabinet-ar-guidance h3 {
+  margin: 6px 0 8px;
+  color: #fff8ef;
+  font-family: var(--serif);
+  font-size: 23px;
+  font-weight: 400;
+}
+
+body[data-page="configurator"] .cabinet-ar-guidance p,
+body[data-page="configurator"] .cabinet-ar-instructions li {
+  color: rgba(251, 246, 239, 0.72);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+body[data-page="configurator"] .cabinet-ar-phone-handoff canvas {
+  display: block;
+  width: 184px;
+  height: 184px;
+  margin: 14px auto;
+  border: 8px solid #fffdf8;
+  border-radius: 7px;
+  background: #fffdf8;
+}
+
+body[data-page="configurator"] .cabinet-ar-phone-handoff a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: #f0c48a;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+body[data-page="configurator"] .cabinet-ar-instructions ol {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding-left: 22px;
+}
+
+body[data-page="configurator"] .cabinet-ar-compatibility,
+body[data-page="configurator"] .cabinet-ar-privacy-note {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(236, 203, 158, 0.2);
+  border-radius: 8px;
+  background: rgba(174, 123, 65, 0.1);
+  padding: 12px;
+}
+
+body[data-page="configurator"] .cabinet-ar-compatibility span,
+body[data-page="configurator"] .cabinet-ar-privacy-note span {
+  color: rgba(251, 246, 239, 0.7);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+body[data-page="configurator"] .cabinet-ar-disclaimer {
+  margin: 14px 2px 0;
+  color: rgba(251, 246, 239, 0.62);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+body[data-page="configurator"] .cabinet-ar-loading,
+body[data-page="configurator"] .cabinet-ar-state {
+  display: grid;
+  min-height: 340px;
+  place-content: center;
+  justify-items: center;
+  gap: 9px;
+  border: 1px solid rgba(238, 222, 201, 0.16);
+  border-radius: 11px;
+  background: rgba(29, 25, 21, 0.19);
+  padding: 28px;
+  text-align: center;
+}
+
+body[data-page="configurator"] .cabinet-ar-loading p,
+body[data-page="configurator"] .cabinet-ar-loading small,
+body[data-page="configurator"] .cabinet-ar-state p {
+  max-width: 55ch;
+  margin: 0;
+  color: rgba(251, 246, 239, 0.68);
+  line-height: 1.5;
+}
+
+body[data-page="configurator"] .cabinet-ar-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(240, 196, 138, 0.24);
+  border-top-color: #f0c48a;
+  border-radius: 50%;
+  animation: cabinet-ar-spin 0.9s linear infinite;
+}
+
+body[data-page="configurator"] .cabinet-ar-notice {
+  margin: 0 0 12px;
+  border: 1px solid rgba(238, 204, 157, 0.25);
+  border-radius: 8px;
+  background: rgba(170, 119, 61, 0.12);
+  padding: 10px 12px;
+  color: #f5d7ad;
+  font-size: 12px;
+}
+
+body[data-page="configurator"] .cabinet-ar-notice.is-error {
+  border-color: rgba(239, 157, 129, 0.35);
+  color: #f3c0ae;
+}
+
+@keyframes cabinet-ar-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 900px) {
+  body[data-page="configurator"] .cabinet-ar-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .cabinet-ar-viewer-panel model-viewer {
+    height: 48svh;
+    min-height: 330px;
+  }
+}
+
+@media (max-width: 760px) {
+  body[data-page="configurator"] .cabinet-ar-launch {
+    right: 12px;
+    bottom: 76px;
+  }
+
+  body[data-page="configurator"] .cabinet-ar-launch > small {
+    display: none;
+  }
+
+  body[data-page="configurator"] .cabinet-ar-launch-button {
+    min-height: 42px;
+    padding: 8px 11px;
+    font-size: 11px;
+  }
+
+  body[data-page="configurator"] .cabinet-ar-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100svh - 16px);
+  }
+
+  body[data-page="configurator"] .cabinet-ar-dialog-shell {
+    padding: 15px;
+  }
+
+  body[data-page="configurator"] .cabinet-ar-heading {
+    margin-bottom: 13px;
+  }
+
+  body[data-page="configurator"] .cabinet-ar-viewer-panel model-viewer {
+    min-height: 300px;
+  }
+
+  body[data-page="configurator"] .cabinet-ar-summary {
+    display: grid;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-page="configurator"] .cabinet-ar-spinner {
+    animation: none;
+  }
+}

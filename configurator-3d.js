@@ -112,8 +112,16 @@ const finishPalette = {
 let viewerInstanceSequence = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll("[data-bookcase-builder]").forEach((host, index) => {
+  document.querySelectorAll("[data-bookcase-builder]").forEach(async (host, index) => {
     if (host.__bookcaseConfigurator) return;
+    if (host.getAttribute("data-enable-cabinet-ar") === "true") {
+      try {
+        const { readCabinetArShareConfiguration } = await import("./cabinet-ar.js?v=cabinet-ar-20260712a");
+        host.__cabinetArSharedConfiguration = readCabinetArShareConfiguration(window.location.href);
+      } catch (error) {
+        host.__cabinetArSharedConfiguration = null;
+      }
+    }
     host.__bookcaseConfigurator = new BookcaseConfigurator(host, index);
   });
 });
@@ -144,6 +152,9 @@ class BookcaseConfigurator {
     this.saveActionCount = 0;
     this.quoteActionCount = 0;
     this.activeView = "three-quarter";
+    this.arEnabled = this.host.getAttribute("data-enable-cabinet-ar") === "true";
+    this.arController = null;
+    this.arControllerPromise = null;
     this.activeRangeDrag = null;
     this.layout = generateBookcaseLayout(this.state);
     this.state = normalizeBookcaseConfig({ ...this.state, ...this.layout.config });
@@ -154,6 +165,7 @@ class BookcaseConfigurator {
     this.cacheElements();
     this.viewer = this.createViewer(this.layout);
     this.bindEvents();
+    if (this.arEnabled) this.initializeCabinetAr();
     this.renderActiveControls();
     this.syncInterface();
     this.verifyRestoredPaintSelection();
@@ -187,6 +199,7 @@ class BookcaseConfigurator {
   }
 
   loadInitialConfig() {
+    if (this.host.__cabinetArSharedConfiguration) return this.host.__cabinetArSharedConfiguration;
     const requestedPresetId = new URLSearchParams(window.location.search).get("preset");
     const requestedPreset = layoutPresets.find((preset) => preset.id === requestedPresetId);
     if (requestedPreset) {
@@ -281,6 +294,14 @@ class BookcaseConfigurator {
             <button type="button" data-view="three-quarter" aria-pressed="true"><span class="view-icon" aria-hidden="true">${builderIcons.threeQuarter}</span>3/4</button>
             <button type="button" data-view="side" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.side}</span>Side</button>
           </div>
+          ${this.arEnabled ? `
+            <div class="cabinet-ar-launch">
+              <button class="cabinet-ar-launch-button" type="button" data-open-ar aria-label="View this configured cabinet in your room">
+                <span class="view-icon" aria-hidden="true">${builderIcons.cube}</span><span>View in Your Room</span>
+              </button>
+              <small>See this cabinet at true scale in your space.</small>
+            </div>
+          ` : ""}
         </section>
 
         <section class="configurator-estimate-bar" aria-label="Estimate and next steps">
@@ -305,6 +326,8 @@ class BookcaseConfigurator {
             <div data-review-dialog-content></div>
           </div>
         </dialog>
+
+        ${this.arEnabled ? `<dialog class="cabinet-ar-dialog" data-ar-dialog aria-labelledby="cabinet-ar-title"></dialog>` : ""}
 
         <p class="status-message" data-builder-status role="status" aria-live="polite"></p>
       </form>
@@ -849,8 +872,27 @@ class BookcaseConfigurator {
       allPanel: this.host.querySelector('[data-mode-panel="all"]'),
       modeDescription: this.host.querySelector("[data-mode-description]"),
       reviewDialog: this.host.querySelector("[data-review-dialog]"),
-      reviewDialogContent: this.host.querySelector("[data-review-dialog-content]")
+      reviewDialogContent: this.host.querySelector("[data-review-dialog-content]"),
+      arDialog: this.host.querySelector("[data-ar-dialog]")
     };
+  }
+
+  initializeCabinetAr() {
+    if (this.arControllerPromise) return this.arControllerPromise;
+    this.arControllerPromise = import("./cabinet-ar-ui.js?v=cabinet-ar-20260712a")
+      .then(({ CabinetArController }) => {
+        if (!this.elements.arDialog) return null;
+        this.arController = new CabinetArController({
+          host: this.host,
+          dialog: this.elements.arDialog,
+          getState: () => this.state,
+          getLayout: () => this.layout,
+          getPrice: () => this.price
+        });
+        return this.arController;
+      })
+      .catch(() => null);
+    return this.arControllerPromise;
   }
 
   bindEvents() {
@@ -971,6 +1013,15 @@ class BookcaseConfigurator {
     }
     if (target.closest?.("[data-review-design]")) {
       if (this.ensureConfigurationActionable()) this.openReviewDialog();
+      return;
+    }
+    const arButton = target.closest?.("[data-open-ar]");
+    if (arButton) {
+      if (!this.ensureConfigurationActionable()) return;
+      this.initializeCabinetAr().then((controller) => {
+        if (controller) controller.open(arButton);
+        else this.showStatus("The room view could not load. Your design is unchanged.", true);
+      });
       return;
     }
     if (target.closest?.("[data-close-review]")) {
@@ -1507,6 +1558,7 @@ class BookcaseConfigurator {
     this.price = this.pricing.total;
     this.priceCalculationCount += 1;
     this.viewer.update(this.state, this.layout, changedFields);
+    this.arController?.handleConfigurationChanged();
     if (changedFields.some((field) => ["finish", "customPaintColor", "customPaintCode", "customPaintHex", "paintSelection"].includes(field))) {
       this.renderActiveControls({ previousMode: this.mode });
     }
@@ -1770,6 +1822,12 @@ class BookcaseConfigurator {
     });
     this.host.querySelectorAll("[data-open-order]").forEach((button) => {
       button.disabled = blocking || quoteLocked;
+      button.setAttribute("aria-disabled", String(button.disabled));
+      if (blocking && actionHint?.id) button.setAttribute("aria-describedby", actionHint.id);
+      else button.removeAttribute("aria-describedby");
+    });
+    this.host.querySelectorAll("[data-open-ar]").forEach((button) => {
+      button.disabled = blocking;
       button.setAttribute("aria-disabled", String(button.disabled));
       if (blocking && actionHint?.id) button.setAttribute("aria-describedby", actionHint.id);
       else button.removeAttribute("aria-describedby");

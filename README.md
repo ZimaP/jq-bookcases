@@ -44,6 +44,11 @@ The parametric model architecture is documented in
 `CONFIGURATOR-ARCHITECTURE.md`. Repeatable desktop, mobile, preset, and
 geometry checks are listed in `CONFIGURATOR-QA.md`.
 
+The feature-flagged “View in Your Room” MVP, platform matrix, model-provider
+contract, deployment requirements, and known limitations are documented in
+`CABINET-AR-ARCHITECTURE.md`. Physical-device checks are in
+`CABINET-AR-QA.md`.
+
 The public route map, shared-shell ownership, and canonical customer journeys
 are documented in `SITE-ARCHITECTURE.md`.
 

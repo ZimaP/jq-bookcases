@@ -2,7 +2,7 @@
   "type": "module",
   "scripts": {
     "catalog:benjamin-moore": "node scripts/import-benjamin-moore-colors.js",
-    "build": "node --check icon-system.js && node --check quote-prefill.js && node --check site.js && node --check configurator-experience.js && node --check configurator-3d.js && node --check bookcase-config.js && node --check bookcase-layout.js && node --check bookcase-billable.js && node --check bookcase-pricing.js && node --check benjamin-moore-colors.js && node --check scripts/import-benjamin-moore-colors.js",
+    "build": "node --check icon-system.js && node --check quote-prefill.js && node --check site.js && node --check configurator-experience.js && node --check configurator-3d.js && node --check cabinet-ar.js && node --check cabinet-ar-model.js && node --check cabinet-ar-ui.js && node --check bookcase-config.js && node --check bookcase-layout.js && node --check bookcase-billable.js && node --check bookcase-pricing.js && node --check benjamin-moore-colors.js && node --check scripts/import-benjamin-moore-colors.js",
     "test": "node --test tests/*.test.js",
     "serve": "python3 -m http.server 5173"
   }
