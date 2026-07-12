@@ -37,6 +37,12 @@ the configuration hash, browser/OS version, load time, and any launch failure.
 - [ ] Repeat the iPhone flow on a current AR-capable iPad.
 - [ ] Check portrait and landscape dialog layout and Quick Look return behavior.
 
+## iPhone/iPad Chrome, Edge, and Firefox
+
+- [ ] Test a current third-party iOS browser over HTTPS.
+- [ ] Confirm the client-side USDZ fallback exposes `Start AR`.
+- [ ] Confirm tapping `Start AR` launches Apple Quick Look and preserves fixed scale.
+
 ## Android Chrome
 
 - [ ] Test current Chrome on an ARCore/WebXR-capable Android phone over HTTPS.
@@ -75,4 +81,3 @@ the configuration hash, browser/OS version, load time, and any launch failure.
       be uploaded.
 - [ ] Disable `data-enable-cabinet-ar`; confirm no AR button, model-viewer script,
       QR module, or model request occurs.
-
