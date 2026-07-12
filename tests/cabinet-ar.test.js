@@ -159,6 +159,9 @@ test("AR UI contracts include fixed scale, floor placement, fallbacks, and analy
   assert.match(source, /camera-controls/);
   assert.match(source, /AR isn’t available in this browser/);
   assert.match(source, /data-ar-launch/);
+  assert.match(source, /prepareIosUsdz/);
+  assert.match(source, /prepareUSDZ/);
+  assert.match(source, /generatedUsdzUrl/);
   [
     "ar_button_viewed", "ar_button_clicked", "ar_model_requested", "ar_model_ready", "ar_launch_started",
     "ar_launch_succeeded", "ar_launch_failed", "ar_unsupported_device", "ar_qr_displayed", "ar_qr_opened"

@@ -25,6 +25,7 @@ export class CabinetArController {
     this.activeConfigurationHash = "";
     this.arLaunchSucceeded = false;
     this.slowTimer = 0;
+    this.generatedUsdzUrl = "";
     this.analyticsMetadata = {};
     this.modelProvider = createArModelProvider({
       endpoint: document.querySelector('meta[name="jq-ar-model-endpoint"]')?.content || "",
@@ -75,10 +76,20 @@ export class CabinetArController {
       if (modelResult.stale || this.destroyed || configurationHash !== this.currentConfigurationHash()) return;
       await loadModelViewer();
       if (modelResult.stale || this.destroyed || configurationHash !== this.currentConfigurationHash()) return;
+      let resolvedModel = modelResult.result;
+      if (capability.operatingSystem === "ios" && !capability.quickLook && !resolvedModel.usdzUrl) {
+        const generatedUsdzUrl = await prepareIosUsdz(resolvedModel.glbUrl);
+        if (generatedUsdzUrl) {
+          this.releaseGeneratedUsdz();
+          this.generatedUsdzUrl = generatedUsdzUrl;
+          resolvedModel = { ...resolvedModel, usdzUrl: generatedUsdzUrl };
+        }
+      }
+      if (modelResult.stale || this.destroyed || configurationHash !== this.currentConfigurationHash()) return;
       window.clearTimeout(this.slowTimer);
       this.loading = false;
       this.setLaunchButtonLoading(false);
-      this.renderReady(configuration, modelResult.result, capability, shareUrl);
+      this.renderReady(configuration, resolvedModel, capability, shareUrl);
       emitArAnalytics("ar_model_ready", { ...this.analyticsMetadata, deviceCategory: capability.deviceCategory, operatingSystem: capability.operatingSystem });
     } catch (error) {
       if (this.destroyed || configurationHash !== this.activeConfigurationHash) return;
@@ -97,6 +108,7 @@ export class CabinetArController {
     this.loading = false;
     window.clearTimeout(this.slowTimer);
     this.setLaunchButtonLoading(false);
+    this.releaseGeneratedUsdz();
     if (this.dialog?.open) {
       this.renderNotice("Your cabinet changed. Close this window and open “View in Your Room” again to prepare the latest design.");
     }
@@ -106,6 +118,7 @@ export class CabinetArController {
     this.destroyed = true;
     window.clearTimeout(this.slowTimer);
     this.coordinator.destroy();
+    this.releaseGeneratedUsdz();
     this.intersectionObserver?.disconnect();
   }
 
@@ -161,6 +174,8 @@ export class CabinetArController {
   renderReady(configuration, model, capability, shareUrl) {
     this.arLaunchSucceeded = false;
     const remoteModel = model.source === "remote";
+    const iosQuickLook = capability.quickLook || (capability.operatingSystem === "ios" && Boolean(model.usdzUrl));
+    if (iosQuickLook && !capability.quickLook) capability = { ...capability, quickLook: true, canLaunchAr: true };
     const available = capability.webXr || capability.quickLook || (remoteModel && capability.sceneViewer);
     const arModes = [
       ...(capability.webXr ? ["webxr"] : ["webxr"]),
@@ -325,6 +340,12 @@ export class CabinetArController {
     });
   }
 
+  releaseGeneratedUsdz() {
+    if (!this.generatedUsdzUrl) return;
+    URL.revokeObjectURL(this.generatedUsdzUrl);
+    this.generatedUsdzUrl = "";
+  }
+
   get content() {
     return this.dialog.querySelector("[data-ar-content]");
   }
@@ -343,6 +364,28 @@ function loadModelViewer() {
     document.head.appendChild(script);
   });
   return modelViewerLoader;
+}
+
+async function prepareIosUsdz(glbUrl) {
+  const viewer = document.createElement("model-viewer");
+  viewer.setAttribute("loading", "eager");
+  viewer.style.cssText = "position:fixed;left:-10000px;top:0;width:2px;height:2px;opacity:0;pointer-events:none;";
+  document.body.appendChild(viewer);
+  try {
+    const loaded = new Promise((resolve, reject) => {
+      const timeout = window.setTimeout(() => reject(new Error("USDZ preparation timed out.")), 20000);
+      viewer.addEventListener("load", () => { window.clearTimeout(timeout); resolve(); }, { once: true });
+      viewer.addEventListener("error", () => { window.clearTimeout(timeout); reject(new Error("USDZ source failed to load.")); }, { once: true });
+    });
+    viewer.src = glbUrl;
+    await loaded;
+    if (typeof viewer.prepareUSDZ !== "function") return null;
+    return await viewer.prepareUSDZ();
+  } catch (error) {
+    return null;
+  } finally {
+    viewer.remove();
+  }
 }
 
 function desktopHandoffMarkup(shareUrl) {
