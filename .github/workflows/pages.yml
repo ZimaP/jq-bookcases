@@ -1,6 +1,9 @@
 name: Deploy JQ Bookcases to GitHub Pages
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -13,7 +16,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -35,9 +38,11 @@ jobs:
         run: npm test
 
       - name: Configure GitHub Pages
+        if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
 
       - name: Prepare static site
+        if: github.event_name != 'pull_request'
         run: |
           mkdir -p _site
           rsync -a \
@@ -57,12 +62,14 @@ jobs:
           test -f _site/configurator.html
 
       - name: Upload Pages artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v4
         with:
           path: _site
           include-hidden-files: true
 
   deploy:
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
