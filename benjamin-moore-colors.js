@@ -1,102 +1,108 @@
-/**
- * Curated local Benjamin Moore color lookup.
- *
- * This module is not an official Benjamin Moore API, does not make network
- * requests, and is not a substitute for a physical paint sample. Color names
- * and codes are catalog references; approximateHex values are deliberately
- * documented as screen-preview approximations only. On-screen color depends
- * on display calibration, lighting, paint product, substrate, and sheen.
- */
-
 export const BENJAMIN_MOORE_COLOR_DATA_NOTICE =
-  "Curated local catalog subset with approximate digital preview colors; not an official Benjamin Moore API or a color-accuracy guarantee.";
+  "Digital preview only. On-screen colors may differ from actual paint because of your display, lighting, paint product, and sheen. Confirm the final color with an official Benjamin Moore sample.";
 
-export const BENJAMIN_MOORE_DATASET_INFO = Object.freeze({
-  kind: "curated-local-approximation",
-  officialApiConnection: false,
-  runtimeNetworkAccess: false,
-  colorAccuracyGuaranteed: false,
-  hexField: "approximateHex",
-  lastReviewed: "2026-07-09",
-  catalogSource: "Public Benjamin Moore color catalog",
-  notice: BENJAMIN_MOORE_COLOR_DATA_NOTICE
-});
+export const BENJAMIN_MOORE_OFFICIAL_COLORS_URL = "https://www.benjaminmoore.com/en-us/paint-colors";
+export const BENJAMIN_MOORE_OFFICIAL_PALETTES_URL = "https://www.benjaminmoore.com/en-us/architects-designers/download-benjamin-moore-color-palettes";
+export const BENJAMIN_MOORE_CATALOG_URL = "./data/generated/benjamin-moore-colors.json?v=bm-ase-aab26493687b";
 
-const COLOR_DEFINITIONS = [
-  ["White Dove", "OC-17", "#F0EEE5", "white"],
-  ["Chantilly Lace", "OC-65", "#F5F4EE", "white"],
-  ["Simply White", "OC-117", "#F4F3E8", "white"],
-  ["Cloud White", "OC-130", "#F1EEE4", "white"],
-  ["Silver Satin", "OC-26", "#DAD9D3", "white"],
-  ["Decorator's White", "OC-149", "#ECEDE8", "white"],
-  ["Super White", "OC-152", "#F3F4F0", "white"],
-  ["Swiss Coffee", "OC-45", "#EDE7D8", "white"],
-  ["Seapearl", "OC-19", "#E8E3D8", "white"],
-  ["Calm", "OC-22", "#E6E2D8", "white"],
-  ["Pale Oak", "OC-20", "#D6CEC2", "neutral"],
-  ["Classic Gray", "OC-23", "#E3DFD5", "neutral"],
-  ["Balboa Mist", "OC-27", "#D1CAC2", "neutral"],
-  ["Collingwood", "OC-28", "#CAC5BC", "neutral"],
-  ["Gray Owl", "OC-52", "#D4D5CD", "gray"],
-  ["Manchester Tan", "HC-81", "#D5C6AA", "neutral"],
-  ["Rockport Gray", "HC-105", "#A29D91", "gray"],
-  ["Saybrook Sage", "HC-114", "#B2B4A0", "green"],
-  ["Palladian Blue", "HC-144", "#C1D1C9", "blue"],
-  ["Hale Navy", "HC-154", "#434B56", "blue"],
-  ["Newburyport Blue", "HC-155", "#394A5C", "blue"],
-  ["Van Deusen Blue", "HC-156", "#3E5063", "blue"],
-  ["Boothbay Gray", "HC-165", "#AAB0AE", "gray"],
-  ["Kendall Charcoal", "HC-166", "#686762", "gray"],
-  ["Chelsea Gray", "HC-168", "#86847C", "gray"],
-  ["Coventry Gray", "HC-169", "#B4B6B1", "gray"],
-  ["Stonington Gray", "HC-170", "#CACBC5", "gray"],
-  ["Revere Pewter", "HC-172", "#CCC4B8", "neutral"],
-  ["Edgecomb Gray", "HC-173", "#D3C9BA", "neutral"],
-  ["Essex Green", "HC-188", "#29352F", "green"]
-];
+export class ColorCatalogProvider {
+  search() { throw new Error("ColorCatalogProvider.search() must be implemented."); }
+  getByCode() { throw new Error("ColorCatalogProvider.getByCode() must be implemented."); }
+  getById() { throw new Error("ColorCatalogProvider.getById() must be implemented."); }
+  normalizeCode(value) { return normalizeBenjaminMooreCode(value); }
+  getCatalogMetadata() { throw new Error("ColorCatalogProvider.getCatalogMetadata() must be implemented."); }
+  getOfficialReference() { return null; }
+}
 
-export const BENJAMIN_MOORE_COLORS = Object.freeze(
-  COLOR_DEFINITIONS.map(([name, code, approximateHex, family]) => Object.freeze({
-    id: code.toLowerCase(),
-    name,
-    code,
-    approximateHex,
-    family,
-    officialColorUrl: "https://www.benjaminmoore.com/en-us/paint-colors/color/" + code
-  }))
-);
+export class BenjaminMooreColorCatalogProvider extends ColorCatalogProvider {
+  constructor(options = {}) {
+    super();
+    this.catalogUrl = options.catalogUrl || BENJAMIN_MOORE_CATALOG_URL;
+    this.catalogLoader = options.catalogLoader || (() => loadCatalogJson(this.catalogUrl));
+    this.catalogPromise = null;
+    this.catalog = null;
+    this.index = null;
+  }
 
-const SEARCH_INDEX = BENJAMIN_MOORE_COLORS.map((color, order) => Object.freeze({
-  color,
-  order,
-  nameKey: normalizeBenjaminMooreQuery(color.name),
-  codeKey: normalizeBenjaminMooreCode(color.code),
-  combinedKey: normalizeBenjaminMooreQuery(color.name + " " + color.code)
-}));
+  async load() {
+    if (!this.catalogPromise) {
+      this.catalogPromise = Promise.resolve(this.catalogLoader()).then((payload) => {
+        if (!payload || !Array.isArray(payload.colors)) throw new Error("The Benjamin Moore color catalog is unavailable.");
+        this.catalog = payload;
+        this.index = buildIndex(payload.colors);
+        return payload;
+      }).catch((error) => {
+        this.catalogPromise = null;
+        throw error;
+      });
+    }
+    return this.catalogPromise;
+  }
 
-const NAME_INDEX = new Map(SEARCH_INDEX.map((entry) => [entry.nameKey, entry.color]));
-const CODE_INDEX = new Map(SEARCH_INDEX.map((entry) => [entry.codeKey, entry.color]));
-const COMBINED_INDEX = new Map(SEARCH_INDEX.map((entry) => [entry.combinedKey, entry.color]));
+  async search(query, options = {}) {
+    const queryKey = normalizeBenjaminMooreQuery(query);
+    if (!queryKey) return [];
+    await this.load();
+    const requestedLimit = Number(options.limit);
+    const limit = Number.isFinite(requestedLimit) ? Math.max(0, Math.min(20, Math.floor(requestedLimit))) : 12;
+    if (!limit) return [];
+    const normalizedCode = this.normalizeCode(query);
+    const canonicalCode = normalizeCanonicalCode(query);
+    const queryWords = queryKey.split(" ").filter(Boolean);
+    return this.index.entries
+      .map((entry) => ({ entry, score: scoreEntry(entry, { queryKey, normalizedCode, canonicalCode, queryWords }) }))
+      .filter((candidate) => Number.isFinite(candidate.score))
+      .sort((left, right) => left.score - right.score || left.entry.color.name.localeCompare(right.entry.color.name) || left.entry.color.code.localeCompare(right.entry.color.code, "en", { numeric: true }))
+      .slice(0, limit)
+      .map((candidate) => candidate.entry.color);
+  }
 
-/**
- * Normalize a human-entered name or code for comparison.
- *
- * Examples:
- *   "  WHITE-DOVE " -> "white dove"
- *   "OC - 17"       -> "oc 17"
- *   "hc154"         -> "hc 154"
- *   "Decorator’s"   -> "decorators"
- */
+  async getByCode(code) {
+    await this.load();
+    return this.index.byCode.get(this.normalizeCode(code)) || null;
+  }
+
+  async getById(id) {
+    await this.load();
+    return this.index.byId.get(String(id || "")) || null;
+  }
+
+  async getByName(name) {
+    await this.load();
+    return this.index.byName.get(normalizeBenjaminMooreQuery(name)) || null;
+  }
+
+  async getExact(value) {
+    if (value && typeof value === "object") {
+      const byCode = value.code ? await this.getByCode(value.code) : null;
+      const byName = value.name ? await this.getByName(value.name) : null;
+      if (value.code && value.name) return byCode && byCode === byName ? byCode : null;
+      return byCode || byName;
+    }
+    const byCode = await this.getByCode(value);
+    if (byCode) return byCode;
+    return this.getByName(value);
+  }
+
+  async getCatalogMetadata() {
+    const catalog = await this.load();
+    const { colors: _colors, ...metadata } = catalog;
+    return metadata;
+  }
+
+  getOfficialReference() {
+    return BENJAMIN_MOORE_OFFICIAL_COLORS_URL;
+  }
+}
+
 export function normalizeBenjaminMooreQuery(value) {
   if (value == null) return "";
-  const stringValue = typeof value === "string" || typeof value === "number"
-    ? String(value)
-    : "";
+  const stringValue = typeof value === "string" || typeof value === "number" ? String(value) : "";
   return stringValue
     .normalize("NFKD")
     .replace(/\p{Mark}/gu, "")
     .toLowerCase()
-    .replace(/[’'\u0060]/g, "")
+    .replace(/[’'`®™]/g, "")
     .replace(/&/g, " and ")
     .replace(/([a-z])([0-9])/g, "$1 $2")
     .replace(/([0-9])([a-z])/g, "$1 $2")
@@ -105,99 +111,82 @@ export function normalizeBenjaminMooreQuery(value) {
     .replace(/\s+/g, " ");
 }
 
-/**
- * Normalize a code to a punctuation-insensitive key.
- *
- * OC-17, oc 17, OC17, and " oc - 17 " all normalize to "oc17".
- */
 export function normalizeBenjaminMooreCode(value) {
-  return normalizeBenjaminMooreQuery(value).replace(/\s+/g, "");
+  return String(value == null ? "" : value).toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-/**
- * Search the curated subset by full or partial name and code.
- *
- * Results are deterministic and ranked as:
- * exact code/name, code prefix/fragment, name prefix, all-token match,
- * then general substring. Returned objects are the frozen dataset entries.
- */
-export function searchBenjaminMooreColors(query, options = {}) {
-  const queryKey = normalizeBenjaminMooreQuery(query);
-  if (!queryKey) return [];
-
-  const codeKey = normalizeBenjaminMooreCode(query);
-  const codeLike = looksLikeColorCode(queryKey);
-  const tokens = queryKey.split(" ").filter(Boolean);
-  const requestedLimit = Number(options?.limit);
-  const limit = Number.isFinite(requestedLimit)
-    ? Math.max(0, Math.min(BENJAMIN_MOORE_COLORS.length, Math.floor(requestedLimit)))
-    : 10;
-  if (limit === 0) return [];
-
-  return SEARCH_INDEX
-    .map((entry) => ({
-      entry,
-      score: getSearchScore(entry, queryKey, codeKey, codeLike, tokens)
-    }))
-    .filter((candidate) => Number.isFinite(candidate.score))
-    .sort((left, right) => {
-      if (left.score !== right.score) return left.score - right.score;
-      const nameOrder = left.entry.color.name.localeCompare(right.entry.color.name);
-      return nameOrder || left.entry.order - right.entry.order;
-    })
-    .slice(0, limit)
-    .map((candidate) => candidate.entry.color);
+export function createBenjaminMoorePaintSelection(color) {
+  if (!color || typeof color !== "object") return null;
+  return {
+    source: "benjamin-moore",
+    brand: "Benjamin Moore",
+    catalogId: String(color.id || ""),
+    code: String(color.code || ""),
+    name: String(color.name || ""),
+    collections: Array.isArray(color.collections) ? color.collections.map(String) : [],
+    previewHex: String(color.hex || ""),
+    previewRgb: color.rgb ? { r: Number(color.rgb.r), g: Number(color.rgb.g), b: Number(color.rgb.b) } : null,
+    catalogVersion: String(color.catalogVersion || ""),
+    sourceType: "official-palette"
+  };
 }
 
-/**
- * Find one exact color by its full name, code, or combined "name code" label.
- * Partial queries deliberately return null.
- *
- * An object with code and/or name is also accepted for safe saved-state
- * restoration. When both are supplied they must identify the same color.
- */
-export function findExactBenjaminMooreColor(value) {
-  if (value && typeof value === "object") {
-    const byCode = value.code != null ? findBenjaminMooreColorByCode(value.code) : null;
-    const byName = value.name != null ? findBenjaminMooreColorByName(value.name) : null;
-    if (value.code != null && value.name != null) return byCode && byCode === byName ? byCode : null;
-    return byCode || byName;
-  }
-
-  const queryKey = normalizeBenjaminMooreQuery(value);
-  if (!queryKey) return null;
-  return (
-    NAME_INDEX.get(queryKey) ||
-    CODE_INDEX.get(normalizeBenjaminMooreCode(value)) ||
-    COMBINED_INDEX.get(queryKey) ||
-    null
-  );
+function buildIndex(colors) {
+  const entries = colors.map((color) => ({
+    color,
+    canonicalCode: normalizeCanonicalCode(color.code),
+    codeKey: normalizeBenjaminMooreCode(color.code),
+    nameKey: normalizeBenjaminMooreQuery(color.name),
+    nameWords: normalizeBenjaminMooreQuery(color.name).split(" ").filter(Boolean),
+    aliasKeys: (color.aliases || []).map(normalizeBenjaminMooreQuery)
+  }));
+  return {
+    entries,
+    byCode: new Map(entries.map((entry) => [entry.codeKey, entry.color])),
+    byId: new Map(entries.map((entry) => [entry.color.id, entry.color])),
+    byName: new Map(entries.flatMap((entry) => [[entry.nameKey, entry.color], ...entry.aliasKeys.map((alias) => [alias, entry.color])]))
+  };
 }
 
-export function findBenjaminMooreColorByCode(code) {
-  const key = normalizeBenjaminMooreCode(code);
-  return key ? CODE_INDEX.get(key) || null : null;
-}
-
-export function findBenjaminMooreColorByName(name) {
-  const key = normalizeBenjaminMooreQuery(name);
-  return key ? NAME_INDEX.get(key) || null : null;
-}
-
-function getSearchScore(entry, queryKey, codeKey, codeLike, tokens) {
-  if (codeLike && entry.codeKey === codeKey) return 0;
-  if (entry.nameKey === queryKey) return 0;
-  if (entry.combinedKey === queryKey) return 0;
-  if (codeLike && entry.codeKey.startsWith(codeKey)) return 10;
-  if (codeLike && entry.codeKey.includes(codeKey)) return 20;
-  if (entry.nameKey.startsWith(queryKey)) return 30;
-
-  const searchable = entry.nameKey + " " + normalizeBenjaminMooreQuery(entry.color.code);
-  if (tokens.length && tokens.every((token) => searchable.includes(token))) return 40;
-  if (entry.nameKey.includes(queryKey) || entry.combinedKey.includes(queryKey)) return 50;
+function scoreEntry(entry, query) {
+  if (query.canonicalCode && entry.canonicalCode === query.canonicalCode) return 0;
+  if (query.normalizedCode && entry.codeKey === query.normalizedCode) return 1;
+  if (entry.nameKey === query.queryKey || entry.aliasKeys.includes(query.queryKey)) return 2;
+  if (entry.nameKey.startsWith(query.queryKey)) return 3;
+  if (query.normalizedCode && entry.codeKey.startsWith(query.normalizedCode)) return 4;
+  if (query.queryWords.length && query.queryWords.every((word) => entry.nameWords.some((candidate) => candidate.startsWith(word)))) return 5;
+  if (entry.nameKey.includes(query.queryKey) || entry.aliasKeys.some((alias) => alias.includes(query.queryKey))) return 6;
   return Number.POSITIVE_INFINITY;
 }
 
-function looksLikeColorCode(queryKey) {
-  return /^(?:oc|hc|af|csp)(?:\s*\d.*)?$/.test(queryKey) || /^\d+(?:\s+\d+)?$/.test(queryKey);
+function normalizeCanonicalCode(value) {
+  return String(value == null ? "" : value).trim().toUpperCase().replace(/\s+/g, "-");
+}
+
+async function loadCatalogJson(url) {
+  const response = await fetch(url, { credentials: "same-origin", cache: "force-cache" });
+  if (!response.ok) throw new Error(`Catalog request failed with status ${response.status}.`);
+  return response.json();
+}
+
+let sharedProvider;
+export function getBenjaminMooreColorCatalogProvider() {
+  if (!sharedProvider) sharedProvider = new BenjaminMooreColorCatalogProvider();
+  return sharedProvider;
+}
+
+export async function searchBenjaminMooreColors(query, options) {
+  return getBenjaminMooreColorCatalogProvider().search(query, options);
+}
+
+export async function findExactBenjaminMooreColor(value) {
+  return getBenjaminMooreColorCatalogProvider().getExact(value);
+}
+
+export async function findBenjaminMooreColorByCode(value) {
+  return getBenjaminMooreColorCatalogProvider().getByCode(value);
+}
+
+export async function findBenjaminMooreColorByName(value) {
+  return getBenjaminMooreColorCatalogProvider().getByName(value);
 }

@@ -74,6 +74,39 @@ test("saved custom paint state keeps the selected catalog identity and approxima
   assert.equal(normalized.customPaintColor, "Hale Navy");
   assert.equal(normalized.customPaintCode, "HC-154");
   assert.equal(normalized.customPaintHex, "#434b56");
+  assert.deepEqual(normalized.paintSelection, {
+    source: "benjamin-moore",
+    brand: "Benjamin Moore",
+    catalogId: "benjamin-moore:hc-154",
+    code: "HC-154",
+    name: "Hale Navy",
+    collections: [],
+    previewHex: "#434b56",
+    previewRgb: { r: 67, g: 75, b: 86 },
+    catalogVersion: "",
+    sourceType: "saved-preview"
+  });
+});
+
+test("structured official paint state survives normalization and standard finishes clear it", () => {
+  const paintSelection = {
+    source: "benjamin-moore",
+    brand: "Benjamin Moore",
+    catalogId: "benjamin-moore:oc-17",
+    code: "OC-17",
+    name: "White Dove",
+    collections: ["Off White Collection"],
+    previewHex: "#F0EFE6",
+    previewRgb: { r: 240, g: 239, b: 230 },
+    catalogVersion: "bm-ase-test",
+    sourceType: "official-palette"
+  };
+  const custom = normalizeBookcaseConfig({ ...defaultBookcaseConfig, finish: "custom_bm", paintSelection });
+  assert.deepEqual(custom.paintSelection, { ...paintSelection, previewHex: "#f0efe6" });
+  assert.deepEqual([custom.customPaintColor, custom.customPaintCode, custom.customPaintHex], ["White Dove", "OC-17", "#f0efe6"]);
+  const standard = normalizeBookcaseConfig({ ...custom, finish: "white_dove" });
+  assert.equal(standard.paintSelection, null);
+  assert.deepEqual([standard.customPaintColor, standard.customPaintCode, standard.customPaintHex], ["", "", ""]);
 });
 
 test("design identity is based on physical selections rather than preset provenance", () => {

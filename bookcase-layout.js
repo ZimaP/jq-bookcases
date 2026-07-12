@@ -1,5 +1,5 @@
 /**
- * Pure parametric layout engine for John Quinn Bookcases.
+ * Pure parametric layout engine for JQ Bookcases.
  *
  * All dimensions are inches. X is width (left to right), Y is height
  * (bottom to top), and Z is depth (front to back). The origin is the

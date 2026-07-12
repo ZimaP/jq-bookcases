@@ -1,0 +1,121 @@
+{
+  "brand": "Benjamin Moore",
+  "catalogVersion": "bm-ase-aab26493687b",
+  "generatedDate": "2026-07-12",
+  "sourceType": "official-palette",
+  "officialPalettePage": "https://www.benjaminmoore.com/en-us/architects-designers/download-benjamin-moore-color-palettes",
+  "runtimeNetworkAccess": false,
+  "digitalPreviewOnly": true,
+  "sourceFileCount": 11,
+  "uniqueColorCodeCount": 4056,
+  "uniqueColorCount": 4056,
+  "collectionCount": 11,
+  "aliasCount": 0,
+  "duplicateRecordsMerged": 83,
+  "minorDigitalVariantsMerged": 40,
+  "conflictingRecords": 0,
+  "collections": [
+    "Affinity Color Collection",
+    "America's Colors",
+    "Benjamin Moore Classics",
+    "Color Preview",
+    "Color Stories",
+    "Color Trends 2026 Palette",
+    "Colors for Vinyl",
+    "Designer Classics",
+    "Historical Colors",
+    "Off White Collection",
+    "Williamsburg Color Collection"
+  ],
+  "sources": [
+    {
+      "filename": "benjaminmoore_affinity_en-us.ase",
+      "collection": "Affinity Color Collection",
+      "url": "https://www.benjaminmoore.com/-/media/sites/benjaminmoore/files/palettedownloads/ase/en-us/benjaminmoore_affinity_en-us.ase",
+      "sha256": "d9d961eca3ce94b088e2efd10df83e8fec987db3ac726a0f4d64fc845a993244",
+      "bytes": 9262,
+      "colorRecords": 144
+    },
+    {
+      "filename": "benjaminmoore_classiccolors_en-us.ase",
+      "collection": "Benjamin Moore Classics",
+      "url": "https://www.benjaminmoore.com/-/media/sites/benjaminmoore/files/palettedownloads/ase/en-us/benjaminmoore_classiccolors_en-us.ase",
+      "sha256": "2bd8d3631b393a113514a69e84d7f13cfb5ddbf1e0de179e1f71315556554bf6",
+      "bytes": 103244,
+      "colorRecords": 1680
+    },
+    {
+      "filename": "benjaminmoore_colorstories_en-us.ase",
+      "collection": "Color Stories",
+      "url": "https://www.benjaminmoore.com/-/media/sites/benjaminmoore/files/palettedownloads/ase/en-us/benjaminmoore_colorstories_en-us.ase",
+      "sha256": "9110caa2706399583bf0f4e5b5915e6cf7d8fbec28edba9ef112c590f69a13c2",
+      "bytes": 17830,
+      "colorRecords": 240
+    },
+    {
+      "filename": "benjaminmoore_colorpreview_en-us.ase",
+      "collection": "Color Preview",
+      "url": "https://www.benjaminmoore.com/-/media/sites/benjaminmoore/files/palettedownloads/ase/en-us/benjaminmoore_colorpreview_en-us.ase",
+      "sha256": "3676b8c38837c91f0d98246f008e103bfc8170ee6098cbe0bf5d8c8d089a7232",
+      "bytes": 90624,
+      "colorRecords": 1232
+    },
+    {
+      "filename": "benjaminmoore_historicalcolors_en-us.ase",
+      "collection": "Historical Colors",
+      "url": "https://www.benjaminmoore.com/-/media/sites/benjaminmoore/files/palettedownloads/ase/en-us/benjaminmoore_historicalcolors_en-us.ase",
+      "sha256": "05721359184bd0b12ec95d8cee29a95ed9597fd81d3f6ddd45ec5a619e44e561",
+      "bytes": 13192,
+      "colorRecords": 191
+    },
+    {
+      "filename": "benjaminmoore_off-whitecolors_en-us.ase",
+      "collection": "Off White Collection",
+      "url": "https://www.benjaminmoore.com/-/media/sites/benjaminmoore/files/palettedownloads/ase/en-us/benjaminmoore_off-whitecolors_en-us.ase",
+      "sha256": "28c20776a61a19b44e83c84a6222a052bacd57ee6e64ab64ac6e24b17ddad047",
+      "bytes": 10488,
+      "colorRecords": 152
+    },
+    {
+      "filename": "benjaminmoore_williamsburgcolorcollection_en-us.ase",
+      "collection": "Williamsburg Color Collection",
+      "url": "https://www.benjaminmoore.com/-/media/sites/benjaminmoore/files/palettedownloads/ase/en-us/benjaminmoore_williamsburgcolorcollection_en-us.ase",
+      "sha256": "f7c41c107c620c4435d3f1927f6e436ef9e4c8846061922e8ae9d235886753c9",
+      "bytes": 10472,
+      "colorRecords": 144
+    },
+    {
+      "filename": "benjaminmoore_americascolors_en-us.ase",
+      "collection": "America's Colors",
+      "url": "https://www.benjaminmoore.com/-/media/sites/benjaminmoore/files/palettedownloads/ase/en-us/benjaminmoore_americascolors_en-us.ase",
+      "sha256": "06081201da946838c47c7179f1827b6b40540e8ae2362d4b3a99d8bb0ba3f0a0",
+      "bytes": 3058,
+      "colorRecords": 42
+    },
+    {
+      "filename": "benjaminmoore_designerclassics_en-us.ase",
+      "collection": "Designer Classics",
+      "url": "https://www.benjaminmoore.com/-/media/sites/benjaminmoore/files/palettedownloads/ase/en-us/benjaminmoore_designerclassics_en-us.ase",
+      "sha256": "03b6864d436fa7136a1817d9998be4d5b1124d2f51f2dfb2161b2dfb8b4ec1c9",
+      "bytes": 15950,
+      "colorRecords": 231
+    },
+    {
+      "filename": "benjaminmoore_colorsforvinylsiding_en-us.ase",
+      "collection": "Colors for Vinyl",
+      "url": "https://www.benjaminmoore.com/-/media/sites/benjaminmoore/files/palettedownloads/ase/en-us/benjaminmoore_colorsforvinylsiding_en-us.ase",
+      "sha256": "d37314d1587be3c81a34bd9b6bc8676e9f1e2efaa44c4a48619624abd7e8e24d",
+      "bytes": 5402,
+      "colorRecords": 75
+    },
+    {
+      "filename": "BenjaminMoore_ColorTrends2026_en-us.ase",
+      "collection": "Color Trends 2026 Palette",
+      "url": "https://media.benjaminmoore.com/WebServices/prod/ColorTrends/2026/PaletteDownloads/BenjaminMoore_ColorTrends2026_en-us.ase",
+      "sha256": "7f7d5ee7f81c80692ab23eefd55cff3273c42e6b3e734926e9e29fa64fb48366",
+      "bytes": 538,
+      "colorRecords": 8
+    }
+  ],
+  "catalogBytes": 2111917
+}

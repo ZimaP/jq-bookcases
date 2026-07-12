@@ -1,4 +1,4 @@
-# John Quinn Bookcases Site Architecture
+# JQ Bookcases Site Architecture
 
 ## Canonical journeys
 
@@ -31,9 +31,16 @@ or separate quote drawer.
   FAQ behavior, saved-design quote prefill, and local quote-draft behavior.
 - `styles.css` owns brand tokens and all shared marketing/interior components.
 - `configurator.css` owns only the dense configurator application layout.
-- `configurator-3d.js` owns parametric UI rendering and 3D interaction.
-- `bookcase-config.js`, `bookcase-layout.js`, and `bookcase-pricing.js` remain
-  the shared product-data, geometry, and estimate sources of truth.
+- `configurator-experience.css` owns the two-mode configurator presentation and
+  responsive overrides.
+- `configurator-experience.js` owns the pure Guided/All workflow, mappings,
+  applicability, validation, summaries, preset transitions, and action
+  contracts.
+- `configurator-3d.js` owns the single configurator controller, shared shell,
+  browser events, persistent viewer, and 3D interaction.
+- `bookcase-config.js`, `bookcase-layout.js`, `bookcase-billable.js`, and
+  `bookcase-pricing.js` remain the shared product-data, geometry,
+  generated-quantity, and estimate sources of truth.
 
 ## Visual system
 
@@ -55,6 +62,11 @@ Every public page must include:
 
 Run `npm test` after changing navigation, routes, cache tokens, or page shell
 markup. `tests/site-integrity.test.js` enforces these contracts.
+
+The configurator has one permanent preview subtree outside both presentation
+modes. Guided/All mode preferences are local UI preferences; physical saved
+designs remain normalized schema-3 records. Customized designs are mapped back
+to their structural layout when prefilled into the quote page.
 
 ## Local-preview limitation
 

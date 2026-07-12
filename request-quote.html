@@ -3,11 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Request a Quote | John Quinn Bookcases</title>
-  <meta name="description" content="Tell John Quinn Bookcases about your space and receive a personalized estimate for a custom-quality built-in bookcase.">
+  <title>Request a Quote | JQ Bookcases</title>
+  <meta name="description" content="Tell JQ Bookcases about your space and receive a personalized estimate for a custom-quality built-in bookcase.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=site-system-20260711c">
-  <script type="module" src="site.js?v=site-system-20260711c" defer></script>
+  <link rel="stylesheet" href="styles.css?v=visual-system-20260712a">
+  <link rel="stylesheet" href="visual-consistency.css?v=visual-system-20260712a">
+  <script type="module" src="site.js?v=visual-system-20260712a" defer></script>
 </head>
 <body data-page="quote">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -26,6 +27,13 @@
     <section class="interior-section">
       <div class="container quote-layout">
         <form class="glass-panel quote-form" id="quote-request-form" data-quote-form enctype="multipart/form-data">
+          <input name="customPaint" type="hidden">
+          <input name="paintBrand" type="hidden">
+          <input name="paintCode" type="hidden">
+          <input name="paintName" type="hidden">
+          <input name="paintCollection" type="hidden">
+          <input name="paintPreviewHex" type="hidden">
+          <input name="paintCatalogVersion" type="hidden">
           <input name="designId" type="hidden">
           <p class="status-message" data-quote-status role="status"></p>
           <div class="saved-design-summary" data-saved-design-summary hidden aria-live="polite"></div>

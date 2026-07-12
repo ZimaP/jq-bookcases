@@ -1,0 +1,943 @@
+/*
+ * JQ Bookcases route normalization
+ * --------------------------------
+ * This file is intentionally loaded last. It contains no independent design
+ * tokens: every value with brand meaning resolves to the canonical roles in
+ * styles.css. Page-specific styles remain responsible only for composition.
+ */
+
+/* Shared interior-page rhythm ----------------------------------------- */
+
+.interior-hero {
+  padding-block: var(--section-space-compact) var(--space-6);
+}
+
+.interior-hero .breadcrumb {
+  margin-bottom: var(--space-2);
+}
+
+.interior-hero h1 {
+  margin-top: var(--space-2);
+}
+
+.interior-hero .lead {
+  margin-top: var(--space-4);
+}
+
+.interior-hero + .interior-section {
+  padding-top: var(--section-space-compact);
+}
+
+body:is([data-page="privacy"], [data-page="terms"]) .content-card {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--card-padding);
+}
+
+body:is([data-page="privacy"], [data-page="terms"]) .content-card h2:not(:first-child) {
+  margin-top: var(--space-5);
+}
+
+/* Homepage roles ------------------------------------------------------ */
+
+.home-reference-copy h1 {
+  font-size: var(--type-display);
+}
+
+.home-reference-primary,
+.home-reference-secondary {
+  min-height: var(--control-height);
+  border-radius: var(--radius-control);
+  font-size: var(--type-button);
+  font-weight: 600;
+}
+
+.home-reference-features article {
+  border-radius: var(--radius-card);
+}
+
+/* Shared roles for reference-composed routes ------------------------- */
+
+body:is([data-page="how"], [data-page="materials"], [data-page="about"], [data-page="inspiration"]) {
+  --ref-bg: var(--color-bg);
+  --ref-bg-deep: var(--color-bg-deep);
+  --ref-panel: var(--color-surface);
+  --ref-panel-soft: var(--color-surface-soft);
+  --ref-border: var(--color-border);
+  --ref-border-soft: rgba(246, 238, 228, 0.1);
+  --ref-ivory: var(--color-text);
+  --ref-copy: var(--color-text-soft);
+  --ref-muted: var(--color-text-muted);
+  --ref-brass: var(--color-accent);
+  --ref-brass-soft: var(--color-accent-strong);
+  background:
+    radial-gradient(circle at 50% -8%, rgba(238, 218, 184, 0.14), transparent 34rem),
+    radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.045), transparent 28rem),
+    linear-gradient(135deg, #51483f 0%, #675d53 48%, #413a34 100%);
+}
+
+.ref-page-shell,
+.materials-reference-shell {
+  width: min(calc(100% - (2 * var(--gutter))), 1120px);
+}
+
+.ref-eyebrow,
+.materials-reference-breadcrumb {
+  color: var(--color-accent-strong);
+  font-size: var(--type-small);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ref-section-heading {
+  gap: var(--space-3);
+}
+
+.ref-section-heading h2 {
+  font-size: var(--type-section-title);
+}
+
+.ref-section-heading p {
+  max-width: var(--measure-reading);
+  font-size: var(--type-lead);
+  line-height: var(--leading-body);
+}
+
+.ref-gold-button,
+.ref-outline-button,
+.materials-reference-primary-button,
+.hiw-start-button {
+  min-width: 0;
+  min-height: var(--control-height);
+  height: auto;
+  border-radius: var(--radius-control);
+  padding: 11px 20px;
+  font-family: var(--sans);
+  font-size: var(--type-button);
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.ref-gold-button,
+.materials-reference-primary-button,
+.hiw-start-button {
+  border-color: rgba(232, 190, 132, 0.52);
+  background: linear-gradient(180deg, #c9985c, #936536);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.17), 0 12px 26px rgba(20, 15, 11, 0.18);
+}
+
+.ref-outline-button {
+  border-color: var(--color-border);
+  background: rgba(248, 242, 234, 0.035);
+}
+
+/* About --------------------------------------------------------------- */
+
+.ref-about-hero {
+  height: auto;
+  min-height: 560px;
+}
+
+.ref-about-hero-inner {
+  width: min(100%, var(--content-max));
+  min-height: 560px;
+  grid-template-columns: minmax(420px, 0.88fr) minmax(0, 1.12fr);
+}
+
+.ref-about-hero-copy {
+  padding: clamp(54px, 6vw, 82px) clamp(32px, 5vw, 70px);
+}
+
+.ref-about-hero-copy h1 {
+  margin-top: var(--space-4);
+  font-size: var(--type-display);
+  line-height: var(--leading-heading);
+}
+
+.ref-about-hero-copy p {
+  max-width: 54ch;
+  margin-top: var(--space-4);
+  font-size: var(--type-body);
+  line-height: var(--leading-body);
+}
+
+.ref-about-actions {
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.ref-about-values,
+.ref-about-process-section,
+.ref-about-cta-section {
+  height: auto;
+  min-height: 0;
+  padding-block: var(--section-space);
+}
+
+.ref-about-values .ref-page-shell,
+.ref-about-process-section .ref-page-shell,
+.ref-about-cta-section .ref-page-shell {
+  width: min(calc(100% - (2 * var(--gutter))), 1120px);
+}
+
+.ref-about-values .ref-section-heading h2 {
+  font-size: var(--type-section-title);
+}
+
+.ref-about-values-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.ref-about-values-grid article {
+  height: auto;
+  min-height: 238px;
+  gap: var(--space-3);
+  border-color: var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-soft);
+  padding: var(--space-5);
+}
+
+.ref-about-values-grid h3 {
+  font-size: var(--type-card-title);
+}
+
+.ref-about-values-grid p {
+  font-size: var(--type-body);
+  line-height: var(--leading-body);
+}
+
+.ref-about-process-section {
+  border-block: 1px solid rgba(246, 238, 228, 0.08);
+  background: rgba(29, 25, 22, 0.16);
+}
+
+.ref-about-process {
+  height: auto;
+  min-height: 248px;
+  margin-top: var(--space-7);
+  border-radius: var(--radius-card);
+}
+
+.ref-about-process article {
+  gap: var(--space-3);
+  padding: 42px 12px 24px;
+}
+
+.ref-about-process h3 {
+  font-size: var(--type-card-title);
+}
+
+.ref-about-process p {
+  max-width: 17ch;
+  font-size: var(--type-label);
+  line-height: var(--leading-body);
+}
+
+.ref-about-cta {
+  height: auto;
+  min-height: 160px;
+  grid-template-columns: 150px minmax(0, 1fr) auto;
+  border-radius: var(--radius-card);
+  padding: var(--space-5) var(--space-6);
+}
+
+.ref-about-cta h2 {
+  font-size: var(--type-section-title);
+}
+
+.ref-about-cta p {
+  max-width: 56ch;
+  font-size: var(--type-body);
+}
+
+/* Materials ----------------------------------------------------------- */
+
+.materials-reference-page {
+  padding-bottom: var(--section-space-compact);
+}
+
+.materials-reference-intro {
+  padding-block: var(--section-space-compact) var(--space-5);
+}
+
+.materials-reference-breadcrumb {
+  min-height: var(--touch-target);
+  margin-left: 0;
+}
+
+.materials-reference-intro h1 {
+  margin-top: var(--space-2);
+  font-size: var(--type-page-title);
+  line-height: var(--leading-heading);
+}
+
+.materials-reference-intro > p {
+  max-width: var(--measure-reading);
+  margin-top: var(--space-4);
+  font-size: var(--type-lead);
+  line-height: var(--leading-body);
+}
+
+.materials-reference-catalog {
+  margin-top: var(--space-4);
+}
+
+.materials-reference-grid {
+  gap: var(--space-4);
+}
+
+.materials-reference-card,
+.materials-reference-finishing,
+.materials-reference-benefits,
+.materials-reference-cta {
+  border-color: var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.materials-reference-card,
+.materials-reference-card:nth-child(-n + 3),
+.materials-reference-card:nth-child(n + 4) {
+  height: auto;
+  grid-template-rows: 200px minmax(190px, auto);
+}
+
+.materials-reference-card-copy {
+  grid-template-columns: var(--icon-size-emphasis) minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--color-surface-raised);
+}
+
+.materials-reference-card:nth-child(-n + 3) .materials-reference-card-copy {
+  padding-top: var(--space-5);
+}
+
+.materials-reference-card h3,
+.materials-reference-finishing h3 {
+  font-size: var(--type-card-title);
+}
+
+.materials-reference-card p,
+.materials-reference-finishing p {
+  margin-top: var(--space-2);
+  font-size: var(--type-body);
+  line-height: var(--leading-body);
+}
+
+.materials-reference-finishing {
+  min-height: 260px;
+  margin-top: var(--space-4);
+}
+
+.materials-reference-finishing > img {
+  height: 260px;
+}
+
+.materials-reference-finishing-copy {
+  grid-template-columns: var(--icon-size-emphasis) minmax(0, 1fr);
+  gap: var(--space-4);
+  padding: var(--card-padding);
+}
+
+.materials-reference-benefits {
+  min-height: 128px;
+  margin-top: var(--space-4);
+}
+
+.materials-reference-benefits article {
+  grid-template-columns: 42px minmax(0, 1fr);
+  padding: var(--space-4);
+}
+
+.materials-reference-benefits h3 {
+  font-size: var(--type-label);
+  white-space: normal;
+}
+
+.materials-reference-benefits p {
+  font-size: var(--type-caption);
+  line-height: var(--leading-body);
+}
+
+.materials-reference-cta {
+  min-height: 180px;
+  grid-template-columns: minmax(0, 1fr) 220px minmax(220px, 0.6fr);
+  margin-top: var(--space-4);
+}
+
+.materials-reference-cta-copy {
+  padding: var(--card-padding);
+}
+
+.materials-reference-cta h2 {
+  font-size: var(--type-section-title);
+}
+
+.materials-reference-cta p {
+  font-size: var(--type-body);
+  line-height: var(--leading-body);
+}
+
+.materials-reference-primary-button {
+  width: auto;
+}
+
+.materials-reference-text-link {
+  min-height: var(--touch-target);
+  font-size: var(--type-button);
+}
+
+/* Inspiration --------------------------------------------------------- */
+
+.ref-inspiration-hero {
+  height: auto;
+  padding-block: var(--section-space-compact);
+}
+
+.ref-inspiration-hero h1 {
+  font-size: var(--type-page-title);
+  line-height: var(--leading-heading);
+}
+
+.ref-inspiration-hero p {
+  max-width: var(--measure-reading);
+  margin: var(--space-4) auto 0;
+  font-size: var(--type-lead);
+  line-height: var(--leading-body);
+}
+
+.ref-inspiration-grid {
+  gap: var(--space-4);
+}
+
+.ref-gallery-card,
+.ref-gallery-card:nth-child(n + 4) {
+  height: auto;
+  grid-template-rows: auto 64px;
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.ref-gallery-card img,
+.ref-gallery-card:nth-child(n + 4) img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 3;
+}
+
+.ref-gallery-card > span {
+  padding-inline: var(--space-4);
+  font-size: var(--type-card-title);
+}
+
+.ref-inspiration-cta-section {
+  height: auto;
+  padding-block: var(--section-space-compact);
+}
+
+.ref-inspiration-cta {
+  height: auto;
+  min-height: 180px;
+  grid-template-columns: minmax(0, 1fr) 1px 100px auto;
+  border-radius: var(--radius-card);
+  padding: var(--card-padding);
+}
+
+.ref-inspiration-cta h2 {
+  font-size: var(--type-section-title);
+}
+
+.ref-inspiration-cta p {
+  font-size: var(--type-body);
+  line-height: var(--leading-body);
+}
+
+.ref-inspiration-benefits {
+  height: auto;
+  min-height: 112px;
+  padding-block: var(--space-4);
+}
+
+.ref-inspiration-benefit-grid article {
+  min-height: 72px;
+}
+
+.ref-inspiration-benefit-grid h3 {
+  font-size: var(--type-label);
+}
+
+.ref-inspiration-benefit-grid p {
+  font-size: var(--type-caption);
+}
+
+/* How it works -------------------------------------------------------- */
+
+body[data-page="how"] [data-site-footer] {
+  display: block;
+}
+
+.hiw-page {
+  padding-bottom: var(--section-space);
+}
+
+.hiw-intro {
+  height: auto;
+  padding: var(--section-space-compact) var(--gutter) var(--space-6);
+}
+
+.hiw-intro h1 {
+  font-size: var(--type-page-title);
+  line-height: var(--leading-heading);
+}
+
+.hiw-intro p {
+  max-width: var(--measure-reading);
+  margin-top: var(--space-4);
+  font-size: var(--type-lead);
+  line-height: var(--leading-body);
+}
+
+.hiw-process {
+  width: min(calc(100% - (2 * var(--gutter))), 1040px);
+  max-width: none;
+}
+
+.hiw-process-list {
+  gap: var(--space-4);
+}
+
+.hiw-step,
+.hiw-step-one,
+.hiw-step-two,
+.hiw-step-three,
+.hiw-step-four,
+.hiw-step-five {
+  --hiw-panel-width: 42%;
+  --hiw-right-pad: var(--space-5);
+  height: auto;
+  min-height: 170px;
+  grid-template-columns: 92px minmax(0, 1fr) var(--hiw-panel-width);
+  gap: var(--space-4);
+  border-radius: var(--radius-card);
+  padding: var(--space-4) var(--hiw-right-pad) var(--space-4) var(--space-6);
+}
+
+.hiw-step-copy h3 {
+  font-size: var(--type-card-title);
+}
+
+.hiw-step-copy p {
+  max-width: 32ch;
+  font-size: var(--type-label);
+  line-height: var(--leading-body);
+}
+
+.hiw-visual,
+.hiw-benefits,
+.hiw-support {
+  border-radius: var(--radius-card);
+}
+
+.hiw-benefits,
+.hiw-support {
+  width: min(calc(100% - (2 * var(--gutter))), 1120px);
+  max-width: none;
+}
+
+.hiw-benefits {
+  height: auto;
+  min-height: 220px;
+  margin-top: var(--space-5);
+  padding-block: var(--space-6);
+}
+
+.hiw-benefits h3 {
+  font-size: var(--type-card-title);
+}
+
+.hiw-benefits p {
+  font-size: var(--type-label);
+  line-height: var(--leading-body);
+}
+
+.hiw-support {
+  height: auto;
+  min-height: 112px;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  margin-top: var(--space-5);
+  padding: var(--space-5) var(--space-7);
+}
+
+.hiw-support-message h2 {
+  font-size: var(--type-card-title);
+}
+
+.hiw-support-message p,
+.hiw-inspiration-link {
+  font-size: var(--type-button);
+}
+
+/* FAQ search and category controls ----------------------------------- */
+
+.faq-hero .lead {
+  max-width: 620px;
+}
+
+.faq-tools {
+  display: grid;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-soft);
+  padding: var(--space-4);
+}
+
+.faq-search {
+  display: grid;
+  position: relative;
+  grid-template-columns: var(--icon-size-control) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-control);
+  padding-inline: var(--space-4);
+}
+
+.faq-search:focus-within {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 2px rgba(226, 187, 131, 0.15);
+}
+
+.faq-search > [data-icon] {
+  width: var(--icon-size-control);
+  height: var(--icon-size-control);
+  color: var(--color-accent-strong);
+}
+
+.faq-search input {
+  width: 100%;
+  min-height: var(--control-height);
+  border: 0;
+  outline: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.faq-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.faq-filter {
+  min-height: var(--touch-target);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  padding: 8px 14px;
+  color: var(--color-text-soft);
+  font-size: var(--type-label);
+  font-weight: 600;
+}
+
+.faq-filter:hover,
+.faq-filter[aria-pressed="true"] {
+  border-color: var(--color-border-strong);
+  background: rgba(224, 183, 126, 0.12);
+  color: var(--color-text);
+}
+
+.faq-result-count {
+  color: var(--color-text-muted);
+  font-size: var(--type-caption);
+}
+
+.faq-empty {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-card);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.faq-support-card dl {
+  display: none;
+}
+
+/* The configurator keeps its denser application geometry. Only shared
+   focus and shell surface roles are reinforced here. */
+
+body[data-page="configurator"] :is(button, a, input, select, textarea):focus-visible {
+  outline-color: var(--focus-ring);
+}
+
+/* Responsive normalization ------------------------------------------- */
+
+@media (max-width: 1024px) {
+  .ref-about-hero-inner {
+    grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  .materials-reference-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .materials-reference-benefits {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .materials-reference-benefits article:nth-child(3)::before {
+    display: none;
+  }
+
+  .materials-reference-cta {
+    grid-template-columns: minmax(0, 1fr) 200px;
+  }
+
+  .materials-reference-line-art {
+    display: none;
+  }
+
+  .hiw-step,
+  .hiw-step-one,
+  .hiw-step-two,
+  .hiw-step-three,
+  .hiw-step-four,
+  .hiw-step-five {
+    --hiw-panel-width: 45%;
+    grid-template-columns: 72px minmax(0, 1fr) var(--hiw-panel-width);
+  }
+}
+
+@media (max-width: 900px) {
+  .ref-about-hero-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .ref-about-hero-copy {
+    min-height: 0;
+  }
+
+  .ref-about-hero-image {
+    min-height: 430px;
+  }
+
+  .ref-about-process {
+    grid-template-columns: 1fr;
+    gap: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .ref-about-process article {
+    min-height: 190px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    background: var(--color-surface-soft);
+  }
+
+  .ref-about-process p {
+    max-width: 42ch;
+    font-size: var(--type-body);
+  }
+
+  .ref-process-arrow {
+    display: none;
+  }
+
+  .ref-about-cta {
+    grid-template-columns: 100px minmax(0, 1fr);
+  }
+
+  .ref-about-cta .ref-gold-button {
+    width: 100%;
+    grid-column: 1 / -1;
+  }
+
+  .hiw-step,
+  .hiw-step-one,
+  .hiw-step-two,
+  .hiw-step-three,
+  .hiw-step-four,
+  .hiw-step-five {
+    --hiw-panel-width: auto;
+    grid-template-columns: 64px minmax(0, 1fr);
+  }
+
+  .hiw-visual {
+    grid-column: 1 / -1;
+  }
+
+  .hiw-benefits {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hiw-benefits article:nth-child(2) {
+    border-right: 0;
+  }
+
+  .hiw-benefits article {
+    padding-block: var(--space-5);
+  }
+}
+
+@media (max-width: 680px) {
+  .interior-hero {
+    padding-block: var(--space-6) var(--space-5);
+  }
+
+  .ref-about-hero,
+  .ref-about-hero-inner {
+    min-height: 0;
+  }
+
+  .ref-about-hero-copy {
+    padding: var(--space-7) var(--gutter);
+  }
+
+  .ref-about-hero-image {
+    height: 360px;
+    min-height: 0;
+  }
+
+  .ref-about-values-grid,
+  .materials-reference-grid,
+  .materials-reference-benefits,
+  .ref-inspiration-grid,
+  .ref-inspiration-benefit-grid,
+  .hiw-benefits {
+    grid-template-columns: 1fr;
+  }
+
+  .ref-about-values-grid article {
+    min-height: 0;
+  }
+
+  .ref-about-cta,
+  .materials-reference-finishing,
+  .materials-reference-cta,
+  .ref-inspiration-cta,
+  .hiw-support {
+    grid-template-columns: 1fr;
+  }
+
+  .ref-about-bookcase,
+  .ref-inspiration-divider,
+  .ref-inspiration-medallion {
+    display: none;
+  }
+
+  .materials-reference-card,
+  .materials-reference-card:nth-child(-n + 3),
+  .materials-reference-card:nth-child(n + 4) {
+    grid-template-rows: 220px auto;
+  }
+
+  .materials-reference-finishing > img {
+    height: 240px;
+  }
+
+  .materials-reference-cta-actions {
+    padding: 0 var(--card-padding) var(--card-padding);
+  }
+
+  .materials-reference-primary-button {
+    width: 100%;
+  }
+
+  .ref-gallery-card,
+  .ref-gallery-card:nth-child(n + 4) {
+    grid-template-rows: auto 64px;
+  }
+
+  .ref-gallery-card img,
+  .ref-gallery-card:nth-child(n + 4) img {
+    height: auto;
+  }
+
+  .ref-inspiration-cta {
+    text-align: left;
+  }
+
+  .ref-inspiration-cta .ref-gold-button {
+    width: 100%;
+  }
+
+  .hiw-step,
+  .hiw-step-one,
+  .hiw-step-two,
+  .hiw-step-three,
+  .hiw-step-four,
+  .hiw-step-five {
+    grid-template-columns: 1fr;
+    padding: var(--space-5);
+  }
+
+  .hiw-step-number {
+    top: var(--space-4);
+    left: var(--space-4);
+    width: 44px;
+    height: 44px;
+    transform: none;
+  }
+
+  .hiw-step-icon {
+    justify-self: end;
+  }
+
+  .hiw-step-copy p {
+    max-width: none;
+    font-size: var(--type-body);
+  }
+
+  .hiw-benefits article,
+  .hiw-benefits article:nth-child(2) {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .hiw-benefits article:last-child {
+    border-bottom: 0;
+  }
+
+  .hiw-support {
+    gap: var(--space-4);
+    padding: var(--space-5);
+  }
+
+  .hiw-start-button {
+    width: 100%;
+  }
+
+  .hiw-inspiration-link {
+    justify-self: start;
+  }
+
+  .faq-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .faq-filter {
+    width: 100%;
+  }
+
+  .faq-filter[data-faq-filter="all"],
+  .faq-filter[data-faq-filter="installation"] {
+    grid-column: 1 / -1;
+  }
+
+  .faq-support-card {
+    padding: var(--space-5);
+  }
+}

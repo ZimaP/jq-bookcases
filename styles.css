@@ -1,5 +1,5 @@
 /*
- * John Quinn Bookcases shared visual system
+ * JQ Bookcases shared visual system
  * --------------------------------
  * One semantic, warm-taupe system for marketing pages, interior pages,
  * forms, shared navigation, and responsive marketing content.
@@ -98,10 +98,11 @@
   --type-caption: 0.8125rem;
   --type-small: 0.75rem;
   --type-brand: clamp(1.25rem, 1.65vw, 1.82rem);
-  --type-logo-tagline: 0.625rem;
-  --brand-header-width: clamp(118px, 8.6vw, 132px);
-  --brand-header-name: clamp(15px, 1.08vw, 16.5px);
-  --brand-header-tagline: clamp(5px, 0.38vw, 5.8px);
+  --type-logo-tagline: 0.5rem;
+  --brand-header-width: clamp(158px, 12vw, 184px);
+  --brand-mark-size: clamp(34px, 2.7vw, 40px);
+  --brand-header-name: clamp(15px, 1.18vw, 18px);
+  --brand-header-tagline: clamp(7px, 0.54vw, 8px);
   --leading-heading: 1.16;
   --leading-body: 1.58;
   --leading-ui: 1.3;
@@ -113,6 +114,16 @@
   --section-space-compact: clamp(32px, 4vw, 48px);
   --card-padding: clamp(24px, 3vw, 32px);
   --field-gap: var(--space-4);
+}
+
+.quote-paint-disclaimer {
+  max-width: 72ch;
+  border-left: 2px solid var(--brass, #a77a45);
+  margin: 12px 0;
+  padding: 8px 12px;
+  color: var(--text-muted, #6f675f);
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 
 *,
@@ -366,65 +377,91 @@ p {
 }
 
 .brand {
-  display: grid;
-  align-content: center;
-  justify-items: start;
+  display: inline-grid;
   width: var(--brand-header-width);
+  min-height: 44px;
+  grid-template-columns: var(--brand-mark-size) minmax(0, 1fr);
+  gap: clamp(8px, 0.72vw, 11px);
+  align-items: center;
   min-width: 0;
   color: var(--color-text);
+  text-decoration: none;
 }
 
 .brand--header {
-  gap: 4px;
   transform: none;
 }
 
-.footer-brand {
-  width: clamp(148px, 12vw, 176px);
+.footer-brand,
+.brand.ref-footer-brand {
+  width: clamp(190px, 15vw, 218px);
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 11px;
+}
+
+.brand-mark {
+  display: grid;
+  width: var(--brand-mark-size);
+  height: var(--brand-mark-size);
+  place-items: center;
+  border: 1px solid rgba(224, 183, 126, 0.72);
+  background: linear-gradient(145deg, rgba(224, 183, 126, 0.1), rgba(224, 183, 126, 0.015));
+  box-shadow: inset 0 0 0 1px rgba(255, 248, 239, 0.035), 0 5px 16px rgba(18, 14, 11, 0.14);
+  color: #fffaf3;
+  font-family: var(--serif);
+  font-size: clamp(17px, 1.4vw, 21px);
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  line-height: 1;
+}
+
+.brand-copy {
+  display: grid;
+  min-width: 0;
   gap: 5px;
-}
-
-.footer-brand .brand-main {
-  font-size: clamp(18px, 1.48vw, 22px);
-  transform: none;
+  align-content: center;
 }
 
 .brand-main {
   color: var(--color-text);
   font-family: var(--serif);
   font-size: var(--brand-header-name);
-  font-weight: 400;
-  letter-spacing: 0.055em;
-  line-height: 1;
-  transform: scaleY(1.05);
-  transform-origin: center;
+  font-weight: 500;
+  letter-spacing: 0.105em;
+  line-height: 0.92;
   white-space: nowrap;
 }
 
 .brand-sub {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 9px;
-  color: rgba(248, 242, 234, 0.72);
-  font-family: var(--serif);
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  border-top: 1px solid rgba(210, 166, 107, 0.56);
+  padding-top: 4px;
+  color: rgba(248, 242, 234, 0.82);
+  font-family: var(--sans);
   font-size: var(--brand-header-tagline);
-  font-weight: 600;
-  letter-spacing: 0.11em;
-  line-height: 1.12;
+  font-weight: 650;
+  letter-spacing: 0.15em;
+  line-height: 1;
   white-space: nowrap;
 }
 
-.footer-brand .brand-sub {
-  font-size: 6.5px;
+.footer-brand .brand-mark,
+.brand.ref-footer-brand .brand-mark {
+  width: 44px;
+  height: 44px;
+  font-size: 23px;
 }
 
-.brand-sub::before,
-.brand-sub::after {
-  height: 1px;
-  flex: 1 1 auto;
-  background: rgba(202, 157, 96, 0.66);
-  content: "";
+.footer-brand .brand-main,
+.brand.ref-footer-brand .brand-main {
+  font-size: 19px;
+}
+
+.footer-brand .brand-sub,
+.brand.ref-footer-brand .brand-sub {
+  font-size: 8px;
 }
 
 .nav-links {

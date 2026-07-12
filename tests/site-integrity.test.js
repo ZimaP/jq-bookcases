@@ -22,6 +22,7 @@ const pageSource = new Map(
   publicPages.map((file) => [file, readFileSync(path.join(rootDir, file), "utf8")]),
 );
 const siteSource = readFileSync(path.join(rootDir, "site.js"), "utf8");
+const quotePrefillSource = readFileSync(path.join(rootDir, "quote-prefill.js"), "utf8");
 const configuratorSource = readFileSync(
   path.join(rootDir, "configurator-3d.js"),
   "utf8",
@@ -338,20 +339,25 @@ test("public sources contain no retired routes, newsletter UI, or fake backend c
   }
 });
 
-test("public branding and product vocabulary use the canonical John Quinn Bookcases names", () => {
+test("every public page uses the shared JQ Bookcases lockup and canonical product vocabulary", () => {
   const publicSource = [...pageSource.values(), siteSource, configuratorSource].join("\n");
 
   for (const [file, html] of pageSource) {
     const title = normalizedText(html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] || "");
-    assert.match(title, /John Quinn Bookcases/, file + " title must use the canonical brand name");
+    assert.match(title, /JQ Bookcases/, file + " title must use the canonical brand name");
   }
 
   assert.match(pageSource.get("configurator.html"), /3D Bookcase Configurator/);
-  assert.match(siteSource, /JOHN QUINN/);
-  assert.match(siteSource, /BOOKCASES · BUILT-INS & MILLWORK/);
+  assert.match(siteSource, /shortName: "JQ Bookcases"/);
+  assert.match(siteSource, /initials: "JQ"/);
+  assert.match(siteSource, /name: "BOOKCASES"/);
+  assert.match(siteSource, /descriptor: "BUILT-INS & MILLWORK"/);
+  assert.match(siteSource, /class="brand-mark"/);
+  assert.match(siteSource, /class="brand-copy"/);
+  assert.match(siteSource, /aria-label="\$\{officialBrand\.shortName\} home"/);
+  assert.doesNotMatch(publicSource, /John Quinn Bookcases|JOHN QUINN/);
 
   const retiredVocabulary = [
-    [/\bJQ Bookcases\b/i, "JQ Bookcases"],
     [/\bJQ Woodworking\b/i, "JQ Woodworking"],
     [/\bBookcase Builder\b/i, "Bookcase Builder"],
     [/\bBookcase Specifier\b/i, "Bookcase Specifier"],
@@ -381,4 +387,35 @@ test("canonical design and quote routes have inbound links", () => {
 
     assert.ok(inbound.length > 0, route + " must have an inbound link from another public source");
   }
+});
+
+test("custom saved designs retain their structural layout in the quote handoff", () => {
+  const structuralMappings = [
+    ["lower_cabinets", "lower-cabinets"],
+    ["classic", "classic-open"],
+    ["media_wall", "media-wall"],
+    ["library", "library-wall"],
+    ["display_wall", "display-wall"],
+    ["glass_library", "glass-library"],
+    ["desk_niche", "desk-niche"],
+    ["feature_wall", "feature-wall"],
+    ["asymmetric", "asymmetric-modern"],
+    ["tall_storage", "tall-storage"],
+  ];
+
+  for (const [layoutType, presetId] of structuralMappings) {
+    assert.match(
+      quotePrefillSource,
+      new RegExp("\\b" + layoutType + "\\s*:\\s*[\\\"']" + presetId + "[\\\"']"),
+      layoutType + " must map to its quote-form layout",
+    );
+  }
+
+  assert.match(quotePrefillSource, /const layout = resolveStoredLayout\(config\)/);
+  assert.match(siteSource, /createQuotePrefill\(config\)/);
+  assert.match(siteSource, /Object\.entries\(quotePrefill\.fields\)/);
+  assert.match(siteSource, /formatStoredPrice\(quotePrefill\.price\)/);
+  assert.match(quotePrefillSource, /layoutLabel: layout\.label/);
+  assert.match(quotePrefillSource, /compatibleLightingComponents > 0/);
+  assert.doesNotMatch(siteSource, /setFormValue\(form, "layout", config\.layoutPreset/);
 });

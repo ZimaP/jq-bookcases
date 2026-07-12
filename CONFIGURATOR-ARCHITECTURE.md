@@ -1,4 +1,4 @@
-# John Quinn Bookcases Parametric Configurator Architecture
+# JQ Bookcases Parametric Configurator Architecture
 
 ## Purpose
 
@@ -12,10 +12,118 @@ The important boundary is:
 1. Customer configuration describes intent.
 2. The layout engine normalizes supported values and calculates construction.
 3. The validator checks the complete descriptor graph.
-4. The renderer consumes valid physical descriptors.
+4. `bookcase-billable.js` derives billable quantities from valid physical
+   descriptors without consulting UI visibility.
+5. `bookcase-pricing.js` applies preserved rates to those quantities.
+6. The renderer consumes the same valid physical descriptors.
 
 The renderer must not recalculate section widths, door gaps, shelf positions,
 handle offsets, or light positions. Those are layout responsibilities.
+
+## Customer experience architecture
+
+The configurator is a static ES-module application with one
+`BookcaseConfigurator` controller and one `BookcaseViewer3D` instance. The
+customer can choose Guided Setup or All Controls, but these are presentation
+modes over the same physical design.
+
+`BookcaseConfigurator.state` is the single normalized physical configuration.
+It contains the schema-backed layout, dimensions, storage, construction,
+finish, hardware, lighting, delivery, and installation values. The following
+values are presentation state only and never enter a saved design or price:
+
+- active mode;
+- active Guided step;
+- expanded All Controls category;
+- Appearance sub-tab;
+- incomplete input drafts;
+- per-mode scroll position;
+- review/focus state and action locks.
+
+`configurator-experience.js` owns the pure workflow contract: six Guided
+steps, nine All Controls categories, mode/category mappings, applicability,
+validation, summaries, preset reconciliation, saved-record creation, quote
+URLs, and action-lock rules. `configurator-3d.js` renders those definitions and
+owns the browser event pipeline. `configurator-experience.css` is the final
+responsive presentation layer over the existing shared site tokens.
+
+The shell is mounted once in this order:
+
+    mode selector
+    controls panel (Guided or All Controls)
+    persistent preview pane and canvas
+    shared estimate, review, save, and quote actions
+    shared review dialog and status region
+
+Only the controls panel is rerendered when mode, step, tab, or accordion state
+changes. The preview subtree remains outside both mode panels. Switching modes
+therefore cannot create a second canvas, renderer, scene, camera, render loop,
+price pipeline, or configuration store.
+
+### Mode synchronization
+
+Both presentations call the same field-commit function. A valid physical
+change is normalized once, validated once, priced once, and sent once to the
+viewer. An identical value is a no-op. Incomplete numeric strings remain in a
+shared draft map, are surfaced in the corresponding view, and block only the
+actions that require a valid physical design.
+
+The presentation mapping is:
+
+| Guided step | All Controls category |
+| --- | --- |
+| Layout | Layout |
+| Dimensions | Dimensions |
+| Shelves & Cabinets | Shelves & Cabinets |
+| Construction | Construction or Doors & Storage |
+| Appearance | most recently used Finish, Hardware, or Lighting |
+| Review & Quote | Project Service plus the shared review dialog |
+
+Switching to All Controls opens the mapped category. Switching back opens the
+mapped Guided step while retaining the independently remembered Guided step
+when no newer category context exists. The preferred mode, Guided step, and
+All Controls category are sanitized local preferences, not product data.
+
+Customized saved designs keep their structural preset ancestry by matching
+the normalized `layoutType`. This preserves the correct selected layout card,
+summary label, and quote-form layout after a reload without adding a field to
+the saved-design schema.
+
+### Renderer update lifecycle
+
+The viewer is created once after the persistent shell is mounted. It exposes a
+small lifecycle/diagnostic seam and a `destroy()` path, but normal mode and
+control navigation never invoke either initialization or destruction.
+
+Physical changes use the smallest safe path currently supported:
+
+- finish and lighting warmth update existing materials/lights in place;
+- same-shape hardware finish changes update existing hardware materials;
+- camera view, orbit, and zoom never rebuild physical geometry;
+- geometry, topology, opening, dimension, or hardware-shape changes regenerate
+  the deterministic descriptor model while preserving camera and selected
+  view state.
+
+An invalid generated layout never replaces the last valid rendered model.
+Lifecycle counters are exposed as inert `data-diagnostic-*` attributes on the
+configurator host for browser assertions. No controller is published on
+`window`.
+
+### Price, save, review, and quote contracts
+
+There is one pricing-context call site and one physical update call site.
+Presentation changes do not invoke either. The configurator passes its
+already-generated layout into `buildPricingContext()`, so estimate and renderer
+use the same descriptor graph. Guided Review and the All Controls review dialog
+are generated by the same review-summary helper.
+
+Both Save Design entry points delegate to one guarded handler. The persisted
+record remains schema version 3 with exactly `id`, `price`, normalized
+`config`, and `savedAt` in addition to the schema version. Both Request Quote
+entry points use that same saved record and the existing encoded
+`request-quote.html?design=<id>` URL. The quote page resolves customized
+structural layouts so its selected layout, dimensions, finish, estimate, and
+saved design ID stay aligned.
 
 ## Coordinate and unit system
 
@@ -431,6 +539,16 @@ styles, all ten presets, boundaries, sequential changes, serialization,
 missing hosts, out-of-bounds components, duplicate ids, and collision
 detection.
 
+Workflow and shell contracts are additionally covered by:
+
+    node --test tests/configurator-experience.test.js tests/configurator-contract.test.js
+
+Those tests cover the two-mode registry, mappings, draft validation,
+applicability, preset reconciliation, summaries, payload parity, duplicate
+action locks, one-viewer markup, shared handlers, accessibility wiring,
+responsive contracts, diagnostics, and removal of the legacy dual-sidebar
+paths.
+
 ## Current limitations
 
 - Validation uses axis-aligned boxes, not triangle-level collision detection.
@@ -447,6 +565,17 @@ detection.
   load-specific engineering is outside this model.
 - Crown and trim use conservative box envelopes. Profile meshes may replace
   their visuals without changing descriptor placement.
-- Pricing still consumes customer configuration rather than calculated
-  component quantities. The component graph provides hooks for future
-  quantity-based pricing.
+- Door, drawer-hardware, door-hardware, and lighting quantities are derived
+  from generated components. Other established pricing categories retain their
+  existing formulas and remain selection/dimension based.
+- Inches are the only supported product unit. No measurement-unit selector is
+  shown because the physical schema has no alternate unit contract.
+- Cabinet height, shelf profile, frame/overlay construction, selectable glass,
+  and arbitrary per-section widths are not exposed because no corresponding
+  customer-adjustable product values exist in the current source of truth.
+- Dimension and topology changes still require deterministic model
+  regeneration; the safe in-place path currently covers finish, light warmth,
+  and same-shape hardware appearance.
+- Save Design and the quote project brief remain browser-local preview flows.
+  There is no production account, server persistence, or submission endpoint
+  in this repository.

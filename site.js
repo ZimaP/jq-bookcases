@@ -1,4 +1,6 @@
-import { mountIcons, setIcon } from "./icon-system.js?v=site-system-20260711c";
+import { mountIcons, setIcon } from "./icon-system.js?v=site-system-20260711d";
+import { createQuotePrefill } from "./quote-prefill.js?v=benjamin-moore-20260712a";
+import { BENJAMIN_MOORE_COLOR_DATA_NOTICE } from "./benjamin-moore-colors.js?v=bm-catalog-20260712a";
 
 const navItems = [
   { label: "How It Works", href: "how-it-works.html", page: "how" },
@@ -10,16 +12,21 @@ const navItems = [
 
 const designBuilderHref = "configurator.html";
 const officialBrand = Object.freeze({
-  name: "JOHN QUINN",
-  descriptor: "BOOKCASES · BUILT-INS & MILLWORK",
+  shortName: "JQ Bookcases",
+  initials: "JQ",
+  name: "BOOKCASES",
+  descriptor: "BUILT-INS & MILLWORK",
   product: "3D Bookcase Configurator"
 });
 
 function renderBrandLink(modifierClass = "brand--header") {
   return `
-    <a class="brand ${modifierClass}" href="index.html" aria-label="John Quinn Bookcases home">
-      <span class="brand-main">${officialBrand.name}</span>
-      <span class="brand-sub">${officialBrand.descriptor}</span>
+    <a class="brand ${modifierClass}" href="index.html" aria-label="${officialBrand.shortName} home">
+      <span class="brand-mark" aria-hidden="true">${officialBrand.initials}</span>
+      <span class="brand-copy" aria-hidden="true">
+        <span class="brand-main">${officialBrand.name}</span>
+        <span class="brand-sub">${officialBrand.descriptor}</span>
+      </span>
     </a>
   `;
 }
@@ -33,6 +40,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initBookcases();
   initHeaderBuilderActions();
   initAccordions();
+  initFaqSearch();
   initQuoteForm();
 });
 
@@ -49,11 +57,11 @@ function injectHeader() {
 
   const headerActions = current === "configurator"
     ? `
-          <button class="header-save-button" type="button" data-header-save-design><span>Save Design</span><i data-icon="heart" aria-hidden="true"></i></button>
+          <button class="header-save-button" type="button" data-header-save-design aria-label="Save Design"><span>Save Design</span><i data-icon="heart" aria-hidden="true"></i></button>
           <button class="button button-primary" type="button" data-header-request-quote>Request Quote</button>
         `
     : `
-          <a class="header-save-button" href="${designBuilderHref}"><span>Save Design</span><i data-icon="heart" aria-hidden="true"></i></a>
+          <a class="header-save-button" href="${designBuilderHref}" aria-label="Save Design"><span>Save Design</span><i data-icon="heart" aria-hidden="true"></i></a>
           <a class="button button-primary${current === "quote" ? " is-active" : ""}" href="request-quote.html"${current === "quote" ? ' aria-current="page"' : ""}>Request Quote</a>
         `;
 
@@ -159,7 +167,7 @@ function injectFooter() {
         </div>
       </div>
       <div class="footer-bottom">
-        <span>&copy; 2026 John Quinn Bookcases. All rights reserved.</span>
+        <span>&copy; 2026 JQ Bookcases. All rights reserved.</span>
         <span class="footer-bottom-links">
           <a href="privacy.html">Privacy Policy</a>
           <a href="terms.html">Terms of Service</a>
@@ -223,7 +231,7 @@ function renderReferenceFooter(page) {
         ${materialsTrust}
       </div>
       <div class="ref-footer-bottom">
-        <span>&copy; 2026 John Quinn Bookcases. All rights reserved.</span>
+        <span>&copy; 2026 JQ Bookcases. All rights reserved.</span>
         <span><a href="privacy.html">Privacy Policy</a><i aria-hidden="true"></i><a href="terms.html">Terms of Service</a></span>
       </div>
     </footer>
@@ -351,6 +359,56 @@ function initAccordions() {
   });
 }
 
+function initFaqSearch() {
+  const tools = document.querySelector("[data-faq-tools]");
+  const list = document.querySelector("[data-faq-list]");
+  if (!tools || !list) return;
+
+  const search = tools.querySelector("[data-faq-search]");
+  const filters = Array.from(tools.querySelectorAll("[data-faq-filter]"));
+  const items = Array.from(list.querySelectorAll(".accordion-item"));
+  const resultCount = tools.querySelector("[data-faq-result-count]");
+  const emptyState = document.querySelector("[data-faq-empty]");
+  let activeCategory = "all";
+
+  const normalize = (value) => value.trim().toLocaleLowerCase();
+  const applyFilters = () => {
+    const query = normalize(search?.value || "");
+    let visibleCount = 0;
+
+    items.forEach((item) => {
+      const matchesCategory = activeCategory === "all" || item.dataset.faqCategory === activeCategory;
+      const matchesSearch = !query || normalize(item.textContent || "").includes(query);
+      const visible = matchesCategory && matchesSearch;
+      item.hidden = !visible;
+      if (visible) visibleCount += 1;
+    });
+
+    if (resultCount) {
+      const scope = activeCategory === "all" && !query ? "all " : "";
+      resultCount.textContent = visibleCount === 1
+        ? "Showing 1 question"
+        : `Showing ${scope}${visibleCount} questions`;
+    }
+    if (emptyState) emptyState.hidden = visibleCount !== 0;
+  };
+
+  filters.forEach((filter) => {
+    filter.addEventListener("click", () => {
+      activeCategory = filter.dataset.faqFilter || "all";
+      filters.forEach((button) => button.setAttribute("aria-pressed", String(button === filter)));
+      applyFilters();
+    });
+  });
+
+  search?.addEventListener("input", applyFilters);
+  search?.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !search.value) return;
+    search.value = "";
+    applyFilters();
+  });
+}
+
 function initQuoteForm() {
   const form = document.querySelector("[data-quote-form]");
   if (!form) return;
@@ -368,16 +426,19 @@ function initQuoteForm() {
   if (activeDesignId && savedSummary) {
     const matchingStoredDesign = storedDesign?.id === activeDesignId ? storedDesign : null;
     const config = matchingStoredDesign?.config || matchingStoredDesign?.state || {};
-    const designDetails = [formatStoredPrice(matchingStoredDesign?.price), formatPresetLabel(config.layoutPreset)].filter(Boolean).map(escapeHtml).join(" &middot; ");
+    const quotePrefill = createQuotePrefill(config);
+    const designDetails = [formatStoredPrice(quotePrefill.price), quotePrefill.layoutLabel].filter(Boolean).map(escapeHtml).join(" &middot; ");
     savedSummary.hidden = false;
     savedSummary.innerHTML = `<span>Saved design</span><strong>${escapeHtml(activeDesignId)}</strong><small>${designDetails}</small>`;
+    if (quotePrefill.customPaint) {
+      const paintNotice = document.createElement("p");
+      paintNotice.className = "quote-paint-disclaimer";
+      paintNotice.textContent = BENJAMIN_MOORE_COLOR_DATA_NOTICE;
+      savedSummary.insertAdjacentElement("afterend", paintNotice);
+    }
     setFormValue(form, "designId", activeDesignId);
-    setFormValue(form, "wallWidth", config.width ? `${config.width}\"` : "");
-    setFormValue(form, "ceilingHeight", config.height ? `${config.height}\"` : "");
-    setFormValue(form, "bookcaseHeight", config.height ? `${config.height}\"` : "");
-    setFormValue(form, "depth", config.depth ? `${config.depth}\"` : "");
-    setFormValue(form, "layout", config.layoutPreset || "");
-    setFormValue(form, "paintFinish", config.finish || "");
+    Object.entries(quotePrefill.fields).forEach(([name, value]) => setFormValue(form, name, value));
+    quotePrefill.options.forEach((value) => setFormCheckbox(form, "options", value));
   }
 
   const syncCustomPaint = () => {
@@ -422,14 +483,15 @@ function setFormValue(form, name, value) {
   field.value = value;
 }
 
+function setFormCheckbox(form, name, value) {
+  const field = [...form.querySelectorAll(`input[type="checkbox"][name="${name}"]`)]
+    .find((input) => input.value === String(value));
+  if (field) field.checked = true;
+}
+
 function formatStoredPrice(value) {
   const amount = Number(value);
   return Number.isFinite(amount) ? `${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount)} estimate` : "";
-}
-
-function formatPresetLabel(value) {
-  if (!value) return "Custom layout";
-  return String(value).split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
 }
 
 function escapeHtml(value) {

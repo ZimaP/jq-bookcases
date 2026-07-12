@@ -1,18 +1,22 @@
-# John Quinn Bookcases Design System
+# JQ Bookcases Design System
+
+> Canonical, implementation-level documentation now lives in `DESIGN_SYSTEM.md`. This hyphenated filename remains as a compatibility summary for existing repository links.
 
 This file records the public brand vocabulary and shared interface scales used by the website and 3D configuration application. The source of truth for implementation tokens is `styles.css`.
 
 ## Official naming
 
-- Brand: **John Quinn Bookcases**
-- Brand lockup: **John Quinn** / **Bookcases · Built-Ins & Millwork**
+- Brand: **JQ Bookcases**
+- Brand lockup: a brass-outlined **JQ** architectural badge beside
+  **BOOKCASES** / **BUILT-INS & MILLWORK**
 - Product: **3D Bookcase Configurator**
 - Primary design action: **Design Your Bookcase**
 - Quote action and page: **Request a Quote**
 - Submitted form: **quote request**
 - Follow-up stage: **project review**
 
-Use “the configurator” only after the full product name has appeared. `JQ` remains valid only for the favicon monogram and generated design identifiers.
+Use “the configurator” only after the full product name has appeared. `JQ` is
+the official shared wordmark, favicon monogram, and generated-design prefix.
 
 ## Typography
 

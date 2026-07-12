@@ -23,6 +23,7 @@ export const defaultBookcaseConfig = {
   customPaintColor: "",
   customPaintCode: "",
   customPaintHex: "",
+  paintSelection: null,
   crownStyle: "classic_crown",
   baseStyle: "furniture_base",
   layoutMetadata: { sectionRatios: [1, 1, 1, 1] },
@@ -388,6 +389,8 @@ export function normalizeBookcaseConfig(config = {}) {
   const doorOptions = getDoorCountOptions(width, sections);
   const requestedDoorCount = clampInt(merged.doorCount ?? merged.doors, 2, 12);
   const doorCount = doorOptions.includes(requestedDoorCount) ? requestedDoorCount : doorOptions[doorOptions.length - 1];
+  const finish = normalizeOption(merged.finish, finishOptions, defaultBookcaseConfig.finish);
+  const paintSelection = normalizePaintSelection(merged, finish);
 
   return {
     layoutPreset: typeof merged.layoutPreset === "string" ? merged.layoutPreset : defaultBookcaseConfig.layoutPreset,
@@ -418,15 +421,44 @@ export function normalizeBookcaseConfig(config = {}) {
       lightingWarmthOptions,
       defaultBookcaseConfig.lightingWarmth
     ),
-    finish: normalizeOption(merged.finish, finishOptions, defaultBookcaseConfig.finish),
-    customPaintColor: typeof merged.customPaintColor === "string" ? merged.customPaintColor.trim().slice(0, 80) : "",
-    customPaintCode: typeof merged.customPaintCode === "string" ? merged.customPaintCode.trim().slice(0, 20) : "",
-    customPaintHex: normalizeHexColor(merged.customPaintHex),
+    finish,
+    customPaintColor: finish === "custom_bm" ? paintSelection?.name || cleanText(merged.customPaintColor, 80) : "",
+    customPaintCode: finish === "custom_bm" ? paintSelection?.code || cleanText(merged.customPaintCode, 20) : "",
+    customPaintHex: finish === "custom_bm" ? paintSelection?.previewHex || normalizeHexColor(merged.customPaintHex) : "",
+    paintSelection: finish === "custom_bm" ? paintSelection : null,
     crownStyle: normalizeOption(merged.crownStyle, crownStyleOptions, defaultBookcaseConfig.crownStyle),
     baseStyle: normalizeOption(merged.baseStyle, baseStyleOptions, defaultBookcaseConfig.baseStyle),
     layoutMetadata: normalizeLayoutMetadata(merged.layoutMetadata, sections),
     installation: normalizeOption(merged.installation, installationOptions, defaultBookcaseConfig.installation),
     delivery: normalizeOption(merged.delivery, deliveryOptions, defaultBookcaseConfig.delivery)
+  };
+}
+
+export function normalizePaintSelection(config, finish = config?.finish) {
+  if (finish !== "custom_bm") return null;
+  const saved = config?.paintSelection && typeof config.paintSelection === "object" && !Array.isArray(config.paintSelection)
+    ? config.paintSelection
+    : null;
+  const name = cleanText(saved?.name ?? config?.customPaintColor, 80);
+  const code = cleanText(saved?.code ?? config?.customPaintCode, 20).toUpperCase();
+  const previewHex = normalizeHexColor(saved?.previewHex ?? saved?.hex ?? config?.customPaintHex);
+  if (!name && !code && !previewHex) return null;
+  const collections = Array.isArray(saved?.collections)
+    ? [...new Set(saved.collections.map((value) => cleanText(value, 100)).filter(Boolean))].slice(0, 12)
+    : cleanText(saved?.collection, 100) ? [cleanText(saved.collection, 100)] : [];
+  const previewRgb = normalizePreviewRgb(saved?.previewRgb) || hexToRgb(previewHex);
+  const normalizedCode = code.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return {
+    source: saved?.source === "benjamin-moore" ? "benjamin-moore" : "benjamin-moore",
+    brand: cleanText(saved?.brand, 40) || "Benjamin Moore",
+    catalogId: cleanText(saved?.catalogId, 100) || (normalizedCode ? `benjamin-moore:${normalizedCode}` : ""),
+    code,
+    name,
+    collections,
+    previewHex,
+    previewRgb,
+    catalogVersion: cleanText(saved?.catalogVersion, 80),
+    sourceType: cleanText(saved?.sourceType, 40) || "saved-preview"
   };
 }
 
@@ -448,6 +480,26 @@ function normalizeLegacyConfigValues(config) {
   }
   if (next.baseStyle === "projected" || next.baseStyle === "projected_base" || next.baseStyle === "projected_furniture_base") next.baseStyle = "furniture_base";
   return next;
+}
+
+function cleanText(value, maximumLength) {
+  return typeof value === "string" ? value.trim().slice(0, maximumLength) : "";
+}
+
+function normalizePreviewRgb(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const rgb = { r: Number(value.r), g: Number(value.g), b: Number(value.b) };
+  return Object.values(rgb).every((channel) => Number.isInteger(channel) && channel >= 0 && channel <= 255) ? rgb : null;
+}
+
+function hexToRgb(value) {
+  const hex = normalizeHexColor(value);
+  if (!hex) return null;
+  return {
+    r: Number.parseInt(hex.slice(1, 3), 16),
+    g: Number.parseInt(hex.slice(3, 5), 16),
+    b: Number.parseInt(hex.slice(5, 7), 16)
+  };
 }
 
 export function getDoorCountOptions(width, sections) {

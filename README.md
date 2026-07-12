@@ -1,6 +1,6 @@
-# John Quinn Bookcases
+# JQ Bookcases
 
-Premium static website and parametric 3D configurator for John Quinn Bookcases -- Built-Ins & Millwork.
+Premium static website and parametric 3D configurator for JQ Bookcases — Built-Ins & Millwork.
 
 ## Pages
 
@@ -19,6 +19,11 @@ Premium static website and parametric 3D configurator for John Quinn Bookcases -
 `configurator.html`, and all site-wide quote actions route to
 `request-quote.html`. The shared header, footer, navigation, icons, tokens, and
 responsive primitives are owned by `site.js` and `styles.css`.
+
+The configurator provides synchronized Guided Setup and All Controls modes
+over one physical configuration and one persistent 3D viewer. Workflow rules
+live in `configurator-experience.js`; the controller and renderer integration
+remain in `configurator-3d.js`.
 
 ## Run Locally
 
@@ -44,14 +49,15 @@ are documented in `SITE-ARCHITECTURE.md`.
 
 ## Benjamin Moore lookup
 
-`benjamin-moore-colors.js` is a curated local catalog subset used for the
-configurator search. It supports normalized color-name and color-code lookup
-without runtime scraping or a remote API claim. The stored `approximateHex`
-values are screen-preview approximations only; final manufacturing color must
-be verified with a physical paint sample. The data layer is isolated so an
-authorized official provider can replace it later without changing the UI or
-saved configuration schema.
+`benjamin-moore-colors.js` implements the shared lazy-loaded catalog-provider
+contract used by both configurator modes. The generated local catalog contains
+4,056 unique codes imported from the 11 Adobe ASE palettes linked by Benjamin
+Moore's official professional palette-download page on 2026-07-12. Run
+`npm run catalog:benjamin-moore` to regenerate the catalog and provenance
+manifest deterministically from the checked-in official source palettes.
 
-The current local subset was reviewed against Benjamin Moore's public color
-catalog. It is not an official API connection, a complete catalog, or a color
-accuracy guarantee.
+Customer runtime search never contacts Benjamin Moore. Saved selections retain
+brand, code, name, catalog ID, collection, preview RGB/hex, source type, and
+catalog version. These official-palette RGB values are digital previews only;
+final manufacturing color must be confirmed with an official physical paint
+sample. JQ Bookcases does not claim an official Benjamin Moore partnership.
