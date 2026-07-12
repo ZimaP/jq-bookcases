@@ -1,0 +1,113 @@
+body[data-page="configurator"] .cabinet-ar-placement-coach {
+  display: grid;
+  gap: 11px;
+  border: 1px solid rgba(224, 188, 139, 0.3);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
+  padding: 13px;
+}
+
+body[data-page="configurator"] .cabinet-ar-placement-coach > .section-kicker {
+  color: #e3b879;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .cabinet-ar-placement-modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+body[data-page="configurator"] .cabinet-ar-placement-modes button {
+  display: grid;
+  min-height: 55px;
+  gap: 3px;
+  place-content: center;
+  border: 1px solid rgba(237, 219, 194, 0.2);
+  border-radius: 7px;
+  background: rgba(22, 18, 15, 0.2);
+  padding: 8px 9px;
+  color: rgba(250, 246, 239, 0.78);
+  text-align: center;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+body[data-page="configurator"] .cabinet-ar-placement-modes button strong {
+  font-size: 12px;
+  line-height: 1.15;
+}
+
+body[data-page="configurator"] .cabinet-ar-placement-modes button small {
+  color: inherit;
+  font-size: 10px;
+  opacity: 0.72;
+}
+
+body[data-page="configurator"] .cabinet-ar-placement-modes button.is-active {
+  border-color: rgba(224, 172, 103, 0.7);
+  background: linear-gradient(180deg, rgba(180, 128, 69, 0.36), rgba(102, 70, 39, 0.25));
+  color: #fff4e4;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06);
+}
+
+body[data-page="configurator"] .cabinet-ar-placement-modes button:focus-visible {
+  outline: 2px solid var(--focus-ring, #e7ba77);
+  outline-offset: 2px;
+}
+
+body[data-page="configurator"] .cabinet-ar-placement-note,
+body[data-page="configurator"] .cabinet-ar-tracking-status {
+  margin: 0;
+  color: rgba(247, 243, 237, 0.72);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+body[data-page="configurator"] .cabinet-ar-placement-note {
+  border-left: 2px solid rgba(225, 176, 110, 0.72);
+  padding-left: 9px;
+}
+
+body[data-page="configurator"] .cabinet-ar-stability-guide {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid rgba(238, 220, 196, 0.14);
+  padding-top: 10px;
+}
+
+body[data-page="configurator"] .cabinet-ar-stability-guide > strong {
+  color: rgba(255, 248, 239, 0.9);
+  font-size: 11px;
+}
+
+body[data-page="configurator"] .cabinet-ar-stability-guide ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-left: 17px;
+  color: rgba(247, 243, 237, 0.64);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+body[data-page="configurator"] .cabinet-ar-tracking-status {
+  border-radius: 6px;
+  background: rgba(16, 13, 11, 0.18);
+  padding: 8px 9px;
+}
+
+body[data-page="configurator"] .cabinet-ar-guidance {
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 760px) {
+  body[data-page="configurator"] .cabinet-ar-placement-coach {
+    padding: 11px;
+  }
+
+  body[data-page="configurator"] .cabinet-ar-placement-modes button {
+    min-height: 52px;
+  }
+}
