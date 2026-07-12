@@ -1,5 +1,5 @@
 import * as THREE from "./assets/vendor/three.module.js";
-import { diagramSvg, iconSvg } from "./icon-system.js?v=site-system-20260711d";
+import { diagramSvg, iconSvg } from "./icon-system.js?v=guided-repair-20260712b";
 import {
   baseStyleOptions,
   crownStyleOptions,
@@ -86,6 +86,13 @@ const crownPreviewIcons = Object.freeze({
   modern_soffit: diagramSvg("crown-soffit")
 });
 
+const doorPreviewIcons = Object.freeze({
+  shaker: diagramSvg("door-shaker"),
+  flat: diagramSvg("door-flat"),
+  slim_shaker: diagramSvg("door-slim-shaker"),
+  glass: diagramSvg("door-glass")
+});
+
 const lightingPreviewIcons = Object.freeze({
   no_lighting: iconSvg("lighting-none"),
   warm_pucks: iconSvg("lighting-pucks"),
@@ -112,8 +119,16 @@ const finishPalette = {
 let viewerInstanceSequence = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll("[data-bookcase-builder]").forEach((host, index) => {
+  document.querySelectorAll("[data-bookcase-builder]").forEach(async (host, index) => {
     if (host.__bookcaseConfigurator) return;
+    if (host.getAttribute("data-enable-cabinet-ar") === "true") {
+      try {
+        const { readCabinetArShareConfiguration } = await import("./cabinet-ar.js?v=cabinet-ar-20260712b");
+        host.__cabinetArSharedConfiguration = readCabinetArShareConfiguration(window.location.href);
+      } catch (error) {
+        host.__cabinetArSharedConfiguration = null;
+      }
+    }
     host.__bookcaseConfigurator = new BookcaseConfigurator(host, index);
   });
 });
@@ -127,7 +142,6 @@ class BookcaseConfigurator {
     this.mode = this.loadPreference(CONFIGURATOR_PREFERENCE_KEYS.mode, normalizeConfiguratorMode);
     this.guidedStep = this.loadPreference(CONFIGURATOR_PREFERENCE_KEYS.guidedStep, normalizeGuidedStep);
     this.expandedCategory = this.loadPreference(CONFIGURATOR_PREFERENCE_KEYS.allCategory, normalizeAllCategory);
-    this.appearanceTab = "finish";
     this.drafts = {};
     this.scrollPositions = { guided: 0, all: 0 };
     this.actionStartedAt = {};
@@ -144,6 +158,9 @@ class BookcaseConfigurator {
     this.saveActionCount = 0;
     this.quoteActionCount = 0;
     this.activeView = "three-quarter";
+    this.arEnabled = this.host.getAttribute("data-enable-cabinet-ar") === "true";
+    this.arController = null;
+    this.arControllerPromise = null;
     this.activeRangeDrag = null;
     this.layout = generateBookcaseLayout(this.state);
     this.state = normalizeBookcaseConfig({ ...this.state, ...this.layout.config });
@@ -154,6 +171,7 @@ class BookcaseConfigurator {
     this.cacheElements();
     this.viewer = this.createViewer(this.layout);
     this.bindEvents();
+    if (this.arEnabled) this.initializeCabinetAr();
     this.renderActiveControls();
     this.syncInterface();
     this.verifyRestoredPaintSelection();
@@ -187,6 +205,7 @@ class BookcaseConfigurator {
   }
 
   loadInitialConfig() {
+    if (this.host.__cabinetArSharedConfiguration) return this.host.__cabinetArSharedConfiguration;
     const requestedPresetId = new URLSearchParams(window.location.search).get("preset");
     const requestedPreset = layoutPresets.find((preset) => preset.id === requestedPresetId);
     if (requestedPreset) {
@@ -281,6 +300,14 @@ class BookcaseConfigurator {
             <button type="button" data-view="three-quarter" aria-pressed="true"><span class="view-icon" aria-hidden="true">${builderIcons.threeQuarter}</span>3/4</button>
             <button type="button" data-view="side" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.side}</span>Side</button>
           </div>
+          ${this.arEnabled ? `
+            <div class="cabinet-ar-launch">
+              <button class="cabinet-ar-launch-button" type="button" data-open-ar aria-label="View in Your Room">
+                <span class="view-icon" aria-hidden="true">${builderIcons.cube}</span><span data-ar-label>View in Your Room</span>
+              </button>
+              <small class="cabinet-ar-launch-help">See this cabinet at true scale in your space.</small>
+            </div>
+          ` : ""}
         </section>
 
         <section class="configurator-estimate-bar" aria-label="Estimate and next steps">
@@ -305,6 +332,8 @@ class BookcaseConfigurator {
             <div data-review-dialog-content></div>
           </div>
         </dialog>
+
+        ${this.arEnabled ? `<dialog class="cabinet-ar-dialog" data-ar-dialog aria-labelledby="cabinet-ar-title"></dialog>` : ""}
 
         <p class="status-message" data-builder-status role="status" aria-live="polite"></p>
       </form>
@@ -369,7 +398,7 @@ class BookcaseConfigurator {
           <button type="button" class="guided-back" data-guided-back ${stepIndex === 0 ? "disabled" : ""}>Back</button>
           ${step.id === "review"
             ? '<button type="button" class="guided-continue is-primary" data-open-order="measurement">Request a Quote</button>'
-            : '<button type="button" class="guided-continue is-primary" data-guided-continue>Continue</button>'}
+            : '<button type="button" class="guided-continue is-primary" data-guided-continue>Next</button>'}
         </nav>
       </div>
     `;
@@ -500,10 +529,19 @@ class BookcaseConfigurator {
   }
 
   renderDoorGroup() {
+    const descriptions = {
+      shaker: "Classic framed profile",
+      flat: "Clean slab front",
+      slim_shaker: "Narrow framed profile",
+      glass: "Framed glass display door"
+    };
     const styles = doorStyleOptions.map((option) => `
-      <label class="option-card compact-option-card">
+      <label class="door-style-card" data-door-style="${option.value}">
         <input data-field="doorStyle" name="${this.id}-doorStyle" type="radio" value="${option.value}">
-        <span><strong>${option.label}</strong><small>${option.value === "glass" ? "Framed glass display door" : "Furniture-grade cabinet front"}</small></span>
+        <span class="door-style-card-content">
+          <span class="door-style-illustration" aria-hidden="true">${doorPreviewIcons[option.value]}</span>
+          <span class="door-style-copy"><strong>${option.label}</strong><small>${descriptions[option.value]}</small></span>
+        </span>
       </label>
     `).join("");
     const counts = [2, 4, 6, 8, 10, 12].map((count) => `
@@ -513,7 +551,7 @@ class BookcaseConfigurator {
       <section class="control-section control-section-doors" data-applicability="doors">
         <fieldset class="choice-field" data-applicability="doors">
           <legend>Door style</legend>
-          <div class="option-card-grid">${styles}</div>
+          <div class="door-style-grid">${styles}</div>
         </fieldset>
         <fieldset class="choice-field" data-applicability="doors">
           <legend>Door count</legend>
@@ -525,21 +563,11 @@ class BookcaseConfigurator {
   }
 
   renderAppearanceExperience() {
-    const applicability = getApplicability(this.state, this.layout);
-    if (this.appearanceTab === "hardware" && !applicability.showHardware) this.appearanceTab = "finish";
-    const tabs = [
-      { id: "finish", label: "Finish", available: true },
-      { id: "hardware", label: "Hardware", available: applicability.showHardware },
-      { id: "lighting", label: "Lighting", available: true }
-    ];
     return `
-      <div class="appearance-tabs" role="tablist" aria-label="Appearance options">
-        ${tabs.filter((tab) => tab.available).map((tab) => `
-          <button id="${this.id}-appearance-${tab.id}" type="button" role="tab" data-appearance-tab="${tab.id}" aria-controls="${this.id}-appearance-panel" aria-selected="${this.appearanceTab === tab.id}" tabindex="${this.appearanceTab === tab.id ? "0" : "-1"}">${tab.label}</button>
-        `).join("")}
-      </div>
-      <div id="${this.id}-appearance-panel" class="appearance-panel" role="tabpanel" aria-labelledby="${this.id}-appearance-${this.appearanceTab}">
-        ${this.appearanceTab === "finish" ? this.renderFinishGroup() : this.appearanceTab === "hardware" ? this.renderHardwareGroup() : this.renderLightingGroup()}
+      <div class="appearance-sections" aria-label="Appearance options">
+        ${this.renderFinishGroup()}
+        ${this.renderHardwareGroup()}
+        ${this.renderLightingGroup()}
       </div>
     `;
   }
@@ -849,8 +877,27 @@ class BookcaseConfigurator {
       allPanel: this.host.querySelector('[data-mode-panel="all"]'),
       modeDescription: this.host.querySelector("[data-mode-description]"),
       reviewDialog: this.host.querySelector("[data-review-dialog]"),
-      reviewDialogContent: this.host.querySelector("[data-review-dialog-content]")
+      reviewDialogContent: this.host.querySelector("[data-review-dialog-content]"),
+      arDialog: this.host.querySelector("[data-ar-dialog]")
     };
+  }
+
+  initializeCabinetAr() {
+    if (this.arControllerPromise) return this.arControllerPromise;
+    this.arControllerPromise = import("./cabinet-ar-ui.js?v=cabinet-ar-20260712b")
+      .then(({ CabinetArController }) => {
+        if (!this.elements.arDialog) return null;
+        this.arController = new CabinetArController({
+          host: this.host,
+          dialog: this.elements.arDialog,
+          getState: () => this.state,
+          getLayout: () => this.layout,
+          getPrice: () => this.price
+        });
+        return this.arController;
+      })
+      .catch(() => null);
+    return this.arControllerPromise;
   }
 
   bindEvents() {
@@ -890,8 +937,6 @@ class BookcaseConfigurator {
         this.handleModeSelectorKeydown(event, modeButton);
         return;
       }
-      const appearanceButton = event.target.closest?.("[data-appearance-tab]");
-      if (appearanceButton) this.handleAppearanceTabsKeydown(event, appearanceButton);
       const colorQuery = event.target.closest?.("[data-bm-query]");
       if (!colorQuery) return;
       if (event.key === "Escape") this.closeBenjaminMooreResults();
@@ -935,11 +980,6 @@ class BookcaseConfigurator {
       this.toggleCategory(categoryTrigger.dataset.categoryTrigger);
       return;
     }
-    const appearanceTab = target.closest?.("[data-appearance-tab]");
-    if (appearanceTab) {
-      this.setAppearanceTab(appearanceTab.dataset.appearanceTab, { focus: true });
-      return;
-    }
     const presetButton = target.closest?.("[data-preset-id]");
     if (presetButton) {
       this.applyPreset(presetButton.dataset.presetId);
@@ -971,6 +1011,15 @@ class BookcaseConfigurator {
     }
     if (target.closest?.("[data-review-design]")) {
       if (this.ensureConfigurationActionable()) this.openReviewDialog();
+      return;
+    }
+    const arButton = target.closest?.("[data-open-ar]");
+    if (arButton) {
+      if (!this.ensureConfigurationActionable()) return;
+      this.initializeCabinetAr().then((controller) => {
+        if (controller) controller.open(arButton);
+        else this.showStatus("The room view could not load. Your design is unchanged.", true);
+      });
       return;
     }
     if (target.closest?.("[data-close-review]")) {
@@ -1041,19 +1090,6 @@ class BookcaseConfigurator {
     this.switchMode(buttons[nextIndex]?.dataset.configuratorMode);
   }
 
-  handleAppearanceTabsKeydown(event, button) {
-    const buttons = [...this.host.querySelectorAll("[data-appearance-tab]")];
-    const index = buttons.indexOf(button);
-    let nextIndex = index;
-    if (event.key === "ArrowRight") nextIndex = (index + 1) % buttons.length;
-    else if (event.key === "ArrowLeft") nextIndex = (index - 1 + buttons.length) % buttons.length;
-    else if (event.key === "Home") nextIndex = 0;
-    else if (event.key === "End") nextIndex = buttons.length - 1;
-    else return;
-    event.preventDefault();
-    this.setAppearanceTab(buttons[nextIndex]?.dataset.appearanceTab, { focus: true });
-  }
-
   switchMode(nextMode, options = {}) {
     const normalizedMode = normalizeConfiguratorMode(nextMode);
     const previousMode = this.mode;
@@ -1062,7 +1098,7 @@ class BookcaseConfigurator {
       && this.guidedStep === "review"
       && !options.category;
     if (normalizedMode === CONFIGURATOR_MODES.all) {
-      this.expandedCategory = normalizeAllCategory(options.category || categoryForGuidedStep(options.guidedStep || this.guidedStep, this.appearanceTab));
+      this.expandedCategory = normalizeAllCategory(options.category || categoryForGuidedStep(options.guidedStep || this.guidedStep));
       this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.allCategory, this.expandedCategory);
     } else {
       this.guidedStep = normalizeGuidedStep(options.guidedStep || guidedStepForCategory(this.expandedCategory));
@@ -1118,15 +1154,6 @@ class BookcaseConfigurator {
       if (icon) icon.textContent = open ? "−" : "+";
       if (panel) panel.hidden = !open;
     });
-  }
-
-  setAppearanceTab(tabId, options = {}) {
-    const applicability = getApplicability(this.state, this.layout);
-    const allowed = ["finish", "lighting", ...(applicability.showHardware ? ["hardware"] : [])];
-    this.appearanceTab = allowed.includes(tabId) ? tabId : "finish";
-    this.renderActiveControls({ previousMode: this.mode });
-    this.syncInterface();
-    if (options.focus) this.host.querySelector('[data-appearance-tab="' + this.appearanceTab + '"]')?.focus();
   }
 
   openReviewDialog() {
@@ -1507,11 +1534,8 @@ class BookcaseConfigurator {
     this.price = this.pricing.total;
     this.priceCalculationCount += 1;
     this.viewer.update(this.state, this.layout, changedFields);
+    this.arController?.handleConfigurationChanged();
     if (changedFields.some((field) => ["finish", "customPaintColor", "customPaintCode", "customPaintHex", "paintSelection"].includes(field))) {
-      this.renderActiveControls({ previousMode: this.mode });
-    }
-    if (this.appearanceTab === "hardware" && !getApplicability(this.state, this.layout).showHardware) {
-      this.appearanceTab = "finish";
       this.renderActiveControls({ previousMode: this.mode });
     }
     this.renderDoorOptions();
@@ -1770,6 +1794,12 @@ class BookcaseConfigurator {
     });
     this.host.querySelectorAll("[data-open-order]").forEach((button) => {
       button.disabled = blocking || quoteLocked;
+      button.setAttribute("aria-disabled", String(button.disabled));
+      if (blocking && actionHint?.id) button.setAttribute("aria-describedby", actionHint.id);
+      else button.removeAttribute("aria-describedby");
+    });
+    this.host.querySelectorAll("[data-open-ar]").forEach((button) => {
+      button.disabled = blocking;
       button.setAttribute("aria-disabled", String(button.disabled));
       if (blocking && actionHint?.id) button.setAttribute("aria-describedby", actionHint.id);
       else button.removeAttribute("aria-describedby");

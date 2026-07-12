@@ -72,12 +72,12 @@ test("the cached shared total feeds estimate, review, Save, and Quote without mo
   assert.doesNotMatch(`${review}\n${summary}\n${save}\n${quote}`, /calculateBookcasePrice|buildPricingContext/);
 });
 
-test("mode tabs, appearance tabs, accordions, and validation have complete ARIA wiring", () => {
+test("mode tabs, continuous Appearance sections, accordions, and validation have complete ARIA wiring", () => {
   assert.match(source, /role="tablist" aria-label="Configuration experience"/);
   assert.match(source, /role="tab" data-configurator-mode="guided" aria-controls=/);
   assert.match(source, /role="tabpanel" aria-labelledby=.*data-mode-panel="guided"/);
-  assert.match(source, /role="tab" data-appearance-tab=.*aria-controls=.*aria-selected=/);
-  assert.match(source, /class="appearance-panel" role="tabpanel" aria-labelledby=/);
+  assert.match(source, /class="appearance-sections" aria-label="Appearance options"/);
+  assert.doesNotMatch(source, /data-appearance-tab|class="appearance-tabs"/);
   assert.match(source, /data-category-trigger=.*aria-expanded=.*aria-controls=/);
   assert.match(source, /data-category-panel=.*role="region" aria-labelledby=/);
   assert.match(source, /data-validation-field="customPaintColor"/);
@@ -94,6 +94,36 @@ test("Guided-only navigation and All-Controls-only accordions remain separated",
   assert.match(all, /data-configurator-accordion/);
   assert.match(all, /data-review-design/);
   assert.doesNotMatch(all, /guided-progress|data-guided-back|data-guided-continue/);
+});
+
+test("Guided Appearance renders Finish, Hardware, and Lighting together", () => {
+  const appearance = methodBody("renderAppearanceExperience", "renderServiceGroup");
+  assert.match(appearance, /this\.renderFinishGroup\(\)/);
+  assert.match(appearance, /this\.renderHardwareGroup\(\)/);
+  assert.match(appearance, /this\.renderLightingGroup\(\)/);
+  assert.doesNotMatch(appearance, /role="tab"|role="tabpanel"/);
+});
+
+test("Guided navigation uses Next consistently before the quote step", () => {
+  const guided = methodBody("renderGuidedExperience", "renderGuidedStepContent");
+  assert.match(guided, /data-guided-continue>Next<\/button>/);
+  assert.doesNotMatch(guided, />Continue<\/button>/);
+});
+
+test("Door styles use builder-specific illustrated cards without the shared option-card collision", () => {
+  const doors = methodBody("renderDoorGroup", "renderAppearanceExperience");
+  assert.match(doors, /class="door-style-grid"/);
+  assert.match(doors, /class="door-style-card"/);
+  assert.match(doors, /doorPreviewIcons\[option\.value\]/);
+  assert.doesNotMatch(doors, /class="option-card/);
+  assert.doesNotMatch(doors, /Furniture-grade cabinet front/);
+});
+
+test("the AR launch renders one stable visible label target", () => {
+  const shell = methodBody("renderFullPageConfigurator", "renderActiveControls");
+  assert.equal((shell.match(/data-ar-label/g) || []).length, 1);
+  assert.equal((shell.match(/>View in Your Room<\/span>/g) || []).length, 1);
+  assert.match(shell, /aria-label="View in Your Room"/);
 });
 
 test("browser-verifiable diagnostics expose lifecycle counters without a global controller", () => {
@@ -142,7 +172,8 @@ test("responsive presentation covers desktop, tablet, mobile, touch scrolling, a
   for (const breakpoint of ["1280px", "900px", "760px", "390px"]) assert.match(css, new RegExp(`max-width: ${breakpoint}`));
   assert.match(css, /touch-action: pan-y/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(css, /\.guided-navigation \{\s*position: static;/);
+  assert.match(css, /\.configurator-experience > \.configurator-estimate-bar \{\s*position: static;/);
+  assert.match(css, /\.guided-navigation \{\s*position: sticky;\s*bottom: 0;/);
 });
 
 test("the configurator route loads the experience module and final presentation layer", () => {
