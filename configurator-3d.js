@@ -116,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (host.__bookcaseConfigurator) return;
     if (host.getAttribute("data-enable-cabinet-ar") === "true") {
       try {
-        const { readCabinetArShareConfiguration } = await import("./cabinet-ar.js?v=cabinet-ar-20260712a");
+        const { readCabinetArShareConfiguration } = await import("./cabinet-ar.js?v=cabinet-ar-20260712b");
         host.__cabinetArSharedConfiguration = readCabinetArShareConfiguration(window.location.href);
       } catch (error) {
         host.__cabinetArSharedConfiguration = null;
@@ -879,7 +879,7 @@ class BookcaseConfigurator {
 
   initializeCabinetAr() {
     if (this.arControllerPromise) return this.arControllerPromise;
-    this.arControllerPromise = import("./cabinet-ar-ui.js?v=cabinet-ar-20260712a")
+    this.arControllerPromise = import("./cabinet-ar-ui.js?v=cabinet-ar-20260712b")
       .then(({ CabinetArController }) => {
         if (!this.elements.arDialog) return null;
         this.arController = new CabinetArController({
