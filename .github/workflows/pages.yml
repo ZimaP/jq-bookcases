@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -39,12 +39,18 @@ jobs:
       - name: Run tests
         run: npm test
 
+  publish-artifact:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
       - name: Configure GitHub Pages
-        if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5
 
       - name: Prepare static site
-        if: github.event_name != 'pull_request'
         run: |
           mkdir -p _site
           rsync -a \
@@ -64,7 +70,6 @@ jobs:
           test -f _site/configurator.html
 
       - name: Upload Pages artifact
-        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v4
         with:
           path: _site
@@ -76,7 +81,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: publish-artifact
     outputs:
       page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
@@ -88,13 +93,15 @@ jobs:
     if: always() && github.event_name == 'push' && github.ref_name == 'codex/cabinet-ar-mvp'
     runs-on: ubuntu-latest
     needs:
-      - build
+      - validate
+      - publish-artifact
       - deploy
     steps:
       - name: Report preview status on the pull request
         uses: actions/github-script@v9
         env:
-          BUILD_RESULT: ${{ needs.build.result }}
+          VALIDATION_RESULT: ${{ needs.validate.result }}
+          PUBLISH_RESULT: ${{ needs.publish-artifact.result }}
           DEPLOY_RESULT: ${{ needs.deploy.result }}
           PAGE_URL: ${{ needs.deploy.outputs.page_url }}
         with:
@@ -114,18 +121,30 @@ jobs:
               return;
             }
 
-            const buildResult = process.env.BUILD_RESULT || 'unknown';
+            const validationResult = process.env.VALIDATION_RESULT || 'unknown';
+            const publishResult = process.env.PUBLISH_RESULT || 'unknown';
             const deployResult = process.env.DEPLOY_RESULT || 'unknown';
-            const successful = buildResult === 'success' && deployResult === 'success';
+            const successful = validationResult === 'success'
+              && publishResult === 'success'
+              && deployResult === 'success';
             const fallbackUrl = `https://${context.repo.owner.toLowerCase()}.github.io/${context.repo.repo}/`;
             const pageUrl = (process.env.PAGE_URL || fallbackUrl).trim();
             const normalizedPageUrl = pageUrl.endsWith('/') ? pageUrl : `${pageUrl}/`;
             const configuratorUrl = new URL('configurator.html', normalizedPageUrl).toString();
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
 
+            let guidance = '';
+            if (validationResult !== 'success') {
+              guidance = 'The JavaScript validation or test suite failed. Open the workflow run for the failing command.';
+            } else if (publishResult !== 'success') {
+              guidance = 'The application passed validation, but GitHub rejected Pages configuration. In **Settings → Pages → Build and deployment**, set **Source** to **GitHub Actions**, then re-run this workflow.';
+            } else if (deployResult !== 'success') {
+              guidance = 'The Pages artifact was prepared, but GitHub rejected the deployment. Open the workflow run and check the `github-pages` environment.';
+            }
+
             const body = successful
               ? `${marker}\n## iPad AR preview\n\n✅ GitHub Pages deployed successfully.\n\n- [Open the AR configurator](${configuratorUrl})\n- [Open the deployment run](${runUrl})\n\nOpen the configurator in Safari on the iPad, configure a cabinet, then select **View in Your Room**.`
-              : `${marker}\n## iPad AR preview\n\n❌ GitHub Pages did not complete.\n\n- Build: \`${buildResult}\`\n- Deploy: \`${deployResult}\`\n- [Open the deployment run](${runUrl})\n\nThe workflow is ready; this usually means GitHub Pages still needs to be enabled for the repository or the account plan does not permit Pages for this private repository.`;
+              : `${marker}\n## iPad AR preview\n\n❌ GitHub Pages did not complete.\n\n- Application validation: \`${validationResult}\`\n- Pages artifact: \`${publishResult}\`\n- Pages deployment: \`${deployResult}\`\n- [Open the deployment run](${runUrl})\n\n${guidance}`;
 
             const { data: comments } = await github.rest.issues.listComments({
               owner: context.repo.owner,
