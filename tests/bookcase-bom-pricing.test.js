@@ -48,10 +48,11 @@ test("layout fingerprints are deterministic, serializable, and geometry-sensitiv
 
 test("invalid layouts cannot produce an accepted BOM or price", () => {
   const invalidLayout = generateBookcaseLayout({
-    width: 144,
-    sections: 1,
+    width: 96,
+    sections: 4,
     lowerCabinets: false,
-    lighting: "no_lighting"
+    lighting: "no_lighting",
+    layoutMetadata: { sectionRatios: [0.1, 1, 1, 1] }
   });
 
   assert.equal(invalidLayout.validation.valid, false);

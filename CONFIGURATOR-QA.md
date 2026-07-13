@@ -20,7 +20,7 @@ browser console visible while testing. The release viewports are 1440 × 900,
 12. A Guided edit appears immediately in All Controls.
 13. An All Controls edit appears immediately in Guided Setup.
 14. Both modes display the same price for the same configuration.
-15. Both modes create the same schema-3 saved physical payload.
+15. Both modes create the same schema-4 accepted physical payload.
 16. Both modes use the same saved design for quote navigation.
 17. Guided steps and All Controls categories use the documented mapping.
 18. A valid preferred mode restores on reload.
@@ -41,6 +41,21 @@ browser console visible while testing. The release viewports are 1440 × 900,
 33. The mode tabs support arrow, Home, and End keyboard behavior.
 34. The mode selector remains visible and usable at all release widths.
 35. One `BookcaseConfigurator.state` is the physical source of truth.
+36. Section Designer is reachable from Guided Cabinets & Fronts and directly
+    after Dimensions in All Controls.
+37. The section strip supports click, Arrow Left/Right, Home, and End selection.
+38. Width steppers, numeric commit, keyboard divider resize, and pointer drag
+    preserve total clear width and commit one accepted transaction.
+39. Split and merge include one divider thickness and restore their original
+    clear width and deterministic fingerprint.
+40. Undo and redo affect accepted section changes only and are not saved.
+41. Invalid widths retain a visible draft and leave the model, BOM, price,
+    review, save identity, and quote data unchanged.
+42. Media, desk, and fireplace feature zones expose a visible locked state.
+43. Mobile hides divider drag handles but retains the horizontal strip,
+    numeric editor, section types, and 44 px targets.
+44. Selection boxes, guides, and labels do not enter physical render counts,
+    BOM quantities, pricing lines, or saved data.
 
 Automated coverage for this matrix lives in
 `tests/configurator-experience.test.js` and
@@ -85,6 +100,35 @@ Final screenshots:
 - `artifacts/configurator-qa/all-controls-desktop.jpg`
 - `artifacts/configurator-qa/guided-mobile.jpg`
 - `artifacts/configurator-qa/all-controls-mobile.jpg`
+
+## Section Designer verification — 2026-07-13
+
+- Scenario A accepted exact clear widths `18, 30, 20, 24.25` in and types
+  `open, drawers, lower_doors, tall_doors`; the generated graph contained three
+  drawer fronts and three doors with no floating or duplicate components.
+- Scenario B retained `17, 35, 17` in clear widths and remained valid. Shelf
+  spans above the 36 in standard limit continue to surface an engineering
+  warning without silently changing the user width.
+- A 10 in width draft was rejected against the 15 in minimum while accepted
+  model, BOM fingerprint, total, render counts, and update count stayed fixed.
+- Split/merge, undo/redo, save/reload, and quote handoff were exercised through
+  the browser against the schema-4 accepted transaction.
+- One hundred successive Section Designer rebuilds returned to identical
+  geometry. WebGL geometry memory settled at four buffers above a 123-buffer
+  baseline, textures were unchanged, and no count grew per edit.
+- Browser-plugin visual inspection passed at 1440 × 900, 1024 × 900,
+  390 × 844, and 360 × 800 with no horizontal page overflow, one canvas,
+  matched physical render counts, and no console errors. Mobile divider
+  handles were present for accessibility but computed `display: none`.
+- The visual audit caught and fixed a low-contrast Section Designer heading;
+  the final computed heading color is `rgb(48, 40, 32)` on the light panel.
+
+Section Designer screenshots:
+
+- `artifacts/section-designer-qa/section-designer-1440x900.png`
+- `artifacts/section-designer-qa/section-designer-1024x900.png`
+- `artifacts/section-designer-qa/section-designer-390x844.png`
+- `artifacts/section-designer-qa/section-designer-360x800.png`
 
 ## Geometry scenarios
 
@@ -139,6 +183,7 @@ For each scenario, inspect Front, 3/4, Side, and free-rotate views. Confirm that
 ```sh
 npm run build
 npm test
+npm run test:browser
 git diff --check
 ```
 

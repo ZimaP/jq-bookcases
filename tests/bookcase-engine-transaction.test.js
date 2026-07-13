@@ -57,10 +57,11 @@ test("automatic construction corrections become the accepted canonical state", (
 test("invalid candidates expose errors but no committable artifacts", () => {
   const evaluation = evaluateBookcaseCandidate({
     ...defaultBookcaseConfig,
-    width: 144,
-    sections: 1,
+    width: 96,
+    sections: 4,
     lowerCabinets: false,
-    lighting: "no_lighting"
+    lighting: "no_lighting",
+    layoutMetadata: { sectionRatios: [0.1, 1, 1, 1] }
   });
 
   assert.equal(evaluation.accepted, false);
@@ -69,7 +70,7 @@ test("invalid candidates expose errors but no committable artifacts", () => {
   assert.equal(evaluation.bom, null);
   assert.equal(evaluation.pricing, null);
   assert.equal(evaluation.layoutFingerprint, null);
-  assert.ok(evaluation.errors.some((error) => error.code === "UNSUPPORTED_SHELF_SPAN"));
+  assert.ok(evaluation.errors.some((error) => error.code === "MIN_SECTION_CLEAR_WIDTH"));
   assert.throws(() => createAcceptedDesignSnapshot(evaluation), /accepted evaluated design/i);
 });
 

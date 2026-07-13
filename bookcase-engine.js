@@ -16,7 +16,9 @@ export const DESIGN_SELECTION_FINGERPRINT_VERSION = 1;
  */
 export function evaluateBookcaseCandidate(input = {}, options = {}) {
   const requestedState = normalizeBookcaseConfig(input);
-  const requestedLayout = generateBookcaseLayout(requestedState, options.layoutOptions || {});
+  // Generate the first candidate from the raw request so layout-owned
+  // normalization can report structured corrections for section metadata.
+  const requestedLayout = generateBookcaseLayout(input, options.layoutOptions || {});
   const candidateState = normalizeBookcaseConfig({
     ...requestedState,
     ...(requestedLayout.config || {})

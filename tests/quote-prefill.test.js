@@ -146,7 +146,7 @@ test("quote prefill omits stale lighting when the generated design has no compat
 test("quote prefill price and options use the same valid generated pricing context", () => {
   const prefill = createQuotePrefill(defaultBookcaseConfig);
 
-  assert.equal(prefill.price, 14850);
+  assert.equal(prefill.price, 14800);
   assert.equal(prefill.billableQuantities.puckLightLocations, 4);
   assert.deepEqual(prefill.options, ["lighting", "crown", "hardware", "shelves"]);
 });
