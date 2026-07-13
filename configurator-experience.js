@@ -20,18 +20,18 @@ export const CONFIGURATOR_PREFERENCE_KEYS = Object.freeze({
 });
 
 export const GUIDED_STEPS = Object.freeze([
-  { id: "layout", label: "Layout", shortLabel: "Layout", title: "Choose a starting layout", description: "Select any layout to begin." },
-  { id: "dimensions", label: "Dimensions", shortLabel: "Size", title: "Set the dimensions", description: "Adjust the overall size, shelf count, and shelf thickness." },
-  { id: "storage", label: "Cabinets & Fronts", shortLabel: "Storage", title: "Configure storage", description: "Choose sections, lower storage, and front style." },
-  { id: "construction", label: "Construction", shortLabel: "Build", title: "Choose construction details", description: "Select the base and crown or top profiles." },
+  { id: "dimensions", label: "Space", shortLabel: "Space", title: "Confirm your space", description: "Set the wall width, available height, and preferred bookcase depth." },
+  { id: "layout", label: "Structure", shortLabel: "Structure", title: "Shape the structure", description: "Choose the section count, then resize or split individual sections." },
+  { id: "storage", label: "Storage", shortLabel: "Storage", title: "Plan the storage", description: "Mix open shelving, doors, drawers, and tall storage by section." },
+  { id: "construction", label: "Construction", shortLabel: "Build", title: "Choose construction details", description: "Set shelf thickness, base, and crown or top profiles." },
   { id: "appearance", label: "Appearance", shortLabel: "Style", title: "Choose finishes and details", description: "Coordinate finish, hardware, and lighting." },
-  { id: "review", label: "Review & Quote", shortLabel: "Review", title: "Review your design", description: "Confirm the design and service options before requesting a quote." }
+  { id: "review", label: "Review", shortLabel: "Review", title: "Review your design", description: "Confirm the physical design and service choices before requesting a quote." }
 ]);
 
 export const ALL_CONTROL_CATEGORIES = Object.freeze([
-  { id: "layout", label: "Layout", step: "layout" },
-  { id: "dimensions", label: "Dimensions", step: "dimensions" },
-  { id: "section_designer", label: "Section Designer", step: "storage" },
+  { id: "dimensions", label: "Space & Dimensions", step: "dimensions" },
+  { id: "layout", label: "Foundation Idea", step: "layout" },
+  { id: "section_designer", label: "Structure & Sections", step: "layout" },
   { id: "storage", label: "Shelves & Cabinets", step: "storage" },
   { id: "construction", label: "Construction", step: "construction" },
   { id: "doors", label: "Fronts", step: "storage" },
@@ -60,12 +60,12 @@ export const CONTROL_REGISTRY = Object.freeze([
   { field: "width", step: "dimensions", category: "dimensions", access: "direct" },
   { field: "height", step: "dimensions", category: "dimensions", access: "direct" },
   { field: "depth", step: "dimensions", category: "dimensions", access: "direct" },
-  { field: "sections", step: "storage", category: "storage", access: "direct" },
-  { field: "shelves", step: "dimensions", category: "dimensions", access: "direct" },
+  { field: "sections", step: "layout", category: "section_designer", access: "direct" },
+  { field: "shelves", step: "storage", category: "storage", access: "direct" },
   { field: "lowerCabinets", step: "storage", category: "storage", access: "direct" },
   { field: "lowerStorage", step: "storage", category: "storage", access: "direct" },
   { field: "drawerCount", step: "storage", category: "storage", access: "direct" },
-  { field: "shelfThickness", step: "dimensions", category: "dimensions", access: "direct" },
+  { field: "shelfThickness", step: "construction", category: "construction", access: "direct" },
   { field: "baseStyle", step: "construction", category: "construction", access: "direct" },
   { field: "crownStyle", step: "construction", category: "construction", access: "direct" },
   { field: "doorStyle", step: "storage", category: "doors", access: "direct" },
@@ -129,6 +129,7 @@ export function getGuidedStepIndex(stepId) {
 
 export function categoryForGuidedStep(stepId, appearanceCategory = "finish") {
   const normalized = normalizeGuidedStep(stepId);
+  if (normalized === "layout") return "section_designer";
   if (normalized === "appearance") {
     return ["finish", "hardware", "lighting"].includes(appearanceCategory) ? appearanceCategory : "finish";
   }
@@ -195,11 +196,15 @@ export function validateGuidedStep(stepId, config, layout, drafts = {}) {
   const step = normalizeGuidedStep(stepId);
   const state = normalizeBookcaseConfig(config);
   const issues = [];
-  if (["dimensions", "storage", "review"].includes(step)) {
+  if (["dimensions", "layout", "storage", "construction", "review"].includes(step)) {
     const relevantFields = step === "dimensions"
-      ? new Set(Object.keys(DIMENSION_LIMITS))
+      ? new Set(["width", "height", "depth"])
+      : step === "layout"
+        ? new Set(["sections"])
       : step === "storage"
-        ? new Set(["sections", "drawerCount"])
+        ? new Set(["shelves", "drawerCount"])
+        : step === "construction"
+          ? new Set(["shelfThickness"])
         : null;
     issues.push(...getInvalidDraftIssues(drafts).filter((issue) => !relevantFields || relevantFields.has(issue.field)));
   }
