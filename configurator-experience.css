@@ -736,7 +736,7 @@ body[data-page="configurator"] .door-style-illustration svg {
   height: 100%;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.5;
+  stroke-width: var(--icon-stroke-width);
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -1454,6 +1454,1090 @@ body[data-page="configurator"] .warmth-choice label {
   }
 }
 
+/* Five-zone architectural layout -------------------------------------
+ * The rail, working panel, preview, view dock, and estimate bar mirror the
+ * reference's information architecture while remaining in the JQ palette. */
+
+@media (min-width: 1280px) {
+  body[data-page="configurator"] .configurator-experience {
+    grid-template-columns: 88px clamp(330px, 23vw, 368px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 92px;
+  }
+}
+
+body[data-page="configurator"] .configurator-step-rail {
+  position: relative;
+  z-index: 14;
+  display: block;
+  min-width: 0;
+  grid-column: 1;
+  grid-row: 1;
+  overflow: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--jq-header);
+  color: rgba(255, 253, 249, 0.7);
+}
+
+body[data-page="configurator"] .configurator-step-rail ol {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: repeat(6, minmax(76px, 1fr));
+  align-content: center;
+  margin: 0;
+  padding: 14px 0;
+  list-style: none;
+}
+
+body[data-page="configurator"] .configurator-step-rail li {
+  position: relative;
+  display: grid;
+  min-height: 0;
+  place-items: center;
+}
+
+body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.14);
+  content: "";
+}
+
+body[data-page="configurator"] .configurator-step-rail button {
+  display: grid;
+  width: 100%;
+  min-height: 72px;
+  grid-template-rows: 40px auto;
+  gap: 8px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  padding: 8px 4px;
+  color: inherit;
+}
+
+body[data-page="configurator"] .configurator-step-rail button > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid rgba(255, 253, 249, 0.3);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.02);
+  color: #fffdf9;
+  font-size: 12px;
+  font-weight: 650;
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+body[data-page="configurator"] .configurator-step-rail button small {
+  color: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .configurator-step-rail button:hover {
+  color: #fffdf9;
+}
+
+body[data-page="configurator"] .configurator-step-rail button:hover > span {
+  border-color: var(--jq-accent);
+}
+
+body[data-page="configurator"] .configurator-step-rail .is-current {
+  color: #e6bb82;
+}
+
+body[data-page="configurator"] .configurator-step-rail .is-current button > span {
+  border-color: #d5a565;
+  background: rgba(183, 131, 69, 0.17);
+  color: #f5d7ad;
+  box-shadow: 0 0 0 4px rgba(183, 131, 69, 0.09);
+}
+
+body[data-page="configurator"] .configurator-step-rail .is-complete button > span {
+  border-color: var(--jq-success);
+  background: var(--jq-success);
+  color: #fff;
+}
+
+body[data-page="configurator"] .configurator-step-rail .is-complete svg {
+  width: 16px;
+  height: 16px;
+}
+
+body[data-page="configurator"] .configurator-control-experience {
+  grid-column: 2;
+  grid-row: 1;
+  border-right: 1px solid var(--jq-border);
+}
+
+body[data-page="configurator"] .configurator-panel-intro {
+  position: sticky;
+  z-index: 13;
+  top: 0;
+  display: grid;
+  min-height: 82px;
+  align-content: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--jq-border);
+  background: rgba(255, 253, 249, 0.96);
+  padding: 16px 20px;
+  backdrop-filter: blur(14px);
+}
+
+body[data-page="configurator"] .configurator-panel-intro .section-kicker {
+  color: var(--jq-accent-hover);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .configurator-panel-intro strong {
+  color: var(--jq-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+body[data-page="configurator"] .guided-experience,
+body[data-page="configurator"] .all-controls-experience {
+  padding-top: 24px;
+}
+
+body[data-page="configurator"] .guided-progress-heading {
+  display: flex;
+  margin-bottom: 16px;
+}
+
+body[data-page="configurator"] .configurator-model {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+body[data-page="configurator"] .configurator-experience-toolbar {
+  position: absolute;
+  z-index: 12;
+  top: 16px;
+  left: 50%;
+  display: block;
+  width: 270px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  transform: translateX(-50%);
+  backdrop-filter: none;
+}
+
+body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector {
+  border-color: rgba(88, 75, 59, 0.2);
+  background: rgba(236, 230, 220, 0.82);
+  box-shadow: 0 8px 24px rgba(70, 53, 34, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector button {
+  min-height: 42px;
+}
+
+body[data-page="configurator"] .preview-heading {
+  top: 16px;
+  right: 20px;
+  left: 20px;
+  align-items: start;
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .preview-heading > div:first-child,
+body[data-page="configurator"] .preview-price-pill {
+  pointer-events: auto;
+}
+
+body[data-page="configurator"] .preview-price-pill {
+  display: grid;
+  min-width: 112px;
+  gap: 1px;
+  border: 1px solid rgba(117, 101, 82, 0.14);
+  border-radius: 9px;
+  background: rgba(255, 253, 249, 0.82);
+  padding: 8px 10px;
+  color: var(--jq-text);
+  text-align: right;
+  backdrop-filter: blur(10px);
+}
+
+body[data-page="configurator"] .preview-price-pill small {
+  color: var(--jq-text-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .preview-price-pill strong {
+  color: var(--jq-text);
+  font-size: 15px;
+}
+
+body[data-page="configurator"] .preview-control-dock {
+  right: 16px;
+  width: 72px;
+}
+
+body[data-page="configurator"] .preview-tools,
+body[data-page="configurator"] .configurator-model .view-controls {
+  width: 72px;
+}
+
+body[data-page="configurator"] .preview-tools button,
+body[data-page="configurator"] .configurator-model .view-controls button {
+  width: 60px;
+  min-width: 60px;
+  height: 56px;
+  min-height: 56px;
+}
+
+body[data-page="configurator"] .preview-tools .view-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch {
+  position: absolute;
+  z-index: 11;
+  right: 16px;
+  bottom: 20px;
+  display: grid;
+  width: 204px;
+  gap: 10px;
+  border: 1px solid rgba(105, 85, 60, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 253, 249, 0.92);
+  padding: 16px;
+  color: var(--jq-text);
+  box-shadow: 0 16px 38px rgba(66, 50, 32, 0.13);
+  backdrop-filter: blur(16px);
+}
+
+body[data-page="configurator"] .cabinet-ar-launch-heading {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .cabinet-ar-launch-heading .view-icon {
+  color: var(--jq-accent-hover);
+}
+
+body[data-page="configurator"] .cabinet-ar-launch-heading strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch p {
+  margin: 0;
+  color: var(--jq-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button {
+  display: inline-flex;
+  width: 100%;
+  min-height: 44px;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--jq-accent);
+  border-radius: 8px;
+  background: var(--jq-accent);
+  padding: 0 12px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 8px 18px rgba(112, 73, 28, 0.18);
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button:hover {
+  border-color: var(--jq-accent-hover);
+  background: var(--jq-accent-hover);
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-help {
+  display: block;
+  color: var(--jq-text-muted);
+  font-size: 9px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar,
+body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+  height: 92px;
+  min-height: 92px;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  grid-template-columns: minmax(240px, 0.72fr) minmax(440px, 1.45fr) auto;
+  border-top-color: rgba(255, 255, 255, 0.09);
+  background: var(--jq-header);
+  color: #fffdf9;
+  box-shadow: 0 -10px 28px rgba(40, 31, 22, 0.12);
+}
+
+body[data-page="configurator"] .configurator-experience .configurator-price-block {
+  gap: 1px;
+  padding: 0 24px 0 28px;
+}
+
+body[data-page="configurator"] .configurator-experience .price-kicker {
+  color: rgba(255, 253, 249, 0.68);
+  font-size: 9px;
+}
+
+body[data-page="configurator"] .configurator-experience .configurator-price-block strong {
+  color: #fffdf9;
+  font-size: 27px;
+}
+
+body[data-page="configurator"] .configurator-experience .configurator-quote-note {
+  display: block;
+  max-width: 260px;
+  overflow: hidden;
+  border: 0;
+  margin: 1px 0 0;
+  padding: 0;
+  color: rgba(255, 253, 249, 0.55);
+  font-size: 9px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-row {
+  display: grid;
+  min-width: 0;
+  height: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 0 16px;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-icon,
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-icon svg {
+  width: 24px;
+  height: 24px;
+  color: #d2a66b !important;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item strong {
+  overflow: hidden;
+  color: rgba(255, 253, 249, 0.9);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item small {
+  overflow: hidden;
+  color: rgba(255, 253, 249, 0.52);
+  font-size: 9px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .configurator-experience .configurator-actions {
+  gap: 8px;
+  padding: 0 16px;
+}
+
+body[data-page="configurator"] .configurator-review-button,
+body[data-page="configurator"] .configurator-save-button,
+body[data-page="configurator"] .configurator-quote-button,
+body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+  display: inline-flex;
+  min-width: 116px;
+  height: 48px;
+  min-height: 48px;
+  border-color: rgba(255, 253, 249, 0.24);
+  background: transparent;
+  color: #fffdf9;
+}
+
+body[data-page="configurator"] .configurator-save-button {
+  border-color: rgba(210, 166, 107, 0.62);
+  color: #e3b97f;
+}
+
+body[data-page="configurator"] .configurator-quote-button,
+body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+  min-width: 132px;
+  border-color: var(--jq-accent);
+  background: var(--jq-accent);
+  color: #fff;
+}
+
+body[data-page="configurator"] :is(
+  .configurator-step-rail button,
+  .configurator-mode-selector button,
+  .preview-control-dock button,
+  .cabinet-ar-launch-button,
+  .configurator-actions button
+):focus-visible {
+  outline: 3px solid rgba(213, 165, 101, 0.62);
+  outline-offset: 3px;
+}
+
+@media (max-width: 1279px) {
+  body[data-page="configurator"] .configurator-experience {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: clamp(430px, 58svh, 620px) 84px auto 84px;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail {
+    grid-column: 1;
+    grid-row: 2;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  body[data-page="configurator"] .configurator-step-rail ol {
+    height: 84px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+    padding: 6px 12px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
+    top: 27px;
+    right: -8px;
+    bottom: auto;
+    left: auto;
+    width: 16px;
+    height: 1px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button {
+    min-height: 68px;
+    grid-template-rows: 34px auto;
+    gap: 5px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button > span {
+    width: 34px;
+    height: 34px;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience {
+    width: calc(100% - 32px);
+    grid-column: 1;
+    grid-row: 3;
+    margin: 0 16px;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    position: sticky;
+    grid-column: 1;
+    grid-row: 4;
+    grid-template-columns: minmax(220px, max-content) minmax(0, 1fr) auto;
+  }
+}
+
+@media (max-width: 1100px) {
+  body[data-page="configurator"] .configurator-estimate-bar .studio-trust-row {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    grid-template-columns: minmax(220px, 1fr) auto;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-actions {
+    grid-column: 2;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
+  body[data-page="configurator"] .configurator-experience {
+    grid-template-columns: 72px clamp(320px, 34vw, 352px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 84px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail {
+    grid-column: 1;
+    grid-row: 1;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 0;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail ol {
+    height: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(6, minmax(66px, 1fr));
+    padding: 8px 0;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
+    top: auto;
+    right: auto;
+    bottom: -6px;
+    left: 50%;
+    width: 1px;
+    height: 12px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button {
+    min-height: 62px;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience {
+    width: 100%;
+    height: 100%;
+    grid-column: 2;
+    grid-row: 1;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch {
+    width: 176px;
+  }
+}
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] .configurator-experience {
+    grid-template-rows: clamp(350px, 50svh, 420px) 74px auto 68px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail ol {
+    height: 74px;
+    padding: 5px 4px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button {
+    min-height: 62px;
+    grid-template-rows: 32px auto;
+    padding-inline: 1px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button > span {
+    width: 32px;
+    height: 32px;
+    font-size: 10px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button small {
+    font-size: 8px;
+    letter-spacing: 0;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience {
+    width: 100%;
+    margin: 0;
+  }
+
+  body[data-page="configurator"] .configurator-panel-intro {
+    min-height: 72px;
+    padding: 14px;
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar {
+    top: 10px;
+    width: 238px;
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector button {
+    min-height: 40px;
+  }
+
+  body[data-page="configurator"] .preview-heading {
+    top: 62px;
+    right: 10px;
+    left: 10px;
+    justify-content: end;
+  }
+
+  body[data-page="configurator"] .preview-heading > div:first-child {
+    display: none;
+  }
+
+  body[data-page="configurator"] .preview-control-dock {
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    width: auto;
+  }
+
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch {
+    right: 10px;
+    bottom: 70px;
+    width: 154px;
+    gap: 0;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  body[data-page="configurator"] .cabinet-ar-launch-heading,
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch p,
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-help {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button {
+    min-height: 44px;
+    border-radius: 8px;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    position: static;
+    height: 68px;
+    min-height: 68px;
+    grid-template-columns: 112px minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-price-block {
+    padding: 0 6px 0 12px;
+  }
+
+  body[data-page="configurator"] .configurator-experience .price-kicker {
+    font-size: 7px;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-price-block strong {
+    font-size: 20px;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-quote-note {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-actions {
+    gap: 5px;
+    padding: 0 6px;
+  }
+
+  body[data-page="configurator"] .configurator-review-button,
+  body[data-page="configurator"] .configurator-save-button,
+  body[data-page="configurator"] .configurator-quote-button,
+  body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+    display: inline-flex;
+    min-width: 0;
+    height: 46px;
+    min-height: 46px;
+    padding: 0 8px;
+    font-size: 9px;
+  }
+
+  body[data-page="configurator"] .configurator-review-button {
+    width: 66px;
+  }
+
+  body[data-page="configurator"] .configurator-review-button {
+    font-size: 0;
+  }
+
+  body[data-page="configurator"] .configurator-review-button::after {
+    content: "Review";
+    font-size: 9px;
+  }
+
+  body[data-page="configurator"] .configurator-save-button {
+    width: 46px;
+  }
+
+  body[data-page="configurator"] .configurator-quote-button,
+  body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+    width: 104px;
+    min-width: 104px;
+  }
+}
+
+/* Final precision overrides. */
+
+@media (min-width: 1280px) {
+  body[data-page="configurator"] .configurator-step-rail ol {
+    height: auto;
+    grid-template-rows: repeat(6, 116px);
+    align-content: start;
+    padding: 28px 0;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li {
+    height: 116px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
+    top: 82px;
+    bottom: auto;
+    height: 34px;
+    background: rgba(255, 255, 255, 0.17);
+  }
+}
+
+body[data-page="configurator"] .guided-progress-heading {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 20px;
+}
+
+body[data-page="configurator"] .guided-progress-heading > span {
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .guided-progress-heading > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .control-section-storage {
+  display: grid;
+  gap: 0;
+}
+
+body[data-page="configurator"] .configurator-panel .control-section-storage > .stepper-control,
+body[data-page="configurator"] .configurator-panel .control-section-storage > .toggle-row,
+body[data-page="configurator"] .configurator-panel .control-section-storage > [data-applicability="drawers"] > .stepper-control {
+  display: grid;
+  width: 100%;
+  min-height: 58px;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  gap: 16px;
+  align-items: center;
+  padding: 0;
+}
+
+body[data-page="configurator"] .configurator-panel .control-section-storage .stepper {
+  width: 140px;
+  height: 44px;
+  grid-template-columns: 44px 52px 44px;
+  justify-self: end;
+}
+
+body[data-page="configurator"] .configurator-panel .control-section-storage .toggle-row .switch {
+  justify-self: end;
+}
+
+body[data-page="configurator"] .configurator-panel .control-section-storage .inline-validation-message {
+  grid-column: 1 / -1;
+}
+
+body[data-page="configurator"] .preview-tools,
+body[data-page="configurator"] .configurator-model .view-controls {
+  width: 76px;
+  gap: 0;
+  padding: 5px;
+}
+
+body[data-page="configurator"] .preview-tools button,
+body[data-page="configurator"] .configurator-model .view-controls button {
+  width: 64px;
+  min-width: 64px;
+  height: 58px;
+  min-height: 58px;
+  grid-template-rows: 20px 12px;
+  gap: 5px;
+  border-radius: 8px;
+  padding: 8px 4px;
+  font-size: 0;
+}
+
+body[data-page="configurator"] .preview-tools .view-icon,
+body[data-page="configurator"] .configurator-model .view-controls .view-icon {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+}
+
+body[data-page="configurator"] .preview-tools .view-icon svg,
+body[data-page="configurator"] .configurator-model .view-controls .view-icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+body[data-page="configurator"] .preview-tools button small,
+body[data-page="configurator"] .configurator-model .view-controls button small {
+  font-size: 8px;
+  line-height: 12px;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-help {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--jq-text-muted);
+  opacity: 1;
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button,
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button svg {
+  color: #fff;
+}
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] .guided-progress-heading {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  body[data-page="configurator"] .guided-progress-heading > strong {
+    text-align: left;
+  }
+
+  body[data-page="configurator"] .configurator-panel .control-section-storage > .stepper-control,
+  body[data-page="configurator"] .configurator-panel .control-section-storage > .toggle-row,
+  body[data-page="configurator"] .configurator-panel .control-section-storage > [data-applicability="drawers"] > .stepper-control {
+    gap: 10px;
+  }
+}
+
+/* Precision pass: optical alignment and compact rhythm. */
+
+@media (min-width: 1280px) {
+  body[data-page="configurator"] .configurator-step-rail ol {
+    height: auto;
+    grid-template-rows: repeat(6, 116px);
+    align-content: start;
+    padding: 28px 0;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li {
+    height: 116px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
+    top: 82px;
+    bottom: auto;
+    height: 34px;
+    background: rgba(255, 255, 255, 0.17);
+  }
+}
+
+body[data-page="configurator"] .guided-progress-heading {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 20px;
+}
+
+body[data-page="configurator"] .guided-progress-heading > span {
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .guided-progress-heading > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .control-section-storage {
+  display: grid;
+  gap: 0;
+}
+
+body[data-page="configurator"] .control-section-storage > .stepper-control,
+body[data-page="configurator"] .control-section-storage > .toggle-row,
+body[data-page="configurator"] .control-section-storage > [data-applicability="drawers"] > .stepper-control {
+  display: grid;
+  width: 100%;
+  min-height: 58px;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  gap: 16px;
+  align-items: center;
+  padding: 0;
+}
+
+body[data-page="configurator"] .control-section-storage > .stepper-control > span,
+body[data-page="configurator"] .control-section-storage > .toggle-row > label:first-child,
+body[data-page="configurator"] .control-section-storage > [data-applicability="drawers"] > .stepper-control > span {
+  min-width: 0;
+  color: var(--jq-text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+body[data-page="configurator"] .control-section-storage .stepper {
+  width: 140px;
+  height: 44px;
+  grid-template-columns: 44px 52px 44px;
+  justify-self: end;
+}
+
+body[data-page="configurator"] .control-section-storage .toggle-row .switch {
+  justify-self: end;
+}
+
+body[data-page="configurator"] .control-section-storage .inline-validation-message {
+  grid-column: 1 / -1;
+}
+
+body[data-page="configurator"] .preview-tools,
+body[data-page="configurator"] .configurator-model .view-controls {
+  width: 76px;
+  gap: 0;
+  padding: 5px;
+}
+
+body[data-page="configurator"] .preview-tools button,
+body[data-page="configurator"] .configurator-model .view-controls button {
+  width: 64px;
+  min-width: 64px;
+  height: 58px;
+  min-height: 58px;
+  grid-template-rows: 20px 12px;
+  gap: 5px;
+  border-radius: 8px;
+  padding: 8px 4px;
+  font-size: 0;
+}
+
+body[data-page="configurator"] .preview-tools button + button,
+body[data-page="configurator"] .configurator-model .view-controls button + button {
+  border-top: 1px solid rgba(104, 88, 68, 0.1);
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+body[data-page="configurator"] .preview-tools .view-icon,
+body[data-page="configurator"] .configurator-model .view-controls .view-icon {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+}
+
+body[data-page="configurator"] .preview-tools .view-icon svg,
+body[data-page="configurator"] .configurator-model .view-controls .view-icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  stroke-width: var(--icon-stroke-width);
+}
+
+body[data-page="configurator"] .preview-tools button small,
+body[data-page="configurator"] .configurator-model .view-controls button small {
+  font-size: 8px;
+  line-height: 12px;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-help {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--jq-text-muted);
+  opacity: 1;
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button,
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button svg {
+  color: #fff;
+}
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] .guided-progress-heading {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  body[data-page="configurator"] .guided-progress-heading > strong {
+    text-align: left;
+  }
+
+  body[data-page="configurator"] .control-section-storage > .stepper-control,
+  body[data-page="configurator"] .control-section-storage > .toggle-row,
+  body[data-page="configurator"] .control-section-storage > [data-applicability="drawers"] > .stepper-control {
+    grid-template-columns: minmax(0, 1fr) 140px;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 390px) {
+  body[data-page="configurator"] .configurator-experience {
+    grid-template-rows: 350px 70px auto 68px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail ol {
+    height: 70px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button small {
+    display: block;
+  }
+
+  body[data-page="configurator"] .configurator-review-button {
+    width: 58px;
+  }
+
+  body[data-page="configurator"] .configurator-quote-button,
+  body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+    width: 96px;
+    min-width: 96px;
+    padding-inline: 6px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   body[data-page="configurator"] .configurator-experience *,
   body[data-page="configurator"] .configurator-experience *::before,
@@ -1821,5 +2905,1989 @@ body[data-page="configurator"] .cabinet-ar-notice.is-error {
 @media (prefers-reduced-motion: reduce) {
   body[data-page="configurator"] .cabinet-ar-spinner {
     animation: none;
+  }
+}
+
+/* Premium showroom workspace -----------------------------------------
+ * This final, configurator-scoped layer intentionally overrides the older
+ * dark studio presentation without changing state, pricing, viewer, or AR
+ * contracts. Shared site pages are unaffected. */
+
+body[data-page="configurator"] .configurator-experience {
+  --jq-header: #211d18;
+  --jq-header-secondary: #302a23;
+  --jq-workspace: #f4f0e9;
+  --jq-surface: #fffdf9;
+  --jq-surface-secondary: #ece6dc;
+  --jq-text: #28251f;
+  --jq-text-muted: #706b63;
+  --jq-border: #d9d1c6;
+  --jq-accent: #b78345;
+  --jq-accent-hover: #9d6c35;
+  --jq-success: #66704f;
+  --jq-danger: #a65345;
+  --jq-shadow: 0 18px 44px rgba(62, 49, 34, 0.1);
+  --jq-s1: 4px;
+  --jq-s2: 8px;
+  --jq-s3: 12px;
+  --jq-s4: 16px;
+  --jq-s5: 24px;
+  --jq-s6: 32px;
+  --jq-s7: 40px;
+  --jq-s8: 48px;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: clamp(370px, 27vw, 404px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) 76px;
+  overflow: hidden;
+  background: var(--jq-workspace);
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] [data-site-header],
+body[data-page="configurator"] .site-header,
+body[data-page="configurator"] .navbar {
+  height: 76px;
+  min-height: 76px;
+}
+
+body[data-page="configurator"] .site-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--jq-header);
+  box-shadow: 0 8px 24px rgba(28, 22, 17, 0.13);
+}
+
+body[data-page="configurator"] .navbar {
+  grid-template-columns: 280px minmax(0, 1fr) 304px;
+}
+
+body[data-page="configurator"] main {
+  height: calc(100vh - 76px);
+  height: calc(100dvh - 76px);
+  background: var(--jq-workspace);
+}
+
+body[data-page="configurator"] .builder-hero,
+body[data-page="configurator"] .builder-page,
+body[data-page="configurator"] .builder-hero > .container,
+body[data-page="configurator"] [data-bookcase-builder] {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body[data-page="configurator"] .builder-hero::after {
+  display: none;
+}
+
+body[data-page="configurator"] .configurator-control-experience {
+  position: relative;
+  z-index: 9;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  grid-column: 1;
+  grid-row: 1;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 0;
+  border-right: 1px solid var(--jq-border);
+  border-radius: 0;
+  background: var(--jq-surface);
+  margin: 0;
+  padding: 0;
+  color: var(--jq-text);
+  box-shadow: 12px 0 34px rgba(64, 49, 32, 0.06);
+  scrollbar-color: #c7bba9 transparent;
+  scrollbar-gutter: stable;
+}
+
+body[data-page="configurator"] .configurator-experience-toolbar {
+  position: sticky;
+  z-index: 12;
+  top: 0;
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--jq-s3);
+  border: 0;
+  border-bottom: 1px solid var(--jq-border);
+  background: rgba(255, 253, 249, 0.96);
+  padding: 18px 20px 16px;
+  backdrop-filter: blur(14px);
+}
+
+body[data-page="configurator"] .configurator-experience-heading {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--jq-s3);
+}
+
+body[data-page="configurator"] .configurator-experience-heading .section-kicker {
+  color: var(--jq-accent-hover);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+body[data-page="configurator"] .configurator-experience-heading strong {
+  overflow: hidden;
+  color: var(--jq-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .configurator-mode-selector {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--jq-s1);
+  border: 1px solid var(--jq-border);
+  border-radius: 10px;
+  background: var(--jq-surface-secondary);
+  padding: var(--jq-s1);
+  box-shadow: none;
+}
+
+body[data-page="configurator"] .configurator-mode-selector button {
+  min-height: 48px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--jq-text-muted);
+}
+
+body[data-page="configurator"] .configurator-mode-selector button span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .configurator-mode-selector button small {
+  font-size: 10px;
+}
+
+body[data-page="configurator"] .configurator-mode-selector button.is-active {
+  border-color: #cbb79d;
+  background: var(--jq-surface);
+  color: var(--jq-text);
+  box-shadow: 0 3px 10px rgba(66, 51, 34, 0.08);
+}
+
+body[data-page="configurator"] .guided-experience,
+body[data-page="configurator"] .all-controls-experience {
+  min-height: 100%;
+  padding: 22px 20px 26px;
+}
+
+body[data-page="configurator"] .guided-progress {
+  gap: 2px;
+  margin-bottom: 22px;
+}
+
+body[data-page="configurator"] .guided-progress li::after {
+  top: 15px;
+  background: var(--jq-border);
+}
+
+body[data-page="configurator"] .guided-progress button {
+  min-height: 46px;
+  color: #908980;
+}
+
+body[data-page="configurator"] .guided-progress button > span {
+  width: 30px;
+  height: 30px;
+  border-color: var(--jq-border);
+  background: var(--jq-surface);
+  color: var(--jq-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .guided-progress button small {
+  color: inherit;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+body[data-page="configurator"] .guided-progress .is-current button,
+body[data-page="configurator"] .guided-progress .is-complete button {
+  color: var(--jq-accent-hover);
+}
+
+body[data-page="configurator"] .guided-progress .is-current button > span {
+  border-color: var(--jq-accent);
+  background: #f5eadc;
+  color: var(--jq-accent-hover);
+  box-shadow: 0 0 0 3px rgba(183, 131, 69, 0.1);
+}
+
+body[data-page="configurator"] .guided-progress .is-complete button > span {
+  border-color: var(--jq-success);
+  background: var(--jq-success);
+  color: #fff;
+}
+
+body[data-page="configurator"] .guided-progress .is-complete button > span svg {
+  width: 14px;
+  height: 14px;
+}
+
+body[data-page="configurator"] .guided-step-heading {
+  margin-bottom: 22px;
+}
+
+body[data-page="configurator"] .guided-step-heading:focus {
+  outline: none;
+}
+
+body[data-page="configurator"] .guided-step-heading .section-kicker,
+body[data-page="configurator"] .all-controls-heading .section-kicker {
+  color: var(--jq-accent-hover);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+body[data-page="configurator"] .guided-step-heading h2,
+body[data-page="configurator"] .all-controls-heading h2 {
+  max-width: 14ch;
+  margin: 6px 0 8px;
+  color: var(--jq-text);
+  font-size: clamp(27px, 2.1vw, 32px);
+  line-height: 1.06;
+  text-wrap: balance;
+}
+
+body[data-page="configurator"] .guided-step-heading p,
+body[data-page="configurator"] .all-controls-heading p {
+  color: var(--jq-text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+body[data-page="configurator"] .guided-step-content {
+  min-height: 240px;
+}
+
+body[data-page="configurator"] .guided-navigation {
+  z-index: 11;
+  bottom: -26px;
+  gap: 10px;
+  border-top: 1px solid var(--jq-border);
+  background: rgba(255, 253, 249, 0.96);
+  margin: 24px -20px -26px;
+  padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
+  backdrop-filter: blur(14px);
+}
+
+body[data-page="configurator"] .guided-navigation button,
+body[data-page="configurator"] .guided-inline-actions button,
+body[data-page="configurator"] .all-controls-secondary-actions button,
+body[data-page="configurator"] .all-controls-heading > button,
+body[data-page="configurator"] .additional-colors-button {
+  min-height: 44px;
+  border: 1px solid var(--jq-border);
+  border-radius: 8px;
+  background: var(--jq-surface);
+  color: var(--jq-text);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+body[data-page="configurator"] .guided-navigation .is-primary,
+body[data-page="configurator"] .review-actions .is-primary {
+  border-color: var(--jq-accent);
+  background: var(--jq-accent);
+  color: #fff;
+  box-shadow: 0 7px 16px rgba(126, 83, 34, 0.16);
+}
+
+body[data-page="configurator"] .guided-navigation .is-primary:hover,
+body[data-page="configurator"] .review-actions .is-primary:hover {
+  border-color: var(--jq-accent-hover);
+  background: var(--jq-accent-hover);
+}
+
+body[data-page="configurator"] .guided-tip,
+body[data-page="configurator"] .review-assumptions,
+body[data-page="configurator"] .review-paint-disclaimer {
+  border: 0;
+  border-left: 3px solid #b8aa90;
+  border-radius: 0 8px 8px 0;
+  background: #f2eee7;
+  color: var(--jq-text-muted);
+}
+
+body[data-page="configurator"] .guided-tip strong,
+body[data-page="configurator"] .review-assumptions strong {
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .guided-step-errors,
+body[data-page="configurator"] .inline-validation-message {
+  color: var(--jq-danger);
+}
+
+body[data-page="configurator"] .layout-card-grid {
+  gap: 12px;
+}
+
+body[data-page="configurator"] .additional-layouts {
+  margin-top: 12px;
+  border-top: 1px solid var(--jq-border);
+  padding-top: 4px;
+}
+
+body[data-page="configurator"] .additional-layouts > summary {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  color: var(--jq-accent-hover);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .additional-layouts > .layout-card-grid {
+  padding-top: 8px;
+}
+
+body[data-page="configurator"] .layout-card {
+  min-height: 178px;
+  border-color: var(--jq-border);
+  border-radius: 12px;
+  background: var(--jq-surface);
+  color: var(--jq-text);
+  box-shadow: 0 4px 14px rgba(64, 49, 32, 0.035);
+}
+
+body[data-page="configurator"] .layout-card:hover {
+  border-color: #bdab91;
+  background: #fffaf3;
+  box-shadow: 0 8px 20px rgba(64, 49, 32, 0.07);
+}
+
+body[data-page="configurator"] .layout-card.is-active {
+  border-color: var(--jq-accent);
+  background: #fbf3e8;
+  color: var(--jq-text);
+  box-shadow: 0 0 0 1px var(--jq-accent), 0 7px 20px rgba(118, 78, 31, 0.09);
+}
+
+body[data-page="configurator"] .layout-card-copy strong {
+  font-size: 13px;
+}
+
+body[data-page="configurator"] .layout-card-copy small {
+  color: var(--jq-text-muted);
+  font-size: 11px;
+}
+
+body[data-page="configurator"] .recommended-badge {
+  border: 0;
+  background: var(--jq-header-secondary);
+  color: #fff7ed;
+}
+
+body[data-page="configurator"] .layout-card-check {
+  background: var(--jq-accent);
+}
+
+body[data-page="configurator"] .preset-mini {
+  background: #eee8df;
+  color: #736b60;
+}
+
+body[data-page="configurator"] .preset-mini .mini-part {
+  stroke: currentColor;
+}
+
+body[data-page="configurator"] .choice-field legend,
+body[data-page="configurator"] .structure-field > legend,
+body[data-page="configurator"] .warmth-field > legend,
+body[data-page="configurator"] .finish-field > legend {
+  color: var(--jq-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .segmented-options label > span,
+body[data-page="configurator"] .option-card > span,
+body[data-page="configurator"] .door-style-card-content,
+body[data-page="configurator"] .style-choice,
+body[data-page="configurator"] .lighting-card,
+body[data-page="configurator"] .hardware-choice,
+body[data-page="configurator"] .warmth-choice label,
+body[data-page="configurator"] .thickness-grid > * > label {
+  border-color: var(--jq-border);
+  background: var(--jq-surface);
+  color: var(--jq-text);
+  box-shadow: none;
+}
+
+body[data-page="configurator"] .style-choice :is(.style-diagram, .jq-diagram),
+body[data-page="configurator"] .lighting-card .lighting-card-icon,
+body[data-page="configurator"] .hardware-choice .hardware-choice-icon {
+  color: var(--jq-accent-hover);
+}
+
+body[data-page="configurator"] :is(
+  .style-choice:has(input:checked),
+  .lighting-card:has(input:checked),
+  .hardware-choice:has(input:checked)
+) :is(.style-diagram, .jq-diagram, .lighting-card-icon, .hardware-choice-icon) {
+  color: var(--jq-accent);
+}
+
+body[data-page="configurator"] .segmented-options input:checked + span,
+body[data-page="configurator"] .option-card input:checked + span,
+body[data-page="configurator"] .door-style-card input:checked + .door-style-card-content,
+body[data-page="configurator"] .style-choice:has(input:checked),
+body[data-page="configurator"] .lighting-card:has(input:checked),
+body[data-page="configurator"] .hardware-choice:has(input:checked),
+body[data-page="configurator"] .warmth-choice:has(input:checked),
+body[data-page="configurator"] .thickness-grid > *:has(input:checked) label {
+  border-color: var(--jq-accent);
+  background: #f8efe3;
+  color: var(--jq-text);
+  box-shadow: 0 0 0 1px rgba(183, 131, 69, 0.25);
+}
+
+body[data-page="configurator"] .option-card strong,
+body[data-page="configurator"] .option-card small,
+body[data-page="configurator"] .door-style-copy strong,
+body[data-page="configurator"] .door-style-copy small,
+body[data-page="configurator"] .control-helper {
+  color: var(--jq-text-muted);
+}
+
+body[data-page="configurator"] .option-card strong,
+body[data-page="configurator"] .door-style-copy strong {
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .configurator-panel .control-section {
+  border-bottom-color: var(--jq-border);
+}
+
+body[data-page="configurator"] .configurator-panel .control-section h2,
+body[data-page="configurator"] .appearance-sections > .control-section > h2,
+body[data-page="configurator"] .guided-review-service > h3 {
+  color: var(--jq-text);
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+body[data-page="configurator"] .control-heading-icon,
+body[data-page="configurator"] .appearance-sections .control-heading-icon {
+  color: var(--jq-accent);
+}
+
+body[data-page="configurator"] .configurator-panel .range-control {
+  min-height: 76px;
+  grid-template-columns: minmax(72px, 0.45fr) minmax(0, 1fr) 76px;
+  border-bottom: 1px solid #e9e3da;
+}
+
+body[data-page="configurator"] .configurator-panel .range-label > label {
+  color: var(--jq-text);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+body[data-page="configurator"] .configurator-panel .range-value {
+  width: 72px;
+  height: 44px;
+  border-color: var(--jq-border);
+  background: var(--jq-surface);
+  color: var(--jq-text);
+  font-size: 12px;
+}
+
+body[data-page="configurator"] .configurator-panel .range-value input {
+  width: 42px;
+  color: var(--jq-text);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .configurator-panel input[type="range"]::-webkit-slider-runnable-track {
+  background: #d2c5b4;
+}
+
+body[data-page="configurator"] .configurator-panel input[type="range"]::-webkit-slider-thumb {
+  width: 18px;
+  height: 18px;
+  background: var(--jq-accent);
+  margin-top: -8px;
+  box-shadow: 0 0 0 4px #fffaf3;
+}
+
+body[data-page="configurator"] .configurator-panel .stepper-control,
+body[data-page="configurator"] .configurator-panel .toggle-row {
+  min-height: 58px;
+  color: var(--jq-text);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+body[data-page="configurator"] .configurator-panel .stepper {
+  border: 1px solid var(--jq-border);
+  background: var(--jq-surface);
+  box-shadow: none;
+}
+
+body[data-page="configurator"] .configurator-panel .stepper button {
+  border-color: var(--jq-border);
+  background: #f4efe8;
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .configurator-panel .stepper input {
+  color: var(--jq-text);
+  font-weight: 750;
+}
+
+body[data-page="configurator"] .configurator-panel .switch > span {
+  border-color: #b9b0a4;
+  background: #d9d2c9;
+}
+
+body[data-page="configurator"] .configurator-panel .switch input:checked + span {
+  border-color: var(--jq-accent);
+  background: var(--jq-accent);
+}
+
+body[data-page="configurator"] .build-disclosures {
+  display: grid;
+  gap: 12px;
+}
+
+body[data-page="configurator"] .build-disclosure {
+  overflow: clip;
+  border: 1px solid var(--jq-border);
+  border-radius: 12px;
+  background: var(--jq-surface);
+}
+
+body[data-page="configurator"] .build-disclosure > summary {
+  display: flex;
+  min-height: 66px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  color: var(--jq-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+body[data-page="configurator"] .build-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+body[data-page="configurator"] .build-disclosure > summary span {
+  display: grid;
+  gap: 3px;
+}
+
+body[data-page="configurator"] .build-disclosure > summary strong {
+  font-size: 14px;
+}
+
+body[data-page="configurator"] .build-disclosure > summary small {
+  color: var(--jq-text-muted);
+  font-size: 11px;
+}
+
+body[data-page="configurator"] .build-disclosure > summary i {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-right: 2px solid var(--jq-accent);
+  border-bottom: 2px solid var(--jq-accent);
+  transform: rotate(45deg);
+  transition: transform 150ms ease;
+}
+
+body[data-page="configurator"] .build-disclosure[open] > summary i {
+  transform: rotate(225deg);
+}
+
+body[data-page="configurator"] .build-disclosure-content {
+  border-top: 1px solid var(--jq-border);
+  padding: 0 14px 6px;
+}
+
+body[data-page="configurator"] .build-disclosure-content .control-section > h2 {
+  display: none;
+}
+
+body[data-page="configurator"] .finish-choice label,
+body[data-page="configurator"] .hardware-choice label,
+body[data-page="configurator"] .lighting-card label {
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .finish-choice label > span:last-child,
+body[data-page="configurator"] .finish-choice label small {
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .finish-choice label small {
+  color: var(--jq-text-muted);
+}
+
+body[data-page="configurator"] .finish-choice-dot {
+  border-color: #aaa096;
+  box-shadow: 0 0 0 3px var(--jq-surface);
+}
+
+body[data-page="configurator"] .finish-choice input:checked + label .finish-choice-dot {
+  outline: 2px solid var(--jq-accent);
+  outline-offset: 3px;
+}
+
+body[data-page="configurator"] .bm-search,
+body[data-page="configurator"] .bm-selected-color {
+  border-color: var(--jq-border);
+  background: #f5f0e9;
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .bm-search-heading strong,
+body[data-page="configurator"] .bm-selected-color strong,
+body[data-page="configurator"] .bm-search label {
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .bm-search-heading span,
+body[data-page="configurator"] .bm-selected-color small,
+body[data-page="configurator"] .bm-search-help,
+body[data-page="configurator"] .bm-search-status,
+body[data-page="configurator"] .bm-preview-disclaimer {
+  color: var(--jq-text-muted);
+}
+
+body[data-page="configurator"] .bm-search-input input {
+  border-color: var(--jq-border);
+  background: var(--jq-surface);
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .bm-search-input button,
+body[data-page="configurator"] .additional-colors-button {
+  border-color: var(--jq-border);
+  background: var(--jq-surface);
+  color: var(--jq-accent-hover);
+}
+
+body[data-page="configurator"] .appearance-sections {
+  gap: 24px;
+}
+
+body[data-page="configurator"] .appearance-sections > .control-section {
+  border-top-color: var(--jq-border);
+}
+
+body[data-page="configurator"] .all-controls-heading {
+  align-items: end;
+}
+
+body[data-page="configurator"] .configurator-accordion {
+  gap: 8px;
+}
+
+body[data-page="configurator"] .configurator-category {
+  border-color: var(--jq-border);
+  border-radius: 10px;
+  background: var(--jq-surface);
+}
+
+body[data-page="configurator"] .configurator-category > h3 > button {
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .configurator-category > h3 > button small {
+  color: var(--jq-text-muted);
+}
+
+body[data-page="configurator"] .configurator-category-panel {
+  border-top-color: var(--jq-border);
+}
+
+body[data-page="configurator"] .review-summary-grid {
+  gap: 10px;
+}
+
+body[data-page="configurator"] .review-summary-group {
+  border-color: var(--jq-border);
+  background: var(--jq-surface);
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .review-summary-group h3,
+body[data-page="configurator"] .review-summary-group dd,
+body[data-page="configurator"] .review-estimate strong {
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .review-summary-group dt,
+body[data-page="configurator"] .review-estimate span,
+body[data-page="configurator"] .review-estimate p,
+body[data-page="configurator"] .guided-review-service > p {
+  color: var(--jq-text-muted);
+}
+
+body[data-page="configurator"] .review-summary-group header button {
+  color: var(--jq-accent-hover);
+}
+
+body[data-page="configurator"] .review-estimate {
+  border-color: #cdb99c;
+  background: #f5eadc;
+}
+
+body[data-page="configurator"] .review-actions button {
+  border-color: var(--jq-border);
+  background: var(--jq-surface);
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .configurator-model {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  grid-column: 2;
+  grid-row: 1;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.16), transparent 35%),
+    linear-gradient(180deg, #ebe5dc 0 68%, #d8d0c4 68% 69%, #cfc6b8 69% 100%);
+}
+
+body[data-page="configurator"] .configurator-model::before {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 52% 42%, rgba(255,255,255,0.74), rgba(255,255,255,0) 48%),
+    linear-gradient(90deg, rgba(126,105,78,0.06), transparent 18%, transparent 82%, rgba(126,105,78,0.05));
+  content: "";
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .configurator-model::after {
+  right: 17%;
+  bottom: 40px;
+  left: 17%;
+  height: 34px;
+  background: rgba(63, 50, 36, 0.13);
+  filter: blur(22px);
+}
+
+body[data-page="configurator"] .configurator-model .preview-heading {
+  top: 18px;
+  right: 22px;
+  left: 22px;
+}
+
+body[data-page="configurator"] .preview-heading > div:first-child {
+  border: 1px solid rgba(117, 101, 82, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 253, 249, 0.76);
+  padding: 8px 10px;
+  box-shadow: 0 5px 16px rgba(73, 57, 38, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+body[data-page="configurator"] .preview-heading span {
+  color: var(--jq-text);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+body[data-page="configurator"] .preview-heading small {
+  color: var(--jq-text-muted);
+  font-size: 10px;
+}
+
+body[data-page="configurator"] .preview-price-pill {
+  display: none;
+}
+
+body[data-page="configurator"] .preview-control-dock {
+  position: absolute;
+  z-index: 6;
+  top: 50%;
+  right: 18px;
+  display: grid;
+  width: 76px;
+  max-height: calc(100% - 36px);
+  align-content: center;
+  gap: 8px;
+  transform: translateY(-50%);
+}
+
+body[data-page="configurator"] .preview-tools,
+body[data-page="configurator"] .configurator-model .view-controls {
+  position: static;
+  display: grid;
+  width: 76px;
+  height: auto;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  border: 1px solid rgba(104, 88, 68, 0.22);
+  border-radius: 12px;
+  background: rgba(255, 253, 249, 0.88);
+  padding: 5px;
+  box-shadow: 0 12px 28px rgba(71, 54, 33, 0.11);
+  backdrop-filter: blur(14px);
+  transform: none;
+}
+
+body[data-page="configurator"] .preview-tools button,
+body[data-page="configurator"] .configurator-model .view-controls button {
+  display: grid;
+  width: 64px;
+  height: 54px;
+  min-height: 54px;
+  grid-template-rows: 24px auto;
+  gap: 2px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  padding: 5px 3px;
+  color: var(--jq-text-muted);
+  font-size: 17px;
+  line-height: 1;
+}
+
+body[data-page="configurator"] .preview-tools button small,
+body[data-page="configurator"] .configurator-model .view-controls button small {
+  color: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+body[data-page="configurator"] .preview-tools button:hover,
+body[data-page="configurator"] .configurator-model .view-controls button:hover {
+  background: #f3eee7;
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .configurator-model .view-controls button.is-active {
+  border-color: #d2b995;
+  background: #f3e6d5;
+  color: var(--jq-accent-hover);
+  box-shadow: none;
+}
+
+body[data-page="configurator"] .configurator-model .view-icon {
+  color: currentColor;
+}
+
+body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch {
+  position: static;
+  display: grid;
+  width: 76px;
+  justify-items: stretch;
+  gap: 4px;
+  pointer-events: auto;
+}
+
+body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
+  display: grid;
+  width: 76px;
+  min-height: 70px;
+  grid-template-rows: 22px auto;
+  gap: 4px;
+  place-items: center;
+  border: 1px solid var(--jq-accent);
+  border-radius: 12px;
+  background: var(--jq-accent);
+  padding: 9px 5px;
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(112, 73, 28, 0.2);
+  font-size: 9px;
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+}
+
+body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button [data-ar-label] {
+  display: block;
+  max-width: 62px;
+}
+
+body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-help {
+  display: none;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar,
+body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+  position: relative;
+  z-index: 15;
+  display: grid;
+  width: 100%;
+  height: 76px;
+  min-height: 76px;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  grid-template-columns: minmax(220px, 0.72fr) minmax(280px, 1fr) auto;
+  align-items: center;
+  border: 0;
+  border-top: 1px solid var(--jq-border);
+  background: rgba(255, 253, 249, 0.98);
+  color: var(--jq-text);
+  box-shadow: 0 -8px 28px rgba(72, 56, 37, 0.07);
+}
+
+body[data-page="configurator"] .configurator-experience .configurator-price-block {
+  display: grid;
+  gap: 1px;
+  padding: 0 24px 0 30px;
+}
+
+body[data-page="configurator"] .configurator-price-block::before {
+  display: none;
+}
+
+body[data-page="configurator"] .configurator-experience .price-kicker {
+  margin: 0;
+  color: var(--jq-text-muted);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+}
+
+body[data-page="configurator"] .configurator-experience .configurator-price-block strong {
+  color: var(--jq-text);
+  font-size: 26px;
+  font-weight: 600;
+}
+
+body[data-page="configurator"] .configurator-experience .configurator-quote-note {
+  max-width: 440px;
+  border-left: 1px solid var(--jq-border);
+  margin: 12px 0;
+  padding: 0 22px;
+  color: var(--jq-text-muted);
+  font-size: 11px;
+}
+
+body[data-page="configurator"] .configurator-experience .configurator-actions {
+  display: flex;
+  grid-template-columns: none;
+  gap: 8px;
+  padding-right: 18px;
+}
+
+body[data-page="configurator"] .configurator-review-button,
+body[data-page="configurator"] .configurator-save-button,
+body[data-page="configurator"] .configurator-quote-button {
+  width: auto;
+  min-width: 124px;
+  height: 46px;
+  min-height: 46px;
+  border: 1px solid var(--jq-border);
+  border-radius: 8px;
+  background: var(--jq-surface);
+  color: var(--jq-text);
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .configurator-save-button {
+  color: var(--jq-accent-hover);
+}
+
+body[data-page="configurator"] .configurator-quote-button {
+  display: none;
+  border-color: var(--jq-accent);
+  background: var(--jq-accent);
+  color: #fff;
+}
+
+body[data-page="configurator"] .configurator-experience.is-all-controls-mode .configurator-quote-button {
+  display: inline-flex;
+}
+
+body[data-page="configurator"] .configurator-review-dialog {
+  border-color: var(--jq-border);
+  background: var(--jq-workspace);
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .configurator-review-dialog-heading h2 {
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .configurator-review-dialog-heading > button {
+  border-color: var(--jq-border);
+  background: var(--jq-surface);
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] button:disabled {
+  opacity: 0.42;
+}
+
+body[data-page="configurator"] [aria-invalid="true"] {
+  border-color: var(--jq-danger) !important;
+  box-shadow: 0 0 0 3px rgba(166, 83, 69, 0.1);
+}
+
+body[data-page="configurator"] :is(
+  .configurator-mode-selector button,
+  .guided-progress button,
+  .layout-card,
+  .guided-navigation button,
+  .preview-control-dock button,
+  .configurator-actions button,
+  .build-disclosure > summary,
+  .configurator-category > h3 > button
+):focus-visible {
+  outline: 3px solid rgba(157, 108, 53, 0.5);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1279px) {
+  body[data-page="configurator"] {
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: var(--jq-workspace);
+  }
+
+  body[data-page="configurator"] main,
+  body[data-page="configurator"] .builder-hero,
+  body[data-page="configurator"] .builder-page,
+  body[data-page="configurator"] .builder-hero > .container,
+  body[data-page="configurator"] [data-bookcase-builder] {
+    height: auto;
+    min-height: calc(100svh - 76px);
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .configurator-experience {
+    height: auto;
+    min-height: calc(100svh - 76px);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: clamp(430px, 58svh, 620px) auto 72px;
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    height: 100%;
+    min-height: 430px;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience {
+    width: calc(100% - 32px);
+    height: auto;
+    max-height: none;
+    grid-column: 1;
+    grid-row: 2;
+    overflow: visible;
+    border: 1px solid var(--jq-border);
+    border-radius: 18px 18px 0 0;
+    margin: -18px 16px 0;
+    box-shadow: 0 -16px 38px rgba(65, 50, 33, 0.1);
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar {
+    border-radius: 18px 18px 0 0;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience > [role="tabpanel"] {
+    min-height: 0;
+  }
+
+  body[data-page="configurator"] .guided-navigation {
+    position: static;
+  }
+
+  body[data-page="configurator"] .guided-experience,
+  body[data-page="configurator"] .all-controls-experience {
+    max-width: 860px;
+    margin-inline: auto;
+  }
+
+  body[data-page="configurator"] .layout-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    position: sticky;
+    bottom: 0;
+    height: 72px;
+    min-height: 72px;
+    grid-column: 1;
+    grid-row: 3;
+    grid-template-columns: minmax(190px, max-content) minmax(0, 1fr) auto;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  body[data-page="configurator"] .preview-control-dock {
+    top: auto;
+    right: 14px;
+    bottom: 18px;
+    left: 14px;
+    display: flex;
+    width: auto;
+    max-width: none;
+    align-items: end;
+    justify-content: center;
+    gap: 8px;
+    transform: none;
+  }
+
+  body[data-page="configurator"] .preview-tools,
+  body[data-page="configurator"] .configurator-model .view-controls {
+    display: flex;
+    width: auto;
+    min-width: 0;
+  }
+
+  body[data-page="configurator"] .preview-tools button,
+  body[data-page="configurator"] .configurator-model .view-controls button {
+    width: 56px;
+    min-width: 56px;
+    height: 54px;
+  }
+
+  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch,
+  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
+    width: 148px;
+  }
+
+  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
+    min-height: 66px;
+    grid-template-columns: 22px minmax(0, 1fr);
+    grid-template-rows: auto;
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button [data-ar-label] {
+    max-width: none;
+  }
+
+  body[data-page="configurator"] .preview-price-pill {
+    display: grid;
+    min-width: 112px;
+    gap: 1px;
+    border: 1px solid rgba(117, 101, 82, 0.16);
+    border-radius: 9px;
+    background: rgba(255, 253, 249, 0.84);
+    padding: 7px 10px;
+    color: var(--jq-text);
+    box-shadow: 0 5px 16px rgba(73, 57, 38, 0.05);
+    text-align: right;
+    backdrop-filter: blur(10px);
+  }
+
+  body[data-page="configurator"] .preview-price-pill small {
+    color: var(--jq-text-muted);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  body[data-page="configurator"] .preview-price-pill strong {
+    color: var(--jq-text);
+    font-size: 15px;
+    line-height: 1.1;
+  }
+}
+
+@media (max-width: 900px) {
+  body[data-page="configurator"] .configurator-experience-heading {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar {
+    padding: 12px 14px;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-quote-note {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    grid-template-columns: minmax(172px, max-content) minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-actions {
+    grid-column: 2;
+    justify-content: end;
+  }
+
+  body[data-page="configurator"] .configurator-review-button {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
+  body[data-page="configurator"] {
+    overflow: hidden;
+  }
+
+  body[data-page="configurator"] main,
+  body[data-page="configurator"] .builder-hero,
+  body[data-page="configurator"] .builder-page,
+  body[data-page="configurator"] .builder-hero > .container,
+  body[data-page="configurator"] [data-bookcase-builder] {
+    height: calc(100vh - 76px);
+    height: calc(100dvh - 76px);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  body[data-page="configurator"] .configurator-experience {
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: clamp(340px, 38vw, 380px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 72px;
+    overflow: hidden;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    min-height: 0;
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience {
+    width: calc(100% - 20px);
+    height: calc(100% - 20px);
+    grid-column: 1;
+    grid-row: 1;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--jq-border);
+    border-radius: 14px;
+    margin: 10px;
+    box-shadow: var(--jq-shadow);
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar {
+    border-radius: 14px 14px 0 0;
+  }
+
+  body[data-page="configurator"] .guided-experience,
+  body[data-page="configurator"] .all-controls-experience {
+    padding: 18px 16px 22px;
+  }
+
+  body[data-page="configurator"] .guided-navigation {
+    position: sticky;
+    bottom: -22px;
+    margin: 20px -16px -22px;
+    padding-inline: 16px;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    position: static;
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  body[data-page="configurator"] .preview-control-dock {
+    top: 50%;
+    right: 12px;
+    bottom: auto;
+    left: auto;
+    display: grid;
+    width: 68px;
+    transform: translateY(-50%);
+  }
+
+  body[data-page="configurator"] .preview-tools,
+  body[data-page="configurator"] .configurator-model .view-controls {
+    display: grid;
+    width: 68px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .preview-tools button,
+  body[data-page="configurator"] .configurator-model .view-controls button {
+    width: 56px;
+    min-width: 56px;
+    height: 48px;
+    min-height: 48px;
+  }
+
+  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch,
+  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
+    width: 68px;
+  }
+
+  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
+    min-height: 66px;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 20px auto;
+    padding: 7px 4px;
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] main,
+  body[data-page="configurator"] .builder-hero,
+  body[data-page="configurator"] .builder-page,
+  body[data-page="configurator"] .builder-hero > .container,
+  body[data-page="configurator"] [data-bookcase-builder] {
+    min-height: calc(100svh - 68px);
+  }
+
+  body[data-page="configurator"] .configurator-experience {
+    min-height: calc(100svh - 68px);
+    grid-template-rows: clamp(360px, 50svh, 430px) auto 66px;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    min-height: 360px;
+  }
+
+  body[data-page="configurator"] .preview-heading small {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience {
+    width: 100%;
+    border-right: 0;
+    border-left: 0;
+    border-bottom: 0;
+    margin: -18px 0 0;
+  }
+
+  body[data-page="configurator"] .guided-experience,
+  body[data-page="configurator"] .all-controls-experience {
+    padding: 18px 14px 22px;
+  }
+
+  body[data-page="configurator"] .guided-progress-heading {
+    color: var(--jq-text-muted);
+  }
+
+  body[data-page="configurator"] .guided-progress-heading strong {
+    color: var(--jq-accent-hover);
+  }
+
+  body[data-page="configurator"] .guided-step-heading h2 {
+    max-width: 16ch;
+    font-size: 28px;
+  }
+
+  body[data-page="configurator"] .guided-navigation {
+    margin: 20px -14px -22px;
+    padding-inline: 14px;
+  }
+
+  body[data-page="configurator"] .layout-card-grid,
+  body[data-page="configurator"] .configurator-category-panel .layout-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .layout-card,
+  body[data-page="configurator"] .configurator-category-panel .layout-card {
+    min-height: 134px;
+    grid-template-columns: 112px minmax(0, 1fr);
+    grid-template-rows: auto;
+    align-items: center;
+  }
+
+  body[data-page="configurator"] .finish-choice-grid,
+  body[data-page="configurator"] .hardware-choice-grid,
+  body[data-page="configurator"] .lighting-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-page="configurator"] .preview-control-dock {
+    right: 8px;
+    bottom: 10px;
+    left: 8px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  body[data-page="configurator"] .preview-tools {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls button {
+    width: auto;
+    min-width: 44px;
+    height: 52px;
+  }
+
+  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch,
+  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
+    width: 126px;
+  }
+
+  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
+    min-height: 64px;
+    font-size: 10px;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    position: static;
+    height: 66px;
+    min-height: 66px;
+    grid-template-columns: 135px minmax(0, 1fr);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-price-block {
+    padding: 0 8px 0 14px;
+  }
+
+  body[data-page="configurator"] .configurator-experience .price-kicker {
+    font-size: 8px;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-price-block strong {
+    font-size: 21px;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-actions {
+    gap: 6px;
+    padding-right: 8px;
+  }
+
+  body[data-page="configurator"] .configurator-save-button,
+  body[data-page="configurator"] .configurator-quote-button {
+    min-width: 48px;
+    height: 48px;
+    min-height: 48px;
+    padding: 0 10px;
+  }
+
+  body[data-page="configurator"] .configurator-save-button span {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-quote-button {
+    min-width: 116px;
+    font-size: 11px;
+  }
+
+  body[data-page="configurator"] .review-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .guided-navigation {
+    position: sticky;
+    bottom: 0;
+  }
+}
+
+@media (max-width: 390px) {
+  body[data-page="configurator"] .configurator-experience {
+    grid-template-rows: 350px auto 66px;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    min-height: 350px;
+  }
+
+  body[data-page="configurator"] .guided-progress button small {
+    display: none;
+  }
+
+  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch,
+  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
+    width: 116px;
+  }
+}
+
+/* Final cascade placement for the five-zone shell. Keep this after the
+ * showroom compatibility layer so legacy grid declarations cannot win. */
+
+@media (min-width: 1280px) {
+  body[data-page="configurator"] .configurator-experience {
+    grid-template-columns: 88px clamp(330px, 23vw, 368px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 92px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience {
+    width: 100%;
+    height: 100%;
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
+body[data-page="configurator"] .configurator-panel-intro {
+  position: sticky;
+  z-index: 13;
+  top: 0;
+  display: grid;
+  min-height: 82px;
+  align-content: center;
+  gap: 6px;
+  border-bottom: 1px solid var(--jq-border);
+  background: rgba(255, 253, 249, 0.96);
+  padding: 16px 20px;
+  backdrop-filter: blur(14px);
+}
+
+body[data-page="configurator"] .configurator-panel-intro .section-kicker {
+  color: var(--jq-accent-hover);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .configurator-panel-intro strong {
+  color: var(--jq-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+body[data-page="configurator"] .configurator-experience-toolbar {
+  position: absolute;
+  z-index: 12;
+  top: 16px;
+  left: 50%;
+  display: block;
+  width: 270px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  transform: translateX(-50%);
+  backdrop-filter: none;
+}
+
+body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector {
+  border-color: rgba(88, 75, 59, 0.2);
+  background: rgba(236, 230, 220, 0.82);
+  box-shadow: 0 8px 24px rgba(70, 53, 34, 0.08);
+  backdrop-filter: blur(14px);
+}
+
+body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector button {
+  min-height: 42px;
+}
+
+body[data-page="configurator"] .preview-heading {
+  top: 16px;
+  right: 20px;
+  left: 20px;
+  align-items: start;
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .preview-price-pill {
+  display: grid;
+  min-width: 112px;
+  gap: 1px;
+  border: 1px solid rgba(117, 101, 82, 0.14);
+  border-radius: 9px;
+  background: rgba(255, 253, 249, 0.82);
+  padding: 8px 10px;
+  color: var(--jq-text);
+  text-align: right;
+  backdrop-filter: blur(10px);
+}
+
+body[data-page="configurator"] .preview-price-pill small {
+  color: var(--jq-text-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .preview-price-pill strong {
+  color: var(--jq-text);
+  font-size: 15px;
+}
+
+body[data-page="configurator"] .preview-control-dock {
+  right: 16px;
+  width: 72px;
+}
+
+body[data-page="configurator"] .preview-tools,
+body[data-page="configurator"] .configurator-model .view-controls {
+  width: 72px;
+}
+
+body[data-page="configurator"] .preview-tools button,
+body[data-page="configurator"] .configurator-model .view-controls button {
+  width: 60px;
+  min-width: 60px;
+  height: 56px;
+  min-height: 56px;
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch {
+  position: absolute;
+  z-index: 11;
+  right: 16px;
+  bottom: 20px;
+  display: grid;
+  width: 204px;
+  gap: 10px;
+  border: 1px solid rgba(105, 85, 60, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 253, 249, 0.92);
+  padding: 16px;
+  color: var(--jq-text);
+  box-shadow: 0 16px 38px rgba(66, 50, 32, 0.13);
+  backdrop-filter: blur(16px);
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button {
+  display: inline-flex;
+  width: 100%;
+  min-height: 44px;
+  grid-template-columns: none;
+  grid-template-rows: none;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--jq-accent);
+  border-radius: 8px;
+  background: var(--jq-accent);
+  padding: 0 12px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-help {
+  display: block;
+  color: var(--jq-text-muted);
+  font-size: 9px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar,
+body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+  position: relative;
+  height: 92px;
+  min-height: 92px;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  grid-template-columns: minmax(240px, 0.72fr) minmax(440px, 1.45fr) auto;
+  border-top-color: rgba(255, 255, 255, 0.09);
+  background: var(--jq-header);
+  color: #fffdf9;
+}
+
+body[data-page="configurator"] .configurator-experience .configurator-price-block {
+  gap: 1px;
+  padding: 0 24px 0 28px;
+}
+
+body[data-page="configurator"] .configurator-experience .price-kicker {
+  color: rgba(255, 253, 249, 0.68);
+  font-size: 9px;
+}
+
+body[data-page="configurator"] .configurator-experience .configurator-price-block strong {
+  color: #fffdf9;
+  font-size: 27px;
+}
+
+body[data-page="configurator"] .configurator-experience .configurator-quote-note {
+  display: block;
+  max-width: 260px;
+  overflow: hidden;
+  border: 0;
+  margin: 1px 0 0;
+  padding: 0;
+  color: rgba(255, 253, 249, 0.55);
+  font-size: 9px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-row {
+  display: grid;
+  min-width: 0;
+  height: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  border-left: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 0 16px;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-icon,
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-icon svg {
+  width: 24px;
+  height: 24px;
+  color: #d2a66b !important;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item strong {
+  color: rgba(255, 253, 249, 0.9);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item small {
+  color: rgba(255, 253, 249, 0.52);
+  font-size: 9px;
+}
+
+body[data-page="configurator"] .configurator-experience .configurator-actions {
+  gap: 8px;
+  padding: 0 16px;
+}
+
+body[data-page="configurator"] .configurator-review-button,
+body[data-page="configurator"] .configurator-save-button,
+body[data-page="configurator"] .configurator-quote-button,
+body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+  display: inline-flex;
+  min-width: 116px;
+  height: 48px;
+  min-height: 48px;
+  border-color: rgba(255, 253, 249, 0.24);
+  background: transparent;
+  color: #fffdf9;
+}
+
+body[data-page="configurator"] .configurator-save-button {
+  border-color: rgba(210, 166, 107, 0.62);
+  color: #e3b97f;
+}
+
+body[data-page="configurator"] .configurator-quote-button,
+body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+  min-width: 132px;
+  border-color: var(--jq-accent);
+  background: var(--jq-accent);
+  color: #fff;
+}
+
+@media (max-width: 1279px) {
+  body[data-page="configurator"] .configurator-experience {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: clamp(430px, 58svh, 620px) 84px auto 84px;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience {
+    width: calc(100% - 32px);
+    grid-column: 1;
+    grid-row: 3;
+    margin: 0 16px;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    position: sticky;
+    grid-column: 1;
+    grid-row: 4;
+  }
+}
+
+@media (max-width: 1100px) {
+  body[data-page="configurator"] .configurator-estimate-bar .studio-trust-row {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    grid-template-columns: minmax(220px, 1fr) auto;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
+  body[data-page="configurator"] .configurator-experience {
+    grid-template-columns: 72px clamp(320px, 34vw, 352px) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 84px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience {
+    width: 100%;
+    height: 100%;
+    grid-column: 2;
+    grid-row: 1;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] .configurator-experience {
+    grid-template-rows: clamp(350px, 50svh, 420px) 74px auto 68px;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience {
+    width: 100%;
+    margin: 0;
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar {
+    top: 10px;
+    width: 238px;
+  }
+
+  body[data-page="configurator"] .preview-heading {
+    top: 62px;
+    right: 10px;
+    left: 10px;
+    justify-content: end;
+  }
+
+  body[data-page="configurator"] .preview-heading > div:first-child {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch {
+    right: 10px;
+    bottom: 70px;
+    width: 154px;
+    gap: 0;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  body[data-page="configurator"] .cabinet-ar-launch-heading,
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch p,
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-help {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    position: static;
+    height: 68px;
+    min-height: 68px;
+    grid-template-columns: 112px minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-price-block {
+    padding: 0 6px 0 12px;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-quote-note {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-actions {
+    gap: 5px;
+    padding: 0 6px;
+  }
+
+  body[data-page="configurator"] .configurator-review-button,
+  body[data-page="configurator"] .configurator-save-button,
+  body[data-page="configurator"] .configurator-quote-button,
+  body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+    display: inline-flex;
+    min-width: 0;
+    height: 46px;
+    min-height: 46px;
+    padding: 0 8px;
+    font-size: 9px;
+  }
+
+  body[data-page="configurator"] .configurator-review-button {
+    width: 66px;
+    font-size: 0;
+  }
+
+  body[data-page="configurator"] .configurator-review-button::after {
+    content: "Review";
+    font-size: 9px;
+  }
+
+  body[data-page="configurator"] .configurator-save-button {
+    width: 46px;
+  }
+
+  body[data-page="configurator"] .configurator-quote-button,
+  body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+    width: 104px;
+    min-width: 104px;
   }
 }

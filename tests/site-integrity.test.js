@@ -289,6 +289,21 @@ test("all pages load the shared stylesheet and site script with one cache token"
   assert.equal(new Set(tokens).size, 1, "all canonical pages must use the same shared cache token");
 });
 
+test("every non-configurator route loads the bright showroom color layer", () => {
+  for (const file of publicPages) {
+    const html = pageSource.get(file);
+    const themeUrls = sharedAssetUrl(html, "link", "href", "bright-theme.css");
+
+    if (file === "configurator.html") {
+      assert.equal(themeUrls.length, 0, "the configurator must retain its dedicated color system");
+      continue;
+    }
+
+    assert.equal(themeUrls.length, 1, file + " must include bright-theme.css exactly once");
+    assert.ok(cacheToken(themeUrls[0]), file + " bright-theme.css must have a cache token");
+  }
+});
+
 test("every static local href, src, and HTML fragment resolves", () => {
   const references = [
     ...[...pageSource].flatMap(([file, html]) => collectReferences(file, html)),

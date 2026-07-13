@@ -1,5 +1,5 @@
 import * as THREE from "./assets/vendor/three.module.js";
-import { diagramSvg, iconSvg } from "./icon-system.js?v=guided-repair-20260712b";
+import { diagramSvg, iconSvg } from "./icon-system.js?v=jq-icons-20260713g";
 import {
   baseStyleOptions,
   crownStyleOptions,
@@ -15,9 +15,8 @@ import {
   lightingWarmthOptions,
   lightingOptions,
   normalizeBookcaseConfig,
-  optionLabels,
-  shelfThicknessOptions
-} from "./bookcase-config.js?v=benjamin-moore-20260712a";
+  optionLabels
+} from "./bookcase-config.js?v=jq-icons-20260713b";
 import { generateBookcaseLayout } from "./bookcase-layout.js?v=configurator-20260711e";
 import { buildPricingContext, formatPrice } from "./bookcase-pricing.js?v=benjamin-moore-20260712a";
 import {
@@ -52,25 +51,44 @@ import {
   normalizeGuidedStep,
   shouldRunAction,
   validateGuidedStep
-} from "./configurator-experience.js?v=benjamin-moore-20260712a";
+} from "./configurator-experience.js?v=workflow-density-20260712a";
 
 const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "shelfThickness", "lightingWarmth", "doorCount", "drawerCount"]);
 const builderIcons = Object.freeze({
   dimensions: iconSvg("dimensions"),
-  layout: iconSvg("layouts"),
-  structure: iconSvg("materials"),
+  layout: iconSvg("layout"),
+  structure: iconSvg("material-layers"),
   lighting: iconSvg("lighting"),
   finish: iconSvg("paint-finish"),
   hardware: iconSvg("hardware"),
-  bookmark: iconSvg("bookmark"),
+  save: iconSvg("save"),
   search: iconSvg("search"),
-  cube: iconSvg("view-3d"),
-  front: iconSvg("view-front"),
-  threeQuarter: iconSvg("view-three-quarter"),
-  side: iconSvg("view-side"),
+  orbit: iconSvg("camera-orbit"),
+  front: iconSvg("camera-front"),
+  threeQuarter: iconSvg("camera-three-quarter"),
+  side: iconSvg("camera-side"),
+  augmentedReality: iconSvg("augmented-reality"),
+  close: iconSvg("close"),
   check: iconSvg("check"),
   plus: iconSvg("plus"),
-  minus: iconSvg("minus")
+  minus: iconSvg("minus"),
+  zoomIn: iconSvg("zoom-in"),
+  zoomOut: iconSvg("zoom-out"),
+  reset: iconSvg("reset"),
+  premiumMaterials: iconSvg("material-layers"),
+  craftsmanship: iconSvg("craftsmanship"),
+  customFit: iconSvg("dimensions"),
+});
+
+const deliveryOptionIcons = Object.freeze({
+  pickup: iconSvg("shop-pickup"),
+  standard: iconSvg("standard-delivery"),
+  priority: iconSvg("priority-delivery")
+});
+
+const installationOptionIcons = Object.freeze({
+  no_installation: iconSvg("no-installation"),
+  professional: iconSvg("professional-installation")
 });
 
 const basePreviewIcons = Object.freeze({
@@ -80,10 +98,10 @@ const basePreviewIcons = Object.freeze({
 });
 
 const crownPreviewIcons = Object.freeze({
-  none: diagramSvg("crown-none"),
-  slim_cap: diagramSvg("crown-slim"),
+  none: diagramSvg("crown-flat-top"),
+  slim_cap: diagramSvg("crown-step"),
   classic_crown: diagramSvg("crown-classic"),
-  modern_soffit: diagramSvg("crown-soffit")
+  modern_soffit: diagramSvg("crown-built-up")
 });
 
 const doorPreviewIcons = Object.freeze({
@@ -94,19 +112,27 @@ const doorPreviewIcons = Object.freeze({
 });
 
 const lightingPreviewIcons = Object.freeze({
-  no_lighting: iconSvg("lighting-none"),
-  warm_pucks: iconSvg("lighting-pucks"),
-  shelf_accent: iconSvg("lighting-shelf"),
-  vertical_led: iconSvg("lighting-vertical"),
-  full_package: iconSvg("lighting-package")
+  no_lighting: iconSvg("lighting-off"),
+  warm_pucks: iconSvg("puck-light"),
+  shelf_accent: iconSvg("under-shelf-light"),
+  vertical_led: iconSvg("led-strip"),
+  full_package: iconSvg("light-scenes")
 });
 
 const hardwarePreviewIcons = Object.freeze({
-  brass_knob: diagramSvg("hardware-brass-knob"),
-  matte_black_knob: diagramSvg("hardware-black-knob"),
-  brass_pull: diagramSvg("hardware-brass-pull"),
-  matte_black_pull: diagramSvg("hardware-black-pull"),
-  polished_nickel_pull: diagramSvg("hardware-nickel-pull")
+  brass_knob: diagramSvg("hardware-knob"),
+  matte_black_knob: diagramSvg("hardware-knob"),
+  brass_pull: diagramSvg("handle-pull"),
+  matte_black_pull: diagramSvg("handle-pull"),
+  polished_nickel_pull: diagramSvg("handle-pull")
+});
+
+const hardwareFinishSwatches = Object.freeze({
+  brass_knob: "#b58a4d",
+  brass_pull: "#b58a4d",
+  matte_black_knob: "#2f2c29",
+  matte_black_pull: "#2f2c29",
+  polished_nickel_pull: "#c8c7c3"
 });
 const finishPalette = {
   white_dove: 0xeee9dc,
@@ -116,6 +142,80 @@ const finishPalette = {
   silver_satin: 0xd8d7d2,
   custom_bm: 0xd3c8b8
 };
+
+const SMART_CAMERA_DURATION = 560;
+const SMART_CAMERA_PROFILES = Object.freeze({
+  overview: Object.freeze({ theta: -0.18, phi: 0.11, radiusScale: 1, roles: [] }),
+  doors: Object.freeze({ theta: -0.32, phi: 0.035, radiusScale: 0.72, roles: ["door", "drawer_front"], selection: "center", limit: 4 }),
+  // Match the construction-detail composition: a wide left three-quarter view
+  // with the selected profile centered and enough cabinetry left in context.
+  crown: Object.freeze({ theta: -0.7, phi: -0.035, radiusScale: 1.08, roles: ["crown"], fallbackRegion: "top" }),
+  base: Object.freeze({ theta: -0.7, phi: 0.055, radiusScale: 1.08, roles: ["base", "trim"], fallbackRegion: "bottom" }),
+  sidePanels: Object.freeze({ theta: -0.72, phi: 0.12, radiusScale: 0.82, roles: ["side_panel"], selection: "leftmost", limit: 1 }),
+  backPanel: Object.freeze({ theta: 2.68, phi: 0.12, radiusScale: 0.84, roles: ["back_panel"] }),
+  shelves: Object.freeze({ theta: -0.34, phi: -0.055, radiusScale: 0.72, roles: ["shelf", "fixed_shelf"], selection: "centerInterior", limit: 6 }),
+  lighting: Object.freeze({ theta: -0.36, phi: -0.1, radiusScale: 0.62, roles: ["light"], fallbackRoles: ["shelf", "fixed_shelf"], selection: "centerInterior", limit: 3, targetModelZOffset: -0.08, environmentScale: 0.9, exposure: 1.06 }),
+  hardware: Object.freeze({ theta: -0.3, phi: 0.015, radiusScale: 0.46, roles: ["handle"], fallbackRoles: ["door", "drawer_front"], selection: "center", limit: 2 }),
+  finish: Object.freeze({ theta: -0.36, phi: 0.14, radiusScale: 0.94, roles: [], exposure: 1.14 })
+});
+
+const LIGHTING_CAMERA_OVERRIDES = Object.freeze({
+  warm_pucks: Object.freeze({ theta: -0.36, phi: -0.14, radiusScale: 0.47, selection: "center", limit: 1, targetModelYOffset: -0.035, targetModelZOffset: -0.04 }),
+  shelf_accent: Object.freeze({ theta: -0.38, phi: -0.13, radiusScale: 0.54, selection: "centerInterior", limit: 2, targetModelYOffset: -0.015, targetModelZOffset: -0.06 }),
+  vertical_led: Object.freeze({ theta: -0.4, phi: -0.035, radiusScale: 0.64, selection: "centerInterior", limit: 2, targetModelZOffset: -0.08 }),
+  full_package: Object.freeze({ theta: -0.38, phi: -0.1, radiusScale: 0.6, selection: "centerInterior", limit: 3, targetModelYOffset: -0.02, targetModelZOffset: -0.07 })
+});
+
+const CAMERA_PROFILE_BY_CATEGORY = Object.freeze({
+  layout: "overview",
+  dimensions: "overview",
+  storage: "overview",
+  construction: "overview",
+  doors: "doors",
+  finish: "finish",
+  hardware: "hardware",
+  lighting: "lighting",
+  service: "overview",
+  sidePanels: "sidePanels",
+  backPanel: "backPanel"
+});
+
+const CAMERA_PROFILE_BY_GUIDED_STEP = Object.freeze({
+  layout: "overview",
+  dimensions: "overview",
+  storage: "overview",
+  construction: "overview",
+  appearance: "finish",
+  review: "overview"
+});
+
+const CAMERA_PROFILE_BY_FIELD = Object.freeze({
+  layoutPreset: "overview",
+  width: "overview",
+  height: "overview",
+  depth: "overview",
+  sections: "overview",
+  shelves: "shelves",
+  shelfThickness: "shelves",
+  lowerCabinets: "doors",
+  lowerStorage: "doors",
+  drawerCount: "doors",
+  doorStyle: "doors",
+  doorCount: "doors",
+  crownStyle: "crown",
+  baseStyle: "base",
+  sidePanels: "sidePanels",
+  backPanel: "backPanel",
+  finish: "finish",
+  customPaintColor: "finish",
+  customPaintCode: "finish",
+  customPaintHex: "finish",
+  hardware: "hardware",
+  lighting: "lighting",
+  lightingWarmth: "lighting"
+});
+
+const HOVER_PREVIEW_FIELDS = new Set(["doorStyle", "baseStyle", "crownStyle", "finish", "hardware", "lighting", "lightingWarmth"]);
 let viewerInstanceSequence = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -162,6 +262,8 @@ class BookcaseConfigurator {
     this.arController = null;
     this.arControllerPromise = null;
     this.activeRangeDrag = null;
+    this.optionPreview = null;
+    this.optionPreviewTimer = 0;
     this.layout = generateBookcaseLayout(this.state);
     this.state = normalizeBookcaseConfig({ ...this.state, ...this.layout.config });
     this.pricing = buildPricingContext(this.state, this.layout);
@@ -174,6 +276,7 @@ class BookcaseConfigurator {
     if (this.arEnabled) this.initializeCabinetAr();
     this.renderActiveControls();
     this.syncInterface();
+    this.focusCameraForCurrentContext({ duration: SMART_CAMERA_DURATION });
     this.verifyRestoredPaintSelection();
   }
 
@@ -249,6 +352,9 @@ class BookcaseConfigurator {
       update: () => {},
       setView: () => {},
       zoom: () => {},
+      focus: () => {},
+      preview: () => {},
+      restorePreview: () => {},
       getViewState: () => null,
       getDiagnostics: () => ({ instanceId: "fallback", updateCount: 0, rebuildCount: 0 }),
       destroy: () => {}
@@ -264,49 +370,65 @@ class BookcaseConfigurator {
       <form class="builder-shell configurator-shell configurator-experience" data-builder-form novalidate>
         <h1 id="${this.id}-viewer-title" class="sr-only">3D Bookcase Configurator</h1>
 
-        <header class="configurator-experience-toolbar">
-          <div class="configurator-experience-heading">
-            <span class="section-kicker">Design Studio</span>
-            <strong data-mode-description>Build your bookcase one step at a time.</strong>
-          </div>
-          <div class="configurator-mode-selector" role="tablist" aria-label="Configuration experience">
-            <button id="${this.id}-mode-guided" type="button" role="tab" data-configurator-mode="guided" aria-controls="${this.id}-guided-panel">
-              <span>Guided Setup</span><small>Step-by-step</small>
-            </button>
-            <button id="${this.id}-mode-all" type="button" role="tab" data-configurator-mode="all" aria-controls="${this.id}-all-panel">
-              <span>All Controls</span><small>Direct access</small>
-            </button>
-          </div>
-        </header>
+        <aside class="configurator-step-rail" aria-label="Guided setup steps" data-step-rail>
+          <ol>
+            ${GUIDED_STEPS.map((item, index) => `
+              <li data-step-rail-item="${item.id}">
+                <button type="button" data-guided-step="${item.id}" aria-label="Step ${index + 1}: ${item.label}">
+                  <span>${index + 1}</span><small>${item.shortLabel}</small>
+                </button>
+              </li>
+            `).join("")}
+          </ol>
+        </aside>
 
         <aside class="builder-panel configurator-panel configurator-control-experience" aria-label="Bookcase configuration controls" data-controls-scroll>
+          <header class="configurator-panel-intro">
+            <span class="section-kicker">Design your bookcase</span>
+            <strong data-mode-description>Build your bookcase one step at a time.</strong>
+          </header>
           <section id="${this.id}-guided-panel" role="tabpanel" aria-labelledby="${this.id}-mode-guided" data-mode-panel="guided"></section>
           <section id="${this.id}-all-panel" role="tabpanel" aria-labelledby="${this.id}-mode-all" data-mode-panel="all" hidden></section>
         </aside>
 
         <section class="studio-model configurator-model" aria-labelledby="${this.id}-viewer-title">
-          <div class="preview-heading">
-            <div><span>Live preview</span><small>Drag to rotate · Use +/− to zoom</small></div>
-            <div class="preview-tools" role="group" aria-label="Preview zoom and reset controls">
-              <button type="button" data-viewer-zoom="in" aria-label="Zoom in">+</button>
-              <button type="button" data-viewer-zoom="out" aria-label="Zoom out">−</button>
-              <button type="button" data-reset-view>Reset view</button>
+          <header class="configurator-experience-toolbar">
+            <div class="configurator-mode-selector" role="tablist" aria-label="Configuration experience">
+              <button id="${this.id}-mode-guided" type="button" role="tab" data-configurator-mode="guided" aria-controls="${this.id}-guided-panel">
+                <span>Guided Setup</span><small>Step-by-step</small>
+              </button>
+              <button id="${this.id}-mode-all" type="button" role="tab" data-configurator-mode="all" aria-controls="${this.id}-all-panel">
+                <span>All Controls</span><small>Direct access</small>
+              </button>
             </div>
+          </header>
+          <div class="preview-heading">
+            <div><span>Live preview</span><small>Drag to rotate · Use arrow keys or the view dock</small></div>
+            <div class="preview-price-pill" aria-label="Current estimated project price"><small>Estimate</small><strong data-preview-price>${formatPrice(this.price)}</strong></div>
           </div>
           <div class="viewer-stage" data-3d-viewer tabindex="0" role="group" aria-roledescription="interactive 3D preview" aria-label="Built-in bookcase preview. Use arrow keys to rotate and plus or minus to zoom."></div>
-          <div class="view-controls" role="group" aria-label="3D view controls">
-            <button type="button" data-view="three-dimensional" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.cube}</span>3D</button>
-            <button type="button" data-view="front" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.front}</span>Front</button>
-            <button type="button" data-view="three-quarter" aria-pressed="true"><span class="view-icon" aria-hidden="true">${builderIcons.threeQuarter}</span>3/4</button>
-            <button type="button" data-view="side" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.side}</span>Side</button>
+          <div class="preview-control-dock" aria-label="Preview controls">
+            <div class="preview-tools" role="group" aria-label="Preview zoom and reset controls">
+              <button type="button" data-viewer-zoom="in" aria-label="Zoom in" title="Zoom in"><span class="view-icon" aria-hidden="true">${builderIcons.zoomIn}</span><small>Zoom in</small></button>
+              <button type="button" data-viewer-zoom="out" aria-label="Zoom out" title="Zoom out"><span class="view-icon" aria-hidden="true">${builderIcons.zoomOut}</span><small>Zoom out</small></button>
+              <button type="button" data-reset-view aria-label="Rotate to default view" title="Rotate to default view"><span class="view-icon" aria-hidden="true">${builderIcons.reset}</span><small>Rotate</small></button>
+            </div>
+            <div class="view-controls" role="group" aria-label="3D view controls">
+              <button type="button" data-view="three-dimensional" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.orbit}</span><small>3D</small></button>
+              <button type="button" data-view="front" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.front}</span><small>Front</small></button>
+              <button type="button" data-view="three-quarter" aria-pressed="true"><span class="view-icon" aria-hidden="true">${builderIcons.threeQuarter}</span><small>3/4</small></button>
+              <button type="button" data-view="side" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.side}</span><small>Side</small></button>
+            </div>
           </div>
           ${this.arEnabled ? `
-            <div class="cabinet-ar-launch">
+            <aside class="cabinet-ar-launch" aria-label="View in your room">
+              <div class="cabinet-ar-launch-heading"><span class="view-icon" aria-hidden="true">${builderIcons.augmentedReality}</span><strong>View in Your Room</strong></div>
+              <p>See this bookcase at true scale in your space.</p>
               <button class="cabinet-ar-launch-button" type="button" data-open-ar aria-label="View in Your Room">
-                <span class="view-icon" aria-hidden="true">${builderIcons.cube}</span><span data-ar-label>View in Your Room</span>
+                <span class="view-icon" aria-hidden="true">${builderIcons.augmentedReality}</span><span data-ar-label>View in Your Room</span>
               </button>
-              <small class="cabinet-ar-launch-help">See this cabinet at true scale in your space.</small>
-            </div>
+              <small class="cabinet-ar-launch-help">Works on supported iPhone, iPad, and Android devices.</small>
+            </aside>
           ` : ""}
         </section>
 
@@ -314,11 +436,16 @@ class BookcaseConfigurator {
           <div class="configurator-price-block">
             <span class="price-kicker">Estimated project price</span>
             <strong data-price>${formatPrice(this.price)}</strong>
+            <p id="${this.id}-action-hint" class="configurator-quote-note" data-action-hint aria-live="polite">Final pricing is confirmed after measurements and project details are verified.</p>
           </div>
-          <p id="${this.id}-action-hint" class="configurator-quote-note" data-action-hint aria-live="polite">Final pricing is confirmed after measurements and project details are verified.</p>
+          <div class="studio-trust-row" aria-label="JQ Bookcases value commitments">
+            <div class="studio-trust-item"><span class="studio-trust-icon" aria-hidden="true">${builderIcons.premiumMaterials}</span><span><strong>Premium Materials</strong><small>Furniture-grade construction</small></span></div>
+            <div class="studio-trust-item"><span class="studio-trust-icon" aria-hidden="true">${builderIcons.craftsmanship}</span><span><strong>Expert Craftsmanship</strong><small>Built by skilled artisans</small></span></div>
+            <div class="studio-trust-item"><span class="studio-trust-icon" aria-hidden="true">${builderIcons.customFit}</span><span><strong>Custom Fit</strong><small>Made for your exact space</small></span></div>
+          </div>
           <div class="configurator-actions">
             <button class="configurator-review-button" type="button" data-review-design>Review Design</button>
-            <button class="configurator-save-button" type="button" data-save-design aria-label="Save Design">${builderIcons.bookmark}<span>Save Design</span></button>
+            <button class="configurator-save-button" type="button" data-save-design aria-label="Save Design">${builderIcons.save}<span>Save Design</span></button>
             <button class="configurator-quote-button" type="button" data-open-order="measurement">Request a Quote</button>
           </div>
         </section>
@@ -327,7 +454,7 @@ class BookcaseConfigurator {
           <div class="configurator-review-dialog-shell">
             <div class="configurator-review-dialog-heading">
               <div><span class="section-kicker">Review Design</span><h2 id="${this.id}-review-dialog-title">Your custom bookcase</h2></div>
-              <button type="button" data-close-review aria-label="Close design review">×</button>
+              <button type="button" data-close-review aria-label="Close design review">${builderIcons.close}</button>
             </div>
             <div data-review-dialog-content></div>
           </div>
@@ -376,15 +503,6 @@ class BookcaseConfigurator {
           <span>Step ${stepIndex + 1} of ${GUIDED_STEPS.length}</span>
           <strong>${step.label}</strong>
         </div>
-        <ol class="guided-progress" aria-label="Guided setup progress">
-          ${GUIDED_STEPS.map((item, index) => `
-            <li class="${index < stepIndex ? "is-complete" : ""} ${index === stepIndex ? "is-current" : ""}">
-              <button type="button" data-guided-step="${item.id}" aria-label="Step ${index + 1}: ${item.label}" ${index === stepIndex ? 'aria-current="step"' : ""}>
-                <span>${index + 1}</span><small>${item.shortLabel}</small>
-              </button>
-            </li>
-          `).join("")}
-        </ol>
         <header class="guided-step-heading" data-guided-heading tabindex="-1">
           <span class="section-kicker">${step.label}</span>
           <h2>${step.title}</h2>
@@ -398,7 +516,7 @@ class BookcaseConfigurator {
           <button type="button" class="guided-back" data-guided-back ${stepIndex === 0 ? "disabled" : ""}>Back</button>
           ${step.id === "review"
             ? '<button type="button" class="guided-continue is-primary" data-open-order="measurement">Request a Quote</button>'
-            : '<button type="button" class="guided-continue is-primary" data-guided-continue>Next</button>'}
+            : `<button type="button" class="guided-continue is-primary" data-guided-continue>Continue to ${GUIDED_STEPS[stepIndex + 1].shortLabel}</button>`}
         </nav>
       </div>
     `;
@@ -406,28 +524,13 @@ class BookcaseConfigurator {
 
   renderGuidedStepContent(stepId) {
     if (stepId === "layout") {
-      return `
-        ${this.renderLayoutCards("guided")}
-        <div class="guided-inline-actions">
-          <button type="button" data-use-recommended="layout">Use recommended</button>
-          <button type="button" data-not-sure="layout">I’m not sure</button>
-        </div>
-      `;
+      return this.renderLayoutCards("guided");
     }
     if (stepId === "dimensions") {
-      return `
-        ${this.renderDimensionsGroup()}
-        <aside class="guided-tip"><strong>Helpful starting point</strong><span>15 inches works well for books and display pieces. Cabinet storage often benefits from 16–18 inches.</span></aside>
-        <div class="guided-inline-actions">
-          <button type="button" data-use-recommended="dimensions">Use layout dimensions</button>
-          <button type="button" data-not-sure="dimensions">I’m not sure about measurements</button>
-        </div>
-      `;
+      return this.renderDimensionsGroup();
     }
     if (stepId === "storage") return this.renderStorageGroup();
-    if (stepId === "construction") {
-      return `${this.renderStructureGroup()}${this.renderDoorGroup()}`;
-    }
+    if (stepId === "construction") return this.renderConstructionExperience();
     if (stepId === "appearance") return this.renderAppearanceExperience();
     return `${this.renderReviewContent({ includeActions: false })}
       <section class="guided-review-service" aria-labelledby="${this.id}-guided-service-heading">
@@ -457,13 +560,13 @@ class BookcaseConfigurator {
   renderAccordionCategory(category) {
     const expanded = category.id === this.expandedCategory;
     const panelId = `${this.id}-category-${category.id}`;
-    const applicability = category.id === "doors" ? "doors" : category.id === "hardware" ? "hardware" : "";
+    const applicability = category.id === "doors" ? "fronts" : category.id === "hardware" ? "hardware" : "";
     return `
       <section class="configurator-category" data-category="${category.id}" ${applicability ? `data-applicability="${applicability}"` : ""}>
         <h3>
           <button id="${panelId}-trigger" type="button" data-category-trigger="${category.id}" aria-expanded="${expanded}" aria-controls="${panelId}">
             <span>${escapeHtml(category.label)}<small data-category-summary="${escapeHtml(category.id)}">${escapeHtml(getCategorySummary(category.id, this.state, this.layout, this.basePresetId))}</small></span>
-            <i aria-hidden="true">${expanded ? "−" : "+"}</i>
+            <i aria-hidden="true">${expanded ? builderIcons.minus : builderIcons.plus}</i>
           </button>
         </h3>
         <div id="${panelId}" class="configurator-category-panel" data-category-panel="${category.id}" role="region" aria-labelledby="${panelId}-trigger" ${expanded ? "" : "hidden"}>
@@ -476,7 +579,7 @@ class BookcaseConfigurator {
   renderCategoryContent(categoryId) {
     if (categoryId === "layout") return this.renderLayoutCards("all");
     if (categoryId === "dimensions") return this.renderDimensionsGroup();
-    if (categoryId === "storage") return this.renderStorageGroup();
+    if (categoryId === "storage") return this.renderStorageGroup("all");
     if (categoryId === "construction") return this.renderStructureGroup();
     if (categoryId === "doors") return this.renderDoorGroup();
     if (categoryId === "finish") return this.renderFinishGroup();
@@ -487,25 +590,25 @@ class BookcaseConfigurator {
   }
 
   renderLayoutCards(context = "guided") {
+    const renderCards = (presets) => presets.map((preset) => {
+      const index = layoutPresets.findIndex((item) => item.id === preset.id) + 1;
+      return `
+        <button class="layout-card" type="button" data-preset-id="${preset.id}" aria-pressed="false">
+          ${this.renderPresetMini(preset, index)}
+          <span class="layout-card-copy"><strong>${preset.name}</strong><small>${preset.description}</small></span>
+          <span class="layout-card-check" aria-hidden="true">${builderIcons.check}</span>
+        </button>
+      `;
+    }).join("");
     return `
-      <div class="layout-card-grid is-${context}" role="group" aria-label="Bookcase layouts">
-        ${layoutPresets.map((preset, index) => `
-          <button class="layout-card" type="button" data-preset-id="${preset.id}" aria-pressed="false">
-            ${this.renderPresetMini(preset, index + 1)}
-            <span class="layout-card-copy"><strong>${preset.name}</strong><small>${preset.description}</small></span>
-            ${preset.id === "lower-cabinets" ? '<span class="recommended-badge">Recommended</span>' : ""}
-            <span class="layout-card-check" aria-hidden="true">${builderIcons.check}</span>
-          </button>
-        `).join("")}
-      </div>
+      <div class="layout-card-grid is-${context}" role="group" aria-label="Bookcase layouts">${renderCards(layoutPresets)}</div>
     `;
   }
 
-  renderStorageGroup() {
+  renderStorageGroup(context = "guided") {
     return `
       <section class="control-section control-section-storage">
         ${this.renderStepperControl("sections", "Vertical sections", 1, 6)}
-        ${this.renderStepperControl("shelves", "Shelves per section", 2, 8)}
         <div class="toggle-row premium-toggle">
           <label for="${this.id}-lowerCabinets">Lower cabinets</label>
           <label class="switch">
@@ -523,7 +626,7 @@ class BookcaseConfigurator {
         <div data-applicability="drawers">
           ${this.renderStepperControl("drawerCount", "Drawers per drawer section", 2, 5)}
         </div>
-        <aside class="guided-tip"><strong>Built safely</strong><span>Section and shelf counts are automatically reconciled with structural clearances.</span></aside>
+        ${context === "guided" ? this.renderDoorGroup() : ""}
       </section>
     `;
   }
@@ -548,9 +651,9 @@ class BookcaseConfigurator {
       <label><input data-field="doorCount" name="${this.id}-doorCount" type="radio" value="${count}"><span>${count}</span></label>
     `).join("");
     return `
-      <section class="control-section control-section-doors" data-applicability="doors">
-        <fieldset class="choice-field" data-applicability="doors">
-          <legend>Door style</legend>
+      <section class="control-section control-section-doors" data-applicability="fronts">
+        <fieldset class="choice-field" data-applicability="fronts">
+          <legend>Front style</legend>
           <div class="door-style-grid">${styles}</div>
         </fieldset>
         <fieldset class="choice-field" data-applicability="doors">
@@ -560,6 +663,10 @@ class BookcaseConfigurator {
         </fieldset>
       </section>
     `;
+  }
+
+  renderConstructionExperience() {
+    return this.renderStructureGroup();
   }
 
   renderAppearanceExperience() {
@@ -574,15 +681,15 @@ class BookcaseConfigurator {
 
   renderServiceGroup() {
     const deliveries = deliveryOptions.map((option) => `
-      <label class="option-card compact-option-card"><input data-field="delivery" name="${this.id}-delivery" type="radio" value="${option.value}"><span><strong>${option.label}</strong></span></label>
+      <label class="service-option-card"><input data-field="delivery" name="${this.id}-delivery" type="radio" value="${option.value}"><span><span class="service-option-icon" aria-hidden="true">${deliveryOptionIcons[option.value]}</span><strong>${option.label}</strong></span></label>
     `).join("");
     const installations = installationOptions.map((option) => `
-      <label class="option-card compact-option-card"><input data-field="installation" name="${this.id}-installation" type="radio" value="${option.value}"><span><strong>${option.label}</strong></span></label>
+      <label class="service-option-card"><input data-field="installation" name="${this.id}-installation" type="radio" value="${option.value}"><span><span class="service-option-icon" aria-hidden="true">${installationOptionIcons[option.value]}</span><strong>${option.label}</strong></span></label>
     `).join("");
     return `
       <section class="control-section control-section-service">
-        <fieldset class="choice-field"><legend>Delivery</legend><div class="option-card-grid">${deliveries}</div></fieldset>
-        <fieldset class="choice-field"><legend>Installation</legend><div class="option-card-grid">${installations}</div></fieldset>
+        <fieldset class="choice-field"><legend>Delivery</legend><div class="option-card-grid service-option-grid is-delivery">${deliveries}</div></fieldset>
+        <fieldset class="choice-field"><legend>Installation</legend><div class="option-card-grid service-option-grid is-installation">${installations}</div></fieldset>
       </section>
     `;
   }
@@ -608,7 +715,8 @@ class BookcaseConfigurator {
         </div>
         ${includeActions ? `
           <div class="review-actions">
-            <button type="button" data-save-design aria-label="Save Design">${builderIcons.bookmark}<span>Save Design</span></button>
+            ${this.arEnabled ? `<button type="button" data-open-ar aria-label="View in Your Room">${builderIcons.augmentedReality}<span>View in Your Room</span></button>` : ""}
+            <button type="button" data-save-design aria-label="Save Design">${builderIcons.save}<span>Save Design</span></button>
             <button type="button" class="is-primary" data-open-order="measurement">Request a Quote</button>
           </div>
         ` : ""}
@@ -680,17 +788,13 @@ class BookcaseConfigurator {
         ${this.renderRangeControl("width", "Width", 24, 144, 1, "in")}
         ${this.renderRangeControl("height", "Height", 72, 120, 1, "in")}
         ${this.renderRangeControl("depth", "Depth", 10, 24, 1, "in")}
+        ${this.renderRangeControl("shelves", "Shelves per section", 2, 8, 1, "")}
+        ${this.renderRangeControl("shelfThickness", "Shelf thickness", 0.75, 2, 0.25, "in")}
       </section>
     `;
   }
 
   renderStructureGroup() {
-    const thicknesses = shelfThicknessOptions.map((option) => `
-      <div class="structure-choice">
-        <input id="${this.id}-shelfThickness-${option.value}" data-field="shelfThickness" name="${this.id}-shelfThickness" type="radio" value="${option.value}">
-        <label for="${this.id}-shelfThickness-${option.value}">${option.label}</label>
-      </div>
-    `).join("");
     const baseChoices = baseStyleOptions.map((option) => `
       <div class="style-choice" data-style="${option.value}">
         <input id="${this.id}-baseStyle-${option.value}" data-field="baseStyle" name="${this.id}-baseStyle" type="radio" value="${option.value}">
@@ -713,10 +817,6 @@ class BookcaseConfigurator {
     return `
       <section class="control-section control-section-structure">
         <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.structure}</span>Structure</h2>
-        <fieldset class="structure-field">
-          <legend>Shelf Thickness</legend>
-          <div class="thickness-grid">${thicknesses}</div>
-        </fieldset>
         <fieldset class="structure-field">
           <legend>Base Style</legend>
           <div class="style-choice-grid base-choice-grid">${baseChoices}</div>
@@ -788,6 +888,7 @@ class BookcaseConfigurator {
           <input id="${this.id}-hardware-${option.value}" data-field="hardware" name="${this.id}-hardware" type="radio" value="${option.value}">
           <label for="${this.id}-hardware-${option.value}" title="${option.label}">
             <span class="hardware-choice-icon" aria-hidden="true">${hardwarePreviewIcons[option.value]}</span>
+            <span class="hardware-finish-swatch" style="--hardware-finish:${hardwareFinishSwatches[option.value]}" aria-hidden="true"></span>
             <span>${option.label}</span>
           </label>
         </div>
@@ -873,6 +974,7 @@ class BookcaseConfigurator {
       price: this.host.querySelector("[data-price]"),
       status: this.host.querySelector("[data-builder-status]"),
       controlsScroll: this.host.querySelector("[data-controls-scroll]"),
+      stepRail: this.host.querySelector("[data-step-rail]"),
       guidedPanel: this.host.querySelector('[data-mode-panel="guided"]'),
       allPanel: this.host.querySelector('[data-mode-panel="all"]'),
       modeDescription: this.host.querySelector("[data-mode-description]"),
@@ -904,11 +1006,33 @@ class BookcaseConfigurator {
     this.host.addEventListener("pointerdown", (event) => {
       const range = event.target.closest?.('.range-control input[type="range"][data-field]');
       if (!range || !this.host.contains(range)) return;
+      this.focusCameraForField(range.dataset.field);
       this.beginRangeDrag(event, range);
     });
     this.host.addEventListener("pointermove", (event) => this.updateRangeDrag(event));
     this.host.addEventListener("pointerup", (event) => this.endRangeDrag(event));
     this.host.addEventListener("pointercancel", (event) => this.endRangeDrag(event));
+
+    this.host.addEventListener("pointerover", (event) => {
+      if (event.pointerType === "touch") return;
+      const label = event.target.closest?.("label");
+      if (!label || !this.host.contains(label) || label.contains(event.relatedTarget)) return;
+      const input = label.querySelector('input[data-field]') || (label.htmlFor ? document.getElementById(label.htmlFor) : null);
+      if (!input?.matches?.("input[data-field]") || !this.host.contains(input)) return;
+      this.focusCameraForField(input.dataset.field);
+      this.scheduleOptionPreview(label, input);
+    });
+
+    this.host.addEventListener("pointerout", (event) => {
+      const label = event.target.closest?.("label");
+      if (!label || !this.host.contains(label) || label.contains(event.relatedTarget)) return;
+      this.endOptionPreview(label);
+    });
+
+    this.host.addEventListener("focusin", (event) => {
+      const field = event.target.closest?.("[data-field], [data-validation-field]");
+      if (field && this.host.contains(field)) this.focusCameraForField(field.dataset.field || field.dataset.validationField);
+    });
 
     this.host.addEventListener("input", (event) => {
       const colorQuery = event.target.closest?.("[data-bm-query]");
@@ -964,7 +1088,8 @@ class BookcaseConfigurator {
     }
     const guidedStep = target.closest?.("[data-guided-step]");
     if (guidedStep) {
-      this.goToGuidedStep(guidedStep.dataset.guidedStep);
+      if (this.mode === CONFIGURATOR_MODES.guided) this.goToGuidedStep(guidedStep.dataset.guidedStep);
+      else this.switchMode(CONFIGURATOR_MODES.guided, { guidedStep: guidedStep.dataset.guidedStep });
       return;
     }
     if (target.closest?.("[data-guided-back]")) {
@@ -1108,6 +1233,7 @@ class BookcaseConfigurator {
     this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.mode, this.mode);
     this.renderActiveControls({ previousMode });
     this.syncInterface();
+    this.focusCameraForCurrentContext();
     if (shouldOpenSharedReview) this.openReviewDialog();
     this.showStatus(this.mode === CONFIGURATOR_MODES.guided
       ? "Guided Setup is active. Your design and preview are unchanged."
@@ -1130,6 +1256,7 @@ class BookcaseConfigurator {
     this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.guidedStep, this.guidedStep);
     this.renderActiveControls({ previousMode: this.mode, resetScroll: true });
     this.syncInterface();
+    this.focusCameraForCurrentContext();
     this.focusGuidedHeading();
   }
 
@@ -1137,6 +1264,62 @@ class BookcaseConfigurator {
     window.requestAnimationFrame(() => {
       this.host.querySelector("[data-guided-heading]")?.focus({ preventScroll: true });
     });
+  }
+
+  focusCameraForCurrentContext(options = {}) {
+    if (!this.viewer?.focus) return;
+    const profile = this.mode === CONFIGURATOR_MODES.guided
+      ? CAMERA_PROFILE_BY_GUIDED_STEP[this.guidedStep] || "overview"
+      : CAMERA_PROFILE_BY_CATEGORY[this.expandedCategory] || "overview";
+    this.viewer.focus(profile, options);
+    this.activeView = profile === "overview" ? "three-quarter" : "custom";
+    this.syncViewButtons();
+    this.syncDiagnosticsAttributes();
+  }
+
+  focusCameraForField(fieldName) {
+    const profile = CAMERA_PROFILE_BY_FIELD[fieldName];
+    if (!profile || !this.viewer?.focus) return;
+    this.viewer.focus(profile);
+    this.activeView = profile === "overview" ? "three-quarter" : "custom";
+    this.syncViewButtons();
+    this.syncDiagnosticsAttributes();
+  }
+
+  scheduleOptionPreview(label, input) {
+    window.clearTimeout(this.optionPreviewTimer);
+    if (!HOVER_PREVIEW_FIELDS.has(input.dataset.field) || input.disabled || input.checked) return;
+    this.optionPreviewTimer = window.setTimeout(() => this.beginOptionPreview(label, input), 90);
+  }
+
+  beginOptionPreview(label, input) {
+    if (!label.isConnected || input.disabled || input.checked) return;
+    const field = input.dataset.field;
+    const rawValue = input.value;
+    const value = numericFields.has(field) ? Number(rawValue) : rawValue;
+    if (this.optionPreview?.field === field && String(this.optionPreview.value) === String(value)) return;
+
+    this.optionPreview?.label?.classList.remove("is-live-previewing");
+    const previewState = normalizeBookcaseConfig({ ...this.state, [field]: value });
+    const previewLayout = generateBookcaseLayout(previewState);
+    this.optionPreview = { label, field, value };
+    this.viewer.preview(previewState, previewLayout, field);
+    this.host.dataset.previewField = field;
+    this.host.dataset.previewValue = String(value);
+    label.classList.add("is-live-previewing");
+    this.syncDiagnosticsAttributes();
+  }
+
+  endOptionPreview(label = null, { restore = true } = {}) {
+    window.clearTimeout(this.optionPreviewTimer);
+    this.optionPreviewTimer = 0;
+    if (!this.optionPreview || (label && this.optionPreview.label !== label)) return;
+    this.optionPreview.label?.classList.remove("is-live-previewing");
+    this.optionPreview = null;
+    delete this.host.dataset.previewField;
+    delete this.host.dataset.previewValue;
+    if (restore) this.viewer.restorePreview(this.state, this.layout);
+    this.syncDiagnosticsAttributes();
   }
 
   toggleCategory(categoryId) {
@@ -1151,9 +1334,13 @@ class BookcaseConfigurator {
       const panel = category.querySelector("[data-category-panel]");
       trigger?.setAttribute("aria-expanded", String(open));
       const icon = trigger?.querySelector("i");
-      if (icon) icon.textContent = open ? "−" : "+";
+      if (icon) icon.innerHTML = open ? builderIcons.minus : builderIcons.plus;
       if (panel) panel.hidden = !open;
     });
+    this.viewer.focus(wasOpen ? "overview" : CAMERA_PROFILE_BY_CATEGORY[normalized] || "overview");
+    this.activeView = "custom";
+    this.syncViewButtons();
+    this.syncDiagnosticsAttributes();
   }
 
   openReviewDialog() {
@@ -1474,6 +1661,8 @@ class BookcaseConfigurator {
   handleFieldInput(target) {
     const fieldName = target.dataset.field;
     if (!fieldName) return;
+    this.endOptionPreview(null, { restore: false });
+    this.focusCameraForField(fieldName);
     let value;
     if (target.type === "checkbox") {
       value = target.checked;
@@ -1637,6 +1826,8 @@ class BookcaseConfigurator {
     this.elements.shell.dataset.interfaceMode = this.mode;
     this.elements.shell.classList.toggle("is-guided-mode", this.mode === CONFIGURATOR_MODES.guided);
     this.elements.shell.classList.toggle("is-all-controls-mode", this.mode === CONFIGURATOR_MODES.all);
+    this.elements.shell.classList.toggle("is-review-context", this.mode === CONFIGURATOR_MODES.all || this.guidedStep === "review");
+    this.syncStepRail();
     this.host.querySelectorAll("[data-configurator-mode]").forEach((button) => {
       const active = button.dataset.configuratorMode === this.mode;
       button.setAttribute("aria-selected", String(active));
@@ -1660,6 +1851,23 @@ class BookcaseConfigurator {
     this.syncDiagnosticsAttributes();
   }
 
+  syncStepRail() {
+    const stepIndex = getGuidedStepIndex(this.guidedStep);
+    this.host.querySelectorAll("[data-step-rail-item]").forEach((item, index) => {
+      const button = item.querySelector("button[data-guided-step]");
+      const marker = button?.querySelector("span");
+      const complete = index < stepIndex;
+      const current = index === stepIndex;
+      item.classList.toggle("is-complete", complete);
+      item.classList.toggle("is-current", current);
+      if (button) {
+        button.toggleAttribute("aria-current", current);
+        if (current) button.setAttribute("aria-current", "step");
+      }
+      if (marker) marker.innerHTML = complete ? builderIcons.check : String(index + 1);
+    });
+  }
+
   syncDiagnosticsAttributes() {
     const shell = this.elements?.shell;
     if (!shell) return;
@@ -1676,12 +1884,23 @@ class BookcaseConfigurator {
     shell.dataset.diagnosticViewerUpdates = String(viewer.updateCount ?? 0);
     shell.dataset.diagnosticViewerRebuilds = String(viewer.rebuildCount ?? 0);
     shell.dataset.diagnosticViewerPartialUpdates = String(viewer.partialUpdateCount ?? 0);
+    shell.dataset.diagnosticViewerPreviews = String(viewer.previewCount ?? 0);
+    shell.dataset.diagnosticViewerPreviewActive = String(Boolean(viewer.previewActive));
+    shell.dataset.diagnosticCameraFocus = String(viewer.activeFocus ?? "overview");
+    shell.dataset.diagnosticCameraTransition = String(Boolean(viewer.cameraTransitionActive));
     shell.dataset.diagnosticCanvasCount = String(this.elements.viewer?.querySelectorAll("canvas").length || 0);
     shell.dataset.diagnosticActiveView = this.activeView;
     shell.dataset.diagnosticView = JSON.stringify({
       theta: Number(view.theta || 0).toFixed(5),
       phi: Number(view.phi || 0).toFixed(5),
-      radiusRatio: view.baseRadius ? Number(view.radius / view.baseRadius).toFixed(5) : "0.00000"
+      radiusRatio: view.baseRadius ? Number(view.radius / view.baseRadius).toFixed(5) : "0.00000",
+      environmentScale: Number(view.environmentScale ?? 1).toFixed(5),
+      exposure: Number(view.exposure ?? 1.08).toFixed(5),
+      target: {
+        x: Number(view.target?.x || 0).toFixed(5),
+        y: Number(view.target?.y || 0).toFixed(5),
+        z: Number(view.target?.z || 0).toFixed(5)
+      }
     });
     shell.dataset.diagnosticConfiguration = JSON.stringify(this.state);
     shell.dataset.diagnosticPricing = JSON.stringify({
@@ -1757,9 +1976,9 @@ class BookcaseConfigurator {
     const invalidFields = new Set(validation.issues.map((issue) => issue.field));
     this.host.querySelectorAll("[data-category]").forEach((category) => {
       const registryFields = {
-        dimensions: ["width", "height", "depth"],
-        storage: ["sections", "shelves", "lowerCabinets", "lowerStorage", "drawerCount"],
-        construction: ["shelfThickness", "baseStyle", "crownStyle"],
+        dimensions: ["width", "height", "depth", "shelves", "shelfThickness"],
+        storage: ["sections", "lowerCabinets", "lowerStorage", "drawerCount", "doorStyle", "doorCount"],
+        construction: ["baseStyle", "crownStyle"],
         doors: ["doorStyle", "doorCount"],
         finish: ["finish", "customPaintColor", "customPaintCode", "customPaintHex"]
       }[category.dataset.category] || [];
@@ -1847,6 +2066,7 @@ class BookcaseConfigurator {
     const price = this.price;
     const currentPreset = layoutPresets.find((preset) => preset.id === this.state.layoutPreset);
     this.elements.price.textContent = formatPrice(price);
+    this.setOptionalText("[data-preview-price]", formatPrice(price));
     this.setOptionalText("[data-summary-preset]", currentPreset?.name || "Custom");
     this.setOptionalText("[data-summary-sections]", this.state.sections);
     this.setOptionalText("[data-summary-shelves]", this.state.shelves);
@@ -1906,6 +2126,8 @@ class BookcaseViewer3D {
     this.updateCount = 0;
     this.rebuildCount = 0;
     this.partialUpdateCount = 0;
+    this.previewCount = 0;
+    this.previewActive = false;
     this.destroyed = false;
     this.controlAbortController = new AbortController();
     this.scene = new THREE.Scene();
@@ -1924,6 +2146,13 @@ class BookcaseViewer3D {
     this.phi = 0.12;
     this.baseRadius = 12;
     this.radius = 0;
+    this.overviewTarget = this.target.clone();
+    this.activeFocusKey = "overview";
+    this.cameraTransition = null;
+    this.focusTargetCache = new Map();
+    this.environmentLights = [];
+    this.environmentLightScale = 1;
+    this.highlightState = null;
     this.drag = null;
     this.model = new THREE.Group();
     this.scene.add(this.model);
@@ -1938,7 +2167,8 @@ class BookcaseViewer3D {
 
   setupEnvironment() {
     this.scene.fog = new THREE.FogExp2(0x302b26, 0.006);
-    this.scene.add(new THREE.HemisphereLight(0xf7f1e8, 0x2b2824, 1.7));
+    const hemisphere = new THREE.HemisphereLight(0xf7f1e8, 0x2b2824, 1.7);
+    this.scene.add(hemisphere);
 
     const key = new THREE.DirectionalLight(0xf7ecdf, 3.15);
     key.position.set(4.2, 8.6, 6.4);
@@ -1967,6 +2197,10 @@ class BookcaseViewer3D {
     const rightGlow = new THREE.PointLight(0xe8dccb, 0.2, 18);
     rightGlow.position.set(7.2, 4.0, 2.8);
     this.scene.add(rightGlow);
+    this.environmentLights = [hemisphere, key, fill, rim, leftGlow, rightGlow];
+    this.environmentLights.forEach((light) => {
+      light.userData.smartFocusBaseIntensity = light.intensity;
+    });
 
     const contactMaterial = new THREE.MeshBasicMaterial({
       map: createContactShadowTexture(),
@@ -1985,6 +2219,7 @@ class BookcaseViewer3D {
   bindControls() {
     const signal = this.controlAbortController.signal;
     this.root.addEventListener("pointerdown", (event) => {
+      this.cancelCameraTransition();
       this.drag = { x: event.clientX, y: event.clientY };
       this.root.setPointerCapture(event.pointerId);
       this.root.classList.add("is-dragging");
@@ -2016,6 +2251,7 @@ class BookcaseViewer3D {
       if (event.ctrlKey || event.metaKey) return;
       if (window.matchMedia("(max-width: 1280px)").matches) return;
       event.preventDefault();
+      this.cancelCameraTransition();
       this.radius = clamp(this.radius + event.deltaY * 0.008, this.baseRadius * 0.82, this.baseRadius * 1.58);
       this.onCameraInteraction("zoom");
       this.updateCamera();
@@ -2023,6 +2259,7 @@ class BookcaseViewer3D {
 
     this.root.addEventListener("keydown", (event) => {
       if (event.ctrlKey || event.metaKey) return;
+      this.cancelCameraTransition();
       if (event.key === "ArrowLeft") this.theta -= 0.12;
       else if (event.key === "ArrowRight") this.theta += 0.12;
       else if (event.key === "ArrowUp") this.phi = clamp(this.phi + 0.08, -0.12, 0.72);
@@ -2037,31 +2274,294 @@ class BookcaseViewer3D {
   }
 
   setView(view) {
+    let theta = -0.14;
+    let phi = 0.12;
     if (view === "front") {
-      this.theta = 0;
-      this.phi = 0.08;
+      theta = 0;
+      phi = 0.08;
     } else if (view === "side") {
-      this.theta = Math.PI / 2;
-      this.phi = 0.12;
+      theta = Math.PI / 2;
+      phi = 0.12;
     } else if (view === "three-quarter") {
-      this.theta = -0.14;
-      this.phi = 0.12;
+      theta = -0.14;
+      phi = 0.12;
     } else if (view === "three-dimensional") {
-      this.theta = -0.42;
-      this.phi = 0.2;
-    } else {
-      this.theta = -0.14;
-      this.phi = 0.12;
+      theta = -0.42;
+      phi = 0.2;
     }
-    if (view === "reset") this.radius = this.baseRadius;
-    this.updateCamera();
+    this.clearComponentHighlight();
+    this.setProductLightingBoost(1);
+    this.activeFocusKey = "overview";
+    this.animateToCameraPose({
+      theta,
+      phi,
+      radius: view === "reset" ? this.baseRadius : this.radius,
+      target: this.overviewTarget,
+      environmentScale: 1,
+      exposure: 1.08
+    }, { duration: SMART_CAMERA_DURATION });
   }
 
   zoom(direction) {
     const scale = Number(direction) < 0 ? 0.9 : 1.1;
-    this.radius = clamp(this.radius * scale, this.baseRadius * 0.82, this.baseRadius * 1.58);
+    const radius = clamp(this.radius * scale, this.baseRadius * 0.58, this.baseRadius * 1.58);
     this.onCameraInteraction("zoom");
+    this.animateToCameraPose({
+      theta: this.theta,
+      phi: this.phi,
+      radius,
+      target: this.target,
+      environmentScale: this.environmentLightScale,
+      exposure: this.renderer.toneMappingExposure
+    }, { duration: 360 });
+  }
+
+  focus(profileKey = "overview", options = {}) {
+    const normalizedKey = SMART_CAMERA_PROFILES[profileKey] ? profileKey : "overview";
+    const profile = SMART_CAMERA_PROFILES[normalizedKey];
+    const pose = this.getFocusPose(normalizedKey, profile);
+    if (!options.force && normalizedKey === this.activeFocusKey && this.cameraTransition) return;
+    const alreadyAtPose = normalizedKey === this.activeFocusKey
+      && this.target.distanceTo(pose.target) < 0.01
+      && Math.abs(shortestAngleDelta(this.theta, pose.theta)) < 0.005
+      && Math.abs(this.phi - pose.phi) < 0.005
+      && Math.abs(this.radius - pose.radius) < 0.01;
+    this.activeFocusKey = normalizedKey;
+    this.root.dataset.cameraFocus = normalizedKey;
+    this.setProductLightingBoost(normalizedKey === "lighting" ? 1.9 : 1);
+    this.applyComponentHighlight(pose.activeRoles);
+    if (alreadyAtPose && !options.force) return;
+    this.animateToCameraPose(pose, { duration: options.duration || SMART_CAMERA_DURATION });
+  }
+
+  getFocusPose(profileKey, profile) {
+    const resolvedProfile = profileKey === "lighting"
+      ? { ...profile, ...(LIGHTING_CAMERA_OVERRIDES[this.state.lighting] || {}) }
+      : profile;
+    const cacheKey = `${profileKey}:${profileKey === "lighting" ? this.state.lighting : "default"}:${this.rebuildCount}:${Number(this.camera.aspect || 1).toFixed(3)}`;
+    const cached = this.focusTargetCache.get(cacheKey);
+    if (cached) {
+      return {
+        ...cached,
+        target: cached.target.clone(),
+        activeRoles: [...cached.activeRoles]
+      };
+    }
+
+    const result = this.getFocusBounds(resolvedProfile);
+    const bounds = result.bounds;
+    const size = bounds.getSize(new THREE.Vector3());
+    const target = bounds.getCenter(new THREE.Vector3());
+    const modelSize = new THREE.Box3().setFromObject(this.model).getSize(new THREE.Vector3());
+    target.y += modelSize.y * (resolvedProfile.targetModelYOffset || 0);
+    target.z += modelSize.z * (resolvedProfile.targetModelZOffset || 0);
+    const verticalFov = THREE.MathUtils.degToRad(this.camera.fov);
+    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * Math.max(this.camera.aspect || 1, 0.3));
+    const fitDistance = Math.max(
+      size.y / Math.max(2 * Math.tan(verticalFov / 2), 0.01),
+      size.x / Math.max(2 * Math.tan(horizontalFov / 2), 0.01)
+    ) * 1.14 + size.z * 0.48;
+    const desiredRadius = Math.max(this.baseRadius * resolvedProfile.radiusScale, fitDistance);
+    const radius = this.resolveCollisionSafeRadius(resolvedProfile.theta, resolvedProfile.phi, target, desiredRadius);
+    const pose = {
+      theta: resolvedProfile.theta,
+      phi: resolvedProfile.phi,
+      radius: clamp(radius, this.baseRadius * 0.4, this.baseRadius * 1.55),
+      target,
+      activeRoles: result.activeRoles,
+      environmentScale: resolvedProfile.environmentScale ?? 1,
+      exposure: resolvedProfile.exposure ?? 1.08
+    };
+    this.focusTargetCache.set(cacheKey, {
+      ...pose,
+      target: pose.target.clone(),
+      activeRoles: [...pose.activeRoles]
+    });
+    return pose;
+  }
+
+  getFocusBounds(profile) {
+    const modelBounds = new THREE.Box3().setFromObject(this.model);
+    const modelCenter = modelBounds.getCenter(new THREE.Vector3());
+    const modelSize = modelBounds.getSize(new THREE.Vector3());
+    const requestedRoles = profile.roles || [];
+    if (!requestedRoles.length) return { bounds: modelBounds, activeRoles: [] };
+
+    const collect = (roles) => {
+      const candidates = [];
+      this.model.updateMatrixWorld(true);
+      this.model.traverse((child) => {
+        if (!child.userData?.componentId || !roles.includes(child.userData.role)) return;
+        const bounds = new THREE.Box3().setFromObject(child);
+        if (!bounds.isEmpty()) candidates.push({ child, bounds, center: bounds.getCenter(new THREE.Vector3()) });
+      });
+      if (profile.selection === "center") candidates.sort((a, b) => Math.abs(a.center.x) - Math.abs(b.center.x));
+      if (profile.selection === "centerInterior") {
+        const score = (candidate) => (
+          Math.abs(candidate.center.x - modelCenter.x) / Math.max(modelSize.x, 0.1)
+          + Math.abs(candidate.center.y - modelCenter.y) / Math.max(modelSize.y, 0.1) * 0.6
+        );
+        candidates.sort((a, b) => score(a) - score(b));
+      }
+      if (profile.selection === "leftmost") candidates.sort((a, b) => a.center.x - b.center.x);
+      return profile.limit ? candidates.slice(0, profile.limit) : candidates;
+    };
+
+    let activeRoles = requestedRoles;
+    let candidates = collect(requestedRoles);
+    if (!candidates.length && profile.fallbackRoles?.length) {
+      activeRoles = profile.fallbackRoles;
+      candidates = collect(activeRoles);
+    }
+    if (!candidates.length && profile.fallbackRegion) {
+      const bounds = modelBounds.clone();
+      const height = Math.max(bounds.max.y - bounds.min.y, 0.1);
+      if (profile.fallbackRegion === "top") bounds.min.y = bounds.max.y - height * 0.18;
+      if (profile.fallbackRegion === "bottom") bounds.max.y = bounds.min.y + height * 0.18;
+      return { bounds, activeRoles: [] };
+    }
+    if (!candidates.length) return { bounds: modelBounds, activeRoles: [] };
+    const bounds = new THREE.Box3();
+    candidates.forEach((candidate) => bounds.union(candidate.bounds));
+    return { bounds, activeRoles };
+  }
+
+  resolveCollisionSafeRadius(theta, phi, target, desiredRadius) {
+    const modelBounds = new THREE.Box3().setFromObject(this.model);
+    const direction = new THREE.Vector3(
+      Math.sin(theta) * Math.cos(phi),
+      Math.sin(phi),
+      Math.cos(theta) * Math.cos(phi)
+    ).normalize();
+    const intersection = new THREE.Ray(target.clone(), direction).intersectBox(modelBounds, new THREE.Vector3());
+    if (!intersection) return desiredRadius;
+    const modelSize = modelBounds.getSize(new THREE.Vector3());
+    const clearance = Math.max(0.32, modelSize.z * 0.24);
+    return Math.max(desiredRadius, target.distanceTo(intersection) + clearance);
+  }
+
+  animateToCameraPose(pose, options = {}) {
+    const endTheta = this.theta + shortestAngleDelta(this.theta, pose.theta);
+    this.cameraTransition = {
+      startedAt: performance.now(),
+      duration: clamp(Number(options.duration) || SMART_CAMERA_DURATION, 320, 700),
+      startTheta: this.theta,
+      endTheta,
+      startPhi: this.phi,
+      endPhi: pose.phi,
+      startRadius: this.radius,
+      endRadius: pose.radius,
+      startTarget: this.target.clone(),
+      endTarget: pose.target.clone(),
+      startEnvironmentScale: this.environmentLightScale,
+      endEnvironmentScale: pose.environmentScale ?? 1,
+      startExposure: this.renderer.toneMappingExposure,
+      endExposure: pose.exposure ?? 1.08
+    };
+  }
+
+  updateCameraTransition(now) {
+    const transition = this.cameraTransition;
+    if (!transition) return;
+    const progress = clamp((now - transition.startedAt) / transition.duration, 0, 1);
+    const eased = easeInOutCubic(progress);
+    this.theta = THREE.MathUtils.lerp(transition.startTheta, transition.endTheta, eased);
+    this.phi = THREE.MathUtils.lerp(transition.startPhi, transition.endPhi, eased);
+    this.radius = THREE.MathUtils.lerp(transition.startRadius, transition.endRadius, eased);
+    this.target.lerpVectors(transition.startTarget, transition.endTarget, eased);
+    this.environmentLightScale = THREE.MathUtils.lerp(transition.startEnvironmentScale, transition.endEnvironmentScale, eased);
+    this.renderer.toneMappingExposure = THREE.MathUtils.lerp(transition.startExposure, transition.endExposure, eased);
+    this.environmentLights.forEach((light) => {
+      light.intensity = (light.userData.smartFocusBaseIntensity || 0) * this.environmentLightScale;
+    });
     this.updateCamera();
+    if (progress >= 1) {
+      this.cameraTransition = null;
+      this.onCameraInteraction("focus-complete");
+    }
+  }
+
+  cancelCameraTransition() {
+    this.cameraTransition = null;
+  }
+
+  applyComponentHighlight(roles = []) {
+    this.clearComponentHighlight();
+    if (!roles.length) return;
+    const selectedObjects = new Set();
+    this.model.traverse((child) => {
+      if (!child.userData?.componentId || !roles.includes(child.userData.role)) return;
+      child.traverse((descendant) => {
+        if (descendant.material) selectedObjects.add(descendant);
+      });
+    });
+    if (!selectedObjects.size) return;
+
+    const materialSnapshots = new Map();
+    const selectedMaterials = new Map();
+    const clonedMaterials = new Set();
+    this.model.traverse((child) => {
+      const materials = Array.isArray(child.material) ? child.material : child.material ? [child.material] : [];
+      materials.forEach((material) => {
+        if (!materialSnapshots.has(material)) {
+          materialSnapshots.set(material, {
+            color: material.color?.clone(),
+            opacity: material.opacity,
+            emissive: material.emissive?.clone(),
+            emissiveIntensity: material.emissiveIntensity
+          });
+        }
+      });
+      if (!selectedObjects.has(child) || !child.material) return;
+      selectedMaterials.set(child, child.material);
+      const cloneMaterial = (material) => {
+        const clone = material.clone();
+        clonedMaterials.add(clone);
+        return clone;
+      };
+      child.material = Array.isArray(child.material)
+        ? child.material.map(cloneMaterial)
+        : cloneMaterial(child.material);
+    });
+
+    materialSnapshots.forEach((snapshot, material) => {
+      material.color?.multiplyScalar(0.93);
+      if (material.transparent) material.opacity = snapshot.opacity * 0.96;
+      material.needsUpdate = true;
+    });
+    this.highlightState = { materialSnapshots, selectedMaterials, clonedMaterials };
+  }
+
+  clearComponentHighlight() {
+    const state = this.highlightState;
+    if (!state) return;
+    state.selectedMaterials.forEach((material, object) => {
+      object.material = material;
+    });
+    state.materialSnapshots.forEach((snapshot, material) => {
+      if (snapshot.color) material.color?.copy(snapshot.color);
+      if (snapshot.emissive) material.emissive?.copy(snapshot.emissive);
+      if (typeof snapshot.opacity === "number") material.opacity = snapshot.opacity;
+      if (typeof snapshot.emissiveIntensity === "number") material.emissiveIntensity = snapshot.emissiveIntensity;
+      material.needsUpdate = true;
+    });
+    state.clonedMaterials.forEach((material) => material.dispose());
+    this.highlightState = null;
+  }
+
+  setProductLightingBoost(scale = 1) {
+    const environment = new Set(this.environmentLights);
+    this.model?.traverse((child) => {
+      if (!child.isLight || environment.has(child) || !child.userData?.productLight) return;
+      if (!Number.isFinite(child.userData.smartFocusBaseIntensity)) child.userData.smartFocusBaseIntensity = child.intensity;
+      child.intensity = child.userData.smartFocusBaseIntensity * scale;
+    });
+  }
+
+  refreshComponentHighlight() {
+    const profile = SMART_CAMERA_PROFILES[this.activeFocusKey] || SMART_CAMERA_PROFILES.overview;
+    const pose = this.getFocusPose(this.activeFocusKey, profile);
+    this.applyComponentHighlight(pose.activeRoles);
   }
 
   resize() {
@@ -2071,7 +2571,7 @@ class BookcaseViewer3D {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
-    if (this.model?.children?.length) this.frameModel(true);
+    if (this.model?.children?.length) this.frameModel(true, this.activeFocusKey !== "overview");
   }
 
   update(nextState, precomputedLayout = null, changedFields = null) {
@@ -2086,8 +2586,22 @@ class BookcaseViewer3D {
       return;
     }
 
+    const hadModel = Boolean(this.model?.children?.length);
     this.rebuildModel(precomputedLayout);
-    this.frameModel(true);
+    this.frameModel(true, hadModel);
+  }
+
+  preview(nextState, precomputedLayout, sourceField) {
+    this.previewActive = true;
+    this.previewCount += 1;
+    this.update(nextState, precomputedLayout, [sourceField]);
+  }
+
+  restorePreview(canonicalState, canonicalLayout) {
+    if (!this.previewActive) return;
+    const changedFields = getChangedConfigFields(this.state, canonicalState);
+    this.previewActive = false;
+    this.update(canonicalState, canonicalLayout, changedFields);
   }
 
   applyPartialUpdate(previousState, nextState, changedFields) {
@@ -2095,15 +2609,21 @@ class BookcaseViewer3D {
     const finishFields = new Set(["finish", "customPaintColor", "customPaintCode", "customPaintHex", "paintSelection"]);
     const onlyFinish = changed.size > 0 && [...changed].every((field) => finishFields.has(field));
     if (onlyFinish) {
+      this.clearComponentHighlight();
       this.applyFinishMaterials(nextState);
+      this.refreshComponentHighlight();
       return true;
     }
     if (changed.size === 1 && changed.has("lightingWarmth")) {
+      this.clearComponentHighlight();
       this.applyLightingWarmth(nextState.lightingWarmth);
+      this.refreshComponentHighlight();
       return true;
     }
     if (changed.size === 1 && changed.has("hardware") && getHardwareShape(previousState.hardware) === getHardwareShape(nextState.hardware)) {
+      this.clearComponentHighlight();
       this.applyHardwareMaterial(nextState.hardware);
+      this.refreshComponentHighlight();
       return true;
     }
     return false;
@@ -2148,11 +2668,11 @@ class BookcaseViewer3D {
       material.needsUpdate = true;
     });
     this.model.traverse((child) => {
-      if (child.isPointLight) child.color.setHex(color);
+      if (child.isLight && child.userData?.productLight) child.color.setHex(color);
     });
   }
 
-  frameModel(preserveZoom = true) {
+  frameModel(preserveZoom = true, transition = false) {
     if (!this.model?.children?.length) return;
     const previousRatio = preserveZoom && this.baseRadius > 0 && this.radius > 0
       ? this.radius / this.baseRadius
@@ -2167,13 +2687,20 @@ class BookcaseViewer3D {
     const depthAllowance = size.z * 0.58;
     const compactAspect = (this.camera.aspect || 1) < 0.85;
     this.baseRadius = Math.max(heightDistance, widthDistance) * (compactAspect ? 1.28 : 1.21) + depthAllowance;
-    this.target.set(center.x, center.y + size.y * (compactAspect ? 0.01 : -0.025), center.z);
+    this.overviewTarget.set(center.x, center.y + size.y * (compactAspect ? 0.01 : -0.025), center.z);
     const ratio = clamp(previousRatio || 1, 0.84, 1.48);
-    this.radius = this.baseRadius * ratio;
-    this.updateCamera();
+    this.focusTargetCache.clear();
+    if (transition) {
+      this.focus(this.activeFocusKey || "overview", { duration: 480, force: true });
+    } else {
+      this.target.copy(this.overviewTarget);
+      this.radius = this.baseRadius * ratio;
+      this.updateCamera();
+    }
   }
 
   rebuildModel(precomputedLayout = null) {
+    this.clearComponentHighlight();
     const nextModel = buildBookcaseModel(this.state, precomputedLayout);
     this.lastLayout = nextModel.userData.layout;
     if (!this.lastLayout.validation.valid) {
@@ -2187,6 +2714,7 @@ class BookcaseViewer3D {
     this.model = nextModel;
     this.scene.add(this.model);
     this.rebuildCount += 1;
+    this.focusTargetCache.clear();
   }
 
   updateCamera() {
@@ -2199,10 +2727,11 @@ class BookcaseViewer3D {
     this.camera.lookAt(this.target);
   }
 
-  animate() {
+  animate(now = performance.now()) {
     if (this.destroyed) return;
+    this.updateCameraTransition(now);
     this.renderer.render(this.scene, this.camera);
-    this.animationFrame = window.requestAnimationFrame(() => this.animate());
+    this.animationFrame = window.requestAnimationFrame((time) => this.animate(time));
   }
 
   getViewState() {
@@ -2210,7 +2739,12 @@ class BookcaseViewer3D {
       theta: this.theta,
       phi: this.phi,
       radius: this.radius,
-      baseRadius: this.baseRadius
+      baseRadius: this.baseRadius,
+      focus: this.activeFocusKey,
+      transitioning: Boolean(this.cameraTransition),
+      environmentScale: this.environmentLightScale,
+      exposure: this.renderer.toneMappingExposure,
+      target: { x: this.target.x, y: this.target.y, z: this.target.z }
     };
   }
 
@@ -2220,6 +2754,10 @@ class BookcaseViewer3D {
       updateCount: this.updateCount,
       rebuildCount: this.rebuildCount,
       partialUpdateCount: this.partialUpdateCount,
+      previewCount: this.previewCount,
+      previewActive: this.previewActive,
+      activeFocus: this.activeFocusKey,
+      cameraTransitionActive: Boolean(this.cameraTransition),
       canvasConnected: Boolean(this.renderer.domElement?.isConnected)
     };
   }
@@ -2227,6 +2765,7 @@ class BookcaseViewer3D {
   destroy() {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.clearComponentHighlight();
     this.controlAbortController?.abort();
     window.cancelAnimationFrame(this.animationFrame);
     this.resizeObserver?.disconnect();
@@ -2469,10 +3008,16 @@ function addLayoutHandle(group, component, config, materials, size, position) {
 function addLayoutLight(group, rootGroup, component, materials, size, position) {
   const type = component.metadata?.lightType || "puck";
   if (type === "puck") {
-    const puck = new THREE.Mesh(new THREE.CylinderGeometry(Math.max(size[0], size[2]) * 0.5, Math.max(size[0], size[2]) * 0.5, size[1], 20), materials.puckLight);
-    puck.position.set(...position);
-    puck.castShadow = false;
-    group.add(puck);
+    const radius = Math.max(size[0], size[2]) * 0.5;
+    const housing = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, size[1], 28), materials.puckTrim);
+    housing.position.set(position[0], position[1] - 0.003, position[2]);
+    housing.castShadow = false;
+    group.add(housing);
+
+    const diffuser = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.72, radius * 0.72, Math.min(size[1] * 0.26, 0.009), 28), materials.puckLight);
+    diffuser.position.set(position[0], position[1] - size[1] * 0.56 - 0.004, position[2]);
+    diffuser.castShadow = false;
+    group.add(diffuser);
   } else {
     addBox(group, size, position, materials.ledStrip, false);
   }
@@ -2480,9 +3025,20 @@ function addLayoutLight(group, rootGroup, component, materials, size, position) 
   if (rootGroup.userData.pointLightCount >= 18) return;
   const temperature = Number(component.metadata?.warmth) || 2700;
   const color = getLightingTemperatureColor(temperature);
-  const glow = new THREE.PointLight(color, type === "puck" ? 0.4 : 0.11, type === "puck" ? 2.2 : 1.5);
-  glow.position.set(position[0], position[1] - (type === "vertical_led" ? 0 : 0.09), position[2] + 0.045);
+  const glow = type === "puck"
+    ? new THREE.SpotLight(color, 0.26, 2.4, Math.PI * 0.32, 0.78, 1.25)
+    : new THREE.PointLight(color, 0.11, 1.5);
+  glow.userData.productLight = true;
+  glow.position.set(position[0], position[1] - (type === "vertical_led" ? 0 : 0.09), position[2] + 0.025);
   group.add(glow);
+  if (type === "puck") {
+    glow.target.position.set(position[0], position[1] - 0.95, position[2] + 0.08);
+    group.add(glow.target);
+    const halo = new THREE.PointLight(color, 0.055, 0.72, 1.55);
+    halo.userData.productLight = true;
+    halo.position.set(position[0], position[1] - 0.055, position[2] + 0.012);
+    group.add(halo);
+  }
   rootGroup.userData.pointLightCount += 1;
 }
 
@@ -3066,7 +3622,8 @@ function createMaterials(baseColor, config) {
       metalness: isBlackHardware ? 0.2 : 0.84
     }),
     edgeLine: new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.2 }),
-    puckLight: new THREE.MeshStandardMaterial({ color: lightColor, emissive: lightColor, emissiveIntensity: 1.25, roughness: 0.35, metalness: 0.08 }),
+    puckTrim: new THREE.MeshStandardMaterial({ color: 0xf4f0e7, roughness: 0.42, metalness: 0.14 }),
+    puckLight: new THREE.MeshBasicMaterial({ color: lightColor, transparent: true, opacity: 0.92, toneMapped: false }),
     ledStrip: new THREE.MeshStandardMaterial({ color: lightColor, emissive: lightColor, emissiveIntensity: 1.05, roughness: 0.28, metalness: 0.08 })
   };
 }
@@ -3161,6 +3718,15 @@ function isWebGLAvailable() {
   } catch (error) {
     return false;
   }
+}
+
+function shortestAngleDelta(from, to) {
+  return Math.atan2(Math.sin(to - from), Math.cos(to - from));
+}
+
+function easeInOutCubic(value) {
+  const t = clamp(value, 0, 1);
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
 function clamp(value, min, max) {

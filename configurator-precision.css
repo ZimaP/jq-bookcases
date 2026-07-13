@@ -1,0 +1,553 @@
+/* Final configurator geometry corrections.
+ * Loaded last so no legacy compatibility layer can disturb alignment. */
+
+@media (min-width: 1280px) {
+  body[data-page="configurator"] .configurator-step-rail ol {
+    height: auto;
+    grid-template-rows: repeat(6, minmax(82px, 116px));
+    align-content: start;
+    padding: 28px 0;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li {
+    min-height: 82px;
+    max-height: 116px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
+    top: 70px;
+    bottom: auto;
+    height: calc(100% - 46px);
+    background: rgba(255, 255, 255, 0.17);
+  }
+}
+
+@media (min-width: 1280px) and (max-height: 800px) {
+  body[data-page="configurator"] .configurator-step-rail ol {
+    height: 100%;
+    grid-template-rows: repeat(6, 82px);
+    align-content: center;
+    padding: 0;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li {
+    height: 82px;
+  }
+}
+
+body[data-page="configurator"] .guided-progress-heading {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+  margin-bottom: 20px;
+}
+
+body[data-page="configurator"] .guided-progress-heading > span {
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .guided-progress-heading > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .control-section-storage {
+  display: grid;
+  gap: 0;
+}
+
+body[data-page="configurator"] .configurator-panel .control-section-storage > .stepper-control,
+body[data-page="configurator"] .configurator-panel .control-section-storage > .toggle-row,
+body[data-page="configurator"] .configurator-panel .control-section-storage > [data-applicability="drawers"] > .stepper-control {
+  display: grid;
+  width: 100%;
+  min-height: 58px;
+  grid-template-columns: minmax(0, 1fr) 140px;
+  gap: 16px;
+  align-items: center;
+  padding: 0;
+}
+
+body[data-page="configurator"] .configurator-panel .control-section-storage .stepper {
+  width: 140px;
+  height: 44px;
+  grid-template-columns: 44px 52px 44px;
+  justify-self: end;
+}
+
+body[data-page="configurator"] .configurator-panel .control-section-storage .toggle-row .switch {
+  justify-self: end;
+}
+
+body[data-page="configurator"] .configurator-panel .control-section-storage .inline-validation-message {
+  grid-column: 1 / -1;
+}
+
+body[data-page="configurator"] .preview-tools,
+body[data-page="configurator"] .configurator-model .view-controls {
+  width: 76px;
+  gap: 0;
+  padding: 5px;
+}
+
+body[data-page="configurator"] .preview-tools button,
+body[data-page="configurator"] .configurator-model .view-controls button {
+  width: 64px;
+  min-width: 64px;
+  height: 58px;
+  min-height: 58px;
+  grid-template-rows: 20px 12px;
+  gap: 5px;
+  border-radius: 8px;
+  padding: 8px 4px;
+  font-size: 0;
+}
+
+body[data-page="configurator"] .preview-tools [data-viewer-zoom],
+body[data-page="configurator"] .preview-tools [data-reset-view] {
+  width: 64px;
+  min-width: 64px;
+  padding: 8px 4px;
+}
+
+body[data-page="configurator"] .preview-tools .view-icon,
+body[data-page="configurator"] .configurator-model .view-controls .view-icon {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+}
+
+body[data-page="configurator"] .preview-tools .view-icon svg,
+body[data-page="configurator"] .configurator-model .view-controls .view-icon svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+body[data-page="configurator"] .preview-tools button small,
+body[data-page="configurator"] .configurator-model .view-controls button small {
+  font-size: 8px;
+  line-height: 12px;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-help {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--jq-text-muted);
+  opacity: 1;
+}
+
+@media (min-width: 768px) {
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch {
+    right: 104px;
+  }
+}
+
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button,
+body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button svg {
+  color: #fff;
+}
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] .configurator-step-rail ol {
+    display: grid;
+    width: 100%;
+    height: 74px;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+    padding: 4px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li {
+    width: auto;
+    min-width: 0;
+    height: 66px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button {
+    width: 100%;
+    min-width: 0;
+    min-height: 62px;
+    grid-template-rows: 30px auto;
+    gap: 4px;
+    padding: 2px 0;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button > span {
+    width: 30px;
+    height: 30px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
+    top: 29px;
+    right: -6px;
+    bottom: auto;
+    left: auto;
+    width: 12px;
+    height: 1px;
+  }
+
+  body[data-page="configurator"] .guided-progress-heading {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  body[data-page="configurator"] .guided-progress-heading > strong {
+    text-align: left;
+  }
+
+  body[data-page="configurator"] .configurator-panel .control-section-storage > .stepper-control,
+  body[data-page="configurator"] .configurator-panel .control-section-storage > .toggle-row,
+  body[data-page="configurator"] .configurator-panel .control-section-storage > [data-applicability="drawers"] > .stepper-control {
+    gap: 10px;
+  }
+
+  body[data-page="configurator"] .preview-control-dock {
+    right: 8px;
+    bottom: 8px;
+    left: 8px;
+    display: block;
+    width: auto;
+    transform: none;
+  }
+
+  body[data-page="configurator"] .preview-tools {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+    padding: 4px;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls button {
+    width: auto;
+    min-width: 0;
+    height: 52px;
+    min-height: 52px;
+    grid-template-rows: 18px 12px;
+    gap: 4px;
+    padding: 7px 2px;
+  }
+
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch {
+    right: 10px;
+    left: auto;
+    bottom: 72px;
+  }
+}
+
+/* Guided workflow density and consistent hierarchy. */
+
+body[data-page="configurator"] .guided-experience,
+body[data-page="configurator"] .all-controls-experience {
+  padding-top: 18px;
+}
+
+body[data-page="configurator"] .guided-progress-heading {
+  margin-bottom: 12px;
+  font-size: 11px;
+}
+
+body[data-page="configurator"] .guided-step-heading,
+body[data-page="configurator"] .all-controls-heading {
+  margin-bottom: 14px;
+}
+
+body[data-page="configurator"] .guided-step-heading h2,
+body[data-page="configurator"] .all-controls-heading h2 {
+  max-width: none;
+  margin: 4px 0 6px;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+body[data-page="configurator"] .guided-step-heading p,
+body[data-page="configurator"] .all-controls-heading p {
+  max-width: 38ch;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+body[data-page="configurator"] .guided-step-content {
+  min-height: 0;
+}
+
+body[data-page="configurator"] .layout-card-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body[data-page="configurator"] .layout-card-grid.is-guided {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+body[data-page="configurator"] .layout-card-grid.is-guided .layout-card {
+  min-height: 106px;
+  grid-template-rows: 56px auto;
+  gap: 5px;
+  padding: 6px;
+}
+
+body[data-page="configurator"] .layout-card-grid.is-guided .preset-mini {
+  height: 56px;
+  padding: 2px 4px;
+}
+
+body[data-page="configurator"] .layout-card-grid.is-guided .layout-card-copy strong {
+  font-size: 10px;
+  line-height: 1.15;
+}
+
+body[data-page="configurator"] .layout-card-grid.is-guided .layout-card-copy small {
+  display: none;
+}
+
+body[data-page="configurator"] .layout-card,
+body[data-page="configurator"] .configurator-category-panel .layout-card {
+  min-height: 132px;
+  grid-template-rows: 70px auto;
+  gap: 6px;
+  border-radius: 10px;
+  padding: 7px;
+}
+
+body[data-page="configurator"] .layout-card .preset-mini,
+body[data-page="configurator"] .configurator-category-panel .layout-card .preset-mini {
+  height: 70px;
+  padding: 3px 6px;
+}
+
+body[data-page="configurator"] .layout-card-copy {
+  gap: 2px;
+}
+
+body[data-page="configurator"] .layout-card-copy strong {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+body[data-page="configurator"] .layout-card-copy small {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 9px;
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+body[data-page="configurator"] .layout-card-check {
+  top: 7px;
+  right: 7px;
+  width: 20px;
+  height: 20px;
+}
+
+body[data-page="configurator"] .control-section-dimensions .range-control {
+  padding-block: 8px;
+}
+
+body[data-page="configurator"] .control-section-storage > .control-section-doors {
+  margin-top: 12px;
+  border-top: 1px solid var(--jq-border);
+  padding-top: 14px;
+}
+
+body[data-page="configurator"] .control-section-storage .door-style-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body[data-page="configurator"] .control-section-storage .door-style-card-content {
+  min-height: 64px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 7px;
+  padding: 7px;
+}
+
+body[data-page="configurator"] .control-section-storage .door-style-illustration,
+body[data-page="configurator"] .control-section-storage .door-style-illustration svg {
+  width: 34px;
+  height: 34px;
+}
+
+body[data-page="configurator"] .control-section-storage .door-style-copy strong {
+  font-size: 10px;
+}
+
+body[data-page="configurator"] .control-section-storage .door-style-copy small {
+  display: none;
+}
+
+body[data-page="configurator"] .control-section-storage .door-count-options {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+body[data-page="configurator"] .control-section-storage .control-helper {
+  margin-top: 5px;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+body[data-page="configurator"] .control-section-structure > h2 {
+  margin-bottom: 10px;
+  font-size: 17px;
+}
+
+body[data-page="configurator"] .appearance-sections {
+  gap: 14px;
+}
+
+body[data-page="configurator"] .appearance-sections > .control-section {
+  padding-top: 14px;
+}
+
+body[data-page="configurator"] .appearance-sections > .control-section > h2 {
+  margin-bottom: 9px;
+  font-size: 17px;
+}
+
+body[data-page="configurator"] .control-section-service {
+  display: grid;
+  gap: 14px;
+}
+
+body[data-page="configurator"] .control-section-service .choice-field {
+  margin: 0;
+}
+
+body[data-page="configurator"] .service-option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body[data-page="configurator"] .service-option-grid.is-delivery > .service-option-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+}
+
+body[data-page="configurator"] .service-option-card {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+body[data-page="configurator"] .service-option-card > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .service-option-card > span {
+  display: grid;
+  width: 100%;
+  min-height: 58px;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  align-content: center;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--jq-border);
+  border-radius: 9px;
+  background: var(--jq-surface);
+  color: var(--jq-text);
+  cursor: pointer;
+}
+
+body[data-page="configurator"] .service-option-card > input:checked + span {
+  border-color: var(--jq-accent);
+  background: #f8efe3;
+  box-shadow: 0 0 0 1px rgba(183, 131, 69, 0.22);
+}
+
+body[data-page="configurator"] .service-option-card > input:focus-visible + span {
+  outline: 3px solid rgba(157, 108, 53, 0.42);
+  outline-offset: 2px;
+}
+
+/* Smart camera option preview --------------------------------------- */
+
+body[data-page="configurator"] label.is-live-previewing > :is(span, .door-style-card-content),
+body[data-page="configurator"] label.is-live-previewing:not(:has(> span)) {
+  border-color: var(--jq-accent);
+  box-shadow: 0 0 0 1px rgba(190, 133, 68, 0.18), 0 8px 20px rgba(80, 57, 35, 0.1);
+}
+
+body[data-page="configurator"] label.is-live-previewing .finish-choice-dot,
+body[data-page="configurator"] label.is-live-previewing :is(.hardware-choice-icon, .lighting-card-icon, .style-diagram) {
+  filter: brightness(1.04) saturate(1.08);
+}
+
+body[data-page="configurator"] .service-option-icon,
+body[data-page="configurator"] .service-option-icon svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  color: var(--jq-accent-hover);
+}
+
+body[data-page="configurator"] .service-option-card strong {
+  color: var(--jq-text);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.25;
+}
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector button {
+    min-height: var(--touch-target);
+  }
+
+  body[data-page="configurator"] .guided-step-heading h2,
+  body[data-page="configurator"] .all-controls-heading h2 {
+    font-size: 22px;
+  }
+
+  body[data-page="configurator"] .layout-card,
+  body[data-page="configurator"] .configurator-category-panel .layout-card {
+    min-height: 116px;
+    grid-template-columns: 96px minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+
+  body[data-page="configurator"] .layout-card-grid.is-guided {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Save is an important action: keep its text visible beside the icon. */
+  body[data-page="configurator"] .configurator-save-button {
+    width: 64px !important;
+    min-width: 64px !important;
+    gap: 3px;
+    padding-inline: 5px !important;
+  }
+
+  body[data-page="configurator"] .configurator-save-button span {
+    position: static !important;
+    display: inline !important;
+    width: auto !important;
+    height: auto !important;
+    overflow: visible !important;
+    clip: auto !important;
+    font-size: 9px;
+    line-height: 1;
+  }
+
+  body[data-page="configurator"] .configurator-save-button svg {
+    width: 16px;
+    height: 16px;
+  }
+}

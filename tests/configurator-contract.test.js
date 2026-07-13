@@ -85,15 +85,17 @@ test("mode tabs, continuous Appearance sections, accordions, and validation have
 });
 
 test("Guided-only navigation and All-Controls-only accordions remain separated", () => {
+  const shell = methodBody("renderFullPageConfigurator", "renderActiveControls");
   const guided = methodBody("renderGuidedExperience", "renderGuidedStepContent");
   const all = methodBody("renderAllControlsExperience", "renderAccordionCategory");
-  assert.match(guided, /guided-progress/);
+  assert.match(shell, /configurator-step-rail/);
+  assert.match(shell, /data-step-rail-item/);
   assert.match(guided, /data-guided-back/);
   assert.match(guided, /data-guided-continue/);
   assert.doesNotMatch(guided, /data-configurator-accordion/);
   assert.match(all, /data-configurator-accordion/);
   assert.match(all, /data-review-design/);
-  assert.doesNotMatch(all, /guided-progress|data-guided-back|data-guided-continue/);
+  assert.doesNotMatch(all, /data-guided-back|data-guided-continue/);
 });
 
 test("Guided Appearance renders Finish, Hardware, and Lighting together", () => {
@@ -104,10 +106,10 @@ test("Guided Appearance renders Finish, Hardware, and Lighting together", () => 
   assert.doesNotMatch(appearance, /role="tab"|role="tabpanel"/);
 });
 
-test("Guided navigation uses Next consistently before the quote step", () => {
+test("Guided navigation names the next step before the quote step", () => {
   const guided = methodBody("renderGuidedExperience", "renderGuidedStepContent");
-  assert.match(guided, /data-guided-continue>Next<\/button>/);
-  assert.doesNotMatch(guided, />Continue<\/button>/);
+  assert.match(guided, /data-guided-continue>Continue to \$\{GUIDED_STEPS\[stepIndex \+ 1\]\.shortLabel\}<\/button>/);
+  assert.doesNotMatch(guided, /data-guided-continue>Next<\/button>/);
 });
 
 test("Door styles use builder-specific illustrated cards without the shared option-card collision", () => {
@@ -117,6 +119,68 @@ test("Door styles use builder-specific illustrated cards without the shared opti
   assert.match(doors, /doorPreviewIcons\[option\.value\]/);
   assert.doesNotMatch(doors, /class="option-card/);
   assert.doesNotMatch(doors, /Furniture-grade cabinet front/);
+});
+
+test("Guided Layout shows every preset immediately without recommendation or disclosure UI", () => {
+  const layouts = methodBody("renderLayoutCards", "renderStorageGroup");
+  assert.match(layouts, /renderCards\(layoutPresets\)/);
+  assert.doesNotMatch(layouts, /recommended-badge|additional-layouts|<details|Explore/);
+});
+
+test("Guided Size owns shelf count and thickness while Storage owns front style", () => {
+  const dimensions = methodBody("renderDimensionsGroup", "renderStructureGroup");
+  const storage = methodBody("renderStorageGroup", "renderDoorGroup");
+  const construction = methodBody("renderStructureGroup", "renderFinishGroup");
+  assert.match(dimensions, /renderRangeControl\("shelves"/);
+  assert.match(dimensions, /renderRangeControl\("shelfThickness"/);
+  assert.match(storage, /this\.renderDoorGroup\(\)/);
+  assert.doesNotMatch(construction, /shelfThickness/);
+});
+
+test("Project service cards avoid the shared option-card grid collision", () => {
+  const service = methodBody("renderServiceGroup", "renderReviewContent");
+  assert.match(service, /class="service-option-card"/);
+  assert.doesNotMatch(service, /<label class="option-card/);
+  assert.match(service, /deliveryOptionIcons\[option\.value\]/);
+  assert.match(service, /installationOptionIcons\[option\.value\]/);
+});
+
+test("smart camera maps categories and fields to semantic component focus profiles", () => {
+  assert.match(source, /const SMART_CAMERA_PROFILES = Object\.freeze/);
+  assert.match(source, /doors: Object\.freeze\(\{[^}]*roles: \["door", "drawer_front"\]/s);
+  assert.match(source, /crown: Object\.freeze\(\{[^}]*roles: \["crown"\]/s);
+  assert.match(source, /base: Object\.freeze\(\{[^}]*roles: \["base", "trim"\]/s);
+  assert.match(source, /sidePanels: Object\.freeze\(\{[^}]*roles: \["side_panel"\]/s);
+  assert.match(source, /backPanel: Object\.freeze\(\{[^}]*roles: \["back_panel"\]/s);
+  assert.match(source, /shelves: Object\.freeze\(\{[^}]*roles: \["shelf", "fixed_shelf"\]/s);
+  assert.match(source, /hardware: Object\.freeze\(\{[^}]*roles: \["handle"\]/s);
+  assert.match(source, /CAMERA_PROFILE_BY_FIELD/);
+  assert.match(source, /crownStyle: "crown"/);
+  assert.match(source, /baseStyle: "base"/);
+  assert.match(source, /lightingWarmth: "lighting"/);
+});
+
+test("smart camera transitions are eased, collision-safe, cached, and never snap category changes", () => {
+  assert.match(source, /const SMART_CAMERA_DURATION = 560/);
+  assert.match(source, /duration: clamp\(Number\(options\.duration\) \|\| SMART_CAMERA_DURATION, 320, 700\)/);
+  assert.match(source, /easeInOutCubic\(progress\)/);
+  assert.match(source, /shortestAngleDelta\(this\.theta, pose\.theta\)/);
+  assert.match(source, /resolveCollisionSafeRadius/);
+  assert.match(source, /focusTargetCache = new Map\(\)/);
+  assert.match(source, /setProductLightingBoost\(normalizedKey === "lighting" \? 1\.9 : 1\)/);
+  assert.match(source, /this\.viewer\.focus\(wasOpen \? "overview"/);
+  const categoryToggle = methodBody("toggleCategory", "openReviewDialog");
+  assert.doesNotMatch(categoryToggle, /this\.viewer\.setView/);
+});
+
+test("hover option preview is reversible and isolated from canonical pricing state", () => {
+  assert.match(source, /const HOVER_PREVIEW_FIELDS = new Set/);
+  assert.match(source, /scheduleOptionPreview\(label, input\)/);
+  assert.match(source, /beginOptionPreview\(label, input\)/);
+  assert.match(source, /this\.viewer\.preview\(previewState, previewLayout, field\)/);
+  assert.match(source, /this\.viewer\.restorePreview\(this\.state, this\.layout\)/);
+  const preview = methodBody("beginOptionPreview", "endOptionPreview");
+  assert.doesNotMatch(preview, /buildPricingContext|this\.price|saveCurrentDesign|localStorage/);
 });
 
 test("the AR launch renders one stable visible label target", () => {

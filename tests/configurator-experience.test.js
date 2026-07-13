@@ -88,7 +88,7 @@ test("mode categories map to the correct Guided steps and fields", () => {
     dimensions: "dimensions",
     storage: "storage",
     construction: "construction",
-    doors: "construction",
+    doors: "storage",
     finish: "appearance",
     hardware: "appearance",
     lighting: "appearance",
@@ -101,6 +101,9 @@ test("mode categories map to the correct Guided steps and fields", () => {
   assert.equal(categoryForField("customPaintColor"), "finish");
   assert.equal(guidedStepForField("drawerCount"), "storage");
   assert.equal(categoryForField("drawerCount"), "storage");
+  assert.equal(guidedStepForField("shelves"), "dimensions");
+  assert.equal(guidedStepForField("shelfThickness"), "dimensions");
+  assert.equal(guidedStepForField("doorStyle"), "storage");
 });
 
 test("the control registry maps every physical field once without UI-mode state", () => {
@@ -122,12 +125,17 @@ test("dimension drafts block Dimensions and Review but not unrelated steps", () 
   assert.equal(validateGuidedStep("review", state, layout, drafts).valid, false);
 });
 
-test("storage drafts block Storage and Review without polluting Dimensions", () => {
+test("storage drafts block Storage and Review while shelf drafts belong to Dimensions", () => {
   const state = normalizeBookcaseConfig(defaultBookcaseConfig);
   const layout = layoutFor(state);
-  for (const drafts of [{ sections: "" }, { shelves: "99" }, { drawerCount: "one" }]) {
+  for (const drafts of [{ sections: "" }, { drawerCount: "one" }]) {
     assert.equal(validateGuidedStep("dimensions", state, layout, drafts).valid, true);
     assert.equal(validateGuidedStep("storage", state, layout, drafts).valid, false);
+    assert.equal(validateGuidedStep("review", state, layout, drafts).valid, false);
+  }
+  for (const drafts of [{ shelves: "99" }, { shelfThickness: "3" }]) {
+    assert.equal(validateGuidedStep("dimensions", state, layout, drafts).valid, false);
+    assert.equal(validateGuidedStep("storage", state, layout, drafts).valid, true);
     assert.equal(validateGuidedStep("review", state, layout, drafts).valid, false);
   }
 });
@@ -287,7 +295,7 @@ test("review groups contain applicable physical selections and omit irrelevant o
 
   const glass = preset("glass-library").config;
   const glassDoors = createReviewGroups(glass, layoutFor(glass), "glass-library")
-    .find((group) => group.id === "construction")
+    .find((group) => group.id === "storage")
     .items.find((item) => item.label === "Doors").value;
   assert.match(glassDoors, /8 Shaker/);
   assert.match(glassDoors, /4 Glass Frame/);

@@ -6,16 +6,18 @@
   <title>Request a Quote | JQ Bookcases</title>
   <meta name="description" content="Tell JQ Bookcases about your space and receive a personalized estimate for a custom-quality built-in bookcase.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=visual-system-20260712a">
-  <link rel="stylesheet" href="visual-consistency.css?v=visual-system-20260712a">
-  <script type="module" src="site.js?v=visual-system-20260712a" defer></script>
+  <link rel="stylesheet" href="styles.css?v=jq-icons-20260713g">
+  <link rel="stylesheet" href="styles/icons.css?v=jq-icons-20260713g">
+  <link rel="stylesheet" href="visual-consistency.css?v=visual-system-20260713a">
+  <link rel="stylesheet" href="bright-theme.css?v=bright-showroom-20260713a">
+  <script type="module" src="site.js?v=jq-icons-20260713g" defer></script>
 </head>
 <body data-page="quote">
   <a class="skip-link" href="#main">Skip to content</a>
   <div data-site-header></div>
 
   <main id="main" class="interior-page">
-    <section class="interior-hero interior-hero-centered">
+    <section class="interior-hero interior-hero-centered unified-hero">
       <div class="container">
         <nav class="breadcrumb" aria-label="Breadcrumb"><a href="index.html">Home</a><i class="breadcrumb-icon" data-icon="chevron-right" aria-hidden="true"></i><span>Request a Quote</span></nav>
         <span class="section-kicker">Request a Quote</span>
@@ -39,7 +41,7 @@
           <div class="saved-design-summary" data-saved-design-summary hidden aria-live="polite"></div>
 
           <fieldset>
-            <legend><i class="legend-icon" data-icon="quote-review" aria-hidden="true"></i>Project Information</legend>
+            <legend>Project Information</legend>
             <div class="quote-grid">
               <label>Full Name<input name="fullName" type="text" autocomplete="name" required></label>
               <label>Email Address<input name="email" type="email" autocomplete="email" required></label>
@@ -52,7 +54,7 @@
           </fieldset>
 
           <fieldset>
-            <legend><i class="legend-icon" data-icon="field-measurement" aria-hidden="true"></i>Project Details</legend>
+            <legend><i class="legend-icon" data-icon="measurement-visit" aria-hidden="true"></i>Project Details</legend>
             <div class="quote-grid">
               <label>Room / Space
                 <select name="room">
@@ -113,7 +115,7 @@
           </fieldset>
 
           <fieldset>
-            <legend><i class="legend-icon" data-icon="hardware" aria-hidden="true"></i>Options</legend>
+            <legend>Options</legend>
             <div class="quote-check-grid">
               <label><input type="checkbox" name="options" value="lighting"> Integrated lighting</label>
               <label><input type="checkbox" name="options" value="crown"> Crown molding</label>
@@ -126,7 +128,7 @@
           </fieldset>
 
           <fieldset>
-            <legend><i class="legend-icon" data-icon="quote-review" aria-hidden="true"></i>Timeline / Notes</legend>
+            <legend><i class="legend-icon" data-icon="schedule" aria-hidden="true"></i>Timeline / Notes</legend>
             <div class="quote-grid">
               <label>Desired timeline
                 <select name="timeline">
@@ -147,7 +149,7 @@
 
         <aside class="quote-side">
           <section class="glass-panel photo-card">
-            <span class="line-icon" data-icon="project-photos"></span>
+            <span class="line-icon" data-icon="inspiration"></span>
             <h2>Project Photos</h2>
             <div class="upload-placeholder">
               <label for="quote-project-files">Upload wall photos, plans, or sketches</label>
@@ -159,7 +161,7 @@
 
           <section class="glass-panel next-card">
             <h2 class="sr-only">What happens after your quote request</h2>
-            <span class="section-kicker"><i class="legend-icon" data-icon="quote-review" aria-hidden="true"></i>What happens next</span>
+            <span class="section-kicker"><i class="legend-icon" data-icon="quote" aria-hidden="true"></i>What happens next</span>
             <ol class="next-list">
               <li><span>1</span><p>We review your dimensions and photos.</p></li>
               <li><span>2</span><p>We confirm layout, paint finish, and details.</p></li>
