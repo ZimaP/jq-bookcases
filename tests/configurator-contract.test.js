@@ -123,6 +123,32 @@ test("Door styles use builder-specific illustrated cards without the shared opti
   assert.doesNotMatch(doors, /Furniture-grade cabinet front/);
 });
 
+test("door quantity is a generated output and cannot drift from physical openings", () => {
+  const doors = methodBody("renderDoorGroup", "renderAppearanceExperience");
+  const sync = methodBody("renderDoorOptions", "syncControls");
+  assert.match(doors, /data-generated-door-count/);
+  assert.doesNotMatch(doors, /data-field="doorCount"|data-door-options/);
+  assert.match(sync, /getApplicability\(this\.state, this\.layout\)\.generatedDoorCount/);
+  assert.match(workflow, /field: "doorCount"[^\n]*access: "derived"/);
+});
+
+test("section steppers use buildable counts and the viewer never retains stale geometry", () => {
+  const stepper = methodBody("handleStepperClick", "update");
+  const controls = methodBody("syncControls", "syncDraftInputs");
+  const rebuild = methodBody("rebuildModel", "updateCamera");
+  assert.match(stepper, /allowedSectionCounts/);
+  assert.match(controls, /data-section-limit/);
+  assert.match(controls, /decrement\.disabled/);
+  assert.doesNotMatch(rebuild, /if \(!this\.lastLayout\.validation\.valid\)[\s\S]*return/);
+  assert.match(rebuild, /this\.scene\.remove\(this\.model\)[\s\S]*this\.model = nextModel/);
+});
+
+test("service and derived metadata updates never rebuild unchanged 3D geometry", () => {
+  const partial = methodBody("applyPartialUpdate", "applyFinishMaterials");
+  assert.match(partial, /nonVisualFields = new Set\(\["layoutPreset", "doorCount", "installation", "delivery"\]\)/);
+  assert.match(partial, /every\(\(field\) => nonVisualFields\.has\(field\)\)/);
+});
+
 test("Guided Layout shows every preset immediately without recommendation or disclosure UI", () => {
   const layouts = methodBody("renderLayoutCards", "renderStorageGroup");
   assert.match(layouts, /renderCards\(layoutPresets\)/);
@@ -157,9 +183,20 @@ test("smart camera maps categories and fields to semantic component focus profil
   assert.match(source, /shelves: Object\.freeze\(\{[^}]*roles: \["shelf", "fixed_shelf"\]/s);
   assert.match(source, /hardware: Object\.freeze\(\{[^}]*roles: \["handle"\]/s);
   assert.match(source, /CAMERA_PROFILE_BY_FIELD/);
+  assert.match(source, /sections: "overview"/);
+  assert.match(source, /shelves: "overview"/);
+  assert.match(source, /lowerCabinets: "overview"/);
+  assert.match(source, /lowerStorage: "overview"/);
+  assert.match(source, /drawerCount: "overview"/);
+  assert.match(source, /doorStyle: "doors"/);
   assert.match(source, /crownStyle: "crown"/);
   assert.match(source, /baseStyle: "base"/);
   assert.match(source, /lightingWarmth: "lighting"/);
+});
+
+test("section and storage steppers restore whole-bookcase framing", () => {
+  const stepper = methodBody("handleStepperClick", "update");
+  assert.match(stepper, /this\.update\(\{ \.\.\.this\.state, \[fieldName\]: nextValue \}, \{ sourceField: fieldName \}\);\s*this\.focusCameraForField\(fieldName\);/);
 });
 
 test("base and crown profile radios support repeated click, Enter, and native Space activation", () => {
@@ -257,10 +294,23 @@ test("smart camera transitions replace stale work, honor reduced motion, and use
   assert.match(viewer, /cameraTransitionCancellations: this\.cameraTransitionCancellationCount/);
 
   assert.match(source, /shortestAngleDelta\(this\.theta, pose\.theta\)/);
-  assert.match(source, /setProductLightingBoost\(normalizedKey === "lighting" \? 1\.9 : 1\)/);
+  assert.match(source, /setProductLightingBoost\(normalizedKey === "lighting" \? 2\.35 : 1\)/);
   assert.match(source, /this\.viewer\.focus\(wasOpen \? "overview"/);
   const categoryToggle = methodBody("toggleCategory", "openReviewDialog");
   assert.doesNotMatch(categoryToggle, /this\.viewer\.setView/);
+});
+
+test("lighting packages can replace an in-flight lighting camera pose", () => {
+  const focus = methodBody("focus", "getFocusPose");
+  assert.match(focus, /const focusVariant = normalizedKey === "lighting"/);
+  assert.match(focus, /focusVariant === this\.activeFocusVariant && this\.cameraTransition/);
+  assert.match(focus, /this\.activeFocusVariant = focusVariant/);
+});
+
+test("puck lights render as restrained recessed diffusers instead of hanging spheres", () => {
+  assert.match(source, /CylinderGeometry\(radius \* 0\.68, radius \* 0\.68, Math\.min\(size\[1\] \* 0\.22, 0\.007\), 28\)/);
+  assert.doesNotMatch(source, /SphereGeometry\(radius \* 0\.78/);
+  assert.doesNotMatch(source, /getLightingLensColor/);
 });
 
 test("detail camera positions are relative to the focus target", () => {

@@ -1,4 +1,4 @@
-import { buildPricingContext } from "./bookcase-pricing.js?v=benjamin-moore-20260712a";
+import { buildPricingContext } from "./bookcase-pricing.js?v=engine-contract-20260713s";
 
 const storedLayoutLabels = Object.freeze({
   "lower-cabinets": "Full Bookcase",

@@ -156,6 +156,8 @@ test("physical options use drawings and finishes use swatches or labels", () => 
   assert.match(source, /basePreviewIcons/);
   assert.match(source, /hardwarePreviewIcons/);
   assert.match(source, /hardwareFinishSwatches/);
+  assert.match(source, /class="hardware-choice-icon" style="--hardware-finish:/);
+  assert.doesNotMatch(source, /class="hardware-finish-swatch"/);
   assert.match(source, /finish-choice-dot/);
   assert.match(source, /lightingWarmthOptions\.map/);
 });
@@ -195,7 +197,7 @@ test("the development gallery covers every icon, size, ground, and state", () =>
 test("all canonical pages load the centralized icon stylesheet", () => {
   const pages = readdirSync(rootDir).filter((file) => file.endsWith(".html"));
   for (const page of pages) {
-    assert.match(readFileSync(path.join(rootDir, page), "utf8"), /styles\/icons\.css\?v=jq-icons-20260713g/);
+    assert.match(readFileSync(path.join(rootDir, page), "utf8"), /styles\/icons\.css\?v=jq-icons-20260713i/);
   }
   const stylesheet = readFileSync(path.join(rootDir, "styles/icons.css"), "utf8");
   assert.match(stylesheet, /--icon-stroke-width:\s*1\.75/);

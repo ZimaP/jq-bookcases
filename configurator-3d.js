@@ -1,5 +1,5 @@
 import * as THREE from "./assets/vendor/three.module.js";
-import { diagramSvg, iconSvg } from "./icon-system.js?v=jq-icons-20260713g";
+import { diagramSvg, iconSvg } from "./icon-system.js?v=jq-icons-20260713i";
 import {
   baseStyleOptions,
   crownStyleOptions,
@@ -7,7 +7,6 @@ import {
   deliveryOptions,
   doorStyleOptions,
   finishOptions,
-  getDoorCountOptions,
   hardwareOptions,
   inchesToUnits,
   installationOptions,
@@ -16,9 +15,9 @@ import {
   lightingOptions,
   normalizeBookcaseConfig,
   optionLabels
-} from "./bookcase-config.js?v=jq-icons-20260713b";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=configurator-20260711e";
-import { buildPricingContext, formatPrice } from "./bookcase-pricing.js?v=benjamin-moore-20260712a";
+} from "./bookcase-config.js?v=engine-contract-20260713s";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=engine-contract-20260713s";
+import { buildPricingContext, formatPrice } from "./bookcase-pricing.js?v=engine-contract-20260713s";
 import {
   PROFILE_CAMERA_DURATION,
   calculateProfileCameraPose,
@@ -58,9 +57,9 @@ import {
   normalizeGuidedStep,
   shouldRunAction,
   validateGuidedStep
-} from "./configurator-experience.js?v=workflow-density-20260712a";
+} from "./configurator-experience.js?v=engine-contract-20260713s";
 
-const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "shelfThickness", "lightingWarmth", "doorCount", "drawerCount"]);
+const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "shelfThickness", "lightingWarmth", "drawerCount"]);
 const builderIcons = Object.freeze({
   dimensions: iconSvg("dimensions"),
   layout: iconSvg("layout"),
@@ -122,16 +121,16 @@ const lightingPreviewIcons = Object.freeze({
   no_lighting: iconSvg("lighting-off"),
   warm_pucks: iconSvg("puck-light"),
   shelf_accent: iconSvg("under-shelf-light"),
-  vertical_led: iconSvg("led-strip"),
+  vertical_led: iconSvg("interior-light"),
   full_package: iconSvg("light-scenes")
 });
 
 const hardwarePreviewIcons = Object.freeze({
-  brass_knob: diagramSvg("hardware-knob"),
-  matte_black_knob: diagramSvg("hardware-knob"),
-  brass_pull: diagramSvg("handle-pull"),
-  matte_black_pull: diagramSvg("handle-pull"),
-  polished_nickel_pull: diagramSvg("handle-pull")
+  brass_knob: iconSvg("hardware-knob"),
+  matte_black_knob: iconSvg("hardware-knob"),
+  brass_pull: iconSvg("handle-pull"),
+  matte_black_pull: iconSvg("handle-pull"),
+  polished_nickel_pull: iconSvg("handle-pull")
 });
 
 const hardwareFinishSwatches = Object.freeze({
@@ -165,7 +164,7 @@ const SMART_CAMERA_PROFILES = Object.freeze({
 });
 
 const LIGHTING_CAMERA_OVERRIDES = Object.freeze({
-  warm_pucks: Object.freeze({ theta: -0.36, phi: -0.14, radiusScale: 0.47, selection: "center", limit: 1, targetModelYOffset: -0.035, targetModelZOffset: -0.04 }),
+  warm_pucks: Object.freeze({ theta: -0.2, phi: -0.24, radiusScale: 0.52, selection: "center", limit: 1, targetModelYOffset: -0.055, targetModelZOffset: -0.025 }),
   shelf_accent: Object.freeze({ theta: -0.38, phi: -0.13, radiusScale: 0.54, selection: "centerInterior", limit: 2, targetModelYOffset: -0.015, targetModelZOffset: -0.06 }),
   vertical_led: Object.freeze({ theta: -0.4, phi: -0.035, radiusScale: 0.64, selection: "centerInterior", limit: 2, targetModelZOffset: -0.08 }),
   full_package: Object.freeze({ theta: -0.38, phi: -0.1, radiusScale: 0.6, selection: "centerInterior", limit: 3, targetModelYOffset: -0.02, targetModelZOffset: -0.07 })
@@ -200,13 +199,13 @@ const CAMERA_PROFILE_BY_FIELD = Object.freeze({
   height: "overview",
   depth: "overview",
   sections: "overview",
-  shelves: "shelves",
+  shelves: "overview",
   shelfThickness: "shelves",
-  lowerCabinets: "doors",
-  lowerStorage: "doors",
-  drawerCount: "doors",
+  lowerCabinets: "overview",
+  lowerStorage: "overview",
+  drawerCount: "overview",
   doorStyle: "doors",
-  doorCount: "doors",
+  doorCount: "overview",
   crownStyle: "crown",
   baseStyle: "base",
   sidePanels: "sidePanels",
@@ -620,6 +619,7 @@ class BookcaseConfigurator {
     return `
       <section class="control-section control-section-storage">
         ${this.renderStepperControl("sections", "Vertical sections", 1, 6)}
+        <p class="control-helper section-limit-helper" data-section-limit></p>
         <div class="toggle-row premium-toggle">
           <label for="${this.id}-lowerCabinets">Lower cabinets</label>
           <label class="switch">
@@ -658,20 +658,17 @@ class BookcaseConfigurator {
         </span>
       </label>
     `).join("");
-    const counts = [2, 4, 6, 8, 10, 12].map((count) => `
-      <label><input data-field="doorCount" name="${this.id}-doorCount" type="radio" value="${count}"><span>${count}</span></label>
-    `).join("");
     return `
       <section class="control-section control-section-doors" data-applicability="fronts">
         <fieldset class="choice-field" data-applicability="fronts">
           <legend>Front style</legend>
           <div class="door-style-grid">${styles}</div>
         </fieldset>
-        <fieldset class="choice-field" data-applicability="doors">
-          <legend>Door count</legend>
-          <div class="segmented-options door-count-options" data-door-options>${counts}</div>
-          <p class="control-helper">Door count follows valid section openings so every front remains usable.</p>
-        </fieldset>
+        <div class="generated-front-count" data-applicability="doors">
+          <span>Generated door count</span>
+          <output data-generated-door-count aria-live="polite"></output>
+          <p class="control-helper">Automatically follows the actual section openings so the preview, hardware, and price always match.</p>
+        </div>
       </section>
     `;
   }
@@ -708,6 +705,11 @@ class BookcaseConfigurator {
   renderReviewContent({ includeActions = true } = {}) {
     const groups = createReviewGroups(this.state, this.layout, this.basePresetId);
     const corrections = this.layout?.corrections || [];
+    const engineeringWarnings = [...new Map(
+      (this.layout?.validation?.warnings || [])
+        .filter((item) => item.code === "SHELF_SUPPORT_REVIEW")
+        .map((item) => [item.message, item])
+    ).values()];
     return `
       <div class="configuration-review" data-review-content>
         <div class="review-summary-grid">
@@ -719,6 +721,7 @@ class BookcaseConfigurator {
           `).join("")}
         </div>
         ${corrections.length ? `<aside class="review-assumptions"><strong>Adjusted for buildability</strong><ul>${corrections.map((item) => `<li>${escapeHtml(item.message || item)}</li>`).join("")}</ul></aside>` : ""}
+        ${engineeringWarnings.length ? `<aside class="review-assumptions"><strong>Engineering review</strong><ul>${engineeringWarnings.map((item) => `<li>${escapeHtml(item.message)}</li>`).join("")}</ul></aside>` : ""}
         ${this.state.finish === "custom_bm" ? `<aside class="review-paint-disclaimer" aria-label="Digital paint preview notice">${escapeHtml(BENJAMIN_MOORE_COLOR_DATA_NOTICE)}</aside>` : ""}
         <div class="review-estimate">
           <span>Estimated project price</span><strong>${formatPrice(this.price)}</strong>
@@ -898,9 +901,8 @@ class BookcaseConfigurator {
         <div class="hardware-choice" data-hardware="${option.value}">
           <input id="${this.id}-hardware-${option.value}" data-field="hardware" name="${this.id}-hardware" type="radio" value="${option.value}">
           <label for="${this.id}-hardware-${option.value}" title="${option.label}">
-            <span class="hardware-choice-icon" aria-hidden="true">${hardwarePreviewIcons[option.value]}</span>
-            <span class="hardware-finish-swatch" style="--hardware-finish:${hardwareFinishSwatches[option.value]}" aria-hidden="true"></span>
-            <span>${option.label}</span>
+            <span class="hardware-choice-icon" style="--hardware-finish:${hardwareFinishSwatches[option.value]}" aria-hidden="true">${hardwarePreviewIcons[option.value]}</span>
+            <span class="hardware-choice-name">${option.label}</span>
           </label>
         </div>
       `).join("");
@@ -1746,16 +1748,32 @@ class BookcaseConfigurator {
 
   handleStepperClick(button) {
     const fieldName = button.dataset.stepField;
-    const input = this.host.querySelector(`input[data-field="${fieldName}"]`);
+    const input = button.closest("[data-stepper-control]")?.querySelector(`input[data-field="${fieldName}"]`)
+      || this.host.querySelector(`input[data-field="${fieldName}"]`);
     if (!input) return;
     const direction = Number(button.dataset.stepDirection) || 0;
+    const currentValue = Number(input.value);
+    const allowedSectionCounts = fieldName === "sections" && Array.isArray(this.layout?.config?.allowedSectionCounts)
+      ? this.layout.config.allowedSectionCounts
+      : null;
+    if (allowedSectionCounts) {
+      const candidates = allowedSectionCounts.filter((value) => direction < 0 ? value < currentValue : value > currentValue);
+      if (!candidates.length) return;
+      const nextValue = direction < 0 ? Math.max(...candidates) : Math.min(...candidates);
+      input.value = nextValue;
+      delete this.drafts[fieldName];
+      this.update({ ...this.state, [fieldName]: nextValue }, { sourceField: fieldName });
+      this.focusCameraForField(fieldName);
+      return;
+    }
     const min = Number(input.min) || Number.NEGATIVE_INFINITY;
     const max = Number(input.max) || Number.POSITIVE_INFINITY;
     const step = Number(input.step) || 1;
-    const nextValue = clamp((Number(input.value) || min) + direction * step, min, max);
+    const nextValue = clamp((currentValue || min) + direction * step, min, max);
     input.value = nextValue;
     delete this.drafts[fieldName];
     this.update({ ...this.state, [fieldName]: nextValue }, { sourceField: fieldName });
+    this.focusCameraForField(fieldName);
   }
 
   update(nextState, options = {}) {
@@ -1786,21 +1804,22 @@ class BookcaseConfigurator {
     this.renderDoorOptions();
     this.syncInterface();
 
+    const engineeringWarning = this.layout.validation.warnings.find((item) => item.code === "SHELF_SUPPORT_REVIEW");
     if (!this.layout.validation.valid) {
       this.showStatus(this.layout.validation.errors[0]?.message || "This configuration is not structurally valid.", true);
     } else if (this.layout.corrections.length) {
       this.showStatus(this.layout.corrections.map((correction) => correction.message || correction).join(" "));
+    } else if (engineeringWarning) {
+      this.showStatus(engineeringWarning.message);
     } else if (options.sourceField) {
       this.clearStatus();
     }
   }
 
   renderDoorOptions() {
-    const allowed = new Set(getDoorCountOptions(this.state.width, this.state.sections).map(String));
-    this.host.querySelectorAll("[data-door-options] input[data-field=\"doorCount\"]").forEach((input) => {
-      const available = allowed.has(String(input.value));
-      input.disabled = !available;
-      input.closest("label")?.toggleAttribute("hidden", !available);
+    const generatedDoorCount = getApplicability(this.state, this.layout).generatedDoorCount;
+    this.host.querySelectorAll("[data-generated-door-count]").forEach((output) => {
+      output.textContent = `${generatedDoorCount} ${generatedDoorCount === 1 ? "door" : "doors"}`;
     });
   }
 
@@ -1825,6 +1844,27 @@ class BookcaseConfigurator {
           field.style.setProperty("--range-progress", `${progress}%`);
         }
       });
+    });
+
+    const allowedSectionCounts = Array.isArray(this.layout?.config?.allowedSectionCounts)
+      ? this.layout.config.allowedSectionCounts
+      : [1, 2, 3, 4, 5, 6];
+    const minSections = allowedSectionCounts[0];
+    const maxSections = allowedSectionCounts[allowedSectionCounts.length - 1];
+    this.host.querySelectorAll('[data-stepper-control="sections"]').forEach((control) => {
+      const decrement = control.querySelector('[data-step-direction="-1"]');
+      const increment = control.querySelector('[data-step-direction="1"]');
+      if (decrement) decrement.disabled = !allowedSectionCounts.some((value) => value < this.state.sections);
+      if (increment) increment.disabled = !allowedSectionCounts.some((value) => value > this.state.sections);
+    });
+    this.host.querySelectorAll("[data-section-limit]").forEach((helper) => {
+      const contiguous = allowedSectionCounts.every((value, index) => index === 0 || value === allowedSectionCounts[index - 1] + 1);
+      const range = contiguous && minSections !== maxSections
+        ? `${minSections}–${maxSections}`
+        : allowedSectionCounts.join(", ");
+      helper.textContent = minSections === maxSections
+        ? `${minSections} ${minSections === 1 ? "section is" : "sections are"} required at ${this.state.width} inches wide.`
+        : `Supported at ${this.state.width} inches wide: ${range} sections.`;
     });
 
     const liveWidth = this.host.querySelector("[data-live-width]");
@@ -2207,6 +2247,7 @@ class BookcaseViewer3D {
     this.radius = 0;
     this.overviewTarget = this.target.clone();
     this.activeFocusKey = "overview";
+    this.activeFocusVariant = "overview";
     this.cameraTransition = null;
     this.cameraTransitionSequence = 0;
     this.cameraTransitionCancellationCount = 0;
@@ -2357,6 +2398,7 @@ class BookcaseViewer3D {
     this.clearComponentHighlight();
     this.setProductLightingBoost(1);
     this.activeFocusKey = "overview";
+    this.activeFocusVariant = "overview";
     this.focusRadius = this.baseRadius;
     this.root.dataset.cameraFocus = "overview";
     this.animateToCameraPose({
@@ -2448,18 +2490,22 @@ class BookcaseViewer3D {
 
   focus(profileKey = "overview", options = {}) {
     const normalizedKey = SMART_CAMERA_PROFILES[profileKey] ? profileKey : "overview";
+    const focusVariant = normalizedKey === "lighting"
+      ? `${normalizedKey}:${this.state.lighting}`
+      : normalizedKey;
     const profile = SMART_CAMERA_PROFILES[normalizedKey];
     const pose = this.getFocusPose(normalizedKey, profile);
-    if (!options.force && normalizedKey === this.activeFocusKey && this.cameraTransition) return;
-    const alreadyAtPose = normalizedKey === this.activeFocusKey
+    if (!options.force && focusVariant === this.activeFocusVariant && this.cameraTransition) return;
+    const alreadyAtPose = focusVariant === this.activeFocusVariant
       && this.target.distanceTo(pose.target) < 0.01
       && Math.abs(shortestAngleDelta(this.theta, pose.theta)) < 0.005
       && Math.abs(this.phi - pose.phi) < 0.005
       && Math.abs(this.radius - pose.radius) < 0.01;
     this.activeFocusKey = normalizedKey;
+    this.activeFocusVariant = focusVariant;
     this.focusRadius = pose.radius;
     this.root.dataset.cameraFocus = normalizedKey;
-    this.setProductLightingBoost(normalizedKey === "lighting" ? 1.9 : 1);
+    this.setProductLightingBoost(normalizedKey === "lighting" ? 2.35 : 1);
     this.applyComponentHighlight(pose.activeRoles);
     if (alreadyAtPose && !options.force) return;
     this.animateToCameraPose(pose, { duration: options.duration ?? SMART_CAMERA_DURATION });
@@ -2833,6 +2879,10 @@ class BookcaseViewer3D {
 
   applyPartialUpdate(previousState, nextState, changedFields) {
     const changed = new Set(changedFields);
+    const nonVisualFields = new Set(["layoutPreset", "doorCount", "installation", "delivery"]);
+    if (changed.size > 0 && [...changed].every((field) => nonVisualFields.has(field))) {
+      return true;
+    }
     const finishFields = new Set(["finish", "customPaintColor", "customPaintCode", "customPaintHex", "paintSelection"]);
     const onlyFinish = changed.size > 0 && [...changed].every((field) => finishFields.has(field));
     if (onlyFinish) {
@@ -2931,11 +2981,9 @@ class BookcaseViewer3D {
     this.clearComponentHighlight();
     const nextModel = buildBookcaseModel(this.state, precomputedLayout);
     this.lastLayout = nextModel.userData.layout;
-    if (!this.lastLayout.validation.valid) {
-      disposeMaterialSet(nextModel.userData.materials);
-      disposeObject(nextModel);
-      return;
-    }
+    // Keep the canvas truthful even when a future validation rule finds a
+    // blocking configuration. The interface can block Save/Quote, but it must
+    // never leave stale geometry from a previous state on screen.
     this.scene.remove(this.model);
     disposeMaterialSet(this.model?.userData?.materials);
     disposeObject(this.model);
@@ -3247,9 +3295,13 @@ function addLayoutLight(group, rootGroup, component, materials, size, position) 
     housing.castShadow = false;
     group.add(housing);
 
-    const diffuser = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.72, radius * 0.72, Math.min(size[1] * 0.26, 0.009), 28), materials.puckLight);
+    // Keep the visible diffuser as a thin recessed lens. A spherical glow
+    // reads as a hanging bulb at profile-camera distance and exaggerates the
+    // fixture, especially below the tall built-up soffit.
+    const diffuser = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.68, radius * 0.68, Math.min(size[1] * 0.22, 0.007), 28), materials.puckLight);
     diffuser.position.set(position[0], position[1] - size[1] * 0.56 - 0.004, position[2]);
     diffuser.castShadow = false;
+    diffuser.renderOrder = 3;
     group.add(diffuser);
   } else {
     addBox(group, size, position, materials.ledStrip, false);
@@ -3259,7 +3311,7 @@ function addLayoutLight(group, rootGroup, component, materials, size, position) 
   const temperature = Number(component.metadata?.warmth) || 2700;
   const color = getLightingTemperatureColor(temperature);
   const glow = type === "puck"
-    ? new THREE.SpotLight(color, 0.26, 2.4, Math.PI * 0.32, 0.78, 1.25)
+    ? new THREE.SpotLight(color, 0.36, 2.8, Math.PI * 0.34, 0.76, 1.2)
     : new THREE.PointLight(color, 0.11, 1.5);
   glow.userData.productLight = true;
   glow.position.set(position[0], position[1] - (type === "vertical_led" ? 0 : 0.09), position[2] + 0.025);

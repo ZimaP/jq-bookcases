@@ -9,6 +9,7 @@ import {
   containsBounds,
   findComponent,
   generateBookcaseLayout,
+  getSectionCountLimits,
   normalizeLayoutConfig,
   validateBookcaseLayout
 } from "../bookcase-layout.js";
@@ -132,7 +133,7 @@ test("invalid or missing section ratios fall back to equal bays", () => {
   }
 });
 
-test("positive ratios still surface minimum-clear-width validation", () => {
+test("positive ratios that create unbuildable bays are equalized explicitly", () => {
   const layout = generateBookcaseLayout({
     width: 96,
     sections: 4,
@@ -141,9 +142,9 @@ test("positive ratios still surface minimum-clear-width validation", () => {
     layoutMetadata: { sectionRatios: [0.1, 1, 1, 1] }
   });
 
-  assert.ok(layout.metrics.sectionClearWidths[0] < CONSTRUCTION_RULES.minSectionClearWidth);
-  assert.equal(layout.validation.valid, false);
-  assert.ok(issueCodes(layout.validation).includes("MIN_SECTION_CLEAR_WIDTH"));
+  assert.deepEqual(layout.metrics.sectionClearWidths, [23.0625, 23.0625, 23.0625, 23.0625]);
+  assert.equal(layout.validation.valid, true, JSON.stringify(layout.validation.errors));
+  assert.ok(layout.corrections.some((item) => item.code === "SECTION_RATIOS_EQUALIZED"));
 });
 
 test("too many sections are auto-corrected to preserve minimum clear width", () => {
@@ -163,6 +164,14 @@ test("section auto-correction can be disabled to surface actionable validation",
   assert.equal(layout.config.sections, 6);
   assert.equal(layout.validation.valid, false);
   assert.ok(issueCodes(layout.validation).includes("MIN_SECTION_CLEAR_WIDTH"));
+});
+
+test("section limits expose every usable count while preserving minimum bay width", () => {
+  assert.deepEqual(getSectionCountLimits({ ...defaultBookcaseConfig, width: 96 }).allowed, [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(getSectionCountLimits({ ...defaultBookcaseConfig, width: 24 }).allowed, [1]);
+
+  const tall = layoutPresets.find((preset) => preset.id === "tall-storage").config;
+  assert.deepEqual(getSectionCountLimits({ ...tall, sections: 4 }).allowed, [1, 2, 3, 4, 5, 6]);
 });
 
 test("all supported shelf thicknesses flow into physical shelf descriptors", () => {
@@ -224,6 +233,16 @@ test("default lower cabinet emits exactly eight hosted doors", () => {
     assert.equal(door.metadata.reveal, CONSTRUCTION_RULES.doorReveal);
   }
   assert.equal(layout.validation.valid, true);
+});
+
+test("door count is canonicalized from generated openings", () => {
+  const cabinet = generateBookcaseLayout({ ...defaultBookcaseConfig, sections: 3, doorCount: 2 });
+  assert.equal(cabinet.metrics.primaryDoorCount, 6);
+  assert.equal(cabinet.config.doorCount, 6);
+
+  const open = generateBookcaseLayout({ ...defaultBookcaseConfig, lowerCabinets: false, tallDoors: false });
+  assert.equal(open.metrics.primaryDoorCount, 0);
+  assert.equal(open.config.doorCount, 0);
 });
 
 test("double doors have equal slabs, consistent edge reveals, and the exact center gap", () => {
@@ -297,7 +316,7 @@ test("preset metadata can assign drawers to selected sections only", () => {
 });
 
 test("warm puck lights attach to the underside of the top panel", () => {
-  const layout = generateBookcaseLayout({ lighting: "warm_pucks", lightingWarmth: 2700 });
+  const layout = generateBookcaseLayout({ crownStyle: "none", lighting: "warm_pucks", lightingWarmth: 2700 });
   const lights = byRole(layout, "light");
   assert.equal(lights.length, layout.config.sections);
   for (const light of lights) {
@@ -305,8 +324,31 @@ test("warm puck lights attach to the underside of the top panel", () => {
     assert.equal(light.metadata.warmth, 2700);
     assert.equal(light.hostId, "top-panel");
     approximately(light.bounds.max.y, findComponent(layout, "top-panel").bounds.min.y);
+    const section = findComponent(layout, light.parentId);
+    assert.ok(light.position.z < section.position.z, "top pucks should sit in the visible front third");
+    assert.ok(light.bounds.min.z >= section.bounds.min.z, "top pucks must remain inside the cabinet depth");
   }
   assert.equal(layout.validation.valid, true);
+});
+
+test("warm puck lights mount below every crown profile instead of being buried inside trim", () => {
+  const cases = [
+    ["slim_cap", "crown-slim-cap"],
+    ["classic_crown", "crown-classic-cap"],
+    ["modern_soffit", "crown-modern-band"]
+  ];
+  for (const [crownStyle, crownId] of cases) {
+    const layout = generateBookcaseLayout({ crownStyle, lighting: "warm_pucks" });
+    const crown = findComponent(layout, crownId);
+    const lights = byRole(layout, "light");
+    assert.equal(lights.length, layout.config.sections);
+    for (const light of lights) {
+      assert.equal(light.hostId, crown.id);
+      approximately(light.bounds.max.y, crown.bounds.min.y);
+      assert.ok(light.bounds.min.y < crown.bounds.min.y);
+    }
+    assert.equal(layout.validation.valid, true);
+  }
 });
 
 test("shelf accent lights are hosted by the shelves they follow", () => {
@@ -485,15 +527,18 @@ test("minimum, maximum, narrow, wide, tall, shallow, and deep configurations are
   }
 });
 
-test("unsupported single-bay shelf spans are reported instead of silently rendered", () => {
+test("wide single-bay shelves remain visible and require engineering review", () => {
   const layout = generateBookcaseLayout({
     width: 144,
     sections: 1,
     lowerCabinets: false,
     lighting: "no_lighting"
   });
-  assert.equal(layout.validation.valid, false);
-  assert.ok(issueCodes(layout.validation).includes("UNSUPPORTED_SHELF_SPAN"));
+  assert.equal(layout.config.sections, 1);
+  assert.equal(byRole(layout, "section").length, 1);
+  assert.equal(layout.validation.valid, true, JSON.stringify(layout.validation.errors));
+  assert.ok(issueCodes(layout.validation).includes("SHELF_SUPPORT_REVIEW"));
+  assert.ok(layout.validation.warnings.every((item) => item.severity === "warning"));
 });
 
 test("generation is deterministic and does not mutate input", () => {

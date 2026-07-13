@@ -10,7 +10,7 @@ import {
   normalizeCabinetArConfiguration
 } from "./cabinet-ar.js";
 import { generateProceduralCabinetModel } from "./cabinet-ar-model.js";
-import { iconSvg } from "./icon-system.js?v=jq-icons-20260713g";
+import { iconSvg } from "./icon-system.js?v=jq-icons-20260713i";
 
 const closeIcon = iconSvg("close");
 

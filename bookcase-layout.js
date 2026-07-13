@@ -38,6 +38,9 @@ export const CONSTRUCTION_RULES = Object.freeze({
   handleEdgeInset: 2,
   handleProjection: 1,
   lightThickness: 0.125,
+  slimCapProfileDrop: 1.2,
+  classicCrownProfileDrop: 2.3125,
+  modernSoffitHeight: 3,
   minWidth: 24,
   maxWidth: 144,
   minHeight: 72,
@@ -93,6 +96,55 @@ const FACE_CHILD_ROLES = new Set(["door", "drawer_front"]);
 const ATTACHED_ROLES = new Set(["handle", "light"]);
 
 /**
+ * Return every section count that preserves the minimum usable bay width.
+ * Wide single bays remain available and are flagged for engineered shelf
+ * support review instead of making the visual configurator lie to the user.
+ */
+export function getSectionCountLimits(input = {}) {
+  const numericWidth = Number(input.width);
+  const width = clamp(
+    Number.isFinite(numericWidth) ? numericWidth : LAYOUT_DEFAULTS.width,
+    CONSTRUCTION_RULES.minWidth,
+    CONSTRUCTION_RULES.maxWidth
+  );
+  const allowed = [];
+  for (let sections = CONSTRUCTION_RULES.minSections; sections <= CONSTRUCTION_RULES.maxSections; sections += 1) {
+    let widths = getCandidateSectionWidths(input, width, sections);
+    const ratiosAreUnbuildable = widths.some(
+      (sectionWidth) => sectionWidth + EPSILON < CONSTRUCTION_RULES.minSectionClearWidth
+    );
+    if (ratiosAreUnbuildable) {
+      const equalInput = { ...input, layoutMetadata: { ...(input.layoutMetadata || {}), sectionRatios: [] } };
+      widths = getCandidateSectionWidths(equalInput, width, sections);
+    }
+    if (widths.some((sectionWidth) => sectionWidth + EPSILON < CONSTRUCTION_RULES.minSectionClearWidth)) continue;
+    allowed.push(sections);
+  }
+  const fallback = [CONSTRUCTION_RULES.minSections];
+  const allowedSectionCounts = allowed.length ? allowed : fallback;
+  return {
+    min: allowedSectionCounts[0],
+    max: allowedSectionCounts[allowedSectionCounts.length - 1],
+    allowed: allowedSectionCounts
+  };
+}
+
+function getCandidateSectionWidths(input, width, sections) {
+  const panel = CONSTRUCTION_RULES.panelThickness;
+  const totalSectionClearWidth = width - panel * 2 - panel * (sections - 1);
+  const ratios = normalizeSectionRatios(input?.layoutMetadata?.sectionRatios, sections);
+  return allocateSectionWidths(totalSectionClearWidth, ratios);
+}
+
+function findNearestAllowedSectionCount(requested, allowed) {
+  return allowed.reduce((best, candidate) => {
+    const distance = Math.abs(candidate - requested);
+    const bestDistance = Math.abs(best - requested);
+    return distance < bestDistance || (distance === bestDistance && candidate > best) ? candidate : best;
+  }, allowed[0]);
+}
+
+/**
  * Normalize customer-facing configuration without mutating the input.
  * Returns the normalized config and explicit auto-corrections.
  */
@@ -115,16 +167,13 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
     "sections",
     corrections
   );
-  const maxSectionsForWidth = Math.max(
-    1,
-    Math.min(
-      rules.maxSections,
-      Math.floor((width - panelThickness + EPSILON) / (rules.minSectionClearWidth + panelThickness))
-    )
-  );
+  const sectionLimits = getSectionCountLimits({ ...source, width });
+  const minSectionsForWidth = sectionLimits.min;
+  const maxSectionsForWidth = sectionLimits.max;
+  const allowedSectionCounts = sectionLimits.allowed;
   let sections = requestedSections;
-  if (autoCorrectSections && requestedSections > maxSectionsForWidth) {
-    sections = maxSectionsForWidth;
+  if (autoCorrectSections && !allowedSectionCounts.includes(requestedSections)) {
+    sections = findNearestAllowedSectionCount(requestedSections, allowedSectionCounts);
     corrections.push(createCorrection(
       "SECTION_COUNT_REDUCED",
       "sections",
@@ -217,7 +266,12 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
     ));
   }
 
-  const metadata = cloneMetadata(source.layoutMetadata ?? source.presetMetadata);
+  const metadata = reconcileLayoutMetadata(
+    source.layoutMetadata ?? source.presetMetadata,
+    sections,
+    width,
+    corrections
+  );
   const layoutType = normalizeString(source.layoutType, LAYOUT_DEFAULTS.layoutType);
   const lowerStorage = normalizeLowerStorage(source.lowerStorage, layoutType, metadata);
 
@@ -229,7 +283,9 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
     depth,
     sections,
     requestedSections,
+    minSectionsForWidth,
     maxSectionsForWidth,
+    allowedSectionCounts,
     shelves,
     requestedShelves,
     shelfThickness,
@@ -240,7 +296,7 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
     deskOpening: normalizeBoolean(source.deskOpening, LAYOUT_DEFAULTS.deskOpening),
     featureOpening: normalizeBoolean(source.featureOpening, LAYOUT_DEFAULTS.featureOpening),
     tallDoors: normalizeBoolean(source.tallDoors, LAYOUT_DEFAULTS.tallDoors),
-    doorCount: normalizeInteger(source.doorCount, LAYOUT_DEFAULTS.doorCount, 1, 12, "doorCount", corrections),
+    doorCount: normalizeInteger(source.doorCount, LAYOUT_DEFAULTS.doorCount, 0, 12, "doorCount", corrections),
     doorStyle: normalizeString(source.doorStyle, LAYOUT_DEFAULTS.doorStyle),
     hardware: normalizeString(source.hardware, LAYOUT_DEFAULTS.hardware),
     lighting,
@@ -537,15 +593,10 @@ export function generateBookcaseLayout(input = {}, options = {}) {
     (component) => component.role === "door" && component.metadata.tier === "primary"
   ).length;
   const generatedDrawerCount = components.filter((component) => component.role === "drawer_front").length;
-  if ((config.lowerCabinets || config.tallDoors) && generatedDrawerCount === 0 && config.doorCount !== primaryDoorCount) {
-    corrections.push(createCorrection(
-      "DOOR_COUNT_ALIGNED_TO_SECTIONS",
-      "doorCount",
-      config.doorCount,
-      primaryDoorCount,
-      "Door count follows section openings so every door remains attached to one valid opening."
-    ));
-  }
+  // Door count is a physical output of the generated opening graph, not an
+  // independent customer setting. Canonicalize it before pricing, saving, and
+  // interface synchronization so all consumers agree on the same quantity.
+  config.doorCount = primaryDoorCount;
 
   const layout = {
     schemaVersion: 1,
@@ -912,17 +963,41 @@ function addLighting(context) {
     for (const section of eligibleSections) {
       const lightWidth = Math.min(2.25, section.size.x * 0.18);
       const lightDepth = lightWidth;
-      const lightCenterZ = (section.bounds.min.z + section.bounds.max.z) / 2;
+      // Install top pucks in the front third of the cabinet. A centered puck
+      // disappears behind deeper crown returns in three-quarter views, while
+      // this position remains fully hosted by the top panel and visible below
+      // every supported crown profile.
+      const frontInset = Math.max(lightDepth / 2 + 0.25, Math.min(clearDepth * 0.2, 2.75));
+      const lightCenterZ = section.bounds.min.z + frontInset;
+      const crownLightMounts = {
+        slim_cap: {
+          hostId: "crown-slim-cap",
+          topY: config.height - CONSTRUCTION_RULES.slimCapProfileDrop
+        },
+        classic_crown: {
+          hostId: "crown-classic-cap",
+          topY: config.height - CONSTRUCTION_RULES.classicCrownProfileDrop
+        },
+        modern_soffit: {
+          hostId: "crown-modern-band",
+          topY: config.height - CONSTRUCTION_RULES.modernSoffitHeight
+        }
+      };
+      const crownMount = crownLightMounts[config.crownStyle];
+      const lightHostId = crownMount?.hostId || frame.top.id;
+      const lightTopY = crownMount
+        ? Math.min(section.bounds.max.y, crownMount.topY)
+        : section.bounds.max.y;
       add({
         id: section.id + "-light-puck",
         role: "light",
         parentId: section.id,
-        hostId: frame.top.id,
+        hostId: lightHostId,
         bounds: bounds(
           section.position.x - lightWidth / 2,
           section.position.x + lightWidth / 2,
-          section.bounds.max.y - 0.375,
-          section.bounds.max.y,
+          lightTopY - 0.375,
+          lightTopY,
           lightCenterZ - lightDepth / 2,
           lightCenterZ + lightDepth / 2
         ),
@@ -1272,11 +1347,11 @@ export function validateBookcaseLayout(layout) {
 
     if (component.role === "shelf" && component.size.x > CONSTRUCTION_RULES.maxUnsupportedShelfSpan + EPSILON) {
       issues.push(issue(
-        "UNSUPPORTED_SHELF_SPAN",
-        "error",
+        "SHELF_SUPPORT_REVIEW",
+        "warning",
         component.id,
         component.parentId,
-        "Shelf span exceeds the supported construction limit."
+        "Shelf span exceeds the standard unsupported limit and requires engineered support review."
       ));
     }
   }
@@ -1574,7 +1649,7 @@ function addCrownDescriptors(add, config, root, topPanel) {
       id: "crown-slim-cap",
       minX: -config.width / 2 - 0.25,
       maxX: config.width / 2 + 0.25,
-      minY: config.height - 0.5,
+      minY: config.height - CONSTRUCTION_RULES.slimCapProfileDrop,
       maxY: config.height,
       minZ: -0.375,
       maxZ: config.depth + 0.125,
@@ -1585,7 +1660,7 @@ function addCrownDescriptors(add, config, root, topPanel) {
       id: "crown-modern-band",
       minX: -config.width / 2 - 0.125,
       maxX: config.width / 2 + 0.125,
-      minY: config.height - 3,
+      minY: config.height - CONSTRUCTION_RULES.modernSoffitHeight,
       maxY: config.height,
       minZ: -0.5,
       maxZ: config.depth + 0.125,
@@ -1607,7 +1682,7 @@ function addCrownDescriptors(add, config, root, topPanel) {
         id: "crown-classic-cap",
         minX: -config.width / 2 - 0.5,
         maxX: config.width / 2 + 0.5,
-        minY: config.height - 0.375,
+        minY: config.height - CONSTRUCTION_RULES.classicCrownProfileDrop,
         maxY: config.height,
         minZ: -0.625,
         maxZ: config.depth + 0.25,
@@ -1643,6 +1718,47 @@ function normalizeLowerStorage(value, layoutType, metadata) {
   if (value === "drawers" || value === "doors") return value;
   if (metadata?.lowerStorage === "drawers") return "drawers";
   return layoutType.includes("drawer") ? "drawers" : LAYOUT_DEFAULTS.lowerStorage;
+}
+
+function reconcileLayoutMetadata(value, sections, width, corrections) {
+  const metadata = cloneMetadata(value);
+  const panel = CONSTRUCTION_RULES.panelThickness;
+  const totalSectionClearWidth = width - panel * 2 - panel * (sections - 1);
+
+  if (Array.isArray(metadata.sectionRatios)) {
+    const validShape = metadata.sectionRatios.length === sections && metadata.sectionRatios.every(
+      (ratio) => typeof ratio === "number" && Number.isFinite(ratio) && ratio > 0
+    );
+    const ratios = validShape ? metadata.sectionRatios.slice() : [];
+    const widths = validShape ? allocateSectionWidths(totalSectionClearWidth, ratios) : [];
+    const validWidths = validShape && widths.every(
+      (sectionWidth) => sectionWidth + EPSILON >= CONSTRUCTION_RULES.minSectionClearWidth
+    );
+    if (!validWidths) {
+      delete metadata.sectionRatios;
+      corrections.push(createCorrection(
+        "SECTION_RATIOS_EQUALIZED",
+        "layoutMetadata",
+        value?.sectionRatios,
+        {},
+        "Section widths were equalized so every bay remains buildable at the selected overall width."
+      ));
+    } else {
+      metadata.sectionRatios = ratios;
+    }
+  }
+
+  if (Array.isArray(metadata.sectionTypes) && metadata.sectionTypes.length !== sections) {
+    delete metadata.sectionTypes;
+  }
+  if (Array.isArray(metadata.drawerSections)) {
+    metadata.drawerSections = [...new Set(metadata.drawerSections.map(Number))]
+      .filter((index) => Number.isInteger(index) && index >= 0 && index < sections);
+  }
+  if (Number.isFinite(Number(metadata.specialSpan))) {
+    metadata.specialSpan = clamp(Math.round(Number(metadata.specialSpan)), 1, sections);
+  }
+  return metadata;
 }
 
 function normalizeNumber(value, fallback, min, max, field, corrections) {
