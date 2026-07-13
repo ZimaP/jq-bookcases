@@ -489,7 +489,15 @@ class BookcaseConfigurator {
 
     window.requestAnimationFrame(() => {
       if (this.elements.controlsScroll) {
-        this.elements.controlsScroll.scrollTop = options.resetScroll ? 0 : this.scrollPositions[this.mode] || 0;
+        const usesMobileDocumentFlow = window.matchMedia("(max-width: 767px)").matches
+          && this.elements.controlsScroll.scrollHeight <= this.elements.controlsScroll.clientHeight + 1;
+
+        if (options.resetScroll && usesMobileDocumentFlow) {
+          const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+          this.elements.controlsScroll.scrollIntoView({ behavior, block: "start" });
+        } else {
+          this.elements.controlsScroll.scrollTop = options.resetScroll ? 0 : this.scrollPositions[this.mode] || 0;
+        }
       }
     });
   }

@@ -974,3 +974,138 @@ body[data-page="configurator"] .service-option-card strong {
     min-height: calc(100% - 56px);
   }
 }
+
+/* Mobile document flow ---------------------------------------------------
+ * A phone viewport is too short for a fixed preview, workflow rail, form
+ * navigation, and estimate bar at the same time. Let the page scroll as one
+ * document so every control remains reachable and no action row masks it. */
+
+@media (max-width: 767px) {
+  html {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body[data-page="configurator"] {
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
+  }
+
+  body[data-page="configurator"] main,
+  body[data-page="configurator"] .builder-hero,
+  body[data-page="configurator"] .builder-page,
+  body[data-page="configurator"] .builder-hero > .container,
+  body[data-page="configurator"] [data-bookcase-builder] {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .configurator-experience {
+    --mobile-preview-toolbar-height: 48px;
+    --mobile-preview-dock-height: 54px;
+    --mobile-step-rail-height: 54px;
+    --mobile-estimate-height: 72px;
+    --mobile-ar-width: clamp(124px, 36vw, 140px);
+    height: auto;
+    min-height: 0;
+    grid-template-rows:
+      clamp(250px, 40svh, 310px)
+      var(--mobile-step-rail-height)
+      auto
+      auto;
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    height: clamp(250px, 40svh, 310px);
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar {
+    height: var(--mobile-preview-toolbar-height);
+    padding: 3px 10px;
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector button {
+    height: 42px;
+    min-height: 42px;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls {
+    height: 48px;
+    min-height: 48px;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls button {
+    height: 44px;
+    min-height: 44px;
+    padding-block: 4px;
+  }
+
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button {
+    height: 46px;
+    min-height: 46px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail,
+  body[data-page="configurator"] .configurator-step-rail ol {
+    height: var(--mobile-step-rail-height);
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li,
+  body[data-page="configurator"] .configurator-step-rail button {
+    height: 48px;
+    min-height: 48px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
+    top: 23px;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    -webkit-overflow-scrolling: auto;
+  }
+
+  body[data-page="configurator"] .configurator-panel-intro {
+    position: relative;
+    top: auto;
+    min-height: 64px;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience > [role="tabpanel"] {
+    min-height: 0;
+  }
+
+  body[data-page="configurator"] .guided-experience,
+  body[data-page="configurator"] .all-controls-experience {
+    min-height: 0;
+    padding-bottom: 0;
+  }
+
+  body[data-page="configurator"] .guided-experience {
+    display: block;
+  }
+
+  body[data-page="configurator"] .guided-navigation {
+    position: static;
+    margin: 18px -12px 0;
+    padding: 12px;
+    box-shadow: none;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    position: static;
+    height: calc(var(--mobile-estimate-height) + env(safe-area-inset-bottom));
+    min-height: calc(var(--mobile-estimate-height) + env(safe-area-inset-bottom));
+    grid-row: 4;
+  }
+}

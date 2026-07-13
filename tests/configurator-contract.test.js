@@ -241,13 +241,14 @@ test("responsive presentation covers desktop, tablet, mobile, touch scrolling, a
   assert.match(css, /\.guided-navigation \{\s*position: sticky;\s*bottom: 0;/);
 });
 
-test("the phone shell pins both action rows and keeps controls outside the 3D canvas", () => {
-  assert.match(precisionCss, /height: calc\(100dvh - 76px\)/);
-  assert.match(precisionCss, /grid-template-rows:[\s\S]*var\(--mobile-step-rail-height\)[\s\S]*minmax\(0, 1fr\)[\s\S]*var\(--mobile-estimate-height\)/);
+test("the phone layout uses one natural scroll surface and keeps controls outside the 3D canvas", () => {
+  assert.match(precisionCss, /Mobile document flow[\s\S]*overflow-y: auto;/);
+  assert.match(precisionCss, /Mobile document flow[\s\S]*grid-template-rows:[\s\S]*var\(--mobile-step-rail-height\)[\s\S]*auto[\s\S]*auto;/);
   assert.match(precisionCss, /\.viewer-stage \{[\s\S]*var\(--mobile-preview-toolbar-height\)[\s\S]*var\(--mobile-preview-dock-height\)/);
-  assert.match(precisionCss, /\.configurator-control-experience \{[\s\S]*grid-row: 3;[\s\S]*overflow-y: auto;/);
-  assert.match(precisionCss, /\.guided-navigation \{[\s\S]*position: sticky;[\s\S]*bottom: 0;/);
-  assert.match(precisionCss, /\.configurator-experience > \.configurator-estimate-bar \{[\s\S]*grid-row: 4;/);
+  assert.match(precisionCss, /Mobile document flow[\s\S]*\.configurator-control-experience \{[\s\S]*height: auto;[\s\S]*overflow: visible;/);
+  assert.match(precisionCss, /Mobile document flow[\s\S]*\.guided-navigation \{[\s\S]*position: static;/);
+  assert.match(precisionCss, /Mobile document flow[\s\S]*\.configurator-experience > \.configurator-estimate-bar \{[\s\S]*position: static;[\s\S]*grid-row: 4;/);
+  assert.match(source, /controlsScroll\.scrollIntoView\(\{ behavior, block: "start" \}\)/);
 });
 
 test("the configurator route loads the experience module and final presentation layer", () => {
