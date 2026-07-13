@@ -1,5 +1,5 @@
-import { normalizeBookcaseConfig } from "./bookcase-config.js?v=benjamin-moore-20260712a";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=configurator-20260711e";
+import { normalizeBookcaseConfig } from "./bookcase-config.js?v=engine-contract-20260713s";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=engine-contract-20260713s";
 import { deriveBillableComponents } from "./bookcase-billable.js?v=pricing-20260712a";
 
 export const PRICING_VERSION = "2026.07-physical-components-v2";

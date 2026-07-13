@@ -36,8 +36,8 @@ export const iconManifest = Object.freeze({
   "crown-molding": defineIcon("Styles & finishes", "Crown molding", "Upper architectural molding profile", `<path d="M3 5h18v3H3zM5 8l2.5 4h9L19 8M7.5 12v7M16.5 12v7M5.5 19h13"/>`),
   "base-molding": defineIcon("Styles & finishes", "Base molding", "Lower plinth molding profile", `<path d="M6 4v11h12V4M4 15h16l-1.5 4h-13L4 15ZM3 20h18"/>`),
   "trim-molding": defineIcon("Styles & finishes", "Trim molding", "Separate transition trim profile", `<path d="M5 4v9h14V4M4 13h16v3H4M6 16v4M18 16v4M5 20h14"/>`),
-  "hardware-knob": defineIcon("Styles & finishes", "Hardware knob", "Round cabinet knob with stem", `<circle cx="12" cy="8" r="4.5"/><path d="M12 12.5V17M9 20h6M9.5 17h5v3h-5z"/>`),
-  "handle-pull": defineIcon("Styles & finishes", "Handle pull", "Cabinet bar pull", `<path d="M4 9h16v4H4zM7 13v5M17 13v5M5 18h4M15 18h4"/>`),
+  "hardware-knob": defineIcon("Styles & finishes", "Hardware knob", "Round cabinet knob with stem", `<circle cx="12" cy="7.5" r="4.25"/><path d="M12 11.75v4.75M9.5 16.5h5l1 3h-7l1-3ZM8.5 19.5h7"/>`),
+  "handle-pull": defineIcon("Styles & finishes", "Handle pull", "Cabinet bar pull", `<path d="M4 9.5h16v3H4zM7 12.5v5M17 12.5v5M5.5 17.5h3M15.5 17.5h3"/>`),
   "hardware": defineIcon("Styles & finishes", "Hardware", "Cabinet knob and pull hardware", `<path d="M4 4h7v16H4zM13 4h7v16h-7zM8.5 10.5v3M15 9h3v6h-3"/>`),
   "glass-door": defineIcon("Styles & finishes", "Glass door", "Framed glass cabinet door", `<path d="M6 2.5h12v19H6zM8.5 5h7v14h-7zM10 8l4 6M11 15l3-4M14 10.5v3"/>`),
   "paint-finish": defineIcon("Styles & finishes", "Paint finish", "Applied painted finish", `<path d="m14 3 7 7-3 3-7-7 3-3ZM11 6l-7 7v5l2 2 5-2 7-7M4 15l5 5"/>`),
@@ -47,16 +47,16 @@ export const iconManifest = Object.freeze({
   "accent-detail": defineIcon("Styles & finishes", "Accent detail", "Architectural edge or corner detail", `<path d="M4 5h12a4 4 0 0 1 4 4v10h-4V9H4V5ZM7 9v10M11 9v10"/>`),
 
   // Lighting -------------------------------------------------------------
-  "lighting": defineIcon("Lighting", "Lighting", "Integrated cabinet lighting", `<path d="M5 4h14v4H5zM8 11l-2 4M12 11v5M16 11l2 4M5 19h14"/>`),
+  "lighting": defineIcon("Lighting", "Lighting", "Integrated cabinet lighting", `<path d="M5 3.5h14v17H5zM8 6.5h8M8 11.5h8M8 16.5h8M8 6.5v11M16 6.5v11M10.5 8.5l-1 1.5M13.5 8.5l1 1.5"/>`),
   "lighting-off": defineIcon("Lighting", "Lighting off", "No integrated lighting", `<path d="M5 4h14v4H5zM8 11l-2 4M16 11l2 4M4 4l16 16"/>`),
   "led-strip": defineIcon("Lighting", "LED strip", "Linear LED light strip", `<path d="M4 5h16v4H4zM8 5v4M12 5v4M16 5v4M7 13l-1.5 3M12 13v4M17 13l1.5 3"/>`),
-  "puck-light": defineIcon("Lighting", "Puck light", "Round recessed puck light", `<ellipse cx="12" cy="7.5" rx="6" ry="3"/><path d="M6 7.5v3c0 1.7 2.7 3 6 3s6-1.3 6-3v-3M8 17l-1.5 3M12 17v4M16 17l1.5 3"/>`),
+  "puck-light": defineIcon("Lighting", "Puck light", "Round recessed puck light", `<ellipse cx="12" cy="7" rx="6" ry="2.75"/><path d="M6 7v2.75c0 1.55 2.7 2.75 6 2.75s6-1.2 6-2.75V7M8.5 16l-2 3M12 15.5V20M15.5 16l2 3"/>`),
   "adjustable-light": defineIcon("Lighting", "Adjustable light", "Directional adjustable cabinet light", `<path d="m8 5 6-2 2 6-6 2-2-6ZM11 11l1 3M8 15l8-2M8 18l-3 2M13 17v4M17 15l3 2"/>`),
   "dimmable": defineIcon("Lighting", "Dimmable", "Adjustable light intensity", `<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16V4ZM12 8h3M12 12h5M12 16h3"/>`),
-  "light-scenes": defineIcon("Lighting", "Light scenes", "Multiple saved lighting scenes", `<circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="3"/><circle cx="19" cy="12" r="2"/>`),
+  "light-scenes": defineIcon("Lighting", "Light scenes", "Complete cabinet lighting package", `<path d="M4.5 3h15v18h-15zM7.5 6v12M16.5 6v12M7.5 11h9M9.5 6h5M10 14l-1.5 2.5M14 14l1.5 2.5"/>`),
   "under-shelf-light": defineIcon("Lighting", "Under-shelf light", "Light mounted below a shelf", `<path d="M3 5h18M6 7h12v3H6zM8 13l-2 4M12 13v5M16 13l2 4"/>`),
   "toe-kick-light": defineIcon("Lighting", "Toe-kick light", "Lighting at the recessed cabinet base", `<path d="M5 3v13h14V3M5 16h4v3h6v-3h4M8 21h8M10 18l-1 3M14 18l1 3"/>`),
-  "interior-light": defineIcon("Lighting", "Interior light", "Lighting inside a cabinet", `<path d="M5 3h14v18H5zM8 6h8v3H8zM9 12l-1 3M12 12v4M15 12l1 3"/>`),
+  "interior-light": defineIcon("Lighting", "Interior light", "Vertical lighting inside a cabinet", `<path d="M5 3h14v18H5zM8 6v12M16 6v12M10.5 8h3M10.5 13h3M10.5 18h3"/>`),
 
   // Delivery and installation ------------------------------------------
   "pickup": defineIcon("Delivery & installation", "Pickup", "Customer transports a packaged order", `<path d="M7 6h10v11H7zM7 10h10M12 6v11M4 14h3M4 14l2-2M4 14l2 2M9 20h9"/>`),

@@ -3371,6 +3371,44 @@ body[data-page="configurator"] .control-helper {
   color: var(--jq-text-muted);
 }
 
+body[data-page="configurator"] .section-limit-helper {
+  margin: -4px 0 10px;
+  color: var(--jq-text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+body[data-page="configurator"] .generated-front-count {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  align-items: center;
+  margin-top: 12px;
+  border-top: 1px solid var(--jq-border);
+  padding-top: 12px;
+}
+
+body[data-page="configurator"] .generated-front-count > span {
+  color: var(--jq-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .generated-front-count > output {
+  border: 1px solid var(--jq-border);
+  border-radius: 999px;
+  background: var(--jq-surface-secondary);
+  padding: 6px 10px;
+  color: var(--jq-text);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+body[data-page="configurator"] .generated-front-count > .control-helper {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 body[data-page="configurator"] .option-card strong,
 body[data-page="configurator"] .door-style-copy strong {
   color: var(--jq-text);

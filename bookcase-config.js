@@ -386,9 +386,10 @@ export function normalizeBookcaseConfig(config = {}) {
   const merged = { ...defaultBookcaseConfig, ...normalizeLegacyConfigValues(config) };
   const sections = clampInt(merged.sections, 1, 6);
   const width = clampInt(merged.width, 24, 144);
-  const doorOptions = getDoorCountOptions(width, sections);
-  const requestedDoorCount = clampInt(merged.doorCount ?? merged.doors, 2, 12);
-  const doorCount = doorOptions.includes(requestedDoorCount) ? requestedDoorCount : doorOptions[doorOptions.length - 1];
+  // Door leaves are generated from the actual openings in the layout engine.
+  // Keep the persisted value permissive here so the generated layout can
+  // canonicalize it to the real physical count, including a single tall door.
+  const doorCount = clampInt(merged.doorCount ?? merged.doors, 0, 12);
   const finish = normalizeOption(merged.finish, finishOptions, defaultBookcaseConfig.finish);
   const paintSelection = normalizePaintSelection(merged, finish);
 
@@ -502,15 +503,6 @@ function hexToRgb(value) {
   };
 }
 
-export function getDoorCountOptions(width, sections) {
-  const numericWidth = Number(width) || defaultBookcaseConfig.width;
-  const numericSections = Number(sections) || defaultBookcaseConfig.sections;
-
-  if (numericWidth < 72 || numericSections <= 1) return [2];
-  const maximum = Math.min(12, Math.max(2, numericSections * 2));
-  return Array.from({ length: maximum / 2 }, (_, index) => (index + 1) * 2);
-}
-
 export function createDesignId(config, price) {
   const { layoutPreset: _layoutPreset, ...canonicalConfig } = normalizeBookcaseConfig(config);
   const source = JSON.stringify(canonicalConfig) + price;
@@ -545,9 +537,10 @@ function normalizeLayoutMetadata(value, sections) {
     metadata.specialSpan = Math.min(sections, Math.max(1, Number(value.specialSpan)));
   }
   if (Array.isArray(value.sectionRatios)) {
-    const ratios = value.sectionRatios.slice(0, sections).map(Number);
-    if (ratios.length === sections && ratios.every((ratio) => Number.isFinite(ratio) && ratio > 0)) {
-      metadata.sectionRatios = ratios;
+    if (value.sectionRatios.length === sections && value.sectionRatios.every(
+      (ratio) => typeof ratio === "number" && Number.isFinite(ratio) && ratio > 0
+    )) {
+      metadata.sectionRatios = value.sectionRatios.slice();
     }
   }
   if (Array.isArray(value.drawerSections)) {
@@ -555,7 +548,9 @@ function normalizeLayoutMetadata(value, sections) {
       .filter((index) => Number.isInteger(index) && index >= 0 && index < sections);
   }
   if (Array.isArray(value.sectionTypes)) {
-    metadata.sectionTypes = value.sectionTypes.slice(0, sections).map((type) => String(type));
+    if (value.sectionTypes.length === sections) {
+      metadata.sectionTypes = value.sectionTypes.map((type) => String(type));
+    }
   }
   return metadata;
 }

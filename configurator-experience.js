@@ -4,7 +4,7 @@ import {
   layoutPresets,
   normalizeBookcaseConfig,
   optionLabels
-} from "./bookcase-config.js?v=benjamin-moore-20260712a";
+} from "./bookcase-config.js?v=engine-contract-20260713s";
 import { deriveBillableComponents } from "./bookcase-billable.js?v=pricing-20260712a";
 
 export const CONFIGURATOR_MODES = Object.freeze({
@@ -32,7 +32,7 @@ export const ALL_CONTROL_CATEGORIES = Object.freeze([
   { id: "dimensions", label: "Dimensions", step: "dimensions" },
   { id: "storage", label: "Shelves & Cabinets", step: "storage" },
   { id: "construction", label: "Construction", step: "construction" },
-  { id: "doors", label: "Fronts & Door Count", step: "storage" },
+  { id: "doors", label: "Fronts", step: "storage" },
   { id: "finish", label: "Finish", step: "appearance" },
   { id: "hardware", label: "Hardware", step: "appearance" },
   { id: "lighting", label: "Lighting", step: "appearance" },
@@ -67,7 +67,7 @@ export const CONTROL_REGISTRY = Object.freeze([
   { field: "baseStyle", step: "construction", category: "construction", access: "direct" },
   { field: "crownStyle", step: "construction", category: "construction", access: "direct" },
   { field: "doorStyle", step: "storage", category: "doors", access: "direct" },
-  { field: "doorCount", step: "storage", category: "doors", access: "direct" },
+  { field: "doorCount", step: "storage", category: "doors", access: "derived" },
   { field: "finish", step: "appearance", category: "finish", access: "direct" },
   { field: "customPaintColor", step: "appearance", category: "finish", access: "direct" },
   { field: "customPaintCode", step: "appearance", category: "finish", access: "direct" },
@@ -161,9 +161,9 @@ export function getApplicability(config, layout) {
     hasDoors,
     hasDrawers,
     hasFronts,
-    showCabinetControls: Boolean(state.lowerCabinets),
+    showCabinetControls: Boolean(state.lowerCabinets) && (hasDoors || hasDrawers),
     showDoorControls: hasDoors,
-    showDrawerCount: hasDrawers || (state.lowerCabinets && state.lowerStorage === "drawers"),
+    showDrawerCount: hasDrawers,
     showHardware: billableQuantities.hardwareUnits > 0,
     showLightingWarmth: state.lighting !== "no_lighting" && hasBillableLighting,
     hasBillableLighting,

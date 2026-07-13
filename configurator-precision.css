@@ -1494,3 +1494,135 @@ body[data-page="configurator"] .service-option-card strong {
     line-height: 12px;
   }
 }
+
+/* Hardware and lighting option clarity ---------------------------------
+ * These are compact product selectors, not an icon gallery. Hardware uses
+ * one shape rendered in its actual finish; lighting uses two-column rows so
+ * every label has enough room at the fixed configurator-panel width. */
+
+body[data-page="configurator"] .hardware-choice-grid,
+body[data-page="configurator"] .lighting-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  overflow: visible;
+}
+
+body[data-page="configurator"] .hardware-choice,
+body[data-page="configurator"] .lighting-card {
+  min-width: 0;
+  min-height: 66px;
+  border: 1px solid var(--jq-border);
+  border-radius: 8px;
+  background: var(--jq-surface);
+  padding: 0;
+  text-align: left;
+}
+
+body[data-page="configurator"] .hardware-choice > label,
+body[data-page="configurator"] .lighting-card > label {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  min-height: 64px;
+  grid-template-columns: 38px minmax(0, 1fr);
+  grid-template-rows: auto;
+  gap: 9px;
+  align-content: center;
+  align-items: center;
+  justify-items: start;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+body[data-page="configurator"] .hardware-choice-icon,
+body[data-page="configurator"] .hardware-choice svg,
+body[data-page="configurator"] .lighting-card-icon,
+body[data-page="configurator"] .lighting-card-icon svg {
+  display: block;
+  width: 32px;
+  height: 32px;
+  grid-column: auto;
+  grid-row: auto;
+}
+
+body[data-page="configurator"] .hardware-choice-icon,
+body[data-page="configurator"] .hardware-choice:has(input:checked) .hardware-choice-icon,
+body[data-page="configurator"] .hardware-choice input:checked + label .hardware-choice-icon {
+  color: var(--hardware-finish);
+  filter: none;
+}
+
+body[data-page="configurator"] .hardware-choice-name,
+body[data-page="configurator"] .hardware-choice label > span:last-child,
+body[data-page="configurator"] .lighting-card label > span:last-child {
+  min-width: 0;
+  grid-column: auto;
+  grid-row: auto;
+  color: var(--jq-text);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.24;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+body[data-page="configurator"] .hardware-finish-swatch {
+  display: none;
+}
+
+body[data-page="configurator"] .lighting-card-icon {
+  color: var(--jq-accent-hover);
+}
+
+body[data-page="configurator"] .hardware-choice:hover,
+body[data-page="configurator"] .lighting-card:hover {
+  border-color: color-mix(in srgb, var(--jq-accent) 48%, var(--jq-border));
+}
+
+body[data-page="configurator"] .hardware-choice:has(input:checked),
+body[data-page="configurator"] .lighting-card:has(input:checked) {
+  border-color: var(--jq-accent);
+  background: #f8efe3;
+  box-shadow: 0 0 0 1px rgba(183, 131, 69, 0.2);
+}
+
+body[data-page="configurator"] .hardware-choice:has(input:focus-visible),
+body[data-page="configurator"] .lighting-card:has(input:focus-visible) {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] .hardware-choice-grid,
+  body[data-page="configurator"] .lighting-grid {
+    gap: 6px;
+  }
+
+  body[data-page="configurator"] .hardware-choice,
+  body[data-page="configurator"] .lighting-card {
+    min-height: 58px;
+  }
+
+  body[data-page="configurator"] .hardware-choice > label,
+  body[data-page="configurator"] .lighting-card > label {
+    min-height: 56px;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 7px;
+    padding: 6px 8px;
+  }
+
+  body[data-page="configurator"] .hardware-choice-icon,
+  body[data-page="configurator"] .hardware-choice svg,
+  body[data-page="configurator"] .lighting-card-icon,
+  body[data-page="configurator"] .lighting-card-icon svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  body[data-page="configurator"] .hardware-choice-name,
+  body[data-page="configurator"] .hardware-choice label > span:last-child,
+  body[data-page="configurator"] .lighting-card label > span:last-child {
+    font-size: 10px;
+    line-height: 1.18;
+  }
+}
