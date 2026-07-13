@@ -42,8 +42,8 @@ async function readRenderDiagnostics(viewer) {
   }));
 }
 
-async function openVerifiedConfigurator(page) {
-  await page.goto("/configurator.html", { waitUntil: "networkidle" });
+async function openVerifiedConfigurator(page, presetId = "lower-cabinets") {
+  await page.goto(`/configurator.html?preset=${encodeURIComponent(presetId)}`, { waitUntil: "networkidle" });
   const viewer = page.locator("[data-3d-viewer]");
   await expect(viewer).toBeVisible();
   await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
@@ -56,6 +56,14 @@ async function openVerifiedConfigurator(page) {
   expect(diagnostics.calls).toBeGreaterThan(0);
   expect(diagnostics.triangles).toBeGreaterThan(0);
   return viewer;
+}
+
+async function openPresetLibrary(page) {
+  const allControls = page.getByRole("tab", { name: /All Controls/ });
+  if (await allControls.getAttribute("aria-selected") !== "true") await allControls.click();
+  const trigger = page.locator('[data-category-trigger="layout"]');
+  if (await trigger.getAttribute("aria-expanded") !== "true") await trigger.click();
+  await expect(page.locator("[data-preset-id]").first()).toBeVisible();
 }
 
 async function openSectionDesigner(page) {
@@ -93,7 +101,74 @@ async function readAcceptedDesign(page) {
   });
 }
 
-test("default configurator boots with a verified WebGL model and no runtime errors", async ({ page }) => {
+test("new visitor sees an unnumbered presentation-only welcome with no commercial artifacts", async ({ page }) => {
+  const errors = monitorRuntime(page);
+  await page.goto("/configurator.html", { waitUntil: "networkidle" });
+
+  await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Start with my space/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Use an editable idea/ })).toBeVisible();
+  await expect(page.locator("[data-3d-viewer]")).toHaveCount(0);
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator("[data-save-design], [data-open-order], [data-open-ar]")).toHaveCount(0);
+  await expect(page.locator("[data-price]")).toHaveText("Your estimate will appear as you build");
+  await expect(page.getByRole("button", { name: "Save after you start" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Quote after you start" })).toBeDisabled();
+
+  const diagnostics = await page.locator("[data-builder-form]").evaluate((shell) => ({ ...shell.dataset }));
+  expect(diagnostics.diagnosticAcceptedDesign).toBe("false");
+  expect(diagnostics.diagnosticEntryView).toBe("welcome");
+  expect(diagnostics.diagnosticPriceCalculations).toBe("0");
+  expect(diagnostics.diagnosticPhysicalUpdates).toBe("0");
+  expect(diagnostics.diagnosticConfiguration).toBe("null");
+  expect(diagnostics.diagnosticPricing).toBe("null");
+  expect(errors).toEqual([]);
+});
+
+test("custom-space route creates the first neutral accepted design exactly once", async ({ page }) => {
+  const errors = monitorRuntime(page);
+  await page.goto("/configurator.html", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: /Start with my space/ }).click();
+  await page.locator('[data-studio-dimension="width"]').fill("108");
+  await page.locator('[data-studio-dimension="height"]').fill("100");
+  await page.locator('[data-studio-dimension="depth"]').fill("16");
+  await page.locator('[data-studio-sections][value="5"]').check();
+  await page.getByRole("button", { name: "Build my starting structure" }).click();
+
+  const viewer = page.locator("[data-3d-viewer]");
+  await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
+  await expect(viewer.locator("canvas")).toHaveCount(1);
+  const accepted = await readAcceptedDesign(page);
+  expect(accepted.diagnostics.acceptedDesign).toBe(true);
+  expect(accepted.diagnostics.state.width).toBe(108);
+  expect(accepted.diagnostics.state.height).toBe(100);
+  expect(accepted.diagnostics.state.depth).toBe(16);
+  expect(accepted.diagnostics.state.sections).toBe(5);
+  expect(accepted.diagnostics.state.lowerCabinets).toBe(false);
+  expect(accepted.diagnostics.state.lighting).toBe("no_lighting");
+  expect(accepted.diagnostics.priceCalculationCount).toBe(1);
+  expect(accepted.diagnostics.updateCount).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test("idea route filters real configurations and accepts one editable idea", async ({ page }) => {
+  const errors = monitorRuntime(page);
+  await page.goto("/configurator.html", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: /Use an editable idea/ }).click();
+  await expect(page.locator("[data-idea-id]")).toHaveCount(6);
+  await expect(page.getByRole("button", { name: "View all 10 editable ideas" })).toBeVisible();
+  await page.getByRole("button", { name: "Storage", exact: true }).click();
+  await expect(page.locator("[data-idea-id]")).toHaveCount(4);
+  await page.locator('[data-idea-id="display-wall"]').click();
+  await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
+  const accepted = await readAcceptedDesign(page);
+  expect(accepted.diagnostics.state.layoutPreset).toBe("display-wall");
+  expect(accepted.diagnostics.initialSource).toBe("idea");
+  expect(accepted.diagnostics.guidedStep).toBe("dimensions");
+  expect(errors).toEqual([]);
+});
+
+test("explicit preset bypass boots with a verified WebGL model and no runtime errors", async ({ page }) => {
   const errors = monitorRuntime(page);
   const viewer = await openVerifiedConfigurator(page);
 
@@ -108,6 +183,7 @@ test("default configurator boots with a verified WebGL model and no runtime erro
 test("all ten commercial presets render through the descriptor contract", async ({ page }) => {
   const errors = monitorRuntime(page);
   const viewer = await openVerifiedConfigurator(page);
+  await openPresetLibrary(page);
 
   for (const presetId of presetIds) {
     const card = page.locator(`[data-preset-id="${presetId}"]`);
@@ -198,7 +274,7 @@ test("Section Designer accepts the canonical mixed design with undo, redo, split
   expect(saved.canonicalConfig.layoutMetadata.sectionTypes).toEqual(["open", "drawers", "lower_doors", "tall_doors"]);
   expect(saved.bom.layoutFingerprint).toBe(saved.layoutFingerprint);
 
-  await page.reload({ waitUntil: "networkidle" });
+  await page.goto("/configurator.html", { waitUntil: "networkidle" });
   await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true");
   const restored = await readAcceptedDesign(page);
   expect(restored.widths).toEqual([18, 30, 20, 24.25]);
@@ -239,6 +315,7 @@ test("saved schema-v4 design is canonical, reloadable, and quote-ready", async (
   const errors = monitorRuntime(page);
   const viewer = await openVerifiedConfigurator(page);
 
+  await openPresetLibrary(page);
   await page.locator('[data-preset-id="display-wall"]').click();
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
   await page.locator("[data-save-design]").first().click();
@@ -255,7 +332,7 @@ test("saved schema-v4 design is canonical, reloadable, and quote-ready", async (
   expect(saved).not.toHaveProperty("layout");
   expect(saved).not.toHaveProperty("components");
 
-  await page.reload({ waitUntil: "networkidle" });
+  await page.goto("/configurator.html", { waitUntil: "networkidle" });
   await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true");
   await expect(page.locator('[data-preset-id="display-wall"]')).toHaveAttribute("aria-pressed", "true");
 
@@ -272,6 +349,7 @@ test("rapid preset cycling is leak-bounded and leaves one verified model", async
   const errors = monitorRuntime(page);
   const viewer = await openVerifiedConfigurator(page);
   const baseline = await readRenderDiagnostics(viewer);
+  await openPresetLibrary(page);
 
   await page.evaluate((ids) => {
     for (let cycle = 0; cycle < 10; cycle += 1) {
@@ -293,12 +371,50 @@ test("rapid preset cycling is leak-bounded and leaves one verified model", async
   expect(errors).toEqual([]);
 });
 
+test("welcome composition is usable at every required desktop and mobile viewport", async ({ page }) => {
+  const viewports = [
+    { width: 1440, height: 900 },
+    { width: 1024, height: 900 },
+    { width: 390, height: 844 },
+    { width: 360, height: 800 }
+  ];
+  const errors = monitorRuntime(page);
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await page.goto("/configurator.html", { waitUntil: "networkidle" });
+    await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Start with my space/ })).toBeVisible();
+    await expect(page.locator("canvas")).toHaveCount(0);
+    const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(horizontalOverflow).toBeLessThanOrEqual(1);
+    await page.screenshot({
+      path: `artifacts/custom-studio-qa/welcome-${viewport.width}x${viewport.height}.png`,
+      animations: "disabled"
+    });
+  }
+  expect(errors).toEqual([]);
+});
+
+test("Start over clears the accepted design and returns to both studio routes", async ({ page }) => {
+  await openVerifiedConfigurator(page, "display-wall");
+  await openPresetLibrary(page);
+  await page.getByRole("button", { name: "Start over", exact: true }).click();
+  await page.getByRole("button", { name: "Confirm start over", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toBeVisible();
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator("[data-3d-viewer]")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Start with my space/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Use an editable idea/ })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("jqBookcasesDesign"))).toBeNull();
+});
+
 test("mobile viewport keeps controls usable and the accepted model valid", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const errors = monitorRuntime(page);
   const viewer = await openVerifiedConfigurator(page);
 
   await expect(page.locator("[data-save-design]").first()).toBeVisible();
+  await openPresetLibrary(page);
   await page.locator('[data-preset-id="classic-open"]').click();
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
   await expect(page.locator('[data-preset-id="classic-open"]')).toHaveAttribute("aria-pressed", "true");

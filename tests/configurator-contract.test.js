@@ -53,12 +53,15 @@ test("one delegated action path owns Save Design and Request Quote", () => {
   assert.match(source, /openQuotePage\(\) \{[\s\S]*this\.saveCurrentDesign\(\)[\s\S]*window\.location\.assign/);
 });
 
-test("one price pipeline and one physical update pipeline serve both modes", () => {
+test("one accepted edit pipeline serves both modes after the explicit studio commit", () => {
   assert.equal((source.match(/update\(nextState, options = \{\}\) \{/g) || []).length, 1);
-  assert.equal((source.match(/this\.pricing = (?:acceptedInitial|committedEvaluation)\.pricing/g) || []).length, 2);
-  assert.equal((source.match(/this\.price = this\.pricing\.total/g) || []).length, 2);
   assert.equal((source.match(/this\.viewer\.update\(state, evaluation\.layout\)/g) || []).length, 1);
   assert.match(source, /const evaluation = evaluateBookcaseCandidate\(nextState\)/);
+  const entryCommit = methodBody("acceptStudioDesign", "initializeCabinetAr");
+  assert.match(entryCommit, /evaluateBookcaseCandidate\(config\)/);
+  assert.match(entryCommit, /this\.acceptedEvaluation = evaluation/);
+  assert.match(entryCommit, /this\.pricing = evaluation\.pricing/);
+  assert.match(entryCommit, /this\.createViewer\(this\.layout\)/);
   assert.doesNotMatch(source, /guidedPrice|allControlsPrice|guidedState|allControlsState/);
 });
 
@@ -150,20 +153,24 @@ test("service and derived metadata updates never rebuild unchanged 3D geometry",
   assert.match(partial, /every\(\(field\) => nonVisualFields\.has\(field\)\)/);
 });
 
-test("Guided Layout shows every preset immediately without recommendation or disclosure UI", () => {
-  const layouts = methodBody("renderLayoutCards", "renderStorageGroup");
-  assert.match(layouts, /renderCards\(layoutPresets\)/);
-  assert.doesNotMatch(layouts, /recommended-badge|additional-layouts|<details|Explore/);
+test("Guided Structure is custom-first while ideas remain engine-backed inspiration", () => {
+  const guided = methodBody("renderGuidedStepContent", "renderAllControlsExperience");
+  const ideas = methodBody("renderStudioIdeaLibrary", "renderStudioIdeaCard");
+  assert.match(guided, /stepId === "layout"[\s\S]*renderStructureStartGroup/);
+  assert.doesNotMatch(guided, /renderLayoutCards\("guided"\)/);
+  assert.match(ideas, /filterInspirationIdeas\(this\.inspirationFilter\)/);
+  assert.match(ideas, /View all \$\{filtered\.length\} editable ideas/);
 });
 
-test("Guided Size owns shelf count and thickness while Storage owns front style", () => {
-  const dimensions = methodBody("renderDimensionsGroup", "renderStructureGroup");
+test("Guided order separates Space, Structure, Storage, and Construction concerns", () => {
+  const space = methodBody("renderSpaceGroup", "renderStructureStartGroup");
   const storage = methodBody("renderStorageGroup", "renderDoorGroup");
   const construction = methodBody("renderStructureGroup", "renderFinishGroup");
-  assert.match(dimensions, /renderRangeControl\("shelves"/);
-  assert.match(dimensions, /renderRangeControl\("shelfThickness"/);
+  assert.match(space, /renderRangeControl\("width"/);
+  assert.doesNotMatch(space, /renderRangeControl\("shelves"|renderRangeControl\("shelfThickness"/);
+  assert.match(storage, /renderRangeControl\("shelves"/);
   assert.match(storage, /this\.renderDoorGroup\(\)/);
-  assert.doesNotMatch(construction, /shelfThickness/);
+  assert.match(construction, /renderRangeControl\("shelfThickness"/);
 });
 
 test("Project service cards avoid the shared option-card grid collision", () => {
@@ -336,8 +343,9 @@ test("the compact AR launch replaces the duplicate preview estimate", () => {
   assert.equal((shell.match(/data-ar-label/g) || []).length, 1);
   assert.equal((shell.match(/>AR View in Your Room<\/span>/g) || []).length, 1);
   assert.match(shell, /aria-label="AR View in Your Room"/);
-  assert.equal((shell.match(/data-price/g) || []).length, 1);
+  assert.equal((shell.match(/data-price/g) || []).length, 2);
   assert.match(shell, /Estimated project price/);
+  assert.match(shell, /Your estimate will appear as you build/);
   assert.doesNotMatch(shell, /preview-price-pill|data-preview-price|Current estimated project price/);
   assert.doesNotMatch(shell, /cabinet-ar-launch-heading|cabinet-ar-launch-help|See this bookcase at true scale/);
   assert.match(shell, /<div class="cabinet-ar-launch">\s*<button class="cabinet-ar-launch-button"/);

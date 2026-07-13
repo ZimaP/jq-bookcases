@@ -68,7 +68,7 @@ import {
   normalizeGuidedStep,
   shouldRunAction,
   validateGuidedStep
-} from "./configurator-experience.js?v=engine-contract-20260713s";
+} from "./configurator-experience.js?v=custom-studio-20260713a";
 import {
   createAcceptedDesignSnapshot,
   evaluateBookcaseCandidate,
@@ -78,6 +78,20 @@ import {
   createExpectedRenderManifest,
   validateRenderedManifest
 } from "./bookcase-render-contract.js?v=engine-hardening-20260711a";
+import {
+  INSPIRATION_FILTERS,
+  STUDIO_CAPABILITIES,
+  STUDIO_ENTRY_VIEWS,
+  STUDIO_PROVISIONAL_DIMENSIONS,
+  createNeutralCustomConfig,
+  filterInspirationIdeas,
+  getInspirationIdea,
+  getStudioPreviewIdeas,
+  inspirationIdeas,
+  normalizeStudioEntryView,
+  suggestStudioSectionCount,
+  validateStudioDimensions
+} from "./configurator-studio.js?v=custom-studio-20260713a";
 
 const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "shelfThickness", "lightingWarmth", "drawerCount"]);
 const builderIcons = Object.freeze({
@@ -98,6 +112,7 @@ const builderIcons = Object.freeze({
   check: iconSvg("check"),
   plus: iconSvg("plus"),
   minus: iconSvg("minus"),
+  back: iconSvg("chevron-left"),
   zoomIn: iconSvg("zoom-in"),
   zoomOut: iconSvg("zoom-out"),
   reset: iconSvg("reset"),
@@ -262,20 +277,32 @@ class BookcaseConfigurator {
   constructor(host, index) {
     this.host = host;
     this.id = `jq-builder-${index + 1}`;
-    const initialEvaluation = evaluateBookcaseCandidate(this.loadInitialConfig());
-    const acceptedInitial = initialEvaluation.accepted
-      ? initialEvaluation
-      : evaluateBookcaseCandidate(defaultBookcaseConfig);
-    if (!acceptedInitial.accepted) throw new Error("The default bookcase configuration must be valid.");
-    this.acceptedEvaluation = acceptedInitial;
-    this.state = acceptedInitial.state;
-    this.layout = acceptedInitial.layout;
-    this.bom = acceptedInitial.bom;
-    this.pricing = acceptedInitial.pricing;
-    this.basePresetId = inferBasePresetId(this.state);
+    this.arEnabled = this.host.getAttribute("data-enable-cabinet-ar") === "true";
+    const initialRequest = this.loadInitialDesignRequest();
+    const initialEvaluation = initialRequest.config ? evaluateBookcaseCandidate(initialRequest.config) : null;
+    this.hasAcceptedDesign = Boolean(initialEvaluation?.accepted);
+    this.initialSource = this.hasAcceptedDesign ? initialRequest.source : "new";
+    this.acceptedEvaluation = this.hasAcceptedDesign ? initialEvaluation : null;
+    this.state = this.hasAcceptedDesign ? initialEvaluation.state : null;
+    this.layout = this.hasAcceptedDesign ? initialEvaluation.layout : null;
+    this.bom = this.hasAcceptedDesign ? initialEvaluation.bom : null;
+    this.pricing = this.hasAcceptedDesign ? initialEvaluation.pricing : null;
+    this.basePresetId = this.hasAcceptedDesign ? inferBasePresetId(this.state) : defaultBookcaseConfig.layoutPreset;
     this.mode = this.loadPreference(CONFIGURATOR_PREFERENCE_KEYS.mode, normalizeConfiguratorMode);
     this.guidedStep = this.loadPreference(CONFIGURATOR_PREFERENCE_KEYS.guidedStep, normalizeGuidedStep);
     this.expandedCategory = this.loadPreference(CONFIGURATOR_PREFERENCE_KEYS.allCategory, normalizeAllCategory);
+    this.entryView = STUDIO_ENTRY_VIEWS.welcome;
+    this.inspirationFilter = "all";
+    this.inspirationExpanded = false;
+    this.studioDimensions = { ...STUDIO_PROVISIONAL_DIMENSIONS };
+    this.studioDimensionsProvisional = false;
+    this.studioDimensionIssues = [];
+    this.studioSectionCount = suggestStudioSectionCount(this.studioDimensions.width);
+    this.introPreviewIndex = 1;
+    this.introPreviewTimer = 0;
+    this.introPreviewStopped = false;
+    this.analyticsEvents = [];
+    this.welcomeViewed = false;
     this.drafts = {};
     this.scrollPositions = { guided: 0, all: 0 };
     this.actionStartedAt = {};
@@ -300,24 +327,29 @@ class BookcaseConfigurator {
     this.sectionDesignerCameraChanged = false;
     this.activeSectionDividerDrag = null;
     this.activeView = "three-quarter";
-    this.arEnabled = this.host.getAttribute("data-enable-cabinet-ar") === "true";
     this.arController = null;
     this.arControllerPromise = null;
     this.activeRangeDrag = null;
     this.profileFocusFrame = 0;
     this.optionPreview = null;
     this.optionPreviewTimer = 0;
-    this.price = this.pricing.total;
-    this.priceCalculationCount += 1;
+    this.price = this.hasAcceptedDesign ? this.pricing.total : null;
+    if (this.hasAcceptedDesign) this.priceCalculationCount += 1;
     this.render();
     this.cacheElements();
-    this.viewer = this.createViewer(this.layout);
+    this.viewer = this.hasAcceptedDesign ? this.createViewer(this.layout) : this.createStudioIntroViewer();
     this.bindEvents();
-    if (this.arEnabled) this.initializeCabinetAr();
-    this.renderActiveControls();
-    this.syncInterface();
-    this.focusCameraForCurrentContext({ duration: SMART_CAMERA_DURATION });
-    this.verifyRestoredPaintSelection();
+    if (this.hasAcceptedDesign) {
+      if (this.arEnabled) this.initializeCabinetAr();
+      this.renderActiveControls();
+      this.syncInterface();
+      this.focusCameraForCurrentContext({ duration: SMART_CAMERA_DURATION });
+      this.verifyRestoredPaintSelection();
+      this.emitStudioEvent("studio_entry_bypassed", { source: this.initialSource });
+    } else {
+      this.syncStudioEntry();
+      this.emitWelcomeViewed();
+    }
   }
 
   loadPreference(key, normalizer) {
@@ -329,6 +361,7 @@ class BookcaseConfigurator {
   }
 
   async verifyRestoredPaintSelection() {
+    if (!this.hasAcceptedDesign || !this.state) return;
     const savedPaint = this.state.paintSelection;
     if (this.state.finish !== "custom_bm" || !savedPaint) return;
     try {
@@ -347,25 +380,54 @@ class BookcaseConfigurator {
     }
   }
 
-  loadInitialConfig() {
-    if (this.host.__cabinetArSharedConfiguration) return this.host.__cabinetArSharedConfiguration;
+  loadInitialDesignRequest() {
+    if (this.host.__cabinetArSharedConfiguration) {
+      return { config: this.host.__cabinetArSharedConfiguration, source: "share" };
+    }
     const requestedPresetId = new URLSearchParams(window.location.search).get("preset");
     const requestedPreset = layoutPresets.find((preset) => preset.id === requestedPresetId);
     if (requestedPreset) {
       return {
-        ...defaultBookcaseConfig,
-        ...requestedPreset.config,
-        layoutPreset: requestedPreset.id
+        config: {
+          ...defaultBookcaseConfig,
+          ...requestedPreset.config,
+          layoutPreset: requestedPreset.id
+        },
+        source: "preset"
       };
     }
     try {
       const stored = JSON.parse(localStorage.getItem("jqBookcasesDesign") || "null");
-      if (!stored || ![2, 3, 4].includes(Number(stored.schemaVersion))) return defaultBookcaseConfig;
+      if (!stored || ![2, 3, 4].includes(Number(stored.schemaVersion))) return { config: null, source: "new" };
       const restored = restoreAcceptedDesignSnapshot(stored);
-      return restored.accepted ? restored.state : defaultBookcaseConfig;
+      return restored.accepted
+        ? { config: restored.state, source: "saved" }
+        : { config: null, source: "new" };
     } catch (error) {
-      return defaultBookcaseConfig;
+      return { config: null, source: "new" };
     }
+  }
+
+  createStudioIntroViewer() {
+    return {
+      update: () => false,
+      setView: () => {},
+      zoom: () => {},
+      focus: () => {},
+      preview: () => {},
+      restorePreview: () => {},
+      getViewState: () => null,
+      getDiagnostics: () => ({
+        instanceId: "studio-intro",
+        presentationOnly: true,
+        updateCount: 0,
+        rebuildCount: 0,
+        geometryCount: 0,
+        textureCount: 0
+      }),
+      destroy: () => this.stopStudioPreviewMotion(),
+      lastRenderAudit: { valid: true, issues: [] }
+    };
   }
 
   createViewer(initialLayout = null) {
@@ -408,6 +470,10 @@ class BookcaseConfigurator {
   }
 
   renderFullPageConfigurator() {
+    if (!this.hasAcceptedDesign) {
+      this.renderStudioEntryShell();
+      return;
+    }
     this.host.innerHTML = `
       <form class="builder-shell configurator-shell configurator-experience" data-builder-form novalidate>
         <h1 id="${this.id}-viewer-title" class="sr-only">3D Bookcase Configurator</h1>
@@ -505,6 +571,173 @@ class BookcaseConfigurator {
     `;
   }
 
+  renderStudioEntryShell() {
+    this.entryView = normalizeStudioEntryView(this.entryView);
+    this.host.innerHTML = `
+      <form class="studio-entry-shell" data-builder-form data-entry-view="${this.entryView}" novalidate>
+        <section class="studio-entry-copy" aria-labelledby="${this.id}-entry-title">
+          ${this.entryView === STUDIO_ENTRY_VIEWS.welcome ? "" : `
+            <button class="studio-entry-back" type="button" data-studio-back>${builderIcons.back}<span>Back to studio start</span></button>
+          `}
+          ${this.renderStudioEntryContent()}
+        </section>
+
+        <section class="studio-intro-stage" aria-labelledby="${this.id}-preview-title">
+          <header class="studio-intro-heading">
+            <span class="section-kicker">A flexible starting point</span>
+            <h2 id="${this.id}-preview-title">One system, many arrangements</h2>
+            <p>These presentation views are derived from buildable configurations. They are not your design and do not create an estimate.</p>
+          </header>
+          <div class="studio-intro-preview" data-studio-intro-preview aria-live="polite">
+            ${this.renderStudioIntroPreview()}
+          </div>
+          <div class="studio-preview-variants" role="group" aria-label="Preview different arrangement capabilities">
+            ${getStudioPreviewIdeas().map((idea, index) => `
+              <button type="button" data-studio-preview-index="${index}" aria-pressed="${index === this.introPreviewIndex}">${escapeHtml(index === 0 ? "Open framework" : index === 1 ? "Mixed storage" : "Tall zones")}</button>
+            `).join("")}
+          </div>
+        </section>
+
+        <footer class="studio-entry-lockbar" aria-label="Estimate and actions available after starting a design">
+          <div class="studio-entry-estimate">
+            <span>Project estimate</span>
+            <strong data-price>Your estimate will appear as you build</strong>
+            <small>No configuration, price, or design ID has been created yet.</small>
+          </div>
+          <div class="studio-entry-locked-actions" aria-label="Actions unlock after a design begins">
+            <button type="button" disabled aria-disabled="true">Save after you start</button>
+            <button type="button" disabled aria-disabled="true">Quote after you start</button>
+          </div>
+        </footer>
+        <p class="status-message" data-builder-status role="status" aria-live="polite"></p>
+      </form>
+    `;
+  }
+
+  renderStudioEntryContent() {
+    if (this.entryView === STUDIO_ENTRY_VIEWS.custom) return this.renderStudioCustomStart();
+    if (this.entryView === STUDIO_ENTRY_VIEWS.ideas) return this.renderStudioIdeaLibrary();
+    return `
+      <header class="studio-welcome-heading">
+        <span class="section-kicker">Built around your space</span>
+        <h1 id="${this.id}-entry-title">Start with your wall. Build it your way.</h1>
+        <p>Your room sets the boundaries; the details stay yours. Begin with measurements or an editable idea, then shape every section, storage type, profile, finish, and lighting choice in one continuous design studio.</p>
+      </header>
+      <ul class="studio-capability-list" aria-label="What you can customize">
+        ${STUDIO_CAPABILITIES.map((capability) => `<li>${builderIcons.check}<span>${escapeHtml(capability)}</span></li>`).join("")}
+      </ul>
+      <div class="studio-entry-routes">
+        <button class="studio-route-card is-primary" type="button" data-studio-route="custom">
+          <span class="studio-route-number" aria-hidden="true">01</span>
+          <span><small>Recommended</small><strong>Start with my space</strong><em>Enter my dimensions</em></span>
+          ${builderIcons.dimensions}
+        </button>
+        <button class="studio-route-card" type="button" data-studio-route="ideas">
+          <span class="studio-route-number" aria-hidden="true">02</span>
+          <span><small>Explore possibilities</small><strong>Use an editable idea</strong><em>Browse ideas</em></span>
+          ${builderIcons.layout}
+        </button>
+      </div>
+      <p class="studio-reassurance">Every starting point stays editable. Media, desk, and fireplace openings explain their structural constraints where you edit them.</p>
+    `;
+  }
+
+  renderStudioCustomStart() {
+    const issueFor = (field) => this.studioDimensionIssues.find((issue) => issue.field === field)?.message || "";
+    return `
+      <header class="studio-welcome-heading is-compact">
+        <span class="section-kicker">Start with my space</span>
+        <h1 id="${this.id}-entry-title">Give the design a real boundary.</h1>
+        <p>Enter the wall dimensions you know. If they are provisional, you can revise them in Space before saving or requesting a quote.</p>
+      </header>
+      ${this.studioDimensionsProvisional ? `
+        <p class="studio-provisional-note" role="status"><strong>Provisional measurements</strong> We started with 96 × 96 × 15 inches. Confirm these before production planning.</p>
+      ` : ""}
+      <fieldset class="studio-dimension-fields">
+        <legend>Wall and bookcase dimensions</legend>
+        ${[
+          ["width", "Wall width", 24, 144],
+          ["height", "Available height", 72, 120],
+          ["depth", "Preferred depth", 10, 24]
+        ].map(([field, label, min, max]) => `
+          <label>
+            <span>${label}<small>${min}–${max} in</small></span>
+            <span class="studio-dimension-input"><input data-studio-dimension="${field}" type="number" min="${min}" max="${max}" step="1" inputmode="decimal" value="${escapeHtml(this.studioDimensions[field])}" aria-label="${label} in inches" aria-describedby="${this.id}-studio-${field}-error"><i aria-hidden="true">in</i></span>
+            <small id="${this.id}-studio-${field}-error" class="studio-field-error" data-studio-dimension-error="${field}">${escapeHtml(issueFor(field))}</small>
+          </label>
+        `).join("")}
+      </fieldset>
+      <button class="studio-unsure-button" type="button" data-studio-unsure>I’m not sure yet</button>
+      <fieldset class="studio-section-choice">
+        <legend>Starting structure</legend>
+        <p>Choose a section count. We’ll begin with equal open sections and no cabinets or lighting.</p>
+        <div role="radiogroup" aria-label="Starting section count">
+          ${[1, 2, 3, 4, 5, 6].map((count) => `
+            <label><input type="radio" name="${this.id}-studio-sections" data-studio-sections value="${count}" ${count === this.studioSectionCount ? "checked" : ""}><span>${count}</span></label>
+          `).join("")}
+        </div>
+      </fieldset>
+      <button class="studio-create-button" type="button" data-studio-create>Build my starting structure</button>
+      <p class="studio-reassurance">This creates your first accepted design. Only then will the live 3D model, estimate, Save, Quote, and room view become available.</p>
+    `;
+  }
+
+  renderStudioIdeaLibrary() {
+    const filtered = filterInspirationIdeas(this.inspirationFilter);
+    const visible = this.inspirationExpanded || this.inspirationFilter !== "all" ? filtered : filtered.slice(0, 6);
+    return `
+      <header class="studio-welcome-heading is-compact">
+        <span class="section-kicker">Ideas, not limits</span>
+        <h1 id="${this.id}-entry-title">Choose a buildable idea to reshape.</h1>
+        <p>Every card is backed by the same configuration engine. Choose one to create your first accepted design, then edit its dimensions, sections, storage, construction, and appearance.</p>
+      </header>
+      <div class="studio-idea-filters" role="group" aria-label="Filter editable ideas">
+        ${INSPIRATION_FILTERS.map((filter) => `
+          <button type="button" data-idea-filter="${filter.id}" aria-pressed="${filter.id === this.inspirationFilter}">${escapeHtml(filter.label)}</button>
+        `).join("")}
+      </div>
+      <div class="studio-idea-grid" data-studio-idea-grid>
+        ${visible.map((idea) => this.renderStudioIdeaCard(idea)).join("")}
+      </div>
+      ${this.inspirationFilter === "all" && !this.inspirationExpanded && filtered.length > visible.length ? `
+        <button class="studio-view-all" type="button" data-view-all-ideas>View all ${filtered.length} editable ideas</button>
+      ` : ""}
+      <p class="studio-reassurance">“Fully editable” means every section type and width can be changed directly. Feature openings remain editable within the structural rules shown in the designer.</p>
+    `;
+  }
+
+  renderStudioIdeaCard(idea) {
+    const preset = layoutPresets.find((item) => item.id === idea.id);
+    const index = layoutPresets.findIndex((item) => item.id === idea.id) + 1;
+    return `
+      <button class="studio-idea-card" type="button" data-idea-id="${escapeHtml(idea.id)}">
+        ${this.renderPresetMini(preset, index)}
+        <span class="studio-idea-copy">
+          <span><small>${escapeHtml(INSPIRATION_FILTERS.find((filter) => filter.id === idea.category)?.label || idea.category)}</small>${idea.fullyEditable ? "<em>Fully editable</em>" : "<em>Feature constraints</em>"}</span>
+          <strong>${escapeHtml(idea.name)}</strong>
+          <small>${escapeHtml(idea.description)}</small>
+        </span>
+      </button>
+    `;
+  }
+
+  renderStudioIntroPreview() {
+    const previewIdeas = getStudioPreviewIdeas();
+    const idea = previewIdeas[clamp(this.introPreviewIndex, 0, previewIdeas.length - 1)] || previewIdeas[0];
+    const preset = layoutPresets.find((item) => item.id === idea.id);
+    const layout = generateBookcaseLayout(preset.config);
+    return `
+      <div class="studio-preview-scaffold" data-studio-preview-idea="${escapeHtml(idea.id)}">
+        <span class="studio-dimension-line is-width" aria-hidden="true"><i></i><small>${layout.config.width} in wall width</small><i></i></span>
+        <span class="studio-dimension-line is-height" aria-hidden="true"><i></i><small>${layout.config.height} in</small><i></i></span>
+        <div class="studio-preview-drawing">${this.renderPresetMini(preset, 1)}</div>
+        <span class="studio-preview-callout is-add">${builderIcons.plus}<small>Add section</small></span>
+        <span class="studio-preview-callout is-resize">${builderIcons.dimensions}<small>Resize any section</small></span>
+      </div>
+      <p class="studio-preview-caption"><strong>${escapeHtml(idea.name)}</strong><span>${layout.config.sections} engine-derived sections · presentation only</span></p>
+    `;
+  }
+
   renderActiveControls(options = {}) {
     if (!this.elements?.guidedPanel || !this.elements?.allPanel) return;
     this.clearResetConfirmation();
@@ -570,10 +803,10 @@ class BookcaseConfigurator {
 
   renderGuidedStepContent(stepId) {
     if (stepId === "layout") {
-      return this.renderLayoutCards("guided");
+      return this.renderStructureStartGroup();
     }
     if (stepId === "dimensions") {
-      return this.renderDimensionsGroup();
+      return this.renderSpaceGroup();
     }
     if (stepId === "storage") return this.renderStorageGroup();
     if (stepId === "construction") return this.renderConstructionExperience();
@@ -655,8 +888,7 @@ class BookcaseConfigurator {
   renderStorageGroup(context = "guided") {
     return `
       <section class="control-section control-section-storage">
-        ${this.renderStepperControl("sections", "Vertical sections", 1, 6)}
-        <p class="control-helper section-limit-helper" data-section-limit></p>
+        ${this.renderRangeControl("shelves", "Shelves per open section", 2, 8, 1, "")}
         <div class="toggle-row premium-toggle">
           <label for="${this.id}-lowerCabinets">Lower cabinets</label>
           <label class="switch">
@@ -937,6 +1169,33 @@ class BookcaseConfigurator {
     `;
   }
 
+  renderSpaceGroup() {
+    return `
+      <section class="control-section control-section-dimensions">
+        <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.dimensions}</span>Space</h2>
+        ${this.renderRangeControl("width", "Wall width", 24, 144, 1, "in")}
+        ${this.renderRangeControl("height", "Available height", 72, 120, 1, "in")}
+        ${this.renderRangeControl("depth", "Bookcase depth", 10, 24, 1, "in")}
+        <p class="control-helper">Measurements can be refined throughout the design. Final production dimensions are verified with your project details.</p>
+      </section>
+    `;
+  }
+
+  renderStructureStartGroup() {
+    return `
+      <section class="control-section control-section-storage control-section-guided-structure">
+        ${this.renderStepperControl("sections", "Vertical sections", 1, 6)}
+        <p class="control-helper section-limit-helper" data-section-limit></p>
+        ${this.sectionDesignerActive ? this.renderSectionDesignerGroup() : `
+          <aside class="section-designer-entry">
+            <div><strong>Shape each section</strong><p>Resize, split, merge, or change individual section types while the overall wall width stays fixed.</p></div>
+            <button type="button" data-section-designer-open>Open Section Designer</button>
+          </aside>
+        `}
+      </section>
+    `;
+  }
+
   renderStructureGroup() {
     const baseChoices = baseStyleOptions.map((option) => `
       <div class="style-choice" data-style="${option.value}">
@@ -959,7 +1218,8 @@ class BookcaseConfigurator {
 
     return `
       <section class="control-section control-section-structure">
-        <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.structure}</span>Structure</h2>
+        <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.structure}</span>Construction</h2>
+        ${this.renderRangeControl("shelfThickness", "Shelf thickness", 0.75, 2, 0.25, "in")}
         <fieldset class="structure-field">
           <legend>Base Style</legend>
           <div class="style-choice-grid base-choice-grid">${baseChoices}</div>
@@ -1112,6 +1372,7 @@ class BookcaseConfigurator {
     this.elements = {
       shell: this.host.querySelector("[data-builder-form]"),
       viewer: this.host.querySelector("[data-3d-viewer]"),
+      studioIntroPreview: this.host.querySelector("[data-studio-intro-preview]"),
       form: this.host.querySelector("[data-builder-form]"),
       price: this.host.querySelector("[data-price]"),
       status: this.host.querySelector("[data-builder-status]"),
@@ -1124,6 +1385,155 @@ class BookcaseConfigurator {
       reviewDialogContent: this.host.querySelector("[data-review-dialog-content]"),
       arDialog: this.host.querySelector("[data-ar-dialog]")
     };
+  }
+
+  emitStudioEvent(name, detail = {}) {
+    const safeDetail = Object.freeze({
+      ...detail,
+      entryView: this.hasAcceptedDesign ? "accepted" : this.entryView
+    });
+    this.analyticsEvents.push({ name, detail: safeDetail });
+    this.host.dispatchEvent(new CustomEvent("jq:studio", {
+      bubbles: true,
+      detail: Object.freeze({ name, ...safeDetail })
+    }));
+  }
+
+  emitWelcomeViewed() {
+    if (this.welcomeViewed) return;
+    this.welcomeViewed = true;
+    this.emitStudioEvent("studio_welcome_viewed", { source: "new" });
+  }
+
+  syncStudioEntry() {
+    document.body.dataset.studioState = "presentation";
+    if (!this.elements?.shell) return;
+    this.elements.shell.dataset.diagnosticAcceptedDesign = "false";
+    this.elements.shell.dataset.diagnosticEntryView = this.entryView;
+    this.elements.shell.dataset.diagnosticPhysicalUpdates = "0";
+    this.elements.shell.dataset.diagnosticPriceCalculations = "0";
+    this.elements.shell.dataset.diagnosticCanvasCount = "0";
+    this.elements.shell.dataset.diagnosticViewerInstance = "studio-intro";
+    this.elements.shell.dataset.diagnosticConfiguration = "null";
+    this.elements.shell.dataset.diagnosticPricing = "null";
+    this.startStudioPreviewMotion();
+  }
+
+  renderStudioEntryView(options = {}) {
+    this.stopStudioPreviewMotion();
+    this.render();
+    this.cacheElements();
+    this.viewer = this.createStudioIntroViewer();
+    this.syncStudioEntry();
+    if (options.focusSelector) window.requestAnimationFrame(() => this.host.querySelector(options.focusSelector)?.focus());
+  }
+
+  startStudioPreviewMotion() {
+    this.stopStudioPreviewMotion();
+    if (this.hasAcceptedDesign || this.introPreviewStopped || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    this.introPreviewTimer = window.setInterval(() => {
+      const previewIdeas = getStudioPreviewIdeas();
+      this.setStudioPreview((this.introPreviewIndex + 1) % previewIdeas.length, { manual: false });
+    }, 3600);
+  }
+
+  stopStudioPreviewMotion(permanent = false) {
+    window.clearInterval(this.introPreviewTimer);
+    this.introPreviewTimer = 0;
+    if (permanent) this.introPreviewStopped = true;
+  }
+
+  setStudioPreview(index, options = {}) {
+    const previewIdeas = getStudioPreviewIdeas();
+    this.introPreviewIndex = clamp(Number(index) || 0, 0, previewIdeas.length - 1);
+    if (options.manual) this.stopStudioPreviewMotion(true);
+    if (this.elements?.studioIntroPreview) this.elements.studioIntroPreview.innerHTML = this.renderStudioIntroPreview();
+    this.host.querySelectorAll("[data-studio-preview-index]").forEach((button) => {
+      button.setAttribute("aria-pressed", String(Number(button.dataset.studioPreviewIndex) === this.introPreviewIndex));
+    });
+  }
+
+  readStudioDimensions() {
+    const values = {};
+    this.host.querySelectorAll("[data-studio-dimension]").forEach((input) => {
+      values[input.dataset.studioDimension] = input.value;
+    });
+    return values;
+  }
+
+  handleStudioCustomStart() {
+    const rawDimensions = this.readStudioDimensions();
+    const validation = validateStudioDimensions(rawDimensions);
+    this.studioDimensionIssues = [...validation.issues];
+    if (!validation.valid) {
+      this.studioDimensions = { ...this.studioDimensions, ...rawDimensions };
+      this.renderStudioEntryView({ focusSelector: `[data-studio-dimension="${validation.issues[0].field}"]` });
+      this.showStatus(validation.issues[0].message, true);
+      return;
+    }
+    this.studioDimensions = { ...validation.dimensions };
+    const selectedSections = Number(this.host.querySelector("[data-studio-sections]:checked")?.value) || suggestStudioSectionCount(validation.dimensions.width);
+    this.studioSectionCount = selectedSections;
+    const startingPoint = createNeutralCustomConfig({ ...validation.dimensions, sections: selectedSections });
+    if (!startingPoint.accepted) {
+      this.showStatus(startingPoint.issues[0]?.message || "Review the starting dimensions.", true);
+      return;
+    }
+    this.emitStudioEvent("studio_custom_dimensions_accepted", {
+      provisional: this.studioDimensionsProvisional,
+      sectionCount: selectedSections
+    });
+    this.acceptStudioDesign(startingPoint.config, { source: "custom", guidedStep: "storage" });
+  }
+
+  acceptStudioIdea(ideaId) {
+    const idea = getInspirationIdea(ideaId);
+    if (!idea) return;
+    this.emitStudioEvent("studio_idea_selected", {
+      ideaId: idea.id,
+      category: idea.category,
+      fullyEditable: idea.fullyEditable
+    });
+    this.acceptStudioDesign(idea.config, { source: "idea", ideaId: idea.id, guidedStep: "dimensions" });
+  }
+
+  acceptStudioDesign(config, options = {}) {
+    const evaluation = evaluateBookcaseCandidate(config);
+    if (!evaluation.accepted) {
+      this.showStatus(evaluation.errors[0]?.message || "This starting point could not be created.", true);
+      return false;
+    }
+    this.stopStudioPreviewMotion(true);
+    this.viewer?.destroy?.();
+    this.hasAcceptedDesign = true;
+    this.initialSource = options.source || "custom";
+    this.acceptedEvaluation = evaluation;
+    this.state = evaluation.state;
+    this.layout = evaluation.layout;
+    this.bom = evaluation.bom;
+    this.pricing = evaluation.pricing;
+    this.price = evaluation.pricing.total;
+    this.basePresetId = inferBasePresetId(this.state);
+    this.guidedStep = normalizeGuidedStep(options.guidedStep || "dimensions");
+    this.mode = CONFIGURATOR_MODES.guided;
+    this.expandedCategory = normalizeAllCategory("dimensions");
+    this.priceCalculationCount += 1;
+    this.drafts = {};
+    this.render();
+    this.cacheElements();
+    this.viewer = this.createViewer(this.layout);
+    if (this.arEnabled) this.initializeCabinetAr();
+    document.body.dataset.studioState = "accepted";
+    this.renderActiveControls();
+    this.syncInterface();
+    this.focusCameraForCurrentContext({ duration: SMART_CAMERA_DURATION });
+    this.emitStudioEvent("studio_design_accepted", {
+      source: this.initialSource,
+      ideaId: options.ideaId || null,
+      sectionCount: this.state.sections
+    });
+    window.requestAnimationFrame(() => this.elements.controlsScroll?.focus?.({ preventScroll: true }));
+    return true;
   }
 
   initializeCabinetAr() {
@@ -1145,7 +1555,11 @@ class BookcaseConfigurator {
   }
 
   bindEvents() {
+    this.host.addEventListener("submit", (event) => event.preventDefault());
     this.host.addEventListener("pointerdown", (event) => {
+      if (!this.hasAcceptedDesign && event.target.closest?.("[data-studio-intro-preview], [data-studio-preview-index]")) {
+        this.stopStudioPreviewMotion(true);
+      }
       if (event.target.closest?.("[data-3d-viewer]")) this.cancelQueuedProfileFocus();
       const divider = event.target.closest?.("[data-section-divider]");
       if (divider && this.host.contains(divider)) {
@@ -1289,6 +1703,62 @@ class BookcaseConfigurator {
 
   handleDelegatedClick(event) {
     const target = event.target;
+    if (!this.hasAcceptedDesign) {
+      const route = target.closest?.("[data-studio-route]");
+      if (route) {
+        this.stopStudioPreviewMotion(true);
+        this.entryView = normalizeStudioEntryView(route.dataset.studioRoute);
+        this.studioDimensionIssues = [];
+        this.emitStudioEvent(this.entryView === STUDIO_ENTRY_VIEWS.custom ? "studio_custom_route_opened" : "studio_ideas_opened");
+        this.renderStudioEntryView({ focusSelector: "[data-studio-back]" });
+        return;
+      }
+      if (target.closest?.("[data-studio-back]")) {
+        this.entryView = STUDIO_ENTRY_VIEWS.welcome;
+        this.studioDimensionIssues = [];
+        this.renderStudioEntryView({ focusSelector: "[data-studio-route]" });
+        return;
+      }
+      if (target.closest?.("[data-studio-unsure]")) {
+        this.studioDimensions = { ...STUDIO_PROVISIONAL_DIMENSIONS };
+        this.studioDimensionsProvisional = true;
+        this.studioDimensionIssues = [];
+        this.studioSectionCount = suggestStudioSectionCount(this.studioDimensions.width);
+        this.emitStudioEvent("studio_provisional_dimensions_used");
+        this.renderStudioEntryView({ focusSelector: "[data-studio-dimension=\"width\"]" });
+        return;
+      }
+      if (target.closest?.("[data-studio-create]")) {
+        this.handleStudioCustomStart();
+        return;
+      }
+      const preview = target.closest?.("[data-studio-preview-index]");
+      if (preview) {
+        this.setStudioPreview(Number(preview.dataset.studioPreviewIndex), { manual: true });
+        this.emitStudioEvent("studio_intro_preview_changed", { previewIndex: this.introPreviewIndex });
+        return;
+      }
+      const filter = target.closest?.("[data-idea-filter]");
+      if (filter) {
+        this.inspirationFilter = filter.dataset.ideaFilter;
+        this.inspirationExpanded = this.inspirationFilter !== "all";
+        this.emitStudioEvent("studio_ideas_filtered", { filter: this.inspirationFilter });
+        this.renderStudioEntryView({ focusSelector: `[data-idea-filter="${this.inspirationFilter}"]` });
+        return;
+      }
+      if (target.closest?.("[data-view-all-ideas]")) {
+        this.inspirationExpanded = true;
+        this.emitStudioEvent("studio_ideas_expanded", { visibleCount: inspirationIdeas.length });
+        this.renderStudioEntryView({ focusSelector: "[data-studio-idea-grid] [data-idea-id]:nth-child(7)" });
+        return;
+      }
+      const idea = target.closest?.("[data-idea-id]");
+      if (idea) {
+        this.acceptStudioIdea(idea.dataset.ideaId);
+        return;
+      }
+      return;
+    }
     const profileRadio = target.closest?.('input[type="radio"][data-field]');
     if (profileRadio && PROFILE_FOCUS_FIELDS.has(profileRadio.dataset.field)) {
       const fieldName = profileRadio.dataset.field;
@@ -1504,7 +1974,7 @@ class BookcaseConfigurator {
       this.expandedCategory = normalizeAllCategory(options.category || (this.sectionDesignerActive ? "section_designer" : categoryForGuidedStep(options.guidedStep || this.guidedStep)));
       this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.allCategory, this.expandedCategory);
     } else {
-      this.guidedStep = normalizeGuidedStep(options.guidedStep || (this.sectionDesignerActive ? "storage" : guidedStepForCategory(this.expandedCategory)));
+      this.guidedStep = normalizeGuidedStep(options.guidedStep || (this.sectionDesignerActive ? "layout" : guidedStepForCategory(this.expandedCategory)));
       this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.guidedStep, this.guidedStep);
     }
     this.mode = normalizedMode;
@@ -1530,7 +2000,7 @@ class BookcaseConfigurator {
     const currentIndex = getGuidedStepIndex(this.guidedStep);
     const nextIndex = getGuidedStepIndex(nextStep);
     if (!options.skipValidation && nextIndex > currentIndex && !this.validateAndFocusStep(this.guidedStep)) return;
-    if (this.sectionDesignerActive && nextStep !== "storage") this.deactivateSectionDesigner();
+    if (this.sectionDesignerActive && nextStep !== "layout") this.deactivateSectionDesigner();
     this.guidedStep = nextStep;
     this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.guidedStep, this.guidedStep);
     this.renderActiveControls({ previousMode: this.mode, resetScroll: true });
@@ -1882,7 +2352,7 @@ class BookcaseConfigurator {
       button.textContent = "Confirm start over";
       window.clearTimeout(this.resetConfirmationTimer);
       this.resetConfirmationTimer = window.setTimeout(() => this.clearResetConfirmation(), 4500);
-      this.showStatus("Choose “Confirm start over” to reset the physical design. Your preview view will stay in place.");
+      this.showStatus("Choose “Confirm start over” to clear this accepted design and return to the two studio starting routes.");
       return;
     }
     try {
@@ -1890,13 +2360,49 @@ class BookcaseConfigurator {
     } catch (error) {
       // Reset remains available when storage is unavailable.
     }
-    this.basePresetId = defaultBookcaseConfig.layoutPreset;
-    this.drafts = {};
     this.clearResetConfirmation();
-    this.update(defaultBookcaseConfig, { sourceField: "reset" });
-    this.renderActiveControls({ previousMode: this.mode });
-    this.syncInterface();
-    this.showStatus("Design reset to the recommended Full Bookcase. Your preview view is unchanged.");
+    this.returnToStudioWelcome();
+  }
+
+  returnToStudioWelcome() {
+    this.closeReviewDialog();
+    this.stopStudioPreviewMotion();
+    this.viewer?.destroy?.();
+    this.arController?.destroy?.();
+    this.arController = null;
+    this.arControllerPromise = null;
+    this.hasAcceptedDesign = false;
+    this.initialSource = "new";
+    this.acceptedEvaluation = null;
+    this.state = null;
+    this.layout = null;
+    this.bom = null;
+    this.pricing = null;
+    this.price = null;
+    this.basePresetId = defaultBookcaseConfig.layoutPreset;
+    this.entryView = STUDIO_ENTRY_VIEWS.welcome;
+    this.inspirationFilter = "all";
+    this.inspirationExpanded = false;
+    this.studioDimensions = { ...STUDIO_PROVISIONAL_DIMENSIONS };
+    this.studioDimensionsProvisional = false;
+    this.studioDimensionIssues = [];
+    this.studioSectionCount = suggestStudioSectionCount(this.studioDimensions.width);
+    this.introPreviewStopped = false;
+    this.drafts = {};
+    this.updateCount = 0;
+    this.priceCalculationCount = 0;
+    this.saveActionCount = 0;
+    this.quoteActionCount = 0;
+    this.sectionDesignerActive = false;
+    this.sectionUndoStack = [];
+    this.sectionRedoStack = [];
+    this.render();
+    this.cacheElements();
+    this.viewer = this.createStudioIntroViewer();
+    this.syncStudioEntry();
+    this.emitStudioEvent("studio_start_over", { source: "accepted-design" });
+    this.showStatus("Accepted design cleared. Choose how you want to begin again.");
+    window.requestAnimationFrame(() => this.host.querySelector("[data-studio-route]")?.focus());
   }
 
   clearResetConfirmation() {
@@ -2402,7 +2908,9 @@ class BookcaseConfigurator {
   }
 
   syncInterface() {
-    if (!this.elements?.shell) return;
+    if (!this.hasAcceptedDesign || !this.elements?.shell) return;
+    document.body.dataset.studioState = "accepted";
+    this.elements.shell.dataset.diagnosticAcceptedDesign = "true";
     this.elements.shell.dataset.interfaceMode = this.mode;
     this.elements.shell.classList.toggle("is-guided-mode", this.mode === CONFIGURATOR_MODES.guided);
     this.elements.shell.classList.toggle("is-all-controls-mode", this.mode === CONFIGURATOR_MODES.all);
@@ -2451,6 +2959,10 @@ class BookcaseConfigurator {
   syncDiagnosticsAttributes() {
     const shell = this.elements?.shell;
     if (!shell) return;
+    if (!this.hasAcceptedDesign) {
+      this.syncStudioEntry();
+      return;
+    }
     const viewer = this.viewer?.getDiagnostics?.() || {};
     const view = this.viewer?.getViewState?.() || {};
     shell.dataset.diagnosticMode = this.mode;
@@ -2610,7 +3122,26 @@ class BookcaseConfigurator {
   }
 
   getDiagnostics() {
+    if (!this.hasAcceptedDesign) {
+      return {
+        acceptedDesign: false,
+        entryView: this.entryView,
+        state: null,
+        price: null,
+        pricing: null,
+        updateCount: 0,
+        priceCalculationCount: 0,
+        saveActionCount: 0,
+        quoteActionCount: 0,
+        analyticsEvents: [...this.analyticsEvents],
+        viewer: this.viewer?.getDiagnostics?.(),
+        view: null,
+        canvasCount: 0
+      };
+    }
     return {
+      acceptedDesign: true,
+      initialSource: this.initialSource,
       mode: this.mode,
       guidedStep: this.guidedStep,
       expandedCategory: this.expandedCategory,
@@ -2625,8 +3156,9 @@ class BookcaseConfigurator {
       priceCalculationCount: this.priceCalculationCount,
       saveActionCount: this.saveActionCount,
       quoteActionCount: this.quoteActionCount,
-      viewer: this.viewer.getDiagnostics?.(),
-      view: this.viewer.getViewState?.(),
+      analyticsEvents: [...this.analyticsEvents],
+      viewer: this.viewer?.getDiagnostics?.(),
+      view: this.viewer?.getViewState?.(),
       canvasCount: this.elements.viewer?.querySelectorAll("canvas").length || 0
     };
   }
