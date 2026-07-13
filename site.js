@@ -359,9 +359,12 @@ function initQuoteForm() {
 
   if (activeDesignId && savedSummary) {
     const matchingStoredDesign = storedDesign?.id === activeDesignId ? storedDesign : null;
-    const config = matchingStoredDesign?.config || matchingStoredDesign?.state || {};
+    const config = matchingStoredDesign?.canonicalConfig || matchingStoredDesign?.config || matchingStoredDesign?.state || {};
     const quotePrefill = createQuotePrefill(config);
-    const designDetails = [formatStoredPrice(quotePrefill.price), quotePrefill.layoutLabel].filter(Boolean).map(escapeHtml).join(" &middot; ");
+    const designDetails = [
+      formatStoredPrice(quotePrefill.price),
+      quotePrefill.layoutLabel || formatPresetLabel(config.layoutPreset)
+    ].filter(Boolean).map(escapeHtml).join(" &middot; ");
     savedSummary.hidden = false;
     savedSummary.innerHTML = `<span>Saved design</span><strong>${escapeHtml(activeDesignId)}</strong><small>${designDetails}</small>`;
     if (quotePrefill.customPaint) {
