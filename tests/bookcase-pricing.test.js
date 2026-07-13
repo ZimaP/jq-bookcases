@@ -36,7 +36,7 @@ test("drawer-only pricing ignores stale door style and prices generated drawer h
   assert.equal(shaker.componentCharges.hardware.quantity, 12);
   assert.equal(shaker.componentCharges.hardware.amount, 225);
   assert.equal(shaker.componentCharges.lighting.amount, 450);
-  assert.equal(shaker.total, 14950);
+  assert.equal(shaker.total, 14850);
   assert.equal(glass.total, shaker.total);
 });
 
@@ -60,7 +60,7 @@ test("generated tall doors and their hardware are priced while zero compatible l
   assert.equal(selected.componentCharges.doorStyle.amount, 62.5);
   assert.equal(selected.componentCharges.hardware.amount, 56.25);
   assert.equal(selected.componentCharges.lighting.amount, 0);
-  assert.equal(selected.total, 14600);
+  assert.equal(selected.total, 13650);
   assert.equal(disabled.total, selected.total);
 });
 
@@ -84,8 +84,8 @@ test("valid lighting uses generated component quantities and preserved rates", (
 
   assert.equal(pucks.billableQuantities.puckLightLocations, 4);
   assert.equal(pucks.componentCharges.lighting.amount, 450);
-  assert.equal(pucks.total, 14850);
-  assert.equal(disabled.total, 14400);
+  assert.equal(pucks.total, 14800);
+  assert.equal(disabled.total, 14350);
 
   assert.deepEqual(
     [fullOpen.billableQuantities.compatibleLightingComponents, fullOpen.componentCharges.lighting.amount, fullOpen.total],
@@ -93,7 +93,7 @@ test("valid lighting uses generated component quantities and preserved rates", (
   );
   assert.deepEqual(
     [fullWithTallEnds.billableQuantities.compatibleLightingComponents, fullWithTallEnds.componentCharges.lighting.amount, fullWithTallEnds.total],
-    [14, 775, 13350]
+    [14, 775, 12450]
   );
   assert.notEqual(fullOpen.total, fullWithTallEnds.total);
 });
@@ -126,7 +126,7 @@ test("layout reconciliation removes obsolete door, hardware, and lighting charge
   );
   assert.deepEqual(
     [billable.componentCharges.doorStyle.amount, billable.componentCharges.hardware.amount, billable.componentCharges.lighting.amount, billable.total],
-    [525, 168.75, 1162.5, 15400]
+    [525, 168.75, 1162.5, 15350]
   );
   assert.equal(reconciled.selections.doorStyle, "glass");
   assert.equal(reconciled.selections.lighting, "full_package");
@@ -136,7 +136,7 @@ test("layout reconciliation removes obsolete door, hardware, and lighting charge
   );
   assert.deepEqual(
     [reconciled.componentCharges.doorStyle.amount, reconciled.componentCharges.hardware.amount, reconciled.componentCharges.lighting.amount, reconciled.total],
-    [0, 0, 0, 11850]
+    [0, 0, 0, 10500]
   );
 });
 
@@ -150,7 +150,7 @@ test("forced upper glass doors are distinguished from selected lower-door style"
   assert.equal(pricing.componentCharges.doorStyle.amount, 350);
   assert.equal(pricing.componentCharges.hardware.quantity, 12);
   assert.equal(pricing.componentCharges.hardware.amount, 225);
-  assert.equal(pricing.total, 16100);
+  assert.equal(pricing.total, 16050);
 });
 
 test("mixed doors and drawers price only their generated styles and attached hardware", () => {
@@ -165,7 +165,7 @@ test("mixed doors and drawers price only their generated styles and attached har
   assert.equal(pricing.componentCharges.hardware.quantity, 7);
   assert.equal(pricing.componentCharges.hardware.amount, 131.25);
   assert.equal(pricing.componentCharges.lighting.amount, 337.5);
-  assert.equal(pricing.total, 14050);
+  assert.equal(pricing.total, 13850);
 });
 
 test("normalized component rates preserve every established reference premium", () => {

@@ -19,6 +19,18 @@ import {
 import { generateBookcaseLayout } from "./bookcase-layout.js?v=engine-contract-20260713s";
 import { formatPrice } from "./bookcase-pricing.js?v=engine-contract-20260713s";
 import {
+  applySectionWidths,
+  equalizeSectionWidths,
+  getSectionDesignerState,
+  mergeSection,
+  reconcileSectionCustomization,
+  resetSectionCustomization,
+  resizeAdjacentSections,
+  setSectionClearWidth,
+  setSectionType,
+  splitSection
+} from "./bookcase-sections.js?v=section-designer-20260713a";
+import {
   PROFILE_CAMERA_DURATION,
   calculateProfileCameraPose,
   calculateViewportAwareTarget,
@@ -279,6 +291,14 @@ class BookcaseConfigurator {
     this.priceCalculationCount = 0;
     this.saveActionCount = 0;
     this.quoteActionCount = 0;
+    this.sectionDesignerActive = false;
+    this.selectedSectionIndex = 0;
+    this.sectionWidthDraft = "";
+    this.sectionUndoStack = [];
+    this.sectionRedoStack = [];
+    this.sectionDesignerCameraState = null;
+    this.sectionDesignerCameraChanged = false;
+    this.activeSectionDividerDrag = null;
     this.activeView = "three-quarter";
     this.arEnabled = this.host.getAttribute("data-enable-cabinet-ar") === "true";
     this.arController = null;
@@ -353,6 +373,7 @@ class BookcaseConfigurator {
     try {
       return new BookcaseViewer3D(this.elements.viewer, this.state, initialLayout, (interaction) => {
         if (interaction === "rotate") this.activeView = "custom";
+        if (this.sectionDesignerActive && ["rotate", "zoom"].includes(interaction)) this.sectionDesignerCameraChanged = true;
         this.syncViewButtons();
         this.syncDiagnosticsAttributes();
       });
@@ -604,6 +625,7 @@ class BookcaseConfigurator {
   renderCategoryContent(categoryId) {
     if (categoryId === "layout") return this.renderLayoutCards("all");
     if (categoryId === "dimensions") return this.renderDimensionsGroup();
+    if (categoryId === "section_designer") return this.renderSectionDesignerGroup();
     if (categoryId === "storage") return this.renderStorageGroup("all");
     if (categoryId === "construction") return this.renderStructureGroup();
     if (categoryId === "doors") return this.renderDoorGroup();
@@ -653,6 +675,98 @@ class BookcaseConfigurator {
           ${this.renderStepperControl("drawerCount", "Drawers per drawer section", 2, 5)}
         </div>
         ${context === "guided" ? this.renderDoorGroup() : ""}
+        ${context === "guided" ? this.sectionDesignerActive ? this.renderSectionDesignerGroup() : `
+          <aside class="section-designer-entry">
+            <div><strong>Customize each section</strong><p>Mix doors, drawers, open shelving, and precise bay widths without changing the overall size.</p></div>
+            <button type="button" data-section-designer-open>Customize each section</button>
+          </aside>
+        ` : ""}
+      </section>
+    `;
+  }
+
+  renderSectionDesignerGroup() {
+    const designer = getSectionDesignerState(this.state, this.layout);
+    this.selectedSectionIndex = clamp(this.selectedSectionIndex, 0, Math.max(0, designer.sections.length - 1));
+    const selected = designer.sections[this.selectedSectionIndex];
+    if (!this.sectionDesignerActive) {
+      return `
+        <section class="section-designer-intro">
+          <span class="section-kicker">Premium control</span>
+          <h3>Customize each section</h3>
+          <p>Mix doors, drawers, open shelving, and precise clear widths while one accepted design continues to drive the model and estimate.</p>
+          <button type="button" data-section-designer-open>Open Section Designer</button>
+        </section>
+      `;
+    }
+    if (!selected) return "";
+    const typeLabels = {
+      open: ["Open Shelves", "Full-height adjustable shelving"],
+      lower_doors: ["Lower Doors", "Closed storage with shelves above"],
+      drawers: ["Lower Drawers", `${this.state.drawerCount} drawers with shelves above`],
+      tall_doors: ["Tall Door", "One fitted full-height door"]
+    };
+    const sectionComponents = this.layout.components.filter((component) => component.id.startsWith(`${selected.id}-`));
+    const generated = {
+      doors: sectionComponents.filter((component) => component.role === "door").length,
+      drawers: sectionComponents.filter((component) => component.role === "drawer_front").length,
+      handles: sectionComponents.filter((component) => component.role === "handle").length,
+      shelves: sectionComponents.filter((component) => component.role === "shelf").length
+    };
+    const widthValue = this.sectionWidthDraft || formatSectionWidth(selected.width);
+    return `
+      <section class="section-designer" data-section-designer aria-label="Section Designer">
+        <header class="section-designer-heading">
+          <div><span class="section-kicker">Section Designer</span><h3>Section ${selected.index + 1} of ${designer.sections.length}</h3></div>
+          <button type="button" data-section-designer-close aria-label="Close Section Designer">Done</button>
+        </header>
+        <div class="section-strip" role="listbox" aria-label="Bookcase sections">
+          ${designer.sections.map((section) => `
+            <button type="button" role="option" data-section-select="${section.index}" aria-selected="${section.index === selected.index}" class="section-strip-card${section.index === selected.index ? " is-selected" : ""}${section.locked ? " is-locked" : ""}">
+              <span>Section ${section.index + 1}</span><strong>${formatSectionWidth(section.width)} in</strong><small>${escapeHtml(formatSectionType(section.type))}${section.locked ? " · Locked" : ""}</small>
+            </button>
+          `).join("")}
+        </div>
+        <div class="section-inspector">
+          <div class="section-width-editor">
+            <label for="${this.id}-section-width">Clear section width</label>
+            <div class="section-width-input">
+              <button type="button" data-section-width-step="-0.5" aria-label="Decrease clear width by half an inch">${builderIcons.minus}</button>
+              <input id="${this.id}-section-width" data-section-width type="number" min="${designer.minimumClearWidth}" step="0.25" inputmode="decimal" value="${escapeHtml(widthValue)}" aria-describedby="${this.id}-section-width-help ${this.id}-section-width-error">
+              <span>in clear</span>
+              <button type="button" data-section-width-step="0.5" aria-label="Increase clear width by half an inch">${builderIcons.plus}</button>
+            </div>
+            <p id="${this.id}-section-width-help" class="control-helper">Overall nominal width stays ${this.state.width} in. Neighboring sections absorb accepted width changes.</p>
+            <p id="${this.id}-section-width-error" class="inline-validation-message" data-section-width-error aria-live="polite"></p>
+          </div>
+          <fieldset class="section-type-field" ${selected.locked ? "disabled" : ""}>
+            <legend>Section type</legend>
+            <div class="section-type-grid">
+              ${Object.entries(typeLabels).map(([type, [label, description]]) => `
+                <label class="section-type-card">
+                  <input type="radio" name="${this.id}-section-type" data-section-type="${type}" ${selected.type === type ? "checked" : ""}>
+                  <span><strong>${label}</strong><small>${description}</small></span>
+                </label>
+              `).join("")}
+            </div>
+          </fieldset>
+          ${selected.locked ? `<p class="section-lock-note">This section belongs to the preset’s ${escapeHtml(formatSectionType(selected.type))} zone. Change to a non-feature layout to edit its type.</p>` : ""}
+          <dl class="section-generated-summary">
+            <div><dt>Generated fronts</dt><dd>${generated.doors} doors · ${generated.drawers} drawers</dd></div>
+            <div><dt>Hardware</dt><dd>${generated.handles} handles</dd></div>
+            <div><dt>Adjustable shelves</dt><dd>${generated.shelves}</dd></div>
+          </dl>
+          ${selected.warnings.length ? `<div class="section-warning" role="status">${selected.warnings.map((warning) => escapeHtml(warning.message)).join(" ")}</div>` : ""}
+          <div class="section-designer-actions">
+            <button type="button" data-section-split ${selected.locked ? "disabled" : ""}>Duplicate / Split</button>
+            <button type="button" data-section-merge="left" ${selected.index === 0 || selected.locked ? "disabled" : ""}>Merge Left</button>
+            <button type="button" data-section-merge="right" ${selected.index === designer.sections.length - 1 || selected.locked ? "disabled" : ""}>Merge Right</button>
+            <button type="button" data-section-equalize>Equalize Widths</button>
+            <button type="button" data-section-reset>Reset to Preset</button>
+            <button type="button" data-section-undo ${this.sectionUndoStack.length ? "" : "disabled"}>Undo</button>
+            <button type="button" data-section-redo ${this.sectionRedoStack.length ? "" : "disabled"}>Redo</button>
+          </div>
+        </div>
       </section>
     `;
   }
@@ -1033,14 +1147,28 @@ class BookcaseConfigurator {
   bindEvents() {
     this.host.addEventListener("pointerdown", (event) => {
       if (event.target.closest?.("[data-3d-viewer]")) this.cancelQueuedProfileFocus();
+      const divider = event.target.closest?.("[data-section-divider]");
+      if (divider && this.host.contains(divider)) {
+        this.beginSectionDividerDrag(event, divider);
+        return;
+      }
       const range = event.target.closest?.('.range-control input[type="range"][data-field]');
       if (!range || !this.host.contains(range)) return;
       this.focusCameraForField(range.dataset.field);
       this.beginRangeDrag(event, range);
     });
-    this.host.addEventListener("pointermove", (event) => this.updateRangeDrag(event));
-    this.host.addEventListener("pointerup", (event) => this.endRangeDrag(event));
-    this.host.addEventListener("pointercancel", (event) => this.endRangeDrag(event));
+    this.host.addEventListener("pointermove", (event) => {
+      this.updateSectionDividerDrag(event);
+      this.updateRangeDrag(event);
+    });
+    this.host.addEventListener("pointerup", (event) => {
+      this.endSectionDividerDrag(event);
+      this.endRangeDrag(event);
+    });
+    this.host.addEventListener("pointercancel", (event) => {
+      this.cancelSectionDividerDrag(event);
+      this.endRangeDrag(event);
+    });
 
     this.host.addEventListener("pointerover", (event) => {
       if (event.pointerType === "touch") return;
@@ -1064,6 +1192,13 @@ class BookcaseConfigurator {
     });
 
     this.host.addEventListener("input", (event) => {
+      const sectionWidth = event.target.closest?.("[data-section-width]");
+      if (sectionWidth && this.host.contains(sectionWidth)) {
+        this.sectionWidthDraft = sectionWidth.value;
+        const error = this.host.querySelector("[data-section-width-error]");
+        if (error) error.textContent = "";
+        return;
+      }
       const colorQuery = event.target.closest?.("[data-bm-query]");
       if (colorQuery && this.host.contains(colorQuery)) {
         this.colorQueryDraft = colorQuery.value;
@@ -1078,6 +1213,19 @@ class BookcaseConfigurator {
     });
 
     this.host.addEventListener("change", (event) => {
+      const sectionWidth = event.target.closest?.("[data-section-width]");
+      if (sectionWidth && this.host.contains(sectionWidth)) {
+        this.commitSelectedSectionWidth(sectionWidth.value);
+        return;
+      }
+      const sectionTypeInput = event.target.closest?.("[data-section-type]");
+      if (sectionTypeInput && this.host.contains(sectionTypeInput)) {
+        this.commitSectionOperation(
+          setSectionType(this.state, this.selectedSectionIndex, sectionTypeInput.dataset.sectionType, this.layout),
+          `${formatSectionType(sectionTypeInput.dataset.sectionType)} applied to Section ${this.selectedSectionIndex + 1}.`
+        );
+        return;
+      }
       const field = event.target.closest?.("[data-field]");
       if (!field || !this.host.contains(field)) return;
       if (field.type !== "radio" && field.type !== "checkbox" && field.tagName !== "SELECT") return;
@@ -1085,6 +1233,29 @@ class BookcaseConfigurator {
     });
 
     this.host.addEventListener("keydown", (event) => {
+      const divider = event.target.closest?.("[data-section-divider]");
+      if (divider && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
+        event.preventDefault();
+        const step = event.shiftKey ? 1 : 0.5;
+        const delta = event.key === "ArrowRight" ? step : -step;
+        this.commitSectionDividerResize(Number(divider.dataset.sectionDivider), delta);
+        return;
+      }
+      const sectionWidth = event.target.closest?.("[data-section-width]");
+      if (sectionWidth && event.key === "Enter") {
+        event.preventDefault();
+        this.commitSelectedSectionWidth(sectionWidth.value);
+        return;
+      }
+      const sectionOption = event.target.closest?.("[data-section-select]");
+      if (sectionOption && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+        event.preventDefault();
+        const count = getSectionDesignerState(this.state, this.layout).sections.length;
+        const current = Number(sectionOption.dataset.sectionSelect);
+        const next = event.key === "Home" ? 0 : event.key === "End" ? count - 1 : clamp(current + (event.key === "ArrowRight" ? 1 : -1), 0, count - 1);
+        this.selectSection(next, { focus: true });
+        return;
+      }
       const profileRadio = event.target.closest?.('input[type="radio"][data-field]');
       if (profileRadio && PROFILE_FOCUS_FIELDS.has(profileRadio.dataset.field)) {
         if (event.key === "Enter") {
@@ -1147,7 +1318,61 @@ class BookcaseConfigurator {
     }
     const categoryTrigger = target.closest?.("[data-category-trigger]");
     if (categoryTrigger) {
+      const categoryId = categoryTrigger.dataset.categoryTrigger;
+      const opening = categoryId === "section_designer" && categoryTrigger.getAttribute("aria-expanded") !== "true";
       this.toggleCategory(categoryTrigger.dataset.categoryTrigger);
+      if (categoryId === "section_designer") {
+        if (opening) this.activateSectionDesigner();
+        else this.deactivateSectionDesigner();
+      }
+      return;
+    }
+    if (target.closest?.("[data-section-designer-open]")) {
+      this.activateSectionDesigner();
+      return;
+    }
+    if (target.closest?.("[data-section-designer-close]")) {
+      this.deactivateSectionDesigner();
+      return;
+    }
+    const sectionSelect = target.closest?.("[data-section-select]");
+    if (sectionSelect) {
+      this.selectSection(Number(sectionSelect.dataset.sectionSelect));
+      return;
+    }
+    const widthStep = target.closest?.("[data-section-width-step]");
+    if (widthStep) {
+      const designer = getSectionDesignerState(this.state, this.layout);
+      const selected = designer.sections[this.selectedSectionIndex];
+      if (selected) this.commitSelectedSectionWidth(selected.width + Number(widthStep.dataset.sectionWidthStep));
+      return;
+    }
+    if (target.closest?.("[data-section-split]")) {
+      this.commitSectionOperation(splitSection(this.state, this.layout, this.selectedSectionIndex), "Section split accepted.");
+      return;
+    }
+    const merge = target.closest?.("[data-section-merge]");
+    if (merge) {
+      this.commitSectionOperation(
+        mergeSection(this.state, this.layout, this.selectedSectionIndex, merge.dataset.sectionMerge),
+        "Sections merged."
+      );
+      return;
+    }
+    if (target.closest?.("[data-section-equalize]")) {
+      this.commitSectionOperation(equalizeSectionWidths(this.state, this.layout), "Section widths equalized.");
+      return;
+    }
+    if (target.closest?.("[data-section-reset]")) {
+      this.commitSectionOperation(resetSectionCustomization(this.state, this.basePresetId), "Section customization reset to the selected preset.");
+      return;
+    }
+    if (target.closest?.("[data-section-undo]")) {
+      this.undoSectionChange();
+      return;
+    }
+    if (target.closest?.("[data-section-redo]")) {
+      this.redoSectionChange();
       return;
     }
     const presetButton = target.closest?.("[data-preset-id]");
@@ -1276,10 +1501,10 @@ class BookcaseConfigurator {
       && this.guidedStep === "review"
       && !options.category;
     if (normalizedMode === CONFIGURATOR_MODES.all) {
-      this.expandedCategory = normalizeAllCategory(options.category || categoryForGuidedStep(options.guidedStep || this.guidedStep));
+      this.expandedCategory = normalizeAllCategory(options.category || (this.sectionDesignerActive ? "section_designer" : categoryForGuidedStep(options.guidedStep || this.guidedStep)));
       this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.allCategory, this.expandedCategory);
     } else {
-      this.guidedStep = normalizeGuidedStep(options.guidedStep || guidedStepForCategory(this.expandedCategory));
+      this.guidedStep = normalizeGuidedStep(options.guidedStep || (this.sectionDesignerActive ? "storage" : guidedStepForCategory(this.expandedCategory)));
       this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.guidedStep, this.guidedStep);
     }
     this.mode = normalizedMode;
@@ -1305,6 +1530,7 @@ class BookcaseConfigurator {
     const currentIndex = getGuidedStepIndex(this.guidedStep);
     const nextIndex = getGuidedStepIndex(nextStep);
     if (!options.skipValidation && nextIndex > currentIndex && !this.validateAndFocusStep(this.guidedStep)) return;
+    if (this.sectionDesignerActive && nextStep !== "storage") this.deactivateSectionDesigner();
     this.guidedStep = nextStep;
     this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.guidedStep, this.guidedStep);
     this.renderActiveControls({ previousMode: this.mode, resetScroll: true });
@@ -1321,6 +1547,10 @@ class BookcaseConfigurator {
 
   focusCameraForCurrentContext(options = {}) {
     if (!this.viewer?.focus) return;
+    if (this.sectionDesignerActive) {
+      this.setView("front");
+      return;
+    }
     this.cancelQueuedProfileFocus();
     const profile = this.mode === CONFIGURATOR_MODES.guided
       ? CAMERA_PROFILE_BY_GUIDED_STEP[this.guidedStep] || "overview"
@@ -1411,6 +1641,196 @@ class BookcaseConfigurator {
     this.activeView = "custom";
     this.syncViewButtons();
     this.syncDiagnosticsAttributes();
+  }
+
+  activateSectionDesigner() {
+    if (!this.sectionDesignerActive) {
+      const viewState = this.viewer.getViewState?.() || null;
+      this.sectionDesignerCameraState = viewState ? { ...viewState, activeView: this.activeView } : null;
+      this.sectionDesignerCameraChanged = false;
+    }
+    this.sectionDesignerActive = true;
+    this.selectedSectionIndex = clamp(
+      this.selectedSectionIndex,
+      0,
+      Math.max(0, getSectionDesignerState(this.state, this.layout).sections.length - 1)
+    );
+    this.sectionWidthDraft = "";
+    this.viewer.setSectionDesigner?.({
+      active: true,
+      selectedIndex: this.selectedSectionIndex,
+      layout: this.layout,
+      onSelect: (index) => this.selectSection(index)
+    });
+    this.setView("front");
+    this.renderActiveControls({ previousMode: this.mode });
+    this.syncInterface();
+    window.requestAnimationFrame(() => this.host.querySelector(`[data-section-select="${this.selectedSectionIndex}"]`)?.focus({ preventScroll: true }));
+    this.showStatus("Section Designer is active. Clear widths are dimensions inside the cabinet panels.");
+  }
+
+  deactivateSectionDesigner() {
+    if (!this.sectionDesignerActive) return;
+    this.sectionDesignerActive = false;
+    this.sectionWidthDraft = "";
+    this.activeSectionDividerDrag = null;
+    this.viewer.setSectionDesigner?.({ active: false });
+    if (!this.sectionDesignerCameraChanged && this.sectionDesignerCameraState) {
+      this.viewer.restoreCameraState?.(this.sectionDesignerCameraState);
+      this.activeView = this.sectionDesignerCameraState.activeView || "custom";
+    }
+    this.sectionDesignerCameraState = null;
+    this.renderActiveControls({ previousMode: this.mode });
+    this.syncInterface();
+    this.showStatus("Section Designer closed. Your accepted section design is unchanged.");
+  }
+
+  selectSection(index, options = {}) {
+    const count = getSectionDesignerState(this.state, this.layout).sections.length;
+    this.selectedSectionIndex = clamp(Number(index) || 0, 0, Math.max(0, count - 1));
+    this.sectionWidthDraft = "";
+    this.viewer.setSectionSelection?.(this.selectedSectionIndex);
+    this.renderActiveControls({ previousMode: this.mode });
+    this.syncInterface();
+    if (options.focus) {
+      window.requestAnimationFrame(() => this.host.querySelector(`[data-section-select="${this.selectedSectionIndex}"]`)?.focus({ preventScroll: true }));
+    }
+  }
+
+  commitSelectedSectionWidth(value) {
+    const designer = getSectionDesignerState(this.state, this.layout);
+    const widthResult = setSectionClearWidth(designer.widths, this.selectedSectionIndex, Number(value), this.layout.rules);
+    if (!widthResult.accepted) {
+      this.showSectionDesignerError(widthResult.error);
+      return;
+    }
+    const operation = applySectionWidths(this.state, this.layout, widthResult.widths);
+    operation.affectedSections = widthResult.affectedSections;
+    this.commitSectionOperation(operation, `Section ${this.selectedSectionIndex + 1} width updated.`);
+  }
+
+  commitSectionDividerResize(dividerIndex, delta) {
+    const designer = getSectionDesignerState(this.state, this.layout);
+    const widthResult = resizeAdjacentSections(designer.widths, dividerIndex, delta, this.layout.rules);
+    if (!widthResult.accepted) {
+      this.showSectionDesignerError(widthResult.error);
+      return;
+    }
+    const operation = applySectionWidths(this.state, this.layout, widthResult.widths);
+    operation.affectedSections = widthResult.affectedSections;
+    this.selectedSectionIndex = Math.min(dividerIndex, widthResult.widths.length - 1);
+    this.commitSectionOperation(operation, "Divider position updated.");
+  }
+
+  commitSectionOperation(operation, successMessage) {
+    if (!operation?.accepted || !operation.config) {
+      this.showSectionDesignerError(operation?.error || { message: "That section change is not buildable." });
+      return false;
+    }
+    const previous = structuredClone(this.state);
+    const applied = this.update(operation.config, { sourceField: "layoutMetadata", refreshSectionDesigner: false });
+    if (!applied) return false;
+    this.sectionUndoStack.push(previous);
+    if (this.sectionUndoStack.length > 30) this.sectionUndoStack.shift();
+    this.sectionRedoStack = [];
+    this.selectedSectionIndex = clamp(this.selectedSectionIndex, 0, Math.max(0, this.state.sections - 1));
+    this.sectionWidthDraft = "";
+    this.refreshSectionDesignerPresentation();
+    this.showStatus(successMessage);
+    return true;
+  }
+
+  undoSectionChange() {
+    const previous = this.sectionUndoStack.pop();
+    if (!previous) return;
+    const current = structuredClone(this.state);
+    if (!this.update(previous, { sourceField: "layoutMetadata", refreshSectionDesigner: false })) {
+      this.sectionUndoStack.push(previous);
+      return;
+    }
+    this.sectionRedoStack.push(current);
+    if (this.sectionRedoStack.length > 30) this.sectionRedoStack.shift();
+    this.selectedSectionIndex = clamp(this.selectedSectionIndex, 0, Math.max(0, this.state.sections - 1));
+    this.refreshSectionDesignerPresentation();
+    this.showStatus("Section change undone.");
+  }
+
+  redoSectionChange() {
+    const next = this.sectionRedoStack.pop();
+    if (!next) return;
+    const current = structuredClone(this.state);
+    if (!this.update(next, { sourceField: "layoutMetadata", refreshSectionDesigner: false })) {
+      this.sectionRedoStack.push(next);
+      return;
+    }
+    this.sectionUndoStack.push(current);
+    if (this.sectionUndoStack.length > 30) this.sectionUndoStack.shift();
+    this.selectedSectionIndex = clamp(this.selectedSectionIndex, 0, Math.max(0, this.state.sections - 1));
+    this.refreshSectionDesignerPresentation();
+    this.showStatus("Section change redone.");
+  }
+
+  refreshSectionDesignerPresentation() {
+    if (this.sectionDesignerActive) {
+      this.viewer.setSectionDesigner?.({
+        active: true,
+        selectedIndex: this.selectedSectionIndex,
+        layout: this.layout,
+        onSelect: (index) => this.selectSection(index)
+      });
+    }
+    this.renderActiveControls({ previousMode: this.mode });
+    this.syncInterface();
+  }
+
+  showSectionDesignerError(error) {
+    const message = error?.message || "That section change is not buildable.";
+    const host = this.host.querySelector("[data-section-width-error]");
+    if (host) host.textContent = message;
+    this.showStatus(message, true);
+  }
+
+  beginSectionDividerDrag(event, handle) {
+    if (!this.sectionDesignerActive) return;
+    const overlay = handle.closest("[data-section-overlay]");
+    const rect = overlay?.getBoundingClientRect();
+    if (!rect?.width) return;
+    this.activeSectionDividerDrag = {
+      pointerId: event.pointerId,
+      dividerIndex: Number(handle.dataset.sectionDivider),
+      startX: event.clientX,
+      delta: 0,
+      pixelWidth: rect.width,
+      overallWidth: Number(this.layout.metrics?.overallWidth) || this.state.width,
+      handle
+    };
+    handle.setPointerCapture?.(event.pointerId);
+    event.preventDefault();
+  }
+
+  updateSectionDividerDrag(event) {
+    const drag = this.activeSectionDividerDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const rawDelta = (event.clientX - drag.startX) / drag.pixelWidth * drag.overallWidth;
+    drag.delta = Math.round(rawDelta * 4) / 4;
+    const widths = getSectionDesignerState(this.state, this.layout).widths;
+    const result = resizeAdjacentSections(widths, drag.dividerIndex, drag.delta, this.layout.rules);
+    this.viewer.previewSectionDivider?.(drag.dividerIndex, drag.delta, result);
+  }
+
+  endSectionDividerDrag(event) {
+    const drag = this.activeSectionDividerDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    this.activeSectionDividerDrag = null;
+    drag.handle.releasePointerCapture?.(event.pointerId);
+    this.viewer.clearSectionDividerPreview?.();
+    if (Math.abs(drag.delta) >= 0.25) this.commitSectionDividerResize(drag.dividerIndex, drag.delta);
+  }
+
+  cancelSectionDividerDrag(event) {
+    if (!this.activeSectionDividerDrag || this.activeSectionDividerDrag.pointerId !== event.pointerId) return;
+    this.activeSectionDividerDrag = null;
+    this.viewer.clearSectionDividerPreview?.();
   }
 
   openReviewDialog() {
@@ -1601,6 +2021,10 @@ class BookcaseConfigurator {
     const applied = this.update(transition.config, { sourceField: "layoutPreset" });
     if (!applied) return;
     this.basePresetId = transition.preset.id;
+    this.sectionUndoStack = [];
+    this.sectionRedoStack = [];
+    this.syncInterface();
+    if (this.sectionDesignerActive) this.refreshSectionDesignerPresentation();
     this.showStatus(`${transition.preset.name} preset applied.${transition.dimensionsPreserved ? " Your measured dimensions were kept." : ""} Layout-specific structure was reconciled automatically.`);
   }
 
@@ -1722,7 +2146,6 @@ class BookcaseConfigurator {
       "featureOpening",
       "tallDoors",
       "doorStyle",
-      "doorCount",
       "crownStyle",
       "baseStyle",
       "layoutMetadata"
@@ -1756,6 +2179,15 @@ class BookcaseConfigurator {
       value = target.value;
     }
     const next = { ...this.state, [fieldName]: value };
+    if (fieldName === "sections") {
+      const reconciliation = reconcileSectionCustomization(this.state, value, this.layout.rules);
+      if (!reconciliation.accepted) {
+        this.showStatus(reconciliation.error.message, true);
+        this.syncInterface();
+        return;
+      }
+      Object.assign(next, reconciliation.config);
+    }
     if (fieldName === "customPaintColor" && String(value).trim()) next.finish = "custom_bm";
     this.update(next, { sourceField: fieldName });
     if (PROFILE_FOCUS_FIELDS.has(fieldName)) this.requestProfileCameraFocus(fieldName, { force: true });
@@ -1778,7 +2210,14 @@ class BookcaseConfigurator {
       const nextValue = direction < 0 ? Math.max(...candidates) : Math.min(...candidates);
       input.value = nextValue;
       delete this.drafts[fieldName];
-      this.update({ ...this.state, [fieldName]: nextValue }, { sourceField: fieldName });
+      const nextState = fieldName === "sections"
+        ? reconcileSectionCustomization(this.state, nextValue, this.layout.rules)
+        : { accepted: true, config: { ...this.state, [fieldName]: nextValue } };
+      if (!nextState.accepted) {
+        this.showStatus(nextState.error.message, true);
+        return;
+      }
+      this.update(nextState.config, { sourceField: fieldName });
       this.focusCameraForField(fieldName);
       return;
     }
@@ -1817,7 +2256,7 @@ class BookcaseConfigurator {
       return true;
     }
 
-    const rendered = this.viewer.update(state, evaluation.layout, changedFields);
+    const rendered = this.viewer.update(state, evaluation.layout);
     if (rendered === false) {
       this.syncInterface();
       const renderMessage = this.viewer.lastRenderAudit?.issues?.[0]?.message ||
@@ -1839,6 +2278,16 @@ class BookcaseConfigurator {
       this.renderActiveControls({ previousMode: this.mode });
     }
     this.syncInterface();
+    if (this.sectionDesignerActive && options.refreshSectionDesigner !== false) {
+      this.viewer.setSectionDesigner?.({
+        active: true,
+        selectedIndex: this.selectedSectionIndex,
+        layout: this.layout,
+        onSelect: (index) => this.selectSection(index)
+      });
+      this.renderActiveControls({ previousMode: this.mode });
+      this.syncInterface();
+    }
 
     const engineeringWarning = evaluation.warnings.find((item) => item.code === "SHELF_SUPPORT_REVIEW");
     if (!options.silent && evaluation.corrections.length) {
@@ -2040,8 +2489,8 @@ class BookcaseConfigurator {
     shell.dataset.diagnosticConfiguration = JSON.stringify(this.state);
     shell.dataset.diagnosticPricing = JSON.stringify({
       pricingVersion: this.pricing.pricingVersion,
-      billableQuantities: this.pricing.billableQuantities,
-      componentCharges: this.pricing.componentCharges,
+      bom: this.bom,
+      lineItems: this.pricing.lineItems,
       total: this.pricing.total
     });
   }
@@ -2169,8 +2618,8 @@ class BookcaseConfigurator {
       price: this.price,
       pricing: {
         pricingVersion: this.pricing.pricingVersion,
-        billableQuantities: this.pricing.billableQuantities,
-        componentCharges: this.pricing.componentCharges
+        bom: this.bom,
+        lineItems: this.pricing.lineItems
       },
       updateCount: this.updateCount,
       priceCalculationCount: this.priceCalculationCount,
@@ -2198,7 +2647,7 @@ class BookcaseConfigurator {
   }
 
   updatePriceAndSummary() {
-    const price = this.pricing.total;
+    const price = this.price;
     const currentPreset = layoutPresets.find((preset) => preset.id === this.state.layoutPreset);
     this.elements.price.textContent = formatPrice(price);
     this.setOptionalText("[data-summary-preset]", currentPreset?.name || "Custom");
@@ -2276,6 +2725,18 @@ class BookcaseViewer3D {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.root.appendChild(this.renderer.domElement);
+    this.sectionInteractionLayer = new THREE.Group();
+    this.sectionInteractionLayer.name = "section-designer-interaction-layer";
+    this.sectionInteractionLayer.userData.nonPhysicalHelper = true;
+    this.scene.add(this.sectionInteractionLayer);
+    this.sectionOverlay = document.createElement("div");
+    this.sectionOverlay.className = "section-designer-overlay";
+    this.sectionOverlay.dataset.sectionOverlay = "";
+    this.sectionOverlay.hidden = true;
+    this.root.appendChild(this.sectionOverlay);
+    this.sectionRaycaster = new THREE.Raycaster();
+    this.sectionPointer = new THREE.Vector2();
+    this.sectionDesigner = { active: false, selectedIndex: 0, onSelect: null, layout: null };
     this.target = new THREE.Vector3(0, inchesToUnits(this.state.height) / 2, 0);
     this.theta = -0.14;
     this.phi = 0.12;
@@ -2361,8 +2822,9 @@ class BookcaseViewer3D {
   bindControls() {
     const signal = this.controlAbortController.signal;
     this.root.addEventListener("pointerdown", (event) => {
+      if (event.target.closest?.("[data-section-overlay]")) return;
       this.cancelCameraTransition();
-      this.drag = { x: event.clientX, y: event.clientY };
+      this.drag = { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false };
       this.root.setPointerCapture(event.pointerId);
       this.root.classList.add("is-dragging");
     }, { signal });
@@ -2371,7 +2833,8 @@ class BookcaseViewer3D {
       if (!this.drag) return;
       const dx = event.clientX - this.drag.x;
       const dy = event.clientY - this.drag.y;
-      this.drag = { x: event.clientX, y: event.clientY };
+      const moved = this.drag.moved || Math.hypot(event.clientX - this.drag.startX, event.clientY - this.drag.startY) > 5;
+      this.drag = { ...this.drag, x: event.clientX, y: event.clientY, moved };
       this.theta -= dx * 0.007;
       this.phi = clamp(this.phi + dy * 0.004, -0.12, 0.72);
       this.onCameraInteraction("rotate");
@@ -2379,9 +2842,11 @@ class BookcaseViewer3D {
     }, { signal });
 
     this.root.addEventListener("pointerup", (event) => {
+      const selectSection = this.sectionDesigner.active && this.drag && !this.drag.moved;
       this.drag = null;
       if (this.root.hasPointerCapture(event.pointerId)) this.root.releasePointerCapture(event.pointerId);
       this.root.classList.remove("is-dragging");
+      if (selectSection) this.selectSectionFromPointer(event);
     }, { signal });
 
     this.root.addEventListener("pointercancel", () => {
@@ -2875,6 +3340,139 @@ class BookcaseViewer3D {
     this.applyComponentHighlight(pose.activeRoles);
   }
 
+  setSectionDesigner(options = {}) {
+    this.sectionDesigner.active = Boolean(options.active);
+    if (Number.isInteger(options.selectedIndex)) this.sectionDesigner.selectedIndex = options.selectedIndex;
+    if (typeof options.onSelect === "function") this.sectionDesigner.onSelect = options.onSelect;
+    if (options.layout) this.sectionDesigner.layout = options.layout;
+    if (!this.sectionDesigner.active) {
+      this.clearSectionInteractionLayer();
+      this.sectionOverlay.hidden = true;
+      this.sectionOverlay.innerHTML = "";
+      return;
+    }
+    this.refreshSectionInteractionLayer(this.sectionDesigner.layout || this.lastLayout);
+  }
+
+  setSectionSelection(index) {
+    this.sectionDesigner.selectedIndex = Number(index) || 0;
+    this.sectionInteractionLayer.children.forEach((mesh) => {
+      const selected = mesh.userData.sectionIndex === this.sectionDesigner.selectedIndex;
+      mesh.material.opacity = selected ? 0.15 : 0.012;
+      mesh.material.color.setHex(selected ? 0xb88a52 : 0xd8c4a8);
+    });
+    this.sectionOverlay.querySelectorAll("[data-overlay-section]").forEach((label) => {
+      label.classList.toggle("is-selected", Number(label.dataset.overlaySection) === this.sectionDesigner.selectedIndex);
+    });
+  }
+
+  refreshSectionInteractionLayer(layout) {
+    this.clearSectionInteractionLayer();
+    if (!this.sectionDesigner.active || !layout) return;
+    this.sectionDesigner.layout = layout;
+    const sections = layout.components
+      .filter((component) => component.role === "section")
+      .sort((left, right) => Number(left.metadata?.index) - Number(right.metadata?.index));
+    for (const section of sections) {
+      const size = [inchesToUnits(section.size.x), inchesToUnits(section.size.y), inchesToUnits(section.size.z)];
+      const material = new THREE.MeshBasicMaterial({
+        color: section.metadata.index === this.sectionDesigner.selectedIndex ? 0xb88a52 : 0xd8c4a8,
+        transparent: true,
+        opacity: section.metadata.index === this.sectionDesigner.selectedIndex ? 0.15 : 0.012,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      });
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
+      mesh.position.set(
+        inchesToUnits(section.position.x),
+        inchesToUnits(section.position.y),
+        inchesToUnits(layout.config.depth) / 2 - inchesToUnits(section.position.z)
+      );
+      mesh.renderOrder = 100;
+      mesh.userData = { nonPhysicalHelper: true, sectionIndex: section.metadata.index, sectionId: section.id };
+      this.sectionInteractionLayer.add(mesh);
+    }
+    this.renderSectionOverlay(layout);
+  }
+
+  clearSectionInteractionLayer() {
+    while (this.sectionInteractionLayer.children.length) {
+      const child = this.sectionInteractionLayer.children[this.sectionInteractionLayer.children.length - 1];
+      this.sectionInteractionLayer.remove(child);
+      child.geometry?.dispose();
+      child.material?.dispose();
+    }
+  }
+
+  renderSectionOverlay(layout, previewWidths = null) {
+    if (!this.sectionDesigner.active || !layout) return;
+    const sections = layout.components
+      .filter((component) => component.role === "section")
+      .sort((left, right) => Number(left.metadata?.index) - Number(right.metadata?.index));
+    const root = layout.components.find((component) => component.id === "bookcase");
+    if (!root || !sections.length) return;
+    const overall = layout.metrics.overallWidth;
+    const widths = previewWidths || layout.metrics.sectionClearWidths;
+    const leftEdge = root.bounds.min.x;
+    const labels = sections.map((section, index) => {
+      const left = (section.bounds.min.x - leftEdge) / overall * 100;
+      const width = section.size.x / overall * 100;
+      return `<span class="section-dimension${index === this.sectionDesigner.selectedIndex ? " is-selected" : ""}" data-overlay-section="${index}" style="--section-left:${left}%;--section-width:${width}%"><strong>${formatSectionWidth(widths[index])} in</strong><small>clear</small></span>`;
+    }).join("");
+    const handles = sections.slice(0, -1).map((section, index) => {
+      const boundary = (section.bounds.max.x - leftEdge + layout.rules.panelThickness / 2) / overall * 100;
+      return `<button type="button" class="section-divider-handle" data-section-divider="${index}" style="--divider-left:${boundary}%" aria-label="Resize divider between Sections ${index + 1} and ${index + 2}"><span aria-hidden="true"></span></button>`;
+    }).join("");
+    this.sectionOverlay.hidden = false;
+    this.sectionOverlay.innerHTML = `<div class="overall-dimension"><span>${formatSectionWidth(overall)} in overall nominal width</span></div><div class="section-dimension-track">${labels}${handles}</div>`;
+  }
+
+  previewSectionDivider(dividerIndex, delta, result = null) {
+    if (!this.sectionDesigner.active) return;
+    if (result?.accepted) this.renderSectionOverlay(this.sectionDesigner.layout || this.lastLayout, result.widths);
+    const handle = this.sectionOverlay.querySelector(`[data-section-divider="${dividerIndex}"]`);
+    if (handle) {
+      handle.dataset.previewDelta = `${delta > 0 ? "+" : ""}${formatSectionWidth(delta)} in`;
+      handle.classList.toggle("is-invalid", result?.accepted === false);
+    }
+  }
+
+  clearSectionDividerPreview() {
+    this.renderSectionOverlay(this.sectionDesigner.layout || this.lastLayout);
+  }
+
+  selectSectionFromPointer(event) {
+    if (!this.sectionDesigner.active || !this.sectionInteractionLayer.children.length) return;
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.sectionPointer.set(
+      ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 2 - 1,
+      -((event.clientY - rect.top) / Math.max(rect.height, 1)) * 2 + 1
+    );
+    this.sectionRaycaster.setFromCamera(this.sectionPointer, this.camera);
+    const hit = this.sectionRaycaster.intersectObjects(this.sectionInteractionLayer.children, false)[0];
+    if (!hit) return;
+    this.setSectionSelection(hit.object.userData.sectionIndex);
+    this.sectionDesigner.onSelect?.(hit.object.userData.sectionIndex);
+  }
+
+  restoreCameraState(snapshot) {
+    if (!snapshot) return;
+    this.cancelCameraTransition();
+    this.theta = Number(snapshot.theta) || 0;
+    this.phi = Number(snapshot.phi) || 0;
+    this.baseRadius = Number(snapshot.baseRadius) || this.baseRadius;
+    this.radius = Number(snapshot.radius) || this.baseRadius;
+    this.target.set(
+      Number(snapshot.target?.x) || 0,
+      Number(snapshot.target?.y) || 0,
+      Number(snapshot.target?.z) || 0
+    );
+    this.activeFocusKey = snapshot.focus || "overview";
+    this.setEnvironmentLightScale(Number(snapshot.environmentScale) || 1);
+    this.renderer.toneMappingExposure = Number(snapshot.exposure) || 1.08;
+    this.updateCamera();
+  }
+
   resize() {
     const rect = this.root.getBoundingClientRect();
     const width = Math.max(1, Math.round(rect.width));
@@ -3040,6 +3638,7 @@ class BookcaseViewer3D {
     disposeObject(this.model);
     this.model = nextModel;
     this.scene.add(this.model);
+    if (this.sectionDesigner.active) this.refreshSectionInteractionLayer(this.lastLayout);
     this.rebuildCount += 1;
     this.focusTargetCache.clear();
     this.root.dataset.renderValid = "true";
@@ -3119,6 +3718,8 @@ class BookcaseViewer3D {
     window.cancelAnimationFrame(this.animationFrame);
     this.resizeObserver?.disconnect();
     this.scene.remove(this.model);
+    this.clearSectionInteractionLayer();
+    this.sectionOverlay?.remove();
     disposeMaterialSet(this.model?.userData?.materials);
     disposeObject(this.model);
     disposeObject(this.scene);
@@ -4218,6 +4819,22 @@ function shortestAngleDelta(from, to) {
 function easeInOutCubic(value) {
   const t = clamp(value, 0, 1);
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function formatSectionWidth(value) {
+  return Number(Number(value || 0).toFixed(3)).toString();
+}
+
+function formatSectionType(type) {
+  return {
+    open: "Open Shelves",
+    lower_doors: "Lower Doors",
+    drawers: "Lower Drawers",
+    tall_doors: "Tall Door",
+    media: "Media Feature",
+    desk: "Desk Feature",
+    feature: "Fireplace Feature"
+  }[type] || "Generated Section";
 }
 
 function clamp(value, min, max) {

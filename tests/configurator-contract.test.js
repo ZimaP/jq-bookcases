@@ -55,9 +55,10 @@ test("one delegated action path owns Save Design and Request Quote", () => {
 
 test("one price pipeline and one physical update pipeline serve both modes", () => {
   assert.equal((source.match(/update\(nextState, options = \{\}\) \{/g) || []).length, 1);
-  assert.equal((source.match(/this\.pricing = buildPricingContext\(this\.state, this\.layout\)/g) || []).length, 2);
+  assert.equal((source.match(/this\.pricing = (?:acceptedInitial|committedEvaluation)\.pricing/g) || []).length, 2);
   assert.equal((source.match(/this\.price = this\.pricing\.total/g) || []).length, 2);
-  assert.equal((source.match(/this\.viewer\.update\(this\.state, this\.layout, changedFields\)/g) || []).length, 1);
+  assert.equal((source.match(/this\.viewer\.update\(state, evaluation\.layout\)/g) || []).length, 1);
+  assert.match(source, /const evaluation = evaluateBookcaseCandidate\(nextState\)/);
   assert.doesNotMatch(source, /guidedPrice|allControlsPrice|guidedState|allControlsState/);
 });
 
@@ -69,9 +70,9 @@ test("the cached shared total feeds estimate, review, Save, and Quote without mo
 
   assert.match(review, /formatPrice\(this\.price\)/);
   assert.match(summary, /const price = this\.price/);
-  assert.match(save, /createSavedDesignRecord\(this\.state, this\.price\)/);
+  assert.match(save, /createAcceptedDesignSnapshot\(this\.acceptedEvaluation\)/);
   assert.match(quote, /this\.saveCurrentDesign\(\)/);
-  assert.doesNotMatch(`${review}\n${summary}\n${save}\n${quote}`, /calculateBookcasePrice|buildPricingContext/);
+  assert.doesNotMatch(`${review}\n${summary}\n${save}\n${quote}`, /calculateBookcasePrice|buildPricingContext|evaluateBookcaseCandidate/);
 });
 
 test("mode tabs, continuous Appearance sections, accordions, and validation have complete ARIA wiring", () => {

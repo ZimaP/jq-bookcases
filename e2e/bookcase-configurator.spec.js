@@ -58,14 +58,50 @@ async function openVerifiedConfigurator(page) {
   return viewer;
 }
 
+async function openSectionDesigner(page) {
+  await page.locator('[data-guided-step="storage"]').click();
+  await page.locator("[data-section-designer-open]").click();
+  await expect(page.locator("[data-section-designer]")).toBeVisible();
+  await expect(page.locator("[data-section-select]")).toHaveCount(4);
+}
+
+async function setSectionWidth(page, index, width) {
+  await page.locator(`[data-section-select="${index}"]`).click();
+  const input = page.locator("[data-section-width]");
+  await input.fill(String(width));
+  await input.press("Enter");
+  await expect(page.locator("[data-section-width-error]")).toBeEmpty();
+}
+
+async function setSectionType(page, index, type) {
+  await page.locator(`[data-section-select="${index}"]`).click();
+  await page.locator(`[data-section-type="${type}"]`).check();
+}
+
+async function readAcceptedDesign(page) {
+  return page.locator("[data-bookcase-builder]").evaluate((host) => {
+    const configurator = host.__bookcaseConfigurator;
+    return {
+      diagnostics: configurator.getDiagnostics(),
+      widths: configurator.layout.metrics.sectionClearWidths,
+      types: configurator.layout.components
+        .filter((component) => component.role === "section")
+        .map((component) => component.metadata.type),
+      doors: configurator.layout.components.filter((component) => component.role === "door").length,
+      drawers: configurator.layout.components.filter((component) => component.role === "drawer_front").length
+    };
+  });
+}
+
 test("default configurator boots with a verified WebGL model and no runtime errors", async ({ page }) => {
   const errors = monitorRuntime(page);
   const viewer = await openVerifiedConfigurator(page);
 
   await expect(page.locator("[data-price]")).toContainText("$");
-  await expect(page.locator('[data-field="width"]').first()).toHaveValue("96");
-  await expect(page.locator('[data-field="sections"]')).toHaveValue("4");
-  await expect(viewer).toHaveAttribute("aria-label", /Interactive 3D/i);
+  const accepted = await readAcceptedDesign(page);
+  expect(accepted.diagnostics.state.width).toBe(96);
+  expect(accepted.diagnostics.state.sections).toBe(4);
+  await expect(viewer).toHaveAttribute("aria-label", /bookcase preview/i);
   expect(errors).toEqual([]);
 });
 
@@ -91,29 +127,111 @@ test("all ten commercial presets render through the descriptor contract", async 
   expect(errors).toEqual([]);
 });
 
-test("an invalid candidate rolls controls and price back while preserving the verified model", async ({ page }) => {
+test("an invalid section draft preserves the accepted model, BOM, price, and save identity", async ({ page }) => {
   const errors = monitorRuntime(page);
   const viewer = await openVerifiedConfigurator(page);
-  const width = page.locator("#jq-builder-1-width-number");
-  const sections = page.locator("#jq-builder-1-sections-number");
-  const price = page.locator("[data-price]");
-
-  await width.fill("144");
-  await expect(width).toHaveValue("144");
-  await expect(viewer).toHaveAttribute("data-render-valid", "true");
-  const acceptedPrice = await price.textContent();
+  await openSectionDesigner(page);
+  const accepted = await readAcceptedDesign(page);
   const acceptedDiagnostics = await readRenderDiagnostics(viewer);
 
-  await sections.fill("1");
-  await expect(sections).toHaveValue("4");
-  await expect(price).toHaveText(acceptedPrice || "");
+  const width = page.locator("[data-section-width]");
+  await width.fill("10");
+  await width.press("Enter");
+  await expect(width).toHaveValue("10");
+  await expect(page.locator("[data-section-width-error]")).toContainText(/at least 15 in clear/i);
+  await expect(page.locator("[data-price]")).toHaveText(`$${accepted.diagnostics.price.toLocaleString("en-US")}`);
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
-  await expect(page.locator("[data-builder-status]")).toContainText(/shelf span/i);
+  await expect(page.locator("[data-builder-status]")).toContainText(/at least 15 in clear/i);
   await expect(viewer.locator("canvas")).toHaveCount(1);
   await settleFrames(page);
+  const rejected = await readAcceptedDesign(page);
   const rejectedDiagnostics = await readRenderDiagnostics(viewer);
+  expect(rejected.widths).toEqual(accepted.widths);
+  expect(rejected.diagnostics.pricing.bom.layoutFingerprint).toBe(accepted.diagnostics.pricing.bom.layoutFingerprint);
+  expect(rejected.diagnostics.price).toBe(accepted.diagnostics.price);
+  expect(rejected.diagnostics.updateCount).toBe(accepted.diagnostics.updateCount);
   expect(rejectedDiagnostics.components).toBe(acceptedDiagnostics.components);
   expect(rejectedDiagnostics.expected).toBe(acceptedDiagnostics.expected);
+  expect(errors).toEqual([]);
+});
+
+test("Section Designer accepts the canonical mixed design with undo, redo, split, merge, save, and restore", async ({ page }) => {
+  const errors = monitorRuntime(page);
+  const viewer = await openVerifiedConfigurator(page);
+  await openSectionDesigner(page);
+
+  await setSectionWidth(page, 0, 18);
+  await setSectionWidth(page, 1, 30);
+  await setSectionWidth(page, 2, 20);
+  await setSectionType(page, 0, "open");
+  await setSectionType(page, 1, "drawers");
+  await setSectionType(page, 3, "tall_doors");
+
+  let accepted = await readAcceptedDesign(page);
+  expect(accepted.widths).toEqual([18, 30, 20, 24.25]);
+  expect(accepted.types).toEqual(["open", "drawers", "lower_doors", "tall_doors"]);
+  expect(accepted.doors).toBe(3);
+  expect(accepted.drawers).toBe(3);
+  expect(accepted.diagnostics.canvasCount).toBe(1);
+  await expect(viewer).toHaveAttribute("data-render-valid", "true");
+
+  await page.locator('[data-section-select="1"]').click();
+  await setSectionWidth(page, 1, 31);
+  const beforeSplit = await readAcceptedDesign(page);
+  await page.locator("[data-section-split]").click();
+  await expect(page.locator("[data-section-select]")).toHaveCount(5);
+  await page.locator('[data-section-merge="right"]').click();
+  await expect(page.locator("[data-section-select]")).toHaveCount(4);
+  accepted = await readAcceptedDesign(page);
+  expect(accepted.widths).toEqual(beforeSplit.widths);
+
+  await page.locator("[data-section-undo]").click();
+  await expect(page.locator("[data-section-select]")).toHaveCount(5);
+  await page.locator("[data-section-redo]").click();
+  await expect(page.locator("[data-section-select]")).toHaveCount(4);
+  await setSectionWidth(page, 1, 30);
+  accepted = await readAcceptedDesign(page);
+  expect(accepted.widths).toEqual([18, 30, 20, 24.25]);
+
+  await page.locator("[data-save-design]").first().click();
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("jqBookcasesDesign") || "null"));
+  expect(saved.canonicalConfig.layoutMetadata.sectionTypes).toEqual(["open", "drawers", "lower_doors", "tall_doors"]);
+  expect(saved.bom.layoutFingerprint).toBe(saved.layoutFingerprint);
+
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true");
+  const restored = await readAcceptedDesign(page);
+  expect(restored.widths).toEqual([18, 30, 20, 24.25]);
+  expect(restored.types).toEqual(["open", "drawers", "lower_doors", "tall_doors"]);
+  expect(restored.diagnostics.pricing.bom.layoutFingerprint).toBe(saved.layoutFingerprint);
+  expect(errors).toEqual([]);
+});
+
+test("one hundred successive section edits remain resource-bounded", async ({ page }) => {
+  const errors = monitorRuntime(page);
+  const viewer = await openVerifiedConfigurator(page);
+  await openSectionDesigner(page);
+  const baseline = await readRenderDiagnostics(viewer);
+
+  await page.evaluate(() => {
+    for (let cycle = 0; cycle < 50; cycle += 1) {
+      document.querySelector('[data-section-width-step="0.5"]')?.click();
+      document.querySelector('[data-section-width-step="-0.5"]')?.click();
+    }
+  });
+
+  await settleFrames(page, 8);
+  const final = await readRenderDiagnostics(viewer);
+  const accepted = await readAcceptedDesign(page);
+  expect(accepted.widths).toEqual([23.0625, 23.0625, 23.0625, 23.0625]);
+  expect(accepted.diagnostics.updateCount).toBe(100);
+  expect(accepted.diagnostics.canvasCount).toBe(1);
+  expect(final.components).toBe(final.expected);
+  expect(final.components).toBe(baseline.components);
+  // Three.js retains a small bounded set of resized buffer variants; it must
+  // not grow with the 100 accepted rebuilds.
+  expect(final.geometries).toBeLessThanOrEqual(baseline.geometries + 6);
+  expect(final.textures).toBeLessThanOrEqual(baseline.textures + 2);
   expect(errors).toEqual([]);
 });
 
@@ -123,7 +241,7 @@ test("saved schema-v4 design is canonical, reloadable, and quote-ready", async (
 
   await page.locator('[data-preset-id="display-wall"]').click();
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
-  await page.locator("[data-save-design]").click();
+  await page.locator("[data-save-design]").first().click();
   await expect(page.locator("[data-builder-status]")).toContainText(/Saved design JQ-/i);
 
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("jqBookcasesDesign") || "null"));
@@ -155,13 +273,12 @@ test("rapid preset cycling is leak-bounded and leaves one verified model", async
   const viewer = await openVerifiedConfigurator(page);
   const baseline = await readRenderDiagnostics(viewer);
 
-  for (let cycle = 0; cycle < 10; cycle += 1) {
-    for (const presetId of presetIds) {
-      await page.locator(`[data-preset-id="${presetId}"]`).click();
+  await page.evaluate((ids) => {
+    for (let cycle = 0; cycle < 10; cycle += 1) {
+      for (const presetId of ids) document.querySelector(`[data-preset-id="${presetId}"]`)?.click();
     }
-  }
-
-  await page.locator('[data-preset-id="lower-cabinets"]').click();
+    document.querySelector('[data-preset-id="lower-cabinets"]')?.click();
+  }, presetIds);
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
   await expect(page.locator('[data-preset-id="lower-cabinets"]')).toHaveAttribute("aria-pressed", "true");
   await expect(viewer.locator("canvas")).toHaveCount(1);
@@ -181,11 +298,16 @@ test("mobile viewport keeps controls usable and the accepted model valid", async
   const errors = monitorRuntime(page);
   const viewer = await openVerifiedConfigurator(page);
 
-  await expect(page.locator("#jq-builder-1-width-number")).toBeVisible();
-  await expect(page.locator("[data-save-design]")).toBeVisible();
+  await expect(page.locator("[data-save-design]").first()).toBeVisible();
   await page.locator('[data-preset-id="classic-open"]').click();
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
   await expect(page.locator('[data-preset-id="classic-open"]')).toHaveAttribute("aria-pressed", "true");
+  await page.locator('[data-guided-step="storage"]').click();
+  await expect(page.locator("[data-section-designer-open]")).toBeVisible();
+  await page.locator("[data-section-designer-open]").click();
+  await expect(page.locator("[data-section-designer]")).toBeVisible();
+  await expect(page.locator("[data-section-width]")).toBeVisible();
+  await expect(page.locator("[data-section-select]")).toHaveCount(4);
   await settleFrames(page);
   await page.screenshot({
     path: "test-results/preset-gallery/mobile-classic-open.png",

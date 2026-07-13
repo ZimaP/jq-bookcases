@@ -133,7 +133,7 @@ test("invalid or missing section ratios fall back to equal bays", () => {
   }
 });
 
-test("positive ratios that create unbuildable bays are equalized explicitly", () => {
+test("positive ratios that create unbuildable bays remain visible and fail validation", () => {
   const layout = generateBookcaseLayout({
     width: 96,
     sections: 4,
@@ -142,9 +142,10 @@ test("positive ratios that create unbuildable bays are equalized explicitly", ()
     layoutMetadata: { sectionRatios: [0.1, 1, 1, 1] }
   });
 
-  assert.deepEqual(layout.metrics.sectionClearWidths, [23.0625, 23.0625, 23.0625, 23.0625]);
-  assert.equal(layout.validation.valid, true, JSON.stringify(layout.validation.errors));
-  assert.ok(layout.corrections.some((item) => item.code === "SECTION_RATIOS_EQUALIZED"));
+  assert.notDeepEqual(layout.metrics.sectionClearWidths, [23.0625, 23.0625, 23.0625, 23.0625]);
+  assert.equal(layout.validation.valid, false);
+  assert.ok(layout.validation.errors.some((item) => item.code === "MIN_SECTION_CLEAR_WIDTH"));
+  assert.equal(layout.corrections.some((item) => item.code === "SECTION_RATIOS_EQUALIZED"), false);
 });
 
 test("too many sections are auto-corrected to preserve minimum clear width", () => {

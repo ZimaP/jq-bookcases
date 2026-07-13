@@ -6,6 +6,7 @@ import {
   optionLabels
 } from "./bookcase-config.js?v=engine-contract-20260713s";
 import { deriveBillableComponents } from "./bookcase-billable.js?v=pricing-20260712a";
+import { getSectionDesignerState } from "./bookcase-sections.js?v=section-designer-20260713a";
 
 export const CONFIGURATOR_MODES = Object.freeze({
   guided: "guided",
@@ -30,6 +31,7 @@ export const GUIDED_STEPS = Object.freeze([
 export const ALL_CONTROL_CATEGORIES = Object.freeze([
   { id: "layout", label: "Layout", step: "layout" },
   { id: "dimensions", label: "Dimensions", step: "dimensions" },
+  { id: "section_designer", label: "Section Designer", step: "storage" },
   { id: "storage", label: "Shelves & Cabinets", step: "storage" },
   { id: "construction", label: "Construction", step: "construction" },
   { id: "doors", label: "Fronts", step: "storage" },
@@ -221,6 +223,20 @@ export function getCategorySummary(categoryId, config, layout, basePresetId = ""
   const category = normalizeAllCategory(categoryId);
   if (category === "layout") return getLayoutLabel(state, basePresetId);
   if (category === "dimensions") return `${state.width} in W × ${state.height} in H × ${state.depth} in D · ${state.shelves} shelves · ${optionLabels.shelfThickness[state.shelfThickness]}`;
+  if (category === "section_designer") {
+    const designer = getSectionDesignerState(state, layout);
+    const counts = designer.sections.reduce((result, section) => {
+      result[section.type] = (result[section.type] || 0) + 1;
+      return result;
+    }, {});
+    const parts = [
+      counts.lower_doors ? `${counts.lower_doors} doors` : "",
+      counts.drawers ? `${counts.drawers} drawers` : "",
+      counts.open ? `${counts.open} open` : "",
+      counts.tall_doors ? `${counts.tall_doors} tall` : ""
+    ].filter(Boolean);
+    return `${designer.sections.length} sections${parts.length ? ` · ${parts.join(" · ")}` : ""}`;
+  }
   if (category === "storage") return `${state.sections} sections${state.lowerCabinets ? `, ${state.lowerStorage}` : ", open base"}`;
   if (category === "construction") return `${optionLabels.baseStyle[state.baseStyle]}, ${optionLabels.crownStyle[state.crownStyle]}`;
   if (category === "doors") {
@@ -244,6 +260,7 @@ export function getCategorySummary(categoryId, config, layout, basePresetId = ""
 export function createReviewGroups(config, layout, basePresetId = "") {
   const state = normalizeBookcaseConfig(config);
   const applicability = getApplicability(state, layout);
+  const designer = getSectionDesignerState(state, layout);
   const openingLabel = {
     media: "Media opening",
     desk: "Desk opening",
@@ -278,7 +295,11 @@ export function createReviewGroups(config, layout, basePresetId = "") {
         { label: "Lower storage", value: state.lowerCabinets ? (state.lowerStorage === "drawers" ? "Drawers" : "Doors") : "None" },
         ...(applicability.hasFronts ? [{ label: "Front style", value: optionLabels.doorStyle[state.doorStyle] }] : []),
         ...(applicability.hasDoors ? [{ label: "Doors", value: `${applicability.generatedDoorCount} generated · ${formatGeneratedDoorStyles(applicability.billableQuantities.doorsByStyle)}` }] : []),
-        ...(applicability.hasDrawers ? [{ label: "Drawers", value: `${applicability.generatedDrawerCount} generated` }] : [])
+        ...(applicability.hasDrawers ? [{ label: "Drawers", value: `${applicability.generatedDrawerCount} generated` }] : []),
+        ...designer.sections.map((section) => ({
+          label: `Section ${section.index + 1}`,
+          value: `${formatSectionWidth(section.width)} in clear · ${formatSectionType(section.type, state.drawerCount)}`
+        }))
       ]
     },
     {
@@ -324,6 +345,22 @@ export function createReviewGroups(config, layout, basePresetId = "") {
     }
   ];
   return groups;
+}
+
+function formatSectionWidth(value) {
+  return Number(Number(value).toFixed(3)).toString();
+}
+
+function formatSectionType(type, drawerCount) {
+  return {
+    open: "Open Shelves",
+    lower_doors: "Lower Doors",
+    drawers: `${drawerCount} Lower Drawers`,
+    tall_doors: "Tall Door",
+    media: "Media Feature · Locked",
+    desk: "Desk Feature · Locked",
+    feature: "Fireplace Feature · Locked"
+  }[type] || "Generated Section";
 }
 
 export function getFinishLabel(config) {

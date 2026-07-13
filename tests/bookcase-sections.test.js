@@ -1,0 +1,236 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  EDITABLE_SECTION_TYPES,
+  defaultBookcaseConfig,
+  layoutPresets,
+  normalizeBookcaseConfig,
+  normalizeSectionTypeValue
+} from "../bookcase-config.js";
+import { createAcceptedDesignSnapshot, evaluateBookcaseCandidate, restoreAcceptedDesignSnapshot } from "../bookcase-engine.js";
+import { deriveBookcaseBOM } from "../bookcase-bom.js";
+import { CONSTRUCTION_RULES, generateBookcaseLayout } from "../bookcase-layout.js";
+import {
+  applySectionWidths,
+  equalizeSectionWidths,
+  getSectionDesignerState,
+  mergeSection,
+  reconcileSectionCustomization,
+  resizeAdjacentSections,
+  sectionWidthsToRatios,
+  setSectionClearWidth,
+  setSectionType,
+  splitSection
+} from "../bookcase-sections.js";
+
+const clone = (value) => structuredClone(value);
+const components = (layout, role) => layout.components.filter((component) => component.role === role);
+
+function scenarioA() {
+  const widths = [18, 30, 20, 24.25];
+  const config = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    width: 96,
+    height: 96,
+    depth: 15,
+    sections: 4,
+    drawerCount: 3,
+    layoutPreset: "custom",
+    layoutMetadata: {
+      sectionRatios: sectionWidthsToRatios(widths),
+      sectionTypes: ["open", "drawers", "lower_doors", "tall_doors"]
+    }
+  });
+  return { config, widths, layout: generateBookcaseLayout(config) };
+}
+
+test("section type whitelist normalizes supported legacy aliases and rejects unknown tokens", () => {
+  assert.deepEqual(EDITABLE_SECTION_TYPES, ["open", "lower_doors", "drawers", "tall_doors"]);
+  assert.equal(normalizeSectionTypeValue("Open Shelves"), "open");
+  assert.equal(normalizeSectionTypeValue("lower-cabinets"), "lower_doors");
+  assert.equal(normalizeSectionTypeValue("lower drawers"), "drawers");
+  assert.equal(normalizeSectionTypeValue("tall door"), "tall_doors");
+  assert.equal(normalizeSectionTypeValue("secret_bar"), null);
+
+  const layout = generateBookcaseLayout({
+    ...defaultBookcaseConfig,
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1, 1],
+      sectionTypes: ["open_shelves", "secret_bar", "doors", "tall_door"]
+    }
+  });
+  assert.equal(layout.validation.valid, true);
+  assert.ok(layout.corrections.some((correction) => correction.code === "UNSUPPORTED_SECTION_TYPE"));
+  assert.deepEqual(layout.config.layoutMetadata.sectionTypes, ["open", "lower_doors", "lower_doors", "tall_doors"]);
+});
+
+test("explicit open sections stay full-height open when global lower cabinets are enabled", () => {
+  const layout = generateBookcaseLayout({
+    ...defaultBookcaseConfig,
+    sections: 2,
+    layoutMetadata: { sectionRatios: [1, 1], sectionTypes: ["open", "lower_doors"] }
+  });
+  const openChildren = layout.components.filter((component) => component.id.startsWith("section-01-"));
+  assert.equal(openChildren.some((component) => component.role === "opening"), false);
+  assert.equal(openChildren.some((component) => component.role === "fixed_shelf"), false);
+  assert.equal(openChildren.some((component) => ["door", "drawer_front"].includes(component.role)), false);
+  assert.equal(openChildren.filter((component) => component.role === "shelf").length, layout.config.shelves);
+});
+
+test("canonical mixed four-bay geometry has exact widths and fitted generated fronts", () => {
+  const { layout, widths } = scenarioA();
+  assert.equal(layout.validation.valid, true, JSON.stringify(layout.validation.errors));
+  assert.deepEqual(layout.metrics.sectionClearWidths, widths);
+  assert.deepEqual(components(layout, "section").map((section) => section.metadata.type), [
+    "open", "drawers", "lower_doors", "tall_doors"
+  ]);
+  assert.equal(components(layout, "drawer_front").length, 3);
+  assert.equal(components(layout, "door").length, 3);
+  assert.equal(components(layout, "fixed_shelf").filter((item) => item.metadata.purpose === "lower_separator").length, 2);
+  const tallDoor = layout.components.find((component) => component.id === "section-04-tall-door");
+  assert.equal(tallDoor.metadata.openingSide, "left");
+});
+
+test("width ratios reproduce exact clear-width sums and divider accumulation", () => {
+  const widths = [17, 35, 17];
+  const layout = generateBookcaseLayout({
+    ...defaultBookcaseConfig,
+    width: 72,
+    sections: 3,
+    layoutMetadata: { sectionRatios: sectionWidthsToRatios(widths), sectionTypes: ["lower_doors", "open", "lower_doors"] }
+  });
+  assert.deepEqual(layout.metrics.sectionClearWidths, widths);
+  assert.equal(widths.reduce((sum, width) => sum + width, 0), 69);
+  assert.equal(
+    widths.reduce((sum, width) => sum + width, 0) + CONSTRUCTION_RULES.panelThickness * 2 + CONSTRUCTION_RULES.panelThickness * 2,
+    72
+  );
+  assert.equal(layout.validation.valid, true);
+  assert.equal(layout.validation.errors.length, 0);
+});
+
+test("adjacent divider resize preserves the pair and rejects boundary violations without mutation", () => {
+  const widths = [18, 30, 20, 24.25];
+  const before = clone(widths);
+  const accepted = resizeAdjacentSections(widths, 1, 2.5);
+  assert.deepEqual(accepted.widths, [18, 32.5, 17.5, 24.25]);
+  assert.equal(accepted.widths[1] + accepted.widths[2], widths[1] + widths[2]);
+  const rejected = resizeAdjacentSections(widths, 1, 8);
+  assert.equal(rejected.accepted, false);
+  assert.equal(rejected.error.code, "MIN_SECTION_CLEAR_WIDTH");
+  assert.deepEqual(widths, before);
+});
+
+test("numeric width redistribution cascades visibly and rejects insufficient slack", () => {
+  const widths = [18, 30, 20, 24.25];
+  const accepted = setSectionClearWidth(widths, 0, 35);
+  assert.deepEqual(accepted.widths, [35, 15, 18, 24.25]);
+  assert.deepEqual(accepted.affectedSections, [0, 1, 2]);
+  assert.equal(accepted.widths.reduce((sum, width) => sum + width, 0), 92.25);
+  const rejected = setSectionClearWidth(widths, 0, 50);
+  assert.equal(rejected.accepted, false);
+  assert.equal(rejected.error.code, "INSUFFICIENT_NEIGHBOR_SLACK");
+});
+
+test("split and merge account for divider thickness and restore identity", () => {
+  const config = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    width: 72,
+    sections: 2,
+    lowerCabinets: false,
+    layoutMetadata: { sectionRatios: [1, 1], sectionTypes: ["open", "open"] }
+  });
+  const layout = generateBookcaseLayout(config);
+  const originalWidth = layout.metrics.sectionClearWidths[0];
+  const split = splitSection(config, layout, 0);
+  assert.equal(split.accepted, true);
+  assert.equal(split.widths[0] + split.widths[1], originalWidth - CONSTRUCTION_RULES.panelThickness);
+  assert.equal(split.config.layoutMetadata.sectionTypes[0], "open");
+  assert.equal(split.config.layoutMetadata.sectionTypes[1], "open");
+  const splitLayout = generateBookcaseLayout(split.config);
+  const merged = mergeSection(split.config, splitLayout, 0, "right");
+  assert.equal(merged.accepted, true);
+  assert.equal(merged.widths[0], originalWidth);
+  assert.deepEqual(generateBookcaseLayout(merged.config).metrics.sectionClearWidths, layout.metrics.sectionClearWidths);
+});
+
+test("equalize and section-count reconciliation remain deterministic and buildable", () => {
+  const { config, layout } = scenarioA();
+  const equalized = equalizeSectionWidths(config, layout);
+  assert.equal(equalized.accepted, true);
+  assert.deepEqual(equalized.widths, [23.0625, 23.0625, 23.0625, 23.0625]);
+  const five = reconcileSectionCustomization(defaultBookcaseConfig, 5);
+  assert.equal(five.accepted, true);
+  assert.deepEqual(five.widths, [18.3, 18.3, 18.3, 18.3, 18.3]);
+  assert.equal(generateBookcaseLayout(five.config).validation.valid, true);
+  assert.deepEqual(reconcileSectionCustomization(defaultBookcaseConfig, 5), five);
+});
+
+test("special zones are visibly locked and cannot change type, split, or merge", () => {
+  const preset = layoutPresets.find((item) => item.id === "media-wall");
+  const layout = generateBookcaseLayout(preset.config);
+  const designer = getSectionDesignerState(preset.config, layout);
+  const locked = designer.sections.find((section) => section.locked);
+  assert.ok(locked);
+  assert.equal(locked.type, "media");
+  assert.equal(setSectionType(preset.config, locked.index, "open", layout).error.code, "LOCKED_SECTION");
+  assert.equal(splitSection(preset.config, layout, locked.index).error.code, "LOCKED_SECTION");
+  assert.equal(mergeSection(preset.config, layout, locked.index, "right").error.code, "LOCKED_SECTION");
+});
+
+test("section helpers are deterministic, non-mutating, and JSON-stable", () => {
+  const { config, layout } = scenarioA();
+  const before = clone(config);
+  const first = setSectionType(config, 0, "lower_doors", layout);
+  const second = setSectionType(config, 0, "lower_doors", clone(layout));
+  assert.deepEqual(first, second);
+  assert.deepEqual(config, before);
+  assert.deepEqual(JSON.parse(JSON.stringify(first.config)), first.config);
+});
+
+test("mixed accepted state keeps BOM, pricing, fingerprint, save, and restore in parity", () => {
+  const { config } = scenarioA();
+  const evaluation = evaluateBookcaseCandidate(config);
+  assert.equal(evaluation.accepted, true);
+  const bom = deriveBookcaseBOM(evaluation.layout);
+  assert.equal(bom.doors.count, 3);
+  assert.equal(bom.drawers.frontCount, 3);
+  assert.equal(bom.hardware.handleCount, 6);
+  assert.equal(evaluation.pricing.bom.layoutFingerprint, evaluation.layoutFingerprint);
+  const snapshot = createAcceptedDesignSnapshot(evaluation, { savedAt: "2026-07-13T00:00:00.000Z" });
+  const restored = restoreAcceptedDesignSnapshot(JSON.parse(JSON.stringify(snapshot)));
+  assert.equal(restored.accepted, true);
+  assert.equal(restored.layoutFingerprint, evaluation.layoutFingerprint);
+  assert.deepEqual(restored.state.layoutMetadata, evaluation.state.layoutMetadata);
+});
+
+test("invalid custom widths reject the candidate and preserve the last accepted artifacts", () => {
+  const { config } = scenarioA();
+  const accepted = evaluateBookcaseCandidate(config);
+  const invalidConfig = normalizeBookcaseConfig({
+    ...config,
+    layoutMetadata: {
+      ...config.layoutMetadata,
+      sectionRatios: sectionWidthsToRatios([10, 38, 20, 24.25])
+    }
+  });
+  const rejected = evaluateBookcaseCandidate(invalidConfig);
+  assert.equal(rejected.accepted, false);
+  assert.ok(rejected.errors.some((error) => error.code === "MIN_SECTION_CLEAR_WIDTH"));
+  assert.equal(rejected.layout, null);
+  assert.equal(rejected.bom, null);
+  assert.equal(rejected.pricing, null);
+  assert.equal(accepted.accepted, true);
+  assert.equal(createAcceptedDesignSnapshot(accepted).layoutFingerprint, accepted.layoutFingerprint);
+});
+
+test("applying edited widths preserves accepted total clear width", () => {
+  const { config, layout } = scenarioA();
+  const result = setSectionClearWidth(layout.metrics.sectionClearWidths, 3, 26);
+  const applied = applySectionWidths(config, layout, result.widths);
+  assert.equal(applied.accepted, true);
+  const nextLayout = generateBookcaseLayout(applied.config);
+  assert.deepEqual(nextLayout.metrics.sectionClearWidths, result.widths);
+  assert.equal(nextLayout.validation.valid, true);
+});

@@ -31,6 +31,36 @@ export const defaultBookcaseConfig = {
   delivery: "standard"
 };
 
+export const EDITABLE_SECTION_TYPES = Object.freeze([
+  "open",
+  "lower_doors",
+  "drawers",
+  "tall_doors"
+]);
+
+export const LOCKED_SECTION_TYPES = Object.freeze(["media", "desk", "feature"]);
+export const SECTION_TYPE_VALUES = Object.freeze([...EDITABLE_SECTION_TYPES, ...LOCKED_SECTION_TYPES]);
+
+const SECTION_TYPE_ALIASES = Object.freeze({
+  shelves: "open",
+  open_shelves: "open",
+  lower_cabinets: "lower_doors",
+  lower_door: "lower_doors",
+  doors: "lower_doors",
+  lower_drawers: "drawers",
+  tall_door: "tall_doors",
+  tall_storage: "tall_doors"
+});
+
+export function normalizeSectionTypeValue(value) {
+  const token = String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  const normalized = SECTION_TYPE_ALIASES[token] || token;
+  return SECTION_TYPE_VALUES.includes(normalized) ? normalized : null;
+}
+
 export const recommendedFinishOptions = [
   { value: "white_dove", label: "White Dove OC-17", swatch: "#eee9dc" },
   { value: "chantilly_lace", label: "Chantilly Lace OC-65", swatch: "#f7f5ee" },
@@ -548,8 +578,9 @@ function normalizeLayoutMetadata(value, sections) {
       .filter((index) => Number.isInteger(index) && index >= 0 && index < sections);
   }
   if (Array.isArray(value.sectionTypes)) {
-    if (value.sectionTypes.length === sections) {
-      metadata.sectionTypes = value.sectionTypes.map((type) => String(type));
+    const normalizedTypes = value.sectionTypes.map(normalizeSectionTypeValue);
+    if (value.sectionTypes.length === sections && normalizedTypes.every(Boolean)) {
+      metadata.sectionTypes = normalizedTypes;
     }
   }
   return metadata;

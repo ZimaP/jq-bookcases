@@ -47,7 +47,7 @@ test("Guided Setup exposes the six required steps in customer order", () => {
 
 test("All Controls exposes every organized category exactly once", () => {
   assert.deepEqual(ALL_CONTROL_CATEGORIES.map((category) => category.id), [
-    "layout", "dimensions", "storage", "construction", "doors", "finish", "hardware", "lighting", "service"
+    "layout", "dimensions", "section_designer", "storage", "construction", "doors", "finish", "hardware", "lighting", "service"
   ]);
   assert.equal(new Set(ALL_CONTROL_CATEGORIES.map((category) => category.id)).size, ALL_CONTROL_CATEGORIES.length);
 });
@@ -86,6 +86,7 @@ test("mode categories map to the correct Guided steps and fields", () => {
   const expected = {
     layout: "layout",
     dimensions: "dimensions",
+    section_designer: "storage",
     storage: "storage",
     construction: "construction",
     doors: "storage",
