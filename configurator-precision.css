@@ -1109,3 +1109,110 @@ body[data-page="configurator"] .service-option-card strong {
     grid-row: 4;
   }
 }
+
+/* Compact mobile chrome --------------------------------------------------
+ * Keep the brand and mode choice present without spending preview space on
+ * oversized navigation. The reclaimed height belongs to the 3D viewport. */
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] {
+    --mobile-configurator-header-height: 52px;
+  }
+
+  body[data-page="configurator"] [data-site-header],
+  body[data-page="configurator"] .site-header,
+  body[data-page="configurator"] .navbar {
+    height: var(--mobile-configurator-header-height);
+    min-height: var(--mobile-configurator-header-height);
+  }
+
+  body[data-page="configurator"] .navbar {
+    padding: 0 12px;
+  }
+
+  body[data-page="configurator"] .site-header .brand {
+    width: 142px;
+    min-height: 36px;
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  body[data-page="configurator"] .site-header .brand-mark {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+
+  body[data-page="configurator"] .site-header .brand-copy {
+    gap: 3px;
+  }
+
+  body[data-page="configurator"] .site-header .brand-main {
+    font-size: 13px;
+    letter-spacing: 0.095em;
+    line-height: 0.95;
+  }
+
+  body[data-page="configurator"] .site-header .brand-sub {
+    padding-top: 2px;
+    font-size: 6px;
+    letter-spacing: 0.12em;
+  }
+
+  body[data-page="configurator"] .nav-toggle {
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+  }
+
+  body[data-page="configurator"] .nav-toggle [data-icon],
+  body[data-page="configurator"] .nav-toggle > svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  body[data-page="configurator"] .nav-links {
+    top: var(--mobile-configurator-header-height);
+  }
+
+  body[data-page="configurator"] .configurator-experience {
+    --mobile-preview-toolbar-height: 34px;
+    grid-template-rows:
+      clamp(276px, 44svh, 316px)
+      var(--mobile-step-rail-height)
+      auto
+      auto;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    height: clamp(276px, 44svh, 316px);
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar {
+    height: var(--mobile-preview-toolbar-height);
+    padding: 2px 8px;
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector {
+    width: min(204px, 100%);
+    gap: 2px;
+    border-radius: 999px;
+    padding: 2px;
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector button {
+    height: 28px;
+    min-height: 28px;
+    border-radius: 999px;
+    padding: 0 8px;
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector button span {
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector button small {
+    display: none;
+  }
+}

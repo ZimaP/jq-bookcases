@@ -251,6 +251,13 @@ test("the phone layout uses one natural scroll surface and keeps controls outsid
   assert.match(source, /controlsScroll\.scrollIntoView\(\{ behavior, block: "start" \}\)/);
 });
 
+test("the phone header and mode switch stay compact so the 3D viewport gets the saved height", () => {
+  assert.match(precisionCss, /Compact mobile chrome[\s\S]*--mobile-configurator-header-height: 52px;/);
+  assert.match(precisionCss, /Compact mobile chrome[\s\S]*--mobile-preview-toolbar-height: 34px;/);
+  assert.match(precisionCss, /Compact mobile chrome[\s\S]*\.configurator-model \{[\s\S]*height: clamp\(276px, 44svh, 316px\);/);
+  assert.match(precisionCss, /Compact mobile chrome[\s\S]*\.configurator-mode-selector button small \{[\s\S]*display: none;/);
+});
+
 test("the configurator route loads the experience module and final presentation layer", () => {
   assert.match(html, /configurator-experience\.css/);
   assert.match(html, /configurator-3d\.js/);
