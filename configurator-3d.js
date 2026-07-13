@@ -411,7 +411,6 @@ class BookcaseConfigurator {
           </header>
           <div class="preview-heading">
             <div><span>Live preview</span><small>Drag to rotate · Use arrow keys or the view dock</small></div>
-            <div class="preview-price-pill" aria-label="Current estimated project price"><small>Estimate</small><strong data-preview-price>${formatPrice(this.price)}</strong></div>
           </div>
           <div class="viewer-stage" data-3d-viewer tabindex="0" role="group" aria-roledescription="interactive 3D preview" aria-label="Built-in bookcase preview. Use arrow keys to rotate and plus or minus to zoom."></div>
           <div class="preview-control-dock" aria-label="Preview controls">
@@ -428,14 +427,11 @@ class BookcaseConfigurator {
             </div>
           </div>
           ${this.arEnabled ? `
-            <aside class="cabinet-ar-launch" aria-label="View in your room">
-              <div class="cabinet-ar-launch-heading"><span class="view-icon" aria-hidden="true">${builderIcons.augmentedReality}</span><strong>View in Your Room</strong></div>
-              <p>See this bookcase at true scale in your space.</p>
-              <button class="cabinet-ar-launch-button" type="button" data-open-ar aria-label="View in Your Room">
-                <span class="view-icon" aria-hidden="true">${builderIcons.augmentedReality}</span><span data-ar-label>View in Your Room</span>
+            <div class="cabinet-ar-launch">
+              <button class="cabinet-ar-launch-button" type="button" data-open-ar aria-label="AR View in Your Room">
+                <span class="view-icon" aria-hidden="true">${builderIcons.augmentedReality}</span><span data-ar-label>AR View in Your Room</span>
               </button>
-              <small class="cabinet-ar-launch-help">Works on supported iPhone, iPad, and Android devices.</small>
-            </aside>
+            </div>
           ` : ""}
         </section>
 
@@ -1001,7 +997,7 @@ class BookcaseConfigurator {
 
   initializeCabinetAr() {
     if (this.arControllerPromise) return this.arControllerPromise;
-    this.arControllerPromise = import("./cabinet-ar-ui.js?v=cabinet-ar-20260712b")
+    this.arControllerPromise = import("./cabinet-ar-ui.js?v=interface-ar-20260713a")
       .then(({ CabinetArController }) => {
         if (!this.elements.arDialog) return null;
         this.arController = new CabinetArController({
@@ -2130,7 +2126,6 @@ class BookcaseConfigurator {
     const price = this.price;
     const currentPreset = layoutPresets.find((preset) => preset.id === this.state.layoutPreset);
     this.elements.price.textContent = formatPrice(price);
-    this.setOptionalText("[data-preview-price]", formatPrice(price));
     this.setOptionalText("[data-summary-preset]", currentPreset?.name || "Custom");
     this.setOptionalText("[data-summary-sections]", this.state.sections);
     this.setOptionalText("[data-summary-shelves]", this.state.shelves);

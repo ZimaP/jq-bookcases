@@ -164,6 +164,7 @@ test("AR UI contracts include fixed scale, floor placement, fallbacks, and analy
   assert.match(source, /generatedUsdzUrl/);
   assert.match(source, /querySelector\("\[data-ar-label\]"\)/);
   assert.doesNotMatch(source, /querySelector\("span"\)/);
+  assert.match(source, /loading \? "Preparing Room View…" : "AR View in Your Room"/);
   [
     "ar_button_viewed", "ar_button_clicked", "ar_model_requested", "ar_model_ready", "ar_launch_started",
     "ar_launch_succeeded", "ar_launch_failed", "ar_unsupported_device", "ar_qr_displayed", "ar_qr_opened"

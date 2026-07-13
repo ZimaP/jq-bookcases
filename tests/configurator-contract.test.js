@@ -280,11 +280,43 @@ test("hover option preview is reversible and isolated from canonical pricing sta
   assert.doesNotMatch(preview, /buildPricingContext|this\.price|saveCurrentDesign|localStorage/);
 });
 
-test("the AR launch renders one stable visible label target", () => {
+test("the compact AR launch replaces the duplicate preview estimate", () => {
   const shell = methodBody("renderFullPageConfigurator", "renderActiveControls");
   assert.equal((shell.match(/data-ar-label/g) || []).length, 1);
-  assert.equal((shell.match(/>View in Your Room<\/span>/g) || []).length, 1);
-  assert.match(shell, /aria-label="View in Your Room"/);
+  assert.equal((shell.match(/>AR View in Your Room<\/span>/g) || []).length, 1);
+  assert.match(shell, /aria-label="AR View in Your Room"/);
+  assert.equal((shell.match(/data-price/g) || []).length, 1);
+  assert.match(shell, /Estimated project price/);
+  assert.doesNotMatch(shell, /preview-price-pill|data-preview-price|Current estimated project price/);
+  assert.doesNotMatch(shell, /cabinet-ar-launch-heading|cabinet-ar-launch-help|See this bookcase at true scale/);
+  assert.match(shell, /<div class="cabinet-ar-launch">\s*<button class="cabinet-ar-launch-button"/);
+});
+
+test("the compact AR launch and review action have responsive centered placement", () => {
+  assert.match(
+    precisionCss,
+    /@media \(min-width: 768px\)[\s\S]*?\.configurator-model > \.cabinet-ar-launch \{[\s\S]*?top: 16px;[\s\S]*?right: 20px;[\s\S]*?bottom: auto;[\s\S]*?background: transparent;/
+  );
+  assert.match(
+    precisionCss,
+    /\.cabinet-ar-launch \.cabinet-ar-launch-button \{[\s\S]*?display: inline-flex;[\s\S]*?width: auto;[\s\S]*?align-items: center;[\s\S]*?justify-content: center;/
+  );
+  assert.match(
+    precisionCss,
+    /\.configurator-review-button \{[\s\S]*?display: inline-flex;[\s\S]*?align-items: center;[\s\S]*?justify-content: center;[\s\S]*?text-align: center;/
+  );
+  assert.match(
+    precisionCss,
+    /@media \(max-width: 767px\)[\s\S]*?\.configurator-model > \.cabinet-ar-launch \{[\s\S]*?right: 0;[\s\S]*?bottom: 0;[\s\S]*?width: var\(--mobile-ar-width\);/
+  );
+  assert.match(
+    precisionCss,
+    /@media \(min-width: 768px\) and \(max-width: 1279px\) and \(orientation: landscape\)[\s\S]*?\.configurator-model > \.cabinet-ar-launch \{[\s\S]*?top: 72px;[\s\S]*?right: 104px;/
+  );
+  assert.match(
+    precisionCss,
+    /@media \(max-width: 767px\)[\s\S]*?\.configurator-model > \.cabinet-ar-launch \.cabinet-ar-launch-button \{[\s\S]*?width: 100%;[\s\S]*?min-width: 0;[\s\S]*?white-space: normal;/
+  );
 });
 
 test("browser-verifiable diagnostics expose lifecycle counters without a global controller", () => {
