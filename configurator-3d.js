@@ -20,6 +20,13 @@ import {
 import { generateBookcaseLayout } from "./bookcase-layout.js?v=configurator-20260711e";
 import { buildPricingContext, formatPrice } from "./bookcase-pricing.js?v=benjamin-moore-20260712a";
 import {
+  PROFILE_CAMERA_DURATION,
+  calculateProfileCameraPose,
+  calculateViewportAwareTarget,
+  isProfileCameraKey,
+  resolveCameraTransitionDuration
+} from "./profile-camera.js?v=profile-camera-20260713a";
+import {
   BENJAMIN_MOORE_COLOR_DATA_NOTICE,
   BENJAMIN_MOORE_OFFICIAL_COLORS_URL,
   createBenjaminMoorePaintSelection,
@@ -143,12 +150,12 @@ const finishPalette = {
   custom_bm: 0xd3c8b8
 };
 
-const SMART_CAMERA_DURATION = 560;
+const SMART_CAMERA_DURATION = PROFILE_CAMERA_DURATION;
 const SMART_CAMERA_PROFILES = Object.freeze({
   overview: Object.freeze({ theta: -0.18, phi: 0.11, radiusScale: 1, roles: [] }),
   doors: Object.freeze({ theta: 0, phi: 0.015, radiusScale: 0.58, roles: ["door", "drawer_front"], selection: "center", limit: 1, boundsWidthScale: 0.6, boundsHeightScale: 0.34 }),
-  crown: Object.freeze({ theta: -0.46, phi: -0.04, radiusScale: 0.4, roles: ["crown"], fallbackRegion: "top", boundsWidthScale: 0.28 }),
-  base: Object.freeze({ theta: -0.46, phi: 0.04, radiusScale: 0.4, roles: ["base", "trim"], fallbackRegion: "bottom", boundsWidthScale: 0.28 }),
+  crown: Object.freeze({ theta: -0.62, phi: -0.08, radiusScale: 0.4, roles: ["crown"], fallbackRoles: ["top_panel"], fallbackRegion: "top", profileDetail: "crown" }),
+  base: Object.freeze({ theta: -0.62, phi: 0.11, radiusScale: 0.4, roles: ["base", "trim"], fallbackRegion: "bottom", profileDetail: "base" }),
   sidePanels: Object.freeze({ theta: -0.72, phi: 0.12, radiusScale: 0.82, roles: ["side_panel"], selection: "leftmost", limit: 1 }),
   backPanel: Object.freeze({ theta: 2.68, phi: 0.12, radiusScale: 0.84, roles: ["back_panel"] }),
   shelves: Object.freeze({ theta: -0.34, phi: -0.055, radiusScale: 0.72, roles: ["shelf", "fixed_shelf"], selection: "centerInterior", limit: 6 }),
@@ -213,6 +220,7 @@ const CAMERA_PROFILE_BY_FIELD = Object.freeze({
   lightingWarmth: "lighting"
 });
 
+const PROFILE_FOCUS_FIELDS = new Set(["baseStyle", "crownStyle"]);
 const HOVER_PREVIEW_FIELDS = new Set(["doorStyle", "baseStyle", "crownStyle", "finish", "hardware", "lighting", "lightingWarmth"]);
 let viewerInstanceSequence = 0;
 
@@ -260,6 +268,7 @@ class BookcaseConfigurator {
     this.arController = null;
     this.arControllerPromise = null;
     this.activeRangeDrag = null;
+    this.profileFocusFrame = 0;
     this.optionPreview = null;
     this.optionPreviewTimer = 0;
     this.layout = generateBookcaseLayout(this.state);
@@ -402,7 +411,6 @@ class BookcaseConfigurator {
           </header>
           <div class="preview-heading">
             <div><span>Live preview</span><small>Drag to rotate · Use arrow keys or the view dock</small></div>
-            <div class="preview-price-pill" aria-label="Current estimated project price"><small>Estimate</small><strong data-preview-price>${formatPrice(this.price)}</strong></div>
           </div>
           <div class="viewer-stage" data-3d-viewer tabindex="0" role="group" aria-roledescription="interactive 3D preview" aria-label="Built-in bookcase preview. Use arrow keys to rotate and plus or minus to zoom."></div>
           <div class="preview-control-dock" aria-label="Preview controls">
@@ -419,14 +427,11 @@ class BookcaseConfigurator {
             </div>
           </div>
           ${this.arEnabled ? `
-            <aside class="cabinet-ar-launch" aria-label="View in your room">
-              <div class="cabinet-ar-launch-heading"><span class="view-icon" aria-hidden="true">${builderIcons.augmentedReality}</span><strong>View in Your Room</strong></div>
-              <p>See this bookcase at true scale in your space.</p>
-              <button class="cabinet-ar-launch-button" type="button" data-open-ar aria-label="View in Your Room">
-                <span class="view-icon" aria-hidden="true">${builderIcons.augmentedReality}</span><span data-ar-label>View in Your Room</span>
+            <div class="cabinet-ar-launch">
+              <button class="cabinet-ar-launch-button" type="button" data-open-ar aria-label="AR View in Your Room">
+                <span class="view-icon" aria-hidden="true">${builderIcons.augmentedReality}</span><span data-ar-label>AR View in Your Room</span>
               </button>
-              <small class="cabinet-ar-launch-help">Works on supported iPhone, iPad, and Android devices.</small>
-            </aside>
+            </div>
           ` : ""}
         </section>
 
@@ -992,7 +997,7 @@ class BookcaseConfigurator {
 
   initializeCabinetAr() {
     if (this.arControllerPromise) return this.arControllerPromise;
-    this.arControllerPromise = import("./cabinet-ar-ui.js?v=cabinet-ar-20260712b")
+    this.arControllerPromise = import("./cabinet-ar-ui.js?v=interface-ar-20260713a")
       .then(({ CabinetArController }) => {
         if (!this.elements.arDialog) return null;
         this.arController = new CabinetArController({
@@ -1010,6 +1015,7 @@ class BookcaseConfigurator {
 
   bindEvents() {
     this.host.addEventListener("pointerdown", (event) => {
+      if (event.target.closest?.("[data-3d-viewer]")) this.cancelQueuedProfileFocus();
       const range = event.target.closest?.('.range-control input[type="range"][data-field]');
       if (!range || !this.host.contains(range)) return;
       this.focusCameraForField(range.dataset.field);
@@ -1062,6 +1068,14 @@ class BookcaseConfigurator {
     });
 
     this.host.addEventListener("keydown", (event) => {
+      const profileRadio = event.target.closest?.('input[type="radio"][data-field]');
+      if (profileRadio && PROFILE_FOCUS_FIELDS.has(profileRadio.dataset.field)) {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          profileRadio.click();
+        }
+        return;
+      }
       const modeButton = event.target.closest?.("[data-configurator-mode]");
       if (modeButton) {
         this.handleModeSelectorKeydown(event, modeButton);
@@ -1087,6 +1101,14 @@ class BookcaseConfigurator {
 
   handleDelegatedClick(event) {
     const target = event.target;
+    const profileRadio = target.closest?.('input[type="radio"][data-field]');
+    if (profileRadio && PROFILE_FOCUS_FIELDS.has(profileRadio.dataset.field)) {
+      const fieldName = profileRadio.dataset.field;
+      if (String(this.state[fieldName]) === String(profileRadio.value)) {
+        this.requestProfileCameraFocus(fieldName, { force: true });
+      }
+      return;
+    }
     const modeButton = target.closest?.("[data-configurator-mode]");
     if (modeButton) {
       this.switchMode(modeButton.dataset.configuratorMode);
@@ -1123,16 +1145,19 @@ class BookcaseConfigurator {
     }
     const viewButton = target.closest?.("[data-view]");
     if (viewButton) {
+      this.cancelQueuedProfileFocus();
       this.setView(viewButton.dataset.view);
       return;
     }
     const zoomButton = target.closest?.("[data-viewer-zoom]");
     if (zoomButton) {
+      this.cancelQueuedProfileFocus();
       this.viewer.zoom(zoomButton.dataset.viewerZoom === "in" ? -1 : 1);
       this.syncDiagnosticsAttributes();
       return;
     }
     if (target.closest?.("[data-reset-view]")) {
+      this.cancelQueuedProfileFocus();
       this.viewer.setView("reset");
       this.activeView = "three-quarter";
       this.syncViewButtons();
@@ -1279,6 +1304,7 @@ class BookcaseConfigurator {
 
   focusCameraForCurrentContext(options = {}) {
     if (!this.viewer?.focus) return;
+    this.cancelQueuedProfileFocus();
     const profile = this.mode === CONFIGURATOR_MODES.guided
       ? CAMERA_PROFILE_BY_GUIDED_STEP[this.guidedStep] || "overview"
       : CAMERA_PROFILE_BY_CATEGORY[this.expandedCategory] || "overview";
@@ -1288,13 +1314,28 @@ class BookcaseConfigurator {
     this.syncDiagnosticsAttributes();
   }
 
-  focusCameraForField(fieldName) {
+  focusCameraForField(fieldName, options = {}) {
     const profile = CAMERA_PROFILE_BY_FIELD[fieldName];
     if (!profile || !this.viewer?.focus) return;
-    this.viewer.focus(profile);
+    this.viewer.focus(profile, options);
     this.activeView = profile === "overview" ? "three-quarter" : "custom";
     this.syncViewButtons();
     this.syncDiagnosticsAttributes();
+  }
+
+  requestProfileCameraFocus(fieldName, options = {}) {
+    if (!PROFILE_FOCUS_FIELDS.has(fieldName) || !this.viewer?.focus) return;
+    this.cancelQueuedProfileFocus();
+    this.profileFocusFrame = window.requestAnimationFrame(() => {
+      this.profileFocusFrame = 0;
+      this.focusCameraForField(fieldName, { ...options, force: true });
+    });
+  }
+
+  cancelQueuedProfileFocus() {
+    if (!this.profileFocusFrame) return;
+    window.cancelAnimationFrame(this.profileFocusFrame);
+    this.profileFocusFrame = 0;
   }
 
   scheduleOptionPreview(label, input) {
@@ -1521,6 +1562,7 @@ class BookcaseConfigurator {
   }
 
   setView(view) {
+    this.cancelQueuedProfileFocus();
     this.viewer.setView(view);
     this.activeView = view === "reset" ? "three-quarter" : view;
     this.syncViewButtons();
@@ -1675,7 +1717,6 @@ class BookcaseConfigurator {
     const fieldName = target.dataset.field;
     if (!fieldName) return;
     this.endOptionPreview(null, { restore: false });
-    this.focusCameraForField(fieldName);
     let value;
     if (target.type === "checkbox") {
       value = target.checked;
@@ -1699,6 +1740,8 @@ class BookcaseConfigurator {
     const next = { ...this.state, [fieldName]: value };
     if (fieldName === "customPaintColor" && String(value).trim()) next.finish = "custom_bm";
     this.update(next, { sourceField: fieldName });
+    if (PROFILE_FOCUS_FIELDS.has(fieldName)) this.requestProfileCameraFocus(fieldName, { force: true });
+    else this.focusCameraForField(fieldName);
   }
 
   handleStepperClick(button) {
@@ -1901,6 +1944,10 @@ class BookcaseConfigurator {
     shell.dataset.diagnosticViewerPreviewActive = String(Boolean(viewer.previewActive));
     shell.dataset.diagnosticCameraFocus = String(viewer.activeFocus ?? "overview");
     shell.dataset.diagnosticCameraTransition = String(Boolean(viewer.cameraTransitionActive));
+    shell.dataset.diagnosticCameraSequence = String(viewer.cameraTransitionSequence ?? 0);
+    shell.dataset.diagnosticCameraCancellations = String(viewer.cameraTransitionCancellations ?? 0);
+    shell.dataset.diagnosticControlsEnabled = String(Boolean(viewer.controlsEnabled));
+    shell.dataset.diagnosticReducedMotion = String(Boolean(viewer.reducedMotion));
     shell.dataset.diagnosticCanvasCount = String(this.elements.viewer?.querySelectorAll("canvas").length || 0);
     shell.dataset.diagnosticActiveView = this.activeView;
     shell.dataset.diagnosticView = JSON.stringify({
@@ -2079,7 +2126,6 @@ class BookcaseConfigurator {
     const price = this.price;
     const currentPreset = layoutPresets.find((preset) => preset.id === this.state.layoutPreset);
     this.elements.price.textContent = formatPrice(price);
-    this.setOptionalText("[data-preview-price]", formatPrice(price));
     this.setOptionalText("[data-summary-preset]", currentPreset?.name || "Custom");
     this.setOptionalText("[data-summary-sections]", this.state.sections);
     this.setOptionalText("[data-summary-shelves]", this.state.shelves);
@@ -2162,7 +2208,11 @@ class BookcaseViewer3D {
     this.overviewTarget = this.target.clone();
     this.activeFocusKey = "overview";
     this.cameraTransition = null;
+    this.cameraTransitionSequence = 0;
+    this.cameraTransitionCancellationCount = 0;
     this.focusTargetCache = new Map();
+    this.focusRadius = this.baseRadius;
+    this.reducedMotionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)") || null;
     this.environmentLights = [];
     this.environmentLightScale = 1;
     this.highlightState = null;
@@ -2265,7 +2315,8 @@ class BookcaseViewer3D {
       if (window.matchMedia("(max-width: 1280px)").matches) return;
       event.preventDefault();
       this.cancelCameraTransition();
-      this.radius = clamp(this.radius + event.deltaY * 0.008, this.baseRadius * 0.82, this.baseRadius * 1.58);
+      const limits = this.getZoomLimits();
+      this.radius = clamp(this.radius + event.deltaY * 0.008, limits.min, limits.max);
       this.onCameraInteraction("zoom");
       this.updateCamera();
     }, { passive: false, signal });
@@ -2273,12 +2324,13 @@ class BookcaseViewer3D {
     this.root.addEventListener("keydown", (event) => {
       if (event.ctrlKey || event.metaKey) return;
       this.cancelCameraTransition();
+      const limits = this.getZoomLimits();
       if (event.key === "ArrowLeft") this.theta -= 0.12;
       else if (event.key === "ArrowRight") this.theta += 0.12;
       else if (event.key === "ArrowUp") this.phi = clamp(this.phi + 0.08, -0.12, 0.72);
       else if (event.key === "ArrowDown") this.phi = clamp(this.phi - 0.08, -0.12, 0.72);
-      else if (event.key === "+" || event.key === "=") this.radius = clamp(this.radius * 0.9, this.baseRadius * 0.82, this.baseRadius * 1.58);
-      else if (event.key === "-") this.radius = clamp(this.radius * 1.1, this.baseRadius * 0.82, this.baseRadius * 1.58);
+      else if (event.key === "+" || event.key === "=") this.radius = clamp(this.radius * 0.9, limits.min, limits.max);
+      else if (event.key === "-") this.radius = clamp(this.radius * 1.1, limits.min, limits.max);
       else return;
       event.preventDefault();
       this.onCameraInteraction(event.key === "+" || event.key === "=" || event.key === "-" ? "zoom" : "rotate");
@@ -2305,6 +2357,8 @@ class BookcaseViewer3D {
     this.clearComponentHighlight();
     this.setProductLightingBoost(1);
     this.activeFocusKey = "overview";
+    this.focusRadius = this.baseRadius;
+    this.root.dataset.cameraFocus = "overview";
     this.animateToCameraPose({
       theta,
       phi,
@@ -2317,7 +2371,8 @@ class BookcaseViewer3D {
 
   zoom(direction) {
     const scale = Number(direction) < 0 ? 0.9 : 1.1;
-    const radius = clamp(this.radius * scale, this.baseRadius * 0.58, this.baseRadius * 1.58);
+    const limits = this.getZoomLimits();
+    const radius = clamp(this.radius * scale, limits.min, limits.max);
     this.onCameraInteraction("zoom");
     this.animateToCameraPose({
       theta: this.theta,
@@ -2327,6 +2382,68 @@ class BookcaseViewer3D {
       environmentScale: this.environmentLightScale,
       exposure: this.renderer.toneMappingExposure
     }, { duration: 360 });
+  }
+
+  getZoomLimits() {
+    const detailFocus = this.activeFocusKey !== "overview" && Number.isFinite(this.focusRadius) && this.focusRadius > 0;
+    const referenceRadius = detailFocus ? this.focusRadius : this.baseRadius;
+    return {
+      min: detailFocus ? Math.min(this.baseRadius * 0.58, referenceRadius * 0.62) : this.baseRadius * 0.58,
+      max: Math.max(this.baseRadius * 1.58, referenceRadius * 2.25)
+    };
+  }
+
+  getSafeViewport() {
+    const rootRect = this.root.getBoundingClientRect();
+    const width = Math.max(1, rootRect.width);
+    const height = Math.max(1, rootRect.height);
+    const insets = { top: 0, right: 0, bottom: 0, left: 0 };
+    const container = this.root.closest(".configurator-model");
+    if (!container) return { width, height, insets };
+
+    const overlays = container.querySelectorAll([
+      ".configurator-experience-toolbar",
+      ".preview-heading > div",
+      ".preview-control-dock",
+      ":scope > .cabinet-ar-launch"
+    ].join(","));
+    overlays.forEach((overlay) => {
+      const style = window.getComputedStyle(overlay);
+      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return;
+      const rect = overlay.getBoundingClientRect();
+      const intersection = {
+        left: Math.max(rootRect.left, rect.left),
+        right: Math.min(rootRect.right, rect.right),
+        top: Math.max(rootRect.top, rect.top),
+        bottom: Math.min(rootRect.bottom, rect.bottom)
+      };
+      const overlapWidth = intersection.right - intersection.left;
+      const overlapHeight = intersection.bottom - intersection.top;
+      if (overlapWidth <= 0 || overlapHeight <= 0) return;
+
+      const edgeTolerance = Math.max(18, Math.min(width, height) * 0.04);
+      const touchesTop = intersection.top <= rootRect.top + edgeTolerance;
+      const touchesRight = intersection.right >= rootRect.right - edgeTolerance;
+      const touchesBottom = intersection.bottom >= rootRect.bottom - edgeTolerance;
+      const touchesLeft = intersection.left <= rootRect.left + edgeTolerance;
+      const horizontalOverlay = overlapWidth >= width * 0.32;
+      const verticalOverlay = overlapHeight >= height * 0.16;
+      const gap = Math.max(8, Math.min(width, height) * 0.018);
+
+      if (touchesTop && overlapWidth >= Math.min(120, width * 0.16)) {
+        insets.top = Math.max(insets.top, intersection.bottom - rootRect.top + gap);
+      }
+      if (touchesBottom && horizontalOverlay) {
+        insets.bottom = Math.max(insets.bottom, rootRect.bottom - intersection.top + gap);
+      }
+      if (touchesRight && verticalOverlay && !horizontalOverlay) {
+        insets.right = Math.max(insets.right, rootRect.right - intersection.left + gap);
+      }
+      if (touchesLeft && verticalOverlay && !horizontalOverlay) {
+        insets.left = Math.max(insets.left, intersection.right - rootRect.left + gap);
+      }
+    });
+    return { width, height, insets };
   }
 
   focus(profileKey = "overview", options = {}) {
@@ -2340,18 +2457,28 @@ class BookcaseViewer3D {
       && Math.abs(this.phi - pose.phi) < 0.005
       && Math.abs(this.radius - pose.radius) < 0.01;
     this.activeFocusKey = normalizedKey;
+    this.focusRadius = pose.radius;
     this.root.dataset.cameraFocus = normalizedKey;
     this.setProductLightingBoost(normalizedKey === "lighting" ? 1.9 : 1);
     this.applyComponentHighlight(pose.activeRoles);
     if (alreadyAtPose && !options.force) return;
-    this.animateToCameraPose(pose, { duration: options.duration || SMART_CAMERA_DURATION });
+    this.animateToCameraPose(pose, { duration: options.duration ?? SMART_CAMERA_DURATION });
   }
 
   getFocusPose(profileKey, profile) {
     const resolvedProfile = profileKey === "lighting"
       ? { ...profile, ...(LIGHTING_CAMERA_OVERRIDES[this.state.lighting] || {}) }
       : profile;
-    const cacheKey = `${profileKey}:${profileKey === "lighting" ? this.state.lighting : "default"}:${this.rebuildCount}:${Number(this.camera.aspect || 1).toFixed(3)}`;
+    const viewport = this.getSafeViewport();
+    const viewportKey = [
+      viewport.width,
+      viewport.height,
+      viewport.insets.top,
+      viewport.insets.right,
+      viewport.insets.bottom,
+      viewport.insets.left
+    ].map((value) => Math.round(value)).join("x");
+    const cacheKey = `${profileKey}:${profileKey === "lighting" ? this.state.lighting : "default"}:${this.rebuildCount}:${Number(this.camera.aspect || 1).toFixed(3)}:${viewportKey}`;
     const cached = this.focusTargetCache.get(cacheKey);
     if (cached) {
       return {
@@ -2362,6 +2489,54 @@ class BookcaseViewer3D {
     }
 
     const result = this.getFocusBounds(resolvedProfile);
+    if (isProfileCameraKey(resolvedProfile.profileDetail)) {
+      const modelBounds = new THREE.Box3().setFromObject(this.model);
+      const calculated = calculateProfileCameraPose({
+        kind: resolvedProfile.profileDetail,
+        modelBounds: box3ToPlainBounds(modelBounds),
+        featureBounds: box3ToPlainBounds(result.bounds),
+        verticalFovDegrees: this.camera.fov,
+        aspect: this.camera.aspect,
+        viewport
+      });
+      let radius = calculated.radius;
+      let targetData = calculated.target;
+      for (let pass = 0; pass < 2; pass += 1) {
+        const target = new THREE.Vector3(targetData.x, targetData.y, targetData.z);
+        const collisionSafeRadius = this.resolveCollisionSafeRadius(
+          calculated.theta,
+          calculated.phi,
+          target,
+          radius
+        );
+        if (collisionSafeRadius <= radius + 0.0001) break;
+        radius = collisionSafeRadius;
+        targetData = calculateViewportAwareTarget({
+          focusCenter: calculated.focusCenter,
+          radius,
+          theta: calculated.theta,
+          phi: calculated.phi,
+          verticalFovDegrees: this.camera.fov,
+          aspect: this.camera.aspect,
+          viewport: calculated.viewport
+        });
+      }
+      const pose = {
+        theta: calculated.theta,
+        phi: calculated.phi,
+        radius,
+        target: new THREE.Vector3(targetData.x, targetData.y, targetData.z),
+        activeRoles: result.activeRoles,
+        environmentScale: resolvedProfile.environmentScale ?? 1,
+        exposure: resolvedProfile.exposure ?? 1.08
+      };
+      this.focusTargetCache.set(cacheKey, {
+        ...pose,
+        target: pose.target.clone(),
+        activeRoles: [...pose.activeRoles]
+      });
+      return pose;
+    }
     const bounds = result.bounds.clone();
     if (Number.isFinite(resolvedProfile.boundsWidthScale)) {
       const boundsCenter = bounds.getCenter(new THREE.Vector3());
@@ -2469,9 +2644,20 @@ class BookcaseViewer3D {
 
   animateToCameraPose(pose, options = {}) {
     const endTheta = this.theta + shortestAngleDelta(this.theta, pose.theta);
+    const requestedDuration = Number(options.duration ?? SMART_CAMERA_DURATION);
+    const duration = resolveCameraTransitionDuration(requestedDuration, this.reducedMotionQuery?.matches);
+    if (duration === 0) {
+      if (this.cameraTransition) this.cameraTransitionCancellationCount += 1;
+      this.cameraTransition = null;
+      this.applyCameraPose({ ...pose, theta: endTheta });
+      this.onCameraInteraction("focus-complete");
+      return;
+    }
+    if (this.cameraTransition) this.cameraTransitionCancellationCount += 1;
     this.cameraTransition = {
+      sequence: ++this.cameraTransitionSequence,
       startedAt: performance.now(),
-      duration: clamp(Number(options.duration) || SMART_CAMERA_DURATION, 320, 700),
+      duration,
       startTheta: this.theta,
       endTheta,
       startPhi: this.phi,
@@ -2485,6 +2671,19 @@ class BookcaseViewer3D {
       startExposure: this.renderer.toneMappingExposure,
       endExposure: pose.exposure ?? 1.08
     };
+  }
+
+  applyCameraPose(pose) {
+    this.theta = pose.theta;
+    this.phi = pose.phi;
+    this.radius = pose.radius;
+    this.target.copy(pose.target);
+    this.environmentLightScale = pose.environmentScale ?? 1;
+    this.renderer.toneMappingExposure = pose.exposure ?? 1.08;
+    this.environmentLights.forEach((light) => {
+      light.intensity = (light.userData.smartFocusBaseIntensity || 0) * this.environmentLightScale;
+    });
+    this.updateCamera();
   }
 
   updateCameraTransition(now) {
@@ -2509,6 +2708,7 @@ class BookcaseViewer3D {
   }
 
   cancelCameraTransition() {
+    if (this.cameraTransition) this.cameraTransitionCancellationCount += 1;
     this.cameraTransition = null;
   }
 
@@ -2593,8 +2793,8 @@ class BookcaseViewer3D {
 
   resize() {
     const rect = this.root.getBoundingClientRect();
-    const width = Math.max(320, rect.width);
-    const height = Math.max(340, rect.height);
+    const width = Math.max(1, Math.round(rect.width));
+    const height = Math.max(1, Math.round(rect.height));
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
@@ -2718,7 +2918,8 @@ class BookcaseViewer3D {
     const ratio = clamp(previousRatio || 1, 0.84, 1.48);
     this.focusTargetCache.clear();
     if (transition) {
-      this.focus(this.activeFocusKey || "overview", { duration: 480, force: true });
+      const duration = isProfileCameraKey(this.activeFocusKey) ? PROFILE_CAMERA_DURATION : 480;
+      this.focus(this.activeFocusKey || "overview", { duration, force: true });
     } else {
       this.target.copy(this.overviewTarget);
       this.radius = this.baseRadius * ratio;
@@ -2747,9 +2948,9 @@ class BookcaseViewer3D {
   updateCamera() {
     const horizontal = Math.cos(this.phi) * this.radius;
     this.camera.position.set(
-      Math.sin(this.theta) * horizontal,
+      this.target.x + Math.sin(this.theta) * horizontal,
       this.target.y + Math.sin(this.phi) * this.radius,
-      Math.cos(this.theta) * horizontal
+      this.target.z + Math.cos(this.theta) * horizontal
     );
     this.camera.lookAt(this.target);
   }
@@ -2771,7 +2972,8 @@ class BookcaseViewer3D {
       transitioning: Boolean(this.cameraTransition),
       environmentScale: this.environmentLightScale,
       exposure: this.renderer.toneMappingExposure,
-      target: { x: this.target.x, y: this.target.y, z: this.target.z }
+      target: { x: this.target.x, y: this.target.y, z: this.target.z },
+      position: { x: this.camera.position.x, y: this.camera.position.y, z: this.camera.position.z }
     };
   }
 
@@ -2785,6 +2987,10 @@ class BookcaseViewer3D {
       previewActive: this.previewActive,
       activeFocus: this.activeFocusKey,
       cameraTransitionActive: Boolean(this.cameraTransition),
+      cameraTransitionSequence: this.cameraTransitionSequence,
+      cameraTransitionCancellations: this.cameraTransitionCancellationCount,
+      controlsEnabled: !this.destroyed,
+      reducedMotion: Boolean(this.reducedMotionQuery?.matches),
       canvasConnected: Boolean(this.renderer.domElement?.isConnected)
     };
   }
@@ -3745,6 +3951,13 @@ function isWebGLAvailable() {
   } catch (error) {
     return false;
   }
+}
+
+function box3ToPlainBounds(bounds) {
+  return {
+    min: { x: bounds.min.x, y: bounds.min.y, z: bounds.min.z },
+    max: { x: bounds.max.x, y: bounds.max.y, z: bounds.max.z }
+  };
 }
 
 function shortestAngleDelta(from, to) {

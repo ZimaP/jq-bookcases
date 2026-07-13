@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { PROFILE_CAMERA_DURATION } from "../profile-camera.js";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const read = (name) => readFileSync(`${root}/${name}`, "utf8");
@@ -161,26 +162,112 @@ test("smart camera maps categories and fields to semantic component focus profil
   assert.match(source, /lightingWarmth: "lighting"/);
 });
 
-test("door, crown, and base selections use close detail camera profiles", () => {
-  assert.match(source, /doors: Object\.freeze\(\{[^}]*radiusScale: 0\.58[^}]*selection: "center", limit: 1, boundsWidthScale: 0\.6, boundsHeightScale: 0\.34/);
-  assert.match(source, /crown: Object\.freeze\(\{[^}]*radiusScale: 0\.4[^}]*boundsWidthScale: 0\.28/);
-  assert.match(source, /base: Object\.freeze\(\{[^}]*radiusScale: 0\.4[^}]*boundsWidthScale: 0\.28/);
-  assert.match(source, /halfDetailWidth = width \* clamp\(resolvedProfile\.boundsWidthScale, 0\.1, 1\) \* 0\.5/);
-  assert.match(source, /halfDetailHeight = height \* clamp\(resolvedProfile\.boundsHeightScale, 0\.1, 1\) \* 0\.5/);
-  assert.match(source, /this\.viewer\.preview\(previewState, previewLayout, field\);\s*this\.focusCameraForField\(field\);/);
+test("base and crown profile radios support repeated click, Enter, and native Space activation", () => {
+  assert.match(source, /const PROFILE_FOCUS_FIELDS = new Set\(\["baseStyle", "crownStyle"\]\)/);
+
+  const events = methodBody("bindEvents", "handleDelegatedClick");
+  const profileKeyboardStart = events.indexOf("const profileRadio = event.target.closest");
+  const profileKeyboardEnd = events.indexOf("const modeButton", profileKeyboardStart);
+  assert.notEqual(profileKeyboardStart, -1, "profile radio keyboard handling must exist");
+  assert.notEqual(profileKeyboardEnd, -1, "profile radio keyboard handling must precede mode handling");
+  const profileKeyboard = events.slice(profileKeyboardStart, profileKeyboardEnd);
+  assert.match(profileKeyboard, /event\.key === "Enter"[\s\S]*event\.preventDefault\(\)[\s\S]*profileRadio\.click\(\)/);
+  assert.doesNotMatch(profileKeyboard, /event\.key === "(?: |Space|Spacebar)"/, "Space must retain native radio activation");
+
+  const delegatedClick = methodBody("handleDelegatedClick", "handleModeSelectorKeydown");
+  assert.match(delegatedClick, /input\[type="radio"\]\[data-field\]/);
+  assert.match(delegatedClick, /PROFILE_FOCUS_FIELDS\.has\(profileRadio\.dataset\.field\)/);
+  assert.match(delegatedClick, /String\(this\.state\[fieldName\]\) === String\(profileRadio\.value\)/);
+  assert.match(delegatedClick, /this\.requestProfileCameraFocus\(fieldName, \{ force: true \}\)/);
 });
 
-test("smart camera transitions are eased, collision-safe, cached, and never snap category changes", () => {
-  assert.match(source, /const SMART_CAMERA_DURATION = 560/);
-  assert.match(source, /duration: clamp\(Number\(options\.duration\) \|\| SMART_CAMERA_DURATION, 320, 700\)/);
-  assert.match(source, /easeInOutCubic\(progress\)/);
-  assert.match(source, /shortestAngleDelta\(this\.theta, pose\.theta\)/);
-  assert.match(source, /resolveCollisionSafeRadius/);
+test("profile camera focus waits for updated geometry and replaces queued focus work", () => {
+  const fieldInput = methodBody("handleFieldInput", "handleStepperClick");
+  const updateIndex = fieldInput.indexOf("this.update(next, { sourceField: fieldName })");
+  const profileFocusIndex = fieldInput.indexOf("this.requestProfileCameraFocus(fieldName, { force: true })");
+  assert.notEqual(updateIndex, -1, "profile selections must update canonical geometry");
+  assert.notEqual(profileFocusIndex, -1, "profile selections must request detail focus");
+  assert.ok(updateIndex < profileFocusIndex, "updated geometry must be committed before final profile framing");
+
+  const fieldFocus = methodBody("focusCameraForField", "requestProfileCameraFocus");
+  assert.match(fieldFocus, /focusCameraForField\(fieldName, options = \{\}\)/);
+  assert.match(fieldFocus, /this\.viewer\.focus\(profile, options\)/);
+
+  const request = methodBody("requestProfileCameraFocus", "cancelQueuedProfileFocus");
+  assert.ok(request.indexOf("this.cancelQueuedProfileFocus()") < request.indexOf("window.requestAnimationFrame"));
+  assert.match(request, /this\.focusCameraForField\(fieldName, \{ \.\.\.options, force: true \}\)/);
+
+  const cancel = methodBody("cancelQueuedProfileFocus", "scheduleOptionPreview");
+  assert.match(cancel, /window\.cancelAnimationFrame\(this\.profileFocusFrame\)/);
+  assert.match(cancel, /this\.profileFocusFrame = 0/);
+});
+
+test("profile framing uses semantic detail regions and the unobstructed viewer area", () => {
+  assert.match(source, /crown: Object\.freeze\(\{[^}]*roles: \["crown"\][^}]*profileDetail: "crown"/s);
+  assert.match(source, /base: Object\.freeze\(\{[^}]*roles: \["base", "trim"\][^}]*profileDetail: "base"/s);
+
+  const safeViewport = methodBody("getSafeViewport", "focus");
+  for (const overlay of [
+    ".configurator-experience-toolbar",
+    ".preview-heading > div",
+    ".preview-control-dock",
+    ":scope > .cabinet-ar-launch"
+  ]) assert.ok(safeViewport.includes(`"${overlay}"`), `${overlay} must be included in safe framing`);
+  assert.match(safeViewport, /const intersection = \{/);
+  assert.match(safeViewport, /insets\.top = Math\.max/);
+  assert.match(safeViewport, /insets\.right = Math\.max/);
+  assert.match(safeViewport, /insets\.bottom = Math\.max/);
+  assert.match(safeViewport, /insets\.left = Math\.max/);
+
+  const pose = methodBody("getFocusPose", "getFocusBounds");
+  assert.match(pose, /const viewport = this\.getSafeViewport\(\)/);
+  for (const edge of ["top", "right", "bottom", "left"]) {
+    assert.match(pose, new RegExp(`viewport\\.insets\\.${edge}`));
+  }
+  assert.match(pose, /viewportKey/);
+  assert.match(pose, /resolveCollisionSafeRadius/);
   assert.match(source, /focusTargetCache = new Map\(\)/);
+});
+
+test("smart camera transitions replace stale work, honor reduced motion, and use one render loop", () => {
+  assert.match(source, /const SMART_CAMERA_DURATION = PROFILE_CAMERA_DURATION/);
+  assert.ok(PROFILE_CAMERA_DURATION >= 600 && PROFILE_CAMERA_DURATION <= 900, "profile focus should animate for 600-900ms");
+  assert.match(source, /window\.matchMedia\?\.\("\(prefers-reduced-motion: reduce\)"\)/);
+
+  const transition = methodBody("animateToCameraPose", "applyCameraPose");
+  assert.match(transition, /resolveCameraTransitionDuration\(requestedDuration, this\.reducedMotionQuery\?\.matches\)/);
+  assert.match(transition, /if \(duration === 0\)/);
+  assert.match(transition, /this\.cameraTransition = null;\s*this\.applyCameraPose\(\{ \.\.\.pose, theta: endTheta \}\)/);
+  assert.match(transition, /if \(this\.cameraTransition\) this\.cameraTransitionCancellationCount \+= 1/);
+  assert.match(transition, /sequence: \+\+this\.cameraTransitionSequence/);
+  assert.match(transition, /duration,/);
+  assert.doesNotMatch(transition, /requestAnimationFrame/, "camera transitions must use the persistent renderer loop");
+
+  const transitionUpdate = methodBody("updateCameraTransition", "cancelCameraTransition");
+  assert.match(transitionUpdate, /easeInOutCubic\(progress\)/);
+  assert.match(transitionUpdate, /this\.target\.lerpVectors/);
+
+  const cancellation = methodBody("cancelCameraTransition", "applyComponentHighlight");
+  assert.match(cancellation, /if \(this\.cameraTransition\) this\.cameraTransitionCancellationCount \+= 1/);
+  assert.match(cancellation, /this\.cameraTransition = null/);
+
+  const viewer = source.slice(source.indexOf("class BookcaseViewer3D"));
+  assert.equal((viewer.match(/this\.animationFrame = window\.requestAnimationFrame\(\(time\) => this\.animate\(time\)\)/g) || []).length, 1);
+  assert.match(viewer, /cameraTransitionSequence: this\.cameraTransitionSequence/);
+  assert.match(viewer, /cameraTransitionCancellations: this\.cameraTransitionCancellationCount/);
+
+  assert.match(source, /shortestAngleDelta\(this\.theta, pose\.theta\)/);
   assert.match(source, /setProductLightingBoost\(normalizedKey === "lighting" \? 1\.9 : 1\)/);
   assert.match(source, /this\.viewer\.focus\(wasOpen \? "overview"/);
   const categoryToggle = methodBody("toggleCategory", "openReviewDialog");
   assert.doesNotMatch(categoryToggle, /this\.viewer\.setView/);
+});
+
+test("detail camera positions are relative to the focus target", () => {
+  const updateCamera = methodBody("updateCamera", "animate");
+  assert.match(updateCamera, /this\.target\.x \+ Math\.sin\(this\.theta\) \* horizontal/);
+  assert.match(updateCamera, /this\.target\.z \+ Math\.cos\(this\.theta\) \* horizontal/);
+  assert.match(updateCamera, /this\.camera\.lookAt\(this\.target\)/);
 });
 
 test("hover option preview is reversible and isolated from canonical pricing state", () => {
@@ -193,11 +280,43 @@ test("hover option preview is reversible and isolated from canonical pricing sta
   assert.doesNotMatch(preview, /buildPricingContext|this\.price|saveCurrentDesign|localStorage/);
 });
 
-test("the AR launch renders one stable visible label target", () => {
+test("the compact AR launch replaces the duplicate preview estimate", () => {
   const shell = methodBody("renderFullPageConfigurator", "renderActiveControls");
   assert.equal((shell.match(/data-ar-label/g) || []).length, 1);
-  assert.equal((shell.match(/>View in Your Room<\/span>/g) || []).length, 1);
-  assert.match(shell, /aria-label="View in Your Room"/);
+  assert.equal((shell.match(/>AR View in Your Room<\/span>/g) || []).length, 1);
+  assert.match(shell, /aria-label="AR View in Your Room"/);
+  assert.equal((shell.match(/data-price/g) || []).length, 1);
+  assert.match(shell, /Estimated project price/);
+  assert.doesNotMatch(shell, /preview-price-pill|data-preview-price|Current estimated project price/);
+  assert.doesNotMatch(shell, /cabinet-ar-launch-heading|cabinet-ar-launch-help|See this bookcase at true scale/);
+  assert.match(shell, /<div class="cabinet-ar-launch">\s*<button class="cabinet-ar-launch-button"/);
+});
+
+test("the compact AR launch and review action have responsive centered placement", () => {
+  assert.match(
+    precisionCss,
+    /@media \(min-width: 768px\)[\s\S]*?\.configurator-model > \.cabinet-ar-launch \{[\s\S]*?top: 16px;[\s\S]*?right: 20px;[\s\S]*?bottom: auto;[\s\S]*?background: transparent;/
+  );
+  assert.match(
+    precisionCss,
+    /\.cabinet-ar-launch \.cabinet-ar-launch-button \{[\s\S]*?display: inline-flex;[\s\S]*?width: auto;[\s\S]*?align-items: center;[\s\S]*?justify-content: center;/
+  );
+  assert.match(
+    precisionCss,
+    /\.configurator-review-button \{[\s\S]*?display: inline-flex;[\s\S]*?align-items: center;[\s\S]*?justify-content: center;[\s\S]*?text-align: center;/
+  );
+  assert.match(
+    precisionCss,
+    /@media \(max-width: 767px\)[\s\S]*?\.configurator-model > \.cabinet-ar-launch \{[\s\S]*?right: 0;[\s\S]*?bottom: 0;[\s\S]*?width: var\(--mobile-ar-width\);/
+  );
+  assert.match(
+    precisionCss,
+    /@media \(min-width: 768px\) and \(max-width: 1279px\) and \(orientation: landscape\)[\s\S]*?\.configurator-model > \.cabinet-ar-launch \{[\s\S]*?top: 72px;[\s\S]*?right: 104px;/
+  );
+  assert.match(
+    precisionCss,
+    /@media \(max-width: 767px\)[\s\S]*?\.configurator-model > \.cabinet-ar-launch \.cabinet-ar-launch-button \{[\s\S]*?width: 100%;[\s\S]*?min-width: 0;[\s\S]*?white-space: normal;/
+  );
 });
 
 test("browser-verifiable diagnostics expose lifecycle counters without a global controller", () => {
@@ -206,6 +325,10 @@ test("browser-verifiable diagnostics expose lifecycle counters without a global 
   assert.match(source, /dataset\.diagnosticPhysicalUpdates/);
   assert.match(source, /dataset\.diagnosticSaveActions/);
   assert.match(source, /dataset\.diagnosticQuoteActions/);
+  assert.match(source, /dataset\.diagnosticCameraSequence/);
+  assert.match(source, /dataset\.diagnosticCameraCancellations/);
+  assert.match(source, /dataset\.diagnosticControlsEnabled/);
+  assert.match(source, /dataset\.diagnosticReducedMotion/);
   assert.match(source, /dataset\.diagnosticConfiguration/);
   assert.match(source, /dataset\.diagnosticPricing/);
   assert.doesNotMatch(source, /window\.__jqConfigurator/);
@@ -219,11 +342,16 @@ test("viewer teardown removes controls, resources, and its canvas", () => {
   assert.match(viewer, /this\.renderer\.domElement\?\.remove\(\)/);
 });
 
-test("viewer controls preserve standard browser zoom shortcuts", () => {
+test("viewer controls remain enabled after focus and preserve browser zoom shortcuts", () => {
   const controls = methodBody("bindControls", "setView");
+  for (const eventName of ["pointerdown", "pointermove", "pointerup", "pointercancel", "wheel", "keydown"]) {
+    assert.match(controls, new RegExp(`addEventListener\\("${eventName}"`));
+  }
+  assert.match(controls, /this\.cancelCameraTransition\(\)/);
   assert.match(controls, /if \(event\.ctrlKey \|\| event\.metaKey\) return;/);
   assert.match(controls, /addEventListener\("wheel"[\s\S]*event\.preventDefault\(\)/);
   assert.match(controls, /addEventListener\("keydown"[\s\S]*event\.ctrlKey \|\| event\.metaKey/);
+  assert.match(source, /controlsEnabled: !this\.destroyed/);
 });
 
 test("blocking drafts disable review and link all completion actions to guidance", () => {
