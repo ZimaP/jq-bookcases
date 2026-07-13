@@ -75,6 +75,18 @@ Use the semantic layout roles where available:
 
 Radius roles are `--radius-control` for controls, `--radius-card` for normal cards, `--radius-large` for prominent media/panels, and `--radius-pill` for filters and status chips. Use `--shadow-soft`, `--shadow-card`, and `--shadow-float` only to express real elevation.
 
+Component contracts sit above the raw scales and keep route styles from
+reassembling the system differently. Containers use `--container-wide` and
+`--container-reading`; grids use `--grid-gap`; navigation uses `--nav-gap` and
+`--nav-control-height`; hero variants use `--hero-min-height`,
+`--hero-padding-block`, `--hero-content-gap`, and `--hero-media-min-height`.
+Cards, buttons, forms, FAQ rows, and the configurator shell likewise consume
+their named `--card-*`, `--button-*`, `--form-*`, `--faq-*`, and
+`--configurator-*` roles. Breakpoint names are documented by
+`--breakpoint-small`, `--breakpoint-medium`, and `--breakpoint-large`; media
+queries use the corresponding 680px, 900px, and 1200px thresholds because CSS
+custom properties cannot be interpolated into media conditions.
+
 ## Layout system
 
 - `.container` supplies the shared `--content-max` width and responsive gutters.
@@ -92,6 +104,15 @@ Avoid fixed page heights for text-bearing sections. Fixed dimensions are accepta
 ### Header and navigation
 
 All routes use the header injected by `site.js`. The logo, navigation order, current-page state, Save Design action, Request Quote action, mobile menu, header height, and focus treatment must remain shared. The homepage may use a transparent-over-image header; other routes use the standard surface.
+
+### Hero variants
+
+There is one hero grammar with two deliberate compositions. Standard interior
+heroes are centered and contain breadcrumb, kicker, H1, and lead text in that
+order. The About page uses the media variant, with the same type, spacing, and
+action roles beside one editorial image. The homepage uses the campaign variant
+because its hero also carries the primary product proposition. No route may
+create another hero scale or spacing rhythm.
 
 ### Buttons and links
 
@@ -116,7 +137,7 @@ The FAQ uses a compact internal hero, search, topic filters, result feedback, on
 
 ### Footer
 
-All marketing and policy routes use the same footer injected by `site.js`, including the same Explore, Plan Your Project, project CTA, assurance, copyright, privacy, and terms structure. The configurator intentionally omits the footer while its full-page application shell is active.
+All marketing and policy routes use the same footer injected by `site.js`, including the same Explore, Plan Your Project, project CTA, assurance, copyright, privacy, and terms structure. There is no route-specific footer variant. The configurator intentionally omits the footer while its full-page application shell is active.
 
 ## Route templates
 
@@ -161,4 +182,3 @@ Before adding or changing a page:
 5. Use the shared button, form, card, and section behaviors.
 6. Check 1440px, 1024px, 768px, 390px, and 320px widths.
 7. Check keyboard navigation, visible focus, heading order, overflow, console output, and all customer actions.
-

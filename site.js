@@ -1,4 +1,4 @@
-import { mountIcons, setIcon } from "./icon-system.js?v=site-system-20260711d";
+import { mountIcons, setIcon } from "./icon-system.js?v=jq-icons-20260713g";
 import { createQuotePrefill } from "./quote-prefill.js?v=benjamin-moore-20260712a";
 import { BENJAMIN_MOORE_COLOR_DATA_NOTICE } from "./benjamin-moore-colors.js?v=bm-catalog-20260712a";
 
@@ -57,11 +57,11 @@ function injectHeader() {
 
   const headerActions = current === "configurator"
     ? `
-          <button class="header-save-button" type="button" data-header-save-design aria-label="Save Design"><span>Save Design</span><i data-icon="heart" aria-hidden="true"></i></button>
+          <button class="header-save-button" type="button" data-header-save-design aria-label="Save Design"><span>Save Design</span><i data-icon="save" aria-hidden="true"></i></button>
           <button class="button button-primary" type="button" data-header-request-quote>Request Quote</button>
         `
     : `
-          <a class="header-save-button" href="${designBuilderHref}" aria-label="Save Design"><span>Save Design</span><i data-icon="heart" aria-hidden="true"></i></a>
+          <a class="header-save-button" href="${designBuilderHref}" aria-label="Save Design"><span>Save Design</span><i data-icon="save" aria-hidden="true"></i></a>
           <a class="button button-primary${current === "quote" ? " is-active" : ""}" href="request-quote.html"${current === "quote" ? ' aria-current="page"' : ""}>Request Quote</a>
         `;
 
@@ -121,18 +121,13 @@ function injectFooter() {
   const host = document.querySelector("[data-site-footer]");
   if (!host) return;
 
-  if (host.dataset.footerVariant === "reference") {
-    host.innerHTML = renderReferenceFooter(document.body.dataset.page || "");
-    return;
-  }
-
   host.innerHTML = `
     <footer class="site-footer">
       <div class="footer-grid">
         <div>
           ${renderBrandLink("footer-brand")}
           <p>Premium built-ins, expertly crafted for your home.</p>
-          <a class="footer-design-link" href="configurator.html"><i data-icon="configurator-3d" aria-hidden="true"></i> Open the ${officialBrand.product}</a>
+          <a class="footer-design-link" href="configurator.html"><i data-icon="camera-orbit" aria-hidden="true"></i> Open the ${officialBrand.product}</a>
         </div>
         <div>
           <h3>Explore</h3>
@@ -161,8 +156,8 @@ function injectFooter() {
           </div>
         </div>
         <div class="footer-benefits" aria-label="Project benefits">
-          <span><i data-icon="delivery" aria-hidden="true"></i>Delivery Standard</span>
-          <span><i data-icon="tools" aria-hidden="true"></i>Installation Professional</span>
+          <span><i data-icon="standard-delivery" aria-hidden="true"></i>Standard Delivery</span>
+          <span><i data-icon="professional-installation" aria-hidden="true"></i>Professional Installation</span>
           <span><i data-icon="warranty" aria-hidden="true"></i>Warranty Lifetime</span>
         </div>
       </div>
@@ -172,67 +167,6 @@ function injectFooter() {
           <a href="privacy.html">Privacy Policy</a>
           <a href="terms.html">Terms of Service</a>
         </span>
-      </div>
-    </footer>
-  `;
-}
-
-function renderReferenceFooter(page) {
-  const brandCopy = page === "materials"
-    ? "Premium semi-custom built-ins, expertly crafted for your home."
-    : page === "about"
-      ? "Premium semi-custom built-ins, crafted for your home."
-      : "Premium built-ins, crafted for your home.";
-  const materialsTrust = page === "materials"
-    ? `
-      <div class="ref-footer-trust" aria-label="Project assurances">
-        <span><i data-icon="delivery" aria-hidden="true"></i>Delivery Standard</span>
-        <span><i data-icon="tools" aria-hidden="true"></i>Installation Professional</span>
-        <span><i data-icon="warranty" aria-hidden="true"></i>Warranty Lifetime</span>
-      </div>
-    `
-    : "";
-
-  return `
-    <footer class="ref-site-footer">
-      <div class="ref-footer-inner">
-        <div class="ref-footer-brand-column">
-          ${renderBrandLink("ref-footer-brand")}
-          <p>${brandCopy}</p>
-          <div class="ref-footer-social" aria-label="Social channels">
-            <span data-icon="instagram" role="img" aria-label="Instagram"></span>
-            <span data-icon="pinterest" role="img" aria-label="Pinterest"></span>
-            <span data-icon="houzz" role="img" aria-label="Houzz"></span>
-          </div>
-        </div>
-        <div class="ref-footer-column">
-          <h3>Company</h3>
-          <ul>
-            <li><a href="about.html">About Us</a></li>
-            <li><a href="how-it-works.html">Our Process</a></li>
-            <li><a href="materials.html">Materials &amp; Quality</a></li>
-            <li><a href="faq.html">Care &amp; Warranty</a></li>
-          </ul>
-        </div>
-        <div class="ref-footer-column">
-          <h3>Support</h3>
-          <ul>
-            <li><a href="faq.html">FAQ</a></li>
-            <li><a href="request-quote.html">Design Help</a></li>
-            <li><a href="faq.html#faq-6">Delivery &amp; Installation</a></li>
-            <li><a href="request-quote.html">Contact Us</a></li>
-          </ul>
-        </div>
-        <div class="ref-footer-interest">
-          <h3>Design ideas &amp; inspiration</h3>
-          <p>Talk with our team about ideas, materials, and your project.</p>
-          <a class="ref-footer-contact" href="request-quote.html"><span>Contact us</span><i data-icon="arrow-right" aria-hidden="true"></i></a>
-        </div>
-        ${materialsTrust}
-      </div>
-      <div class="ref-footer-bottom">
-        <span>&copy; 2026 JQ Bookcases. All rights reserved.</span>
-        <span><a href="privacy.html">Privacy Policy</a><i aria-hidden="true"></i><a href="terms.html">Terms of Service</a></span>
       </div>
     </footer>
   `;

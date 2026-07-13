@@ -910,7 +910,9 @@ function addLighting(context) {
 
   if (modes.includes("warm_pucks")) {
     for (const section of eligibleSections) {
-      const lightWidth = Math.min(1.5, section.size.x * 0.35);
+      const lightWidth = Math.min(2.25, section.size.x * 0.18);
+      const lightDepth = lightWidth;
+      const lightCenterZ = (section.bounds.min.z + section.bounds.max.z) / 2;
       add({
         id: section.id + "-light-puck",
         role: "light",
@@ -921,8 +923,8 @@ function addLighting(context) {
           section.position.x + lightWidth / 2,
           section.bounds.max.y - 0.375,
           section.bounds.max.y,
-          Math.min(2, clearDepth - 1),
-          Math.min(2, clearDepth - 1) + 0.75
+          lightCenterZ - lightDepth / 2,
+          lightCenterZ + lightDepth / 2
         ),
         metadata: {
           lightType: "puck",

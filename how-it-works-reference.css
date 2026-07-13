@@ -159,13 +159,13 @@ body[data-page="how"] [data-site-footer] {
 }
 
 .hiw-step-icon {
-  --icon-size: 62px;
+  --icon-size: var(--icon-size-prominent);
   justify-self: center;
-  color: rgba(255, 252, 246, 0.92);
+  color: var(--color-accent-deep);
 }
 
 .hiw-step-icon svg {
-  stroke-width: 1.2;
+  stroke-width: var(--icon-stroke-width);
 }
 
 .hiw-step-copy {
@@ -721,13 +721,13 @@ body[data-page="how"] [data-site-footer] {
 }
 
 .hiw-benefits article > i {
-  width: 51px;
-  height: 51px;
-  color: #c9a36e;
+  width: var(--icon-size-prominent);
+  height: var(--icon-size-prominent);
+  color: var(--color-accent-deep);
 }
 
 .hiw-benefits article > i svg {
-  stroke-width: 1.25;
+  stroke-width: var(--icon-stroke-width);
 }
 
 .hiw-benefits h3 {
@@ -823,6 +823,7 @@ body[data-page="how"] [data-site-footer] {
   gap: 12px;
   align-items: center;
   justify-self: end;
+  min-height: 44px;
   color: #fffaf2;
   font-family: var(--serif);
   font-size: 16px;
@@ -847,7 +848,7 @@ body[data-page="how"] [data-site-footer] {
   }
 
   .hiw-step-icon {
-    --icon-size: 55px;
+    --icon-size: var(--icon-size-prominent);
   }
 
   .hiw-step-copy h3 {
@@ -913,7 +914,7 @@ body[data-page="how"] [data-site-footer] {
   }
 
   .hiw-step-icon {
-    --icon-size: 52px;
+    --icon-size: var(--icon-size-prominent);
   }
 
   .hiw-step-copy p {
@@ -1012,7 +1013,7 @@ body[data-page="how"] [data-site-footer] {
   }
 
   .hiw-step-icon {
-    --icon-size: 45px;
+    --icon-size: var(--icon-size-prominent);
   }
 
   .hiw-step-copy h3 {

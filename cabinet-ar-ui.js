@@ -10,6 +10,9 @@ import {
   normalizeCabinetArConfiguration
 } from "./cabinet-ar.js";
 import { generateProceduralCabinetModel } from "./cabinet-ar-model.js";
+import { iconSvg } from "./icon-system.js?v=jq-icons-20260713g";
+
+const closeIcon = iconSvg("close");
 
 let modelViewerLoader;
 
@@ -127,7 +130,7 @@ export class CabinetArController {
       <div class="cabinet-ar-dialog-shell">
         <header class="cabinet-ar-heading">
           <div><span class="section-kicker">View in your room</span><h2 id="cabinet-ar-title">Place your cabinet at true scale</h2></div>
-          <button type="button" data-close-ar aria-label="Close room view">×</button>
+          <button type="button" data-close-ar aria-label="Close room view">${closeIcon}</button>
         </header>
         <div class="cabinet-ar-content" data-ar-content></div>
       </div>

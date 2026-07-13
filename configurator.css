@@ -171,7 +171,7 @@ body[data-page="configurator"] .header-save-button [data-icon] {
 body[data-page="configurator"] .header-save-button [data-icon] svg {
   width: 100%;
   height: 100%;
-  stroke-width: 1.5;
+  stroke-width: var(--icon-stroke-width);
 }
 
 body[data-page="configurator"] .header-save-button::after {
@@ -1299,6 +1299,16 @@ body[data-page="configurator"] .hardware-choice img {
   object-fit: contain;
 }
 
+body[data-page="configurator"] .hardware-finish-swatch {
+  display: block;
+  width: 26px;
+  height: 7px;
+  border: 1px solid rgba(65, 57, 50, 0.28);
+  border-radius: 999px;
+  background: var(--hardware-finish);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.34);
+}
+
 body[data-page="configurator"] .hardware-choice-name,
 body[data-page="configurator"] .hardware-choice > span:not(:first-of-type),
 body[data-page="configurator"] .hardware-choice label > span:last-child {
@@ -1377,7 +1387,7 @@ body[data-page="configurator"] .jq-diagram svg {
   height: 100%;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.5;
+  stroke-width: var(--icon-stroke-width);
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -2763,14 +2773,6 @@ body[data-page="configurator"] .bm-search-results small {
 body[data-page="configurator"] .bm-search-results small {
   color: rgba(247, 243, 237, 0.62);
   font-size: var(--type-small);
-}
-
-body[data-page="configurator"] .hardware-choice[data-hardware^="matte_black"] .hardware-choice-icon {
-  color: #858582;
-}
-
-body[data-page="configurator"] .hardware-choice[data-hardware="polished_nickel_pull"] .hardware-choice-icon {
-  color: #deddd8;
 }
 
 @media (max-width: 760px) {

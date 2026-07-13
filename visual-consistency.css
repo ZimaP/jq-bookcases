@@ -681,6 +681,105 @@ body[data-page="configurator"] :is(button, a, input, select, textarea):focus-vis
   outline-color: var(--focus-ring);
 }
 
+/* Canonical hero grammar --------------------------------------------- */
+
+.unified-hero:not(.unified-hero--media) {
+  display: grid;
+  min-height: var(--hero-min-height);
+  align-content: center;
+  justify-items: center;
+  padding-block: var(--hero-padding-block);
+  text-align: center;
+}
+
+.unified-hero:not(.unified-hero--media) :is(.container, .ref-page-shell) {
+  display: grid;
+  justify-items: center;
+}
+
+.unified-hero .breadcrumb {
+  margin: 0 0 var(--space-2);
+}
+
+.unified-hero .section-kicker,
+.unified-hero .ref-eyebrow {
+  margin: 0 0 var(--space-2);
+}
+
+.unified-hero:not(.unified-hero--media) h1 {
+  max-width: var(--measure-heading);
+  margin: 0;
+  font-size: var(--type-page-title);
+  line-height: var(--leading-heading);
+  text-align: center;
+}
+
+.unified-hero:not(.unified-hero--media) :is(p, .lead) {
+  max-width: var(--measure-reading);
+  margin: var(--hero-content-gap) auto 0;
+  font-size: var(--type-lead);
+  line-height: var(--leading-body);
+  text-align: center;
+}
+
+.unified-hero--media,
+.unified-hero--media .ref-about-hero-inner {
+  min-height: var(--hero-media-min-height);
+}
+
+.unified-hero--media .breadcrumb {
+  justify-content: flex-start;
+}
+
+/* One surface language across cards whose internal compositions differ. */
+
+:is(
+  .feature-card,
+  .materials-reference-card,
+  .materials-reference-finishing,
+  .materials-reference-benefits,
+  .ref-about-values-grid article,
+  .ref-about-process,
+  .ref-gallery-card,
+  .ref-inspiration-cta,
+  .hiw-step,
+  .faq-tools,
+  .faq-accordion .accordion-item,
+  .faq-support-card,
+  .quote-form,
+  .photo-card,
+  .next-card
+) {
+  border-color: var(--color-border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+
+:is(
+  .feature-card,
+  .materials-reference-card,
+  .ref-about-values-grid article,
+  .ref-gallery-card
+) {
+  transition:
+    border-color var(--motion-standard),
+    box-shadow var(--motion-standard),
+    transform var(--motion-standard);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :is(
+    .feature-card,
+    .materials-reference-card,
+    .ref-about-values-grid article,
+    .ref-gallery-card
+  ):hover {
+    border-color: var(--color-border-strong);
+    box-shadow: var(--card-hover-shadow);
+    transform: translateY(-2px);
+  }
+}
+
 /* Responsive normalization ------------------------------------------- */
 
 @media (max-width: 1024px) {
@@ -792,7 +891,9 @@ body[data-page="configurator"] :is(button, a, input, select, textarea):focus-vis
 }
 
 @media (max-width: 680px) {
-  .interior-hero {
+  .interior-hero,
+  .unified-hero:not(.unified-hero--media) {
+    min-height: 0;
     padding-block: var(--space-6) var(--space-5);
   }
 
@@ -939,5 +1040,72 @@ body[data-page="configurator"] :is(button, a, input, select, textarea):focus-vis
 
   .faq-support-card {
     padding: var(--space-5);
+  }
+}
+
+@media (max-width: 520px) {
+  .home-reference-copy {
+    padding: 104px var(--gutter) var(--space-6);
+  }
+
+  .home-reference-copy h1 {
+    margin-top: var(--space-2);
+  }
+
+  .home-reference-copy > p {
+    margin-top: var(--space-5);
+  }
+
+  .home-reference-actions {
+    gap: var(--space-3);
+    margin-top: var(--space-5);
+  }
+
+  .home-social-proof {
+    height: auto;
+    flex-direction: row;
+    gap: var(--space-3);
+    align-items: center;
+    margin-top: var(--space-5);
+  }
+
+  .homeowner-portraits {
+    width: 106px;
+  }
+
+  .home-social-proof-copy > span {
+    font-size: var(--type-small);
+    white-space: normal;
+  }
+
+  .home-reference-scene {
+    height: 270px;
+  }
+
+  .home-reference-features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+    margin: -20px var(--space-3) var(--space-5);
+  }
+
+  .home-reference-features article {
+    height: 104px;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+
+  .home-reference-features article > [data-icon] {
+    width: 30px;
+    height: 30px;
+  }
+
+  .home-reference-features h2 {
+    font-size: 1rem;
+  }
+
+  .home-reference-features p {
+    font-size: var(--type-small);
+    line-height: var(--leading-ui);
   }
 }

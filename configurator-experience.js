@@ -19,12 +19,12 @@ export const CONFIGURATOR_PREFERENCE_KEYS = Object.freeze({
 });
 
 export const GUIDED_STEPS = Object.freeze([
-  { id: "layout", label: "Layout", shortLabel: "Layout", title: "What would you like to create?", description: "Start with a proven layout and personalize it around your room." },
-  { id: "dimensions", label: "Dimensions", shortLabel: "Size", title: "Tell us about your space", description: "Enter the overall dimensions. Final measurements are verified before production." },
-  { id: "storage", label: "Shelves & Cabinets", shortLabel: "Storage", title: "How should your bookcase be organized?", description: "Choose the sections, shelves, and lower storage that fit the way you live." },
-  { id: "construction", label: "Construction", shortLabel: "Build", title: "Choose your construction details", description: "Refine the shelves, base, top, and applicable door details." },
-  { id: "appearance", label: "Appearance", shortLabel: "Style", title: "Personalize the appearance", description: "Coordinate the finish, hardware, and integrated lighting." },
-  { id: "review", label: "Review & Quote", shortLabel: "Review", title: "Review your custom bookcase", description: "Confirm the design, estimate, and assumptions before requesting a quote." }
+  { id: "layout", label: "Layout", shortLabel: "Layout", title: "Choose a starting layout", description: "Select any layout to begin." },
+  { id: "dimensions", label: "Dimensions", shortLabel: "Size", title: "Set the dimensions", description: "Adjust the overall size, shelf count, and shelf thickness." },
+  { id: "storage", label: "Cabinets & Fronts", shortLabel: "Storage", title: "Configure storage", description: "Choose sections, lower storage, and front style." },
+  { id: "construction", label: "Construction", shortLabel: "Build", title: "Choose construction details", description: "Select the base and crown or top profiles." },
+  { id: "appearance", label: "Appearance", shortLabel: "Style", title: "Choose finishes and details", description: "Coordinate finish, hardware, and lighting." },
+  { id: "review", label: "Review & Quote", shortLabel: "Review", title: "Review your design", description: "Confirm the design and service options before requesting a quote." }
 ]);
 
 export const ALL_CONTROL_CATEGORIES = Object.freeze([
@@ -32,7 +32,7 @@ export const ALL_CONTROL_CATEGORIES = Object.freeze([
   { id: "dimensions", label: "Dimensions", step: "dimensions" },
   { id: "storage", label: "Shelves & Cabinets", step: "storage" },
   { id: "construction", label: "Construction", step: "construction" },
-  { id: "doors", label: "Doors & Storage", step: "construction" },
+  { id: "doors", label: "Fronts & Door Count", step: "storage" },
   { id: "finish", label: "Finish", step: "appearance" },
   { id: "hardware", label: "Hardware", step: "appearance" },
   { id: "lighting", label: "Lighting", step: "appearance" },
@@ -59,15 +59,15 @@ export const CONTROL_REGISTRY = Object.freeze([
   { field: "height", step: "dimensions", category: "dimensions", access: "direct" },
   { field: "depth", step: "dimensions", category: "dimensions", access: "direct" },
   { field: "sections", step: "storage", category: "storage", access: "direct" },
-  { field: "shelves", step: "storage", category: "storage", access: "direct" },
+  { field: "shelves", step: "dimensions", category: "dimensions", access: "direct" },
   { field: "lowerCabinets", step: "storage", category: "storage", access: "direct" },
   { field: "lowerStorage", step: "storage", category: "storage", access: "direct" },
   { field: "drawerCount", step: "storage", category: "storage", access: "direct" },
-  { field: "shelfThickness", step: "construction", category: "construction", access: "direct" },
+  { field: "shelfThickness", step: "dimensions", category: "dimensions", access: "direct" },
   { field: "baseStyle", step: "construction", category: "construction", access: "direct" },
   { field: "crownStyle", step: "construction", category: "construction", access: "direct" },
-  { field: "doorStyle", step: "construction", category: "doors", access: "direct" },
-  { field: "doorCount", step: "construction", category: "doors", access: "direct" },
+  { field: "doorStyle", step: "storage", category: "doors", access: "direct" },
+  { field: "doorCount", step: "storage", category: "doors", access: "direct" },
   { field: "finish", step: "appearance", category: "finish", access: "direct" },
   { field: "customPaintColor", step: "appearance", category: "finish", access: "direct" },
   { field: "customPaintCode", step: "appearance", category: "finish", access: "direct" },
@@ -83,13 +83,14 @@ export const CONTROL_REGISTRY = Object.freeze([
 export const DIMENSION_LIMITS = Object.freeze({
   width: { min: 24, max: 144, label: "Width", unit: " inches" },
   height: { min: 72, max: 120, label: "Height", unit: " inches" },
-  depth: { min: 10, max: 24, label: "Depth", unit: " inches" }
+  depth: { min: 10, max: 24, label: "Depth", unit: " inches" },
+  shelves: { min: 2, max: 8, label: "Shelves per section", unit: "" },
+  shelfThickness: { min: 0.75, max: 2, label: "Shelf thickness", unit: " inches" }
 });
 
 export const EDITABLE_NUMBER_LIMITS = Object.freeze({
   ...DIMENSION_LIMITS,
   sections: { min: 1, max: 6, label: "Sections", unit: "" },
-  shelves: { min: 2, max: 8, label: "Shelves per section", unit: "" },
   drawerCount: { min: 2, max: 5, label: "Drawers per section", unit: "" }
 });
 
@@ -196,12 +197,12 @@ export function validateGuidedStep(stepId, config, layout, drafts = {}) {
     const relevantFields = step === "dimensions"
       ? new Set(Object.keys(DIMENSION_LIMITS))
       : step === "storage"
-        ? new Set(["sections", "shelves", "drawerCount"])
+        ? new Set(["sections", "drawerCount"])
         : null;
     issues.push(...getInvalidDraftIssues(drafts).filter((issue) => !relevantFields || relevantFields.has(issue.field)));
   }
   if (["appearance", "review"].includes(step) && state.finish === "custom_bm" && !state.customPaintColor && !state.customPaintCode) {
-    issues.push({ field: "customPaintColor", message: "Choose a Benjamin Moore color or select a recommended finish." });
+    issues.push({ field: "customPaintColor", message: "Choose a Benjamin Moore color or select a standard finish." });
   }
   if (["storage", "construction", "review"].includes(step) && layout?.validation?.valid === false) {
     const error = layout.validation.errors?.[0];
@@ -219,9 +220,9 @@ export function getCategorySummary(categoryId, config, layout, basePresetId = ""
   const applicability = getApplicability(state, layout);
   const category = normalizeAllCategory(categoryId);
   if (category === "layout") return getLayoutLabel(state, basePresetId);
-  if (category === "dimensions") return `${state.width} in W × ${state.height} in H × ${state.depth} in D`;
-  if (category === "storage") return `${state.sections} sections, ${state.shelves} shelves${state.lowerCabinets ? ", lower storage" : ", open base"}`;
-  if (category === "construction") return `${optionLabels.shelfThickness[state.shelfThickness]} shelves, ${optionLabels.baseStyle[state.baseStyle]}, ${optionLabels.crownStyle[state.crownStyle]}`;
+  if (category === "dimensions") return `${state.width} in W × ${state.height} in H × ${state.depth} in D · ${state.shelves} shelves · ${optionLabels.shelfThickness[state.shelfThickness]}`;
+  if (category === "storage") return `${state.sections} sections${state.lowerCabinets ? `, ${state.lowerStorage}` : ", open base"}`;
+  if (category === "construction") return `${optionLabels.baseStyle[state.baseStyle]}, ${optionLabels.crownStyle[state.crownStyle]}`;
   if (category === "doors") {
     if (!applicability.hasFronts) return "Not applicable to this layout";
     const parts = [];
@@ -263,7 +264,9 @@ export function createReviewGroups(config, layout, basePresetId = "") {
       title: "Dimensions",
       step: "dimensions",
       items: [
-        { label: "Overall size", value: `${state.width} in W × ${state.height} in H × ${state.depth} in D` }
+        { label: "Overall size", value: `${state.width} in W × ${state.height} in H × ${state.depth} in D` },
+        { label: "Shelves per section", value: String(state.shelves) },
+        { label: "Shelf thickness", value: optionLabels.shelfThickness[state.shelfThickness] }
       ]
     },
     {
@@ -272,8 +275,10 @@ export function createReviewGroups(config, layout, basePresetId = "") {
       step: "storage",
       items: [
         { label: "Sections", value: String(state.sections) },
-        { label: "Shelves per section", value: String(state.shelves) },
-        { label: "Lower storage", value: state.lowerCabinets ? (state.lowerStorage === "drawers" ? "Drawers" : "Doors") : "None" }
+        { label: "Lower storage", value: state.lowerCabinets ? (state.lowerStorage === "drawers" ? "Drawers" : "Doors") : "None" },
+        ...(applicability.hasFronts ? [{ label: "Front style", value: optionLabels.doorStyle[state.doorStyle] }] : []),
+        ...(applicability.hasDoors ? [{ label: "Doors", value: `${applicability.generatedDoorCount} generated · ${formatGeneratedDoorStyles(applicability.billableQuantities.doorsByStyle)}` }] : []),
+        ...(applicability.hasDrawers ? [{ label: "Drawers", value: `${applicability.generatedDrawerCount} generated` }] : [])
       ]
     },
     {
@@ -281,11 +286,8 @@ export function createReviewGroups(config, layout, basePresetId = "") {
       title: "Construction",
       step: "construction",
       items: [
-        { label: "Shelf thickness", value: optionLabels.shelfThickness[state.shelfThickness] },
         { label: "Base", value: optionLabels.baseStyle[state.baseStyle] },
-        { label: "Top", value: optionLabels.crownStyle[state.crownStyle] },
-        ...(applicability.hasDoors ? [{ label: "Doors", value: `${applicability.generatedDoorCount} generated · ${formatGeneratedDoorStyles(applicability.billableQuantities.doorsByStyle)}` }] : []),
-        ...(applicability.hasDrawers ? [{ label: "Drawers", value: `${applicability.generatedDrawerCount} generated` }] : [])
+        { label: "Top", value: optionLabels.crownStyle[state.crownStyle] }
       ]
     },
     {
