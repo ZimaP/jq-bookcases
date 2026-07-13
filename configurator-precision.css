@@ -576,8 +576,8 @@ body[data-page="configurator"] .service-option-card strong {
   body[data-page="configurator"] .builder-hero > .container,
   body[data-page="configurator"] [data-bookcase-builder] {
     width: 100%;
-    height: calc(100svh - 68px);
-    height: calc(100dvh - 68px);
+    height: calc(100svh - 76px);
+    height: calc(100dvh - 76px);
     min-height: 0;
     overflow: hidden;
   }

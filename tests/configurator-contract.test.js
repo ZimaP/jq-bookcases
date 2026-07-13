@@ -242,7 +242,7 @@ test("responsive presentation covers desktop, tablet, mobile, touch scrolling, a
 });
 
 test("the phone shell pins both action rows and keeps controls outside the 3D canvas", () => {
-  assert.match(precisionCss, /height: calc\(100dvh - 68px\)/);
+  assert.match(precisionCss, /height: calc\(100dvh - 76px\)/);
   assert.match(precisionCss, /grid-template-rows:[\s\S]*var\(--mobile-step-rail-height\)[\s\S]*minmax\(0, 1fr\)[\s\S]*var\(--mobile-estimate-height\)/);
   assert.match(precisionCss, /\.viewer-stage \{[\s\S]*var\(--mobile-preview-toolbar-height\)[\s\S]*var\(--mobile-preview-dock-height\)/);
   assert.match(precisionCss, /\.configurator-control-experience \{[\s\S]*grid-row: 3;[\s\S]*overflow-y: auto;/);
