@@ -161,6 +161,15 @@ test("smart camera maps categories and fields to semantic component focus profil
   assert.match(source, /lightingWarmth: "lighting"/);
 });
 
+test("door, crown, and base selections use close detail camera profiles", () => {
+  assert.match(source, /doors: Object\.freeze\(\{[^}]*radiusScale: 0\.58[^}]*selection: "center", limit: 1, boundsWidthScale: 0\.6, boundsHeightScale: 0\.34/);
+  assert.match(source, /crown: Object\.freeze\(\{[^}]*radiusScale: 0\.4[^}]*boundsWidthScale: 0\.28/);
+  assert.match(source, /base: Object\.freeze\(\{[^}]*radiusScale: 0\.4[^}]*boundsWidthScale: 0\.28/);
+  assert.match(source, /halfDetailWidth = width \* clamp\(resolvedProfile\.boundsWidthScale, 0\.1, 1\) \* 0\.5/);
+  assert.match(source, /halfDetailHeight = height \* clamp\(resolvedProfile\.boundsHeightScale, 0\.1, 1\) \* 0\.5/);
+  assert.match(source, /this\.viewer\.preview\(previewState, previewLayout, field\);\s*this\.focusCameraForField\(field\);/);
+});
+
 test("smart camera transitions are eased, collision-safe, cached, and never snap category changes", () => {
   assert.match(source, /const SMART_CAMERA_DURATION = 560/);
   assert.match(source, /duration: clamp\(Number\(options\.duration\) \|\| SMART_CAMERA_DURATION, 320, 700\)/);
@@ -258,6 +267,13 @@ test("the phone header and mode switch stay compact so the 3D viewport gets the 
   assert.match(precisionCss, /Compact mobile chrome[\s\S]*\.configurator-mode-selector button small \{[\s\S]*display: none;/);
 });
 
+test("mobile appearance controls use dense color, hardware, and lighting grids", () => {
+  assert.match(precisionCss, /Dense mobile appearance controls[\s\S]*\.finish-choice-grid \{[\s\S]*repeat\(5, minmax\(0, 1fr\)\)/);
+  assert.match(precisionCss, /Dense mobile appearance controls[\s\S]*\.finish-choice-dot,[\s\S]*width: 30px;[\s\S]*height: 30px;/);
+  assert.match(precisionCss, /Dense mobile appearance controls[\s\S]*\.hardware-choice \{[\s\S]*min-height: 52px;/);
+  assert.match(precisionCss, /Dense mobile appearance controls[\s\S]*\.lighting-card \{[\s\S]*min-height: 56px;/);
+});
+
 test("the configurator route loads the experience module and final presentation layer", () => {
   assert.match(html, /configurator-experience\.css/);
   assert.match(html, /configurator-3d\.js/);
@@ -287,6 +303,8 @@ test("Benjamin Moore search is deliberate, accessible, escaped, and screen-reade
   assert.match(results, /escapeHtml\(color\.name\)/);
   assert.match(results, /data-bm-id/);
   assert.doesNotMatch(results, /applyBenjaminMooreColor\(matches\[0\]/);
+  assert.match(source, /this\.showColorSearch = !this\.showColorSearch/);
+  assert.match(source, /customPanel\.hidden = !this\.showColorSearch/);
 });
 
 test("structured paint identity is canonical and legacy custom fields remain compatibility mirrors", () => {

@@ -1216,3 +1216,242 @@ body[data-page="configurator"] .service-option-card strong {
     display: none;
   }
 }
+
+/* Dense mobile appearance controls --------------------------------------
+ * Appearance is a picker, not a gallery. Keep every option comfortably
+ * tappable while fitting colors and feature packages into compact rows. */
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] .guided-step-heading {
+    margin-bottom: 12px;
+  }
+
+  body[data-page="configurator"] .guided-step-heading h2 {
+    margin-block: 5px;
+    font-size: 24px;
+  }
+
+  body[data-page="configurator"] .guided-step-heading p {
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  body[data-page="configurator"] .appearance-sections {
+    gap: 10px;
+  }
+
+  body[data-page="configurator"] .appearance-sections > .control-section {
+    padding-top: 10px;
+  }
+
+  body[data-page="configurator"] .appearance-sections > .control-section > h2 {
+    gap: 6px;
+    margin-bottom: 7px;
+    font-size: 15px;
+  }
+
+  body[data-page="configurator"] .appearance-sections .control-heading-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  body[data-page="configurator"] .finish-field > legend {
+    margin-bottom: 7px;
+    font-size: 11px;
+  }
+
+  body[data-page="configurator"] .finish-choice-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 5px;
+    overflow: visible;
+    padding: 2px 0 4px;
+  }
+
+  body[data-page="configurator"] .finish-choice,
+  body[data-page="configurator"] .finish-choice > label {
+    gap: 4px;
+  }
+
+  body[data-page="configurator"] .finish-choice-dot,
+  body[data-page="configurator"] .finish-choice-swatch,
+  body[data-page="configurator"] .finish-choice > span:first-of-type {
+    width: 30px;
+    height: 30px;
+  }
+
+  body[data-page="configurator"] .finish-choice-name,
+  body[data-page="configurator"] .finish-choice-code,
+  body[data-page="configurator"] .finish-choice > span:not(:first-of-type),
+  body[data-page="configurator"] .finish-choice label > span:last-child {
+    width: 100%;
+    min-height: 0;
+    font-size: 10px;
+    line-height: 1.12;
+  }
+
+  body[data-page="configurator"] .finish-choice label > span:last-child small {
+    margin-top: 2px;
+    font-size: 8px;
+    line-height: 1;
+  }
+
+  body[data-page="configurator"] .finish-choice input:checked + label .finish-choice-dot {
+    outline-width: 1px;
+    outline-offset: 2px;
+  }
+
+  body[data-page="configurator"] .additional-colors-button {
+    min-height: 38px;
+    margin-top: 7px;
+    padding-block: 7px;
+    font-size: 11px;
+  }
+
+  body[data-page="configurator"] .bm-selected-color {
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    gap: 7px;
+    margin-top: 7px;
+    padding: 6px 7px;
+  }
+
+  body[data-page="configurator"] .bm-selected-swatch {
+    width: 28px;
+    height: 28px;
+  }
+
+  body[data-page="configurator"] .bm-selected-color strong {
+    font-size: 11px;
+  }
+
+  body[data-page="configurator"] .bm-selected-color small,
+  body[data-page="configurator"] .bm-applied-badge {
+    font-size: 8px;
+  }
+
+  body[data-page="configurator"] .bm-applied-badge {
+    grid-column: 3;
+    white-space: nowrap;
+  }
+
+  body[data-page="configurator"] .hardware-choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
+    padding: 0;
+  }
+
+  body[data-page="configurator"] .hardware-choice {
+    min-height: 52px;
+    border: 1px solid var(--jq-border);
+    border-radius: 8px;
+    background: var(--jq-surface);
+  }
+
+  body[data-page="configurator"] .hardware-choice > label {
+    width: 100%;
+    min-height: 52px;
+    grid-template-columns: 38px minmax(0, 1fr);
+    grid-template-rows: 8px auto;
+    column-gap: 6px;
+    row-gap: 2px;
+    align-items: center;
+    padding: 5px 7px;
+    text-align: left;
+  }
+
+  body[data-page="configurator"] .hardware-choice-icon {
+    width: 36px;
+    height: 24px;
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+
+  body[data-page="configurator"] .hardware-choice svg,
+  body[data-page="configurator"] .hardware-choice img {
+    width: 36px;
+    height: 24px;
+  }
+
+  body[data-page="configurator"] .hardware-finish-swatch {
+    width: 18px;
+    height: 5px;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: start;
+  }
+
+  body[data-page="configurator"] .hardware-choice-name,
+  body[data-page="configurator"] .hardware-choice > span:not(:first-of-type),
+  body[data-page="configurator"] .hardware-choice label > span:last-child {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  body[data-page="configurator"] .lighting-field {
+    padding-top: 0;
+  }
+
+  body[data-page="configurator"] .lighting-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .lighting-card {
+    min-height: 56px;
+    padding: 5px 7px;
+    text-align: left;
+  }
+
+  body[data-page="configurator"] .lighting-card > label {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 7px;
+    align-content: center;
+    align-items: center;
+    justify-items: start;
+  }
+
+  body[data-page="configurator"] .lighting-card svg,
+  body[data-page="configurator"] .lighting-icon,
+  body[data-page="configurator"] .choice-icon,
+  body[data-page="configurator"] .lighting-card-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  body[data-page="configurator"] .lighting-card-title,
+  body[data-page="configurator"] .lighting-card-name,
+  body[data-page="configurator"] .lighting-card > span:last-child,
+  body[data-page="configurator"] .lighting-card label > span:last-child {
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  body[data-page="configurator"] .warmth-field {
+    margin-top: 10px;
+  }
+
+  body[data-page="configurator"] .warmth-field > legend {
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+
+  body[data-page="configurator"] .warmth-grid .warmth-choice > label {
+    min-height: 44px;
+    grid-template-rows: 28px 12px;
+    gap: 2px;
+  }
+
+  body[data-page="configurator"] .warmth-choice strong {
+    height: 28px;
+    min-height: 28px;
+    font-size: 9px;
+  }
+
+  body[data-page="configurator"] .warmth-choice small {
+    font-size: 8px;
+    line-height: 12px;
+  }
+}

@@ -146,11 +146,9 @@ const finishPalette = {
 const SMART_CAMERA_DURATION = 560;
 const SMART_CAMERA_PROFILES = Object.freeze({
   overview: Object.freeze({ theta: -0.18, phi: 0.11, radiusScale: 1, roles: [] }),
-  doors: Object.freeze({ theta: -0.32, phi: 0.035, radiusScale: 0.72, roles: ["door", "drawer_front"], selection: "center", limit: 4 }),
-  // Match the construction-detail composition: a wide left three-quarter view
-  // with the selected profile centered and enough cabinetry left in context.
-  crown: Object.freeze({ theta: -0.7, phi: -0.035, radiusScale: 1.08, roles: ["crown"], fallbackRegion: "top" }),
-  base: Object.freeze({ theta: -0.7, phi: 0.055, radiusScale: 1.08, roles: ["base", "trim"], fallbackRegion: "bottom" }),
+  doors: Object.freeze({ theta: 0, phi: 0.015, radiusScale: 0.58, roles: ["door", "drawer_front"], selection: "center", limit: 1, boundsWidthScale: 0.6, boundsHeightScale: 0.34 }),
+  crown: Object.freeze({ theta: -0.46, phi: -0.04, radiusScale: 0.4, roles: ["crown"], fallbackRegion: "top", boundsWidthScale: 0.28 }),
+  base: Object.freeze({ theta: -0.46, phi: 0.04, radiusScale: 0.4, roles: ["base", "trim"], fallbackRegion: "bottom", boundsWidthScale: 0.28 }),
   sidePanels: Object.freeze({ theta: -0.72, phi: 0.12, radiusScale: 0.82, roles: ["side_panel"], selection: "leftmost", limit: 1 }),
   backPanel: Object.freeze({ theta: 2.68, phi: 0.12, radiusScale: 0.84, roles: ["back_panel"] }),
   shelves: Object.freeze({ theta: -0.34, phi: -0.055, radiusScale: 0.72, roles: ["shelf", "fixed_shelf"], selection: "centerInterior", limit: 6 }),
@@ -870,10 +868,10 @@ class BookcaseConfigurator {
             <legend>Popular JQ Colors</legend>
             <div class="finish-choice-grid">${swatches}</div>
           </fieldset>
-          <button class="additional-colors-button" type="button" data-toggle-color-search>${selected ? "Change Benjamin Moore color" : "Benjamin Moore Search"}</button>
-          <div class="bm-search" data-custom-bm-fields ${this.showColorSearch || this.state.finish === "custom_bm" ? "" : "hidden"}>
+          ${selectedCard}
+          <button class="additional-colors-button" type="button" data-toggle-color-search>${this.showColorSearch ? "Close Benjamin Moore Search" : selected ? "Change Benjamin Moore color" : "Benjamin Moore Search"}</button>
+          <div class="bm-search" data-custom-bm-fields ${this.showColorSearch ? "" : "hidden"}>
             <div class="bm-search-heading"><strong>Benjamin Moore Color</strong><span>Search by color name or code.</span></div>
-            ${selectedCard}
             <label for="${this.id}-customPaintColor">Color name or code</label>
             <div class="bm-search-input">
               <input id="${this.id}-customPaintColor" data-bm-query data-validation-field="customPaintColor" type="search" maxlength="80" placeholder="OC-17, HC-154, White Dove…" autocomplete="off" aria-describedby="${this.id}-bm-help ${this.id}-bm-disclaimer">
@@ -1166,12 +1164,17 @@ class BookcaseConfigurator {
       this.focusGuidedHeading();
       return;
     }
-    if (target.closest?.("[data-toggle-color-search]")) {
-      this.showColorSearch = true;
+    const colorSearchToggle = target.closest?.("[data-toggle-color-search]");
+    if (colorSearchToggle) {
+      this.showColorSearch = !this.showColorSearch;
       this.host.querySelectorAll("[data-custom-bm-fields]").forEach((panel) => {
-        panel.hidden = false;
+        panel.hidden = !this.showColorSearch;
       });
-      this.host.querySelector("[data-bm-query]")?.focus();
+      colorSearchToggle.textContent = this.showColorSearch
+        ? "Close Benjamin Moore Search"
+        : this.state.finish === "custom_bm" ? "Change Benjamin Moore color" : "Benjamin Moore Search";
+      if (this.showColorSearch) this.host.querySelector("[data-bm-query]")?.focus();
+      else this.closeBenjaminMooreResults();
       return;
     }
     const searchButton = target.closest?.("[data-search-bm]");
@@ -1312,6 +1315,7 @@ class BookcaseConfigurator {
     const previewLayout = generateBookcaseLayout(previewState);
     this.optionPreview = { label, field, value };
     this.viewer.preview(previewState, previewLayout, field);
+    this.focusCameraForField(field);
     this.host.dataset.previewField = field;
     this.host.dataset.previewValue = String(value);
     label.classList.add("is-live-previewing");
@@ -1617,6 +1621,7 @@ class BookcaseConfigurator {
   applyBenjaminMooreColor(color) {
     const paintSelection = createBenjaminMoorePaintSelection(color);
     if (!paintSelection) return;
+    this.showColorSearch = false;
     this.colorQueryDraft = `${color.name} ${color.code}`;
     this.update({
       ...this.state,
@@ -1811,7 +1816,7 @@ class BookcaseConfigurator {
 
     const customPanel = this.host.querySelector("[data-custom-bm-fields]");
     if (customPanel) {
-      customPanel.hidden = !(this.showColorSearch || customSelected);
+      customPanel.hidden = !this.showColorSearch;
       customPanel.classList.toggle("is-selected", customSelected);
     }
     const query = this.host.querySelector("[data-bm-query]");
@@ -2357,7 +2362,21 @@ class BookcaseViewer3D {
     }
 
     const result = this.getFocusBounds(resolvedProfile);
-    const bounds = result.bounds;
+    const bounds = result.bounds.clone();
+    if (Number.isFinite(resolvedProfile.boundsWidthScale)) {
+      const boundsCenter = bounds.getCenter(new THREE.Vector3());
+      const width = Math.max(bounds.max.x - bounds.min.x, 0.1);
+      const halfDetailWidth = width * clamp(resolvedProfile.boundsWidthScale, 0.1, 1) * 0.5;
+      bounds.min.x = boundsCenter.x - halfDetailWidth;
+      bounds.max.x = boundsCenter.x + halfDetailWidth;
+    }
+    if (Number.isFinite(resolvedProfile.boundsHeightScale)) {
+      const boundsCenter = bounds.getCenter(new THREE.Vector3());
+      const height = Math.max(bounds.max.y - bounds.min.y, 0.1);
+      const halfDetailHeight = height * clamp(resolvedProfile.boundsHeightScale, 0.1, 1) * 0.5;
+      bounds.min.y = boundsCenter.y - halfDetailHeight;
+      bounds.max.y = boundsCenter.y + halfDetailHeight;
+    }
     const size = bounds.getSize(new THREE.Vector3());
     const target = bounds.getCenter(new THREE.Vector3());
     const modelSize = new THREE.Box3().setFromObject(this.model).getSize(new THREE.Vector3());
