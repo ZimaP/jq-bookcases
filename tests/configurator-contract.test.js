@@ -8,6 +8,7 @@ const read = (name) => readFileSync(`${root}/${name}`, "utf8");
 const source = read("configurator-3d.js");
 const workflow = read("configurator-experience.js");
 const css = read("configurator-experience.css");
+const precisionCss = read("configurator-precision.css");
 const html = read("configurator.html");
 const catalogProvider = read("benjamin-moore-colors.js");
 const configSource = read("bookcase-config.js");
@@ -238,6 +239,15 @@ test("responsive presentation covers desktop, tablet, mobile, touch scrolling, a
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(css, /\.configurator-experience > \.configurator-estimate-bar \{\s*position: static;/);
   assert.match(css, /\.guided-navigation \{\s*position: sticky;\s*bottom: 0;/);
+});
+
+test("the phone shell pins both action rows and keeps controls outside the 3D canvas", () => {
+  assert.match(precisionCss, /height: calc\(100dvh - 68px\)/);
+  assert.match(precisionCss, /grid-template-rows:[\s\S]*var\(--mobile-step-rail-height\)[\s\S]*minmax\(0, 1fr\)[\s\S]*var\(--mobile-estimate-height\)/);
+  assert.match(precisionCss, /\.viewer-stage \{[\s\S]*var\(--mobile-preview-toolbar-height\)[\s\S]*var\(--mobile-preview-dock-height\)/);
+  assert.match(precisionCss, /\.configurator-control-experience \{[\s\S]*grid-row: 3;[\s\S]*overflow-y: auto;/);
+  assert.match(precisionCss, /\.guided-navigation \{[\s\S]*position: sticky;[\s\S]*bottom: 0;/);
+  assert.match(precisionCss, /\.configurator-experience > \.configurator-estimate-bar \{[\s\S]*grid-row: 4;/);
 });
 
 test("the configurator route loads the experience module and final presentation layer", () => {

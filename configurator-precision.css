@@ -551,3 +551,426 @@ body[data-page="configurator"] .service-option-card strong {
     height: 16px;
   }
 }
+
+/* Mobile viewport shell --------------------------------------------------
+ * Keep the preview, workflow, and two action rows in one app-height frame.
+ * Only the working panel scrolls; controls no longer cover the model. */
+
+@media (max-width: 767px) {
+  html {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body[data-page="configurator"] {
+    width: 100%;
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  body[data-page="configurator"] main,
+  body[data-page="configurator"] .builder-hero,
+  body[data-page="configurator"] .builder-page,
+  body[data-page="configurator"] .builder-hero > .container,
+  body[data-page="configurator"] [data-bookcase-builder] {
+    width: 100%;
+    height: calc(100svh - 68px);
+    height: calc(100dvh - 68px);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  body[data-page="configurator"] .configurator-experience {
+    --mobile-preview-toolbar-height: 52px;
+    --mobile-preview-dock-height: 60px;
+    --mobile-step-rail-height: 60px;
+    --mobile-estimate-height: 70px;
+    --mobile-ar-width: clamp(126px, 38vw, 148px);
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows:
+      clamp(280px, 47%, 350px)
+      var(--mobile-step-rail-height)
+      minmax(0, 1fr)
+      calc(var(--mobile-estimate-height) + env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+
+  /* Reserve real space above and below the canvas for preview controls. */
+  body[data-page="configurator"] .configurator-model {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    grid-column: 1;
+    grid-row: 1;
+    overflow: hidden;
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar {
+    position: absolute;
+    z-index: 14;
+    top: 0;
+    right: 0;
+    left: 0;
+    display: flex;
+    width: 100%;
+    height: var(--mobile-preview-toolbar-height);
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-bottom: 1px solid var(--jq-border);
+    border-radius: 0;
+    background: rgba(255, 253, 249, 0.96);
+    padding: 4px 12px;
+    transform: none;
+    backdrop-filter: blur(14px);
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector {
+    width: min(286px, 100%);
+    margin: 0 auto;
+  }
+
+  body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector button {
+    height: 42px;
+    min-height: 42px;
+    padding-block: 4px;
+  }
+
+  body[data-page="configurator"] .configurator-model .preview-heading,
+  body[data-page="configurator"] .preview-price-pill {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-model .viewer-stage {
+    inset:
+      var(--mobile-preview-toolbar-height)
+      0
+      var(--mobile-preview-dock-height);
+    width: auto;
+    height: auto;
+    overflow: hidden;
+  }
+
+  body[data-page="configurator"] .configurator-model::after {
+    bottom: calc(var(--mobile-preview-dock-height) + 10px);
+  }
+
+  body[data-page="configurator"] .preview-control-dock {
+    position: absolute;
+    z-index: 12;
+    top: auto;
+    right: var(--mobile-ar-width);
+    bottom: 0;
+    left: 0;
+    display: flex;
+    width: auto;
+    height: var(--mobile-preview-dock-height);
+    align-items: center;
+    border-top: 1px solid var(--jq-border);
+    background: rgba(255, 253, 249, 0.97);
+    padding: 4px;
+    transform: none;
+    backdrop-filter: blur(14px);
+  }
+
+  body[data-page="configurator"] .preview-tools {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls {
+    position: static;
+    display: grid;
+    width: 100%;
+    height: 52px;
+    min-height: 52px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    padding: 2px;
+    box-shadow: none;
+    transform: none;
+    backdrop-filter: none;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls button {
+    width: auto;
+    min-width: 0;
+    height: 48px;
+    min-height: 48px;
+    grid-template-rows: 18px 12px;
+    gap: 3px;
+    padding: 6px 2px;
+  }
+
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch {
+    position: absolute;
+    z-index: 13;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    width: var(--mobile-ar-width);
+    height: var(--mobile-preview-dock-height);
+    align-items: center;
+    border: 0;
+    border-top: 1px solid var(--jq-border);
+    border-left: 1px solid var(--jq-border);
+    border-radius: 0;
+    background: rgba(255, 253, 249, 0.97);
+    padding: 4px;
+    box-shadow: none;
+    backdrop-filter: blur(14px);
+  }
+
+  body[data-page="configurator"] .cabinet-ar-launch-heading,
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch p,
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-help {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button {
+    display: inline-flex;
+    width: 100%;
+    height: 50px;
+    min-height: 50px;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    padding: 0 8px;
+    font-size: 10px;
+    line-height: 1.1;
+  }
+
+  /* The step rail gets its own row instead of floating over the preview. */
+  body[data-page="configurator"] .configurator-step-rail {
+    width: 100%;
+    height: var(--mobile-step-rail-height);
+    min-height: 0;
+    grid-column: 1;
+    grid-row: 2;
+    border-right: 0;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail ol {
+    width: 100%;
+    height: var(--mobile-step-rail-height);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+    padding: 3px 4px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li {
+    width: auto;
+    min-width: 0;
+    height: 54px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button {
+    width: 100%;
+    min-width: 0;
+    min-height: 52px;
+    grid-template-rows: 26px auto;
+    gap: 2px;
+    padding: 1px 0;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button > span {
+    width: 26px;
+    height: 26px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button small {
+    font-size: 8px;
+    line-height: 10px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
+    top: 25px;
+    right: -5px;
+    bottom: auto;
+    left: auto;
+    width: 10px;
+    height: 1px;
+  }
+
+  /* The panel is the only mobile scroll container. */
+  body[data-page="configurator"] .configurator-control-experience {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    grid-column: 1;
+    grid-row: 3;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 0;
+    border-radius: 0;
+    margin: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body[data-page="configurator"] .configurator-panel-intro {
+    min-height: 64px;
+    padding: 10px 14px;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience > [role="tabpanel"] {
+    min-height: calc(100% - 64px);
+  }
+
+  body[data-page="configurator"] .guided-experience,
+  body[data-page="configurator"] .all-controls-experience {
+    width: 100%;
+    min-height: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 14px 12px 0;
+  }
+
+  body[data-page="configurator"] .guided-experience {
+    display: flex;
+    flex-direction: column;
+  }
+
+  body[data-page="configurator"] .guided-navigation {
+    position: sticky;
+    z-index: 16;
+    bottom: 0;
+    flex: 0 0 auto;
+    grid-template-columns: minmax(86px, 0.72fr) minmax(148px, 1.28fr);
+    gap: 10px;
+    margin: auto -12px 0;
+    padding: 10px 12px;
+    box-shadow: 0 -8px 22px rgba(72, 56, 37, 0.08);
+  }
+
+  body[data-page="configurator"] .guided-navigation button {
+    height: 48px;
+    min-height: 48px;
+    padding-inline: 10px;
+    font-size: 13px;
+  }
+
+  /* The estimate row is always the final viewport row. */
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    position: relative;
+    z-index: 20;
+    bottom: auto;
+    width: 100%;
+    height: calc(var(--mobile-estimate-height) + env(safe-area-inset-bottom));
+    min-height: calc(var(--mobile-estimate-height) + env(safe-area-inset-bottom));
+    grid-column: 1;
+    grid-row: 4;
+    grid-template-columns: clamp(104px, 31vw, 122px) minmax(0, 1fr);
+    padding: 0 0 env(safe-area-inset-bottom);
+    box-sizing: border-box;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-price-block {
+    min-width: 0;
+    align-content: center;
+    padding: 0 6px 0 12px;
+  }
+
+  body[data-page="configurator"] .configurator-experience .price-kicker {
+    font-size: 7px;
+    line-height: 1.15;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-price-block strong {
+    font-size: clamp(20px, 5.8vw, 23px);
+    line-height: 1.05;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-quote-note,
+  body[data-page="configurator"] .configurator-estimate-bar .studio-trust-row {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-actions {
+    display: grid;
+    min-width: 0;
+    grid-column: 2;
+    grid-template-columns: 0.7fr 0.75fr 1.25fr;
+    gap: 5px;
+    align-items: center;
+    justify-content: stretch;
+    padding: 0 7px 0 2px;
+  }
+
+  body[data-page="configurator"] .configurator-review-button,
+  body[data-page="configurator"] .configurator-save-button,
+  body[data-page="configurator"] .configurator-quote-button,
+  body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+    display: inline-flex;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 48px;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    font-size: 9px;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  body[data-page="configurator"] .configurator-review-button {
+    font-size: 0;
+  }
+
+  body[data-page="configurator"] .configurator-review-button::after {
+    display: block;
+    content: "Review";
+    font-size: 10px;
+    line-height: 1;
+  }
+
+  body[data-page="configurator"] .configurator-save-button {
+    gap: 3px;
+  }
+
+  body[data-page="configurator"] .configurator-save-button span {
+    display: inline !important;
+    font-size: 8px;
+    line-height: 1.05;
+  }
+
+  body[data-page="configurator"] .configurator-quote-button,
+  body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 767px) and (max-height: 560px) {
+  body[data-page="configurator"] .configurator-experience {
+    --mobile-step-rail-height: 54px;
+    --mobile-estimate-height: 64px;
+    grid-template-rows:
+      minmax(210px, 44%)
+      var(--mobile-step-rail-height)
+      minmax(0, 1fr)
+      calc(var(--mobile-estimate-height) + env(safe-area-inset-bottom));
+  }
+
+  body[data-page="configurator"] .configurator-step-rail ol {
+    height: var(--mobile-step-rail-height);
+  }
+
+  body[data-page="configurator"] .configurator-panel-intro {
+    min-height: 56px;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience > [role="tabpanel"] {
+    min-height: calc(100% - 56px);
+  }
+}
