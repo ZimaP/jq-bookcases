@@ -1,0 +1,48 @@
+name: Pages release validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Build, unit, and Chromium release checks
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate workflow policy and JavaScript
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Install Chromium for release validation
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Chromium browser regression gate
+        run: npm run test:browser -- --project=chromium
