@@ -4478,7 +4478,10 @@ body[data-page="configurator"] .navbar {
 
 body[data-page="configurator"] .site-header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: var(--jq-header);
+  /* The header sits outside .configurator-experience, where --jq-header is
+     scoped. Keep its surface explicit so the sticky tablet header cannot
+     become transparent over the configurator content. */
+  background: #211d18;
   box-shadow: 0 8px 24px rgba(28, 22, 17, 0.13);
 }
 
@@ -4869,7 +4872,7 @@ body[data-page="configurator"] :is(
   .lighting-card:has(input:checked),
   .hardware-choice:has(input:checked)
 ) :is(.style-diagram, .jq-diagram, .lighting-card-icon, .hardware-choice-icon) {
-  color: var(--jq-accent);
+  color: var(--jq-accent-hover);
 }
 
 body[data-page="configurator"] .segmented-options input:checked + span,
@@ -6320,6 +6323,32 @@ body[data-page="configurator"] .configurator-experience.is-guided-mode .configur
   body[data-page="configurator"] .configurator-estimate-bar,
   body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
     grid-template-columns: minmax(220px, 1fr) auto;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
+  /* A later desktop refinement fixes the dock width at 72px. Re-establish
+     the intended tablet row so its two button groups cannot flex-shrink and
+     stack their 60px controls on top of one another. */
+  body[data-page="configurator"] .preview-control-dock {
+    top: auto;
+    right: 14px;
+    bottom: 18px;
+    left: 14px;
+    display: flex;
+    width: auto;
+    align-items: end;
+    justify-content: center;
+    gap: 8px;
+    transform: none;
+  }
+
+  body[data-page="configurator"] .preview-tools,
+  body[data-page="configurator"] .configurator-model .view-controls {
+    display: flex;
+    width: max-content;
+    min-width: 0;
+    flex: 0 0 auto;
   }
 }
 

@@ -284,6 +284,14 @@ body[data-page="configurator"] .configurator-review-button {
   }
 }
 
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
+  body[data-page="configurator"] .preview-tools,
+  body[data-page="configurator"] .configurator-model .view-controls {
+    width: max-content;
+    flex: 0 0 auto;
+  }
+}
+
 /* Guided workflow density and consistent hierarchy. */
 
 body[data-page="configurator"] .guided-experience,
@@ -1624,5 +1632,253 @@ body[data-page="configurator"] .lighting-card:has(input:focus-visible) {
   body[data-page="configurator"] .lighting-card label > span:last-child {
     font-size: 10px;
     line-height: 1.18;
+  }
+}
+
+/* Short phone-landscape viewports can be wider than the normal phone
+ * breakpoint while still having less than 300px for the app after its header
+ * and estimate row. Use the proven mobile document flow in that specific
+ * range so every workflow and camera control remains reachable. */
+@media (min-width: 768px) and (max-width: 950px) and (orientation: landscape) and (max-height: 500px) {
+  html {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body[data-page="configurator"] {
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
+  }
+
+  body[data-page="configurator"] main,
+  body[data-page="configurator"] .builder-hero,
+  body[data-page="configurator"] .builder-page,
+  body[data-page="configurator"] .builder-hero > .container,
+  body[data-page="configurator"] [data-bookcase-builder] {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .configurator-experience {
+    --short-preview-height: 260px;
+    --short-dock-height: 54px;
+    --short-rail-height: 54px;
+    --short-ar-width: 140px;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--short-preview-height) var(--short-rail-height) auto auto;
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    width: 100%;
+    height: var(--short-preview-height);
+    min-height: 0;
+    grid-column: 1;
+    grid-row: 1;
+    overflow: hidden;
+  }
+
+  body[data-page="configurator"] .preview-heading {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-model .viewer-stage {
+    inset: 0 0 var(--short-dock-height);
+    width: auto;
+    height: auto;
+  }
+
+  body[data-page="configurator"] .preview-control-dock {
+    position: absolute;
+    z-index: 12;
+    top: auto;
+    right: var(--short-ar-width);
+    bottom: 0;
+    left: 0;
+    display: flex;
+    width: auto;
+    height: var(--short-dock-height);
+    align-items: center;
+    border-top: 1px solid var(--jq-border);
+    background: rgba(255, 253, 249, 0.97);
+    padding: 3px 4px;
+    transform: none;
+  }
+
+  body[data-page="configurator"] .preview-tools {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls {
+    position: static;
+    display: grid;
+    width: 100%;
+    height: 48px;
+    min-height: 48px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+    border: 0;
+    background: transparent;
+    padding: 2px;
+    box-shadow: none;
+    transform: none;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls button {
+    width: auto;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    padding: 4px 2px;
+  }
+
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch {
+    position: absolute;
+    z-index: 13;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    width: var(--short-ar-width);
+    height: var(--short-dock-height);
+    align-items: center;
+    border: 0;
+    border-top: 1px solid var(--jq-border);
+    border-left: 1px solid var(--jq-border);
+    border-radius: 0;
+    background: rgba(255, 253, 249, 0.97);
+    padding: 4px;
+    box-shadow: none;
+  }
+
+  body[data-page="configurator"] .cabinet-ar-launch-heading,
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch p,
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-help {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button {
+    display: inline-flex;
+    width: 100%;
+    min-width: 0;
+    height: 46px;
+    min-height: 46px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail {
+    width: 100%;
+    height: var(--short-rail-height);
+    min-height: 0;
+    grid-column: 1;
+    grid-row: 2;
+    overflow: hidden;
+    border-right: 0;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail ol {
+    width: 100%;
+    height: var(--short-rail-height);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+    padding: 3px 4px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li {
+    width: auto;
+    min-width: 0;
+    height: 48px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button {
+    width: 100%;
+    min-width: 0;
+    height: 48px;
+    min-height: 48px;
+    grid-template-rows: 26px auto;
+    gap: 2px;
+    padding: 1px 0;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button > span {
+    width: 26px;
+    height: 26px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button small {
+    font-size: 8px;
+    line-height: 10px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
+    top: 25px;
+    right: -5px;
+    bottom: auto;
+    left: auto;
+    width: 10px;
+    height: 1px;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    grid-column: 1;
+    grid-row: 3;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience > [role="tabpanel"] {
+    min-height: 0;
+  }
+
+  body[data-page="configurator"] .guided-experience,
+  body[data-page="configurator"] .all-controls-experience {
+    min-height: 0;
+    padding-bottom: 0;
+  }
+
+  body[data-page="configurator"] .guided-experience {
+    display: block;
+  }
+
+  body[data-page="configurator"] .guided-navigation {
+    position: static;
+    margin: 18px -16px 0;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    position: static;
+    width: 100%;
+    height: 72px;
+    min-height: 72px;
+    grid-column: 1;
+    grid-row: 4;
+    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar .studio-trust-row,
+  body[data-page="configurator"] .configurator-experience .configurator-quote-note {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-actions {
+    justify-content: end;
   }
 }

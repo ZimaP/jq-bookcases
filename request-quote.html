@@ -6,15 +6,24 @@
   <title>Request a Quote | JQ Bookcases</title>
   <meta name="description" content="Tell JQ Bookcases about your space and receive a personalized estimate for a custom-quality built-in bookcase.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=studio-entry-20260713b">
+  <link rel="stylesheet" href="styles.css?v=full-system-20260714a">
   <link rel="stylesheet" href="styles/icons.css?v=jq-icons-20260713i">
   <link rel="stylesheet" href="visual-consistency.css?v=visual-system-20260713a">
-  <link rel="stylesheet" href="bright-theme.css?v=bright-showroom-20260713a">
-  <script type="module" src="site.js?v=studio-entry-20260713b" defer></script>
+  <link rel="stylesheet" href="bright-theme.css?v=full-system-20260714a">
+  <script type="module" src="site.js?v=full-system-20260714a" defer></script>
 </head>
 <body data-page="quote">
   <a class="skip-link" href="#main">Skip to content</a>
   <div data-site-header></div>
+  <noscript>
+    <div class="noscript-shell">
+      <a class="noscript-brand" href="index.html">JQ Bookcases</a>
+      <nav class="noscript-nav" aria-label="Primary navigation without JavaScript">
+        <a href="how-it-works.html">How It Works</a><a href="materials.html">Materials</a><a href="inspiration.html">Inspiration</a><a href="about.html">About Us</a><a href="faq.html">FAQ</a><a href="request-quote.html">Quote Preview</a>
+      </nav>
+      <p>The 3D configurator and interactive controls require JavaScript.</p>
+    </div>
+  </noscript>
 
   <main id="main" class="interior-page">
     <section class="interior-hero interior-hero-centered unified-hero">
@@ -29,6 +38,8 @@
     <section class="interior-section">
       <div class="container quote-layout">
         <form class="glass-panel quote-form" id="quote-request-form" data-quote-form enctype="multipart/form-data">
+          <p class="quote-preview-notice" id="quote-preview-notice"><strong>Local preview:</strong> this form prepares your project brief in this browser. It does not currently transmit a quote request or retain your contact details.</p>
+          <div class="quote-form-fields" data-quote-fields inert>
           <input name="customPaint" type="hidden">
           <input name="paintBrand" type="hidden">
           <input name="paintCode" type="hidden">
@@ -43,8 +54,8 @@
           <fieldset>
             <legend>Project Information</legend>
             <div class="quote-grid">
-              <label>Full Name<input name="fullName" type="text" autocomplete="name" required></label>
-              <label>Email Address<input name="email" type="email" autocomplete="email" required></label>
+              <label>Full Name <span class="required-note">Required</span><input name="fullName" type="text" autocomplete="name" required></label>
+              <label>Email Address <span class="required-note">Required</span><input name="email" type="email" autocomplete="email" required></label>
               <label>Phone Number<input name="phone" type="tel" autocomplete="tel"></label>
               <label>Project Address<input name="address" type="text" autocomplete="street-address"></label>
               <label>City<input name="city" type="text" autocomplete="address-level2"></label>
@@ -144,7 +155,8 @@
             </div>
           </fieldset>
 
-          <button class="button button-primary" type="submit">Submit Quote Request</button>
+          <button class="button button-primary" type="submit" data-quote-submit aria-describedby="quote-preview-notice" disabled>Prepare Project Brief</button>
+          </div>
         </form>
 
         <aside class="quote-side">
@@ -153,8 +165,8 @@
             <h2>Project Photos</h2>
             <div class="upload-placeholder">
               <label for="quote-project-files">Upload wall photos, plans, or sketches</label>
-              <input id="quote-project-files" name="projectFiles" type="file" accept="image/*,.pdf,application/pdf" multiple form="quote-request-form">
-              <small data-upload-status>JPG, PNG, HEIC, or PDF</small>
+              <input id="quote-project-files" name="projectFiles" type="file" accept="image/*,.pdf,application/pdf" multiple form="quote-request-form" aria-describedby="quote-upload-status" disabled>
+              <small id="quote-upload-status" data-upload-status aria-live="polite">JPG, PNG, HEIC, or PDF</small>
             </div>
             <p>Photos help us understand the space, wall conditions, outlets, ceiling height, and surrounding trim.</p>
           </section>

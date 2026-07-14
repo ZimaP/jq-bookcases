@@ -155,7 +155,7 @@ test("homepage design CTAs force the welcome while plain configurator links resu
   await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toBeVisible();
 
   await page.goto("/index.html", { waitUntil: "networkidle" });
-  await page.locator('a.header-save-button[aria-label="Save Design"]').click();
+  await page.locator('a.header-save-button[aria-label="Design Your Bookcase"]').click();
   await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true");
   const resumed = await readAcceptedDesign(page);
   expect(resumed.diagnostics.initialSource).toBe("saved");
@@ -473,7 +473,7 @@ test("welcome composition is usable at every required desktop and mobile viewpor
       expect(composition.calloutSize).toBeGreaterThanOrEqual(10);
     }
     await page.screenshot({
-      path: `artifacts/custom-studio-qa/welcome-${viewport.width}x${viewport.height}.png`,
+      path: `test-results/custom-studio-qa/welcome-${viewport.width}x${viewport.height}.png`,
       animations: "disabled"
     });
     await page.getByRole("button", { name: /Start with my space/ }).click();
@@ -483,7 +483,7 @@ test("welcome composition is usable at every required desktop and mobile viewpor
     expect(customHorizontalOverflow).toBeLessThanOrEqual(1);
     if (viewport.width <= 760) {
       await page.screenshot({
-        path: `artifacts/custom-studio-qa/custom-${viewport.width}x${viewport.height}.png`,
+        path: `test-results/custom-studio-qa/custom-${viewport.width}x${viewport.height}.png`,
         fullPage: true,
         animations: "disabled"
       });
@@ -521,7 +521,7 @@ test("opening a studio route preserves the desktop composition anchors", async (
     await page.getByRole("button", { name: /Start with my space/ }).click();
     const custom = await measure();
     await page.screenshot({
-      path: `artifacts/custom-studio-qa/custom-${viewport.width}x${viewport.height}.png`,
+      path: `test-results/custom-studio-qa/custom-${viewport.width}x${viewport.height}.png`,
       animations: "disabled"
     });
     await page.getByRole("button", { name: "Back to studio start" }).click();

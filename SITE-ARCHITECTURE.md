@@ -28,7 +28,8 @@ or separate quote drawer.
 ## Shared ownership
 
 - `site.js` owns the global header, footer, navigation, icons, mobile menu,
-  FAQ behavior, saved-design quote prefill, and local quote-draft behavior.
+  FAQ behavior, validated saved-design quote prefill, and local quote-preview
+  feedback. Contact fields are never persisted by the preview.
 - `styles.css` owns brand tokens and all shared marketing/interior components.
 - `configurator.css` owns only the dense configurator application layout.
 - `configurator-experience.css` owns the two-mode configurator presentation and
@@ -65,11 +66,12 @@ markup. `tests/site-integrity.test.js` enforces these contracts.
 
 The configurator has one permanent preview subtree outside both presentation
 modes. Guided/All mode preferences are local UI preferences; physical saved
-designs remain normalized schema-3 records. Customized designs are mapped back
+designs remain normalized schema-4 accepted snapshots. Customized designs are mapped back
 to their structural layout when prefilled into the quote page.
 
 ## Local-preview limitation
 
-The quote project brief is stored in the current browser for UX validation.
-It does not transmit personal information until a production form endpoint is
-configured. The interface states this explicitly after submission.
+The quote form is a non-transmitting UX preview until a production form endpoint
+is configured. It validates fields locally, does not store contact details or
+uploads, and keeps submission disabled when JavaScript is unavailable. The
+interface discloses this limitation before data entry and after validation.
