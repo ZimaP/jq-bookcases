@@ -584,10 +584,7 @@ class BookcaseConfigurator {
     this.host.innerHTML = `
       <form class="studio-entry-shell" data-builder-form data-entry-view="${this.entryView}" novalidate>
         <section class="studio-entry-copy" aria-labelledby="${this.id}-entry-title">
-          ${this.entryView === STUDIO_ENTRY_VIEWS.welcome ? "" : `
-            <button class="studio-entry-back" type="button" data-studio-back>${builderIcons.back}<span>Back to studio start</span></button>
-          `}
-          ${this.renderStudioEntryContent()}
+          ${this.renderStudioEntryCopyContent()}
         </section>
 
         <section class="studio-intro-stage" aria-labelledby="${this.id}-preview-title">
@@ -622,6 +619,12 @@ class BookcaseConfigurator {
         <p class="status-message" data-builder-status role="status" aria-live="polite"></p>
       </form>
     `;
+  }
+
+  renderStudioEntryCopyContent() {
+    return `${this.entryView === STUDIO_ENTRY_VIEWS.welcome ? "" : `
+      <button class="studio-entry-back" type="button" data-studio-back>${builderIcons.back}<span>Back to studio start</span></button>
+    `}${this.renderStudioEntryContent()}`;
   }
 
   renderStudioEntryContent() {
@@ -1431,9 +1434,22 @@ class BookcaseConfigurator {
 
   renderStudioEntryView(options = {}) {
     this.stopStudioPreviewMotion();
-    this.render();
-    this.cacheElements();
-    this.viewer = this.createStudioIntroViewer();
+    const shell = this.elements?.shell;
+    const entryCopy = shell?.querySelector(".studio-entry-copy");
+    const canUpdateRouteInPlace = !this.hasAcceptedDesign
+      && shell?.classList.contains("studio-entry-shell")
+      && entryCopy;
+
+    if (canUpdateRouteInPlace) {
+      shell.dataset.entryView = this.entryView;
+      entryCopy.innerHTML = this.renderStudioEntryCopyContent();
+      entryCopy.scrollTop = 0;
+      this.cacheElements();
+    } else {
+      this.render();
+      this.cacheElements();
+      this.viewer = this.createStudioIntroViewer();
+    }
     this.syncStudioEntry();
     if (options.focusSelector) window.requestAnimationFrame(() => this.host.querySelector(options.focusSelector)?.focus());
   }

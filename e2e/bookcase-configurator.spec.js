@@ -449,6 +449,53 @@ test("welcome composition is usable at every required desktop and mobile viewpor
   expect(errors).toEqual([]);
 });
 
+test("opening a studio route preserves the desktop composition anchors", async ({ page }) => {
+  const viewports = [
+    { width: 2005, height: 1199 },
+    { width: 1440, height: 900 },
+    { width: 1024, height: 900 }
+  ];
+  const errors = monitorRuntime(page);
+  const measure = () => page.evaluate(() => {
+    const rect = (selector) => {
+      const bounds = document.querySelector(selector).getBoundingClientRect();
+      return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
+    };
+    return {
+      heading: rect(".studio-welcome-heading"),
+      stageHeading: rect(".studio-intro-heading"),
+      preview: rect(".studio-preview-composition")
+    };
+  });
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    await page.goto("/configurator.html", { waitUntil: "networkidle" });
+    const welcome = await measure();
+    await page.locator(".studio-intro-stage").evaluate((stage) => {
+      stage.dataset.routeTransitionSentinel = "preserved";
+    });
+    await page.getByRole("button", { name: /Start with my space/ }).click();
+    const custom = await measure();
+    await page.getByRole("button", { name: "Back to studio start" }).click();
+    await page.getByRole("button", { name: /Use an editable idea/ }).click();
+    const ideas = await measure();
+
+    await expect(page.locator(".studio-intro-stage")).toHaveAttribute("data-route-transition-sentinel", "preserved");
+    for (const route of [custom, ideas]) {
+      expect(Math.abs(route.heading.x - welcome.heading.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(route.heading.y - welcome.heading.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(route.stageHeading.x - welcome.stageHeading.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(route.stageHeading.y - welcome.stageHeading.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(route.preview.x - welcome.preview.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(route.preview.y - welcome.preview.y)).toBeLessThanOrEqual(1);
+    }
+    const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(horizontalOverflow).toBeLessThanOrEqual(1);
+  }
+  expect(errors).toEqual([]);
+});
+
 test("navigation hover uses the shared underline position on every public page", async ({ page }) => {
   const routes = [
     "/index.html",
