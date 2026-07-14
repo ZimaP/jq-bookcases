@@ -5,6 +5,7 @@ import {
   CONSTRUCTION_PROFILE_IDS,
   defaultBookcaseConfig,
   layoutPresets,
+  migrateLegacyConstructionConfig,
   normalizeBookcaseConfig
 } from "../bookcase-config.js";
 import { generateBookcaseLayout } from "../bookcase-layout.js";
@@ -193,6 +194,25 @@ test("schema-v1 share tokens created before drawer profiles retain every origina
   assert.ok(decoded.layoutMetadata.sectionDoorLayouts
     .filter(Boolean)
     .every((entry) => entry.arrangement === "pair"));
+});
+
+test("migrated crown-bearing glass and tall presets remain valid in procedural AR", () => {
+  for (const presetId of ["glass-library", "tall-storage"]) {
+    const preset = layoutPresets.find((candidate) => candidate.id === presetId);
+    const source = structuredClone({ ...defaultBookcaseConfig, ...preset.config });
+    delete source.constructionProfile;
+    if (source.layoutMetadata) delete source.layoutMetadata.sectionDoorLayouts;
+    const config = migrateLegacyConstructionConfig(source);
+    const layout = generateBookcaseLayout(config);
+    assert.equal(layout.validation.valid, true, `${presetId}: ${JSON.stringify(layout.validation.errors)}`);
+    const ar = normalizeCabinetArConfiguration(config, layout, { price: 12345 });
+    const json = parseGlbJson(generateCabinetGlbArrayBuffer(ar, layout));
+    assert.equal(ar.constructionProfileId, CONSTRUCTION_PROFILE_IDS.legacyOverlay);
+    assert.equal(json.extras.constructionProfile, CONSTRUCTION_PROFILE_IDS.legacyOverlay);
+    assert.equal(json.extras.doorLeafCount, layout.components.filter(
+      (component) => component.role === "door"
+    ).length);
+  }
 });
 
 test("capability detection reports desktop fallback and supported WebXR", async () => {

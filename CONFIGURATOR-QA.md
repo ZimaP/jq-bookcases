@@ -242,24 +242,49 @@ Captured evidence:
 
 The complete repository release suite passed against the same candidate tree:
 
-- `npm run build`: pass; icon/profile asset validation completed.
-- `npm test`: 348 passed, 0 failed.
-- `npm run test:browser`: 60 passed, 0 failed in 4.8 minutes, including the
-  complete Chromium run and Firefox/WebKit smoke coverage.
-- Focused Construction V1 capture after the final evidence-camera adjustment:
-  1 passed in 51.7 seconds.
+- `npm run build`: pass in 1.66 seconds; 100 icons and 13 drawings validated.
+- `npm test`: 353 passed, 0 failed, 0 skipped.
+- `npm run test:browser`: 60 passed, 0 failed in 5.6 minutes (337.90 seconds
+  wall time), including 54 Chromium tests plus Firefox and WebKit smoke
+  coverage.
+- Focused Construction V1 capture after the final release fixes: 1 passed in
+  1.1 minutes (65.98 seconds wall time).
 - `git diff --check`: pass.
+
+The release-blocker pass fixed legacy tall/glass front-to-crown collisions,
+strict schema-4 artifact verification without breaking recognized early-v4
+saves, schema-4 toe-void and drawer-signature compatibility, structured
+correction of unsupported saved door arrangements, runtime product-light
+tagging, the release cache token, and the duplicate single-door evidence image.
+Current tests cover every fix directly.
 
 The dedicated Construction V1 browser test used the debug descriptor graph,
 asserted valid physical and rendered manifests for each scenario, kept one
 viewer and one canvas, exercised free-rotation camera preservation during a
-hinge-direction rebuild, and reported empty application-error and WebGL-warning
-arrays. In-app Browser and the user's Chrome session independently restored the
-current design with one canvas and a valid descriptor render. All 16 required
-PNG artifacts were then inspected at original resolution. The Computer Use
-client could not open macOS Preview because its installed runtime rejects the
-session's `ultra` reasoning-effort identifier; this tool-compatibility failure
-did not affect browser automation or direct original-resolution image review.
+hinge-direction rebuild, validated all crown and drawer profiles, verified
+lighting focus restoration and 2700K-to-3500K point-light color changes, and
+restored real legacy glass-library and tall-storage geometry. It reported no
+application errors or WebGL/resource/geometry warnings.
+
+In-app Browser then exercised the customer controls without controller
+injection. Lower-door Auto produced one door and one handle at 18 inches and two
+doors and two handles at 31 inches; the deterministic suite covers the 23-inch
+and 46.5-inch boundaries. Forced hinge-left and hinge-right moved hardware to
+the opposite latch edge, and unsupported choices exposed the engine-provided
+reason. Review, schema-4 save/reload (`JQ-1MXJTUV`), quote prefill, and procedural
+AR/QR handoff stayed synchronized at $14,700. Tall Storage + Shelves produced
+one tall door and one handle at 23 inches, then an Auto pair with two handles at
+28.856 inches; both unsupported single choices were disabled with the exact
+too-wide reason, and Review tracked 7 versus 8 generated fronts and $16,900
+versus $16,800.
+
+Real schema-4 snapshots generated from baseline `c2537e52` and early-v4 commit
+`02197de` restored for lower cabinets, glass library, and tall storage with
+unchanged totals of $14,800, $16,050, and $16,750. All 16 required PNG artifacts
+are valid, visually reviewed, and SHA-256 unique. Computer Use opened the
+corrected 862 x 552 single-door PNG in macOS Preview at original resolution.
+The AR dialog emitted one third-party model-viewer warning about its bundled
+Three.js instance; no application console error or WebGL error was present.
 
 ### Automated construction gates
 

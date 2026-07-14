@@ -2,7 +2,7 @@ import {
   createDesignId,
   migrateLegacyConstructionConfig,
   normalizeBookcaseConfig
-} from "./bookcase-config.js?v=configurator-refine-20260714a";
+} from "./bookcase-config.js?v=configurator-construction-20260714b";
 
 export const CABINET_AR_SCHEMA_VERSION = 1;
 export const CABINET_AR_FEATURE_ATTRIBUTE = "data-enable-cabinet-ar";

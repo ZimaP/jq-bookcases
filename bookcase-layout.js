@@ -4,7 +4,7 @@ import {
   getHardwareType,
   normalizeDrawerFrontStyleValue,
   normalizeSectionTypeValue
-} from "./bookcase-config.js?v=configurator-refine-20260714a";
+} from "./bookcase-config.js?v=configurator-construction-20260714b";
 
 /**
  * Pure parametric layout engine for JQ Bookcases.
@@ -1162,6 +1162,7 @@ function buildSectionContents(context) {
   const sectionType = section.metadata.type;
   const isTall = sectionType === "tall_doors";
   const isDesk = sectionType === "desk";
+  const frontOpeningTop = getFrontOpeningTop(config, clearTop);
   const usesLowerStorage = (sectionType === "lower_doors" || sectionType === "drawers") &&
     !isTall && !isDesk && !(isSpecial && special.kind === "feature");
   let shelfRegionBottom = section.bounds.min.y;
@@ -1172,7 +1173,14 @@ function buildSectionContents(context) {
       role: "opening",
       parentId: section.id,
       hostId: section.id,
-      bounds: cloneBounds(section.bounds),
+      bounds: bounds(
+        section.bounds.min.x,
+        section.bounds.max.x,
+        section.bounds.min.y,
+        frontOpeningTop,
+        section.bounds.min.z,
+        section.bounds.max.z
+      ),
       metadata: { kind: "tall_storage", frontPlaneZ: referencePlanes.carcassFrontPlaneZ }
     });
     addDoorAssembly(add, config, opening, {
@@ -1290,7 +1298,7 @@ function buildSectionContents(context) {
         section.bounds.min.x,
         section.bounds.max.x,
         shelfRegionBottom,
-        clearTop,
+        frontOpeningTop,
         0,
         clearDepth
       ),
@@ -1308,6 +1316,16 @@ function buildSectionContents(context) {
       referencePlanes
     });
   }
+}
+
+function getFrontOpeningTop(config, clearTop) {
+  if (config.constructionProfile !== CONSTRUCTION_PROFILE_IDS.legacyOverlay) return clearTop;
+  const crownDrop = {
+    slim_cap: CONSTRUCTION_RULES.slimCapProfileDrop,
+    classic_crown: CONSTRUCTION_RULES.classicCrownProfileDrop,
+    modern_soffit: CONSTRUCTION_RULES.modernSoffitHeight
+  }[config.crownStyle];
+  return crownDrop ? Math.min(clearTop, config.height - crownDrop) : clearTop;
 }
 
 function getSectionDoorArrangement(config, index) {
@@ -3020,7 +3038,17 @@ function reconcileLayoutMetadata(value, sections, width, corrections, source = {
   metadata.sectionDoorLayouts = effectiveTypes.map((type, index) => {
     if (!['lower_doors', 'tall_doors'].includes(type)) return null;
     const requested = sourceDoorLayouts[index]?.arrangement;
-    return { arrangement: DOOR_ARRANGEMENTS.includes(requested) ? requested : "auto" };
+    const arrangement = DOOR_ARRANGEMENTS.includes(requested) ? requested : "auto";
+    if (requested !== undefined && requested !== null && arrangement !== requested) {
+      corrections.push(createCorrection(
+        "UNSUPPORTED_DOOR_ARRANGEMENT",
+        `layoutMetadata.sectionDoorLayouts.${index}.arrangement`,
+        requested,
+        arrangement,
+        `Section ${index + 1} used an unsupported door arrangement and was restored to Auto.`
+      ));
+    }
+    return { arrangement };
   });
   return metadata;
 }

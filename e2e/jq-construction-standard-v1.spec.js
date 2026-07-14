@@ -135,6 +135,21 @@ async function readConstructionState(page) {
   });
 }
 
+async function readProductLights(page) {
+  return page.locator("[data-bookcase-builder]").evaluate((host) => {
+    const lights = [];
+    host.__bookcaseConfigurator.viewer.model?.traverse((child) => {
+      if (!child.isLight) return;
+      lights.push({
+        productLight: child.userData?.productLight === true,
+        color: child.color.getHex(),
+        intensity: child.intensity
+      });
+    });
+    return lights;
+  });
+}
+
 async function setView(page, view) {
   if (view !== "reset") {
     await page.locator("[data-bookcase-builder]").evaluate((host) => {
@@ -333,7 +348,7 @@ test("JQ Construction Standard V1 renders buildable assemblies across scenarios 
   expect(doors[0].bounds.max.z).toBe(CONSTRUCTION_RULES.doorThickness);
   expect(handles[0].bounds.max.z).toBe(state.referencePlanes.finishedFrontPlaneZ);
   expect(handles[0].bounds.min.z).toBeLessThan(state.referencePlanes.finishedFrontPlaneZ);
-  await setView(page, "front");
+  await setView(page, "three-quarter");
   await captureViewer(viewer, "engine-single-door-inset");
 
   const autoPairConfig = oneSectionConfig({
@@ -463,20 +478,57 @@ test("JQ Construction Standard V1 renders buildable assemblies across scenarios 
       sectionDoorLayouts: [null, null, null, null]
     }
   };
-  state = await applyScenario(page, drawerConfig);
-  const drawers = byRole(state, "drawer_front");
-  const drawerHandles = byRole(state, "handle");
-  expect(drawers).toHaveLength(12);
-  expect(drawerHandles).toHaveLength(drawers.length);
-  expect(drawers.every((drawer) => drawer.metadata.mounting === "inset" && drawer.bounds.min.z === 0)).toBe(true);
-  for (const handle of drawerHandles) {
-    const drawer = drawers.find((candidate) => candidate.id === handle.hostId);
-    expect(handle.metadata.orientation).toBe("horizontal");
-    expect(handle.metadata.mountingCenter.x).toBeCloseTo(drawer.position.x, 12);
-    expect(handle.metadata.supportingRegionKind).toBe("solid");
+  for (const drawerFrontStyle of ["flat", "shaker", "slim_shaker"]) {
+    state = await applyScenario(page, { ...drawerConfig, drawerFrontStyle });
+    const drawers = byRole(state, "drawer_front");
+    const drawerHandles = byRole(state, "handle");
+    expect(drawers).toHaveLength(12);
+    expect(drawerHandles).toHaveLength(drawers.length);
+    expect(drawers.every((drawer) => (
+      drawer.metadata.style === drawerFrontStyle
+      && drawer.metadata.mounting === "inset"
+      && drawer.bounds.min.z === 0
+      && drawer.metadata.profileGeometry.valid
+    ))).toBe(true);
+    for (const handle of drawerHandles) {
+      const drawer = drawers.find((candidate) => candidate.id === handle.hostId);
+      expect(handle.metadata.orientation).toBe("horizontal");
+      expect(handle.metadata.mountingCenter.x).toBeCloseTo(drawer.position.x, 12);
+      expect(handle.metadata.supportingRegionKind).toBe("solid");
+    }
   }
   await focusDetail(page, "doors");
   await captureViewer(viewer, "engine-drawer-fronts");
+
+  const lightingConfig = {
+    ...defaultBookcaseConfig,
+    constructionProfile: CONSTRUCTION_PROFILE_IDS.inset,
+    lighting: "full_package",
+    lightingWarmth: 2700
+  };
+  for (const crownStyle of ["none", "slim_cap", "classic_crown", "modern_soffit"]) {
+    state = await applyScenario(page, { ...lightingConfig, crownStyle });
+    const productLights = await readProductLights(page);
+    expect(productLights.length, `${crownStyle} product lights`).toBeGreaterThan(0);
+    expect(productLights.every((light) => light.productLight)).toBe(true);
+  }
+  const lightingViewerInstance = state.viewerInstanceId;
+  const warmLights = await readProductLights(page);
+  await focusDetail(page, "lighting");
+  const boostedLights = await readProductLights(page);
+  expect(boostedLights.map((light) => light.intensity)).toEqual(
+    warmLights.map((light) => light.intensity * 2.35)
+  );
+  await focusDetail(page, "doors");
+  const restoredLights = await readProductLights(page);
+  expect(restoredLights.map((light) => light.intensity)).toEqual(
+    warmLights.map((light) => light.intensity)
+  );
+  state = await applyScenario(page, { ...lightingConfig, crownStyle: "modern_soffit", lightingWarmth: 3500 });
+  const coolLights = await readProductLights(page);
+  expect(state.viewerInstanceId).toBe(lightingViewerInstance);
+  expect(state.canvasIdentity).toBe("jq-construction-standard-v1-canvas");
+  expect(coolLights.map((light) => light.color)).not.toEqual(warmLights.map((light) => light.color));
 
   state = await applyScenario(page, {
     ...defaultBookcaseConfig,
@@ -559,6 +611,27 @@ test("JQ Construction Standard V1 renders buildable assemblies across scenarios 
   expect(state.renderAudit.renderedCount).toBe(state.renderAudit.expectedCount);
   await setView(page, "front");
   await captureViewer(viewer, "engine-legacy-overlay");
+
+  for (const presetId of ["glass-library", "tall-storage"]) {
+    const preset = layoutPresets.find((candidate) => candidate.id === presetId);
+    const legacyPresetConfig = structuredClone({ ...defaultBookcaseConfig, ...preset.config });
+    delete legacyPresetConfig.constructionProfile;
+    if (legacyPresetConfig.layoutMetadata) delete legacyPresetConfig.layoutMetadata.sectionDoorLayouts;
+    await page.evaluate((config) => {
+      localStorage.setItem("jqBookcasesDesign", JSON.stringify({ schemaVersion: 3, config }));
+    }, legacyPresetConfig);
+    await page.goto("/configurator.html?start=resume&constructionDebug=1", { waitUntil: "networkidle" });
+    await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
+    state = await readConstructionState(page);
+    expect(state.state.layoutPreset).toBe(presetId);
+    expect(state.state.constructionProfile).toBe(CONSTRUCTION_PROFILE_IDS.legacyOverlay);
+    expect(state.validation.valid).toBe(true);
+    expect(byRole(state, "door").every((door) => (
+      door.metadata.mounting === "overlay"
+      && door.bounds.min.z === -CONSTRUCTION_RULES.doorThickness
+      && door.bounds.max.z === 0
+    ))).toBe(true);
+  }
 
   expect(runtime.errors).toEqual([]);
   expect(runtime.webglWarnings).toEqual([]);

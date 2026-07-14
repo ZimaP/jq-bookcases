@@ -324,6 +324,38 @@ test("inset and migrated legacy layouts preserve explicit front-plane semantics"
   }
 });
 
+test("legacy tall and upper-glass fronts clear every supported crown profile", () => {
+  const crownStyles = ["none", "slim_cap", "classic_crown", "modern_soffit"];
+  const layoutFactories = [
+    (crownStyle) => singleSectionLayout({
+      type: "tall_doors",
+      constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay,
+      crownStyle
+    }),
+    (crownStyle) => glassUpperLayout({
+      constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay,
+      crownStyle
+    })
+  ];
+
+  for (const createLayout of layoutFactories) {
+    for (const crownStyle of crownStyles) {
+      const layout = createLayout(crownStyle);
+      assert.equal(layout.validation.valid, true, `${crownStyle}: ${JSON.stringify(layout.validation.errors)}`);
+      const crowns = byRole(layout, "crown");
+      const doors = byRole(layout, "door");
+      assert.ok(doors.length > 0, `${crownStyle} must generate legacy fronts`);
+      for (const door of doors) {
+        const opening = findComponent(layout, door.hostId);
+        assert.equal(door.bounds.min.z, -CONSTRUCTION_RULES.doorThickness);
+        assert.equal(door.bounds.max.z, 0);
+        approximately(opening.bounds.max.y - door.bounds.max.y, CONSTRUCTION_RULES.doorReveal);
+        assert.ok(crowns.every((crown) => !boundsIntersect(door.bounds, crown.bounds)));
+      }
+    }
+  }
+});
+
 test("Auto uses finished leaf width at 18, 23, 31, and 46.5 inch openings", () => {
   const expectations = new Map([
     [18, { leafCount: 1, leafWidth: 17.75 }],
@@ -355,6 +387,21 @@ test("Auto uses finished leaf width at 18, 23, 31, and 46.5 inch openings", () =
   });
   assert.equal(forcedNarrowPair.valid, false);
   assert.equal(forcedNarrowPair.reason, "A pair would create leaves below the supported minimum width.");
+});
+
+test("unsupported saved door arrangements fall back to Auto with a structured correction", () => {
+  const layout = singleSectionLayout({ arrangement: "pairr" });
+  const correction = layout.corrections.find((item) => item.code === "UNSUPPORTED_DOOR_ARRANGEMENT");
+  assert.deepEqual(correction, {
+    code: "UNSUPPORTED_DOOR_ARRANGEMENT",
+    field: "layoutMetadata.sectionDoorLayouts.0.arrangement",
+    requested: "pairr",
+    applied: "auto",
+    message: "Section 1 used an unsupported door arrangement and was restored to Auto."
+  });
+  assert.equal(layout.config.layoutMetadata.sectionDoorLayouts[0].arrangement, "auto");
+  assert.equal(byRole(layout, "door").length, 1);
+  assert.equal(layout.validation.valid, true, JSON.stringify(layout.validation.errors));
 });
 
 test("generated manual arrangements are either exact or rejected with leaf-width codes", () => {

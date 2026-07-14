@@ -1,9 +1,9 @@
-import { hashCabinetArConfiguration, inchesToMeters } from "./cabinet-ar.js?v=configurator-refine-20260714a";
+import { hashCabinetArConfiguration, inchesToMeters } from "./cabinet-ar.js?v=configurator-construction-20260714b";
 import {
   getHardwareFinish,
   getHardwareFinishOption,
   getHardwareType
-} from "./bookcase-config.js?v=configurator-refine-20260714a";
+} from "./bookcase-config.js?v=configurator-construction-20260714b";
 
 const NON_RENDERED_ROLES = new Set(["assembly", "section", "section_group", "opening"]);
 const GLB_MAGIC = 0x46546c67;

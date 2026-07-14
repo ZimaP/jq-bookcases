@@ -1,5 +1,5 @@
 import * as THREE from "./assets/vendor/three.module.js";
-import { diagramSvg, iconSvg } from "./icon-system.js?v=configurator-refine-20260714a";
+import { diagramSvg, iconSvg } from "./icon-system.js?v=configurator-construction-20260714b";
 import {
   baseStyleOptions,
   crownStyleOptions,
@@ -21,9 +21,9 @@ import {
   normalizeBookcaseConfig,
   optionLabels,
   resolveHardwareVariant
-} from "./bookcase-config.js?v=configurator-refine-20260714a";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=configurator-refine-20260714a";
-import { formatPrice } from "./bookcase-pricing.js?v=configurator-refine-20260714a";
+} from "./bookcase-config.js?v=configurator-construction-20260714b";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=configurator-construction-20260714b";
+import { formatPrice } from "./bookcase-pricing.js?v=configurator-construction-20260714b";
 import {
   applySectionHistorySnapshot,
   applySectionWidths,
@@ -39,20 +39,20 @@ import {
   setSectionDoorArrangement,
   setSectionType,
   splitSection
-} from "./bookcase-sections.js?v=configurator-refine-20260714a";
+} from "./bookcase-sections.js?v=configurator-construction-20260714b";
 import {
   PROFILE_CAMERA_DURATION,
   calculateProfileCameraPose,
   calculateViewportAwareTarget,
   isProfileCameraKey,
   resolveCameraTransitionDuration
-} from "./profile-camera.js?v=configurator-refine-20260714a";
+} from "./profile-camera.js?v=configurator-construction-20260714b";
 import {
   BENJAMIN_MOORE_COLOR_DATA_NOTICE,
   BENJAMIN_MOORE_OFFICIAL_COLORS_URL,
   createBenjaminMoorePaintSelection,
   getBenjaminMooreColorCatalogProvider
-} from "./benjamin-moore-colors.js?v=configurator-refine-20260714a";
+} from "./benjamin-moore-colors.js?v=configurator-construction-20260714b";
 import {
   ALL_CONTROL_CATEGORIES,
   CONFIGURATOR_MODES,
@@ -78,16 +78,16 @@ import {
   normalizeGuidedStep,
   shouldRunAction,
   validateGuidedStep
-} from "./configurator-experience.js?v=configurator-refine-20260714a";
+} from "./configurator-experience.js?v=configurator-construction-20260714b";
 import {
   createAcceptedDesignSnapshot,
   evaluateBookcaseCandidate,
   restoreAcceptedDesignSnapshot
-} from "./bookcase-engine.js?v=configurator-refine-20260714a";
+} from "./bookcase-engine.js?v=configurator-construction-20260714b";
 import {
   createExpectedRenderManifest,
   validateRenderedManifest
-} from "./bookcase-render-contract.js?v=configurator-refine-20260714a";
+} from "./bookcase-render-contract.js?v=configurator-construction-20260714b";
 import {
   INSPIRATION_FILTERS,
   STUDIO_CAPABILITIES,
@@ -105,7 +105,7 @@ import {
   normalizeStudioEntryView,
   suggestStudioSectionCount,
   validateStudioDimensions
-} from "./configurator-studio.js?v=configurator-refine-20260714a";
+} from "./configurator-studio.js?v=configurator-construction-20260714b";
 
 const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "shelfThickness", "lightingWarmth", "drawerCount"]);
 const builderIcons = Object.freeze({
@@ -266,7 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (host.__bookcaseConfigurator) return;
     if (host.getAttribute("data-enable-cabinet-ar") === "true") {
       try {
-        const { readCabinetArShareConfiguration } = await import("./cabinet-ar.js?v=configurator-refine-20260714a");
+        const { readCabinetArShareConfiguration } = await import("./cabinet-ar.js?v=configurator-construction-20260714b");
         host.__cabinetArSharedConfiguration = readCabinetArShareConfiguration(window.location.href);
       } catch (error) {
         host.__cabinetArSharedConfiguration = null;
@@ -1679,7 +1679,7 @@ class BookcaseConfigurator {
 
   initializeCabinetAr() {
     if (this.arControllerPromise) return this.arControllerPromise;
-    this.arControllerPromise = import("./cabinet-ar-ui.js?v=configurator-refine-20260714a")
+    this.arControllerPromise = import("./cabinet-ar-ui.js?v=configurator-construction-20260714b")
       .then(({ CabinetArController }) => {
         if (!this.elements.arDialog) return null;
         this.arController = new CabinetArController({
@@ -5313,6 +5313,7 @@ function renderDescriptorLight(group, rootGroup, component, materials, size, pos
   const temperature = Number(component.metadata?.warmth) || 2700;
   const color = getLightingTemperatureColor(temperature);
   const glow = new THREE.PointLight(color, type === "puck" ? 0.4 : 0.11, type === "puck" ? 2.2 : 1.5);
+  glow.userData.productLight = true;
   glow.position.set(position[0], position[1] - (type === "vertical_led" ? 0 : 0.09), position[2] + 0.045);
   group.add(glow);
   rootGroup.userData.pointLightCount += 1;
