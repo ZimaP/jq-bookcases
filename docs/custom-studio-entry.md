@@ -7,7 +7,7 @@ The configurator has two explicit lifecycle states.
 
 The explicit source priority is shared configuration, requested preset, saved accepted snapshot, then new-visitor welcome. An invalid source never falls through to a finished default product.
 
-Marketing start/design calls to action use `?start=welcome` to express a new design journey. That explicit journey displays the welcome even when the browser contains a saved accepted snapshot, preserves that saved snapshot, and consumes the temporary query flag after entry. Plain `configurator.html` links labeled Save Design continue to resume saved work; valid shared configurations and explicit presets retain priority over the welcome request.
+Marketing start/design calls to action use `?start=welcome` to express a new design journey. That explicit journey displays the welcome even when the browser contains a saved accepted snapshot, preserves that saved snapshot, and consumes the temporary query flag after entry. Plain `configurator.html` links labeled Design Your Bookcase continue saved work when an accepted snapshot exists; valid shared configurations and explicit presets retain priority over the welcome request.
 
 ## Guided label mapping
 

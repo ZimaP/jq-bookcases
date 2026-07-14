@@ -24,25 +24,35 @@ export default defineConfig({
     reducedMotion: "reduce",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    video: "retain-on-failure",
-    launchOptions: {
-      args: [
-        "--enable-webgl",
-        "--ignore-gpu-blocklist",
-        "--use-angle=swiftshader"
-      ]
-    }
+    video: "retain-on-failure"
   },
   projects: [
     {
       name: "chromium",
       use: {
-        ...devices["Desktop Chrome"]
+        ...devices["Desktop Chrome"],
+        launchOptions: {
+          args: [
+            "--enable-webgl",
+            "--ignore-gpu-blocklist",
+            "--use-angle=swiftshader"
+          ]
+        }
       }
+    },
+    {
+      name: "firefox",
+      testMatch: /cross-browser-smoke\.spec\.js/,
+      use: { ...devices["Desktop Firefox"] }
+    },
+    {
+      name: "webkit",
+      testMatch: /cross-browser-smoke\.spec\.js/,
+      use: { ...devices["Desktop Safari"] }
     }
   ],
   webServer: {
-    command: `python3 -m http.server ${testPort}`,
+    command: `python3 -m http.server ${testPort} --bind 127.0.0.1`,
     url: `${testBaseUrl}/configurator.html`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
