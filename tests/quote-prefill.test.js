@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { defaultBookcaseConfig, layoutPresets } from "../bookcase-config.js";
+import {
+  CONSTRUCTION_PROFILE_IDS,
+  defaultBookcaseConfig,
+  layoutPresets,
+  normalizeBookcaseConfig
+} from "../bookcase-config.js";
 import { createQuotePrefill, resolveStoredLayout } from "../quote-prefill.js";
 
 const preset = (id) => layoutPresets.find((item) => item.id === id);
@@ -129,6 +134,7 @@ test("feature metadata preselects room and applicable project options", () => {
 test("quote prefill omits stale lighting when the generated design has no compatible locations", () => {
   const config = {
     ...preset("tall-storage").config,
+    width: 96,
     sections: 2,
     lowerCabinets: false,
     lighting: "full_package",
@@ -138,8 +144,8 @@ test("quote prefill omits stale lighting when the generated design has no compat
   const disabled = createQuotePrefill({ ...config, lighting: "no_lighting" });
 
   assert.equal(selected.billableQuantities.compatibleLightingComponents, 0);
-  assert.equal(selected.billableQuantities.generatedTallDoors, 2);
-  assert.equal(selected.billableQuantities.doorHardwareUnits, 2);
+  assert.equal(selected.billableQuantities.generatedTallDoors, 4);
+  assert.equal(selected.billableQuantities.doorHardwareUnits, 4);
   assert.equal(selected.options.includes("lighting"), false);
   assert.equal(selected.options.includes("hardware"), true);
   assert.equal(selected.options.includes("shelves"), false);
@@ -195,10 +201,62 @@ test("quote prefill separates physical front profiles and canonical hardware met
   assert.equal(prefill.fields.hardwareFinish, "Polished Nickel");
 });
 
+test("quote prefill reports every generated style in a mixed door assembly", () => {
+  const prefill = createQuotePrefill(preset("glass-library").config);
+
+  assert.deepEqual(prefill.billableQuantities.doorsByStyle, { glass: 8, shaker: 8 });
+  assert.deepEqual(prefill.frontProfiles.door, {
+    id: "mixed",
+    label: "Glass Frame (8) + Shaker (8)",
+    count: 16,
+    styles: [
+      { id: "glass", label: "Glass Frame", count: 8 },
+      { id: "shaker", label: "Shaker", count: 8 }
+    ]
+  });
+  assert.equal(prefill.fields.doorFrontProfile, "Glass Frame (8) + Shaker (8)");
+});
+
+test("push-latch quotes contain no visible-hardware selection or form fields", () => {
+  const prefill = createQuotePrefill({
+    ...defaultBookcaseConfig,
+    hardware: "push_latch"
+  });
+
+  assert.equal(prefill.billableQuantities.hingedDoorLeaves, 4);
+  assert.equal(prefill.billableQuantities.hardwareUnits, 0);
+  assert.equal(prefill.hardwareSelection, null);
+  assert.equal(prefill.options.includes("hardware"), false);
+  assert.equal("hardwareType" in prefill.fields, false);
+  assert.equal("hardwareFinish" in prefill.fields, false);
+  assert.equal("hardwareVariant" in prefill.fields, false);
+});
+
+test("quote production metadata preserves construction profile and per-section door layouts", () => {
+  const config = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    width: 48,
+    sections: 2,
+    constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay,
+    layoutMetadata: {
+      sectionRatios: [1, 1],
+      sectionTypes: ["lower_doors", "drawers"],
+      sectionDoorLayouts: [{ arrangement: "single_hinge_right" }, null]
+    }
+  });
+  const prefill = createQuotePrefill(config);
+
+  assert.equal(prefill.constructionProfile, CONSTRUCTION_PROFILE_IDS.legacyOverlay);
+  assert.deepEqual(prefill.layoutMetadata, config.layoutMetadata);
+  assert.equal("constructionProfile" in prefill.fields, false);
+  assert.equal("sectionDoorLayouts" in prefill.fields, false);
+});
+
 test("quote prefill price and options use the same valid generated pricing context", () => {
   const prefill = createQuotePrefill(defaultBookcaseConfig);
 
-  assert.equal(prefill.price, 14800);
+  assert.equal(prefill.billableQuantities.hingedDoorLeaves, 4);
+  assert.equal(prefill.price, 14700);
   assert.equal(prefill.billableQuantities.puckLightLocations, 4);
   assert.deepEqual(prefill.options, ["lighting", "crown", "hardware", "shelves"]);
 });

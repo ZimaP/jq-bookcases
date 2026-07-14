@@ -9,9 +9,9 @@ import {
   emitArAnalytics,
   hashCabinetArConfiguration,
   normalizeCabinetArConfiguration
-} from "./cabinet-ar.js?v=configurator-refine-20260714a";
-import { generateProceduralCabinetModel } from "./cabinet-ar-model.js?v=configurator-refine-20260714a";
-import { iconSvg } from "./icon-system.js?v=configurator-refine-20260714a";
+} from "./cabinet-ar.js?v=configurator-construction-20260714b";
+import { generateProceduralCabinetModel } from "./cabinet-ar-model.js?v=configurator-construction-20260714b";
+import { iconSvg } from "./icon-system.js?v=configurator-construction-20260714b";
 
 const closeIcon = iconSvg("close");
 const MODEL_VIEWER_DEFINITION_TIMEOUT_MS = 10000;

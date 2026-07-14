@@ -1,7 +1,7 @@
-import { normalizeBookcaseConfig } from "./bookcase-config.js?v=configurator-refine-20260714a";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=configurator-refine-20260714a";
-import { deriveBookcaseBOM } from "./bookcase-bom.js?v=configurator-refine-20260714a";
-import { deriveBillableComponents } from "./bookcase-billable.js?v=configurator-refine-20260714a";
+import { normalizeBookcaseConfig } from "./bookcase-config.js?v=configurator-construction-20260714b";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=configurator-construction-20260714b";
+import { deriveBookcaseBOM } from "./bookcase-bom.js?v=configurator-construction-20260714b";
+import { deriveBillableComponents } from "./bookcase-billable.js?v=configurator-construction-20260714b";
 
 export const PRICING_VERSION = "2026.07-bom-v1";
 

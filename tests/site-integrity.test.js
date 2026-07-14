@@ -457,6 +457,7 @@ test("custom saved designs retain their structural layout in the quote handoff",
   assert.match(siteSource, /Object\.entries\(quotePrefill\.fields\)/);
   assert.match(siteSource, /formatStoredPrice\(quotePrefill\.price\)/);
   assert.match(siteSource, /quotePrefill\.frontProfiles\?\.door\?\.label/);
+  assert.match(siteSource, /quotePrefill\.frontProfiles\?\.door\?\.styles/);
   assert.match(siteSource, /quotePrefill\.frontProfiles\?\.drawer\?\.label/);
   assert.match(siteSource, /quotePrefill\.hardwareSelection\?\.label/);
   assert.match(quotePrefillSource, /layoutLabel: layout\.label/);

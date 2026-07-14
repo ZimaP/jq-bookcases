@@ -1,10 +1,10 @@
-import { buildPricingContext } from "./bookcase-pricing.js?v=configurator-refine-20260714a";
+import { buildPricingContext } from "./bookcase-pricing.js?v=configurator-construction-20260714b";
 import {
   getHardwareVariant,
   hardwareFinishOptions,
   hardwareTypeOptions,
   optionLabels
-} from "./bookcase-config.js?v=configurator-refine-20260714a";
+} from "./bookcase-config.js?v=configurator-construction-20260714b";
 
 const storedLayoutLabels = Object.freeze({
   "lower-cabinets": "Full Bookcase",
@@ -45,15 +45,17 @@ export function resolveStoredLayout(config = {}) {
 export function createQuotePrefill(config = {}) {
   const layout = resolveStoredLayout(config);
   const pricing = buildPricingContext(config);
+  if (!pricing.valid) {
+    const firstIssue = pricing.errors?.[0]?.message || "A valid generated layout is required.";
+    throw new RangeError(`Cannot prepare quote details: ${firstIssue}`);
+  }
   const normalizedConfig = pricing.selections;
   const billable = pricing.billableQuantities;
   const hasLowerCabinets = pricing.bom.openings.lowerStorageCount > 0;
   const hardwareVariant = getHardwareVariant(normalizedConfig.hardware);
   const hardwareTypeLabel = hardwareTypeOptions.find((option) => option.value === hardwareVariant?.type)?.label || "";
   const hardwareFinishLabel = hardwareFinishOptions.find((option) => option.value === hardwareVariant?.finish)?.label || "";
-  const doorFrontProfile = billable.hingedDoorLeaves > 0
-    ? { id: normalizedConfig.doorStyle, label: optionLabels.doorStyle[normalizedConfig.doorStyle], count: billable.hingedDoorLeaves }
-    : null;
+  const doorFrontProfile = createDoorFrontProfile(billable.doorsByStyle);
   const drawerFrontProfile = billable.generatedDrawerFronts > 0
     ? { id: normalizedConfig.drawerFrontStyle, label: optionLabels.drawerFrontStyle[normalizedConfig.drawerFrontStyle], count: billable.generatedDrawerFronts }
     : null;
@@ -90,6 +92,8 @@ export function createQuotePrefill(config = {}) {
   return {
     layoutLabel: layout.label,
     price: pricing.total,
+    constructionProfile: normalizedConfig.constructionProfile,
+    layoutMetadata: cloneLayoutMetadata(normalizedConfig.layoutMetadata),
     billableQuantities: billable,
     frontProfiles: { door: doorFrontProfile, drawer: drawerFrontProfile },
     hardwareSelection,
@@ -127,4 +131,38 @@ export function createQuotePrefill(config = {}) {
     },
     options
   };
+}
+
+function cloneLayoutMetadata(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(Object.entries(value).map(([key, entry]) => [
+    key,
+    Array.isArray(entry)
+      ? entry.map((item) => item && typeof item === "object" && !Array.isArray(item) ? { ...item } : item)
+      : entry
+  ]));
+}
+
+function createDoorFrontProfile(doorsByStyle = {}) {
+  const styles = Object.entries(doorsByStyle)
+    .filter(([, count]) => Number.isFinite(count) && count > 0)
+    .map(([id, count]) => ({
+      id,
+      label: optionLabels.doorStyle[id] || formatProfileId(id),
+      count
+    }));
+  if (!styles.length) return null;
+  if (styles.length === 1) return styles[0];
+  return {
+    id: "mixed",
+    label: styles.map((style) => `${style.label} (${style.count})`).join(" + "),
+    count: styles.reduce((total, style) => total + style.count, 0),
+    styles
+  };
+}
+
+function formatProfileId(value) {
+  return String(value || "unknown")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
 }

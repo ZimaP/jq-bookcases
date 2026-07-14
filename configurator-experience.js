@@ -8,9 +8,9 @@ import {
   layoutPresets,
   normalizeBookcaseConfig,
   optionLabels
-} from "./bookcase-config.js?v=configurator-refine-20260714a";
-import { deriveBillableComponents } from "./bookcase-billable.js?v=configurator-refine-20260714a";
-import { getSectionDesignerState } from "./bookcase-sections.js?v=configurator-refine-20260714a";
+} from "./bookcase-config.js?v=configurator-construction-20260714b";
+import { deriveBillableComponents } from "./bookcase-billable.js?v=configurator-construction-20260714b";
+import { getSectionDesignerState } from "./bookcase-sections.js?v=configurator-construction-20260714b";
 
 export const CONFIGURATOR_MODES = Object.freeze({
   guided: "guided",
@@ -48,7 +48,7 @@ export const ALL_CONTROL_CATEGORIES = Object.freeze([
 export const PHYSICAL_CONFIG_FIELDS = Object.freeze([
   "layoutPreset", "layoutType", "width", "height", "depth", "sections", "shelves",
   "shelfThickness", "lowerCabinets", "lowerStorage", "drawerCount", "centerOpening",
-  "deskOpening", "featureOpening", "tallDoors", "doorStyle", "drawerFrontStyle", "doorCount", "hardware",
+  "deskOpening", "featureOpening", "tallDoors", "constructionProfile", "doorStyle", "drawerFrontStyle", "doorCount", "hardware",
   "lighting", "lightingWarmth", "finish", "customPaintColor", "customPaintCode",
   "customPaintHex", "paintSelection", "crownStyle", "baseStyle", "layoutMetadata", "installation", "delivery"
 ]);
@@ -72,6 +72,7 @@ export const CONTROL_REGISTRY = Object.freeze([
   { field: "shelfThickness", step: "construction", category: "construction", access: "direct" },
   { field: "baseStyle", step: "construction", category: "construction", access: "direct" },
   { field: "crownStyle", step: "construction", category: "construction", access: "direct" },
+  { field: "constructionProfile", step: "construction", category: "construction", access: "derived" },
   { field: "doorStyle", step: "storage", category: "doors", access: "direct" },
   { field: "drawerFrontStyle", step: "storage", category: "doors", access: "direct" },
   { field: "doorCount", step: "storage", category: "doors", access: "derived" },
@@ -425,6 +426,7 @@ export function createPresetTransition(config, currentBasePresetId, nextPresetId
     ? ["shelfThickness", "baseStyle", "crownStyle"].some((field) => state[field] !== previousPreset.config[field])
     : true;
   const retained = {
+    constructionProfile: state.constructionProfile,
     finish: state.finish,
     customPaintColor: state.customPaintColor,
     customPaintCode: state.customPaintCode,

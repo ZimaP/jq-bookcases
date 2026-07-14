@@ -2,16 +2,24 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  CONSTRUCTION_PROFILE_IDS,
+  DEFAULT_CONSTRUCTION_PROFILE,
+  DOOR_ARRANGEMENTS,
+  PUSH_LATCH_HARDWARE,
   createDesignId,
   defaultBookcaseConfig,
   doorFrontStyleOptions,
   drawerFrontStyleOptions,
   getHardwareFinishOption,
   hardwareFinishOptions,
+  hardwareOptions,
   hardwareTypeOptions,
   hardwareVariants,
   layoutPresets,
+  migrateLegacyConstructionConfig,
   normalizeBookcaseConfig,
+  normalizeConstructionProfileValue,
+  normalizeDoorArrangementValue,
   parseHardwareVariant,
   resolveHardwareVariant
 } from "../bookcase-config.js";
@@ -31,6 +39,100 @@ test("the product selector exposes the ten required commercial layout families",
     "Tall Storage + Shelves"
   ]);
   assert.equal(new Set(layoutPresets.map((preset) => preset.id)).size, 10);
+});
+
+test("construction profiles use the current inset standard while preserving explicit legacy saves", () => {
+  assert.equal(defaultBookcaseConfig.constructionProfile, CONSTRUCTION_PROFILE_IDS.inset);
+  assert.equal(DEFAULT_CONSTRUCTION_PROFILE, "jq_inset_v1");
+  assert.equal(normalizeConstructionProfileValue(undefined), "jq_inset_v1");
+  assert.equal(normalizeConstructionProfileValue("unknown"), "jq_inset_v1");
+  assert.equal(
+    normalizeBookcaseConfig({
+      ...defaultBookcaseConfig,
+      constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay
+    }).constructionProfile,
+    "legacy_overlay_v1"
+  );
+});
+
+test("per-section door arrangements normalize to an aligned door-only schema", () => {
+  assert.deepEqual(DOOR_ARRANGEMENTS, [
+    "auto",
+    "single_hinge_left",
+    "single_hinge_right",
+    "pair"
+  ]);
+  assert.equal(normalizeDoorArrangementValue("Single Hinge Left"), "single_hinge_left");
+  assert.equal(normalizeDoorArrangementValue({ arrangement: "single-hinge-right" }), "single_hinge_right");
+  assert.equal(normalizeDoorArrangementValue("unsupported"), null);
+
+  const normalized = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    sections: 4,
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1, 1],
+      sectionTypes: ["lower_doors", "drawers", "tall_doors", "open"],
+      sectionDoorLayouts: [
+        { arrangement: "single_hinge_left" },
+        { arrangement: "pair" },
+        "single-hinge-right",
+        { arrangement: "pair" }
+      ]
+    }
+  });
+
+  assert.deepEqual(normalized.layoutMetadata.sectionDoorLayouts, [
+    { arrangement: "single_hinge_left" },
+    null,
+    { arrangement: "single_hinge_right" },
+    null
+  ]);
+});
+
+test("legacy construction migration restores overlay and historical door arrangements", () => {
+  const { constructionProfile: _profile, ...legacyDefault } = defaultBookcaseConfig;
+  const migrated = migrateLegacyConstructionConfig({
+    ...legacyDefault,
+    sections: 3,
+    tallDoors: true,
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1],
+      sectionTypes: ["tall_doors", "lower_doors", "tall_doors"]
+    }
+  });
+  const normalized = normalizeBookcaseConfig(migrated);
+
+  assert.equal(normalized.constructionProfile, "legacy_overlay_v1");
+  assert.deepEqual(normalized.layoutMetadata.sectionDoorLayouts, [
+    { arrangement: "single_hinge_left" },
+    { arrangement: "pair" },
+    { arrangement: "single_hinge_right" }
+  ]);
+
+  const explicitCurrent = migrateLegacyConstructionConfig(defaultBookcaseConfig);
+  assert.equal(explicitCurrent.constructionProfile, "jq_inset_v1");
+});
+
+test("stale door-layout metadata reconciles deterministically when section count changes", () => {
+  const normalized = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    sections: 3,
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1],
+      sectionTypes: ["lower_doors", "lower_doors", "tall_doors"],
+      sectionDoorLayouts: [{ arrangement: "unsupported" }, { arrangement: "pair" }]
+    }
+  });
+
+  assert.deepEqual(normalized.layoutMetadata.sectionDoorLayouts, [
+    { arrangement: "auto" },
+    { arrangement: "pair" },
+    { arrangement: "auto" }
+  ]);
+  assert.deepEqual(
+    layoutPresets.find((preset) => preset.id === "media-wall").config.layoutMetadata.sectionDoorLayouts,
+    [{ arrangement: "auto" }, null, null, null, { arrangement: "auto" }]
+  );
 });
 
 test("door and drawer front profiles normalize independently with legacy inference", () => {
@@ -68,6 +170,18 @@ test("canonical hardware variants round-trip through type and finish metadata", 
   assert.equal(resolveHardwareVariant({ type: "invalid", finish: "matte_black" }, "matte_black_pull").value, "matte_black_pull");
   assert.equal(getHardwareFinishOption("brass").label, "Brushed Brass");
   assert.equal(parseHardwareVariant("polished_nickel_knob"), null);
+});
+
+test("push latch remains a canonical internal selection without entering the customer hardware catalog", () => {
+  const normalized = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    hardware: PUSH_LATCH_HARDWARE
+  });
+
+  assert.equal(normalized.hardware, "push_latch");
+  assert.equal(parseHardwareVariant(normalized.hardware), null);
+  assert.equal(hardwareOptions.some((option) => option.value === "push_latch"), false);
+  assert.equal(hardwareVariants.some((variant) => variant.value === "push_latch"), false);
 });
 
 test("every preset has a unique canonical geometry signature", () => {

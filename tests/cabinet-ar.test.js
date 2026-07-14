@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { defaultBookcaseConfig, normalizeBookcaseConfig } from "../bookcase-config.js";
+import {
+  CONSTRUCTION_PROFILE_IDS,
+  defaultBookcaseConfig,
+  layoutPresets,
+  migrateLegacyConstructionConfig,
+  normalizeBookcaseConfig
+} from "../bookcase-config.js";
 import { generateBookcaseLayout } from "../bookcase-layout.js";
 import {
   CABINET_AR_MODEL_CACHE_LIMIT,
@@ -19,13 +25,23 @@ import {
   readCabinetArShareConfiguration,
   stableStringify
 } from "../cabinet-ar.js";
-import { generateCabinetGlbArrayBuffer, generateProceduralCabinetModel } from "../cabinet-ar-model.js";
+import {
+  generateCabinetGlbArrayBuffer,
+  generateProceduralCabinetModel,
+  getArDescriptorEnvelope
+} from "../cabinet-ar-model.js";
 import { loadModelViewer } from "../cabinet-ar-ui.js";
 
 function createArConfiguration(overrides = {}) {
   const config = normalizeBookcaseConfig({ ...defaultBookcaseConfig, ...overrides });
   const layout = generateBookcaseLayout(config);
   return { config, layout, ar: normalizeCabinetArConfiguration(config, layout, { price: 12345 }) };
+}
+
+function parseGlbJson(glb) {
+  const view = new DataView(glb);
+  const jsonLength = view.getUint32(12, true);
+  return JSON.parse(new TextDecoder().decode(new Uint8Array(glb, 20, jsonLength)).trim());
 }
 
 test("inch-to-meter conversion is exact and rejects invalid dimensions", () => {
@@ -37,25 +53,43 @@ test("inch-to-meter conversion is exact and rejects invalid dimensions", () => {
 
 test("configuration normalization maps exact dimensions, shelves, units, finish, and front profiles", () => {
   const { config, layout, ar } = createArConfiguration({
-    width: 108,
+    width: 72,
     height: 102,
     depth: 18,
     sections: 3,
     shelves: 5,
+    doorCount: 12,
     finish: "silver_satin",
-    drawerFrontStyle: "slim_shaker"
+    drawerFrontStyle: "slim_shaker",
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1],
+      sectionTypes: ["lower_doors", "lower_doors", "lower_doors"],
+      sectionDoorLayouts: [
+        { arrangement: "single_hinge_left" },
+        { arrangement: "auto" },
+        { arrangement: "single_hinge_right" }
+      ]
+    }
   });
   assert.equal(ar.units, "meters");
-  assert.equal(ar.widthMeters, 2.7432);
+  assert.equal(ar.widthMeters, 1.8288);
   assert.equal(ar.heightMeters, 2.5908);
   assert.equal(ar.depthMeters, 0.4572);
   assert.equal(ar.sections, 3);
   assert.equal(ar.finishId, "silver_satin");
   assert.equal(ar.doorStyleId, "shaker");
   assert.equal(ar.drawerFrontStyleId, "slim_shaker");
+  assert.equal(ar.constructionProfileId, CONSTRUCTION_PROFILE_IDS.inset);
+  assert.equal(ar.doorCount, layout.components.filter((component) => component.role === "door").length);
+  assert.equal(ar.doorLeafCount, ar.doorCount);
+  assert.equal(
+    normalizeCabinetArConfiguration({ ...config, doorCount: ar.doorCount }, layout, { price: 12345 }).configurationId,
+    ar.configurationId
+  );
+  assert.deepEqual(ar.layoutMetadata.sectionDoorLayouts, config.layoutMetadata.sectionDoorLayouts);
   assert.equal(ar.shelves.length, layout.components.filter((component) => component.role === "shelf").length);
   assert.ok(ar.shelves.every((shelf) => shelf.positionMeters > 0));
-  assert.equal(config.width, 108);
+  assert.equal(config.width, 72);
 });
 
 test("configuration normalization rejects invalid raw dimensions and invalid layouts", () => {
@@ -80,7 +114,8 @@ test("geometry-affecting changes produce different configuration hashes", () => 
 });
 
 test("compact share links preserve the exact normalized configuration", () => {
-  const { config } = createArConfiguration({
+  const config = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
     layoutType: "asymmetric",
     width: 117,
     height: 105,
@@ -92,14 +127,17 @@ test("compact share links preserve the exact normalized configuration", () => {
     customPaintHex: "#34495a"
   });
   const token = encodeCabinetConfiguration(config);
+  const payload = JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
   assert.ok(token.length < 1600);
+  assert.equal(payload[1].at(-2), config.drawerFrontStyle);
+  assert.equal(payload[1].at(-1), config.constructionProfile);
   assert.deepEqual(decodeCabinetConfiguration(token), config);
   const url = createCabinetArShareUrl(config, "https://example.com/configurator.html?preset=media-wall");
   assert.equal(new URL(url).searchParams.has("preset"), false);
   assert.deepEqual(readCabinetArShareConfiguration(url), config);
 });
 
-test("schema-v1 share tokens created before drawer profiles retain positional meaning", () => {
+test("schema-v1 share tokens created before construction profiles restore legacy overlay meaning", () => {
   const normalized = normalizeBookcaseConfig({
     ...defaultBookcaseConfig,
     doorStyle: "flat",
@@ -116,6 +154,35 @@ test("schema-v1 share tokens created before drawer profiles retain positional me
   const legacyToken = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
   const decoded = decodeCabinetConfiguration(legacyToken);
 
+  assert.equal(decoded.constructionProfile, CONSTRUCTION_PROFILE_IDS.legacyOverlay);
+  assert.equal(decoded.drawerFrontStyle, "shaker");
+  assert.equal(decoded.doorStyle, "flat");
+  assert.equal(decoded.hardware, "polished_nickel_pull");
+  assert.equal(decoded.delivery, "priority");
+  assert.ok(decoded.layoutMetadata.sectionDoorLayouts
+    .filter(Boolean)
+    .every((entry) => entry.arrangement === "pair"));
+});
+
+test("schema-v1 share tokens created before drawer profiles retain every original position", () => {
+  const normalized = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    doorStyle: "flat",
+    hardware: "polished_nickel_pull",
+    lightingWarmth: 3500,
+    crownStyle: "none",
+    baseStyle: "toe_kick",
+    installation: "no_installation",
+    delivery: "priority"
+  });
+  const token = encodeCabinetConfiguration(normalized);
+  const payload = JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
+  payload[1].pop();
+  payload[1].pop();
+  const legacyToken = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  const decoded = decodeCabinetConfiguration(legacyToken);
+
+  assert.equal(decoded.constructionProfile, CONSTRUCTION_PROFILE_IDS.legacyOverlay);
   assert.equal(decoded.doorStyle, "flat");
   assert.equal(decoded.drawerFrontStyle, "flat");
   assert.equal(decoded.hardware, "polished_nickel_pull");
@@ -124,6 +191,28 @@ test("schema-v1 share tokens created before drawer profiles retain positional me
   assert.equal(decoded.baseStyle, "toe_kick");
   assert.equal(decoded.installation, "no_installation");
   assert.equal(decoded.delivery, "priority");
+  assert.ok(decoded.layoutMetadata.sectionDoorLayouts
+    .filter(Boolean)
+    .every((entry) => entry.arrangement === "pair"));
+});
+
+test("migrated crown-bearing glass and tall presets remain valid in procedural AR", () => {
+  for (const presetId of ["glass-library", "tall-storage"]) {
+    const preset = layoutPresets.find((candidate) => candidate.id === presetId);
+    const source = structuredClone({ ...defaultBookcaseConfig, ...preset.config });
+    delete source.constructionProfile;
+    if (source.layoutMetadata) delete source.layoutMetadata.sectionDoorLayouts;
+    const config = migrateLegacyConstructionConfig(source);
+    const layout = generateBookcaseLayout(config);
+    assert.equal(layout.validation.valid, true, `${presetId}: ${JSON.stringify(layout.validation.errors)}`);
+    const ar = normalizeCabinetArConfiguration(config, layout, { price: 12345 });
+    const json = parseGlbJson(generateCabinetGlbArrayBuffer(ar, layout));
+    assert.equal(ar.constructionProfileId, CONSTRUCTION_PROFILE_IDS.legacyOverlay);
+    assert.equal(json.extras.constructionProfile, CONSTRUCTION_PROFILE_IDS.legacyOverlay);
+    assert.equal(json.extras.doorLeafCount, layout.components.filter(
+      (component) => component.role === "door"
+    ).length);
+  }
 });
 
 test("capability detection reports desktop fallback and supported WebXR", async () => {
@@ -311,12 +400,86 @@ test("procedural GLB is valid GLB 2.0 metadata with meter dimensions", () => {
   assert.equal(view.getUint32(0, true), 0x46546c67);
   assert.equal(view.getUint32(4, true), 2);
   assert.equal(view.getUint32(8, true), glb.byteLength);
-  const jsonLength = view.getUint32(12, true);
-  const json = JSON.parse(new TextDecoder().decode(new Uint8Array(glb, 20, jsonLength)).trim());
+  const json = parseGlbJson(glb);
   assert.equal(json.asset.version, "2.0");
   assert.deepEqual(json.extras.nominalDimensions, [ar.widthMeters, ar.heightMeters, ar.depthMeters]);
   assert.equal(json.extras.units, "meters");
+  assert.equal(json.extras.constructionProfile, ar.constructionProfileId);
+  assert.equal(json.extras.doorLeafCount, ar.doorLeafCount);
+  assert.deepEqual(json.extras.geometryContract, {
+    fronts: "descriptor-profile-geometry",
+    hardware: "descriptor-hardware-geometry",
+    lights: "descriptor-light-geometry"
+  });
   assert.ok(json.meshes[0].primitives.length >= 1);
+});
+
+test("procedural AR derives its exact envelope from bounds instead of rounded convenience fields", () => {
+  const component = {
+    bounds: {
+      min: { x: -17.439516, y: 5.375, z: -1 },
+      max: { x: 17.439515, y: 15.208333, z: 0 }
+    },
+    // Deliberately contradictory values prove that these derived fields are
+    // not an independent source of AR geometry.
+    size: { x: 99, y: 99, z: 99 },
+    position: { x: 99, y: 99, z: 99 }
+  };
+  const cabinetDepthMeters = inchesToMeters(15);
+  assert.deepEqual(getArDescriptorEnvelope(component, cabinetDepthMeters), {
+    center: [
+      ((component.bounds.min.x + component.bounds.max.x) / 2) * 0.0254,
+      ((component.bounds.min.y + component.bounds.max.y) / 2) * 0.0254,
+      cabinetDepthMeters / 2 - ((component.bounds.min.z + component.bounds.max.z) / 2) * 0.0254
+    ],
+    size: [
+      (component.bounds.max.x - component.bounds.min.x) * 0.0254,
+      (component.bounds.max.y - component.bounds.min.y) * 0.0254,
+      (component.bounds.max.z - component.bounds.min.z) * 0.0254
+    ]
+  });
+});
+
+test("display-wall procedural GLB exports every descriptor-backed light with an emissive material", () => {
+  const preset = layoutPresets.find((candidate) => candidate.id === "display-wall");
+  const config = normalizeBookcaseConfig({ ...defaultBookcaseConfig, ...preset.config });
+  const layout = generateBookcaseLayout(config);
+  assert.equal(layout.validation.valid, true);
+  const lights = layout.components.filter((component) => component.role === "light");
+  assert.ok(lights.length > 0, "The display wall must contain descriptor-backed light geometry.");
+
+  const ar = normalizeCabinetArConfiguration(config, layout, { price: 12345 });
+  const glb = generateCabinetGlbArrayBuffer(ar, layout);
+  const json = parseGlbJson(glb);
+  const lightMaterialIndex = json.materials.findIndex((material) => material.name === "light");
+  assert.ok(lightMaterialIndex >= 0);
+  assert.equal(json.materials[lightMaterialIndex].emissiveFactor.length, 3);
+  const lightPrimitive = json.meshes[0].primitives.find((primitive) => primitive.material === lightMaterialIndex);
+  assert.ok(lightPrimitive, "Descriptor-backed lights must not be dropped from the GLB graph.");
+  assert.equal(
+    json.accessors[lightPrimitive.attributes.POSITION].count,
+    lights.length * 24,
+    "Every light descriptor must contribute one complete box to the emissive geometry group."
+  );
+});
+
+test("procedural AR fails closed when validated descriptor profile or hardware metadata is missing", () => {
+  const { layout, ar } = createArConfiguration();
+  const invalidFrontLayout = structuredClone(layout);
+  const front = invalidFrontLayout.components.find((component) => component.role === "door");
+  front.metadata.profileGeometry.solidRegions = [];
+  assert.throws(
+    () => generateCabinetGlbArrayBuffer(ar, invalidFrontLayout),
+    /did not produce semantic geometry/
+  );
+
+  const invalidHardwareLayout = structuredClone(layout);
+  const handle = invalidHardwareLayout.components.find((component) => component.role === "handle");
+  delete handle.metadata.visualDimensions;
+  assert.throws(
+    () => generateCabinetGlbArrayBuffer(ar, invalidHardwareLayout),
+    /did not produce semantic geometry/
+  );
 });
 
 test("procedural model generation honors cancellation before allocating an object URL", async () => {

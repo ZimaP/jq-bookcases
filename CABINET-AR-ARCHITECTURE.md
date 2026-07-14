@@ -9,10 +9,14 @@ one persistent Three.js r166 preview. `BookcaseConfigurator.state` is the single
 normalized product state, `bookcase-layout.js` produces the validated physical
 descriptor graph in inches, and schema-v4 accepted-design snapshots are stored
 in `localStorage` under `jqBookcasesDesign` (with schema-v2/v3 restore support).
-Schema-v4 snapshots created before drawer profiles are accepted only when their
-regenerated descriptor graph matches the exact legacy layout fingerprint and
-accepted-design ID; the compatibility path omits only the newly introduced
-drawer-profile descriptor metadata during verification.
+New snapshots explicitly persist `constructionProfile` and section-aligned
+`layoutMetadata.sectionDoorLayouts`. A known saved-record contract without a
+profile migrates to `legacy_overlay_v1` and restores historical lower-door
+pairs before regeneration. Pre-profile schema-v4 snapshots are accepted only
+through the bounded integrity path: saved ID, selection/layout fingerprints,
+BOM compatibility signature, pricing version, serialized price breakdown, and
+total must verify. The older drawer-profile fingerprint compatibility remains
+bounded and does not trust serialized geometry.
 
 The AR feature integrates at those boundaries; it does not create a second
 configurator or change pricing, manufacturing dimensions, quote behavior, or
@@ -71,15 +75,25 @@ The normalized AR object includes explicit meter dimensions, product and local
 configuration IDs, sections, each generated shelf position, shelf thickness,
 layout type/metadata, cabinet/door/drawer options, base and crown styles, finish
 and preview color, the one canonical hardware variant, and lighting. Door and
-drawer profiles are separate IDs. `drawerFrontStyleId` supports Shaker, Flat
-Panel, and Slim Shaker; legacy configs infer it from a compatible
-`doorStyleId` and otherwise fall back to Shaker. Invalid raw dimensions or an
-invalid layout are rejected before model preparation.
+drawer profiles are separate IDs. It also carries `constructionProfileId`, the
+section-aligned door arrangements inside `layoutMetadata`, and both `doorCount`
+and `doorLeafCount` derived from generated door descriptors. AR preparation
+rejects a mismatch between normalized config, layout profile, or any generated
+front's `constructionProfile`. `drawerFrontStyleId` supports Shaker, Flat Panel,
+and Slim Shaker; legacy configs infer it from a compatible `doorStyleId` and
+otherwise fall back to Shaker. Invalid raw dimensions or an invalid layout are
+rejected before model preparation.
+
+Because the normalized AR object is the hash input, changing a per-section
+arrangement, hinge-side choice, generated leaf count, or construction profile
+changes the deterministic model hash. A finish-only change remains an
+appearance-affecting hash input under the existing contract.
 
 The procedural exporter consumes component bounds from
 `generateBookcaseLayout`; it does not independently calculate section widths,
-shelf positions, openings, door placement, or trim. Structural panels and
-trim use envelope-based procedural primitives with role-appropriate materials.
+shelf positions, openings, door arrangement/mounting, base parts, hardware
+placement, front-profile geometry, or trim. Structural panels and trim use
+envelope-based procedural primitives with role-appropriate materials.
 This is deliberately less detailed than the normal Three.js preview, but it
 maintains physical dimensions and the major configuration geometry. The AR
 configuration, hash, and procedural GLB preserve the independent door and
@@ -87,6 +101,16 @@ drawer profiles. Flat fronts export as slabs; Shaker and Slim Shaker fronts
 export with distinct frame-and-panel geometry; glass remains door-only and
 exports as a finished frame around a translucent panel. Profile rails are
 clamped inside the front envelope so short drawer fronts remain valid.
+
+Base output is descriptor-driven as well: recessed toe-kick AR contains a real
+void with a recessed plate/returns and no shadow solid; flush plinth has no
+front/side cap overhang; furniture feet remain front-only with separate hidden
+support and apron. Handle geometry consumes descriptor mounting centers,
+orientation, projection, and catalog dimensions. Hosted light descriptors are
+also exported from their exact bounds with a warmth-aware emissive material;
+AR does not silently drop lighting from the accepted graph. The exporter fails closed if
+required front-profile or hardware metadata is missing instead of recreating a
+second legacy builder.
 
 ## Model formats and platform behavior
 
@@ -171,10 +195,13 @@ normalized, and passed into the same configurator state. The token is not a
 security credential and must never be trusted by a future model service.
 
 Schema-v1 share values are positional. Its original field order is now an
-explicit immutable list, and `drawerFrontStyle` is appended as the final
-optional value. Tokens created before that append therefore keep every legacy
-position and decode with drawer-profile inference; new tokens preserve the
-independent drawer selection without a schema-v1 reinterpretation.
+explicit immutable list. `drawerFrontStyle` and then `constructionProfile` are
+appended optional values; established positions never shift. Tokens created
+before those appends decode with drawer-profile inference and the explicit
+legacy construction migration (`legacy_overlay_v1` plus historical section
+door arrangements). New tokens preserve independent drawer style, construction
+profile, and `layoutMetadata.sectionDoorLayouts` without reinterpreting schema
+version 1.
 
 The camera feed is handled by the browser/operating-system AR implementation.
 This site does not upload, store, or analyze camera frames and requests no camera
@@ -226,7 +253,8 @@ npm test
 1. Add the family and its physical options to `bookcase-config.js` and descriptor
    mapping to `bookcase-layout.js` first.
 2. Ensure `normalizeCabinetArConfiguration` includes every new geometry- or
-   appearance-affecting value so the hash changes correctly.
+   appearance-affecting value so the hash changes correctly, including the
+   construction profile, section door arrangements, and generated leaf count.
 3. Add unit tests proving the new choice changes normalized output and the hash.
 4. For CAD-derived assets, have the provider map the normalized product ID and
    allowed options to source CAD, export Y-up meter-based GLB and USDZ, and put

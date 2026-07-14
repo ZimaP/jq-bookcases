@@ -16,9 +16,12 @@ The important boundary is:
    descriptors without consulting UI visibility.
 5. `bookcase-pricing.js` applies preserved rates to those quantities.
 6. The renderer consumes the same valid physical descriptors.
+7. `bookcase-render-contract.js` audits descriptor-to-scene parity before the
+   viewer swaps the last valid model.
 
-The renderer must not recalculate section widths, door gaps, shelf positions,
-handle offsets, or light positions. Those are layout responsibilities.
+The renderer must not recalculate section widths, door arrangements, front
+mounting, reveals, base construction, shelf positions, hardware drill centers,
+profile rail widths, or light positions. Those are layout responsibilities.
 
 ## Customer experience architecture
 
@@ -136,6 +139,7 @@ impossible actions are disabled with an associated explanation.
 - split and merge with the 0.75 in divider accounted for exactly;
 - equalize, reset, and reconcile global section-count changes;
 - apply the editable `open`, `lower_doors`, `drawers`, and `tall_doors` types;
+- reconcile the section-aligned `layoutMetadata.sectionDoorLayouts` entries;
 - reject minimum-width violations and edits to generated media, desk, or
   fireplace feature zones.
 
@@ -165,6 +169,15 @@ protected feature zones, and commits the resulting config through the same
 accepted transaction as section-card edits. Guided Storage and All Controls
 render the same single Fronts control set from the resulting generated door and
 drawer applicability.
+
+Door-capable section cards also expose one physical arrangement choice:
+`auto`, `single_hinge_left`, `single_hinge_right`, or `pair`. The layout
+engine returns buildability and a concise reason for every choice; the UI only
+presents that result. Non-door and protected sections store `null`. Changing a
+non-door section into a door section starts at Auto, while split, merge, and
+section-count topology changes reset affected door sections to Auto because the
+finished leaf widths changed. Invalid manual arrangements are rejected and
+cannot replace the accepted transaction.
 
 Every successful operation is sent to `evaluateBookcaseCandidate()`. Layout,
 validation, render audit, BOM, price, design fingerprint, review, save, and
@@ -230,13 +243,31 @@ Request Quote entry points use that same saved record and the existing encoded
 structural layouts so its selected layout, dimensions, finish, estimate, and
 saved design ID stay aligned.
 
-Adding drawer-profile metadata changes current descriptor fingerprints.
-Schema-4 records whose canonical config predates `drawerFrontStyle` are restored
-through a bounded compatibility path: regeneration must match the exact legacy
-fingerprint computed with only that new drawer metadata omitted, and any stored
-accepted-design ID must match that verified legacy fingerprint. The migration
-does not bypass integrity checks. Schema-2 and schema-3 config-only restoration
-continues through normal canonical regeneration.
+New saves explicitly persist `constructionProfile: "jq_inset_v1"` and the
+section-aligned `layoutMetadata.sectionDoorLayouts`. Generated door descriptors,
+not the historical global `doorCount`, are the canonical leaf quantity. One
+single leaf contributes one door billable and normally one visible hardware
+unit; a pair contributes two of each. Push latch produces no visible handle
+descriptor. Existing rates are reused: the construction profile and visual
+profile geometry do not invent surcharges or SKUs.
+
+Saved records restored through a known legacy contract and lacking an explicit
+construction profile are migrated to `legacy_overlay_v1` before ordinary
+normalization. Legacy lower-door sections restore as pairs; legacy tall-door
+sections restore their prior balanced single-leaf behavior. Schema-2 and
+schema-3 config-only records regenerate through that explicit migration.
+Pre-profile schema-4 snapshots pass only through the bounded integrity path:
+the saved ID, selection fingerprint, BOM compatibility signature, pricing
+version, serialized price breakdown, and total must all verify. The older
+drawer-profile fingerprint compatibility remains bounded in the same way.
+Migration never trusts serialized geometry or a stored total independently.
+
+Quote prefill is rebuilt from `buildPricingContext()` and carries the internal
+construction profile plus a clone of `layoutMetadata`, including door
+arrangements. Customer-visible quote fields need not expose the technical
+profile name. AR normalization receives the same accepted config and layout,
+checks that every generated front agrees with the profile, and sets
+`doorLeafCount` from actual generated door descriptors.
 
 ## Coordinate and unit system
 
@@ -247,16 +278,45 @@ All layout values use inches.
 - Z is depth, increasing from the front plane toward the back.
 - The origin is the bottom-center of the nominal cabinet front plane.
 - The carcass occupies non-negative Z.
-- Door and drawer fronts project into negative Z.
-- Hardware projects farther into negative Z from its host face.
+- New inset door and drawer bodies extend inward in positive Z from their
+  finished face.
+- Handles project outward in negative Z from their host's finished face.
 
-The root bookcase descriptor represents the exact nominal width, height, and
-depth. Explicit decorative overhangs such as crown and plinth trim are marked
-with metadata.allowOverhang.
+`getConstructionReferencePlanes(config, rules)` is the only physical reference
+plane calculation. It returns:
 
-Three.js conversion should happen once in the renderer. With the existing
-scene convention, one possible conversion is inches / 12 for scene feet. Do
-not apply visual width, height, or depth multipliers in layout code.
+| Plane | Meaning |
+| --- | --- |
+| `floorPlaneY` | Finished floor, always 0 |
+| `outerLeftPlaneX`, `outerRightPlaneX` | Nominal carcass side planes |
+| `outerTopPlaneY` | Nominal overall height |
+| `carcassFrontPlaneZ` | Nominal carcass/opening front, always 0 |
+| `finishedFrontPlaneZ` | 0 for `jq_inset_v1`; `-doorThickness` for `legacy_overlay_v1` |
+| `shelfFrontPlaneZ` | Centralized front-clearance reference for the active construction profile |
+| `backInteriorPlaneZ`, `outerBackPlaneZ` | Back-panel interior face and nominal rear face |
+| `baseFrontPlaneZ` | Style-specific visible/structural base reference |
+| `toeKickPlatePlaneZ` | Back of the three-inch usable toe recess |
+
+The normalized physical config carries one explicit construction profile:
+
+- `jq_inset_v1` is the default for new designs and active presets. A fitted
+  front's visible face is at Z=0 and its 0.75-inch body occupies positive Z.
+- `legacy_overlay_v1` is an internal restoration profile. Its visible face is
+  at Z=-0.75 and its rear face attaches at the opening plane Z=0. It is not a
+  customer-selectable style.
+
+Mounting is explicit descriptor metadata (`inset` or `overlay`); no consumer
+infers it from the sign of a bound. The root descriptor represents exact
+nominal width, height, and depth. Layout metrics separately report
+`nominalBounds`, `decorativeBounds`, `finishedFrontPlaneZ`,
+`maximumFrontProjection`, `maximumSideOverhang`, and `maximumTopOverhang`.
+Only crown descriptors carry deliberate `allowOverhang`; fronts and flush base
+parts do not inherit that permission.
+
+Three.js conversion happens once in the renderer at `1 / 12` scene unit per
+inch. Layout Z is inverted once around the nominal depth center for the current
+camera convention. Do not apply visual width, height, or depth multipliers in
+layout code.
 
 ## Public API
 
@@ -269,11 +329,22 @@ The module exports:
 - generateBookcaseLayout(config, options)
 - normalizeLayoutConfig(config, options)
 - validateBookcaseLayout(layout)
+- getConstructionReferencePlanes(config, rules)
+- getFrontBounds(options)
+- resolveDoorArrangement(options)
+- getFrontProfileDefinition(style)
+- resolveFrontProfileGeometry(face, definition)
+- resolveHardwarePlacement(options)
+- buildBaseAssembly(context)
 - findComponent(layout, id)
 - containsBounds(containerBounds, childBounds)
 - containsOnAxes(containerBounds, childBounds, axes)
 - boundsIntersect(leftBounds, rightBounds)
 - CONSTRUCTION_RULES
+- CONSTRUCTION_PROFILE_IDS
+- DOOR_ARRANGEMENTS
+- FRONT_PROFILE_CATALOG
+- HARDWARE_GEOMETRY_CATALOG
 - LAYOUT_DEFAULTS
 - SHELF_THICKNESS_OPTIONS
 - LIGHTING_WARMTH_OPTIONS
@@ -340,13 +411,37 @@ Attached descriptors include metadata.attachment with the attachment axis,
 host face, and component face. Validation requires the declared faces to
 touch.
 
+Construction semantics live on the descriptors rather than in renderer
+heuristics:
+
+- door and drawer fronts carry `mounting`, `frontPlaneZ`, `backPlaneZ`,
+  `reveal`, `style`, resolved `profileGeometry`, `tier`, and
+  `constructionProfile`;
+- door leaves additionally carry `requestedArrangement`, resolved
+  `arrangement`, buildability/availability data, `leafCount`, `leafIndex`,
+  `leafWidth`, `meetingGap`, `hingeSide`, and the opposite `latchSide`;
+- handles carry one or more `mountingCenters`, orientation, explicit visual
+  dimensions/projection, latch side, `placementRuleId`, and the supporting
+  resolved solid-region ID;
+- base descriptors carry `style`, `purpose`, visibility/structural flags,
+  `frontPlane`, `floorContact`, `recessDepth`, optional `side`, and explicit
+  decorative-overhang permission;
+- the toe-kick void is a logical `opening`, not a rendered physical part.
+
+Terms are unambiguous: `hinge_left` and `hinge_right` identify the hinge edge;
+`latch_left` and `latch_right` identify the opposite hardware edge; `pair`
+identifies two equal leaves rather than an ambiguous swing direction.
+
 ## Component hierarchy
 
 The generated graph follows this structure:
 
     bookcase (assembly)
-      base
-        base trim
+      base assembly (one style)
+        recessed toe kick: hidden structural platform, kick plate,
+          left/right end returns, logical toe-kick void
+        flush plinth: one floor-contact plinth
+        furniture base: hidden rear support, two front feet, front apron
       left side panel
       right side panel
       bottom panel
@@ -356,10 +451,8 @@ The generated graph follows this structure:
       vertical dividers
       section 01
         lower opening
-          left door
-            handle
-          right door
-            handle
+          one fitted door or two equal fitted leaves
+            one latch-side handle per handled leaf
         lower separator
         adjustable shelves
           shelf LEDs
@@ -399,7 +492,8 @@ Physical renderer roles are:
 ## Centralized construction rules
 
 CONSTRUCTION_RULES is the source of truth for shared construction values.
-Current assumptions are:
+The engineering basis, source references, and shop-approval status are recorded
+in `docs/JQ-CONSTRUCTION-STANDARD.md`. Current code values are:
 
 | Rule | Value |
 | --- | ---: |
@@ -410,19 +504,40 @@ Current assumptions are:
 | Door and drawer edge reveal | 0.125 in |
 | Double-door center gap | 0.125 in |
 | Drawer-to-drawer gap | 0.125 in |
+| Closed/glass-front shelf setback | 0.75 in |
+| Intentional open-shelf setback | 0.125 in |
 | Minimum clear section width | 15 in |
 | Minimum vertical shelf clearance | 4 in |
 | Maximum unsupported shelf span | 36 in |
 | Nominal lower cabinet clear height | 30 in |
-| Shelf front setback | 0.75 in |
+| Recessed toe-kick height / clear depth | 4 / 3 in |
+| Flush plinth height | 4 in |
+| Furniture base height | 4.5 in |
+| Furniture front foot width / depth / outside inset | 3 / 3 / 3 in |
+| Furniture apron height / depth | 2 / 0.75 in |
+| Furniture rear support depth / side inset | 0.75 / 0.75 in |
+| Supported finished door-leaf width | 9.5–24 in |
+| Ordinary door-height / aspect review threshold | 84 in / 4.5:1 |
+| Door corner hardware reference | 2 × 2 in |
+| Tall-door hardware center | 40 in above finished floor |
 | Handle projection | 1 in |
+| Shaker / Slim Shaker / glass frame width | 2.25 / 1.25 / 2.25 in |
+| Panel recess / minimum center field | 0.125 / 1.5 in |
+| Minimum reduced short-drawer frame | 0.75 in |
 
 Supported shelf thicknesses are 0.75, 1, 1.25, 1.5, 1.75, and 2 inches.
+
+The hardware geometry catalog defines a one-inch nominal knob with one-inch
+projection and pull visual lengths of 3, 4, 5, 6, 8, 10, and 12 inches with a
+0.5-inch cross-section and one-inch projection. These are deterministic visual
+geometry values, not new billable SKUs or an approved fabrication catalog.
 
 Supported lighting warmth values are 2700K, 3000K, and 3500K.
 
 The full_package lighting mode combines hosted puck, vertical LED, and shelf
-LED descriptors. Legacy shelf_wash and full-lighting aliases are normalized.
+LED descriptors. Vertical channels are 0.125 inch wide so they occupy the
+reserved shelf-side clearance rather than intersecting shelves. Legacy
+shelf_wash and full-lighting aliases are normalized.
 
 ## Frame and sections
 
@@ -461,10 +576,13 @@ Every adjustable shelf belongs to one section. Its width, vertical range, and
 depth are derived from that section.
 
 - Shelf side clearance is subtracted from clear section width.
-- Shelf depth respects the back and front setback.
+- Shelf depth respects the back and a context-specific centralized front
+  setback. Closed/glass-front interiors reserve the inset-front body depth;
+  ordinary open shelving uses the intentional shallow open-front setback.
 - Shelf thickness is included in vertical distribution.
 - Shelf count is reduced if minimum clear spacing cannot be maintained.
-- A span over the unsupported limit is a validation error.
+- A span over the unsupported limit is a `SHELF_SUPPORT_REVIEW` warning, not a
+  fabricated load-capacity claim.
 - Asymmetric layouts use a bounded deterministic vertical offset; they still
   preserve containment and clearance.
 
@@ -474,23 +592,43 @@ where their structured opening requires it.
 
 ## Doors, drawers, and hardware
 
-Lower double doors are calculated from each section opening:
+`getFrontBounds()` owns fitted door and drawer-front bounds. For
+`jq_inset_v1`, the complete X/Y face stays within its host opening, its visible
+face is at the finished front plane, and its body extends inward. For a pair,
+both leaves are equal and the clear 0.125-inch meeting gap is centered exactly.
+`legacy_overlay_v1` uses the same explicit helper with its visible face at
+-0.75 and rear face attached at the opening plane.
 
-- Both edge reveals use the centralized reveal.
-- Both leaves have equal width.
-- The center gap uses the centralized double-door gap.
-- Each door attaches to exactly one opening.
-- Default four-section lower storage emits exactly eight doors.
+Each door-capable section has an aligned metadata entry:
 
-Tall storage uses one fitted door in each configured end section. Glass
-library layouts add one hosted upper glass door per section while retaining
-the shared lower-door rules.
+    layoutMetadata: {
+      sectionTypes: ["lower_doors", "lower_doors", "drawers"],
+      sectionDoorLayouts: [
+        { arrangement: "auto" },
+        { arrangement: "single_hinge_right" },
+        null
+      ]
+    }
 
-Drawer-oriented layouts are supported before a customer drawer toggle exists.
-They can be requested with lowerStorage set to drawers, a layoutType containing
-drawer, or layoutMetadata.drawerSections containing selected zero-based
-section indices. Drawer fronts divide the valid opening height after edge
-reveals and inter-drawer gaps are deducted.
+`resolveDoorArrangement()` calculates finished single and paired leaf widths
+after perimeter reveals and meeting gap. For new inset designs, Auto selects
+one leaf when the finished leaf is 9.5–24 inches; otherwise it selects a pair
+when both finished leaves are 9.5–24 inches. If neither arrangement is valid,
+or a manual single/pair choice violates those limits, validation rejects the
+candidate with the resolver's actionable reason. Tall and upper-glass openings
+use the same resolver rather than separate renderer logic.
+
+Single leaves always have an explicit `hinge_left`/`latch_right` or
+`hinge_right`/`latch_left` pairing. Default Auto directions balance the
+elevation: sections left of center hinge left, sections right of center hinge
+right, and a true center uses a deterministic index tie-break. A pair uses a
+left-hinged left leaf and right-hinged right leaf, with mirrored latch-side
+hardware around the meeting line.
+
+Drawer sections may be selected explicitly per section and remain compatible
+with the legacy `lowerStorage` and `layoutMetadata.drawerSections` inputs.
+Drawer fronts divide the valid opening height after edge reveals and inter-
+drawer gaps are deducted.
 
 `doorStyle` and `drawerFrontStyle` are independent physical selections. Doors
 support Shaker, Flat Panel, Slim Shaker, and Glass Frame; drawers support only
@@ -502,25 +640,46 @@ deterministically to Shaker. Door and drawer descriptors carry their profile in
 configuration, and AR configuration preserve the distinction. Drawer profile
 currently has no pricing multiplier, so changing it does not change the total.
 
-Handles derive from the parent face bounds. Edge placement is constrained to
-the usable face area. Pull orientation is vertical on doors and horizontal on
-drawers. Push-latch configurations emit no handle geometry.
+`FRONT_PROFILE_CATALOG` expresses profiles primarily in inches: Flat is a
+solid slab; Shaker uses 2.25-inch rails/stiles; Slim Shaker uses 1.25-inch
+rails/stiles; glass uses a 2.25-inch solid frame around a glass field. Framed
+profiles use a 0.125-inch panel recess and retain at least a 1.5-inch center
+field. Short drawer frames may reduce only within the bounded 0.75-inch minimum.
+`resolveFrontProfileGeometry()` puts the resolved frame, panel/glass field, and
+solid drill regions on the descriptor; the renderer and AR consume those
+values and do not derive percentage rails independently.
+
+`resolveHardwarePlacement()` returns drill/mounting centers, orientation,
+projection, visual dimensions, latch side, rule ID, and supporting solid
+region. Lower doors start at the upper latch corner; upper doors use the lower
+latch corner; tall doors start at 40 inches above finished floor. Framed and
+glass fronts move the reference to valid rail/stile material, never the center
+panel or glass field. The complete hardware envelope also stays outside that
+field. Drawer hardware is horizontally centered; slab fronts use the vertical
+center and framed fronts use the nearest safe rail centerline.
+Pulls are vertical on doors and horizontal on drawers; knobs are neutral.
+Hardware attaches to `frontPlaneZ` and projects outward. Push-latch
+configurations emit no visible handle descriptor.
 
 Hardware type and finish are presentation projections over one canonical
 `hardware` variant ID. The only valid combinations are `brass_knob`,
 `brass_pull`, `matte_black_knob`, `matte_black_pull`, and
-`polished_nickel_pull`; there is no polished-nickel knob. Type changes preserve
+`polished_nickel_pull`; there is no polished-nickel knob. `push_latch` is an
+internal canonical compatibility value that emits no visible handle but is not
+shown as a normal customer option pending hardware-system approval. Type changes preserve
 the finish when that combination exists and otherwise use the deterministic
 Brushed Brass fallback for that type. Type and finish are not separately
 persisted, priced, fingerprinted, or sent to AR. A finish-only change within
 the same shape can update the existing hardware material, while a knob/pull
 shape change regenerates descriptor geometry.
 
-doorCount remains accepted as a customer/configuration field. Physical door
-generation follows valid section openings. If the requested count conflicts
-with the section structure, the engine emits a
-DOOR_COUNT_ALIGNED_TO_SECTIONS correction rather than creating detached or
-cross-section doors.
+`doorCount` remains only as a compatibility/configuration summary field.
+Physical door generation follows valid opening leaves, and normalization aligns
+the field to the generated primary leaf count rather than creating detached or
+cross-section doors. BOM, pricing, Review, save, quote, and AR quantities use
+generated door and handle descriptors.
+Quote prefill groups generated door leaves by descriptor style; forced glass
+and selected wood fronts in one assembly are reported with separate counts.
 
 ## Lighting
 
@@ -533,25 +692,60 @@ Every light has a physical host:
 Lights are also bounded by their owning section. Sections consumed by tall
 doors or feature openings do not receive incompatible lighting. Removing a
 host makes validation fail with MISSING_HOST; moving the light off its
-declared surface fails with ATTACHMENT_MISMATCH.
+declared coordinate fails with ATTACHMENT_MISMATCH, and a coincident coordinate
+without surface-area overlap fails with ATTACHMENT_SURFACE_DISCONNECTED. Pucks
+remain top-panel hosted for every crown style; crown fronts are never used as
+remote hosts for interior fixtures.
 
 ## Base and crown
 
-Base descriptors are style-specific:
+`buildBaseAssembly()` dispatches to three physically different descriptor
+builders—`buildRecessedToeKickBase()`, `buildFlushPlinthBase()`, and
+`buildFurnitureBase()`; there is no generic visible base box followed by
+contradictory trim:
 
-- toe_kick emits a recessed base and toe-shadow trim.
-- plinth emits the base and an overhanging plinth cap.
-- furniture_base emits the base, two feet, and a furniture rail.
+- `toe_kick` uses a four-inch base height and a real three-inch-deep central
+  void. It emits a hidden structural platform behind the recess, a recessed
+  kick plate, 0.75-inch left/right end returns, and a logical
+  `base-toe-kick-void` opening. No `base-toe-shadow` physical box exists.
+- `plinth` emits one four-inch floor-contact structural plinth. Its front is
+  exactly the finished-front reference and its sides equal the outer carcass
+  planes. It has no cap or front/side overhang.
+- `furniture_base` emits a 0.75-inch-deep rear support rail inset 0.75 inch
+  from both side planes, two mirrored 3 × 3
+  inch front feet whose outside edges begin three inches inboard, and a
+  connected two-inch-high by 0.75-inch-deep front apron. The feet never extend
+  through cabinet depth.
+
+All styles derive bottom-panel elevation from the base height while retaining
+the exact nominal overall height. Base metadata distinguishes visible from
+hidden, structural from decorative, floor contact, front plane, purpose,
+recess depth, and side. The validator checks the declared toe void and the
+style-specific floor, flushness, containment, mirroring, and joint invariants.
 
 Crown descriptors are also style-specific:
 
 - none emits no crown.
-- slim_cap emits one cap.
-- classic_crown emits a rail and cap.
-- modern_soffit emits a broad band.
+- slim_cap emits one front cap and its left/right side returns.
+- classic_crown emits a front rail and front cap, each with left/right side
+  returns.
+- modern_soffit emits one front band and its left/right side returns.
 
-Overhang is explicit metadata, so decorative extensions are distinguishable
-from accidental out-of-bounds structural geometry.
+Each front member attaches to the top-panel surface. Each side return attaches
+to its corresponding side panel and runs continuously from
+`carcassFrontPlaneZ` to `backInteriorPlaneZ`, so side views show one intentional
+profile instead of a front-only strip. Style envelopes are centralized in
+`CONSTRUCTION_RULES.crownProfiles`: Slim Cap allows 0.25-inch side and
+0.375-inch front overhang; Classic allows 0.5-inch side and 0.625-inch front;
+Modern Soffit allows 0.125-inch side and 0.5-inch front. All V1 profiles have
+zero rear and top overhang.
+
+Overhang is explicit crown metadata, so decorative extensions are
+distinguishable from accidental out-of-bounds structural geometry.
+`CROWN_OVERHANG_EXCEEDED` rejects geometry or metadata outside the selected
+style envelope, and `CROWN_SIDE_RETURN_INVALID` rejects a discontinuous return.
+Flush plinths, doors, drawers, and furniture feet never receive crown overhang
+permission. Nominal and decorative bounds are reported separately.
 
 ## Validation
 
@@ -566,34 +760,38 @@ validateBookcaseLayout returns:
 
 Each issue includes code, severity, componentId, relatedId, and message.
 
-The current validator checks:
+Construction-specific error codes are stable, actionable invariants:
 
-- Required descriptor schema
-- Unique component ids
-- Finite and positive dimensions
-- Consistency between bounds, size, and position
-- Existing parent and host references
-- Parent hierarchy cycles
-- Structural containment in nominal bookcase bounds
-- Section minimum clear width
-- Child containment in sections and openings
-- Door and drawer fit
-- Centralized reveal use
-- Handle X and Y bounds on its face
-- Door, drawer, handle, and light attachment surfaces
-- Light containment in its section
-- Shelf minimum vertical clearance
-- Unsupported shelf spans
-- Solid AABB intersections
-- Explicit normalization corrections
+| Area | Codes |
+| --- | --- |
+| Front mounting and fit | `FRONT_OUTSIDE_OPENING_XY`, `FRONT_MOUNTING_INVALID`, `FRONT_PLANE_MISMATCH`, `FRONT_DEPTH_DIRECTION_INVALID`, `FRONT_REVEAL_INCONSISTENT` |
+| Door leaves and semantics | `PAIR_LEAF_WIDTH_MISMATCH`, `PAIR_MEETING_GAP_MISMATCH`, `DOOR_LEAF_TOO_WIDE`, `DOOR_LEAF_TOO_NARROW`, `INVALID_HINGE_SIDE`, `INVALID_LATCH_SIDE`, `HINGE_LATCH_CONFLICT` |
+| Hardware | `HARDWARE_OUTSIDE_FRONT`, `HARDWARE_NOT_ON_SOLID_REGION`, `HARDWARE_ON_GLASS`, `HARDWARE_TOO_CLOSE_TO_EDGE`, `HARDWARE_TOO_CLOSE_TO_MEETING_GAP`, `HARDWARE_ATTACHMENT_MISMATCH`, `HARDWARE_ORIENTATION_INVALID`, `HARDWARE_LATCH_SIDE_MISMATCH`, `HARDWARE_COUNT_MISMATCH`, `PAIRED_HARDWARE_NOT_MIRRORED` |
+| Base | `BASE_NOT_ON_FLOOR`, `TOE_KICK_RECESS_MISMATCH`, `TOE_KICK_VOID_OCCUPIED`, `TOE_KICK_PLATE_POSITION_INVALID`, `PLINTH_NOT_FLUSH`, `FURNITURE_FOOT_OUTSIDE_WIDTH`, `FURNITURE_FOOT_FULL_DEPTH`, `FURNITURE_FEET_NOT_MIRRORED`, `FURNITURE_SUPPORT_NOT_HIDDEN`, `BASE_CARCASS_GAP`, `BASE_COMPONENT_COLLISION` |
+| Attachments | `ATTACHMENT_MISMATCH`, `ATTACHMENT_SURFACE_DISCONNECTED` |
+| Crown | `CROWN_OVERHANG_EXCEEDED`, `CROWN_SIDE_RETURN_INVALID` |
+| Front profiles | `PROFILE_CENTER_FIELD_NON_POSITIVE`, `PROFILE_FRAME_TOO_LARGE`, `PROFILE_SUBGEOMETRY_OUTSIDE_FRONT`, `DRAWER_GLASS_UNSUPPORTED` |
+
+`DOOR_ASPECT_REVIEW` and `SHELF_SUPPORT_REVIEW` are warnings requiring
+engineering/shop review rather than silent acceptance as ordinary supported
+construction. Deterministic normalizations remain reported corrections, such
+as section/shelf count reduction and bounded short-front frame reduction.
+
+The retained graph checks cover required schema, stable unique IDs, finite and
+positive dimensions, bounds/size/position consistency, resolvable parents and
+hosts, acyclic hierarchy, nominal containment, section and shelf clearances,
+light hosting, attachments, and unexpected solid AABB intersections. Each
+impossible or contradictory condition is an error; warning status does not
+hide geometry.
 
 Logical volumes are excluded from collision pairs because they contain their
 children by design. Hardware and lights use attachment checks rather than
 generic collision checks. Decorative overhang is allowed only when explicitly
 marked.
 
-Invalid layouts should not replace a valid rendered scene. The UI may either
-show the validator messages or retain the last valid layout.
+Invalid layouts do not replace the last valid rendered scene. The engine
+returns the rejection issues without committable BOM/pricing artifacts, and
+the viewer also rejects a model whose rendered-manifest audit fails.
 
 ## Preset behavior
 
@@ -612,7 +810,8 @@ All ten current presets use the same layout engine:
 
 There are no preset-specific geometry builders. Presets select section types,
 special openings, storage, finish metadata, and lighting behavior. Every
-current preset passes programmatic validation.
+active preset normalizes to `jq_inset_v1`; legacy overlay is never exposed as a
+preset or customer control.
 
 Future preset metadata can use:
 
@@ -620,7 +819,13 @@ Future preset metadata can use:
       specialSpan: 2,
       sectionRatios: [0.8, 1.2, 1.2, 0.8],
       drawerSections: [1, 2],
-      sectionTypes: ["open", "drawers", "drawers", "tall_doors"]
+      sectionTypes: ["lower_doors", "drawers", "drawers", "tall_doors"],
+      sectionDoorLayouts: [
+        { arrangement: "single_hinge_left" },
+        null,
+        null,
+        { arrangement: "auto" }
+      ]
     }
 
 Explicit sectionTypes take precedence over inferred section behavior.
@@ -657,32 +862,79 @@ retaining descriptor bounds and attachment location. metadata.style,
 metadata.hardware, metadata.lightType, and metadata.warmth select appearance;
 they must not change layout.
 
+Front rendering consumes the descriptor's semantic mounting and resolved
+`profileGeometry`. Flat fronts use the descriptor slab. Shaker, Slim Shaker,
+and glass create rails/stiles plus a recessed panel or glass field inside the
+same front envelope. Hardware uses its resolved orientation, projection, and
+visual dimensions. Neither renderer infers inset/overlay from negative Z or
+recalculates rail percentages, door gaps, handle positions, or base parts.
+
+`createExpectedRenderManifest()` converts every physical descriptor into the
+scene coordinate convention. `validateRenderedManifest()` requires exactly one
+render record per physical component, at least one mesh for that record, no
+invented physical component, and aggregate mesh bounds inside the descriptor
+envelope. Visual submeshes may be smaller but never detached or larger. The
+viewer validates the candidate layout and manifest before swapping the current
+model, so a bad layout or render audit preserves the last valid scene.
+
 The same descriptor id should map to the same scene object across updates.
 Objects whose ids disappear should be disposed. New ids should be created.
 This makes preset switches and repeated add/remove operations deterministic.
 
+## Developer construction inspector
+
+The inspector is opt-in developer tooling activated only by:
+
+    configurator.html?constructionDebug=1
+
+It is not shown in normal customer sessions and does not publish the controller
+on `window`. The inspector can isolate All, Base, Fronts, or Hardware; toggle
+reference planes, descriptor bounds, rendered bounds, and the toe-kick void; and color collision
+components. Its report includes the construction profile, finished front plane,
+base height, nominal/decorative bounds, render-manifest counts and discrepancies,
+validation codes, collision pairs, every component role/host, base purposes/
+recess depths, front leaf widths/mounting/reveals/gaps/hinge-latch semantics,
+and hardware mounting centers/rule IDs.
+
+All inspector geometry lives in the `construction-debug-helpers` group with
+`nonPhysicalHelper` metadata. It is excluded from descriptors, render-manifest
+counts, BOM, price, save, quote, AR, and collision tests. `getDiagnostics()`
+exposes the current debug toggles, profile, reference planes, validation issues,
+and render audit through the existing bounded diagnostic seam.
+
 ## Automated tests
 
-The focused command is:
+The focused construction/model command is:
 
-    node --test tests/bookcase-layout.test.js
+    node --test \
+      tests/bookcase-config.test.js \
+      tests/bookcase-layout.test.js \
+      tests/bookcase-sections.test.js \
+      tests/bookcase-bom-pricing.test.js \
+      tests/bookcase-engine-transaction.test.js \
+      tests/bookcase-engine-fuzz.test.js \
+      tests/bookcase-render-contract.test.js \
+      tests/configurator-renderer-integration.test.js \
+      tests/cabinet-ar.test.js \
+      tests/quote-prefill.test.js
 
-The package-level command is:
+The package-level command remains `npm test`.
 
-    npm test
+Construction coverage verifies shared reference planes, inset and legacy
+front depth semantics, actual toe-kick void/plate/returns, true flush plinth,
+front-only furniture feet and apron, Auto/manual door arrangements, equal pair
+leaves and meeting gaps, hinge/latch sides, profile-aware hardware, fixed-inch
+front profiles, render-envelope containment, generated-leaf billables/pricing,
+save migration, quote metadata, and AR parity. Section tests cover aligned
+door-layout metadata across type, split, merge, and count changes.
 
-Coverage includes canonical dimensions, frame math, section accumulation,
-minimum-width correction, every shelf thickness, shelf spacing, lower doors,
-reveals, center gaps, drawers, handles, all lighting modes, crown and base
-styles, all ten presets, boundaries, sequential changes, serialization,
-missing hosts, out-of-bounds components, duplicate ids, and collision
-detection.
-
-Focused model coverage also verifies equal count transitions and deterministic
-remainders, adjacent-pair clamping and drift resistance, independent door and
-drawer profile normalization/descriptors, profile-neutral pricing, hardware
-variant round trips, legacy schema-4 fingerprint restoration, positional AR
-share compatibility, and quote metadata propagation.
+`tests/bookcase-engine-fuzz.test.js` uses fixed seeds so failures are
+reproducible. Its supported matrix uses seed `0x4A51424B`; hostile normalization
+uses `0xC0FFEE`. Each case checks deterministic serialization, non-mutation,
+finite positive physical geometry, hierarchy/hosts, generated counts, JSON
+round-trip validation, and stable rejection issues. The release QA document
+owns the required browser views, viewports, and screenshot evidence; model
+tests alone never imply visual completion.
 
 Workflow and shell contracts are additionally covered by:
 
@@ -699,28 +951,34 @@ paths.
 - Validation uses axis-aligned boxes, not triangle-level collision detection.
 - The engine describes closed doors and drawers; hinge swing and drawer travel
   envelopes are not yet modeled.
-- Drawer fronts are modeled, but internal drawer boxes and runners are not.
+- Door descriptors store hinge/latch edges but do not yet select an exact hinge
+  family, bore pattern, or hinge count. Drawer fronts are modeled, but internal
+  drawer boxes and runners are not.
 - Feature, media, and desk openings are structural volumes. The renderer may
-  add a restrained screen, worktop, or firebox indicator, but never shelf
-  decoration or a staged room environment.
+  visualize only descriptor-backed physical parts; explanatory helpers must be
+  explicitly nonphysical and excluded from render/BOM/AR contracts.
 - Section widths may use validated positive `sectionRatios`; invalid ratio
   arrays fall back to equal bays and the normal minimum-width rules still
   apply.
 - Shelf support construction is limited to a maximum-span rule; material- and
   load-specific engineering is outside this model.
 - Crown and trim use conservative box envelopes. Profile meshes may replace
-  their visuals without changing descriptor placement.
-- Door, drawer-hardware, door-hardware, and lighting quantities are derived
-  from generated components. Other established pricing categories retain their
-  existing formulas and remain selection/dimension based.
+  their visuals only inside the declared descriptor envelope.
+- Door leaves, drawer fronts, visible hardware, and lighting quantities are
+  derived from generated components. Other established pricing categories
+  retain their existing formulas and remain selection/dimension based.
 - Inches are the only supported product unit. No measurement-unit selector is
   shown because the physical schema has no alternate unit contract.
-- Cabinet height, shelf profile, frame/overlay construction, selectable glass,
-  and arbitrary per-section widths are not exposed because no corresponding
-  customer-adjustable product values exist in the current source of truth.
+- Legacy overlay construction is intentionally restoration-only. The normal UI
+  exposes no construction-profile switch. Exact hinge/runner products and
+  arbitrary fabrication dimensions remain shop decisions rather than drawable
+  customer options.
 - Dimension and topology changes still require deterministic model
   regeneration; the safe in-place path currently covers finish, light warmth,
   and same-shape hardware appearance.
 - Save Design and the quote project brief remain browser-local preview flows.
   There is no production account, server persistence, or submission endpoint
   in this repository.
+- The dimensions in `docs/JQ-CONSTRUCTION-STANDARD.md` marked for shop approval
+  remain JQ product decisions, not universal industry standards or fabrication
+  authorization.

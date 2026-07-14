@@ -89,10 +89,12 @@ test("canonical mixed four-bay geometry has exact widths and fitted generated fr
     "open", "drawers", "lower_doors", "tall_doors"
   ]);
   assert.equal(components(layout, "drawer_front").length, 3);
-  assert.equal(components(layout, "door").length, 3);
+  assert.equal(components(layout, "door").length, 2);
   assert.equal(components(layout, "fixed_shelf").filter((item) => item.metadata.purpose === "lower_separator").length, 2);
   const tallDoor = layout.components.find((component) => component.id === "section-04-tall-door");
-  assert.equal(tallDoor.metadata.openingSide, "left");
+  assert.equal(tallDoor.metadata.arrangement, "single_hinge_right");
+  assert.equal(tallDoor.metadata.hingeSide, "hinge_right");
+  assert.equal(tallDoor.metadata.latchSide, "latch_left");
 });
 
 test("width ratios reproduce exact clear-width sums and divider accumulation", () => {
@@ -164,6 +166,96 @@ test("split and merge account for divider thickness and restore identity", () =>
   assert.equal(merged.accepted, true);
   assert.equal(merged.widths[0], originalWidth);
   assert.deepEqual(generateBookcaseLayout(merged.config).metrics.sectionClearWidths, layout.metrics.sectionClearWidths);
+});
+
+test("split and merge keep per-section door layouts aligned and deterministically return changed doors to auto", () => {
+  const config = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    width: 72,
+    sections: 2,
+    layoutMetadata: {
+      sectionRatios: [1, 1],
+      sectionTypes: ["lower_doors", "open"],
+      sectionDoorLayouts: [{ arrangement: "pair" }, null]
+    }
+  });
+  const layout = generateBookcaseLayout(config);
+  const split = splitSection(config, layout, 0);
+
+  assert.equal(split.accepted, true);
+  assert.deepEqual(split.config.layoutMetadata.sectionTypes, ["lower_doors", "lower_doors", "open"]);
+  assert.deepEqual(split.config.layoutMetadata.sectionDoorLayouts, [
+    { arrangement: "auto" },
+    { arrangement: "auto" },
+    null
+  ]);
+
+  const merged = mergeSection(split.config, generateBookcaseLayout(split.config), 0, "right");
+  assert.equal(merged.accepted, true);
+  assert.deepEqual(merged.config.layoutMetadata.sectionTypes, ["lower_doors", "open"]);
+  assert.deepEqual(merged.config.layoutMetadata.sectionDoorLayouts, [
+    { arrangement: "auto" },
+    null
+  ]);
+});
+
+test("section type changes preserve door choices only across door-capable types", () => {
+  const config = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    sections: 3,
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1],
+      sectionTypes: ["lower_doors", "drawers", "open"],
+      sectionDoorLayouts: [{ arrangement: "single_hinge_right" }, null, null]
+    }
+  });
+
+  const tall = setSectionType(config, 0, "tall_doors", generateBookcaseLayout(config));
+  assert.deepEqual(tall.config.layoutMetadata.sectionDoorLayouts, [
+    { arrangement: "single_hinge_right" },
+    null,
+    null
+  ]);
+
+  const opened = setSectionType(tall.config, 0, "open", generateBookcaseLayout(tall.config));
+  assert.deepEqual(opened.config.layoutMetadata.sectionDoorLayouts, [null, null, null]);
+
+  const newDoor = setSectionType(opened.config, 2, "lower_doors", generateBookcaseLayout(opened.config));
+  assert.deepEqual(newDoor.config.layoutMetadata.sectionDoorLayouts, [
+    null,
+    null,
+    { arrangement: "auto" }
+  ]);
+});
+
+test("section-count reconciliation never leaves stale door-layout entries", () => {
+  const config = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    width: 96,
+    sections: 2,
+    layoutMetadata: {
+      sectionRatios: [1, 1],
+      sectionTypes: ["lower_doors", "open"],
+      sectionDoorLayouts: [{ arrangement: "single_hinge_left" }, null]
+    }
+  });
+
+  const expanded = reconcileSectionCustomization(config, 3);
+  assert.equal(expanded.accepted, true);
+  assert.deepEqual(expanded.config.layoutMetadata.sectionTypes, ["lower_doors", "lower_doors", "open"]);
+  assert.deepEqual(expanded.config.layoutMetadata.sectionDoorLayouts, [
+    { arrangement: "auto" },
+    { arrangement: "auto" },
+    null
+  ]);
+
+  const reduced = reconcileSectionCustomization(expanded.config, 2);
+  assert.equal(reduced.accepted, true);
+  assert.equal(reduced.config.layoutMetadata.sectionDoorLayouts.length, 2);
+  assert.deepEqual(reduced.config.layoutMetadata.sectionDoorLayouts, [
+    { arrangement: "auto" },
+    { arrangement: "auto" }
+  ]);
 });
 
 test("split rejects the seventh section before config normalization can discard custom widths", () => {
@@ -363,9 +455,9 @@ test("mixed accepted state keeps BOM, pricing, fingerprint, save, and restore in
   const evaluation = evaluateBookcaseCandidate(config);
   assert.equal(evaluation.accepted, true);
   const bom = deriveBookcaseBOM(evaluation.layout);
-  assert.equal(bom.doors.count, 3);
+  assert.equal(bom.doors.count, 2);
   assert.equal(bom.drawers.frontCount, 3);
-  assert.equal(bom.hardware.handleCount, 6);
+  assert.equal(bom.hardware.handleCount, 5);
   assert.equal(evaluation.pricing.bom.layoutFingerprint, evaluation.layoutFingerprint);
   const snapshot = createAcceptedDesignSnapshot(evaluation, { savedAt: "2026-07-13T00:00:00.000Z" });
   const restored = restoreAcceptedDesignSnapshot(JSON.parse(JSON.stringify(snapshot)));

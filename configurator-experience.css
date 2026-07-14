@@ -1333,6 +1333,89 @@ body[data-page="configurator"] .section-generated-summary dt {
   line-height: 1.35;
 }
 
+body[data-page="configurator"] .section-door-arrangement-field {
+  margin: 14px 0 0;
+  border: 0;
+  padding: 0;
+}
+
+body[data-page="configurator"] .section-door-arrangement-field legend {
+  margin-bottom: 8px;
+  color: #3d332a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .section-door-arrangement-options label > span {
+  min-height: 40px;
+  border-color: rgba(86, 69, 52, 0.18);
+  background: #fff;
+  color: #51463c;
+  text-align: center;
+}
+
+body[data-page="configurator"] .section-door-arrangement-options input:checked + span {
+  border-color: #a97745;
+  background: rgba(169, 119, 69, 0.1);
+  color: #302820;
+  box-shadow: 0 0 0 2px rgba(169, 119, 69, 0.12);
+}
+
+body[data-page="configurator"] .section-door-arrangement-option.is-disabled > span {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+body[data-page="configurator"] .construction-inspector {
+  position: absolute;
+  z-index: 40;
+  top: 12px;
+  left: 12px;
+  width: min(430px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  overflow: auto;
+  border: 1px solid rgba(93, 203, 255, 0.55);
+  border-radius: 8px;
+  background: rgba(15, 20, 24, 0.92);
+  color: #dff5ff;
+  padding: 10px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
+  font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+body[data-page="configurator"] .construction-inspector header,
+body[data-page="configurator"] .construction-inspector label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+body[data-page="configurator"] .construction-inspector-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  margin: 8px 0;
+}
+
+body[data-page="configurator"] .construction-inspector button {
+  border: 1px solid rgba(223, 245, 255, 0.3);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  padding: 5px;
+}
+
+body[data-page="configurator"] .construction-inspector button[aria-pressed="true"] {
+  background: rgba(77, 163, 255, 0.28);
+}
+
+body[data-page="configurator"] .construction-inspector pre {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 body[data-page="configurator"] .section-generated-summary {
   display: grid;
   gap: 7px;
