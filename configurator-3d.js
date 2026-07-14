@@ -596,13 +596,15 @@ class BookcaseConfigurator {
             <h2 id="${this.id}-preview-title">One system, many arrangements</h2>
             <p>These presentation views are derived from buildable configurations. They are not your design and do not create an estimate.</p>
           </header>
-          <div class="studio-intro-preview" data-studio-intro-preview aria-live="polite">
-            ${this.renderStudioIntroPreview()}
-          </div>
-          <div class="studio-preview-variants" role="group" aria-label="Preview different arrangement capabilities">
-            ${getStudioPreviewIdeas().map((idea, index) => `
-              <button type="button" data-studio-preview-index="${index}" aria-pressed="${index === this.introPreviewIndex}">${escapeHtml(index === 0 ? "Open framework" : index === 1 ? "Mixed storage" : "Tall zones")}</button>
-            `).join("")}
+          <div class="studio-preview-composition">
+            <div class="studio-intro-preview" data-studio-intro-preview aria-live="polite">
+              ${this.renderStudioIntroPreview()}
+            </div>
+            <div class="studio-preview-variants" role="group" aria-label="Preview different arrangement capabilities">
+              ${getStudioPreviewIdeas().map((idea, index) => `
+                <button type="button" data-studio-preview-index="${index}" aria-pressed="${index === this.introPreviewIndex}">${escapeHtml(index === 0 ? "Open framework" : index === 1 ? "Mixed storage" : "Tall zones")}</button>
+              `).join("")}
+            </div>
           </div>
         </section>
 
@@ -736,8 +738,8 @@ class BookcaseConfigurator {
     const layout = generateBookcaseLayout(preset.config);
     return `
       <div class="studio-preview-scaffold" data-studio-preview-idea="${escapeHtml(idea.id)}">
-        <span class="studio-dimension-line is-width" aria-hidden="true"><i></i><small>${layout.config.width} in wall width</small><i></i></span>
-        <span class="studio-dimension-line is-height" aria-hidden="true"><i></i><small>${layout.config.height} in</small><i></i></span>
+        <span class="studio-dimension-line is-width" aria-hidden="true"><i></i><small><b>${layout.config.width} in</b><span>Wall width</span></small><i></i></span>
+        <span class="studio-dimension-line is-height" aria-hidden="true"><i></i><small><b>${layout.config.height} in</b><span>Wall height</span></small><i></i></span>
         <div class="studio-preview-drawing">${this.renderPresetMini(preset, 1)}</div>
         <span class="studio-preview-callout is-add">${builderIcons.plus}<small>Add section</small></span>
         <span class="studio-preview-callout is-resize">${builderIcons.dimensions}<small>Resize any section</small></span>

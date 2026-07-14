@@ -23,12 +23,12 @@ body[data-page="configurator"] .studio-entry-shell {
   width: 100%;
   height: 100%;
   min-height: 0;
-  grid-template-columns: minmax(390px, 0.92fr) minmax(0, 1.08fr);
+  grid-template-columns: minmax(560px, 0.78fr) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) 96px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 77% 36%, rgba(199, 158, 101, 0.13), transparent 31%),
-    linear-gradient(135deg, #24201b 0%, #332c25 52%, #1f1b17 100%);
+    radial-gradient(circle at 76% 40%, rgba(199, 158, 101, 0.12), transparent 34%),
+    linear-gradient(135deg, #24201b 0%, #302923 52%, #1d1916 100%);
   color: #f7f3ed;
 }
 
@@ -37,12 +37,12 @@ body[data-page="configurator"] .studio-entry-copy {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: clamp(34px, 5vh, 62px) clamp(30px, 4vw, 66px) 30px;
+  padding: clamp(40px, 5.4vh, 56px) clamp(32px, 4vw, 64px) 40px;
   scrollbar-color: rgba(207, 165, 108, 0.46) transparent;
 }
 
 body[data-page="configurator"] .studio-welcome-heading {
-  max-width: 690px;
+  max-width: 584px;
 }
 
 body[data-page="configurator"] .studio-welcome-heading .section-kicker,
@@ -52,35 +52,35 @@ body[data-page="configurator"] .studio-intro-heading .section-kicker {
 }
 
 body[data-page="configurator"] .studio-welcome-heading h1 {
-  max-width: 650px;
-  margin: 12px 0 15px;
+  max-width: 584px;
+  margin: 16px 0 20px;
   color: #fffaf4;
   font-family: var(--serif);
-  font-size: clamp(39px, 4vw, 64px);
+  font-size: clamp(48px, 3.85vw, 60px);
   font-weight: 400;
   letter-spacing: -0.035em;
-  line-height: 0.98;
+  line-height: 1.01;
   text-wrap: balance;
 }
 
 body[data-page="configurator"] .studio-welcome-heading.is-compact h1 {
-  font-size: clamp(34px, 3.2vw, 51px);
+  font-size: clamp(36px, 3vw, 49px);
 }
 
 body[data-page="configurator"] .studio-welcome-heading p {
-  max-width: 650px;
+  max-width: 552px;
   margin: 0;
   color: rgba(247, 243, 237, 0.78);
-  font-size: 15px;
-  line-height: 1.65;
+  font-size: 14px;
+  line-height: 1.72;
 }
 
 body[data-page="configurator"] .studio-capability-list {
-  display: flex;
-  max-width: 680px;
-  flex-wrap: wrap;
+  display: grid;
+  max-width: 584px;
+  grid-template-columns: repeat(3, max-content);
   gap: 8px;
-  margin: 24px 0 25px;
+  margin: 28px 0 28px;
   padding: 0;
   list-style: none;
 }
@@ -89,13 +89,13 @@ body[data-page="configurator"] .studio-capability-list li {
   display: inline-flex;
   min-height: 32px;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   border: 1px solid rgba(229, 201, 164, 0.18);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.035);
-  padding: 6px 11px;
+  padding: 7px 11px;
   color: rgba(250, 246, 240, 0.86);
-  font-size: 11px;
+  font-size: 10px;
   line-height: 1.2;
 }
 
@@ -107,48 +107,55 @@ body[data-page="configurator"] .studio-capability-list svg {
 
 body[data-page="configurator"] .studio-entry-routes {
   display: grid;
-  max-width: 680px;
+  max-width: 584px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 body[data-page="configurator"] .studio-route-card {
   position: relative;
   display: grid;
-  min-height: 128px;
-  grid-template-columns: 32px minmax(0, 1fr) 26px;
-  gap: 12px;
-  align-items: center;
+  min-height: 142px;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  gap: 16px;
+  align-items: start;
   border: 1px solid rgba(225, 194, 151, 0.25);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.035);
-  padding: 18px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018));
+  padding: 22px 20px 20px;
   color: #f8f3ec;
   text-align: left;
-  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
 body[data-page="configurator"] .studio-route-card:hover,
 body[data-page="configurator"] .studio-route-card:focus-visible {
   border-color: rgba(226, 180, 113, 0.78);
-  background: rgba(185, 134, 72, 0.12);
-  transform: translateY(-2px);
+  background: linear-gradient(145deg, rgba(185, 134, 72, 0.17), rgba(255, 255, 255, 0.035));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 36px rgba(0, 0, 0, 0.16);
+  transform: translateY(-3px);
 }
 
 body[data-page="configurator"] .studio-route-card.is-primary {
-  border-color: rgba(226, 180, 113, 0.6);
-  background: linear-gradient(145deg, rgba(174, 119, 57, 0.22), rgba(255, 255, 255, 0.035));
+  border-color: rgba(226, 180, 113, 0.62);
+  background: linear-gradient(145deg, rgba(174, 119, 57, 0.24), rgba(255, 255, 255, 0.035) 74%);
 }
 
 body[data-page="configurator"] .studio-route-card > svg {
+  grid-column: 2;
+  grid-row: 1;
   width: 25px;
   height: 25px;
   color: #ddb170;
+  margin-top: 1px;
 }
 
 body[data-page="configurator"] .studio-route-card > span:nth-child(2) {
   display: grid;
-  gap: 5px;
+  grid-column: 1;
+  grid-row: 1;
+  gap: 7px;
 }
 
 body[data-page="configurator"] .studio-route-card small,
@@ -163,27 +170,58 @@ body[data-page="configurator"] .studio-route-card small {
   font-size: 9px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 body[data-page="configurator"] .studio-route-card strong {
   font-family: var(--serif);
-  font-size: 19px;
+  font-size: 21px;
   font-weight: 400;
-  line-height: 1.1;
+  line-height: 1.08;
 }
 
 body[data-page="configurator"] .studio-route-card em,
 body[data-page="configurator"] .studio-route-number {
   color: rgba(247, 243, 237, 0.64);
-  font-size: 11px;
+  font-size: 10px;
+}
+
+body[data-page="configurator"] .studio-route-number {
+  position: absolute;
+  bottom: 22px;
+  left: 20px;
+  margin: 0;
+}
+
+body[data-page="configurator"] .studio-route-card em {
+  padding-left: 30px;
 }
 
 body[data-page="configurator"] .studio-reassurance {
-  max-width: 680px;
-  margin: 15px 0 0;
+  display: flex;
+  max-width: 584px;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 20px 0 0;
   color: rgba(247, 243, 237, 0.61);
-  font-size: 11px;
-  line-height: 1.55;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+body[data-page="configurator"] .studio-reassurance::before {
+  display: grid;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  place-items: center;
+  margin-top: 1px;
+  border: 1px solid rgba(229, 201, 164, 0.42);
+  border-radius: 50%;
+  color: rgba(237, 207, 166, 0.78);
+  content: "i";
+  font-family: var(--sans);
+  font-size: 8px;
+  font-weight: 600;
 }
 
 body[data-page="configurator"] .studio-intro-stage {
@@ -191,26 +229,26 @@ body[data-page="configurator"] .studio-intro-stage {
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
   border-left: 1px solid rgba(231, 210, 181, 0.1);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 25%),
     radial-gradient(ellipse at 50% 82%, rgba(14, 11, 9, 0.52), transparent 52%);
-  padding: clamp(28px, 4vh, 48px) clamp(24px, 3vw, 48px) 22px;
+  padding: clamp(36px, 4.8vh, 48px) clamp(28px, 3.2vw, 52px) 28px;
 }
 
 body[data-page="configurator"] .studio-intro-heading {
   position: relative;
   z-index: 2;
-  max-width: 520px;
+  max-width: 560px;
 }
 
 body[data-page="configurator"] .studio-intro-heading h2 {
-  margin: 7px 0 6px;
+  margin: 9px 0 9px;
   color: #fff8ef;
   font-family: var(--serif);
-  font-size: clamp(24px, 2.4vw, 38px);
+  font-size: clamp(28px, 2.35vw, 38px);
   font-weight: 400;
   line-height: 1.05;
 }
@@ -220,39 +258,56 @@ body[data-page="configurator"] .studio-intro-heading p {
   margin: 0;
   color: rgba(247, 243, 237, 0.58);
   font-size: 11px;
-  line-height: 1.5;
+  line-height: 1.55;
+}
+
+body[data-page="configurator"] .studio-preview-composition {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr) auto;
+  margin-top: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(232, 211, 182, 0.12);
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 53% 48%, rgba(210, 177, 133, 0.08), transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(12, 10, 9, 0.12));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025), 0 26px 70px rgba(0, 0, 0, 0.12);
+  padding: 16px 20px 18px;
 }
 
 body[data-page="configurator"] .studio-intro-preview {
   position: relative;
   display: grid;
-  min-height: 310px;
+  min-height: 330px;
   place-items: center;
+  padding-bottom: 34px;
 }
 
 body[data-page="configurator"] .studio-preview-scaffold {
   position: relative;
-  width: min(84%, 650px);
-  height: min(80%, 450px);
-  min-height: 290px;
-  border-bottom: 1px solid rgba(229, 211, 186, 0.24);
+  width: min(94%, 720px);
+  height: min(94%, 470px);
+  min-height: 316px;
 }
 
 body[data-page="configurator"] .studio-preview-scaffold::before {
   position: absolute;
-  right: 3%;
-  bottom: -12px;
-  left: 3%;
-  height: 34px;
+  right: 10%;
+  bottom: 4px;
+  left: 10%;
+  height: 26px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.4);
   content: "";
-  filter: blur(17px);
+  filter: blur(18px);
 }
 
 body[data-page="configurator"] .studio-preview-drawing {
   position: absolute;
-  inset: 30px 30px 14px 50px;
+  inset: 24px 36px 34px 58px;
   display: grid;
   place-items: end center;
 }
@@ -269,7 +324,7 @@ body[data-page="configurator"] .studio-preview-drawing .preset-mini > svg {
   width: 100%;
   height: 100%;
   overflow: visible;
-  filter: drop-shadow(0 15px 19px rgba(0, 0, 0, 0.2));
+  filter: drop-shadow(0 20px 24px rgba(0, 0, 0, 0.24));
 }
 
 body[data-page="configurator"] .studio-preview-drawing .preset-number,
@@ -278,9 +333,9 @@ body[data-page="configurator"] .studio-idea-card .preset-number {
 }
 
 body[data-page="configurator"] .studio-preview-drawing .mini-part {
-  fill: rgba(230, 216, 195, 0.09);
-  stroke: rgba(242, 226, 202, 0.7);
-  stroke-width: 0.42;
+  fill: rgba(230, 216, 195, 0.075);
+  stroke: rgba(242, 226, 202, 0.67);
+  stroke-width: 0.5;
   vector-effect: non-scaling-stroke;
 }
 
@@ -295,22 +350,42 @@ body[data-page="configurator"] .studio-dimension-line {
   z-index: 3;
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: rgba(226, 192, 148, 0.73);
-  font-size: 9px;
-  letter-spacing: 0.08em;
+  gap: 9px;
+  color: rgba(231, 207, 175, 0.68);
+  font-size: 8px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 body[data-page="configurator"] .studio-dimension-line i {
   display: block;
-  background: currentColor;
+  position: relative;
+  background: linear-gradient(90deg, transparent, currentColor 10%, currentColor 90%, transparent);
+  opacity: 0.72;
+}
+
+body[data-page="configurator"] .studio-dimension-line small {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 2px;
+  color: rgba(236, 216, 188, 0.8);
+  font-size: 7px;
+  font-weight: 500;
+  line-height: 1.15;
+  text-align: center;
+}
+
+body[data-page="configurator"] .studio-dimension-line small b,
+body[data-page="configurator"] .studio-dimension-line small span {
+  display: block;
+  font: inherit;
+  white-space: nowrap;
 }
 
 body[data-page="configurator"] .studio-dimension-line.is-width {
-  right: 30px;
-  bottom: -22px;
-  left: 50px;
+  right: 36px;
+  bottom: 4px;
+  left: 58px;
 }
 
 body[data-page="configurator"] .studio-dimension-line.is-width i {
@@ -319,20 +394,20 @@ body[data-page="configurator"] .studio-dimension-line.is-width i {
 }
 
 body[data-page="configurator"] .studio-dimension-line.is-height {
-  top: 30px;
-  bottom: 14px;
-  left: 9px;
+  top: 24px;
+  bottom: 34px;
+  left: 4px;
   flex-direction: column;
 }
 
 body[data-page="configurator"] .studio-dimension-line.is-height i {
   width: 1px;
   height: 100%;
+  background: linear-gradient(180deg, transparent, currentColor 10%, currentColor 90%, transparent);
 }
 
 body[data-page="configurator"] .studio-dimension-line.is-height small {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
+  width: 50px;
 }
 
 body[data-page="configurator"] .studio-preview-callout {
@@ -340,14 +415,14 @@ body[data-page="configurator"] .studio-preview-callout {
   z-index: 4;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   border: 1px solid rgba(224, 185, 130, 0.26);
   border-radius: 999px;
-  background: rgba(37, 32, 27, 0.92);
-  padding: 7px 10px;
+  background: rgba(27, 23, 20, 0.92);
+  padding: 8px 11px;
   color: #e4bd83;
-  font-size: 9px;
-  box-shadow: 0 8px 21px rgba(0, 0, 0, 0.22);
+  font-size: 8px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
 }
 
 body[data-page="configurator"] .studio-preview-callout svg {
@@ -356,26 +431,26 @@ body[data-page="configurator"] .studio-preview-callout svg {
 }
 
 body[data-page="configurator"] .studio-preview-callout.is-add {
-  right: -12px;
-  bottom: 25%;
+  right: -2px;
+  bottom: 27%;
 }
 
 body[data-page="configurator"] .studio-preview-callout.is-resize {
-  top: 26%;
-  left: 7%;
+  top: 28%;
+  left: 7.5%;
 }
 
 body[data-page="configurator"] .studio-preview-caption {
   position: absolute;
   right: 0;
-  bottom: -13px;
+  bottom: 0;
   left: 0;
   display: flex;
   justify-content: center;
-  gap: 9px;
+  gap: 8px;
   margin: 0;
   color: rgba(247, 243, 237, 0.58);
-  font-size: 10px;
+  font-size: 9px;
 }
 
 body[data-page="configurator"] .studio-preview-caption strong {
@@ -387,26 +462,35 @@ body[data-page="configurator"] .studio-preview-variants {
   position: relative;
   z-index: 4;
   display: flex;
+  width: min(100%, 470px);
   justify-content: center;
-  gap: 7px;
-  padding-top: 5px;
+  gap: 4px;
+  margin: 14px auto 0;
+  border: 1px solid rgba(227, 203, 170, 0.12);
+  border-radius: 999px;
+  background: rgba(8, 7, 6, 0.18);
+  padding: 4px;
 }
 
 body[data-page="configurator"] .studio-preview-variants button,
 body[data-page="configurator"] .studio-idea-filters button {
-  min-height: 36px;
-  border: 1px solid rgba(227, 203, 170, 0.17);
+  min-height: 34px;
+  border: 1px solid transparent;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.025);
-  padding: 7px 13px;
+  background: transparent;
+  padding: 7px 15px;
   color: rgba(247, 243, 237, 0.68);
   font-size: 10px;
 }
 
+body[data-page="configurator"] .studio-preview-variants button {
+  flex: 1 1 0;
+}
+
 body[data-page="configurator"] .studio-preview-variants button[aria-pressed="true"],
 body[data-page="configurator"] .studio-idea-filters button[aria-pressed="true"] {
-  border-color: rgba(222, 174, 108, 0.7);
-  background: rgba(175, 119, 56, 0.17);
+  border-color: rgba(222, 174, 108, 0.52);
+  background: linear-gradient(180deg, rgba(177, 121, 58, 0.2), rgba(112, 75, 35, 0.12));
   color: #f4cd95;
 }
 
@@ -758,12 +842,31 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
     padding-left: 28px;
   }
 
+  body[data-page="configurator"] .studio-welcome-heading h1 {
+    font-size: clamp(43px, 4.6vw, 50px);
+  }
+
+  body[data-page="configurator"] .studio-capability-list {
+    grid-template-columns: repeat(2, max-content);
+    margin: 22px 0 24px;
+  }
+
   body[data-page="configurator"] .studio-entry-routes {
     grid-template-columns: minmax(0, 1fr);
   }
 
   body[data-page="configurator"] .studio-route-card {
-    min-height: 91px;
+    min-height: 108px;
+  }
+
+  body[data-page="configurator"] .studio-preview-composition {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  body[data-page="configurator"] .studio-preview-drawing {
+    right: 24px;
+    left: 52px;
   }
 
   body[data-page="configurator"] .studio-idea-grid {
@@ -771,7 +874,7 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
   }
 
   body[data-page="configurator"] .studio-preview-callout.is-resize {
-    left: -4%;
+    left: 2%;
   }
 }
 
@@ -787,23 +890,31 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
   body[data-page="configurator"] .studio-entry-copy {
     grid-row: 1;
     overflow: visible;
-    padding: 30px 18px 27px;
+    padding: 36px 18px 32px;
   }
 
   body[data-page="configurator"] .studio-welcome-heading h1,
   body[data-page="configurator"] .studio-welcome-heading.is-compact h1 {
-    font-size: clamp(35px, 11vw, 47px);
+    margin: 14px 0 18px;
+    font-size: clamp(38px, 10.8vw, 44px);
+    line-height: 1.01;
+  }
+
+  body[data-page="configurator"] .studio-welcome-heading p {
+    font-size: 13px;
+    line-height: 1.7;
   }
 
   body[data-page="configurator"] .studio-capability-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
-    margin: 19px 0 20px;
+    margin: 22px 0 24px;
   }
 
   body[data-page="configurator"] .studio-capability-list li {
     min-height: 30px;
-    padding: 5px 9px;
-    font-size: 10px;
+    padding: 6px 9px;
+    font-size: 9px;
   }
 
   body[data-page="configurator"] .studio-entry-routes {
@@ -811,39 +922,89 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
   }
 
   body[data-page="configurator"] .studio-route-card {
-    min-height: 92px;
+    min-height: 116px;
+    padding: 20px 18px 18px;
+  }
+
+  body[data-page="configurator"] .studio-route-card strong {
+    font-size: 20px;
+  }
+
+  body[data-page="configurator"] .studio-reassurance {
+    margin-top: 18px;
   }
 
   body[data-page="configurator"] .studio-intro-stage {
     grid-row: 2;
-    min-height: 470px;
+    min-height: 610px;
     border-top: 1px solid rgba(231, 210, 181, 0.1);
     border-left: 0;
-    padding: 27px 18px 22px;
+    padding: 32px 18px 24px;
+  }
+
+  body[data-page="configurator"] .studio-intro-heading h2 {
+    font-size: 30px;
+  }
+
+  body[data-page="configurator"] .studio-preview-composition {
+    min-height: 438px;
+    margin-top: 22px;
+    border-radius: 16px;
+    padding: 14px 10px 14px;
   }
 
   body[data-page="configurator"] .studio-intro-preview {
-    min-height: 300px;
+    min-height: 340px;
+    padding-bottom: 38px;
   }
 
   body[data-page="configurator"] .studio-preview-scaffold {
-    width: 94%;
-    height: 280px;
-    min-height: 280px;
+    width: 100%;
+    height: 304px;
+    min-height: 304px;
   }
 
   body[data-page="configurator"] .studio-preview-drawing {
-    right: 20px;
+    inset: 28px 18px 40px 48px;
+  }
+
+  body[data-page="configurator"] .studio-dimension-line.is-width {
+    right: 18px;
+    bottom: 7px;
+    left: 48px;
+  }
+
+  body[data-page="configurator"] .studio-dimension-line.is-height {
+    top: 28px;
+    bottom: 40px;
+    left: 0;
   }
 
   body[data-page="configurator"] .studio-preview-callout.is-add {
-    right: -3px;
+    right: 0;
+    bottom: 28%;
+  }
+
+  body[data-page="configurator"] .studio-preview-callout.is-resize {
+    top: 27%;
+    left: 5%;
   }
 
   body[data-page="configurator"] .studio-preview-caption {
     flex-direction: column;
     gap: 1px;
     align-items: center;
+  }
+
+  body[data-page="configurator"] .studio-preview-variants {
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  body[data-page="configurator"] .studio-preview-variants button {
+    padding-right: 7px;
+    padding-left: 7px;
+    font-size: 9px;
   }
 
   body[data-page="configurator"] .studio-entry-lockbar {
@@ -889,7 +1050,14 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
   }
 
   body[data-page="configurator"] .studio-capability-list li {
-    font-size: 9px;
+    padding-right: 7px;
+    padding-left: 7px;
+    font-size: 8px;
+  }
+
+  body[data-page="configurator"] .studio-preview-callout {
+    padding: 7px 9px;
+    font-size: 7px;
   }
 
   body[data-page="configurator"] .studio-idea-grid {
