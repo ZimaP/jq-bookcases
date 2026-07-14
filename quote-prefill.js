@@ -1,4 +1,4 @@
-import { buildPricingContext } from "./bookcase-pricing.js?v=engine-contract-20260713s";
+import { buildPricingContext } from "./bookcase-pricing.js?v=full-system-20260714a";
 
 const storedLayoutLabels = Object.freeze({
   "lower-cabinets": "Full Bookcase",
@@ -41,10 +41,7 @@ export function createQuotePrefill(config = {}) {
   const pricing = buildPricingContext(config);
   const normalizedConfig = pricing.selections;
   const billable = pricing.billableQuantities;
-  const hasLowerCabinetValue = Object.prototype.hasOwnProperty.call(config, "lowerCabinets");
-  const hasLowerCabinets = hasLowerCabinetValue
-    ? config.lowerCabinets !== false && config.lowerCabinets !== "false"
-    : false;
+  const hasLowerCabinets = pricing.bom.openings.lowerStorageCount > 0;
   const customBmColor = [normalizedConfig.customPaintColor, normalizedConfig.customPaintCode].filter(Boolean).join(" ");
   const paintSelection = normalizedConfig.paintSelection;
   const room = config.centerOpening
@@ -60,7 +57,7 @@ export function createQuotePrefill(config = {}) {
   if (billable.compatibleLightingComponents > 0) options.push("lighting");
   if (config.crownStyle && config.crownStyle !== "none") options.push("crown");
   if (billable.hardwareUnits > 0) options.push("hardware");
-  if (Number(config.shelves) > 0) options.push("shelves");
+  if (pricing.bom.shelves.adjustableCount > 0) options.push("shelves");
   if (config.centerOpening) options.push("tv");
   if (config.featureOpening) options.push("fireplace");
 
@@ -81,7 +78,7 @@ export function createQuotePrefill(config = {}) {
       ceilingHeight: config.height ? `${config.height}"` : "",
       bookcaseHeight: config.height ? `${config.height}"` : "",
       depth: config.depth ? `${config.depth}"` : "",
-      lowerCabinets: hasLowerCabinetValue ? (hasLowerCabinets ? "Yes" : "No") : "",
+      lowerCabinets: hasLowerCabinets ? "Yes" : "No",
       layout: layout.value,
       paintFinish: config.finish || "",
       customBmColor,

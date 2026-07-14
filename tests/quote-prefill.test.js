@@ -140,7 +140,28 @@ test("quote prefill omits stale lighting when the generated design has no compat
   assert.equal(selected.billableQuantities.doorHardwareUnits, 2);
   assert.equal(selected.options.includes("lighting"), false);
   assert.equal(selected.options.includes("hardware"), true);
+  assert.equal(selected.options.includes("shelves"), false);
   assert.equal(selected.price, disabled.price);
+});
+
+test("quote lower-cabinet answer follows generated openings rather than a stale legacy flag", () => {
+  const generatedStorage = createQuotePrefill({
+    ...defaultBookcaseConfig,
+    sections: 2,
+    lowerCabinets: false,
+    layoutMetadata: { sectionRatios: [1, 1], sectionTypes: ["lower_doors", "open"] }
+  });
+  const generatedOpen = createQuotePrefill({
+    ...defaultBookcaseConfig,
+    sections: 2,
+    lowerCabinets: true,
+    layoutMetadata: { sectionRatios: [1, 1], sectionTypes: ["open", "open"] }
+  });
+
+  assert.equal(generatedStorage.billableQuantities.generatedCabinetDoors, 2);
+  assert.equal(generatedStorage.fields.lowerCabinets, "Yes");
+  assert.equal(generatedOpen.billableQuantities.generatedCabinetDoors, 0);
+  assert.equal(generatedOpen.fields.lowerCabinets, "No");
 });
 
 test("quote prefill price and options use the same valid generated pricing context", () => {

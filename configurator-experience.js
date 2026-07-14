@@ -4,9 +4,9 @@ import {
   layoutPresets,
   normalizeBookcaseConfig,
   optionLabels
-} from "./bookcase-config.js?v=engine-contract-20260713s";
-import { deriveBillableComponents } from "./bookcase-billable.js?v=pricing-20260712a";
-import { getSectionDesignerState } from "./bookcase-sections.js?v=section-designer-20260713a";
+} from "./bookcase-config.js?v=full-system-20260714a";
+import { deriveBillableComponents } from "./bookcase-billable.js?v=full-system-20260714a";
+import { getSectionDesignerState } from "./bookcase-sections.js?v=full-system-20260714a";
 
 export const CONFIGURATOR_MODES = Object.freeze({
   guided: "guided",

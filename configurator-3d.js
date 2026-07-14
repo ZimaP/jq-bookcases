@@ -1,5 +1,5 @@
 import * as THREE from "./assets/vendor/three.module.js";
-import { diagramSvg, iconSvg } from "./icon-system.js?v=jq-icons-20260713i";
+import { diagramSvg, iconSvg } from "./icon-system.js?v=full-system-20260714a";
 import {
   baseStyleOptions,
   crownStyleOptions,
@@ -15,11 +15,13 @@ import {
   lightingOptions,
   normalizeBookcaseConfig,
   optionLabels
-} from "./bookcase-config.js?v=engine-contract-20260713s";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=engine-contract-20260713s";
-import { formatPrice } from "./bookcase-pricing.js?v=engine-contract-20260713s";
+} from "./bookcase-config.js?v=full-system-20260714a";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=full-system-20260714a";
+import { formatPrice } from "./bookcase-pricing.js?v=full-system-20260714a";
 import {
+  applySectionHistorySnapshot,
   applySectionWidths,
+  createSectionHistorySnapshot,
   equalizeSectionWidths,
   getSectionDesignerState,
   mergeSection,
@@ -29,20 +31,20 @@ import {
   setSectionClearWidth,
   setSectionType,
   splitSection
-} from "./bookcase-sections.js?v=section-designer-20260713a";
+} from "./bookcase-sections.js?v=full-system-20260714a";
 import {
   PROFILE_CAMERA_DURATION,
   calculateProfileCameraPose,
   calculateViewportAwareTarget,
   isProfileCameraKey,
   resolveCameraTransitionDuration
-} from "./profile-camera.js?v=profile-camera-20260713a";
+} from "./profile-camera.js?v=full-system-20260714a";
 import {
   BENJAMIN_MOORE_COLOR_DATA_NOTICE,
   BENJAMIN_MOORE_OFFICIAL_COLORS_URL,
   createBenjaminMoorePaintSelection,
   getBenjaminMooreColorCatalogProvider
-} from "./benjamin-moore-colors.js?v=bm-catalog-20260712a";
+} from "./benjamin-moore-colors.js?v=full-system-20260714a";
 import {
   ALL_CONTROL_CATEGORIES,
   CONFIGURATOR_MODES,
@@ -68,16 +70,16 @@ import {
   normalizeGuidedStep,
   shouldRunAction,
   validateGuidedStep
-} from "./configurator-experience.js?v=custom-studio-20260713a";
+} from "./configurator-experience.js?v=full-system-20260714a";
 import {
   createAcceptedDesignSnapshot,
   evaluateBookcaseCandidate,
   restoreAcceptedDesignSnapshot
-} from "./bookcase-engine.js?v=engine-hardening-20260711a";
+} from "./bookcase-engine.js?v=full-system-20260714a";
 import {
   createExpectedRenderManifest,
   validateRenderedManifest
-} from "./bookcase-render-contract.js?v=engine-hardening-20260711a";
+} from "./bookcase-render-contract.js?v=full-system-20260714a";
 import {
   INSPIRATION_FILTERS,
   STUDIO_CAPABILITIES,
@@ -92,7 +94,7 @@ import {
   normalizeStudioEntryView,
   suggestStudioSectionCount,
   validateStudioDimensions
-} from "./configurator-studio.js?v=custom-studio-20260713b";
+} from "./configurator-studio.js?v=full-system-20260714a";
 
 const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "shelfThickness", "lightingWarmth", "drawerCount"]);
 const builderIcons = Object.freeze({
@@ -264,7 +266,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (host.__bookcaseConfigurator) return;
     if (host.getAttribute("data-enable-cabinet-ar") === "true") {
       try {
-        const { readCabinetArShareConfiguration } = await import("./cabinet-ar.js?v=cabinet-ar-20260712b");
+        const { readCabinetArShareConfiguration } = await import("./cabinet-ar.js?v=full-system-20260714a");
         host.__cabinetArSharedConfiguration = readCabinetArShareConfiguration(window.location.href);
       } catch (error) {
         host.__cabinetArSharedConfiguration = null;
@@ -995,7 +997,7 @@ class BookcaseConfigurator {
           </dl>
           ${selected.warnings.length ? `<div class="section-warning" role="status">${selected.warnings.map((warning) => escapeHtml(warning.message)).join(" ")}</div>` : ""}
           <div class="section-designer-actions">
-            <button type="button" data-section-split ${selected.locked ? "disabled" : ""}>Duplicate / Split</button>
+            <button type="button" data-section-split ${selected.locked || designer.sections.length >= this.layout.rules.maxSections ? "disabled" : ""}>Duplicate / Split</button>
             <button type="button" data-section-merge="left" ${selected.index === 0 || selected.locked ? "disabled" : ""}>Merge Left</button>
             <button type="button" data-section-merge="right" ${selected.index === designer.sections.length - 1 || selected.locked ? "disabled" : ""}>Merge Right</button>
             <button type="button" data-section-equalize>Equalize Widths</button>
@@ -1556,7 +1558,7 @@ class BookcaseConfigurator {
 
   initializeCabinetAr() {
     if (this.arControllerPromise) return this.arControllerPromise;
-    this.arControllerPromise = import("./cabinet-ar-ui.js?v=interface-ar-20260713a")
+    this.arControllerPromise = import("./cabinet-ar-ui.js?v=full-system-20260714a")
       .then(({ CabinetArController }) => {
         if (!this.elements.arDialog) return null;
         this.arController = new CabinetArController({
@@ -2215,7 +2217,7 @@ class BookcaseConfigurator {
       this.showSectionDesignerError(operation?.error || { message: "That section change is not buildable." });
       return false;
     }
-    const previous = structuredClone(this.state);
+    const previous = createSectionHistorySnapshot(this.state);
     const applied = this.update(operation.config, { sourceField: "layoutMetadata", refreshSectionDesigner: false });
     if (!applied) return false;
     this.sectionUndoStack.push(previous);
@@ -2231,8 +2233,9 @@ class BookcaseConfigurator {
   undoSectionChange() {
     const previous = this.sectionUndoStack.pop();
     if (!previous) return;
-    const current = structuredClone(this.state);
-    if (!this.update(previous, { sourceField: "layoutMetadata", refreshSectionDesigner: false })) {
+    const current = createSectionHistorySnapshot(this.state);
+    const restored = applySectionHistorySnapshot(this.state, previous);
+    if (!this.update(restored, { sourceField: "layoutMetadata", refreshSectionDesigner: false })) {
       this.sectionUndoStack.push(previous);
       return;
     }
@@ -2246,8 +2249,9 @@ class BookcaseConfigurator {
   redoSectionChange() {
     const next = this.sectionRedoStack.pop();
     if (!next) return;
-    const current = structuredClone(this.state);
-    if (!this.update(next, { sourceField: "layoutMetadata", refreshSectionDesigner: false })) {
+    const current = createSectionHistorySnapshot(this.state);
+    const restored = applySectionHistorySnapshot(this.state, next);
+    if (!this.update(restored, { sourceField: "layoutMetadata", refreshSectionDesigner: false })) {
       this.sectionRedoStack.push(next);
       return;
     }
@@ -3229,7 +3233,13 @@ class BookcaseConfigurator {
 
   openQuotePage() {
     const design = this.saveCurrentDesign();
+    if (!design.persisted) {
+      this.showStatus("This browser blocked local design storage, so the quote handoff could not be prepared. Allow site storage and try again.", true);
+      window.setTimeout(() => this.syncActionAvailability(), 720);
+      return false;
+    }
     window.location.assign(createQuoteUrl(design.id));
+    return true;
   }
 
   clearStatus() {
@@ -3262,6 +3272,9 @@ class BookcaseViewer3D {
     this.partialUpdateCount = 0;
     this.previewCount = 0;
     this.previewActive = false;
+    this.renderCount = 0;
+    this.animationFrame = null;
+    this.isRenderingFrame = false;
     this.destroyed = false;
     this.controlAbortController = new AbortController();
     this.scene = new THREE.Scene();
@@ -3315,7 +3328,7 @@ class BookcaseViewer3D {
     if (!this.update(this.state, initialLayout, ["initial"])) {
       throw new Error("The initial 3D model failed the descriptor render contract.");
     }
-    this.animate();
+    this.requestRender();
   }
 
   setupEnvironment() {
@@ -3770,6 +3783,7 @@ class BookcaseViewer3D {
       startExposure: this.renderer.toneMappingExposure,
       endExposure: pose.exposure ?? 1.08
     };
+    this.requestRender();
   }
 
   applyCameraPose(pose) {
@@ -3809,6 +3823,14 @@ class BookcaseViewer3D {
   cancelCameraTransition() {
     if (this.cameraTransition) this.cameraTransitionCancellationCount += 1;
     this.cameraTransition = null;
+  }
+
+  setEnvironmentLightScale(scale = 1) {
+    this.environmentLightScale = Number.isFinite(scale) ? scale : 1;
+    this.environmentLights.forEach((light) => {
+      light.intensity = (light.userData.smartFocusBaseIntensity || 0) * this.environmentLightScale;
+    });
+    this.requestRender();
   }
 
   applyComponentHighlight(roles = []) {
@@ -3856,6 +3878,7 @@ class BookcaseViewer3D {
       material.needsUpdate = true;
     });
     this.highlightState = { materialSnapshots, selectedMaterials, clonedMaterials };
+    this.requestRender();
   }
 
   clearComponentHighlight() {
@@ -3873,6 +3896,7 @@ class BookcaseViewer3D {
     });
     state.clonedMaterials.forEach((material) => material.dispose());
     this.highlightState = null;
+    this.requestRender();
   }
 
   setProductLightingBoost(scale = 1) {
@@ -3882,6 +3906,7 @@ class BookcaseViewer3D {
       if (!Number.isFinite(child.userData.smartFocusBaseIntensity)) child.userData.smartFocusBaseIntensity = child.intensity;
       child.intensity = child.userData.smartFocusBaseIntensity * scale;
     });
+    this.requestRender();
   }
 
   refreshComponentHighlight() {
@@ -3914,6 +3939,7 @@ class BookcaseViewer3D {
     this.sectionOverlay.querySelectorAll("[data-overlay-section]").forEach((label) => {
       label.classList.toggle("is-selected", Number(label.dataset.overlaySection) === this.sectionDesigner.selectedIndex);
     });
+    this.requestRender();
   }
 
   refreshSectionInteractionLayer(layout) {
@@ -3943,15 +3969,19 @@ class BookcaseViewer3D {
       this.sectionInteractionLayer.add(mesh);
     }
     this.renderSectionOverlay(layout);
+    this.requestRender();
   }
 
   clearSectionInteractionLayer() {
+    let removed = false;
     while (this.sectionInteractionLayer.children.length) {
       const child = this.sectionInteractionLayer.children[this.sectionInteractionLayer.children.length - 1];
       this.sectionInteractionLayer.remove(child);
       child.geometry?.dispose();
       child.material?.dispose();
+      removed = true;
     }
+    if (removed) this.requestRender();
   }
 
   renderSectionOverlay(layout, previewWidths = null) {
@@ -4111,6 +4141,7 @@ class BookcaseViewer3D {
     });
     materials.reveal?.color?.copy(revealColor);
     materials.edgeLine?.color?.copy(edgeColor);
+    this.requestRender();
   }
 
   applyHardwareMaterial(hardware) {
@@ -4123,6 +4154,7 @@ class BookcaseViewer3D {
     material.roughness = isBlack ? 0.62 : isNickel ? 0.26 : 0.34;
     material.metalness = isBlack ? 0.2 : 0.84;
     material.needsUpdate = true;
+    this.requestRender();
   }
 
   applyLightingWarmth(warmth) {
@@ -4137,6 +4169,7 @@ class BookcaseViewer3D {
     this.model.traverse((child) => {
       if (child.isLight && child.userData?.productLight) child.color.setHex(color);
     });
+    this.requestRender();
   }
 
   frameModel(preserveZoom = true, transition = false) {
@@ -4205,19 +4238,33 @@ class BookcaseViewer3D {
       this.target.z + Math.cos(this.theta) * horizontal
     );
     this.camera.lookAt(this.target);
+    this.requestRender();
+  }
+
+  requestRender() {
+    if (this.destroyed || this.isRenderingFrame || this.animationFrame !== null) return;
+    this.animationFrame = window.requestAnimationFrame((time) => this.animate(time));
   }
 
   animate(now = performance.now()) {
+    this.animationFrame = null;
     if (this.destroyed) return;
-    this.updateCameraTransition(now);
-    this.renderer.render(this.scene, this.camera);
-    const memory = this.renderer.info.memory;
-    const render = this.renderer.info.render;
-    this.root.dataset.webglGeometries = String(memory.geometries || 0);
-    this.root.dataset.webglTextures = String(memory.textures || 0);
-    this.root.dataset.webglCalls = String(render.calls || 0);
-    this.root.dataset.webglTriangles = String(render.triangles || 0);
-    this.animationFrame = window.requestAnimationFrame((time) => this.animate(time));
+    this.isRenderingFrame = true;
+    try {
+      this.updateCameraTransition(now);
+      this.renderer.render(this.scene, this.camera);
+      this.renderCount += 1;
+      const memory = this.renderer.info.memory;
+      const render = this.renderer.info.render;
+      this.root.dataset.renderCount = String(this.renderCount);
+      this.root.dataset.webglGeometries = String(memory.geometries || 0);
+      this.root.dataset.webglTextures = String(memory.textures || 0);
+      this.root.dataset.webglCalls = String(render.calls || 0);
+      this.root.dataset.webglTriangles = String(render.triangles || 0);
+    } finally {
+      this.isRenderingFrame = false;
+    }
+    if (this.cameraTransition) this.requestRender();
   }
 
   getViewState() {
@@ -4243,6 +4290,8 @@ class BookcaseViewer3D {
       partialUpdateCount: this.partialUpdateCount,
       previewCount: this.previewCount,
       previewActive: this.previewActive,
+      renderCount: this.renderCount,
+      renderScheduled: this.animationFrame !== null,
       activeFocus: this.activeFocusKey,
       cameraTransitionActive: Boolean(this.cameraTransition),
       cameraTransitionSequence: this.cameraTransitionSequence,
@@ -4265,7 +4314,8 @@ class BookcaseViewer3D {
     this.destroyed = true;
     this.clearComponentHighlight();
     this.controlAbortController?.abort();
-    window.cancelAnimationFrame(this.animationFrame);
+    if (this.animationFrame !== null) window.cancelAnimationFrame(this.animationFrame);
+    this.animationFrame = null;
     this.resizeObserver?.disconnect();
     this.scene.remove(this.model);
     this.clearSectionInteractionLayer();
