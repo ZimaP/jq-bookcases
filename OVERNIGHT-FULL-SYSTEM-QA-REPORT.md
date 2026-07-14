@@ -60,18 +60,22 @@ Subject: `Stabilize studio route transitions`
 
 ## 4. Final commit
 
-Final tested implementation commit:
+Final tested implementation and CI-portability commit:
 
-`6b28bee9d82ccb36a74630e5ee72d668e29d1d11`
+`c9969e8169276327469e7c010f238826bbb8e718`
 
 Checkpoint history:
 
 - `c2e93d3` — Checkpoint validated custom studio entry
 - `b245ba7` — Harden configurator state AR and render lifecycle
 - `6b28bee` — Expand full-site accessibility and browser QA
+- `7d9d73a` — Add final full-system QA report
+- `af52d12` — Record draft PR in QA report
+- `c9969e8` — Fix CI browser portability regressions
 
-The report/PR metadata commit follows the tested implementation commit. The
-exact final branch HEAD is also recorded in the Codex handoff and draft PR.
+The final report refresh follows the tested code/CI commit. The exact final
+branch HEAD is also recorded in the Codex handoff and draft PR because a commit
+cannot contain its own hash.
 
 ## 5. Environment used
 
@@ -83,6 +87,7 @@ exact final branch HEAD is also recorded in the Codex handoff and draft PR.
 - Playwright 1.61.1
 - Axe Playwright 4.10.2
 - Chromium, Firefox, and WebKit supplied by Playwright
+- GitHub-hosted `ubuntu-latest` runner for remote Node/browser/Pages gates
 - Local server bound to `127.0.0.1:5173`
 - Time zone: America/New_York
 
@@ -116,6 +121,8 @@ python3 -m http.server 5173 --bind 127.0.0.1
 ruby -e "require 'yaml'; YAML.load_file(...)"
 gh repo view ZimaP/jq-bookcases ...
 gh api repos/ZimaP/jq-bookcases/...
+gh run view 29308111566 --log-failed
+gh run download 29308111566 --name playwright-diagnostics-29308111566 ...
 ```
 
 Additional Playwright scripts measured element rectangles, intersection areas,
@@ -385,6 +392,15 @@ The full Chromium suite covers all critical workflows; Firefox/WebKit cover the
 highest-value transaction and procedural-AR smoke paths. Deep option-pairwise
 coverage remains Chromium-only to keep CI practical.
 
+The first remote run exposed two test-infrastructure portability defects rather
+than product regressions: an unscoped color-name locator became ambiguous after
+the color was applied, and GPU-less Firefox correctly chose the WebGL fallback
+instead of satisfying the real-render smoke contract. The locator is now scoped
+to the applied-color summary, and Firefox CI explicitly enables its software
+WebGL path while retaining the strict real-canvas assertions. The affected
+Chromium case and all three Firefox smoke cases pass locally after the repair;
+final remote results are recorded on draft PR #4 after this report commit.
+
 ## 22. Accessibility result
 
 - Axe WCAG 2 A/AA and 2.1 A/AA: zero findings on all ten routes.
@@ -504,6 +520,8 @@ None. The baseline built and core paths opened.
 - construction copy referenced a wood-tone choice the current UI does not offer;
 - schema and lifecycle architecture documentation needed updating;
 - browser screenshots were written to tracked artifact paths by an existing E2E.
+- CI paint lookup used a globally ambiguous text locator, and GPU-less Firefox
+  was not configured to expose software WebGL for the strict render gate.
 
 ## 27. Issues fixed
 
@@ -528,18 +546,21 @@ Key implementation changes:
 - standardized module identities, lazy-loaded quote dependencies, and bound
   development/test servers to loopback;
 - added cross-browser/Axe/deep configurator regression coverage;
+- scoped the applied-paint assertion and enabled Firefox software WebGL in CI
+  without weakening the cross-browser real-render contract;
 - restricted Pages deployment to main, added a Chromium deployment gate, and
   assembled the public site from an explicit runtime allowlist.
 
 ## 28. Files changed
 
-Relative to the starting commit: **61 files changed, 2,923 insertions, 504
-deletions**. The set is:
+Relative to the starting commit including this final report refresh: **62 files
+changed, 3,673 insertions, 504 deletions**. The set is:
 
 ```text
 .github/workflows/browser-quality.yml
 .github/workflows/pages.yml
 CABINET-AR-ARCHITECTURE.md
+OVERNIGHT-FULL-SYSTEM-QA-REPORT.md
 SITE-ARCHITECTURE.md
 about.html
 artifacts/custom-studio-qa/* (10 validated studio-entry screenshots)
@@ -705,10 +726,11 @@ excluded from Pages.
 [Draft PR #4: Full-system configurator QA, resilience, and visual polish](https://github.com/ZimaP/jq-bookcases/pull/4)
 
 The working tree began at `454cf75` on an existing, unmerged custom-studio
-lineage that was already 58 commits ahead of `main`. This audit adds four
-commits from that explicit starting point; the main-targeted draft PR therefore
-shows the inherited lineage as well as this audit (62 commits total at PR
-creation). No history was rewritten to conceal or flatten that context.
+lineage that was already 58 commits ahead of `main`. This audit adds seven
+commits from that explicit starting point, including report/PR metadata; the
+main-targeted draft PR therefore shows the inherited lineage as well as this
+audit (65 commits after the final report push). No history was rewritten to
+conceal or flatten that context.
 
 ## 35. Clear final status
 
