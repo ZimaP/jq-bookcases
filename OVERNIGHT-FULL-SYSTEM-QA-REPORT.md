@@ -702,8 +702,13 @@ excluded from Pages.
 
 ## 34. Draft PR link
 
-Pending creation after this report commit is pushed. The final link will be
-inserted in a small report-metadata commit and included in the Codex handoff.
+[Draft PR #4: Full-system configurator QA, resilience, and visual polish](https://github.com/ZimaP/jq-bookcases/pull/4)
+
+The working tree began at `454cf75` on an existing, unmerged custom-studio
+lineage that was already 58 commits ahead of `main`. This audit adds four
+commits from that explicit starting point; the main-targeted draft PR therefore
+shows the inherited lineage as well as this audit (62 commits total at PR
+creation). No history was rewritten to conceal or flatten that context.
 
 ## 35. Clear final status
 
