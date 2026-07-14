@@ -154,10 +154,11 @@ test("physical options use drawings and finishes use swatches or labels", () => 
   assert.match(source, /doorPreviewIcons/);
   assert.match(source, /crownPreviewIcons/);
   assert.match(source, /basePreviewIcons/);
-  assert.match(source, /hardwarePreviewIcons/);
-  assert.match(source, /hardwareFinishSwatches/);
-  assert.match(source, /class="hardware-choice-icon" style="--hardware-finish:/);
-  assert.doesNotMatch(source, /class="hardware-finish-swatch"/);
+  assert.match(source, /hardwareTypeIcons/);
+  assert.match(source, /getHardwareFinishesForType\(currentType\)/);
+  assert.match(source, /style="--hardware-finish:\$\{option\.swatch\}"/);
+  assert.match(source, /class="hardware-selected-mark"/);
+  assert.doesNotMatch(source, /hardwarePreviewIcons|hardwareFinishSwatches|class="hardware-choice-icon"/);
   assert.match(source, /finish-choice-dot/);
   assert.match(source, /lightingWarmthOptions\.map/);
 });

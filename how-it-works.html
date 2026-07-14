@@ -6,16 +6,25 @@
   <title>How It Works | JQ Bookcases</title>
   <meta name="description" content="A simple, transparent path to custom-quality built-in bookcases: design online, see estimated pricing, confirm measurements, build, and install.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=jq-icons-20260713i">
+  <link rel="stylesheet" href="styles.css?v=configurator-refine-20260714a">
   <link rel="stylesheet" href="styles/icons.css?v=jq-icons-20260713i">
   <link rel="stylesheet" href="how-it-works-reference.css?v=jq-icons-20260713c">
   <link rel="stylesheet" href="visual-consistency.css?v=visual-system-20260713a">
-  <link rel="stylesheet" href="bright-theme.css?v=bright-showroom-20260713a">
-  <script type="module" src="site.js?v=jq-icons-20260713i" defer></script>
+  <link rel="stylesheet" href="bright-theme.css?v=configurator-refine-20260714a">
+  <script type="module" src="site.js?v=configurator-refine-20260714a" defer></script>
 </head>
 <body data-page="how">
   <a class="skip-link" href="#main">Skip to content</a>
   <div data-site-header></div>
+  <noscript>
+    <div class="noscript-shell">
+      <a class="noscript-brand" href="index.html">JQ Bookcases</a>
+      <nav class="noscript-nav" aria-label="Primary navigation without JavaScript">
+        <a href="how-it-works.html">How It Works</a><a href="materials.html">Materials</a><a href="inspiration.html">Inspiration</a><a href="about.html">About Us</a><a href="faq.html">FAQ</a><a href="request-quote.html">Quote Preview</a>
+      </nav>
+      <p>The 3D configurator and interactive controls require JavaScript.</p>
+    </div>
+  </noscript>
 
   <main id="main" class="hiw-page">
     <header class="hiw-intro unified-hero">
@@ -35,13 +44,13 @@
             <h3>Choose your bookcase style</h3>
             <p>Pick a layout that fits your space and aesthetic.</p>
           </div>
-          <div class="hiw-visual hiw-layout-choices" aria-label="Three bookcase layout choices">
+          <div class="hiw-visual hiw-layout-choices" role="group" aria-label="Three bookcase layout choices">
             <div class="hiw-layout-option">
               <div data-bookcase data-width="78" data-height="96" data-sections="2" data-shelves="3" data-doors="3" data-finish="simply-white"></div>
             </div>
             <div class="hiw-layout-option is-selected">
               <div data-bookcase data-width="96" data-height="96" data-sections="3" data-shelves="3" data-doors="4" data-finish="swiss-coffee"></div>
-              <span class="hiw-choice-check" aria-label="Selected"><i data-icon="check" aria-hidden="true"></i></span>
+              <span class="hiw-choice-check" role="img" aria-label="Selected layout"><i data-icon="check" aria-hidden="true"></i></span>
             </div>
             <div class="hiw-layout-option">
               <div data-bookcase data-width="108" data-height="96" data-sections="4" data-shelves="3" data-doors="5" data-finish="simply-white"></div>
@@ -56,7 +65,7 @@
             <h3>Enter your dimensions</h3>
             <p>Adjust width, height, depth, sections, and details to fit your space.</p>
           </div>
-          <div class="hiw-visual hiw-dimensions-panel" aria-label="Width, height, depth, and base-cabinet selections">
+          <div class="hiw-visual hiw-dimensions-panel" role="group" aria-label="Width, height, depth, and base-cabinet selections">
             <dl class="hiw-dimension-controls">
               <dt>Width</dt>
               <dd class="hiw-stepper"><b>96&Prime;</b><i data-icon="minus" aria-hidden="true"></i><i data-icon="plus" aria-hidden="true"></i></dd>
@@ -80,17 +89,17 @@
           <i class="hiw-step-icon" data-icon="paint-finish" aria-hidden="true"></i>
           <div class="hiw-step-copy">
             <h3>Select finish and options</h3>
-            <p>Choose your paint finish, wood tone, hardware, doors, and more.</p>
+            <p>Choose your paint finish, shelf profile, hardware, doors, and more.</p>
           </div>
-          <div class="hiw-visual hiw-options-panel" aria-label="Benjamin Moore paint finishes, hardware, and door options">
+          <div class="hiw-visual hiw-options-panel" role="group" aria-label="Benjamin Moore paint finishes, hardware, and door options">
             <div class="hiw-finish-options">
               <span class="hiw-mini-label">Paint finish by Benjamin Moore</span>
               <div class="hiw-swatches">
-                <span class="is-selected" style="--swatch:#e9e5da" aria-label="Warm ivory"></span>
-                <span style="--swatch:#cfc4b2" aria-label="Warm cream"></span>
-                <span style="--swatch:#a89682" aria-label="Taupe"></span>
-                <span style="--swatch:#5c564e" aria-label="Deep taupe"></span>
-                <span style="--swatch:#303332" aria-label="Charcoal"></span>
+                <span class="is-selected" style="--swatch:#e9e5da" role="img" aria-label="Warm ivory, selected"></span>
+                <span style="--swatch:#cfc4b2" role="img" aria-label="Warm cream"></span>
+                <span style="--swatch:#a89682" role="img" aria-label="Taupe"></span>
+                <span style="--swatch:#5c564e" role="img" aria-label="Deep taupe"></span>
+                <span style="--swatch:#303332" role="img" aria-label="Charcoal"></span>
               </div>
             </div>
             <div class="hiw-option-sample hiw-hardware-sample">
@@ -111,11 +120,11 @@
             <h3>See instant pricing</h3>
             <p>Your custom bookcase price updates in real time.</p>
           </div>
-          <div class="hiw-visual hiw-price-panel" aria-label="Estimated price of $13,750">
+          <div class="hiw-visual hiw-price-panel" role="group" aria-label="Illustrative estimate example of $13,750">
             <div class="hiw-price-copy">
-              <span class="hiw-mini-label">Estimated Price</span>
+              <span class="hiw-mini-label">Illustrative Estimate</span>
               <strong>$13,750</strong>
-              <small><i data-icon="check" aria-hidden="true"></i>Price updates as you design</small>
+              <small><i data-icon="check" aria-hidden="true"></i>Example only; your price updates as you design</small>
             </div>
             <div class="hiw-price-bookcase" data-bookcase data-width="120" data-height="96" data-sections="4" data-shelves="4" data-doors="6" data-finish="swiss-coffee"></div>
           </div>
@@ -128,7 +137,7 @@
             <h3>Confirm measurements and schedule installation</h3>
             <p>We confirm measurements, build with care, and install professionally.</p>
           </div>
-          <div class="hiw-visual hiw-install-flow" aria-label="Measure, build, and install sequence">
+          <div class="hiw-visual hiw-install-flow" role="group" aria-label="Measure, build, and install sequence">
             <div>
               <span class="hiw-flow-icon"><i data-icon="measurement-visit" aria-hidden="true"></i></span>
               <strong>Measure &amp; Confirm</strong>
@@ -183,7 +192,7 @@
           <p>We're here to help.</p>
         </div>
       </div>
-      <a class="hiw-start-button" href="configurator.html">Start Designing</a>
+      <a class="hiw-start-button" href="configurator.html?start=welcome">Start Designing</a>
       <a class="hiw-inspiration-link" href="inspiration.html">See Inspiration <i data-icon="arrow-right" aria-hidden="true"></i></a>
     </section>
   </main>

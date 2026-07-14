@@ -7,8 +7,12 @@ API framework, authentication layer, deployment-time environment substitution,
 or analytics SDK. The configurator is one `BookcaseConfigurator` controller and
 one persistent Three.js r166 preview. `BookcaseConfigurator.state` is the single
 normalized product state, `bookcase-layout.js` produces the validated physical
-descriptor graph in inches, and schema-v3 saved designs are stored in
-`localStorage` under `jqBookcasesDesign`.
+descriptor graph in inches, and schema-v4 accepted-design snapshots are stored
+in `localStorage` under `jqBookcasesDesign` (with schema-v2/v3 restore support).
+Schema-v4 snapshots created before drawer profiles are accepted only when their
+regenerated descriptor graph matches the exact legacy layout fingerprint and
+accepted-design ID; the compatibility path omits only the newly introduced
+drawer-profile descriptor metadata during verification.
 
 The AR feature integrates at those boundaries; it does not create a second
 configurator or change pricing, manufacturing dimensions, quote behavior, or
@@ -47,8 +51,12 @@ resolveArModel(configuration, context) => {
 ```
 
 Identical normalized configurations use the same deterministic hash and share a
-page-session cache entry. An incrementing request coordinator marks older async
-results stale so a slow response cannot replace a newer design.
+page-session cache entry. The cache is an eight-entry LRU and revokes owned blob
+URLs on duplicate resolution, eviction, failure, and explicit clearing. Remote
+model requests have a 10-second deadline and fall back to the procedural model;
+caller cancellation still aborts the full operation. An incrementing request
+coordinator marks older async results stale so a slow response cannot replace a
+newer design.
 
 ## AR configuration and units
 
@@ -62,15 +70,23 @@ meters = inches × 0.0254
 The normalized AR object includes explicit meter dimensions, product and local
 configuration IDs, sections, each generated shelf position, shelf thickness,
 layout type/metadata, cabinet/door/drawer options, base and crown styles, finish
-and preview color, hardware, and lighting. Invalid raw dimensions or an invalid
-layout are rejected before model preparation.
+and preview color, the one canonical hardware variant, and lighting. Door and
+drawer profiles are separate IDs. `drawerFrontStyleId` supports Shaker, Flat
+Panel, and Slim Shaker; legacy configs infer it from a compatible
+`doorStyleId` and otherwise fall back to Shaker. Invalid raw dimensions or an
+invalid layout are rejected before model preparation.
 
 The procedural exporter consumes component bounds from
 `generateBookcaseLayout`; it does not independently calculate section widths,
-shelf positions, openings, door placement, or trim. All visible structural
-descriptors are represented as simple box geometry with role-appropriate
-materials. This is deliberately less detailed than the normal Three.js preview,
-but maintains physical dimensions and the major configuration geometry.
+shelf positions, openings, door placement, or trim. Structural panels and
+trim use envelope-based procedural primitives with role-appropriate materials.
+This is deliberately less detailed than the normal Three.js preview, but it
+maintains physical dimensions and the major configuration geometry. The AR
+configuration, hash, and procedural GLB preserve the independent door and
+drawer profiles. Flat fronts export as slabs; Shaker and Slim Shaker fronts
+export with distinct frame-and-panel geometry; glass remains door-only and
+exports as a finished frame around a translucent panel. Profile rails are
+clamped inside the front envelope so short drawer fronts remain valid.
 
 ## Model formats and platform behavior
 
@@ -154,6 +170,12 @@ data—and is capped at 4 KB before parsing. On load it is decoded, validated,
 normalized, and passed into the same configurator state. The token is not a
 security credential and must never be trusted by a future model service.
 
+Schema-v1 share values are positional. Its original field order is now an
+explicit immutable list, and `drawerFrontStyle` is appended as the final
+optional value. Tokens created before that append therefore keep every legacy
+position and decode with drawer-profile inference; new tokens preserve the
+independent drawer selection without a schema-v1 reinterpretation.
+
 The camera feed is handled by the browser/operating-system AR implementation.
 This site does not upload, store, or analyze camera frames and requests no camera
 permission during page load or dialog preparation.
@@ -228,4 +250,3 @@ procedural GLB without changing the dialog or configurator integration.
 - QR and model-viewer runtime files currently require their pinned CDNs.
 - Share tokens are compact and validated but not signed. They contain no
   sensitive data; a future server endpoint must treat them as untrusted input.
-

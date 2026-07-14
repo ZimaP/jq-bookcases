@@ -4,8 +4,16 @@ import assert from "node:assert/strict";
 import {
   createDesignId,
   defaultBookcaseConfig,
+  doorFrontStyleOptions,
+  drawerFrontStyleOptions,
+  getHardwareFinishOption,
+  hardwareFinishOptions,
+  hardwareTypeOptions,
+  hardwareVariants,
   layoutPresets,
-  normalizeBookcaseConfig
+  normalizeBookcaseConfig,
+  parseHardwareVariant,
+  resolveHardwareVariant
 } from "../bookcase-config.js";
 import { generateBookcaseLayout } from "../bookcase-layout.js";
 
@@ -23,6 +31,43 @@ test("the product selector exposes the ten required commercial layout families",
     "Tall Storage + Shelves"
   ]);
   assert.equal(new Set(layoutPresets.map((preset) => preset.id)).size, 10);
+});
+
+test("door and drawer front profiles normalize independently with legacy inference", () => {
+  const { drawerFrontStyle: _newField, ...legacyDefault } = defaultBookcaseConfig;
+
+  assert.deepEqual(doorFrontStyleOptions.map((option) => option.value), ["shaker", "flat", "slim_shaker", "glass"]);
+  assert.deepEqual(drawerFrontStyleOptions.map((option) => option.value), ["shaker", "flat", "slim_shaker"]);
+  assert.equal(normalizeBookcaseConfig({ ...legacyDefault, doorStyle: "flat" }).drawerFrontStyle, "flat");
+  assert.equal(normalizeBookcaseConfig({ ...legacyDefault, doorStyle: "slim_shaker" }).drawerFrontStyle, "slim_shaker");
+  assert.equal(normalizeBookcaseConfig({ ...legacyDefault, doorStyle: "glass" }).drawerFrontStyle, "shaker");
+  assert.equal(normalizeBookcaseConfig({ ...legacyDefault, drawerFrontStyle: "glass" }).drawerFrontStyle, "shaker");
+  assert.equal(normalizeBookcaseConfig({ ...legacyDefault, drawerFrontStyle: "unknown" }).drawerFrontStyle, "shaker");
+  assert.equal(normalizeBookcaseConfig({ ...legacyDefault, doorStyle: "glass", drawerFrontStyle: "flat" }).drawerFrontStyle, "flat");
+
+  assert.equal(layoutPresets.find((preset) => preset.id === "display-wall").config.drawerFrontStyle, "slim_shaker");
+  assert.equal(layoutPresets.find((preset) => preset.id === "asymmetric-modern").config.drawerFrontStyle, "flat");
+});
+
+test("canonical hardware variants round-trip through type and finish metadata", () => {
+  assert.deepEqual(hardwareTypeOptions.map((option) => option.value), ["knob", "pull"]);
+  assert.deepEqual(hardwareFinishOptions.map((option) => option.label), ["Brushed Brass", "Matte Black", "Polished Nickel"]);
+  assert.deepEqual(hardwareVariants.map((variant) => variant.value), [
+    "brass_knob",
+    "brass_pull",
+    "matte_black_knob",
+    "matte_black_pull",
+    "polished_nickel_pull"
+  ]);
+  for (const variant of hardwareVariants) {
+    assert.equal(parseHardwareVariant(variant.value), variant);
+    assert.equal(resolveHardwareVariant({ type: variant.type, finish: variant.finish }), variant);
+  }
+  assert.equal(resolveHardwareVariant({ type: "knob", finish: "polished_nickel" }).value, "brass_knob");
+  assert.equal(resolveHardwareVariant({ type: "pull", finish: "not-a-finish" }).value, "brass_pull");
+  assert.equal(resolveHardwareVariant({ type: "invalid", finish: "matte_black" }, "matte_black_pull").value, "matte_black_pull");
+  assert.equal(getHardwareFinishOption("brass").label, "Brushed Brass");
+  assert.equal(parseHardwareVariant("polished_nickel_knob"), null);
 });
 
 test("every preset has a unique canonical geometry signature", () => {

@@ -1,6 +1,4 @@
-import { mountIcons, setIcon } from "./icon-system.js?v=jq-icons-20260713i";
-import { createQuotePrefill } from "./quote-prefill.js?v=benjamin-moore-20260712a";
-import { BENJAMIN_MOORE_COLOR_DATA_NOTICE } from "./benjamin-moore-colors.js?v=bm-catalog-20260712a";
+import { mountIcons, setIcon } from "./icon-system.js?v=configurator-refine-20260714a";
 
 const navItems = [
   { label: "How It Works", href: "how-it-works.html", page: "how" },
@@ -10,7 +8,7 @@ const navItems = [
   { label: "FAQ", href: "faq.html", page: "faq" }
 ];
 
-const designBuilderHref = "configurator.html";
+const designBuilderHref = "configurator.html?start=resume";
 const officialBrand = Object.freeze({
   shortName: "JQ Bookcases",
   initials: "JQ",
@@ -61,13 +59,13 @@ function injectHeader() {
           <button class="button button-primary" type="button" data-header-request-quote>Request Quote</button>
         `
     : `
-          <a class="header-save-button" href="${designBuilderHref}" aria-label="Save Design"><span>Save Design</span><i data-icon="save" aria-hidden="true"></i></a>
+          <a class="header-save-button" href="${designBuilderHref}" aria-label="Design Your Bookcase"><span>Design Your Bookcase</span><i data-icon="camera-orbit" aria-hidden="true"></i></a>
           <a class="button button-primary${current === "quote" ? " is-active" : ""}" href="request-quote.html"${current === "quote" ? ' aria-current="page"' : ""}>Request Quote</a>
         `;
 
   const mobileCta = current === "configurator"
     ? `<button class="button button-primary mobile-cta" type="button" data-header-request-quote>Request Quote</button>`
-    : `<a class="mobile-design-link" href="configurator.html">Save Design</a><a class="button button-primary mobile-cta" href="request-quote.html">Request Quote</a>`;
+    : `<a class="mobile-design-link" href="${designBuilderHref}">Design Your Bookcase</a><a class="button button-primary mobile-cta" href="request-quote.html">Request Quote</a>`;
 
   host.innerHTML = `
     <header class="site-header">
@@ -107,12 +105,6 @@ function initHeaderBuilderActions() {
   document.querySelectorAll("[data-header-request-quote]").forEach((button) => {
     button.addEventListener("click", () => {
       document.querySelector("[data-bookcase-builder] [data-open-order]")?.click();
-      document.body.classList.remove("nav-open");
-      const navToggle = document.querySelector(".nav-toggle");
-      navToggle?.setAttribute("aria-expanded", "false");
-      navToggle?.setAttribute("aria-label", "Open navigation");
-      const navIcon = navToggle?.querySelector("[data-icon]");
-      if (navIcon) setIcon(navIcon, "menu");
     });
   });
 }
@@ -127,7 +119,7 @@ function injectFooter() {
         <div>
           ${renderBrandLink("footer-brand")}
           <p>Premium built-ins, expertly crafted for your home.</p>
-          <a class="footer-design-link" href="configurator.html"><i data-icon="camera-orbit" aria-hidden="true"></i> Open the ${officialBrand.product}</a>
+          <a class="footer-design-link" href="configurator.html?start=welcome"><i data-icon="camera-orbit" aria-hidden="true"></i> Open the ${officialBrand.product}</a>
         </div>
         <div>
           <h3>Explore</h3>
@@ -141,7 +133,7 @@ function injectFooter() {
         <div>
           <h3>Plan Your Project</h3>
           <ul class="footer-list">
-            <li><a href="configurator.html">Design Your Bookcase</a></li>
+            <li><a href="configurator.html?start=welcome">Design Your Bookcase</a></li>
             <li><a href="request-quote.html">Request a Quote</a></li>
             <li><a href="faq.html">FAQ</a></li>
             <li><a href="faq.html#faq-6">Delivery &amp; Installation</a></li>
@@ -151,7 +143,7 @@ function injectFooter() {
           <span class="section-kicker">Ready when you are</span>
           <h3>Start with a layout. Finish with a measured plan.</h3>
           <div class="footer-project-actions">
-            <a class="button button-primary" href="configurator.html">Design Your Bookcase</a>
+            <a class="button button-primary" href="configurator.html?start=welcome">Design Your Bookcase</a>
             <a class="text-link" href="request-quote.html">Request a Quote <i class="utility-icon" data-icon="arrow-right" aria-hidden="true"></i></a>
           </div>
         </div>
@@ -177,27 +169,103 @@ function initMobileNav() {
   const nav = document.querySelector("#primary-navigation");
   if (!toggle || !nav) return;
 
+  const mobileNavigationQuery = window.matchMedia("(max-width: 900px)");
+  const backgroundTargets = [
+    document.querySelector(".skip-link"),
+    document.querySelector("main"),
+    document.querySelector("[data-site-footer]"),
+    document.querySelector(".brand--header")
+  ].filter(Boolean);
+  const originalInertState = new Map();
+  const focusableSelector = [
+    "a[href]",
+    "button:not([disabled])",
+    "input:not([disabled])",
+    "select:not([disabled])",
+    "textarea:not([disabled])",
+    "[tabindex]:not([tabindex='-1'])"
+  ].join(",");
+
+  const isOpen = () => document.body.classList.contains("nav-open");
+  const setBackgroundInert = (inert) => {
+    backgroundTargets.forEach((element) => {
+      if (inert) {
+        if (!originalInertState.has(element)) originalInertState.set(element, element.inert);
+        element.inert = true;
+      } else if (originalInertState.has(element)) {
+        element.inert = originalInertState.get(element);
+        originalInertState.delete(element);
+      }
+    });
+  };
+  const menuFocusables = () => [...nav.querySelectorAll(focusableSelector), toggle]
+    .filter((element) => element.getClientRects().length > 0 && getComputedStyle(element).visibility !== "hidden");
+
   const setOpen = (open, restoreFocus = true) => {
-    document.body.classList.toggle("nav-open", open);
-    toggle.setAttribute("aria-expanded", String(open));
-    toggle.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
+    const shouldOpen = Boolean(open && mobileNavigationQuery.matches);
+    document.body.classList.toggle("nav-open", shouldOpen);
+    toggle.setAttribute("aria-expanded", String(shouldOpen));
+    toggle.setAttribute("aria-label", shouldOpen ? "Close navigation" : "Open navigation");
     const toggleIcon = toggle.querySelector("[data-icon]");
-    if (toggleIcon) setIcon(toggleIcon, open ? "close" : "menu");
-    if (open) window.requestAnimationFrame(() => nav.querySelector("a, button")?.focus());
-    else if (restoreFocus) toggle.focus();
+    if (toggleIcon) setIcon(toggleIcon, shouldOpen ? "close" : "menu");
+    nav.inert = mobileNavigationQuery.matches && !shouldOpen;
+    setBackgroundInert(shouldOpen);
+    if (shouldOpen) window.requestAnimationFrame(() => nav.querySelector(focusableSelector)?.focus());
+    else if (restoreFocus && mobileNavigationQuery.matches) toggle.focus();
+  };
+
+  const syncViewportState = () => {
+    if (mobileNavigationQuery.matches) {
+      nav.inert = !isOpen();
+      return;
+    }
+    setOpen(false, false);
+    nav.inert = false;
   };
 
   toggle.addEventListener("click", () => {
-    setOpen(!document.body.classList.contains("nav-open"));
+    setOpen(!isOpen());
   });
 
   nav.addEventListener("click", (event) => {
-    if (event.target.closest("a")) setOpen(false, false);
+    if (event.target.closest("a, [data-header-request-quote]")) setOpen(false, false);
   });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") setOpen(false);
+    if (event.key === "Escape") {
+      if (!isOpen()) return;
+      event.preventDefault();
+      setOpen(false);
+      return;
+    }
+    if (event.key !== "Tab" || !isOpen()) return;
+
+    const focusables = menuFocusables();
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables.at(-1);
+    const active = document.activeElement;
+    if (!focusables.includes(active)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    } else if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
   });
+
+  if (typeof mobileNavigationQuery.addEventListener === "function") {
+    mobileNavigationQuery.addEventListener("change", syncViewportState);
+  } else {
+    mobileNavigationQuery.addListener(syncViewportState);
+  }
+  window.addEventListener("orientationchange", () => {
+    if (isOpen()) setOpen(false, false);
+  });
+  syncViewportState();
 }
 
 function initBookcases() {
@@ -239,7 +307,7 @@ function renderBookcase(host, state) {
   const doorHtml = Array.from({ length: doors }, () => `<div class="case-door"></div>`).join("");
 
   host.innerHTML = `
-    <div class="bookcase" data-finish="${finish}" data-hardware="${hardware}" style="--case-ratio:${ratio}" aria-label="${sections} section built-in bookcase preview">
+    <div class="bookcase" data-finish="${finish}" data-hardware="${hardware}" style="--case-ratio:${ratio}" role="img" aria-label="${sections} section built-in bookcase preview">
       <div class="case-crown"></div>
       <div class="case-shelves" style="grid-template-columns:repeat(${sections}, minmax(0, 1fr));">${bayHtml}</div>
       <div class="case-lower${lowerCabinets ? "" : " is-off"}" style="grid-template-columns:repeat(${doors}, minmax(0, 1fr));">${doorHtml}</div>
@@ -290,6 +358,19 @@ function initAccordions() {
         trigger.closest(".accordion-item")?.classList.toggle("is-open", !isOpen);
       });
     });
+
+    let linkedPanel = null;
+    try {
+      linkedPanel = window.location.hash ? document.getElementById(decodeURIComponent(window.location.hash.slice(1))) : null;
+    } catch (error) {
+      // A malformed fragment must not prevent the rest of the page from initializing.
+    }
+    if (linkedPanel && accordion.contains(linkedPanel)) {
+      const linkedTrigger = [...accordion.querySelectorAll("[data-accordion-trigger]")]
+        .find((trigger) => trigger.getAttribute("aria-controls") === linkedPanel.id);
+      if (linkedTrigger?.getAttribute("aria-expanded") !== "true") linkedTrigger?.click();
+      window.requestAnimationFrame(() => linkedTrigger?.scrollIntoView({ block: "start" }));
+    }
   });
 }
 
@@ -343,36 +424,76 @@ function initFaqSearch() {
   });
 }
 
-function initQuoteForm() {
+async function initQuoteForm() {
   const form = document.querySelector("[data-quote-form]");
-  if (!form) return;
+  const interactiveFields = form?.querySelector("[data-quote-fields]");
+  if (!form || !interactiveFields) return;
+  interactiveFields.inert = false;
 
   const status = form.querySelector("[data-quote-status]");
   const finishSelect = form.querySelector("[data-quote-finish]");
   const customField = form.querySelector("[data-custom-bm-quote]");
   const savedSummary = form.querySelector("[data-saved-design-summary]");
   const photoInput = document.querySelector('input[type="file"][form="quote-request-form"], [data-quote-form] input[type="file"]');
-  const photoStatus = form.querySelector("[data-upload-status]");
+  const photoStatus = document.querySelector("[data-upload-status]");
+  const submitButton = form.querySelector("[data-quote-submit]");
   const storedDesign = getStoredDesign();
   const requestedDesignId = new URLSearchParams(window.location.search).get("design");
-  const activeDesignId = requestedDesignId || storedDesign?.id || "";
 
-  if (activeDesignId && savedSummary) {
-    const matchingStoredDesign = storedDesign?.id === activeDesignId ? storedDesign : null;
-    const config = matchingStoredDesign?.config || matchingStoredDesign?.state || {};
-    const quotePrefill = createQuotePrefill(config);
-    const designDetails = [formatStoredPrice(quotePrefill.price), quotePrefill.layoutLabel].filter(Boolean).map(escapeHtml).join(" &middot; ");
-    savedSummary.hidden = false;
-    savedSummary.innerHTML = `<span>Saved design</span><strong>${escapeHtml(activeDesignId)}</strong><small>${designDetails}</small>`;
-    if (quotePrefill.customPaint) {
-      const paintNotice = document.createElement("p");
-      paintNotice.className = "quote-paint-disclaimer";
-      paintNotice.textContent = BENJAMIN_MOORE_COLOR_DATA_NOTICE;
-      savedSummary.insertAdjacentElement("afterend", paintNotice);
+  let acceptedStoredDesign = null;
+  if (
+    storedDesign &&
+    [2, 3, 4].includes(Number(storedDesign.schemaVersion)) &&
+    typeof storedDesign.id === "string" &&
+    /^JQ-[A-Z0-9-]{5,20}$/.test(storedDesign.id)
+  ) {
+    try {
+      const { restoreAcceptedDesignSnapshot } = await import("./bookcase-engine.js?v=configurator-refine-20260714a");
+      const restored = restoreAcceptedDesignSnapshot(storedDesign);
+      if (restored.accepted && restored.compatible) acceptedStoredDesign = { snapshot: storedDesign, restored };
+    } catch (error) {
+      // Corrupt, stale, or unavailable saved data is treated as absent.
     }
-    setFormValue(form, "designId", activeDesignId);
-    Object.entries(quotePrefill.fields).forEach(([name, value]) => setFormValue(form, name, value));
-    quotePrefill.options.forEach((value) => setFormCheckbox(form, "options", value));
+  }
+
+  const activeStoredDesign = acceptedStoredDesign && (!requestedDesignId || requestedDesignId === acceptedStoredDesign.snapshot.id)
+    ? acceptedStoredDesign
+    : null;
+
+  if (requestedDesignId && !activeStoredDesign) {
+    showStatus(status, "That saved design is not available in this browser. Return to the configurator and save the design again.");
+  }
+
+  if (activeStoredDesign && savedSummary) {
+    try {
+      const [{ createQuotePrefill }, { BENJAMIN_MOORE_COLOR_DATA_NOTICE }] = await Promise.all([
+        import("./quote-prefill.js?v=configurator-refine-20260714a"),
+        import("./benjamin-moore-colors.js?v=configurator-refine-20260714a")
+      ]);
+      const activeDesignId = activeStoredDesign.snapshot.id;
+      const config = activeStoredDesign.restored.state;
+      const quotePrefill = createQuotePrefill(config);
+      const designDetails = [
+        formatStoredPrice(quotePrefill.price),
+        quotePrefill.layoutLabel || "Custom layout",
+        quotePrefill.frontProfiles?.door?.label ? `Door fronts: ${quotePrefill.frontProfiles.door.label}` : "",
+        quotePrefill.frontProfiles?.drawer?.label ? `Drawer fronts: ${quotePrefill.frontProfiles.drawer.label}` : "",
+        quotePrefill.hardwareSelection?.label ? `Hardware: ${quotePrefill.hardwareSelection.label}` : ""
+      ].filter(Boolean).map(escapeHtml).join(" &middot; ");
+      savedSummary.hidden = false;
+      savedSummary.innerHTML = `<span>Saved design</span><strong>${escapeHtml(activeDesignId)}</strong><small>${designDetails}</small>`;
+      if (quotePrefill.customPaint) {
+        const paintNotice = document.createElement("p");
+        paintNotice.className = "quote-paint-disclaimer";
+        paintNotice.textContent = BENJAMIN_MOORE_COLOR_DATA_NOTICE;
+        savedSummary.insertAdjacentElement("afterend", paintNotice);
+      }
+      setFormValue(form, "designId", activeDesignId);
+      Object.entries(quotePrefill.fields).forEach(([name, value]) => setFormValue(form, name, value));
+      quotePrefill.options.forEach((value) => setFormCheckbox(form, "options", value));
+    } catch (error) {
+      showStatus(status, "Your saved design could not be prepared for this form. Return to the configurator and save it again.");
+    }
   }
 
   const syncCustomPaint = () => {
@@ -385,6 +506,7 @@ function initQuoteForm() {
   finishSelect?.addEventListener("change", syncCustomPaint);
   syncCustomPaint();
 
+  if (photoInput) photoInput.disabled = false;
   photoInput?.addEventListener("change", () => {
     if (!photoStatus) return;
     const count = photoInput.files?.length || 0;
@@ -393,20 +515,11 @@ function initQuoteForm() {
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    const draft = {};
-    new FormData(form).forEach((value, key) => {
-      const cleanValue = value instanceof File ? value.name : value;
-      if (draft[key]) draft[key] = Array.isArray(draft[key]) ? [...draft[key], cleanValue] : [draft[key], cleanValue];
-      else draft[key] = cleanValue;
-    });
-    try {
-      localStorage.setItem("jqBookcasesQuoteDraft", JSON.stringify({ savedAt: new Date().toISOString(), fields: draft }));
-    } catch (error) {
-      // The confirmation remains useful when browser storage is unavailable.
-    }
-    showStatus(status, "Your project brief is complete and saved in this browser. This local preview does not transmit personal information.");
-    status?.scrollIntoView({ behavior: "smooth", block: "center" });
+    showStatus(status, "Your project brief is complete in this local preview. No personal information was transmitted.");
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    status?.scrollIntoView({ behavior, block: "center" });
   });
+  if (submitButton) submitButton.disabled = false;
 }
 
 function setFormValue(form, name, value) {

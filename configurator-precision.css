@@ -57,7 +57,7 @@ body[data-page="configurator"] .guided-progress-heading > strong {
 
 body[data-page="configurator"] .control-section-storage {
   display: grid;
-  gap: 0;
+  gap: 22px;
 }
 
 body[data-page="configurator"] .configurator-panel .control-section-storage > .stepper-control,
@@ -284,6 +284,14 @@ body[data-page="configurator"] .configurator-review-button {
   }
 }
 
+@media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
+  body[data-page="configurator"] .preview-tools,
+  body[data-page="configurator"] .configurator-model .view-controls {
+    width: max-content;
+    flex: 0 0 auto;
+  }
+}
+
 /* Guided workflow density and consistent hierarchy. */
 
 body[data-page="configurator"] .guided-experience,
@@ -419,7 +427,7 @@ body[data-page="configurator"] .control-section-storage .door-style-illustration
 }
 
 body[data-page="configurator"] .control-section-storage .door-style-copy strong {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 body[data-page="configurator"] .control-section-storage .door-style-copy small {
@@ -432,7 +440,7 @@ body[data-page="configurator"] .control-section-storage .door-count-options {
 
 body[data-page="configurator"] .control-section-storage .control-helper {
   margin-top: 5px;
-  font-size: 9px;
+  font-size: 12px;
   line-height: 1.35;
 }
 
@@ -1624,5 +1632,542 @@ body[data-page="configurator"] .lighting-card:has(input:focus-visible) {
   body[data-page="configurator"] .lighting-card label > span:last-child {
     font-size: 10px;
     line-height: 1.18;
+  }
+}
+
+/* Short phone-landscape viewports can be wider than the normal phone
+ * breakpoint while still having less than 300px for the app after its header
+ * and estimate row. Use the proven mobile document flow in that specific
+ * range so every workflow and camera control remains reachable. */
+@media (min-width: 768px) and (max-width: 950px) and (orientation: landscape) and (max-height: 500px) {
+  html {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body[data-page="configurator"] {
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: auto;
+  }
+
+  body[data-page="configurator"] main,
+  body[data-page="configurator"] .builder-hero,
+  body[data-page="configurator"] .builder-page,
+  body[data-page="configurator"] .builder-hero > .container,
+  body[data-page="configurator"] [data-bookcase-builder] {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .configurator-experience {
+    --short-preview-height: 260px;
+    --short-dock-height: 54px;
+    --short-rail-height: 54px;
+    --short-ar-width: 140px;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--short-preview-height) var(--short-rail-height) auto auto;
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    width: 100%;
+    height: var(--short-preview-height);
+    min-height: 0;
+    grid-column: 1;
+    grid-row: 1;
+    overflow: hidden;
+  }
+
+  body[data-page="configurator"] .preview-heading {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-model .viewer-stage {
+    inset: 0 0 var(--short-dock-height);
+    width: auto;
+    height: auto;
+  }
+
+  body[data-page="configurator"] .preview-control-dock {
+    position: absolute;
+    z-index: 12;
+    top: auto;
+    right: var(--short-ar-width);
+    bottom: 0;
+    left: 0;
+    display: flex;
+    width: auto;
+    height: var(--short-dock-height);
+    align-items: center;
+    border-top: 1px solid var(--jq-border);
+    background: rgba(255, 253, 249, 0.97);
+    padding: 3px 4px;
+    transform: none;
+  }
+
+  body[data-page="configurator"] .preview-tools {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls {
+    position: static;
+    display: grid;
+    width: 100%;
+    height: 48px;
+    min-height: 48px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+    border: 0;
+    background: transparent;
+    padding: 2px;
+    box-shadow: none;
+    transform: none;
+  }
+
+  body[data-page="configurator"] .configurator-model .view-controls button {
+    width: auto;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    padding: 4px 2px;
+  }
+
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch {
+    position: absolute;
+    z-index: 13;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    width: var(--short-ar-width);
+    height: var(--short-dock-height);
+    align-items: center;
+    border: 0;
+    border-top: 1px solid var(--jq-border);
+    border-left: 1px solid var(--jq-border);
+    border-radius: 0;
+    background: rgba(255, 253, 249, 0.97);
+    padding: 4px;
+    box-shadow: none;
+  }
+
+  body[data-page="configurator"] .cabinet-ar-launch-heading,
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch p,
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-help {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button {
+    display: inline-flex;
+    width: 100%;
+    min-width: 0;
+    height: 46px;
+    min-height: 46px;
+    padding: 0 8px;
+    font-size: 10px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail {
+    width: 100%;
+    height: var(--short-rail-height);
+    min-height: 0;
+    grid-column: 1;
+    grid-row: 2;
+    overflow: hidden;
+    border-right: 0;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail ol {
+    width: 100%;
+    height: var(--short-rail-height);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+    padding: 3px 4px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li {
+    width: auto;
+    min-width: 0;
+    height: 48px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button {
+    width: 100%;
+    min-width: 0;
+    height: 48px;
+    min-height: 48px;
+    grid-template-rows: 26px auto;
+    gap: 2px;
+    padding: 1px 0;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button > span {
+    width: 26px;
+    height: 26px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail button small {
+    font-size: 8px;
+    line-height: 10px;
+  }
+
+  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
+    top: 25px;
+    right: -5px;
+    bottom: auto;
+    left: auto;
+    width: 10px;
+    height: 1px;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    grid-column: 1;
+    grid-row: 3;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  body[data-page="configurator"] .configurator-control-experience > [role="tabpanel"] {
+    min-height: 0;
+  }
+
+  body[data-page="configurator"] .guided-experience,
+  body[data-page="configurator"] .all-controls-experience {
+    min-height: 0;
+    padding-bottom: 0;
+  }
+
+  body[data-page="configurator"] .guided-experience {
+    display: block;
+  }
+
+  body[data-page="configurator"] .guided-navigation {
+    position: static;
+    margin: 18px -16px 0;
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar,
+  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
+    position: static;
+    width: 100%;
+    height: 72px;
+    min-height: 72px;
+    grid-column: 1;
+    grid-row: 4;
+    grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .configurator-estimate-bar .studio-trust-row,
+  body[data-page="configurator"] .configurator-experience .configurator-quote-note {
+    display: none;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-actions {
+    justify-content: end;
+  }
+}
+
+/* Projected Section Designer measurements. Geometry and hit targets are
+ * positioned in CSS pixels by the persistent 3D viewer. */
+body[data-page="configurator"] .section-designer-overlay {
+  position: absolute;
+  z-index: 8;
+  inset: 0 auto 0 0;
+  width: 1px;
+  overflow: visible;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-dimension-track,
+body[data-page="configurator"] .section-designer-overlay .section-divider-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: auto;
+  border: 0;
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-dimension,
+body[data-page="configurator"] .section-designer-overlay .overall-dimension {
+  position: absolute;
+  display: block;
+  height: 1px;
+  border: 0;
+  color: #fffaf2;
+  text-align: center;
+  transition: opacity 140ms ease;
+}
+
+body[data-page="configurator"] .section-designer-overlay .dimension-line {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 246, 232, 0.94);
+  box-shadow: 0 1px 2px rgba(22, 18, 14, 0.72);
+}
+
+body[data-page="configurator"] .section-designer-overlay .dimension-tick {
+  position: absolute;
+  top: -5px;
+  width: 2px;
+  height: 12px;
+  border-radius: 1px;
+  background: rgba(255, 246, 232, 0.96);
+  box-shadow: 0 1px 2px rgba(22, 18, 14, 0.72);
+}
+
+body[data-page="configurator"] .section-designer-overlay .dimension-tick.is-start {
+  left: 0;
+}
+
+body[data-page="configurator"] .section-designer-overlay .dimension-tick.is-end {
+  right: 0;
+}
+
+body[data-page="configurator"] .section-designer-overlay .dimension-label,
+body[data-page="configurator"] .section-designer-overlay .overall-dimension span {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  display: inline-flex;
+  min-height: 24px;
+  align-items: baseline;
+  gap: 4px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 248, 238, 0.32);
+  border-radius: 999px;
+  background: rgba(35, 29, 24, 0.94);
+  box-shadow: 0 2px 8px rgba(17, 14, 11, 0.4);
+  color: #fffaf2;
+  padding: 4px 8px;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .section-designer-overlay .dimension-label strong {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+body[data-page="configurator"] .section-designer-overlay .dimension-label small {
+  color: rgba(255, 250, 242, 0.76);
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-dimension.is-compact-label .dimension-label {
+  min-height: 20px;
+  gap: 0;
+  padding: 3px 4px;
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-dimension.is-compact-label .dimension-label strong {
+  font-size: 10px;
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-dimension.is-compact-label .dimension-label small {
+  display: none;
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-dimension.is-ultra-compact-label .dimension-label {
+  padding-inline: 0;
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-dimension.is-ultra-compact-label .dimension-label strong {
+  font-size: 9px;
+  letter-spacing: -0.25px;
+}
+
+body[data-page="configurator"] .section-designer-overlay.has-label-collisions .section-dimension-track {
+  opacity: 0.72;
+}
+
+body[data-page="configurator"] .section-designer-overlay.is-space-constrained .dimension-label {
+  top: 4px;
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-dimension.is-selected .dimension-line,
+body[data-page="configurator"] .section-designer-overlay .section-dimension.is-selected .dimension-tick {
+  height: 3px;
+  background: #ffd29a;
+  box-shadow: 0 0 0 1px rgba(58, 39, 23, 0.44), 0 0 9px rgba(255, 192, 116, 0.62);
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-dimension.is-selected .dimension-label {
+  border-color: rgba(255, 210, 154, 0.72);
+  background: rgba(68, 46, 29, 0.97);
+  color: #ffe2bd;
+}
+
+body[data-page="configurator"] .section-designer-overlay .overall-dimension::before,
+body[data-page="configurator"] .section-designer-overlay .overall-dimension::after {
+  display: none;
+}
+
+body[data-page="configurator"] .section-designer-overlay .overall-dimension .dimension-line,
+body[data-page="configurator"] .section-designer-overlay .overall-dimension .dimension-tick {
+  background: #ffd29a;
+}
+
+body[data-page="configurator"] .section-designer-overlay .overall-dimension .dimension-label {
+  border-color: rgba(255, 210, 154, 0.52);
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-divider-handle {
+  position: absolute;
+  display: block;
+  width: 52px;
+  min-width: 52px;
+  min-height: 72px;
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 16px;
+  outline: 0;
+  background: transparent;
+  padding: 0;
+  pointer-events: auto;
+  cursor: ew-resize;
+  touch-action: none;
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-divider-handle .section-divider-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  transform: translateX(-50%);
+  border-radius: 3px;
+  background: rgba(255, 210, 154, 0.92);
+  box-shadow: 0 0 0 1px rgba(44, 31, 22, 0.52), 0 0 8px rgba(255, 190, 112, 0.42);
+  transition: width 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-divider-grip {
+  position: absolute;
+  bottom: 1px;
+  left: 50%;
+  width: 18px;
+  height: 28px;
+  transform: translateX(-50%);
+  border: 2px solid rgba(255, 243, 225, 0.96);
+  border-radius: 8px;
+  background: rgba(53, 39, 29, 0.96);
+  box-shadow: 0 2px 8px rgba(20, 15, 12, 0.52);
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-divider-handle:hover .section-divider-guide,
+body[data-page="configurator"] .section-designer-overlay .section-divider-handle.is-selected .section-divider-guide,
+body[data-page="configurator"] .section-designer-overlay .section-divider-handle:focus-visible .section-divider-guide {
+  width: 5px;
+  background: #fff1df;
+  box-shadow: 0 0 0 2px rgba(71, 46, 27, 0.6), 0 0 14px rgba(255, 204, 140, 0.78);
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-divider-handle:hover .section-divider-grip,
+body[data-page="configurator"] .section-designer-overlay .section-divider-handle.is-selected .section-divider-grip,
+body[data-page="configurator"] .section-designer-overlay .section-divider-handle:focus-visible .section-divider-grip {
+  border-color: #fff8ed;
+  background: #795332;
+  box-shadow: 0 0 0 3px rgba(255, 210, 154, 0.58), 0 3px 11px rgba(20, 15, 12, 0.6);
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-divider-handle::after {
+  right: 50%;
+  bottom: -31px;
+  min-height: 23px;
+  transform: translateX(50%);
+  border: 1px solid rgba(255, 248, 238, 0.32);
+  background: rgba(35, 29, 24, 0.96);
+  padding: 4px 8px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-divider-handle.is-invalid .section-divider-guide {
+  background: #ff9a87;
+}
+
+body[data-page="configurator"] .section-designer-overlay .section-divider-handle.is-clamped .section-divider-grip {
+  border-color: #ffd29a;
+}
+
+body[data-page="configurator"] .section-designer-overlay.is-perspective-faded .section-dimension-track,
+body[data-page="configurator"] .section-designer-overlay.is-perspective-faded .overall-dimension {
+  opacity: 0.24;
+}
+
+body[data-page="configurator"] .section-designer-overlay.is-perspective-faded .section-divider-handle,
+body[data-page="configurator"] .section-designer-overlay .section-divider-handle:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] .section-designer-overlay .section-divider-handle {
+    display: block;
+    width: 48px;
+    min-width: 48px;
+  }
+
+  body[data-page="configurator"] .section-designer-overlay .dimension-label,
+  body[data-page="configurator"] .section-designer-overlay .overall-dimension span {
+    min-height: 23px;
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  body[data-page="configurator"] .section-designer-overlay .dimension-label strong {
+    font-size: 11px;
+  }
+}
+
+@media (min-width: 2560px) {
+  body[data-page="configurator"] .section-designer-overlay .dimension-label,
+  body[data-page="configurator"] .section-designer-overlay .overall-dimension span {
+    min-height: 30px;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  body[data-page="configurator"] .section-designer-overlay .dimension-label strong {
+    font-size: 14px;
+  }
+
+  body[data-page="configurator"] .section-designer-overlay .dimension-label small {
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-page="configurator"] .section-designer-overlay,
+  body[data-page="configurator"] .section-designer-overlay .section-dimension,
+  body[data-page="configurator"] .section-designer-overlay .overall-dimension,
+  body[data-page="configurator"] .section-designer-overlay .section-divider-guide {
+    transition: none;
   }
 }

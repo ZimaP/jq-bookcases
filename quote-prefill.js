@@ -1,4 +1,10 @@
-import { buildPricingContext } from "./bookcase-pricing.js?v=engine-contract-20260713s";
+import { buildPricingContext } from "./bookcase-pricing.js?v=configurator-refine-20260714a";
+import {
+  getHardwareVariant,
+  hardwareFinishOptions,
+  hardwareTypeOptions,
+  optionLabels
+} from "./bookcase-config.js?v=configurator-refine-20260714a";
 
 const storedLayoutLabels = Object.freeze({
   "lower-cabinets": "Full Bookcase",
@@ -41,10 +47,27 @@ export function createQuotePrefill(config = {}) {
   const pricing = buildPricingContext(config);
   const normalizedConfig = pricing.selections;
   const billable = pricing.billableQuantities;
-  const hasLowerCabinetValue = Object.prototype.hasOwnProperty.call(config, "lowerCabinets");
-  const hasLowerCabinets = hasLowerCabinetValue
-    ? config.lowerCabinets !== false && config.lowerCabinets !== "false"
-    : false;
+  const hasLowerCabinets = pricing.bom.openings.lowerStorageCount > 0;
+  const hardwareVariant = getHardwareVariant(normalizedConfig.hardware);
+  const hardwareTypeLabel = hardwareTypeOptions.find((option) => option.value === hardwareVariant?.type)?.label || "";
+  const hardwareFinishLabel = hardwareFinishOptions.find((option) => option.value === hardwareVariant?.finish)?.label || "";
+  const doorFrontProfile = billable.hingedDoorLeaves > 0
+    ? { id: normalizedConfig.doorStyle, label: optionLabels.doorStyle[normalizedConfig.doorStyle], count: billable.hingedDoorLeaves }
+    : null;
+  const drawerFrontProfile = billable.generatedDrawerFronts > 0
+    ? { id: normalizedConfig.drawerFrontStyle, label: optionLabels.drawerFrontStyle[normalizedConfig.drawerFrontStyle], count: billable.generatedDrawerFronts }
+    : null;
+  const hardwareSelection = billable.hardwareUnits > 0 && hardwareVariant
+    ? {
+        id: hardwareVariant.value,
+        label: hardwareVariant.label,
+        type: hardwareVariant.type,
+        typeLabel: hardwareTypeLabel,
+        finish: hardwareVariant.finish,
+        finishLabel: hardwareFinishLabel,
+        count: billable.hardwareUnits
+      }
+    : null;
   const customBmColor = [normalizedConfig.customPaintColor, normalizedConfig.customPaintCode].filter(Boolean).join(" ");
   const paintSelection = normalizedConfig.paintSelection;
   const room = config.centerOpening
@@ -60,7 +83,7 @@ export function createQuotePrefill(config = {}) {
   if (billable.compatibleLightingComponents > 0) options.push("lighting");
   if (config.crownStyle && config.crownStyle !== "none") options.push("crown");
   if (billable.hardwareUnits > 0) options.push("hardware");
-  if (Number(config.shelves) > 0) options.push("shelves");
+  if (pricing.bom.shelves.adjustableCount > 0) options.push("shelves");
   if (config.centerOpening) options.push("tv");
   if (config.featureOpening) options.push("fireplace");
 
@@ -68,6 +91,8 @@ export function createQuotePrefill(config = {}) {
     layoutLabel: layout.label,
     price: pricing.total,
     billableQuantities: billable,
+    frontProfiles: { door: doorFrontProfile, drawer: drawerFrontProfile },
+    hardwareSelection,
     customPaint: pricing.customPaint.selected,
     paintBrand: paintSelection?.brand || (normalizedConfig.finish === "custom_bm" ? "Benjamin Moore" : ""),
     paintCode: paintSelection?.code || normalizedConfig.customPaintCode || "",
@@ -81,8 +106,15 @@ export function createQuotePrefill(config = {}) {
       ceilingHeight: config.height ? `${config.height}"` : "",
       bookcaseHeight: config.height ? `${config.height}"` : "",
       depth: config.depth ? `${config.depth}"` : "",
-      lowerCabinets: hasLowerCabinetValue ? (hasLowerCabinets ? "Yes" : "No") : "",
+      lowerCabinets: hasLowerCabinets ? "Yes" : "No",
       layout: layout.value,
+      ...(doorFrontProfile ? { doorFrontProfile: doorFrontProfile.label } : {}),
+      ...(drawerFrontProfile ? { drawerFrontProfile: drawerFrontProfile.label } : {}),
+      ...(hardwareSelection ? {
+        hardwareType: hardwareSelection.typeLabel,
+        hardwareFinish: hardwareSelection.finishLabel,
+        hardwareVariant: hardwareSelection.label
+      } : {}),
       paintFinish: config.finish || "",
       customBmColor,
       customPaint: pricing.customPaint.selected ? "Yes" : "No",

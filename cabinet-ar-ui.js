@@ -1,6 +1,7 @@
 import {
   CABINET_AR_MODEL_VIEWER_URL,
   CABINET_AR_QR_MODULE_URL,
+  clearArModelCache,
   createArModelProvider,
   createArModelRequestCoordinator,
   createCabinetArShareUrl,
@@ -8,11 +9,12 @@ import {
   emitArAnalytics,
   hashCabinetArConfiguration,
   normalizeCabinetArConfiguration
-} from "./cabinet-ar.js";
-import { generateProceduralCabinetModel } from "./cabinet-ar-model.js";
-import { iconSvg } from "./icon-system.js?v=jq-icons-20260713i";
+} from "./cabinet-ar.js?v=configurator-refine-20260714a";
+import { generateProceduralCabinetModel } from "./cabinet-ar-model.js?v=configurator-refine-20260714a";
+import { iconSvg } from "./icon-system.js?v=configurator-refine-20260714a";
 
 const closeIcon = iconSvg("close");
+const MODEL_VIEWER_DEFINITION_TIMEOUT_MS = 10000;
 
 let modelViewerLoader;
 
@@ -121,6 +123,7 @@ export class CabinetArController {
     this.destroyed = true;
     window.clearTimeout(this.slowTimer);
     this.coordinator.destroy();
+    clearArModelCache();
     this.releaseGeneratedUsdz();
     this.intersectionObserver?.disconnect();
   }
@@ -354,18 +357,36 @@ export class CabinetArController {
   }
 }
 
-function loadModelViewer() {
+export function loadModelViewer(definitionTimeoutMs = MODEL_VIEWER_DEFINITION_TIMEOUT_MS) {
   if (customElements.get("model-viewer")) return Promise.resolve();
   if (modelViewerLoader) return modelViewerLoader;
-  modelViewerLoader = new Promise((resolve, reject) => {
-    const script = document.createElement("script");
-    script.type = "module";
-    script.src = CABINET_AR_MODEL_VIEWER_URL;
-    script.dataset.cabinetArDependency = "model-viewer";
-    script.addEventListener("load", () => customElements.whenDefined("model-viewer").then(resolve), { once: true });
+  const script = document.createElement("script");
+  script.type = "module";
+  script.src = CABINET_AR_MODEL_VIEWER_URL;
+  script.dataset.cabinetArDependency = "model-viewer";
+  const loader = new Promise((resolve, reject) => {
+    script.addEventListener("load", () => {
+      let timeoutId;
+      const timeout = new Promise((unused, rejectTimeout) => {
+        timeoutId = globalThis.setTimeout(
+          () => rejectTimeout(new Error("The interactive AR viewer did not become available.")),
+          definitionTimeoutMs
+        );
+      });
+      Promise.race([customElements.whenDefined("model-viewer"), timeout])
+        .then(resolve, reject)
+        .finally(() => globalThis.clearTimeout(timeoutId));
+    }, { once: true });
     script.addEventListener("error", () => reject(new Error("The interactive AR viewer could not be loaded.")), { once: true });
-    document.head.appendChild(script);
   });
+  let retryableLoader;
+  retryableLoader = loader.catch((error) => {
+    script.remove();
+    if (modelViewerLoader === retryableLoader) modelViewerLoader = null;
+    throw error;
+  });
+  modelViewerLoader = retryableLoader;
+  document.head.appendChild(script);
   return modelViewerLoader;
 }
 

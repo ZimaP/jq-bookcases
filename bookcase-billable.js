@@ -30,6 +30,7 @@ export function deriveBillableComponents(layout = {}) {
     shelfLightLocations: lights.filter((light) => light.metadata?.lightType === "shelf_led").length,
     verticalLightChannels: lights.filter((light) => light.metadata?.lightType === "vertical_led").length,
     doorsByStyle: countBy(doors, (door) => door.metadata?.style || "unknown"),
+    drawersByStyle: countBy(drawerFronts, (drawer) => drawer.metadata?.style || "unknown"),
     hardwareByType: countBy(handles, (handle) => handle.metadata?.hardware || "unknown"),
     lightsByType: countBy(lights, (light) => light.metadata?.lightType || "unknown")
   };

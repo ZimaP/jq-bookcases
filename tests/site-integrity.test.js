@@ -27,6 +27,16 @@ const configuratorSource = readFileSync(
   path.join(rootDir, "configurator-3d.js"),
   "utf8",
 );
+const pagesWorkflowSource = readFileSync(
+  path.join(rootDir, ".github", "workflows", "pages.yml"),
+  "utf8",
+);
+const packageSource = readFileSync(path.join(rootDir, "package.json"), "utf8");
+const playwrightConfigSource = readFileSync(path.join(rootDir, "playwright.config.js"), "utf8");
+const configuratorBrowserTestSource = readFileSync(
+  path.join(rootDir, "e2e", "bookcase-configurator.spec.js"),
+  "utf8",
+);
 
 function matches(text, pattern) {
   return Array.from(text.matchAll(pattern));
@@ -263,6 +273,22 @@ test("every canonical page satisfies the shared accessibility and metadata contr
   assertUnique(pageNames, "data-page values");
 });
 
+test("every public page provides navigation when JavaScript is unavailable", () => {
+  for (const [file, html] of pageSource) {
+    assert.match(html, /<noscript>[\s\S]*aria-label="Primary navigation without JavaScript"[\s\S]*<\/noscript>/, file);
+    assert.match(html, /The 3D configurator and interactive controls require JavaScript/, file);
+  }
+});
+
+test("public images reserve intrinsic space to avoid layout shifts", () => {
+  for (const [file, html] of pageSource) {
+    for (const imageTag of tags(html, "img")) {
+      assert.ok(attribute(imageTag, "width"), `${file} image is missing width: ${imageTag}`);
+      assert.ok(attribute(imageTag, "height"), `${file} image is missing height: ${imageTag}`);
+    }
+  }
+});
+
 test("all pages load the shared stylesheet and site script with one cache token", () => {
   const tokens = [];
 
@@ -430,7 +456,104 @@ test("custom saved designs retain their structural layout in the quote handoff",
   assert.match(siteSource, /createQuotePrefill\(config\)/);
   assert.match(siteSource, /Object\.entries\(quotePrefill\.fields\)/);
   assert.match(siteSource, /formatStoredPrice\(quotePrefill\.price\)/);
+  assert.match(siteSource, /quotePrefill\.frontProfiles\?\.door\?\.label/);
+  assert.match(siteSource, /quotePrefill\.frontProfiles\?\.drawer\?\.label/);
+  assert.match(siteSource, /quotePrefill\.hardwareSelection\?\.label/);
   assert.match(quotePrefillSource, /layoutLabel: layout\.label/);
   assert.match(quotePrefillSource, /compatibleLightingComponents > 0/);
   assert.doesNotMatch(siteSource, /setFormValue\(form, "layout", config\.layoutPreset/);
+});
+
+test("quote preview validates saved designs and never retains personal information", () => {
+  const quotePage = pageSource.get("request-quote.html");
+  assert.match(siteSource, /restoreAcceptedDesignSnapshot\(storedDesign\)/);
+  assert.match(siteSource, /requestedDesignId === acceptedStoredDesign\.snapshot\.id/);
+  assert.match(siteSource, /No personal information was transmitted/);
+  assert.doesNotMatch(siteSource, /jqBookcasesQuoteDraft/);
+  assert.match(quotePage, /data-quote-fields[^>]*inert/);
+  assert.match(siteSource, /interactiveFields\.inert = false/);
+  assert.match(quotePage, /data-quote-submit[^>]*disabled/);
+  assert.match(quotePage, /id="quote-project-files"[^>]*disabled/);
+  assert.match(siteSource, /photoInput\.disabled = false/);
+  assert.match(quotePage, /does not currently transmit a quote request/);
+  for (const field of [
+    "doorFrontProfile",
+    "drawerFrontProfile",
+    "hardwareType",
+    "hardwareFinish",
+    "hardwareVariant",
+  ]) {
+    assert.match(quotePage, new RegExp(`<input\\s+name=["']${field}["']\\s+type=["']hidden["']`));
+  }
+});
+
+test("local development servers bind to loopback instead of exposing repository files", () => {
+  assert.match(packageSource, /http\.server 5173 --bind 127\.0\.0\.1/);
+  assert.match(playwrightConfigSource, /http\.server \$\{testPort\} --bind 127\.0\.0\.1/);
+});
+
+test("browser modules use one cache identity for every shared dependency", () => {
+  const identitiesByPath = new Map();
+  const runtimeModules = readdirSync(rootDir).filter((file) => file.endsWith(".js"));
+  for (const file of runtimeModules) {
+    const source = readFileSync(path.join(rootDir, file), "utf8");
+    const imports = source.matchAll(/(?:from\s*|import\s*\()\s*["'](\.\/[^"']+\.js(?:\?[^"']*)?)["']/g);
+    for (const match of imports) {
+      const url = new URL(match[1], `https://jq-bookcases.test/${file}`);
+      if (!identitiesByPath.has(url.pathname)) identitiesByPath.set(url.pathname, new Set());
+      identitiesByPath.get(url.pathname).add(url.search);
+    }
+  }
+
+  for (const [modulePath, identities] of identitiesByPath) {
+    assert.equal(identities.size, 1, `${modulePath} loads through multiple browser cache identities: ${[...identities].join(", ")}`);
+  }
+});
+
+test("production Pages deploys are main-only and omit development artifacts", () => {
+  assert.doesNotMatch(
+    pagesWorkflowSource,
+    /codex\/cabinet-ar-mvp/,
+    "the retired AR feature branch must not deploy to the production Pages environment",
+  );
+  assert.equal(
+    matches(pagesWorkflowSource, /if: github\.ref == 'refs\/heads\/main'/g).length,
+    2,
+    "artifact publication and deployment must both be guarded to the main ref",
+  );
+
+  assert.match(pagesWorkflowSource, /find \. -maxdepth 1 -type f/);
+  assert.match(pagesWorkflowSource, /-name '\*\.html'/);
+  assert.match(pagesWorkflowSource, /-name '\*\.css'/);
+  assert.match(pagesWorkflowSource, /-name '\*\.js'/);
+  assert.match(pagesWorkflowSource, /! -name 'playwright\.config\.js'/);
+  assert.match(pagesWorkflowSource, /cp -R assets styles _site\//);
+  assert.match(pagesWorkflowSource, /cp -R data\/generated _site\/data\//);
+  assert.doesNotMatch(pagesWorkflowSource, /rsync -a|cp -R \.\/ _site/);
+  assert.match(pagesWorkflowSource, /test ! -e _site\/playwright\.config\.js/);
+  assert.match(pagesWorkflowSource, /test ! -e _site\/package\.json/);
+
+  for (const runtimeAsset of [
+    "_site/assets/vendor/three.module.js",
+    "_site/data/generated/benjamin-moore-colors.json",
+  ]) {
+    assert.match(
+      pagesWorkflowSource,
+      new RegExp("test -f " + runtimeAsset.replaceAll("/", "\\/")),
+      runtimeAsset + " must be verified before upload",
+    );
+  }
+});
+
+test("browser QA screenshots stay in ignored test output", () => {
+  assert.doesNotMatch(
+    configuratorBrowserTestSource,
+    /\bpath:\s*[`"']artifacts\//,
+    "browser tests must not overwrite tracked QA evidence",
+  );
+  assert.match(
+    configuratorBrowserTestSource,
+    /\bpath:\s*[`"']test-results\//,
+    "browser screenshots must use the ignored Playwright output directory",
+  );
 });
