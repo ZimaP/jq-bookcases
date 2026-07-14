@@ -680,18 +680,10 @@ class BookcaseConfigurator {
           </label>
         `).join("")}
       </fieldset>
+      <p class="studio-dimension-reassurance">You can change wall width, height, and depth at any time inside the design studio.</p>
       <button class="studio-unsure-button" type="button" data-studio-unsure>I’m not sure yet</button>
-      <fieldset class="studio-section-choice">
-        <legend>Starting structure</legend>
-        <p>Choose a section count. We’ll begin with equal open sections and no cabinets or lighting.</p>
-        <div role="radiogroup" aria-label="Starting section count">
-          ${[1, 2, 3, 4, 5, 6].map((count) => `
-            <label><input type="radio" name="${this.id}-studio-sections" data-studio-sections value="${count}" ${count === this.studioSectionCount ? "checked" : ""}><span>${count}</span></label>
-          `).join("")}
-        </div>
-      </fieldset>
-      <button class="studio-create-button" type="button" data-studio-create>Build my starting structure</button>
-      <p class="studio-reassurance">This creates your first accepted design. Only then will the live 3D model, estimate, Save, Quote, and room view become available.</p>
+      <button class="studio-create-button" type="button" data-studio-create>Start with these dimensions</button>
+      <p class="studio-reassurance">This creates your first editable design and opens the live 3D model, estimate, Save, Quote, and room view.</p>
     `;
   }
 
@@ -1498,7 +1490,7 @@ class BookcaseConfigurator {
       return;
     }
     this.studioDimensions = { ...validation.dimensions };
-    const selectedSections = Number(this.host.querySelector("[data-studio-sections]:checked")?.value) || suggestStudioSectionCount(validation.dimensions.width);
+    const selectedSections = suggestStudioSectionCount(validation.dimensions.width);
     this.studioSectionCount = selectedSections;
     const startingPoint = createNeutralCustomConfig({ ...validation.dimensions, sections: selectedSections });
     if (!startingPoint.accepted) {
