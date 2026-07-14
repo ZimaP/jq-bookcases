@@ -8,6 +8,7 @@ import {
   filterInspirationIdeas,
   getStudioPreviewIdeas,
   inspirationIdeas,
+  isStudioWelcomeRequest,
   resolveStudioEntryState,
   suggestStudioSectionCount,
   validateStudioDimensions
@@ -16,8 +17,16 @@ import {
 test("new visitors stay presentation-only while valid explicit sources bypass welcome", () => {
   assert.deepEqual(resolveStudioEntryState(), { presentationOnly: true, source: "new" });
   assert.deepEqual(resolveStudioEntryState({ hasValidSavedDesign: true }), { presentationOnly: false, source: "saved" });
-  assert.deepEqual(resolveStudioEntryState({ hasValidPreset: true, hasValidSavedDesign: true }), { presentationOnly: false, source: "preset" });
-  assert.deepEqual(resolveStudioEntryState({ hasValidSharedConfiguration: true, hasValidPreset: true }), { presentationOnly: false, source: "share" });
+  assert.deepEqual(resolveStudioEntryState({ forceWelcome: true, hasValidSavedDesign: true }), { presentationOnly: true, source: "new" });
+  assert.deepEqual(resolveStudioEntryState({ forceWelcome: true, hasValidPreset: true, hasValidSavedDesign: true }), { presentationOnly: false, source: "preset" });
+  assert.deepEqual(resolveStudioEntryState({ forceWelcome: true, hasValidSharedConfiguration: true, hasValidPreset: true }), { presentationOnly: false, source: "share" });
+});
+
+test("only the explicit homepage start parameter forces the studio welcome", () => {
+  assert.equal(isStudioWelcomeRequest("?start=welcome"), true);
+  assert.equal(isStudioWelcomeRequest("start=welcome"), true);
+  assert.equal(isStudioWelcomeRequest("?preset=media-wall"), false);
+  assert.equal(isStudioWelcomeRequest("?start=resume"), false);
 });
 
 test("studio dimensions validate all three physical inputs without silently clamping", () => {

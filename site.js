@@ -127,7 +127,7 @@ function injectFooter() {
         <div>
           ${renderBrandLink("footer-brand")}
           <p>Premium built-ins, expertly crafted for your home.</p>
-          <a class="footer-design-link" href="configurator.html"><i data-icon="camera-orbit" aria-hidden="true"></i> Open the ${officialBrand.product}</a>
+          <a class="footer-design-link" href="configurator.html?start=welcome"><i data-icon="camera-orbit" aria-hidden="true"></i> Open the ${officialBrand.product}</a>
         </div>
         <div>
           <h3>Explore</h3>
@@ -141,7 +141,7 @@ function injectFooter() {
         <div>
           <h3>Plan Your Project</h3>
           <ul class="footer-list">
-            <li><a href="configurator.html">Design Your Bookcase</a></li>
+            <li><a href="configurator.html?start=welcome">Design Your Bookcase</a></li>
             <li><a href="request-quote.html">Request a Quote</a></li>
             <li><a href="faq.html">FAQ</a></li>
             <li><a href="faq.html#faq-6">Delivery &amp; Installation</a></li>
@@ -151,7 +151,7 @@ function injectFooter() {
           <span class="section-kicker">Ready when you are</span>
           <h3>Start with a layout. Finish with a measured plan.</h3>
           <div class="footer-project-actions">
-            <a class="button button-primary" href="configurator.html">Design Your Bookcase</a>
+            <a class="button button-primary" href="configurator.html?start=welcome">Design Your Bookcase</a>
             <a class="text-link" href="request-quote.html">Request a Quote <i class="utility-icon" data-icon="arrow-right" aria-hidden="true"></i></a>
           </div>
         </div>

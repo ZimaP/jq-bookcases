@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const testPort = Number(process.env.PLAYWRIGHT_PORT || 5173);
+const testBaseUrl = `http://127.0.0.1:${testPort}`;
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
@@ -14,7 +17,7 @@ export default defineConfig({
     ? [["line"], ["html", { outputFolder: "playwright-report", open: "never" }]]
     : [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
   use: {
-    baseURL: "http://127.0.0.1:5173",
+    baseURL: testBaseUrl,
     viewport: { width: 1536, height: 1024 },
     deviceScaleFactor: 1,
     colorScheme: "light",
@@ -39,8 +42,8 @@ export default defineConfig({
     }
   ],
   webServer: {
-    command: "npm run serve",
-    url: "http://127.0.0.1:5173/configurator.html",
+    command: `python3 -m http.server ${testPort}`,
+    url: `${testBaseUrl}/configurator.html`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     stdout: "ignore",
