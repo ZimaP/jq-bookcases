@@ -60,7 +60,7 @@ Subject: `Stabilize studio route transitions`
 
 ## 4. Final commit
 
-Final tested implementation and CI-portability commit:
+Final tested application and Playwright-config commit:
 
 `c9969e8169276327469e7c010f238826bbb8e718`
 
@@ -72,10 +72,12 @@ Checkpoint history:
 - `7d9d73a` — Add final full-system QA report
 - `af52d12` — Record draft PR in QA report
 - `c9969e8` — Fix CI browser portability regressions
+- final CI follow-up (this report commit) — force Mesa software rendering on the
+  GPU-less hosted Linux browser runner
 
-The final report refresh follows the tested code/CI commit. The exact final
-branch HEAD is also recorded in the Codex handoff and draft PR because a commit
-cannot contain its own hash.
+The final workflow/report refresh follows the tested application commit. The
+exact final branch HEAD is also recorded in the Codex handoff and draft PR
+because a commit cannot contain its own hash.
 
 ## 5. Environment used
 
@@ -397,9 +399,11 @@ than product regressions: an unscoped color-name locator became ambiguous after
 the color was applied, and GPU-less Firefox correctly chose the WebGL fallback
 instead of satisfying the real-render smoke contract. The locator is now scoped
 to the applied-color summary, and Firefox CI explicitly enables its software
-WebGL path while retaining the strict real-canvas assertions. The affected
-Chromium case and all three Firefox smoke cases pass locally after the repair;
-final remote results are recorded on draft PR #4 after this report commit.
+WebGL path while retaining the strict real-canvas assertions. The hosted trace
+then proved Firefox also lacked a usable native GL driver, so the browser job
+now forces Mesa software GL as well. The affected Chromium case and all three
+Firefox smoke cases pass locally after the repair; final remote results are
+recorded on draft PR #4 after this report commit.
 
 ## 22. Accessibility result
 
@@ -546,15 +550,15 @@ Key implementation changes:
 - standardized module identities, lazy-loaded quote dependencies, and bound
   development/test servers to loopback;
 - added cross-browser/Axe/deep configurator regression coverage;
-- scoped the applied-paint assertion and enabled Firefox software WebGL in CI
-  without weakening the cross-browser real-render contract;
+- scoped the applied-paint assertion and enabled Firefox plus Mesa software
+  WebGL in CI without weakening the cross-browser real-render contract;
 - restricted Pages deployment to main, added a Chromium deployment gate, and
   assembled the public site from an explicit runtime allowlist.
 
 ## 28. Files changed
 
 Relative to the starting commit including this final report refresh: **62 files
-changed, 3,673 insertions, 504 deletions**. The set is:
+changed, 3,679 insertions, 504 deletions**. The set is:
 
 ```text
 .github/workflows/browser-quality.yml
@@ -726,10 +730,10 @@ excluded from Pages.
 [Draft PR #4: Full-system configurator QA, resilience, and visual polish](https://github.com/ZimaP/jq-bookcases/pull/4)
 
 The working tree began at `454cf75` on an existing, unmerged custom-studio
-lineage that was already 58 commits ahead of `main`. This audit adds seven
+lineage that was already 58 commits ahead of `main`. This audit adds eight
 commits from that explicit starting point, including report/PR metadata; the
 main-targeted draft PR therefore shows the inherited lineage as well as this
-audit (65 commits after the final report push). No history was rewritten to
+audit (66 commits after the final report push). No history was rewritten to
 conceal or flatten that context.
 
 ## 35. Clear final status
