@@ -76,12 +76,19 @@ export const STUDIO_PREVIEW_IDEA_IDS = Object.freeze([
 export function resolveStudioEntryState({
   hasValidSharedConfiguration = false,
   hasValidPreset = false,
+  forceWelcome = false,
   hasValidSavedDesign = false
 } = {}) {
   if (hasValidSharedConfiguration) return Object.freeze({ presentationOnly: false, source: "share" });
   if (hasValidPreset) return Object.freeze({ presentationOnly: false, source: "preset" });
+  if (forceWelcome) return Object.freeze({ presentationOnly: true, source: "new" });
   if (hasValidSavedDesign) return Object.freeze({ presentationOnly: false, source: "saved" });
   return Object.freeze({ presentationOnly: true, source: "new" });
+}
+
+export function isStudioWelcomeRequest(search = "") {
+  const params = new URLSearchParams(String(search).replace(/^\?/, ""));
+  return params.get("start") === "welcome";
 }
 
 export function normalizeStudioEntryView(value) {

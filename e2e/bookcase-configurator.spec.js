@@ -125,6 +125,44 @@ test("new visitor sees an unnumbered presentation-only welcome with no commercia
   expect(errors).toEqual([]);
 });
 
+test("homepage design CTAs force the welcome while plain configurator links resume saved work", async ({ page }) => {
+  const errors = monitorRuntime(page);
+  await openVerifiedConfigurator(page, "display-wall");
+  await page.locator("[data-save-design]").first().click();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("jqBookcasesDesign"))).not.toBeNull();
+
+  await page.goto("/configurator.html", { waitUntil: "networkidle" });
+  await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true");
+  await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toHaveCount(0);
+
+  await page.goto("/index.html", { waitUntil: "networkidle" });
+  const heroCta = page.getByRole("region", { name: "Custom built-in bookcases, designed around your space." })
+    .getByRole("link", { name: "Design Your Bookcase" });
+  await expect(heroCta).toHaveAttribute("href", "configurator.html?start=welcome");
+  await heroCta.click();
+  await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Start with my space/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Use an editable idea/ })).toBeVisible();
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("jqBookcasesDesign"))).not.toBeNull();
+  expect(new URL(page.url()).searchParams.has("start")).toBe(false);
+
+  await page.goto("/index.html", { waitUntil: "networkidle" });
+  const bottomCta = page.getByRole("region", { name: "Build a bookcase you can actually picture at home." })
+    .getByRole("link", { name: "Design Your Bookcase" });
+  await expect(bottomCta).toHaveAttribute("href", "configurator.html?start=welcome");
+  await bottomCta.click();
+  await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toBeVisible();
+
+  await page.goto("/index.html", { waitUntil: "networkidle" });
+  await page.locator('a.header-save-button[aria-label="Save Design"]').click();
+  await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true");
+  const resumed = await readAcceptedDesign(page);
+  expect(resumed.diagnostics.initialSource).toBe("saved");
+  expect(resumed.diagnostics.state.layoutPreset).toBe("display-wall");
+  expect(errors).toEqual([]);
+});
+
 test("custom-space route creates the first neutral accepted design exactly once", async ({ page }) => {
   const errors = monitorRuntime(page);
   await page.goto("/configurator.html", { waitUntil: "networkidle" });

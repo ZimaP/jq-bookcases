@@ -88,10 +88,11 @@ import {
   getInspirationIdea,
   getStudioPreviewIdeas,
   inspirationIdeas,
+  isStudioWelcomeRequest,
   normalizeStudioEntryView,
   suggestStudioSectionCount,
   validateStudioDimensions
-} from "./configurator-studio.js?v=custom-studio-20260713a";
+} from "./configurator-studio.js?v=custom-studio-20260713b";
 
 const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "shelfThickness", "lightingWarmth", "drawerCount"]);
 const builderIcons = Object.freeze({
@@ -384,7 +385,8 @@ class BookcaseConfigurator {
     if (this.host.__cabinetArSharedConfiguration) {
       return { config: this.host.__cabinetArSharedConfiguration, source: "share" };
     }
-    const requestedPresetId = new URLSearchParams(window.location.search).get("preset");
+    const searchParams = new URLSearchParams(window.location.search);
+    const requestedPresetId = searchParams.get("preset");
     const requestedPreset = layoutPresets.find((preset) => preset.id === requestedPresetId);
     if (requestedPreset) {
       return {
@@ -395,6 +397,12 @@ class BookcaseConfigurator {
         },
         source: "preset"
       };
+    }
+    if (isStudioWelcomeRequest(window.location.search)) {
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.delete("start");
+      window.history.replaceState(window.history.state, "", `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`);
+      return { config: null, source: "new" };
     }
     try {
       const stored = JSON.parse(localStorage.getItem("jqBookcasesDesign") || "null");
