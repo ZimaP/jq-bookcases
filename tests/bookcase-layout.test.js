@@ -380,6 +380,26 @@ test("drawer-oriented layouts create fitted stacks and hosted handles", () => {
   assert.equal(layout.validation.valid, true);
 });
 
+test("door and drawer descriptors carry independent normalized front profiles", () => {
+  const mixed = generateBookcaseLayout({
+    ...defaultBookcaseConfig,
+    sections: 2,
+    doorStyle: "glass",
+    drawerFrontStyle: "slim_shaker",
+    layoutMetadata: { sectionRatios: [1, 1], sectionTypes: ["lower_doors", "drawers"] }
+  });
+  assert.deepEqual(new Set(byRole(mixed, "door").map((component) => component.metadata.style)), new Set(["glass"]));
+  assert.deepEqual(new Set(byRole(mixed, "drawer_front").map((component) => component.metadata.style)), new Set(["slim_shaker"]));
+
+  const { drawerFrontStyle: _newField, ...legacyDefault } = defaultBookcaseConfig;
+  const legacy = normalizeLayoutConfig({ ...legacyDefault, doorStyle: "flat", lowerStorage: "drawers" });
+  assert.equal(legacy.config.drawerFrontStyle, "flat");
+
+  const invalid = normalizeLayoutConfig({ ...legacyDefault, drawerFrontStyle: "glass", lowerStorage: "drawers" });
+  assert.equal(invalid.config.drawerFrontStyle, "shaker");
+  assert.ok(invalid.corrections.some((correction) => correction.code === "DRAWER_FRONT_STYLE_DEFAULTED"));
+});
+
 test("preset metadata can assign drawers to selected sections only", () => {
   const layout = generateBookcaseLayout({
     layoutMetadata: { drawerSections: [1] },

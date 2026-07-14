@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { defaultBookcaseConfig, layoutPresets } from "../bookcase-config.js";
+import { deriveBillableComponents } from "../bookcase-billable.js";
 import { deriveBookcaseBOM, createLayoutFingerprint } from "../bookcase-bom.js";
 import { generateBookcaseLayout } from "../bookcase-layout.js";
 import {
@@ -31,6 +32,20 @@ test("default BOM quantities are derived from generated descriptors", () => {
       .filter((component) => !["assembly", "section", "section_group", "opening"].includes(component.role))
       .map((component) => component.id)
   );
+});
+
+test("drawer profile counts flow from descriptors into BOM and billable summaries", () => {
+  const layout = generateBookcaseLayout({
+    ...defaultBookcaseConfig,
+    lowerStorage: "drawers",
+    drawerFrontStyle: "slim_shaker"
+  });
+  const bom = deriveBookcaseBOM(layout);
+  const billable = deriveBillableComponents(layout);
+
+  assert.deepEqual(bom.drawers.byStyle, { slim_shaker: 12 });
+  assert.deepEqual(billable.drawersByStyle, { slim_shaker: 12 });
+  assert.equal(bom.doors.count, 0);
 });
 
 test("layout fingerprints are deterministic, serializable, and geometry-sensitive", () => {

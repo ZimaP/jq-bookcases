@@ -91,6 +91,15 @@ async function chooseRadio(page, category, field, value) {
   await expect.poll(async () => String((await readDesign(page)).state[field])).toBe(String(value));
 }
 
+async function chooseHardware(page, type, finish, canonicalVariant) {
+  await openCategory(page, "hardware");
+  await page.locator(`.hardware-type-choice:has(input[value="${type}"])`).click();
+  await expect(page.locator(`[data-hardware-type][value="${type}"]`)).toBeChecked();
+  await page.locator(`.hardware-finish-choice:has(input[value="${finish}"])`).click();
+  await expect(page.locator(`[data-hardware-finish][value="${finish}"]`)).toBeChecked();
+  await expect.poll(async () => (await readDesign(page)).state.hardware).toBe(canonicalVariant);
+}
+
 function expectVerifiedModel(design) {
   expect(design.render.valid).toBe(true);
   expect(design.render.rendered).toBe(design.render.expected);
@@ -174,7 +183,13 @@ test("section count and mixed storage changes stay synchronized with geometry, B
   expect(design.roles.drawer).toBe(20);
   expect(design.roles.handle).toBe(20);
 
-  await page.locator('[data-guided-step="layout"]').click();
+  const guidedTab = page.getByRole("tab", { name: /Guided Setup/ });
+  await expect(page.locator('[data-guided-step="layout"]')).toBeDisabled();
+  await guidedTab.click();
+  await expect(page.locator('[data-guided-step-content="dimensions"]')).toBeVisible();
+  await page.locator("[data-guided-continue]").click();
+  await expect(page.locator('[data-guided-step-content="layout"]')).toBeVisible();
+  await expect(page.locator('[data-guided-step="layout"]')).toHaveAttribute("aria-current", "step");
   const sections = page.locator('[data-stepper-control="sections"] input[data-field="sections"]');
   await sections.fill("6");
   await expect.poll(async () => (await readDesign(page)).state.sections).toBe(6);
@@ -184,15 +199,15 @@ test("section count and mixed storage changes stay synchronized with geometry, B
 
   await sections.fill("3");
   await expect.poll(async () => (await readDesign(page)).state.sections).toBe(3);
-  await page.locator("[data-section-designer-open]").click();
+  await expect(page.locator("[data-section-designer]")).toBeVisible();
   await expect(page.locator("[data-section-select]")).toHaveCount(3);
 
   const firstSection = page.locator('[data-section-select="0"]');
   await firstSection.focus();
   await firstSection.press("End");
   await expect(page.locator('[data-section-select="2"]')).toBeFocused();
-  await expect(page.locator('[data-section-select="2"]')).toHaveAttribute("aria-selected", "true");
-  await page.locator('[data-section-type="open"]').check();
+  await expect(page.locator('[data-section-select="2"]')).toHaveAttribute("aria-pressed", "true");
+  await page.locator('.section-type-card:has(input[data-section-type="open"])').click();
   await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["drawers", "drawers", "open"]);
   design = await readDesign(page);
   expect(design.bom.drawers.frontCount).toBe(10);
@@ -205,8 +220,73 @@ test("section count and mixed storage changes stay synchronized with geometry, B
   await expect.poll(async () => (await readDesign(page)).fingerprint).toBe(changedFingerprint);
   design = await readDesign(page);
   expect(design.sectionTypes).toEqual(["drawers", "drawers", "open"]);
+
+  await useAllControls(page);
+  await chooseRadio(page, "storage", "lowerStorage", "doors");
+  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["lower_doors", "lower_doors", "open"]);
+  design = await readDesign(page);
+  expect(design.state).toMatchObject({ lowerCabinets: true, lowerStorage: "doors" });
+  expect(design.roles.door).toBe(4);
+  expect(design.roles.drawer).toBe(0);
+
+  await chooseRadio(page, "storage", "lowerStorage", "drawers");
+  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["drawers", "drawers", "open"]);
+  design = await readDesign(page);
+  expect(design.roles.door).toBe(0);
+  expect(design.roles.drawer).toBe(10);
+
+  const globalLowerCabinets = page.locator('[data-category-panel="storage"] input[data-field="lowerCabinets"]');
+  await globalLowerCabinets.uncheck();
+  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["open", "open", "open"]);
+  design = await readDesign(page);
+  expect(design.state.lowerCabinets).toBe(false);
+  expect(design.roles.door).toBe(0);
+  expect(design.roles.drawer).toBe(0);
+
+  await globalLowerCabinets.check();
+  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["lower_doors", "lower_doors", "lower_doors"]);
+  design = await readDesign(page);
+  expect(design.state).toMatchObject({ lowerCabinets: true, lowerStorage: "doors" });
+  expect(design.roles.door).toBe(6);
+  expect(design.roles.drawer).toBe(0);
   expectVerifiedModel(design);
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
+  expect(runtimeErrors).toEqual([]);
+});
+
+test("All Controls renders one usable Fronts radio set with one checked applicable profile", async ({ page }) => {
+  const runtimeErrors = monitorRuntime(page);
+  await openConfigurator(page);
+  await useAllControls(page);
+
+  const allPanel = page.locator('[data-mode-panel="all"]');
+  await expect(allPanel.locator("[data-front-profile-groups]")).toHaveCount(1);
+  await openCategory(page, "storage");
+  await expect(page.locator('[data-category-panel="storage"] [data-front-profile-groups]')).toHaveCount(0);
+
+  await openCategory(page, "doors");
+  const frontsPanel = page.locator('[data-category-panel="doors"]');
+  const doorProfiles = frontsPanel.locator('[data-applicability="doors"]');
+  const drawerProfiles = frontsPanel.locator('[data-applicability="drawers"]');
+  await expect(doorProfiles).toBeVisible();
+  await expect(drawerProfiles).toBeHidden();
+  await expect(drawerProfiles).toHaveAttribute("inert", "");
+  await expect(doorProfiles.locator('input[data-field="doorStyle"]')).toHaveCount(4);
+  await expect(doorProfiles.locator('input[data-field="doorStyle"]:checked')).toHaveCount(1);
+  await doorProfiles.locator('.door-style-card:has(input[value="flat"])').click();
+  await expect.poll(async () => (await readDesign(page)).state.doorStyle).toBe("flat");
+  await expect(doorProfiles.locator('input[data-field="doorStyle"]:checked')).toHaveCount(1);
+
+  await chooseRadio(page, "storage", "lowerStorage", "drawers");
+  await openCategory(page, "doors");
+  await expect(doorProfiles).toBeHidden();
+  await expect(doorProfiles).toHaveAttribute("inert", "");
+  await expect(drawerProfiles).toBeVisible();
+  await expect(drawerProfiles.locator('input[data-field="drawerFrontStyle"]')).toHaveCount(3);
+  await expect(drawerProfiles.locator('input[data-field="drawerFrontStyle"]:checked')).toHaveCount(1);
+  await drawerProfiles.locator('.door-style-card:has(input[value="slim_shaker"])').click();
+  await expect.poll(async () => (await readDesign(page)).state.drawerFrontStyle).toBe("slim_shaker");
+  await expect(drawerProfiles.locator('input[data-field="drawerFrontStyle"]:checked')).toHaveCount(1);
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -220,7 +300,7 @@ test("construction, fronts, finish, hardware, lighting, and service selections p
   await chooseRadio(page, "construction", "crownStyle", "none");
   await setNumber(page, "construction", "shelfThickness", 2);
   await chooseRadio(page, "doors", "doorStyle", "glass");
-  await chooseRadio(page, "hardware", "hardware", "matte_black_pull");
+  await chooseHardware(page, "pull", "matte_black", "matte_black_pull");
   await chooseRadio(page, "lighting", "lighting", "vertical_led");
   await chooseRadio(page, "lighting", "lightingWarmth", 3500);
   await chooseRadio(page, "service", "delivery", "pickup");
@@ -266,7 +346,10 @@ test("construction, fronts, finish, hardware, lighting, and service selections p
   const review = page.locator("[data-review-dialog]");
   await expect(review).toHaveAttribute("open", "");
   await expect(review).toContainText("Hale Navy HC-154");
-  await expect(review).toContainText("Matte Black Pull");
+  await expect(review).toContainText("Hardware type");
+  await expect(review).toContainText("Pull");
+  await expect(review).toContainText("Hardware finish");
+  await expect(review).toContainText("Matte Black");
   await expect(review).toContainText("Side Vertical Lights");
   await expect(review).toContainText("Recessed Toe Kick");
   await page.keyboard.press("Escape");

@@ -5,9 +5,28 @@ The configurator has two explicit lifecycle states.
 1. `presentation`: a new visitor has no accepted physical design. The welcome and its engine-derived SVG scaffold may present capabilities, but they do not create canonical configuration state, geometry, BOM, price, saved ID, AR state, or a WebGL canvas.
 2. `accepted`: a valid saved design, share configuration, explicit `?preset=`, custom-space commit, or selected idea owns one synchronized configuration, layout, BOM, pricing result, and persistent Three.js viewer.
 
-The explicit source priority is shared configuration, requested preset, saved accepted snapshot, then new-visitor welcome. An invalid source never falls through to a finished default product.
+The explicit source priority is a valid shared configuration, a valid requested
+preset, an explicit new-design welcome request, then a valid saved accepted
+snapshot. An invalid source never falls through to a finished default product.
 
-Marketing start/design calls to action use `?start=welcome` to express a new design journey. That explicit journey displays the welcome even when the browser contains a saved accepted snapshot, preserves that saved snapshot, and consumes the temporary query flag after entry. Plain `configurator.html` links labeled Design Your Bookcase continue saved work when an accepted snapshot exists; valid shared configurations and explicit presets retain priority over the welcome request.
+Every accepted entry has one of two explicit intents:
+
+- `new`: valid shared configurations, explicit presets, My Space commits, and
+  selected ideas begin Guided Setup at Space with only the first Guided step
+  unlocked. `?start=welcome` remains presentation-only until My Space or an idea
+  is accepted. Stale mode, step, and category preferences are reset and
+  persisted; per-mode scroll state is also reset.
+- `resume`: a valid browser-local accepted snapshot restores its sanitized
+  presentation context. Bare `configurator.html` and `?start=resume` both use
+  this path when the snapshot verifies; the explicit resume parameter is
+  consumed after startup.
+
+Marketing start/design calls to action use `?start=welcome` to express a new
+design journey. That request displays the welcome even when the browser
+contains a saved accepted snapshot, preserves that snapshot, and consumes the
+temporary query flag after entry. Plain links labeled Design Your Bookcase
+continue valid saved work. Valid shared configurations and explicit presets
+retain priority over either temporary start parameter.
 
 ## Guided label mapping
 
@@ -16,15 +35,22 @@ Stable internal IDs remain in place to avoid saved-preference and control-regist
 | Visible step | Internal ID | Primary responsibility |
 | --- | --- | --- |
 | Space | `dimensions` | wall width, available height, depth |
-| Structure | `layout` | section count and section geometry |
-| Storage | `storage` | shelf count, cabinets, fronts, per-section storage types |
-| Construction | `construction` | shelf thickness, base, crown/top |
-| Appearance | `appearance` | finish, hardware, lighting |
+| Structure | `layout` | section count, overview grid, exact widths, and per-section storage types |
+| Storage | `storage` | shelf count, lower storage, and separate door/drawer front profiles |
+| Build | `construction` | shelf thickness, base, crown/top |
+| Style | `appearance` | finish, hardware type/finish, and lighting |
 | Review | `review` | physical summary and project service |
 
 ## Custom start
 
-The custom-space route validates width, height, and depth without silently clamping. “I’m not sure yet” uses a clearly labeled 96 × 96 × 15 inch provisional boundary. The first accepted custom configuration is a neutral `classic` structure with equal-width open sections, two shelves per section, no lower cabinets, no lighting, a slim cap, a recessed toe kick, and White Dove. Pricing is evaluated only as part of that first accepted transaction.
+The custom-space route validates width, height, and depth without silently
+clamping. “I’m not sure yet” uses a clearly labeled 96 × 96 × 15 inch
+provisional boundary. The first accepted custom configuration is a neutral
+`classic` structure with equal-width open sections, two shelves per section,
+no lower cabinets, no lighting, a slim cap, a recessed toe kick, and White
+Dove. My Space always enters at Space; choosing a section count later in
+Structure explicitly regenerates equal clear widths for that count. Pricing is
+evaluated only as part of that first accepted transaction.
 
 ## Inspiration library
 

@@ -1,4 +1,10 @@
-import { buildPricingContext } from "./bookcase-pricing.js?v=full-system-20260714a";
+import { buildPricingContext } from "./bookcase-pricing.js?v=configurator-refine-20260714a";
+import {
+  getHardwareVariant,
+  hardwareFinishOptions,
+  hardwareTypeOptions,
+  optionLabels
+} from "./bookcase-config.js?v=configurator-refine-20260714a";
 
 const storedLayoutLabels = Object.freeze({
   "lower-cabinets": "Full Bookcase",
@@ -42,6 +48,26 @@ export function createQuotePrefill(config = {}) {
   const normalizedConfig = pricing.selections;
   const billable = pricing.billableQuantities;
   const hasLowerCabinets = pricing.bom.openings.lowerStorageCount > 0;
+  const hardwareVariant = getHardwareVariant(normalizedConfig.hardware);
+  const hardwareTypeLabel = hardwareTypeOptions.find((option) => option.value === hardwareVariant?.type)?.label || "";
+  const hardwareFinishLabel = hardwareFinishOptions.find((option) => option.value === hardwareVariant?.finish)?.label || "";
+  const doorFrontProfile = billable.hingedDoorLeaves > 0
+    ? { id: normalizedConfig.doorStyle, label: optionLabels.doorStyle[normalizedConfig.doorStyle], count: billable.hingedDoorLeaves }
+    : null;
+  const drawerFrontProfile = billable.generatedDrawerFronts > 0
+    ? { id: normalizedConfig.drawerFrontStyle, label: optionLabels.drawerFrontStyle[normalizedConfig.drawerFrontStyle], count: billable.generatedDrawerFronts }
+    : null;
+  const hardwareSelection = billable.hardwareUnits > 0 && hardwareVariant
+    ? {
+        id: hardwareVariant.value,
+        label: hardwareVariant.label,
+        type: hardwareVariant.type,
+        typeLabel: hardwareTypeLabel,
+        finish: hardwareVariant.finish,
+        finishLabel: hardwareFinishLabel,
+        count: billable.hardwareUnits
+      }
+    : null;
   const customBmColor = [normalizedConfig.customPaintColor, normalizedConfig.customPaintCode].filter(Boolean).join(" ");
   const paintSelection = normalizedConfig.paintSelection;
   const room = config.centerOpening
@@ -65,6 +91,8 @@ export function createQuotePrefill(config = {}) {
     layoutLabel: layout.label,
     price: pricing.total,
     billableQuantities: billable,
+    frontProfiles: { door: doorFrontProfile, drawer: drawerFrontProfile },
+    hardwareSelection,
     customPaint: pricing.customPaint.selected,
     paintBrand: paintSelection?.brand || (normalizedConfig.finish === "custom_bm" ? "Benjamin Moore" : ""),
     paintCode: paintSelection?.code || normalizedConfig.customPaintCode || "",
@@ -80,6 +108,13 @@ export function createQuotePrefill(config = {}) {
       depth: config.depth ? `${config.depth}"` : "",
       lowerCabinets: hasLowerCabinets ? "Yes" : "No",
       layout: layout.value,
+      ...(doorFrontProfile ? { doorFrontProfile: doorFrontProfile.label } : {}),
+      ...(drawerFrontProfile ? { drawerFrontProfile: drawerFrontProfile.label } : {}),
+      ...(hardwareSelection ? {
+        hardwareType: hardwareSelection.typeLabel,
+        hardwareFinish: hardwareSelection.finishLabel,
+        hardwareVariant: hardwareSelection.label
+      } : {}),
       paintFinish: config.finish || "",
       customBmColor,
       customPaint: pricing.customPaint.selected ? "Yes" : "No",

@@ -2,12 +2,17 @@ import {
   defaultBookcaseConfig,
   layoutPresets,
   normalizeBookcaseConfig
-} from "./bookcase-config.js?v=full-system-20260714a";
+} from "./bookcase-config.js?v=configurator-refine-20260714a";
 
 export const STUDIO_ENTRY_VIEWS = Object.freeze({
   welcome: "welcome",
   custom: "custom",
   ideas: "ideas"
+});
+
+export const STUDIO_DESIGN_INTENTS = Object.freeze({
+  newDesign: "new",
+  resume: "resume"
 });
 
 export const STUDIO_CAPABILITIES = Object.freeze([
@@ -89,6 +94,17 @@ export function resolveStudioEntryState({
 export function isStudioWelcomeRequest(search = "") {
   const params = new URLSearchParams(String(search).replace(/^\?/, ""));
   return params.get("start") === "welcome";
+}
+
+export function isStudioResumeRequest(search = "") {
+  const params = new URLSearchParams(String(search).replace(/^\?/, ""));
+  return params.get("start") === "resume";
+}
+
+export function normalizeStudioDesignIntent(value) {
+  return value === STUDIO_DESIGN_INTENTS.resume
+    ? STUDIO_DESIGN_INTENTS.resume
+    : STUDIO_DESIGN_INTENTS.newDesign;
 }
 
 export function normalizeStudioEntryView(value) {

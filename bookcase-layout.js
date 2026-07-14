@@ -1,4 +1,8 @@
-import { normalizeSectionTypeValue } from "./bookcase-config.js?v=full-system-20260714a";
+import {
+  getHardwareType,
+  normalizeDrawerFrontStyleValue,
+  normalizeSectionTypeValue
+} from "./bookcase-config.js?v=configurator-refine-20260714a";
 
 /**
  * Pure parametric layout engine for JQ Bookcases.
@@ -73,6 +77,7 @@ export const LAYOUT_DEFAULTS = Object.freeze({
   tallDoors: false,
   doorCount: 8,
   doorStyle: "shaker",
+  drawerFrontStyle: "shaker",
   hardware: "brass_knob",
   lighting: "warm_pucks",
   lightingWarmth: 2700,
@@ -310,6 +315,20 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
     ? explicitSectionTypes.includes("tall_doors")
     : normalizedTallDoors;
 
+  const doorStyle = normalizeString(source.doorStyle, LAYOUT_DEFAULTS.doorStyle);
+  const hasDrawerFrontStyle = Object.prototype.hasOwnProperty.call(source, "drawerFrontStyle");
+  const requestedDrawerFrontStyle = hasDrawerFrontStyle ? source.drawerFrontStyle : doorStyle;
+  const drawerFrontStyle = normalizeDrawerFrontStyleValue(requestedDrawerFrontStyle, LAYOUT_DEFAULTS.drawerFrontStyle);
+  if (hasDrawerFrontStyle && drawerFrontStyle !== requestedDrawerFrontStyle) {
+    corrections.push(createCorrection(
+      "DRAWER_FRONT_STYLE_DEFAULTED",
+      "drawerFrontStyle",
+      requestedDrawerFrontStyle,
+      drawerFrontStyle,
+      "Drawer fronts support Shaker, Flat Panel, or Slim Shaker profiles."
+    ));
+  }
+
   const config = {
     layoutPreset: normalizeString(source.layoutPreset, LAYOUT_DEFAULTS.layoutPreset),
     layoutType,
@@ -332,7 +351,8 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
     featureOpening: normalizeBoolean(source.featureOpening, LAYOUT_DEFAULTS.featureOpening),
     tallDoors: canonicalTallDoors,
     doorCount: normalizeInteger(source.doorCount, LAYOUT_DEFAULTS.doorCount, 0, 12, "doorCount", corrections),
-    doorStyle: normalizeString(source.doorStyle, LAYOUT_DEFAULTS.doorStyle),
+    doorStyle,
+    drawerFrontStyle,
     hardware: normalizeString(source.hardware, LAYOUT_DEFAULTS.hardware),
     lighting,
     lightingWarmth,
@@ -906,6 +926,7 @@ function addDrawerStack(add, config, opening) {
         0
       ),
       metadata: {
+        style: config.drawerFrontStyle,
         ordinal: index + 1,
         reveal,
         gap,
@@ -918,7 +939,7 @@ function addDrawerStack(add, config, opening) {
 
 function addHandle(add, config, face, placement) {
   if (config.hardware === "push_latch") return null;
-  const isPull = config.hardware.endsWith("_pull");
+  const isPull = getHardwareType(config.hardware) === "pull";
   const faceWidth = face.size.x;
   const faceHeight = face.size.y;
   const openingSide = face.metadata.openingSide;

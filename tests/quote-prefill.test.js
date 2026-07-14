@@ -55,6 +55,8 @@ test("open-shelf custom paint designs prefill the complete visible quote brief",
     paintCatalogVersion: ""
   });
   assert.deepEqual(prefill.options, ["lighting", "crown", "shelves"]);
+  assert.deepEqual(prefill.frontProfiles, { door: null, drawer: null });
+  assert.equal(prefill.hardwareSelection, null);
   assert.equal(prefill.customPaint, true);
   assert.equal(prefill.paintBrand, "Benjamin Moore");
   assert.equal(prefill.paintName, "Hale Navy");
@@ -162,6 +164,35 @@ test("quote lower-cabinet answer follows generated openings rather than a stale 
   assert.equal(generatedStorage.fields.lowerCabinets, "Yes");
   assert.equal(generatedOpen.billableQuantities.generatedCabinetDoors, 0);
   assert.equal(generatedOpen.fields.lowerCabinets, "No");
+});
+
+test("quote prefill separates physical front profiles and canonical hardware metadata", () => {
+  const prefill = createQuotePrefill({
+    ...defaultBookcaseConfig,
+    sections: 2,
+    doorStyle: "glass",
+    drawerFrontStyle: "slim_shaker",
+    hardware: "polished_nickel_pull",
+    layoutMetadata: { sectionRatios: [1, 1], sectionTypes: ["lower_doors", "drawers"] }
+  });
+
+  assert.deepEqual(prefill.frontProfiles, {
+    door: { id: "glass", label: "Glass Frame", count: 2 },
+    drawer: { id: "slim_shaker", label: "Slim Shaker", count: 3 }
+  });
+  assert.deepEqual(prefill.hardwareSelection, {
+    id: "polished_nickel_pull",
+    label: "Polished Nickel Pull",
+    type: "pull",
+    typeLabel: "Pull",
+    finish: "polished_nickel",
+    finishLabel: "Polished Nickel",
+    count: 5
+  });
+  assert.equal(prefill.fields.doorFrontProfile, "Glass Frame");
+  assert.equal(prefill.fields.drawerFrontProfile, "Slim Shaker");
+  assert.equal(prefill.fields.hardwareType, "Pull");
+  assert.equal(prefill.fields.hardwareFinish, "Polished Nickel");
 });
 
 test("quote prefill price and options use the same valid generated pricing context", () => {

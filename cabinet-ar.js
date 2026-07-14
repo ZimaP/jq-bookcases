@@ -1,4 +1,4 @@
-import { createDesignId, defaultBookcaseConfig, normalizeBookcaseConfig } from "./bookcase-config.js?v=full-system-20260714a";
+import { createDesignId, normalizeBookcaseConfig } from "./bookcase-config.js?v=configurator-refine-20260714a";
 
 export const CABINET_AR_SCHEMA_VERSION = 1;
 export const CABINET_AR_FEATURE_ATTRIBUTE = "data-enable-cabinet-ar";
@@ -8,7 +8,41 @@ export const CABINET_AR_QR_MODULE_URL = "https://cdn.jsdelivr.net/npm/qrcode@1.5
 export const CABINET_AR_MODEL_CACHE_LIMIT = 8;
 export const CABINET_AR_REMOTE_TIMEOUT_MS = 10000;
 
-const CONFIGURATION_FIELDS = Object.freeze(Object.keys(defaultBookcaseConfig));
+// Schema-v1 tokens are positional. Keep the original order immutable and append
+// new optional fields so links created before drawer profiles still decode.
+const LEGACY_CONFIGURATION_FIELDS = Object.freeze([
+  "layoutPreset",
+  "layoutType",
+  "width",
+  "height",
+  "depth",
+  "sections",
+  "shelves",
+  "shelfThickness",
+  "lowerCabinets",
+  "lowerStorage",
+  "drawerCount",
+  "centerOpening",
+  "deskOpening",
+  "featureOpening",
+  "tallDoors",
+  "doorStyle",
+  "doorCount",
+  "hardware",
+  "lighting",
+  "lightingWarmth",
+  "finish",
+  "customPaintColor",
+  "customPaintCode",
+  "customPaintHex",
+  "paintSelection",
+  "crownStyle",
+  "baseStyle",
+  "layoutMetadata",
+  "installation",
+  "delivery"
+]);
+const CONFIGURATION_FIELDS = Object.freeze([...LEGACY_CONFIGURATION_FIELDS, "drawerFrontStyle"]);
 const MODEL_URL_PROTOCOLS = new Set(["http:", "https:", "blob:"]);
 const configurationCache = new Map();
 
@@ -57,6 +91,7 @@ export function normalizeCabinetArConfiguration(config, layout, options = {}) {
     featureOpening: normalized.featureOpening,
     tallDoors: normalized.tallDoors,
     doorStyleId: normalized.doorStyle,
+    drawerFrontStyleId: normalized.drawerFrontStyle,
     doorCount: normalized.doorCount,
     baseStyleId: normalized.baseStyle,
     crownStyleId: normalized.crownStyle,

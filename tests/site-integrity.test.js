@@ -456,6 +456,9 @@ test("custom saved designs retain their structural layout in the quote handoff",
   assert.match(siteSource, /createQuotePrefill\(config\)/);
   assert.match(siteSource, /Object\.entries\(quotePrefill\.fields\)/);
   assert.match(siteSource, /formatStoredPrice\(quotePrefill\.price\)/);
+  assert.match(siteSource, /quotePrefill\.frontProfiles\?\.door\?\.label/);
+  assert.match(siteSource, /quotePrefill\.frontProfiles\?\.drawer\?\.label/);
+  assert.match(siteSource, /quotePrefill\.hardwareSelection\?\.label/);
   assert.match(quotePrefillSource, /layoutLabel: layout\.label/);
   assert.match(quotePrefillSource, /compatibleLightingComponents > 0/);
   assert.doesNotMatch(siteSource, /setFormValue\(form, "layout", config\.layoutPreset/);
@@ -473,6 +476,15 @@ test("quote preview validates saved designs and never retains personal informati
   assert.match(quotePage, /id="quote-project-files"[^>]*disabled/);
   assert.match(siteSource, /photoInput\.disabled = false/);
   assert.match(quotePage, /does not currently transmit a quote request/);
+  for (const field of [
+    "doorFrontProfile",
+    "drawerFrontProfile",
+    "hardwareType",
+    "hardwareFinish",
+    "hardwareVariant",
+  ]) {
+    assert.match(quotePage, new RegExp(`<input\\s+name=["']${field}["']\\s+type=["']hidden["']`));
+  }
 });
 
 test("local development servers bind to loopback instead of exposing repository files", () => {

@@ -40,6 +40,20 @@ test("drawer-only pricing ignores stale door style and prices generated drawer h
   assert.equal(glass.total, shaker.total);
 });
 
+test("drawer front profiles are carried physically without inventing a price difference", () => {
+  const base = {
+    ...defaultBookcaseConfig,
+    layoutType: "lower_drawers",
+    lowerStorage: "drawers"
+  };
+  const totals = ["shaker", "flat", "slim_shaker"].map((drawerFrontStyle) => {
+    const pricing = contextFor({ ...base, drawerFrontStyle });
+    assert.deepEqual(pricing.bom.drawers.byStyle, { [drawerFrontStyle]: 12 });
+    return pricing.total;
+  });
+  assert.deepEqual(totals, [totals[0], totals[0], totals[0]]);
+});
+
 test("generated tall doors and their hardware are priced while zero compatible lights are not", () => {
   const config = {
     ...preset("tall-storage").config,

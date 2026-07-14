@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { defaultBookcaseConfig, layoutPresets } from "../bookcase-config.js";
+import { createLegacyLayoutFingerprint } from "../bookcase-bom.js";
 import {
   DESIGN_SCHEMA_VERSION,
   ENGINE_VERSION,
@@ -107,6 +108,36 @@ test("snapshot restoration regenerates and verifies the layout fingerprint", () 
   assert.equal(rejected.accepted, false);
   assert.equal(rejected.compatible, false);
   assert.ok(rejected.errors.some((error) => error.code === "LAYOUT_FINGERPRINT_MISMATCH"));
+});
+
+test("schema-4 saves without drawer profile metadata verify through the legacy fingerprint", () => {
+  const evaluation = evaluateBookcaseCandidate({
+    ...defaultBookcaseConfig,
+    lowerStorage: "drawers",
+    doorStyle: "flat",
+    drawerFrontStyle: "flat"
+  });
+  const snapshot = createAcceptedDesignSnapshot(evaluation);
+  const canonicalConfig = clone(snapshot.canonicalConfig);
+  delete canonicalConfig.drawerFrontStyle;
+  const legacyFingerprint = createLegacyLayoutFingerprint(evaluation.layout);
+  const legacyId = createAcceptedDesignId(
+    legacyFingerprint,
+    snapshot.total,
+    snapshot.pricingVersion,
+    snapshot.selectionFingerprint
+  );
+
+  const restored = restoreAcceptedDesignSnapshot({
+    ...snapshot,
+    canonicalConfig,
+    layoutFingerprint: legacyFingerprint,
+    id: legacyId
+  });
+  assert.equal(restored.accepted, true);
+  assert.equal(restored.compatible, true);
+  assert.equal(restored.state.drawerFrontStyle, "flat");
+  assert.notEqual(restored.layoutFingerprint, legacyFingerprint);
 });
 
 test("legacy saved config can be regenerated while missing config is rejected", () => {

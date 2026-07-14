@@ -35,14 +35,24 @@ test("inch-to-meter conversion is exact and rejects invalid dimensions", () => {
   assert.throws(() => inchesToMeters(Number.NaN), /positive/);
 });
 
-test("configuration normalization maps exact dimensions, shelves, units, and finish", () => {
-  const { config, layout, ar } = createArConfiguration({ width: 108, height: 102, depth: 18, sections: 3, shelves: 5, finish: "silver_satin" });
+test("configuration normalization maps exact dimensions, shelves, units, finish, and front profiles", () => {
+  const { config, layout, ar } = createArConfiguration({
+    width: 108,
+    height: 102,
+    depth: 18,
+    sections: 3,
+    shelves: 5,
+    finish: "silver_satin",
+    drawerFrontStyle: "slim_shaker"
+  });
   assert.equal(ar.units, "meters");
   assert.equal(ar.widthMeters, 2.7432);
   assert.equal(ar.heightMeters, 2.5908);
   assert.equal(ar.depthMeters, 0.4572);
   assert.equal(ar.sections, 3);
   assert.equal(ar.finishId, "silver_satin");
+  assert.equal(ar.doorStyleId, "shaker");
+  assert.equal(ar.drawerFrontStyleId, "slim_shaker");
   assert.equal(ar.shelves.length, layout.components.filter((component) => component.role === "shelf").length);
   assert.ok(ar.shelves.every((shelf) => shelf.positionMeters > 0));
   assert.equal(config.width, 108);
@@ -87,6 +97,33 @@ test("compact share links preserve the exact normalized configuration", () => {
   const url = createCabinetArShareUrl(config, "https://example.com/configurator.html?preset=media-wall");
   assert.equal(new URL(url).searchParams.has("preset"), false);
   assert.deepEqual(readCabinetArShareConfiguration(url), config);
+});
+
+test("schema-v1 share tokens created before drawer profiles retain positional meaning", () => {
+  const normalized = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    doorStyle: "flat",
+    hardware: "polished_nickel_pull",
+    lightingWarmth: 3500,
+    crownStyle: "none",
+    baseStyle: "toe_kick",
+    installation: "no_installation",
+    delivery: "priority"
+  });
+  const token = encodeCabinetConfiguration(normalized);
+  const payload = JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
+  payload[1].pop();
+  const legacyToken = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  const decoded = decodeCabinetConfiguration(legacyToken);
+
+  assert.equal(decoded.doorStyle, "flat");
+  assert.equal(decoded.drawerFrontStyle, "flat");
+  assert.equal(decoded.hardware, "polished_nickel_pull");
+  assert.equal(decoded.lightingWarmth, 3500);
+  assert.equal(decoded.crownStyle, "none");
+  assert.equal(decoded.baseStyle, "toe_kick");
+  assert.equal(decoded.installation, "no_installation");
+  assert.equal(decoded.delivery, "priority");
 });
 
 test("capability detection reports desktop fallback and supported WebXR", async () => {

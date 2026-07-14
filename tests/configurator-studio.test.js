@@ -3,12 +3,15 @@ import assert from "node:assert/strict";
 import { evaluateBookcaseCandidate } from "../bookcase-engine.js";
 import {
   INSPIRATION_FILTERS,
+  STUDIO_DESIGN_INTENTS,
   STUDIO_PROVISIONAL_DIMENSIONS,
   createNeutralCustomConfig,
   filterInspirationIdeas,
   getStudioPreviewIdeas,
   inspirationIdeas,
+  isStudioResumeRequest,
   isStudioWelcomeRequest,
+  normalizeStudioDesignIntent,
   resolveStudioEntryState,
   suggestStudioSectionCount,
   validateStudioDimensions
@@ -27,6 +30,17 @@ test("only the explicit homepage start parameter forces the studio welcome", () 
   assert.equal(isStudioWelcomeRequest("start=welcome"), true);
   assert.equal(isStudioWelcomeRequest("?preset=media-wall"), false);
   assert.equal(isStudioWelcomeRequest("?start=resume"), false);
+});
+
+test("new-design and resume intents are explicit, exclusive, and safely normalized", () => {
+  assert.equal(isStudioResumeRequest("?start=resume"), true);
+  assert.equal(isStudioResumeRequest("start=resume"), true);
+  assert.equal(isStudioResumeRequest("?start=welcome"), false);
+  assert.equal(isStudioResumeRequest("?start=storage"), false);
+  assert.equal(normalizeStudioDesignIntent(STUDIO_DESIGN_INTENTS.resume), "resume");
+  for (const value of [undefined, null, "", "storage", "new-ish"]) {
+    assert.equal(normalizeStudioDesignIntent(value), STUDIO_DESIGN_INTENTS.newDesign);
+  }
 });
 
 test("studio dimensions validate all three physical inputs without silently clamping", () => {

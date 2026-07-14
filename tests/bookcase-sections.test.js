@@ -14,6 +14,7 @@ import { CONSTRUCTION_RULES, generateBookcaseLayout } from "../bookcase-layout.j
 import {
   applySectionHistorySnapshot,
   applySectionWidths,
+  applyGlobalStorageSelection,
   createSectionHistorySnapshot,
   equalizeSectionWidths,
   getSectionDesignerState,
@@ -112,27 +113,35 @@ test("width ratios reproduce exact clear-width sums and divider accumulation", (
   assert.equal(layout.validation.errors.length, 0);
 });
 
-test("adjacent divider resize preserves the pair and rejects boundary violations without mutation", () => {
+test("adjacent divider resize preserves the pair and clamps boundary overshoot without mutation", () => {
   const widths = [18, 30, 20, 24.25];
   const before = clone(widths);
   const accepted = resizeAdjacentSections(widths, 1, 2.5);
   assert.deepEqual(accepted.widths, [18, 32.5, 17.5, 24.25]);
   assert.equal(accepted.widths[1] + accepted.widths[2], widths[1] + widths[2]);
-  const rejected = resizeAdjacentSections(widths, 1, 8);
-  assert.equal(rejected.accepted, false);
-  assert.equal(rejected.error.code, "MIN_SECTION_CLEAR_WIDTH");
+  const clamped = resizeAdjacentSections(widths, 1, 8);
+  assert.equal(clamped.accepted, true);
+  assert.deepEqual(clamped.widths, [18, 35, 15, 24.25]);
+  assert.equal(clamped.requestedDelta, 8);
+  assert.equal(clamped.appliedDelta, 5);
+  assert.equal(clamped.clamped, true);
   assert.deepEqual(widths, before);
 });
 
-test("numeric width redistribution cascades visibly and rejects insufficient slack", () => {
+test("numeric width editing uses the same adjacent-pair clamping as divider dragging", () => {
   const widths = [18, 30, 20, 24.25];
-  const accepted = setSectionClearWidth(widths, 0, 35);
-  assert.deepEqual(accepted.widths, [35, 15, 18, 24.25]);
-  assert.deepEqual(accepted.affectedSections, [0, 1, 2]);
+  const accepted = setSectionClearWidth(widths, 0, 30);
+  assert.deepEqual(accepted.widths, [30, 18, 20, 24.25]);
+  assert.deepEqual(accepted.affectedSections, [0, 1]);
   assert.equal(accepted.widths.reduce((sum, width) => sum + width, 0), 92.25);
-  const rejected = setSectionClearWidth(widths, 0, 50);
-  assert.equal(rejected.accepted, false);
-  assert.equal(rejected.error.code, "INSUFFICIENT_NEIGHBOR_SLACK");
+  const clamped = setSectionClearWidth(widths, 0, 50);
+  assert.equal(clamped.accepted, true);
+  assert.equal(clamped.clamped, true);
+  assert.deepEqual(clamped.widths, [33, 15, 20, 24.25]);
+
+  const last = setSectionClearWidth(widths, 3, 30);
+  assert.deepEqual(last.widths, [18, 30, 15, 29.25]);
+  assert.deepEqual(last.affectedSections, [2, 3]);
 });
 
 test("split and merge account for divider thickness and restore identity", () => {
@@ -210,6 +219,36 @@ test("section type edits keep legacy storage flags synchronized with explicit ge
   assert.equal(restoredOpen.config.tallDoors, false);
 });
 
+test("global storage controls rewrite explicit per-section types without erasing protected zones", () => {
+  const mixedConfig = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    sections: 4,
+    lowerCabinets: true,
+    lowerStorage: "doors",
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1, 1],
+      sectionTypes: ["lower_doors", "drawers", "open", "tall_doors"]
+    }
+  });
+  const mixedLayout = generateBookcaseLayout(mixedConfig);
+
+  const drawers = applyGlobalStorageSelection(mixedConfig, mixedLayout, { lowerStorage: "drawers" });
+  assert.equal(drawers.accepted, true);
+  assert.deepEqual(drawers.config.layoutMetadata.sectionTypes, ["drawers", "drawers", "open", "tall_doors"]);
+  assert.equal(drawers.config.lowerCabinets, true);
+  assert.equal(drawers.config.lowerStorage, "drawers");
+
+  const off = applyGlobalStorageSelection(drawers.config, generateBookcaseLayout(drawers.config), { lowerCabinets: false });
+  assert.deepEqual(off.config.layoutMetadata.sectionTypes, ["open", "open", "open", "tall_doors"]);
+  assert.equal(off.config.lowerCabinets, false);
+  assert.equal(generateBookcaseLayout(off.config).components.filter((component) => component.role === "drawer_front").length, 0);
+
+  const on = applyGlobalStorageSelection(off.config, generateBookcaseLayout(off.config), { lowerCabinets: true });
+  assert.deepEqual(on.config.layoutMetadata.sectionTypes, ["drawers", "drawers", "drawers", "tall_doors"]);
+  assert.equal(on.config.lowerCabinets, true);
+  assert.equal(on.config.lowerStorage, "drawers");
+});
+
 test("equalize and section-count reconciliation remain deterministic and buildable", () => {
   const { config, layout } = scenarioA();
   const equalized = equalizeSectionWidths(config, layout);
@@ -220,6 +259,43 @@ test("equalize and section-count reconciliation remain deterministic and buildab
   assert.deepEqual(five.widths, [18.3, 18.3, 18.3, 18.3, 18.3]);
   assert.equal(generateBookcaseLayout(five.config).validation.valid, true);
   assert.deepEqual(reconcileSectionCustomization(defaultBookcaseConfig, 5), five);
+});
+
+test("explicit section-count transitions always start equal and adjacent edits stay local", () => {
+  const two = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    width: 96,
+    sections: 2,
+    layoutMetadata: { sectionRatios: [1, 1], sectionTypes: ["open", "open"] }
+  });
+  const three = reconcileSectionCustomization(two, 3);
+  assert.equal(three.accepted, true);
+  assert.deepEqual(three.widths, [31, 31, 31]);
+  assert.equal(three.widths.reduce((sum, width) => sum + width, 0), 93);
+
+  const stale = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    width: 96,
+    sections: 3,
+    layoutMetadata: { sectionRatios: [1, 1, 2], sectionTypes: ["open", "open", "open"] }
+  });
+  assert.deepEqual(generateBookcaseLayout(stale).metrics.sectionClearWidths, [23.25, 23.25, 46.5]);
+  assert.deepEqual(reconcileSectionCustomization(stale, 3).widths, [31, 31, 31]);
+
+  const edited = resizeAdjacentSections(three.widths, 0, 2);
+  assert.deepEqual(edited.widths, [33, 29, 31]);
+  const minimum = resizeAdjacentSections(edited.widths, 0, -100);
+  assert.deepEqual(minimum.widths, [15, 47, 31]);
+  assert.equal(minimum.appliedDelta, -18);
+  assert.equal(minimum.clamped, true);
+
+  let cycled = three.widths;
+  for (let index = 0; index < 250; index += 1) {
+    cycled = resizeAdjacentSections(cycled, 0, 0.125).widths;
+    cycled = resizeAdjacentSections(cycled, 0, -0.125).widths;
+  }
+  assert.deepEqual(cycled, [31, 31, 31]);
+  assert.equal(sectionWidthsToRatios(cycled).reduce((sum, ratio) => sum + ratio, 0), 1);
 });
 
 test("special zones are visibly locked and cannot change type, split, or merge", () => {

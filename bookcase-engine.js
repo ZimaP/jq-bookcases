@@ -1,10 +1,13 @@
-import { normalizeBookcaseConfig } from "./bookcase-config.js?v=full-system-20260714a";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=full-system-20260714a";
-import { createLayoutFingerprint } from "./bookcase-bom.js?v=full-system-20260714a";
+import { normalizeBookcaseConfig } from "./bookcase-config.js?v=configurator-refine-20260714a";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=configurator-refine-20260714a";
+import {
+  createLayoutFingerprint,
+  createLegacyLayoutFingerprint
+} from "./bookcase-bom.js?v=configurator-refine-20260714a";
 import {
   PRICING_VERSION,
   calculateBookcasePriceBreakdown
-} from "./bookcase-pricing.js?v=full-system-20260714a";
+} from "./bookcase-pricing.js?v=configurator-refine-20260714a";
 
 export const ENGINE_VERSION = "2026.07-hardening-v2";
 export const DESIGN_SCHEMA_VERSION = 4;
@@ -174,7 +177,16 @@ export function restoreAcceptedDesignSnapshot(payload) {
   const expectedFingerprint = typeof payload.layoutFingerprint === "string"
     ? payload.layoutFingerprint
     : null;
-  if (expectedFingerprint && expectedFingerprint !== evaluation.layoutFingerprint) {
+  const isLegacyDrawerProfileSave = !Object.prototype.hasOwnProperty.call(sourceConfig, "drawerFrontStyle");
+  const legacyLayoutFingerprint = isLegacyDrawerProfileSave
+    ? createLegacyLayoutFingerprint(evaluation.layout)
+    : null;
+  const matchedLayoutFingerprint = expectedFingerprint === evaluation.layoutFingerprint
+    ? evaluation.layoutFingerprint
+    : expectedFingerprint && expectedFingerprint === legacyLayoutFingerprint
+      ? legacyLayoutFingerprint
+      : null;
+  if (expectedFingerprint && !matchedLayoutFingerprint) {
     return {
       ...evaluation,
       accepted: false,
@@ -206,7 +218,7 @@ export function restoreAcceptedDesignSnapshot(payload) {
   }
 
   const regeneratedId = createAcceptedDesignId(
-    evaluation.layoutFingerprint,
+    matchedLayoutFingerprint || evaluation.layoutFingerprint,
     evaluation.pricing.total,
     evaluation.pricing.pricingVersion,
     selectionFingerprint

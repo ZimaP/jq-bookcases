@@ -4,8 +4,8 @@ import {
   layoutPresets,
   normalizeBookcaseConfig,
   normalizeSectionTypeValue
-} from "./bookcase-config.js?v=full-system-20260714a";
-import { CONSTRUCTION_RULES } from "./bookcase-layout.js?v=full-system-20260714a";
+} from "./bookcase-config.js?v=configurator-refine-20260714a";
+import { CONSTRUCTION_RULES } from "./bookcase-layout.js?v=configurator-refine-20260714a";
 
 const PRECISION = 1e6;
 const RATIO_PRECISION = 1e12;
@@ -84,74 +84,43 @@ export function resizeAdjacentSections(widths, dividerIndex, delta, rules = CONS
     return rejected("INVALID_DIVIDER", "Choose a divider between two sections.", widths);
   }
   const minimum = getMinimum(rules);
-  const left = round(next[index] + change);
-  const right = round(next[index + 1] - change);
-  if (left + EPSILON < minimum || right + EPSILON < minimum) {
+  const pairTotal = round(next[index] + next[index + 1]);
+  const minimumDelta = round(minimum - next[index]);
+  const maximumDelta = round(next[index + 1] - minimum);
+  if (minimumDelta > maximumDelta + EPSILON) {
     return rejected(
       "MIN_SECTION_CLEAR_WIDTH",
-      `Both adjacent sections must remain at least ${formatWidth(minimum)} in clear.`,
+      `The adjacent pair cannot provide two ${formatWidth(minimum)} in clear sections.`,
       widths
     );
   }
+  const appliedDelta = round(Math.min(maximumDelta, Math.max(minimumDelta, change)));
+  const left = round(next[index] + appliedDelta);
+  const right = round(pairTotal - left);
   next[index] = left;
   next[index + 1] = right;
-  return acceptedWidths(next, [index, index + 1]);
+  return {
+    ...acceptedWidths(next, [index, index + 1]),
+    requestedDelta: round(change),
+    appliedDelta,
+    clamped: Math.abs(appliedDelta - change) > EPSILON
+  };
 }
 
 export function setSectionClearWidth(widths, sectionIndex, targetWidth, rules = CONSTRUCTION_RULES) {
   const next = normalizeWidths(widths);
   const index = Number(sectionIndex);
   const target = round(Number(targetWidth));
-  const minimum = getMinimum(rules);
   if (!Number.isInteger(index) || index < 0 || index >= next.length || !Number.isFinite(target)) {
     return rejected("INVALID_SECTION_WIDTH", "Enter a valid clear section width.", widths);
   }
-  if (target + EPSILON < minimum) {
-    return rejected(
-      "MIN_SECTION_CLEAR_WIDTH",
-      `Section ${index + 1} must remain at least ${formatWidth(minimum)} in clear.`,
-      widths
-    );
-  }
-
-  const delta = round(target - next[index]);
-  if (Math.abs(delta) <= EPSILON) return acceptedWidths(next, [index]);
-  const direction = index === next.length - 1 ? -1 : 1;
-  const neighbors = [];
-  for (let cursor = index + direction; cursor >= 0 && cursor < next.length; cursor += direction) {
-    neighbors.push(cursor);
-  }
-  if (!neighbors.length) {
+  if (next.length === 1) {
     return rejected("NO_ADJACENT_SECTION", "A single section cannot change width without changing the overall width.", widths);
   }
-
-  if (delta < 0) {
-    next[index] = target;
-    next[neighbors[0]] = round(next[neighbors[0]] - delta);
-    return acceptedWidths(next, [index, neighbors[0]]);
-  }
-
-  const available = round(neighbors.reduce((sum, neighbor) => sum + Math.max(0, next[neighbor] - minimum), 0));
-  if (available + EPSILON < delta) {
-    return rejected(
-      "INSUFFICIENT_NEIGHBOR_SLACK",
-      `The neighboring sections can provide only ${formatWidth(available)} in while staying buildable.`,
-      widths
-    );
-  }
-
-  let remaining = delta;
-  const affected = [index];
-  next[index] = target;
-  for (const neighbor of neighbors) {
-    if (remaining <= EPSILON) break;
-    const contribution = Math.min(remaining, Math.max(0, next[neighbor] - minimum));
-    if (contribution <= 0) continue;
-    next[neighbor] = round(next[neighbor] - contribution);
-    remaining = round(remaining - contribution);
-    affected.push(neighbor);
-  }
-  return acceptedWidths(next, affected);
+  const dividerIndex = index === next.length - 1 ? index - 1 : index;
+  const selectedDelta = round(target - next[index]);
+  const dividerDelta = index === next.length - 1 ? -selectedDelta : selectedDelta;
+  return resizeAdjacentSections(next, dividerIndex, dividerDelta, rules);
 }
 
 export function splitSection(config, layout, sectionIndex, rules = CONSTRUCTION_RULES) {
@@ -184,6 +153,63 @@ export function splitSection(config, layout, sectionIndex, rules = CONSTRUCTION_
   const types = designer.sections.map((item) => item.type);
   types.splice(index, 1, section.type, section.type);
   return acceptedConfig(applyCustomization(config, widths, types), widths, [index, index + 1]);
+}
+
+/**
+ * Apply the global lower-storage controls to an explicit per-section design.
+ *
+ * Once Section Designer has written layoutMetadata.sectionTypes those types are
+ * the physical source of truth. Global Storage controls therefore need to
+ * update the matching explicit types instead of writing legacy summary fields
+ * that layout normalization would immediately overwrite.
+ */
+export function applyGlobalStorageSelection(config, layout, selection = {}) {
+  const state = normalizeBookcaseConfig(config);
+  const designer = getSectionDesignerState(state, layout);
+  const hasCabinetSelection = Object.prototype.hasOwnProperty.call(selection, "lowerCabinets");
+  const hasStorageSelection = Object.prototype.hasOwnProperty.call(selection, "lowerStorage");
+  const lowerCabinets = hasCabinetSelection
+    ? selection.lowerCabinets !== false && selection.lowerCabinets !== "false"
+    : state.lowerCabinets;
+  const lowerStorage = hasStorageSelection
+    ? selection.lowerStorage === "drawers" ? "drawers" : "doors"
+    : state.lowerStorage;
+  const targetType = lowerStorage === "drawers" ? "drawers" : "lower_doors";
+  const hadCompleteExplicitTypes = Array.isArray(state.layoutMetadata?.sectionTypes)
+    && state.layoutMetadata.sectionTypes.length === state.sections;
+
+  if (!hadCompleteExplicitTypes) {
+    return acceptedConfig(
+      normalizeBookcaseConfig({ ...state, lowerCabinets, lowerStorage }),
+      designer.widths,
+      []
+    );
+  }
+
+  const previousTypes = designer.sections.map((section) => section.type);
+  const nextTypes = previousTypes.map((type) => {
+    if (!lowerCabinets) {
+      return type === "lower_doors" || type === "drawers" ? "open" : type;
+    }
+    if (hasCabinetSelection && !state.lowerCabinets && type === "open") return targetType;
+    if (hasStorageSelection && (type === "lower_doors" || type === "drawers")) return targetType;
+    return type;
+  });
+  const affectedSections = nextTypes.flatMap((type, index) => type === previousTypes[index] ? [] : [index]);
+
+  return acceptedConfig(
+    normalizeBookcaseConfig({
+      ...state,
+      lowerCabinets,
+      lowerStorage,
+      layoutMetadata: {
+        ...state.layoutMetadata,
+        sectionTypes: nextTypes
+      }
+    }),
+    designer.widths,
+    affectedSections
+  );
 }
 
 export function mergeSection(config, layout, sectionIndex, direction = "right", rules = CONSTRUCTION_RULES) {
@@ -311,10 +337,10 @@ export function reconcileSectionCustomization(previousConfig, nextSectionCount, 
     types.splice(mergeIndex, 2, types[mergeIndex]);
   }
 
-  let reconciledWidths = allocateWidths(targetTotal, widths);
-  if (reconciledWidths.some((width) => width + EPSILON < minimum)) {
-    reconciledWidths = allocateWidths(targetTotal, Array.from({ length: targetCount }, () => 1));
-  }
+  // A section-count selection is a global layout transition. It intentionally
+  // starts the selected count from equal clear widths; local split/merge and
+  // divider operations remain the tools for preserving or creating asymmetry.
+  const reconciledWidths = allocateWidths(targetTotal, Array.from({ length: targetCount }, () => 1));
 
   return acceptedConfig(
     applyCustomization(previousConfig, reconciledWidths, types),

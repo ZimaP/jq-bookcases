@@ -137,6 +137,20 @@ test("door quantity is a generated output and cannot drift from physical opening
   assert.match(workflow, /field: "doorCount"[^\n]*access: "derived"/);
 });
 
+test("All Controls exposes one Fronts control set and global Storage reconciles explicit section types", () => {
+  const storage = methodBody("renderStorageGroup", "renderSectionDesignerGroup");
+  const input = methodBody("handleFieldInput", "handleStepperClick");
+  assert.match(storage, /context === "guided"[\s\S]*renderDoorGroup\(\)/);
+  assert.match(input, /fieldName === "lowerCabinets" \|\| fieldName === "lowerStorage"/);
+  assert.match(input, /applyGlobalStorageSelection\(/);
+});
+
+test("Guided Style hides the complete Hardware section when no generated front uses hardware", () => {
+  const hardware = methodBody("renderHardwareGroup", "renderLightingGroup");
+  assert.match(hardware, /control-section-hardware" data-applicability="hardware"/);
+  assert.doesNotMatch(hardware, /hardware-selection" data-applicability=/);
+});
+
 test("section steppers use buildable counts and the viewer never retains stale geometry", () => {
   const stepper = methodBody("handleStepperClick", "update");
   const controls = methodBody("syncControls", "syncDraftInputs");
@@ -154,7 +168,10 @@ test("Section Designer enforces its hard limit and scopes undo history to struct
   const undo = methodBody("undoSectionChange", "redoSectionChange");
   const redo = methodBody("redoSectionChange", "refreshSectionDesignerPresentation");
 
-  assert.match(designer, /designer\.sections\.length >= this\.layout\.rules\.maxSections \? "disabled"/);
+  assert.match(designer, /const splitDisabled = selected\.locked \|\| designer\.sections\.length >= this\.layout\.rules\.maxSections/);
+  assert.match(designer, /const splitTooNarrow = selected\.width \+ 1e-6 < splitMinimumWidth/);
+  assert.match(designer, /Splitting requires room for two/);
+  assert.match(designer, /splitDisabled \? `disabled aria-describedby=/);
   assert.match(commit, /createSectionHistorySnapshot\(this\.state\)/);
   assert.match(undo, /applySectionHistorySnapshot\(this\.state, previous\)/);
   assert.match(redo, /applySectionHistorySnapshot\(this\.state, next\)/);
@@ -178,13 +195,99 @@ test("Guided Structure is custom-first while ideas remain engine-backed inspirat
 
 test("Guided order separates Space, Structure, Storage, and Construction concerns", () => {
   const space = methodBody("renderSpaceGroup", "renderStructureStartGroup");
-  const storage = methodBody("renderStorageGroup", "renderDoorGroup");
+  const storage = methodBody("renderStorageGroup", "renderSectionDesignerGroup");
   const construction = methodBody("renderStructureGroup", "renderFinishGroup");
   assert.match(space, /renderRangeControl\("width"/);
   assert.doesNotMatch(space, /renderRangeControl\("shelves"|renderRangeControl\("shelfThickness"/);
-  assert.match(storage, /renderRangeControl\("shelves"/);
+  assert.match(storage, /renderStepperControl\("shelves"/);
   assert.match(storage, /this\.renderDoorGroup\(\)/);
+  assert.doesNotMatch(storage, /renderSectionDesignerGroup|data-section-designer-open/);
+  assert.match(storage, /data-open-structure/);
   assert.match(construction, /renderRangeControl\("shelfThickness"/);
+});
+
+test("Structure is an inline overview grid with selected detail and disclosed advanced actions", () => {
+  const structure = methodBody("renderSectionDesignerGroup", "renderDoorGroup");
+  assert.match(structure, /class="section-overview-grid" data-section-overview/);
+  assert.match(structure, /class="section-overview-card/);
+  assert.match(structure, /aria-pressed=/);
+  assert.match(structure, /class="section-selected-mark"/);
+  assert.match(structure, /class="section-inspector"/);
+  assert.match(structure, /<details class="section-actions-disclosure"/);
+  assert.doesNotMatch(structure, /section-strip|carousel|data-section-designer-close|>Done</);
+  assert.match(css, /\.section-overview-grid \{[\s\S]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\);/);
+  assert.match(css, /\.section-overview-grid \{[\s\S]*overflow: visible;/);
+});
+
+test("All Controls exposes the shared Structure count and controller guards precision focus", () => {
+  const categories = methodBody("renderCategoryContent", "renderLayoutCards");
+  assert.match(categories, /categoryId === "section_designer"\) return this\.renderStructureStartGroup\(\)/);
+  const widthCommit = methodBody("commitSelectedSectionWidth", "commitSectionDividerResize");
+  assert.match(widthCommit, /rawValue === "" \|\| !Number\.isFinite\(targetWidth\)/);
+  assert.match(widthCommit, /Enter a valid clear section width/);
+  const controls = methodBody("bindControls", "setView");
+  assert.match(controls, /event\.target !== this\.root[\s\S]*?\[data-section-overlay\]/);
+  const update = methodBody("update", "renderDoorOptions");
+  assert.match(update, /focusedHardwareInput/);
+  assert.match(update, /this\.selectedSectionIndex = clamp\(this\.selectedSectionIndex/);
+});
+
+test("Structure and Storage subsection headings override the retired dark-panel heading color", () => {
+  assert.match(css, /\.configurator-panel \.control-section \.section-overview-heading h3/);
+  assert.match(css, /\.configurator-panel \.control-section \.storage-control-group > header h3/);
+  assert.match(css, /font-size: 17px;[\s\S]*text-transform: none;/);
+});
+
+test("door and drawer front profiles render as independent compatible selectors", () => {
+  const fronts = methodBody("renderDoorGroup", "renderAppearanceExperience");
+  assert.match(fronts, /renderProfiles\("doorStyle", doorStyleOptions, "door"\)/);
+  assert.match(fronts, /renderProfiles\("drawerFrontStyle", drawerFrontStyleOptions, "drawer"\)/);
+  assert.match(fronts, />Door front profile</);
+  assert.match(fronts, />Drawer front profile</);
+  assert.doesNotMatch(fronts, /renderProfiles\("drawerFrontStyle", doorStyleOptions/);
+});
+
+test("Hardware separates geometry type from valid finishes but commits one canonical variant", () => {
+  const hardware = methodBody("renderHardwareGroup", "renderLightingGroup");
+  const commit = methodBody("commitHardwareSelection", "handleFieldInput");
+  assert.match(hardware, /data-hardware-type/);
+  assert.match(hardware, /data-hardware-finish/);
+  assert.equal((hardware.match(/class="hardware-selected-mark"/g) || []).length, 2);
+  assert.match(hardware, /getHardwareFinishesForType\(currentType\)/);
+  assert.match(hardware, />Type</);
+  assert.match(hardware, />Finish</);
+  assert.doesNotMatch(hardware, /data-field="hardware"|hardwareOptions\.map/);
+  assert.match(commit, /resolveHardwareVariant\(\{ \.\.\.currentSelection, \.\.\.selection \}, this\.state\.hardware\)/);
+  assert.match(commit, /hardware: variant\.value/);
+  assert.doesNotMatch(commit, /focusCameraForField|viewer\.focus/);
+  assert.match(css, /\.hardware-type-grid/);
+  assert.match(css, /\.hardware-finish-grid/);
+});
+
+test("Review expands canonical hardware into explicit customer-facing type and finish rows", () => {
+  assert.match(workflow, /label: "Hardware type"/);
+  assert.match(workflow, /label: "Hardware finish"/);
+  assert.match(workflow, /getHardwareType\(state\.hardware\)/);
+  assert.match(workflow, /getHardwareFinish\(state\.hardware\)/);
+});
+
+test("new Guided journeys reset stale presentation state while resume restores it", () => {
+  const reset = methodBody("resetNewDesignPresentation", "consumeStudioStartParameter");
+  const load = methodBody("loadInitialDesignRequest", "createStudioIntroViewer");
+  const adjacent = methodBody("goToAdjacentGuidedStep", "goToGuidedStep");
+  const navigation = methodBody("goToGuidedStep", "focusGuidedHeading");
+  const rail = methodBody("syncStepRail", "syncDiagnosticsAttributes");
+  assert.match(reset, /this\.mode = CONFIGURATOR_MODES\.guided/);
+  assert.match(reset, /this\.guidedStep = GUIDED_STEPS\[0\]\.id/);
+  assert.match(reset, /this\.furthestGuidedStepIndex = 0/);
+  assert.match(reset, /this\.scrollPositions = \{ guided: 0, all: 0 \}/);
+  assert.match(load, /source: "saved", intent: STUDIO_DESIGN_INTENTS\.resume/);
+  assert.match(load, /source: "preset",[\s\S]*intent: STUDIO_DESIGN_INTENTS\.newDesign/);
+  assert.match(adjacent, /validateAndFocusStep\(this\.guidedStep\)/);
+  assert.match(adjacent, /unlock: direction > 0/);
+  assert.match(navigation, /nextIndex > this\.furthestGuidedStepIndex && !options\.unlock/);
+  assert.match(rail, /button\.disabled = locked/);
+  assert.match(rail, /button\.setAttribute\("aria-current", "step"\)/);
 });
 
 test("Project service cards avoid the shared option-card grid collision", () => {
@@ -318,7 +421,10 @@ test("smart camera transitions replace stale work and use one on-demand render s
   const renderFrame = methodBody("animate", "getViewState");
   assert.match(renderFrame, /this\.animationFrame = null/);
   assert.match(renderFrame, /this\.renderCount \+= 1/);
-  assert.match(renderFrame, /if \(this\.cameraTransition\) this\.requestRender\(\)/);
+  assert.match(
+    renderFrame,
+    /if \(this\.cameraTransition \|\| this\.pendingSectionPreview \|\| this\.pendingSectionPreviewRestore\) this\.requestRender\(\)/
+  );
   assert.doesNotMatch(renderFrame, /requestAnimationFrame/, "render frames must reschedule only through the guarded scheduler");
 
   const viewer = source.slice(source.indexOf("class BookcaseViewer3D"));
@@ -481,6 +587,29 @@ test("responsive presentation covers desktop, tablet, mobile, touch scrolling, a
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(css, /\.configurator-experience > \.configurator-estimate-bar \{\s*position: static;/);
   assert.match(css, /\.guided-navigation \{\s*position: sticky;\s*bottom: 0;/);
+});
+
+test("light configurator controls use a contrasting focus ring and readable compact copy", () => {
+  assert.match(
+    css,
+    /\.section-overview-card:focus-visible \{[\s\S]*?outline: 3px solid #6b431c;/
+  );
+  assert.match(
+    css,
+    /:is\(\.hardware-type-choice, \.hardware-finish-choice\) > input:focus-visible \+ span \{[\s\S]*?outline: 3px solid #6b431c;/
+  );
+  assert.match(
+    css,
+    /\.section-overview-card small \{[\s\S]*?font-size: 12px;/
+  );
+  assert.match(
+    precisionCss,
+    /\.control-section-storage \.door-style-copy strong \{[\s\S]*?font-size: 12px;/
+  );
+  assert.match(
+    precisionCss,
+    /\.control-section-storage \.control-helper \{[\s\S]*?font-size: 12px;/
+  );
 });
 
 test("the phone layout uses one natural scroll surface and keeps controls outside the 3D canvas", () => {

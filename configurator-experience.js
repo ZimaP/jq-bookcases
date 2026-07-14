@@ -1,12 +1,16 @@
 import {
   createDesignId,
   defaultBookcaseConfig,
+  getHardwareFinish,
+  getHardwareFinishOption,
+  getHardwareType,
+  hardwareTypeOptions,
   layoutPresets,
   normalizeBookcaseConfig,
   optionLabels
-} from "./bookcase-config.js?v=full-system-20260714a";
-import { deriveBillableComponents } from "./bookcase-billable.js?v=full-system-20260714a";
-import { getSectionDesignerState } from "./bookcase-sections.js?v=full-system-20260714a";
+} from "./bookcase-config.js?v=configurator-refine-20260714a";
+import { deriveBillableComponents } from "./bookcase-billable.js?v=configurator-refine-20260714a";
+import { getSectionDesignerState } from "./bookcase-sections.js?v=configurator-refine-20260714a";
 
 export const CONFIGURATOR_MODES = Object.freeze({
   guided: "guided",
@@ -23,8 +27,8 @@ export const GUIDED_STEPS = Object.freeze([
   { id: "dimensions", label: "Space", shortLabel: "Space", title: "Confirm your space", description: "Set the wall width, available height, and preferred bookcase depth." },
   { id: "layout", label: "Structure", shortLabel: "Structure", title: "Shape the structure", description: "Choose the section count, then resize or split individual sections." },
   { id: "storage", label: "Storage", shortLabel: "Storage", title: "Plan the storage", description: "Mix open shelving, doors, drawers, and tall storage by section." },
-  { id: "construction", label: "Construction", shortLabel: "Build", title: "Choose construction details", description: "Set shelf thickness, base, and crown or top profiles." },
-  { id: "appearance", label: "Appearance", shortLabel: "Style", title: "Choose finishes and details", description: "Coordinate finish, hardware, and lighting." },
+  { id: "construction", label: "Build", shortLabel: "Build", title: "Choose construction details", description: "Set shelf thickness, base, and crown or top profiles." },
+  { id: "appearance", label: "Style", shortLabel: "Style", title: "Choose finishes and details", description: "Coordinate finish, hardware, and lighting." },
   { id: "review", label: "Review", shortLabel: "Review", title: "Review your design", description: "Confirm the physical design and service choices before requesting a quote." }
 ]);
 
@@ -44,7 +48,7 @@ export const ALL_CONTROL_CATEGORIES = Object.freeze([
 export const PHYSICAL_CONFIG_FIELDS = Object.freeze([
   "layoutPreset", "layoutType", "width", "height", "depth", "sections", "shelves",
   "shelfThickness", "lowerCabinets", "lowerStorage", "drawerCount", "centerOpening",
-  "deskOpening", "featureOpening", "tallDoors", "doorStyle", "doorCount", "hardware",
+  "deskOpening", "featureOpening", "tallDoors", "doorStyle", "drawerFrontStyle", "doorCount", "hardware",
   "lighting", "lightingWarmth", "finish", "customPaintColor", "customPaintCode",
   "customPaintHex", "paintSelection", "crownStyle", "baseStyle", "layoutMetadata", "installation", "delivery"
 ]);
@@ -69,6 +73,7 @@ export const CONTROL_REGISTRY = Object.freeze([
   { field: "baseStyle", step: "construction", category: "construction", access: "direct" },
   { field: "crownStyle", step: "construction", category: "construction", access: "direct" },
   { field: "doorStyle", step: "storage", category: "doors", access: "direct" },
+  { field: "drawerFrontStyle", step: "storage", category: "doors", access: "direct" },
   { field: "doorCount", step: "storage", category: "doors", access: "derived" },
   { field: "finish", step: "appearance", category: "finish", access: "direct" },
   { field: "customPaintColor", step: "appearance", category: "finish", access: "direct" },
@@ -248,7 +253,7 @@ export function getCategorySummary(categoryId, config, layout, basePresetId = ""
     if (!applicability.hasFronts) return "Not applicable to this layout";
     const parts = [];
     if (applicability.hasDoors) parts.push(formatGeneratedDoorStyles(applicability.billableQuantities.doorsByStyle));
-    if (applicability.hasDrawers) parts.push(`${applicability.generatedDrawerCount} drawers`);
+    if (applicability.hasDrawers) parts.push(formatGeneratedDrawerStyles(applicability.billableQuantities.drawersByStyle));
     return parts.join(", ") || "Storage fronts";
   }
   if (category === "finish") return getFinishLabel(state);
@@ -266,6 +271,8 @@ export function createReviewGroups(config, layout, basePresetId = "") {
   const state = normalizeBookcaseConfig(config);
   const applicability = getApplicability(state, layout);
   const designer = getSectionDesignerState(state, layout);
+  const hardwareType = hardwareTypeOptions.find((option) => option.value === getHardwareType(state.hardware));
+  const hardwareFinish = getHardwareFinishOption(getHardwareFinish(state.hardware));
   const openingLabel = {
     media: "Media opening",
     desk: "Desk opening",
@@ -298,7 +305,8 @@ export function createReviewGroups(config, layout, basePresetId = "") {
       items: [
         { label: "Sections", value: String(state.sections) },
         { label: "Lower storage", value: state.lowerCabinets ? (state.lowerStorage === "drawers" ? "Drawers" : "Doors") : "None" },
-        ...(applicability.hasFronts ? [{ label: "Front style", value: optionLabels.doorStyle[state.doorStyle] }] : []),
+        ...(applicability.hasDoors ? [{ label: "Door front profile", value: optionLabels.doorStyle[state.doorStyle] }] : []),
+        ...(applicability.hasDrawers ? [{ label: "Drawer front profile", value: optionLabels.drawerFrontStyle[state.drawerFrontStyle] }] : []),
         ...(applicability.hasDoors ? [{ label: "Doors", value: `${applicability.generatedDoorCount} generated · ${formatGeneratedDoorStyles(applicability.billableQuantities.doorsByStyle)}` }] : []),
         ...(applicability.hasDrawers ? [{ label: "Drawers", value: `${applicability.generatedDrawerCount} generated` }] : []),
         ...designer.sections.map((section) => ({
@@ -327,7 +335,10 @@ export function createReviewGroups(config, layout, basePresetId = "") {
           ...(state.paintSelection.collections.length ? [{ label: "Collection", value: state.paintSelection.collections.join(", ") }] : []),
           { label: "Preview", value: "Digital preview only · Confirm with an official paint sample" }
         ] : [{ label: "Finish", value: getFinishLabel(state) }]),
-        ...(applicability.showHardware ? [{ label: "Hardware", value: `${optionLabels.hardware[state.hardware]} · ${applicability.billableQuantities.hardwareUnits} generated` }] : []),
+        ...(applicability.showHardware ? [
+          { label: "Hardware type", value: hardwareType?.label || optionLabels.hardware[state.hardware] },
+          { label: "Hardware finish", value: `${hardwareFinish?.label || optionLabels.hardware[state.hardware]} · ${applicability.billableQuantities.hardwareUnits} generated` }
+        ] : []),
         {
           label: "Lighting",
           value: applicability.hasBillableLighting
@@ -469,6 +480,13 @@ function getWarmthDescription(value) {
 function formatGeneratedDoorStyles(styles) {
   return Object.entries(styles).map(([style, count]) => {
     const label = optionLabels.doorStyle[style] || String(style).replaceAll("_", " ");
+    return `${count} ${label}`;
+  }).join(" + ");
+}
+
+function formatGeneratedDrawerStyles(styles) {
+  return Object.entries(styles).map(([style, count]) => {
+    const label = optionLabels.drawerFrontStyle[style] || String(style).replaceAll("_", " ");
     return `${count} ${label}`;
   }).join(" + ");
 }

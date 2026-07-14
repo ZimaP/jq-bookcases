@@ -58,13 +58,20 @@ test("the 3D viewer renders on demand, animates camera moves, and returns to idl
   expect(settled.renderScheduled).toBe(false);
   expect(settled.cameraTransitionActive).toBe(false);
 
-  // Closing Section Designer restores its captured camera/light state and must not throw.
-  await page.locator('[data-guided-step="storage"]').click();
-  await page.locator("[data-section-designer-open]").click();
+  // Structure is a strict Guided step with an inline designer. Advancing out
+  // restores its captured camera/light state and must return the viewer idle.
+  await expect(page.locator('[data-guided-step="layout"]')).toBeDisabled();
+  await page.locator("[data-guided-continue]").click();
+  await expect(page.locator('[data-guided-step-content="layout"]')).toBeVisible();
+  await expect(page.locator('[data-guided-step="layout"]')).toHaveAttribute("aria-current", "step");
   await expect(page.locator("[data-section-designer]")).toBeVisible();
-  await page.locator("[data-section-designer-close]").click();
-  await expect(page.locator("[data-section-designer]")).toHaveCount(0);
+  await expect(page.locator("[data-section-designer-open], [data-section-designer-close]")).toHaveCount(0);
   await expect.poll(async () => (await readViewerDiagnostics(page))?.renderCount || 0).toBeGreaterThan(settled.renderCount);
+  const structureIdle = await waitForViewerIdle(page);
+  await page.locator("[data-guided-continue]").click();
+  await expect(page.locator('[data-guided-step-content="storage"]')).toBeVisible();
+  await expect(page.locator("[data-section-designer]")).toHaveCount(0);
+  await expect.poll(async () => (await readViewerDiagnostics(page))?.renderCount || 0).toBeGreaterThan(structureIdle.renderCount);
   await waitForViewerIdle(page);
 
   expect(runtimeErrors).toEqual([]);

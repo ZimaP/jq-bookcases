@@ -23,6 +23,18 @@ export const LAYOUT_FINGERPRINT_VERSION = 1;
  * The fingerprint is an integrity key, not a cryptographic signature.
  */
 export function createLayoutFingerprint(layout) {
+  return createLayoutFingerprintFromComponents(layout, false);
+}
+
+/**
+ * Reproduce the descriptor fingerprint emitted before drawer fronts carried
+ * profile metadata. This is used only to verify and migrate existing saves.
+ */
+export function createLegacyLayoutFingerprint(layout) {
+  return createLayoutFingerprintFromComponents(layout, true);
+}
+
+function createLayoutFingerprintFromComponents(layout, omitDrawerFrontStyle) {
   assertLayoutShape(layout);
   const source = stableStringify({
     fingerprintVersion: LAYOUT_FINGERPRINT_VERSION,
@@ -34,7 +46,9 @@ export function createLayoutFingerprint(layout) {
       parentId: component.parentId,
       hostId: component.hostId,
       bounds: component.bounds,
-      metadata: component.metadata || {}
+      metadata: omitDrawerFrontStyle && component.role === "drawer_front"
+        ? omitProperty(component.metadata || {}, "style")
+        : component.metadata || {}
     }))
   });
   return `jq-layout-v${LAYOUT_FINGERPRINT_VERSION}-${fnv1a64(source)}`;
@@ -81,6 +95,7 @@ export function deriveBookcaseBOM(layout) {
 
   const shelfThicknesses = countBy(adjustableShelves, (component) => String(component.size.y));
   const doorStyles = countBy(doors, (component) => component.metadata?.style || "unknown");
+  const drawerStyles = countBy(drawers, (component) => component.metadata?.style || "unknown");
   const hardwareTypes = countBy(handles, (component) => component.metadata?.hardware || "unknown");
   const lightTypes = countBy(lights, (component) => component.metadata?.lightType || "unknown");
   const crownStyles = countBy(crowns, (component) => component.metadata?.style || "unknown");
@@ -122,7 +137,8 @@ export function deriveBookcaseBOM(layout) {
     },
     drawers: {
       frontCount: drawers.length,
-      totalFrontAreaSqIn: round(sum(drawers, largestFaceArea))
+      totalFrontAreaSqIn: round(sum(drawers, largestFaceArea)),
+      byStyle: drawerStyles
     },
     hardware: {
       handleCount: handles.length,
@@ -184,6 +200,10 @@ function longestSpan(component) {
 
 function stableStringify(value) {
   return JSON.stringify(sortValue(value));
+}
+
+function omitProperty(value, property) {
+  return Object.fromEntries(Object.entries(value).filter(([key]) => key !== property));
 }
 
 function sortValue(value) {

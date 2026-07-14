@@ -1,4 +1,5 @@
-import { hashCabinetArConfiguration, inchesToMeters } from "./cabinet-ar.js?v=full-system-20260714a";
+import { hashCabinetArConfiguration, inchesToMeters } from "./cabinet-ar.js?v=configurator-refine-20260714a";
+import { getHardwareFinish, getHardwareFinishOption } from "./bookcase-config.js?v=configurator-refine-20260714a";
 
 const NON_RENDERED_ROLES = new Set(["assembly", "section", "section_group", "opening", "light"]);
 const GLB_MAGIC = 0x46546c67;
@@ -44,6 +45,12 @@ export function generateCabinetGlbArrayBuffer(configuration, layout) {
       coordinateInchesToMeters(component.position.y),
       cabinetDepth / 2 - coordinateInchesToMeters(component.position.z)
     ];
+    if (component.role === "door" || component.role === "drawer_front") {
+      createArFrontProfileParts(component, center, size).forEach((part) => {
+        appendBox(groups.get(part.material) || groups.get("finish"), part.center, part.size);
+      });
+      return;
+    }
     const materialName = materialNameForComponent(component);
     appendBox(groups.get(materialName) || groups.get("finish"), center, size);
   });
@@ -69,7 +76,12 @@ export function generateCabinetGlbArrayBuffer(configuration, layout) {
     extras: {
       configurationHash: hashCabinetArConfiguration(configuration),
       units: "meters",
-      nominalDimensions: [configuration.widthMeters, configuration.heightMeters, configuration.depthMeters]
+      nominalDimensions: [configuration.widthMeters, configuration.heightMeters, configuration.depthMeters],
+      frontProfiles: {
+        door: configuration.doorStyleId,
+        drawer: configuration.drawerFrontStyleId
+      },
+      hardwareVariant: configuration.hardwareId
     }
   };
 
@@ -133,18 +145,96 @@ function createMaterialDefinitions(configuration) {
     silver_satin: "#d8d7d2"
   }[configuration.finishId] || "#d3c8b8");
   const finish = hexToLinearColor(finishHex);
-  const hardware = String(configuration.hardwareId || "").startsWith("matte_black")
-    ? [0.009, 0.008, 0.007, 1]
-    : String(configuration.hardwareId || "").startsWith("polished_nickel")
-      ? [0.686, 0.694, 0.654, 1]
-      : [0.451, 0.254, 0.068, 1];
+  const hardwareFinish = getHardwareFinish(configuration.hardwareId);
+  const hardwareMetadata = getHardwareFinishOption(hardwareFinish) || getHardwareFinishOption("brass");
+  const hardware = hexToLinearColor(numberToHex(hardwareMetadata.materialColor));
   return [
     { name: "finish", color: finish, metallic: 0, roughness: 0.68, alpha: 1 },
     { name: "back", color: darken(finish, 0.9), metallic: 0, roughness: 0.8, alpha: 1 },
-    { name: "hardware", color: hardware, metallic: hardware[0] < 0.02 ? 0.2 : 0.82, roughness: 0.34, alpha: 1 },
+    { name: "hardware", color: hardware, metallic: hardwareMetadata.metalness, roughness: hardwareMetadata.roughness, alpha: 1 },
     { name: "shadow", color: [0.021, 0.016, 0.012, 1], metallic: 0, roughness: 0.92, alpha: 1 },
     { name: "glass", color: [0.78, 0.86, 0.9, 0.2], metallic: 0, roughness: 0.12, alpha: 0.2 }
   ];
+}
+
+export function createArFrontProfileParts(component, center, size) {
+  const [width, height, depth] = size.map(Number);
+  if (
+    ![width, height, depth].every((value) => Number.isFinite(value) && value > 0)
+    || !Array.isArray(center)
+    || center.length !== 3
+    || center.some((value) => !Number.isFinite(Number(value)))
+  ) return [];
+
+  const [x, y, z] = center.map(Number);
+  const style = getArFrontStyle(component);
+  if (style === "flat") {
+    return [{ kind: "slab", material: "finish", center: [x, y, z], size: [width, height, depth] }];
+  }
+
+  const minimumSpan = Math.min(width, height);
+  const rail = clamp(
+    minimumSpan * (style === "slim_shaker" ? 0.065 : 0.095),
+    minimumSpan * 0.035,
+    Math.min(width * 0.22, height * 0.22)
+  );
+  const backingDepth = depth * 0.46;
+  const faceDepth = depth - backingDepth;
+  const backZ = z - depth / 2 + backingDepth / 2;
+  const faceZ = z + depth / 2 - faceDepth / 2;
+  const centerWidth = Math.max(width - rail * 2, width * 0.5);
+  const centerHeight = Math.max(height - rail * 2, height * 0.5);
+  const parts = [
+    {
+      kind: "backing",
+      material: style === "glass" ? "glass" : "finish",
+      center: [x, y, backZ],
+      size: [width, height, backingDepth]
+    },
+    {
+      kind: "top_rail",
+      material: "finish",
+      center: [x, y + height / 2 - rail / 2, faceZ],
+      size: [width, rail, faceDepth]
+    },
+    {
+      kind: "bottom_rail",
+      material: "finish",
+      center: [x, y - height / 2 + rail / 2, faceZ],
+      size: [width, rail, faceDepth]
+    },
+    {
+      kind: "left_stile",
+      material: "finish",
+      center: [x - width / 2 + rail / 2, y, faceZ],
+      size: [rail, centerHeight, faceDepth]
+    },
+    {
+      kind: "right_stile",
+      material: "finish",
+      center: [x + width / 2 - rail / 2, y, faceZ],
+      size: [rail, centerHeight, faceDepth]
+    }
+  ];
+
+  if (style !== "glass") {
+    const panelDepth = Math.min(faceDepth * 0.48, depth * 0.28);
+    parts.push({
+      kind: "inset_panel",
+      material: "finish",
+      center: [x, y, z + depth / 2 - faceDepth + panelDepth / 2],
+      size: [centerWidth, centerHeight, panelDepth]
+    });
+  }
+  return parts;
+}
+
+function getArFrontStyle(component) {
+  const requested = component?.metadata?.style;
+  if (component?.role === "drawer_front") {
+    return ["shaker", "flat", "slim_shaker"].includes(requested) ? requested : "shaker";
+  }
+  return ["shaker", "flat", "slim_shaker", "glass"].includes(requested) ? requested : "flat";
 }
 
 function materialNameForComponent(component) {
@@ -251,6 +341,12 @@ function hexToLinearColor(value) {
   return [0, 2, 4].map((offset) => srgbToLinear(Number.parseInt(hex.slice(offset, offset + 2), 16) / 255)).concat(1);
 }
 
+function numberToHex(value) {
+  const numeric = Number(value);
+  const safe = Number.isInteger(numeric) && numeric >= 0 && numeric <= 0xffffff ? numeric : 0xb38a4a;
+  return `#${safe.toString(16).padStart(6, "0")}`;
+}
+
 function srgbToLinear(value) {
   return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
 }
@@ -263,4 +359,8 @@ function coordinateInchesToMeters(value) {
   const inches = Number(value);
   if (!Number.isFinite(inches)) throw new RangeError("Cabinet component coordinates must be finite numbers.");
   return inches * 0.0254;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }

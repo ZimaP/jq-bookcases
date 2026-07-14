@@ -43,7 +43,7 @@ test("Guided Setup exposes the six required steps in customer order", () => {
     "dimensions", "layout", "storage", "construction", "appearance", "review"
   ]);
   assert.deepEqual(GUIDED_STEPS.map((step) => step.label), [
-    "Space", "Structure", "Storage", "Construction", "Appearance", "Review"
+    "Space", "Structure", "Storage", "Build", "Style", "Review"
   ]);
   assert.equal(GUIDED_STEPS.length, 6);
 });
@@ -111,6 +111,8 @@ test("mode categories map to the correct Guided steps and fields", () => {
   assert.equal(guidedStepForField("shelves"), "storage");
   assert.equal(guidedStepForField("shelfThickness"), "construction");
   assert.equal(guidedStepForField("doorStyle"), "storage");
+  assert.equal(guidedStepForField("drawerFrontStyle"), "storage");
+  assert.equal(categoryForField("drawerFrontStyle"), "doors");
 });
 
 test("the control registry maps every physical field once without UI-mode state", () => {
@@ -295,10 +297,12 @@ test("review groups contain applicable physical selections and omit irrelevant o
   const open = preset("classic-open").config;
   const openGroups = createReviewGroups(open, layoutFor(open), "classic-open");
   const openAppearance = openGroups.find((group) => group.id === "appearance");
-  assert.equal(openAppearance.items.some((item) => item.label === "Hardware"), false);
+  assert.equal(openAppearance.items.some((item) => item.label === "Hardware type"), false);
   const cabinet = defaultBookcaseConfig;
   const cabinetGroups = createReviewGroups(cabinet, layoutFor(cabinet), "lower-cabinets");
-  assert.equal(cabinetGroups.find((group) => group.id === "appearance").items.some((item) => item.label === "Hardware"), true);
+  const cabinetAppearance = cabinetGroups.find((group) => group.id === "appearance");
+  assert.equal(cabinetAppearance.items.find((item) => item.label === "Hardware type")?.value, "Knob");
+  assert.match(cabinetAppearance.items.find((item) => item.label === "Hardware finish")?.value, /^Brushed Brass · \d+ generated$/);
   assert.deepEqual(cabinetGroups.map((group) => group.step), ["layout", "dimensions", "storage", "construction", "appearance", "review"]);
 
   const glass = preset("glass-library").config;
@@ -307,6 +311,24 @@ test("review groups contain applicable physical selections and omit irrelevant o
     .items.find((item) => item.label === "Doors").value;
   assert.match(glassDoors, /8 Shaker/);
   assert.match(glassDoors, /4 Glass Frame/);
+});
+
+test("mixed storage reviews keep door and drawer front profiles independent", () => {
+  const state = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    doorStyle: "glass",
+    drawerFrontStyle: "flat",
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1, 1],
+      sectionTypes: ["lower_doors", "drawers", "open", "lower_doors"]
+    }
+  });
+  const layout = layoutFor(state);
+  const storage = createReviewGroups(state, layout, "lower-cabinets").find((group) => group.id === "storage");
+  assert.equal(storage.items.find((item) => item.label === "Door front profile")?.value, "Glass Frame");
+  assert.equal(storage.items.find((item) => item.label === "Drawer front profile")?.value, "Flat Panel");
+  assert.match(getCategorySummary("doors", state, layout), /Glass Frame/);
+  assert.match(getCategorySummary("doors", state, layout), /Flat Panel/);
 });
 
 test("saved design records are mode-independent schema 3 physical payloads", () => {

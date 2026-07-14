@@ -1,4 +1,4 @@
-import { mountIcons, setIcon } from "./icon-system.js?v=full-system-20260714a";
+import { mountIcons, setIcon } from "./icon-system.js?v=configurator-refine-20260714a";
 
 const navItems = [
   { label: "How It Works", href: "how-it-works.html", page: "how" },
@@ -8,7 +8,7 @@ const navItems = [
   { label: "FAQ", href: "faq.html", page: "faq" }
 ];
 
-const designBuilderHref = "configurator.html";
+const designBuilderHref = "configurator.html?start=resume";
 const officialBrand = Object.freeze({
   shortName: "JQ Bookcases",
   initials: "JQ",
@@ -65,7 +65,7 @@ function injectHeader() {
 
   const mobileCta = current === "configurator"
     ? `<button class="button button-primary mobile-cta" type="button" data-header-request-quote>Request Quote</button>`
-    : `<a class="mobile-design-link" href="configurator.html">Design Your Bookcase</a><a class="button button-primary mobile-cta" href="request-quote.html">Request Quote</a>`;
+    : `<a class="mobile-design-link" href="${designBuilderHref}">Design Your Bookcase</a><a class="button button-primary mobile-cta" href="request-quote.html">Request Quote</a>`;
 
   host.innerHTML = `
     <header class="site-header">
@@ -448,7 +448,7 @@ async function initQuoteForm() {
     /^JQ-[A-Z0-9-]{5,20}$/.test(storedDesign.id)
   ) {
     try {
-      const { restoreAcceptedDesignSnapshot } = await import("./bookcase-engine.js?v=full-system-20260714a");
+      const { restoreAcceptedDesignSnapshot } = await import("./bookcase-engine.js?v=configurator-refine-20260714a");
       const restored = restoreAcceptedDesignSnapshot(storedDesign);
       if (restored.accepted && restored.compatible) acceptedStoredDesign = { snapshot: storedDesign, restored };
     } catch (error) {
@@ -467,15 +467,18 @@ async function initQuoteForm() {
   if (activeStoredDesign && savedSummary) {
     try {
       const [{ createQuotePrefill }, { BENJAMIN_MOORE_COLOR_DATA_NOTICE }] = await Promise.all([
-        import("./quote-prefill.js?v=full-system-20260714a"),
-        import("./benjamin-moore-colors.js?v=full-system-20260714a")
+        import("./quote-prefill.js?v=configurator-refine-20260714a"),
+        import("./benjamin-moore-colors.js?v=configurator-refine-20260714a")
       ]);
       const activeDesignId = activeStoredDesign.snapshot.id;
       const config = activeStoredDesign.restored.state;
       const quotePrefill = createQuotePrefill(config);
       const designDetails = [
         formatStoredPrice(quotePrefill.price),
-        quotePrefill.layoutLabel || "Custom layout"
+        quotePrefill.layoutLabel || "Custom layout",
+        quotePrefill.frontProfiles?.door?.label ? `Door fronts: ${quotePrefill.frontProfiles.door.label}` : "",
+        quotePrefill.frontProfiles?.drawer?.label ? `Drawer fronts: ${quotePrefill.frontProfiles.drawer.label}` : "",
+        quotePrefill.hardwareSelection?.label ? `Hardware: ${quotePrefill.hardwareSelection.label}` : ""
       ].filter(Boolean).map(escapeHtml).join(" &middot; ");
       savedSummary.hidden = false;
       savedSummary.innerHTML = `<span>Saved design</span><strong>${escapeHtml(activeDesignId)}</strong><small>${designDetails}</small>`;
