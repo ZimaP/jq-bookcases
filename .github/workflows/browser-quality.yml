@@ -20,6 +20,8 @@ jobs:
     name: Cross-browser transaction and render checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      LIBGL_ALWAYS_SOFTWARE: "1"
 
     steps:
       - name: Check out repository
