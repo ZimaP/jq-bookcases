@@ -1,3 +1,5 @@
+import { normalizeSectionTypeValue } from "./bookcase-config.js?v=full-system-20260714a";
+
 /**
  * Pure parametric layout engine for JQ Bookcases.
  *
@@ -198,6 +200,17 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
   }
 
   const lowerCabinets = normalizeBoolean(source.lowerCabinets, LAYOUT_DEFAULTS.lowerCabinets);
+  const rawSectionTypes = source.layoutMetadata?.sectionTypes;
+  const hasCompleteExplicitSectionTypes = Array.isArray(rawSectionTypes) && rawSectionTypes.length === sections;
+  const hasExplicitLowerStorage = hasCompleteExplicitSectionTypes && rawSectionTypes.some((type, index) => {
+    const normalizedType = normalizeSectionTypeValue(type) || getImplicitSectionType(source, index, sections);
+    return normalizedType === "lower_doors" || normalizedType === "drawers";
+  });
+  const hasLegacyDrawerSections = Array.isArray(source.layoutMetadata?.drawerSections) &&
+    source.layoutMetadata.drawerSections.length > 0;
+  const hasAnyLowerStorage = hasCompleteExplicitSectionTypes
+    ? hasExplicitLowerStorage
+    : lowerCabinets || hasLegacyDrawerSections;
   const baseStyle = normalizeString(source.baseStyle, LAYOUT_DEFAULTS.baseStyle);
   const baseHeight = getBaseHeight(baseStyle);
   const clearBottom = baseHeight + panelThickness;
@@ -206,7 +219,7 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
     clearBottom + rules.lowerCabinetClearHeight,
     clearTop - rules.minUpperClearHeight - shelfThickness
   );
-  const shelfRegionBottom = lowerCabinets ? nominalLowerTop + shelfThickness : clearBottom;
+  const shelfRegionBottom = hasAnyLowerStorage ? nominalLowerTop + shelfThickness : clearBottom;
   const shelfRegionHeight = Math.max(0, clearTop - shelfRegionBottom);
   const maxShelvesForHeight = Math.max(
     1,
@@ -270,10 +283,32 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
     source.layoutMetadata ?? source.presetMetadata,
     sections,
     width,
-    corrections
+    corrections,
+    source
   );
   const layoutType = normalizeString(source.layoutType, LAYOUT_DEFAULTS.layoutType);
-  const lowerStorage = normalizeLowerStorage(source.lowerStorage, layoutType, metadata);
+  const normalizedLowerStorage = normalizeLowerStorage(source.lowerStorage, layoutType, metadata);
+  const normalizedTallDoors = normalizeBoolean(source.tallDoors, LAYOUT_DEFAULTS.tallDoors);
+  const explicitSectionTypes = Array.isArray(metadata.sectionTypes) && metadata.sectionTypes.length === sections
+    ? metadata.sectionTypes
+    : null;
+  const explicitLowerStorageTypes = explicitSectionTypes?.filter(
+    (type) => type === "lower_doors" || type === "drawers"
+  ) || [];
+  // Explicit per-section types are the physical source of truth. Keep the
+  // legacy/global fields synchronized because controls, summaries, saving, and
+  // quote preparation still consume them alongside the descriptor graph.
+  const canonicalLowerCabinets = explicitSectionTypes
+    ? explicitLowerStorageTypes.length > 0
+    : lowerCabinets;
+  const canonicalLowerStorage = explicitSectionTypes
+    ? explicitLowerStorageTypes.length > 0 && explicitLowerStorageTypes.every((type) => type === "drawers")
+      ? "drawers"
+      : "doors"
+    : normalizedLowerStorage;
+  const canonicalTallDoors = explicitSectionTypes
+    ? explicitSectionTypes.includes("tall_doors")
+    : normalizedTallDoors;
 
   const config = {
     layoutPreset: normalizeString(source.layoutPreset, LAYOUT_DEFAULTS.layoutPreset),
@@ -289,13 +324,13 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
     shelves,
     requestedShelves,
     shelfThickness,
-    lowerCabinets,
-    lowerStorage,
+    lowerCabinets: canonicalLowerCabinets,
+    lowerStorage: canonicalLowerStorage,
     drawerCount: normalizeInteger(source.drawerCount, LAYOUT_DEFAULTS.drawerCount, 2, 5, "drawerCount", corrections),
     centerOpening: normalizeBoolean(source.centerOpening, LAYOUT_DEFAULTS.centerOpening),
     deskOpening: normalizeBoolean(source.deskOpening, LAYOUT_DEFAULTS.deskOpening),
     featureOpening: normalizeBoolean(source.featureOpening, LAYOUT_DEFAULTS.featureOpening),
-    tallDoors: normalizeBoolean(source.tallDoors, LAYOUT_DEFAULTS.tallDoors),
+    tallDoors: canonicalTallDoors,
     doorCount: normalizeInteger(source.doorCount, LAYOUT_DEFAULTS.doorCount, 0, 12, "doorCount", corrections),
     doorStyle: normalizeString(source.doorStyle, LAYOUT_DEFAULTS.doorStyle),
     hardware: normalizeString(source.hardware, LAYOUT_DEFAULTS.hardware),
@@ -649,7 +684,8 @@ function buildSectionContents(context) {
   const sectionType = section.metadata.type;
   const isTall = sectionType === "tall_doors";
   const isDesk = sectionType === "desk";
-  const usesLowerStorage = config.lowerCabinets && !isTall && !isDesk && !(isSpecial && special.kind === "feature");
+  const usesLowerStorage = (sectionType === "lower_doors" || sectionType === "drawers") &&
+    !isTall && !isDesk && !(isSpecial && special.kind === "feature");
   let shelfRegionBottom = section.bounds.min.y;
 
   if (isTall) {
@@ -663,7 +699,7 @@ function buildSectionContents(context) {
     });
     addSingleDoor(add, config, opening, {
       id: section.id + "-tall-door",
-      openingSide: index === 0 ? "right" : "left",
+      openingSide: index < config.sections / 2 ? "right" : "left",
       tier: "primary",
       style: config.doorStyle
     });
@@ -1012,7 +1048,8 @@ function addLighting(context) {
 
   if (modes.includes("vertical_led")) {
     for (const section of eligibleSections) {
-      const yMin = config.lowerCabinets ? lowerOpeningTop + config.shelfThickness + 2 : section.bounds.min.y + 2;
+      const hasLowerStorage = section.metadata.type === "lower_doors" || section.metadata.type === "drawers";
+      const yMin = hasLowerStorage ? lowerOpeningTop + config.shelfThickness + 2 : section.bounds.min.y + 2;
       const yMax = section.bounds.max.y - 2;
       const sides = [
         {
@@ -1156,6 +1193,7 @@ function getSpecialZone(config) {
 }
 
 function resolveSectionType(config, index, special) {
+  if (special.indices.includes(index)) return special.kind;
   const explicitTypes = config.layoutMetadata.sectionTypes;
   if (Array.isArray(explicitTypes) && typeof explicitTypes[index] === "string") {
     return explicitTypes[index];
@@ -1163,7 +1201,6 @@ function resolveSectionType(config, index, special) {
   const drawerSections = config.layoutMetadata.drawerSections;
   if (Array.isArray(drawerSections) && drawerSections.includes(index)) return "drawers";
   if (config.tallDoors && (index === 0 || index === config.sections - 1)) return "tall_doors";
-  if (special.indices.includes(index)) return special.kind;
   if (config.lowerCabinets && config.lowerStorage === "drawers") return "drawers";
   return config.lowerCabinets ? "lower_doors" : "open";
 }
@@ -1720,7 +1757,7 @@ function normalizeLowerStorage(value, layoutType, metadata) {
   return layoutType.includes("drawer") ? "drawers" : LAYOUT_DEFAULTS.lowerStorage;
 }
 
-function reconcileLayoutMetadata(value, sections, width, corrections) {
+function reconcileLayoutMetadata(value, sections, width, corrections, source = {}) {
   const metadata = cloneMetadata(value);
   const panel = CONSTRUCTION_RULES.panelThickness;
   const totalSectionClearWidth = width - panel * 2 - panel * (sections - 1);
@@ -1730,26 +1767,56 @@ function reconcileLayoutMetadata(value, sections, width, corrections) {
       (ratio) => typeof ratio === "number" && Number.isFinite(ratio) && ratio > 0
     );
     const ratios = validShape ? metadata.sectionRatios.slice() : [];
-    const widths = validShape ? allocateSectionWidths(totalSectionClearWidth, ratios) : [];
-    const validWidths = validShape && widths.every(
-      (sectionWidth) => sectionWidth + EPSILON >= CONSTRUCTION_RULES.minSectionClearWidth
-    );
-    if (!validWidths) {
+    if (!validShape) {
       delete metadata.sectionRatios;
       corrections.push(createCorrection(
-        "SECTION_RATIOS_EQUALIZED",
+        "SECTION_RATIOS_INVALID",
         "layoutMetadata",
         value?.sectionRatios,
         {},
-        "Section widths were equalized so every bay remains buildable at the selected overall width."
+        "Section width ratios were ignored because they were not a complete positive ratio set for this section count."
       ));
     } else {
       metadata.sectionRatios = ratios;
     }
   }
 
-  if (Array.isArray(metadata.sectionTypes) && metadata.sectionTypes.length !== sections) {
-    delete metadata.sectionTypes;
+  if (Array.isArray(metadata.sectionTypes)) {
+    if (metadata.sectionTypes.length !== sections) {
+      delete metadata.sectionTypes;
+      corrections.push(createCorrection(
+        "SECTION_TYPES_LENGTH_MISMATCH",
+        "layoutMetadata.sectionTypes",
+        value?.sectionTypes,
+        null,
+        "Section types were reconciled because their count did not match the generated sections."
+      ));
+    } else {
+      metadata.sectionTypes = metadata.sectionTypes.map((type, index) => {
+        const normalizedType = normalizeSectionTypeValue(type);
+        if (normalizedType) {
+          if (normalizedType !== type) {
+            corrections.push(createCorrection(
+              "SECTION_TYPE_NORMALIZED",
+              `layoutMetadata.sectionTypes.${index}`,
+              type,
+              normalizedType,
+              `Section ${index + 1} type was normalized to ${normalizedType}.`
+            ));
+          }
+          return normalizedType;
+        }
+        const fallback = getImplicitSectionType(source, index, sections);
+        corrections.push(createCorrection(
+          "UNSUPPORTED_SECTION_TYPE",
+          `layoutMetadata.sectionTypes.${index}`,
+          type,
+          fallback,
+          `Section ${index + 1} used an unsupported type and was restored to ${fallback}.`
+        ));
+        return fallback;
+      });
+    }
   }
   if (Array.isArray(metadata.drawerSections)) {
     metadata.drawerSections = [...new Set(metadata.drawerSections.map(Number))]
@@ -1759,6 +1826,16 @@ function reconcileLayoutMetadata(value, sections, width, corrections) {
     metadata.specialSpan = clamp(Math.round(Number(metadata.specialSpan)), 1, sections);
   }
   return metadata;
+}
+
+function getImplicitSectionType(source, index, sections) {
+  const drawerSections = source?.layoutMetadata?.drawerSections;
+  if (Array.isArray(drawerSections) && drawerSections.map(Number).includes(index)) return "drawers";
+  if ((source?.tallDoors === true || source?.tallDoors === "true") && (index === 0 || index === sections - 1)) {
+    return "tall_doors";
+  }
+  if (source?.lowerCabinets === false || source?.lowerCabinets === "false") return "open";
+  return source?.lowerStorage === "drawers" ? "drawers" : "lower_doors";
 }
 
 function normalizeNumber(value, fallback, min, max, field, corrections) {

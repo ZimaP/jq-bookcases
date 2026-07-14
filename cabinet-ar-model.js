@@ -1,4 +1,4 @@
-import { hashCabinetArConfiguration, inchesToMeters } from "./cabinet-ar.js";
+import { hashCabinetArConfiguration, inchesToMeters } from "./cabinet-ar.js?v=full-system-20260714a";
 
 const NON_RENDERED_ROLES = new Set(["assembly", "section", "section_group", "opening", "light"]);
 const GLB_MAGIC = 0x46546c67;
@@ -7,13 +7,22 @@ const JSON_CHUNK_TYPE = 0x4e4f534a;
 const BIN_CHUNK_TYPE = 0x004e4942;
 
 export async function generateProceduralCabinetModel(configuration, context = {}) {
+  throwIfGenerationAborted(context.signal);
+  const posterUrl = context.posterUrl || null;
   const arrayBuffer = generateCabinetGlbArrayBuffer(configuration, context.layout);
   const blob = new Blob([arrayBuffer], { type: "model/gltf-binary" });
-  return {
-    glbUrl: URL.createObjectURL(blob),
-    usdzUrl: null,
-    posterUrl: context.posterUrl || null
-  };
+  const glbUrl = URL.createObjectURL(blob);
+  try {
+    throwIfGenerationAborted(context.signal);
+    return { glbUrl, usdzUrl: null, posterUrl };
+  } catch (error) {
+    try {
+      URL.revokeObjectURL(glbUrl);
+    } catch {
+      // Preserve the abort reason if object URL cleanup is unavailable.
+    }
+    throw error;
+  }
 }
 
 export function generateCabinetGlbArrayBuffer(configuration, layout) {
@@ -144,6 +153,16 @@ function materialNameForComponent(component) {
   if (component.metadata?.purpose === "recess") return "shadow";
   if (component.metadata?.style === "glass" || component.metadata?.material === "glass") return "glass";
   return "finish";
+}
+
+function throwIfGenerationAborted(signal) {
+  if (!signal?.aborted) return;
+  if (typeof signal.throwIfAborted === "function") signal.throwIfAborted();
+  if (signal.reason instanceof Error) throw signal.reason;
+  if (typeof DOMException === "function") throw new DOMException("The operation was aborted.", "AbortError");
+  const error = new Error("The operation was aborted.");
+  error.name = "AbortError";
+  throw error;
 }
 
 function createGeometryGroup(materialIndex) {

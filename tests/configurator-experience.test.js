@@ -40,23 +40,26 @@ const layoutFor = (config) => generateBookcaseLayout(normalizeBookcaseConfig(con
 
 test("Guided Setup exposes the six required steps in customer order", () => {
   assert.deepEqual(GUIDED_STEPS.map((step) => step.id), [
-    "layout", "dimensions", "storage", "construction", "appearance", "review"
+    "dimensions", "layout", "storage", "construction", "appearance", "review"
+  ]);
+  assert.deepEqual(GUIDED_STEPS.map((step) => step.label), [
+    "Space", "Structure", "Storage", "Construction", "Appearance", "Review"
   ]);
   assert.equal(GUIDED_STEPS.length, 6);
 });
 
 test("All Controls exposes every organized category exactly once", () => {
   assert.deepEqual(ALL_CONTROL_CATEGORIES.map((category) => category.id), [
-    "layout", "dimensions", "storage", "construction", "doors", "finish", "hardware", "lighting", "service"
+    "dimensions", "layout", "section_designer", "storage", "construction", "doors", "finish", "hardware", "lighting", "service"
   ]);
   assert.equal(new Set(ALL_CONTROL_CATEGORIES.map((category) => category.id)).size, ALL_CONTROL_CATEGORIES.length);
 });
 
-test("missing and invalid preferences safely fall back to Guided, Layout, and Layout", () => {
+test("missing and invalid preferences safely fall back to Guided, Space, and Dimensions", () => {
   for (const invalid of [null, "", "professional", "GUIDED", "review-mode"]) {
     assert.equal(normalizeConfiguratorMode(invalid), CONFIGURATOR_MODES.guided);
-    assert.equal(normalizeGuidedStep(invalid), "layout");
-    assert.equal(normalizeAllCategory(invalid), "layout");
+    assert.equal(normalizeGuidedStep(invalid), "dimensions");
+    assert.equal(normalizeAllCategory(invalid), "dimensions");
   }
   assert.equal(normalizeConfiguratorMode("all"), "all");
   assert.equal(normalizeGuidedStep("appearance"), "appearance");
@@ -86,6 +89,7 @@ test("mode categories map to the correct Guided steps and fields", () => {
   const expected = {
     layout: "layout",
     dimensions: "dimensions",
+    section_designer: "layout",
     storage: "storage",
     construction: "construction",
     doors: "storage",
@@ -95,14 +99,17 @@ test("mode categories map to the correct Guided steps and fields", () => {
     service: "review"
   };
   for (const [category, step] of Object.entries(expected)) assert.equal(guidedStepForCategory(category), step);
+  assert.equal(categoryForGuidedStep("layout"), "section_designer");
   assert.equal(categoryForGuidedStep("appearance", "hardware"), "hardware");
   assert.equal(categoryForGuidedStep("review"), "service");
   assert.equal(guidedStepForField("customPaintColor"), "appearance");
   assert.equal(categoryForField("customPaintColor"), "finish");
   assert.equal(guidedStepForField("drawerCount"), "storage");
   assert.equal(categoryForField("drawerCount"), "storage");
-  assert.equal(guidedStepForField("shelves"), "dimensions");
-  assert.equal(guidedStepForField("shelfThickness"), "dimensions");
+  assert.equal(guidedStepForField("sections"), "layout");
+  assert.equal(categoryForField("sections"), "section_designer");
+  assert.equal(guidedStepForField("shelves"), "storage");
+  assert.equal(guidedStepForField("shelfThickness"), "construction");
   assert.equal(guidedStepForField("doorStyle"), "storage");
 });
 
@@ -125,17 +132,18 @@ test("dimension drafts block Dimensions and Review but not unrelated steps", () 
   assert.equal(validateGuidedStep("review", state, layout, drafts).valid, false);
 });
 
-test("storage drafts block Storage and Review while shelf drafts belong to Dimensions", () => {
+test("structure, storage, and construction drafts block their visible step and Review", () => {
   const state = normalizeBookcaseConfig(defaultBookcaseConfig);
   const layout = layoutFor(state);
-  for (const drafts of [{ sections: "" }, { drawerCount: "one" }]) {
+  const cases = [
+    ["layout", { sections: "" }],
+    ["storage", { drawerCount: "one" }],
+    ["storage", { shelves: "99" }],
+    ["construction", { shelfThickness: "3" }]
+  ];
+  for (const [step, drafts] of cases) {
+    assert.equal(validateGuidedStep(step, state, layout, drafts).valid, false);
     assert.equal(validateGuidedStep("dimensions", state, layout, drafts).valid, true);
-    assert.equal(validateGuidedStep("storage", state, layout, drafts).valid, false);
-    assert.equal(validateGuidedStep("review", state, layout, drafts).valid, false);
-  }
-  for (const drafts of [{ shelves: "99" }, { shelfThickness: "3" }]) {
-    assert.equal(validateGuidedStep("dimensions", state, layout, drafts).valid, false);
-    assert.equal(validateGuidedStep("storage", state, layout, drafts).valid, true);
     assert.equal(validateGuidedStep("review", state, layout, drafts).valid, false);
   }
 });

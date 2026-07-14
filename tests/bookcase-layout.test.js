@@ -22,6 +22,80 @@ const approximately = (actual, expected, epsilon = 1e-6) => {
   assert.ok(Math.abs(actual - expected) <= epsilon, String(actual) + " is not approximately " + String(expected));
 };
 
+test("complete explicit open section types override stale lower-cabinet shelf constraints", () => {
+  const layout = generateBookcaseLayout({
+    ...defaultBookcaseConfig,
+    height: 72,
+    sections: 2,
+    shelves: 8,
+    lowerCabinets: true,
+    layoutMetadata: { sectionRatios: [1, 1], sectionTypes: ["open", "open"] }
+  });
+
+  assert.equal(layout.config.shelves, 8);
+  assert.equal(layout.config.lowerCabinets, false);
+  assert.equal(layout.config.lowerStorage, "doors");
+  assert.equal(layout.config.tallDoors, false);
+  assert.equal(byRole(layout, "shelf").length, 16);
+  assert.equal(byRole(layout, "fixed_shelf").length, 0);
+});
+
+test("complete explicit section types canonicalize legacy storage and tall-door flags", () => {
+  const mixed = normalizeLayoutConfig({
+    ...defaultBookcaseConfig,
+    sections: 3,
+    lowerCabinets: false,
+    lowerStorage: "drawers",
+    tallDoors: false,
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1],
+      sectionTypes: ["lower_doors", "drawers", "tall_doors"]
+    }
+  }).config;
+  assert.equal(mixed.lowerCabinets, true);
+  assert.equal(mixed.lowerStorage, "doors");
+  assert.equal(mixed.tallDoors, true);
+
+  const allDrawers = normalizeLayoutConfig({
+    ...defaultBookcaseConfig,
+    sections: 2,
+    lowerCabinets: false,
+    lowerStorage: "doors",
+    tallDoors: true,
+    layoutMetadata: {
+      sectionRatios: [1, 1],
+      sectionTypes: ["drawers", "drawers"]
+    }
+  }).config;
+  assert.equal(allDrawers.lowerCabinets, true);
+  assert.equal(allDrawers.lowerStorage, "drawers");
+  assert.equal(allDrawers.tallDoors, false);
+});
+
+test("vertical LED start heights follow each explicit section type instead of a stale global flag", () => {
+  const config = {
+    ...defaultBookcaseConfig,
+    sections: 2,
+    lighting: "vertical_led",
+    layoutMetadata: { sectionRatios: [1, 1], sectionTypes: ["lower_doors", "open"] }
+  };
+  const withoutLegacyFlag = generateBookcaseLayout({ ...config, lowerCabinets: false });
+  const withLegacyFlag = generateBookcaseLayout({ ...config, lowerCabinets: true });
+  const starts = (layout) => byRole(layout, "light")
+    .filter((light) => light.metadata.lightType === "vertical_led")
+    .reduce((values, light) => ({ ...values, [light.parentId]: light.bounds.min.y }), {});
+
+  assert.deepEqual(starts(withoutLegacyFlag), starts(withLegacyFlag));
+  const sectionStarts = starts(withoutLegacyFlag);
+  const lowerSeparator = withoutLegacyFlag.components.find(
+    (component) => component.id === "section-01-lower-separator"
+  );
+  const openSection = withoutLegacyFlag.components.find((component) => component.id === "section-02");
+  approximately(sectionStarts["section-01"], lowerSeparator.bounds.max.y + 2);
+  approximately(sectionStarts["section-02"], openSection.bounds.min.y + 2);
+  assert.ok(sectionStarts["section-01"] > sectionStarts["section-02"]);
+});
+
 test("default layout uses canonical inches and exact nominal outer dimensions", () => {
   const layout = generateBookcaseLayout();
   const root = findComponent(layout, "bookcase");
@@ -133,7 +207,7 @@ test("invalid or missing section ratios fall back to equal bays", () => {
   }
 });
 
-test("positive ratios that create unbuildable bays are equalized explicitly", () => {
+test("positive ratios that create unbuildable bays remain visible and fail validation", () => {
   const layout = generateBookcaseLayout({
     width: 96,
     sections: 4,
@@ -142,9 +216,10 @@ test("positive ratios that create unbuildable bays are equalized explicitly", ()
     layoutMetadata: { sectionRatios: [0.1, 1, 1, 1] }
   });
 
-  assert.deepEqual(layout.metrics.sectionClearWidths, [23.0625, 23.0625, 23.0625, 23.0625]);
-  assert.equal(layout.validation.valid, true, JSON.stringify(layout.validation.errors));
-  assert.ok(layout.corrections.some((item) => item.code === "SECTION_RATIOS_EQUALIZED"));
+  assert.notDeepEqual(layout.metrics.sectionClearWidths, [23.0625, 23.0625, 23.0625, 23.0625]);
+  assert.equal(layout.validation.valid, false);
+  assert.ok(layout.validation.errors.some((item) => item.code === "MIN_SECTION_CLEAR_WIDTH"));
+  assert.equal(layout.corrections.some((item) => item.code === "SECTION_RATIOS_EQUALIZED"), false);
 });
 
 test("too many sections are auto-corrected to preserve minimum clear width", () => {

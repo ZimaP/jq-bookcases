@@ -51,13 +51,18 @@ test("one delegated action path owns Save Design and Request Quote", () => {
   assert.equal((source.match(/saveCurrentDesign\(\) \{/g) || []).length, 1);
   assert.equal((source.match(/openQuotePage\(\) \{/g) || []).length, 1);
   assert.match(source, /openQuotePage\(\) \{[\s\S]*this\.saveCurrentDesign\(\)[\s\S]*window\.location\.assign/);
+  assert.match(source, /if \(!design\.persisted\)[\s\S]*blocked local design storage[\s\S]*return false/);
 });
 
-test("one price pipeline and one physical update pipeline serve both modes", () => {
+test("one accepted edit pipeline serves both modes after the explicit studio commit", () => {
   assert.equal((source.match(/update\(nextState, options = \{\}\) \{/g) || []).length, 1);
-  assert.equal((source.match(/this\.pricing = buildPricingContext\(this\.state, this\.layout\)/g) || []).length, 2);
-  assert.equal((source.match(/this\.price = this\.pricing\.total/g) || []).length, 2);
-  assert.equal((source.match(/this\.viewer\.update\(this\.state, this\.layout, changedFields\)/g) || []).length, 1);
+  assert.equal((source.match(/this\.viewer\.update\(state, evaluation\.layout\)/g) || []).length, 1);
+  assert.match(source, /const evaluation = evaluateBookcaseCandidate\(nextState\)/);
+  const entryCommit = methodBody("acceptStudioDesign", "initializeCabinetAr");
+  assert.match(entryCommit, /evaluateBookcaseCandidate\(config\)/);
+  assert.match(entryCommit, /this\.acceptedEvaluation = evaluation/);
+  assert.match(entryCommit, /this\.pricing = evaluation\.pricing/);
+  assert.match(entryCommit, /this\.createViewer\(this\.layout\)/);
   assert.doesNotMatch(source, /guidedPrice|allControlsPrice|guidedState|allControlsState/);
 });
 
@@ -69,9 +74,9 @@ test("the cached shared total feeds estimate, review, Save, and Quote without mo
 
   assert.match(review, /formatPrice\(this\.price\)/);
   assert.match(summary, /const price = this\.price/);
-  assert.match(save, /createSavedDesignRecord\(this\.state, this\.price\)/);
+  assert.match(save, /createAcceptedDesignSnapshot\(this\.acceptedEvaluation\)/);
   assert.match(quote, /this\.saveCurrentDesign\(\)/);
-  assert.doesNotMatch(`${review}\n${summary}\n${save}\n${quote}`, /calculateBookcasePrice|buildPricingContext/);
+  assert.doesNotMatch(`${review}\n${summary}\n${save}\n${quote}`, /calculateBookcasePrice|buildPricingContext|evaluateBookcaseCandidate/);
 });
 
 test("mode tabs, continuous Appearance sections, accordions, and validation have complete ARIA wiring", () => {
@@ -143,26 +148,43 @@ test("section steppers use buildable counts and the viewer never retains stale g
   assert.match(rebuild, /this\.scene\.remove\(this\.model\)[\s\S]*this\.model = nextModel/);
 });
 
+test("Section Designer enforces its hard limit and scopes undo history to structural state", () => {
+  const designer = methodBody("renderSectionDesignerGroup", "renderDoorGroup");
+  const commit = methodBody("commitSectionOperation", "undoSectionChange");
+  const undo = methodBody("undoSectionChange", "redoSectionChange");
+  const redo = methodBody("redoSectionChange", "refreshSectionDesignerPresentation");
+
+  assert.match(designer, /designer\.sections\.length >= this\.layout\.rules\.maxSections \? "disabled"/);
+  assert.match(commit, /createSectionHistorySnapshot\(this\.state\)/);
+  assert.match(undo, /applySectionHistorySnapshot\(this\.state, previous\)/);
+  assert.match(redo, /applySectionHistorySnapshot\(this\.state, next\)/);
+  assert.doesNotMatch(`${commit}\n${undo}\n${redo}`, /structuredClone\(this\.state\)/);
+});
+
 test("service and derived metadata updates never rebuild unchanged 3D geometry", () => {
   const partial = methodBody("applyPartialUpdate", "applyFinishMaterials");
   assert.match(partial, /nonVisualFields = new Set\(\["layoutPreset", "doorCount", "installation", "delivery"\]\)/);
   assert.match(partial, /every\(\(field\) => nonVisualFields\.has\(field\)\)/);
 });
 
-test("Guided Layout shows every preset immediately without recommendation or disclosure UI", () => {
-  const layouts = methodBody("renderLayoutCards", "renderStorageGroup");
-  assert.match(layouts, /renderCards\(layoutPresets\)/);
-  assert.doesNotMatch(layouts, /recommended-badge|additional-layouts|<details|Explore/);
+test("Guided Structure is custom-first while ideas remain engine-backed inspiration", () => {
+  const guided = methodBody("renderGuidedStepContent", "renderAllControlsExperience");
+  const ideas = methodBody("renderStudioIdeaLibrary", "renderStudioIdeaCard");
+  assert.match(guided, /stepId === "layout"[\s\S]*renderStructureStartGroup/);
+  assert.doesNotMatch(guided, /renderLayoutCards\("guided"\)/);
+  assert.match(ideas, /filterInspirationIdeas\(this\.inspirationFilter\)/);
+  assert.match(ideas, /View all \$\{filtered\.length\} editable ideas/);
 });
 
-test("Guided Size owns shelf count and thickness while Storage owns front style", () => {
-  const dimensions = methodBody("renderDimensionsGroup", "renderStructureGroup");
+test("Guided order separates Space, Structure, Storage, and Construction concerns", () => {
+  const space = methodBody("renderSpaceGroup", "renderStructureStartGroup");
   const storage = methodBody("renderStorageGroup", "renderDoorGroup");
   const construction = methodBody("renderStructureGroup", "renderFinishGroup");
-  assert.match(dimensions, /renderRangeControl\("shelves"/);
-  assert.match(dimensions, /renderRangeControl\("shelfThickness"/);
+  assert.match(space, /renderRangeControl\("width"/);
+  assert.doesNotMatch(space, /renderRangeControl\("shelves"|renderRangeControl\("shelfThickness"/);
+  assert.match(storage, /renderRangeControl\("shelves"/);
   assert.match(storage, /this\.renderDoorGroup\(\)/);
-  assert.doesNotMatch(construction, /shelfThickness/);
+  assert.match(construction, /renderRangeControl\("shelfThickness"/);
 });
 
 test("Project service cards avoid the shared option-card grid collision", () => {
@@ -266,7 +288,7 @@ test("profile framing uses semantic detail regions and the unobstructed viewer a
   assert.match(source, /focusTargetCache = new Map\(\)/);
 });
 
-test("smart camera transitions replace stale work, honor reduced motion, and use one render loop", () => {
+test("smart camera transitions replace stale work and use one on-demand render scheduler", () => {
   assert.match(source, /const SMART_CAMERA_DURATION = PROFILE_CAMERA_DURATION/);
   assert.ok(PROFILE_CAMERA_DURATION >= 600 && PROFILE_CAMERA_DURATION <= 900, "profile focus should animate for 600-900ms");
   assert.match(source, /window\.matchMedia\?\.\("\(prefers-reduced-motion: reduce\)"\)/);
@@ -278,18 +300,31 @@ test("smart camera transitions replace stale work, honor reduced motion, and use
   assert.match(transition, /if \(this\.cameraTransition\) this\.cameraTransitionCancellationCount \+= 1/);
   assert.match(transition, /sequence: \+\+this\.cameraTransitionSequence/);
   assert.match(transition, /duration,/);
-  assert.doesNotMatch(transition, /requestAnimationFrame/, "camera transitions must use the persistent renderer loop");
+  assert.doesNotMatch(transition, /requestAnimationFrame/, "camera transitions must use the shared render scheduler");
+  assert.match(transition, /this\.requestRender\(\)/);
 
   const transitionUpdate = methodBody("updateCameraTransition", "cancelCameraTransition");
   assert.match(transitionUpdate, /easeInOutCubic\(progress\)/);
   assert.match(transitionUpdate, /this\.target\.lerpVectors/);
 
-  const cancellation = methodBody("cancelCameraTransition", "applyComponentHighlight");
+  const cancellation = methodBody("cancelCameraTransition", "setEnvironmentLightScale");
   assert.match(cancellation, /if \(this\.cameraTransition\) this\.cameraTransitionCancellationCount \+= 1/);
   assert.match(cancellation, /this\.cameraTransition = null/);
 
+  const scheduler = methodBody("requestRender", "animate");
+  assert.match(scheduler, /this\.destroyed \|\| this\.isRenderingFrame \|\| this\.animationFrame !== null/);
+  assert.match(scheduler, /this\.animationFrame = window\.requestAnimationFrame\(\(time\) => this\.animate\(time\)\)/);
+
+  const renderFrame = methodBody("animate", "getViewState");
+  assert.match(renderFrame, /this\.animationFrame = null/);
+  assert.match(renderFrame, /this\.renderCount \+= 1/);
+  assert.match(renderFrame, /if \(this\.cameraTransition\) this\.requestRender\(\)/);
+  assert.doesNotMatch(renderFrame, /requestAnimationFrame/, "render frames must reschedule only through the guarded scheduler");
+
   const viewer = source.slice(source.indexOf("class BookcaseViewer3D"));
   assert.equal((viewer.match(/this\.animationFrame = window\.requestAnimationFrame\(\(time\) => this\.animate\(time\)\)/g) || []).length, 1);
+  assert.match(viewer, /renderCount: this\.renderCount/);
+  assert.match(viewer, /renderScheduled: this\.animationFrame !== null/);
   assert.match(viewer, /cameraTransitionSequence: this\.cameraTransitionSequence/);
   assert.match(viewer, /cameraTransitionCancellations: this\.cameraTransitionCancellationCount/);
 
@@ -314,10 +349,29 @@ test("puck lights render as restrained recessed diffusers instead of hanging sph
 });
 
 test("detail camera positions are relative to the focus target", () => {
-  const updateCamera = methodBody("updateCamera", "animate");
+  const updateCamera = methodBody("updateCamera", "requestRender");
   assert.match(updateCamera, /this\.target\.x \+ Math\.sin\(this\.theta\) \* horizontal/);
   assert.match(updateCamera, /this\.target\.z \+ Math\.cos\(this\.theta\) \* horizontal/);
   assert.match(updateCamera, /this\.camera\.lookAt\(this\.target\)/);
+  assert.match(updateCamera, /this\.requestRender\(\)/);
+});
+
+test("visual-only mutations and restored camera state request an on-demand frame", () => {
+  const environment = methodBody("setEnvironmentLightScale", "applyComponentHighlight");
+  assert.match(environment, /light\.intensity =/);
+  assert.match(environment, /this\.requestRender\(\)/);
+
+  const finish = methodBody("applyFinishMaterials", "applyHardwareMaterial");
+  const hardware = methodBody("applyHardwareMaterial", "applyLightingWarmth");
+  const lighting = methodBody("applyLightingWarmth", "frameModel");
+  const selection = methodBody("setSectionSelection", "refreshSectionInteractionLayer");
+  for (const visualMutation of [finish, hardware, lighting, selection]) {
+    assert.match(visualMutation, /this\.requestRender\(\)/);
+  }
+
+  const restore = methodBody("restoreCameraState", "resize");
+  assert.match(restore, /this\.setEnvironmentLightScale/);
+  assert.match(restore, /this\.updateCamera\(\)/);
 });
 
 test("hover option preview is reversible and isolated from canonical pricing state", () => {
@@ -335,8 +389,9 @@ test("the compact AR launch replaces the duplicate preview estimate", () => {
   assert.equal((shell.match(/data-ar-label/g) || []).length, 1);
   assert.equal((shell.match(/>AR View in Your Room<\/span>/g) || []).length, 1);
   assert.match(shell, /aria-label="AR View in Your Room"/);
-  assert.equal((shell.match(/data-price/g) || []).length, 1);
+  assert.equal((shell.match(/data-price/g) || []).length, 2);
   assert.match(shell, /Estimated project price/);
+  assert.match(shell, /Your estimate will appear as you build/);
   assert.doesNotMatch(shell, /preview-price-pill|data-preview-price|Current estimated project price/);
   assert.doesNotMatch(shell, /cabinet-ar-launch-heading|cabinet-ar-launch-help|See this bookcase at true scale/);
   assert.match(shell, /<div class="cabinet-ar-launch">\s*<button class="cabinet-ar-launch-button"/);

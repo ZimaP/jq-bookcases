@@ -1,10 +1,12 @@
-import { createDesignId, defaultBookcaseConfig, normalizeBookcaseConfig } from "./bookcase-config.js";
+import { createDesignId, defaultBookcaseConfig, normalizeBookcaseConfig } from "./bookcase-config.js?v=full-system-20260714a";
 
 export const CABINET_AR_SCHEMA_VERSION = 1;
 export const CABINET_AR_FEATURE_ATTRIBUTE = "data-enable-cabinet-ar";
 export const CABINET_AR_SHARE_PARAMETER = "arConfig";
 export const CABINET_AR_MODEL_VIEWER_URL = "https://ajax.googleapis.com/ajax/libs/model-viewer/4.3.1/model-viewer.min.js";
 export const CABINET_AR_QR_MODULE_URL = "https://cdn.jsdelivr.net/npm/qrcode@1.5.4/+esm";
+export const CABINET_AR_MODEL_CACHE_LIMIT = 8;
+export const CABINET_AR_REMOTE_TIMEOUT_MS = 10000;
 
 const CONFIGURATION_FIELDS = Object.freeze(Object.keys(defaultBookcaseConfig));
 const MODEL_URL_PROTOCOLS = new Set(["http:", "https:", "blob:"]);
@@ -180,18 +182,35 @@ export function emitArAnalytics(eventName, metadata = {}, environment = globalTh
 export function createArModelRequestCoordinator(resolver) {
   let sequence = 0;
   let destroyed = false;
+  let activeController = null;
   return {
-    async request(configuration, options) {
+    async request(configuration, options = {}) {
       const requestSequence = ++sequence;
-      const result = await resolver(configuration, options);
-      return { result, stale: destroyed || requestSequence !== sequence };
+      activeController?.abort();
+      const controller = new AbortController();
+      activeController = controller;
+      const callerSignal = options.signal;
+      const abortForCaller = () => controller.abort(callerSignal?.reason);
+      if (callerSignal?.aborted) abortForCaller();
+      else callerSignal?.addEventListener?.("abort", abortForCaller, { once: true });
+      try {
+        const result = await resolver(configuration, { ...options, signal: controller.signal });
+        return { result, stale: destroyed || requestSequence !== sequence };
+      } finally {
+        callerSignal?.removeEventListener?.("abort", abortForCaller);
+        if (activeController === controller) activeController = null;
+      }
     },
     invalidate() {
       sequence += 1;
+      activeController?.abort();
+      activeController = null;
     },
     destroy() {
       destroyed = true;
       sequence += 1;
+      activeController?.abort();
+      activeController = null;
     }
   };
 }
@@ -200,60 +219,206 @@ export function createArModelProvider(options = {}) {
   const generateProceduralModel = options.generateProceduralModel;
   const endpoint = String(options.endpoint || "").trim();
   const fetchImpl = options.fetchImpl || globalThis.fetch;
+  const remoteTimeoutMs = normalizeTimeout(options.remoteTimeoutMs, CABINET_AR_REMOTE_TIMEOUT_MS);
   return async function resolveArModel(configuration, context = {}) {
-    const configurationHash = hashCabinetArConfiguration(configuration);
-    if (configurationCache.has(configurationHash)) return configurationCache.get(configurationHash);
-
+    const suppliedPosterUrl = context.posterUrl || null;
+    let configurationHash = "";
+    let generatedModel = null;
+    let retainedModel = null;
     let resolved = null;
-    if (endpoint && typeof fetchImpl === "function") {
-      resolved = await requestRemoteModel(endpoint, configuration, configurationHash, fetchImpl, context.signal);
+    const releasedUrls = new Set();
+    try {
+      configurationHash = hashCabinetArConfiguration(configuration);
+      throwIfAborted(context.signal);
+      const cached = readCachedModel(configurationHash);
+      if (cached) {
+        retainedModel = cached;
+        return cached;
+      }
+
+      let remoteError = null;
+      if (endpoint && typeof fetchImpl === "function") {
+        try {
+          resolved = await requestRemoteModel(
+            endpoint,
+            configuration,
+            configurationHash,
+            fetchImpl,
+            context.signal,
+            remoteTimeoutMs
+          );
+        } catch (error) {
+          if (context.signal?.aborted || isAbortError(error)) throw error;
+          remoteError = error;
+        }
+      }
+      throwIfAborted(context.signal);
+      if (!resolved && typeof generateProceduralModel === "function") {
+        generatedModel = await generateProceduralModel(configuration, context);
+        throwIfAborted(context.signal);
+        resolved = {
+          configurationHash,
+          glbUrl: validateModelUrl(generatedModel.glbUrl, "glbUrl"),
+          usdzUrl: generatedModel.usdzUrl ? validateModelUrl(generatedModel.usdzUrl, "usdzUrl") : null,
+          posterUrl: generatedModel.posterUrl ? validateModelUrl(generatedModel.posterUrl, "posterUrl") : null,
+          status: "ready",
+          source: "procedural"
+        };
+      }
+      if (!resolved?.glbUrl) {
+        if (remoteError) throw remoteError;
+        throw new Error("A 3D model could not be prepared for this configuration.");
+      }
+      retainedModel = writeCachedModel(configurationHash, resolved, releasedUrls);
+      return retainedModel;
+    } catch (error) {
+      if (resolved && resolved !== retainedModel) releaseModelObjectUrls(resolved, releasedUrls);
+      if (generatedModel && generatedModel !== retainedModel) releaseModelObjectUrls(generatedModel, releasedUrls);
+      throw error;
+    } finally {
+      releaseUnusedObjectUrl(suppliedPosterUrl, retainedModel || generatedModel, releasedUrls);
     }
-    if (!resolved && typeof generateProceduralModel === "function") {
-      const generated = await generateProceduralModel(configuration, context);
-      resolved = {
-        configurationHash,
-        glbUrl: validateModelUrl(generated.glbUrl, "glbUrl"),
-        usdzUrl: generated.usdzUrl ? validateModelUrl(generated.usdzUrl, "usdzUrl") : null,
-        posterUrl: generated.posterUrl ? validateModelUrl(generated.posterUrl, "posterUrl") : null,
-        status: "ready",
-        source: "procedural"
-      };
-    }
-    if (!resolved?.glbUrl) throw new Error("A 3D model could not be prepared for this configuration.");
-    configurationCache.set(configurationHash, resolved);
-    return resolved;
   };
 }
 
 export function clearArModelCache() {
+  const cachedModels = [...configurationCache.values()];
   configurationCache.clear();
+  const releasedUrls = new Set();
+  cachedModels.forEach((model) => releaseModelObjectUrls(model, releasedUrls));
 }
 
-async function requestRemoteModel(endpoint, configuration, expectedHash, fetchImpl, signal) {
-  const response = await fetchImpl(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "Accept": "application/json" },
-    body: JSON.stringify({ configuration }),
-    credentials: "same-origin",
-    signal
-  });
-  if (!response.ok) throw new Error("The AR model service is temporarily unavailable.");
-  const contentType = response.headers?.get?.("content-type") || "";
-  if (!contentType.toLowerCase().includes("application/json")) throw new Error("The AR model service returned an invalid response.");
-  const payload = await response.json();
-  if (payload.status !== "ready") {
-    if (payload.status === "processing") throw new Error("The AR model is still being prepared. Please try again shortly.");
-    throw new Error("This configuration is not available for AR yet.");
-  }
-  if (payload.configurationHash !== expectedHash) throw new Error("The AR model response did not match this configuration.");
-  return {
-    configurationHash: expectedHash,
-    glbUrl: validateModelUrl(payload.glbUrl, "glbUrl"),
-    usdzUrl: payload.usdzUrl ? validateModelUrl(payload.usdzUrl, "usdzUrl") : null,
-    posterUrl: payload.posterUrl ? validateModelUrl(payload.posterUrl, "posterUrl") : null,
-    status: "ready",
-    source: "remote"
+async function requestRemoteModel(endpoint, configuration, expectedHash, fetchImpl, signal, timeoutMs) {
+  throwIfAborted(signal);
+  const requestController = new AbortController();
+  let timeoutId;
+  let rejectCancellation;
+  const cancellation = new Promise((resolve, reject) => { rejectCancellation = reject; });
+  const cancelForCaller = () => {
+    const error = abortReason(signal);
+    requestController.abort(error);
+    rejectCancellation(error);
   };
+  signal?.addEventListener?.("abort", cancelForCaller, { once: true });
+  timeoutId = globalThis.setTimeout(() => {
+    const error = new Error("The AR model service timed out.");
+    requestController.abort(error);
+    rejectCancellation(error);
+  }, timeoutMs);
+
+  const request = (async () => {
+    const response = await fetchImpl(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({ configuration }),
+      credentials: "same-origin",
+      signal: requestController.signal
+    });
+    if (!response.ok) throw new Error("The AR model service is temporarily unavailable.");
+    const contentType = response.headers?.get?.("content-type") || "";
+    if (!contentType.toLowerCase().includes("application/json")) throw new Error("The AR model service returned an invalid response.");
+    const payload = await response.json();
+    if (payload.status !== "ready") {
+      if (payload.status === "processing") throw new Error("The AR model is still being prepared. Please try again shortly.");
+      throw new Error("This configuration is not available for AR yet.");
+    }
+    if (payload.configurationHash !== expectedHash) throw new Error("The AR model response did not match this configuration.");
+    return {
+      configurationHash: expectedHash,
+      glbUrl: validateModelUrl(payload.glbUrl, "glbUrl"),
+      usdzUrl: payload.usdzUrl ? validateModelUrl(payload.usdzUrl, "usdzUrl") : null,
+      posterUrl: payload.posterUrl ? validateModelUrl(payload.posterUrl, "posterUrl") : null,
+      status: "ready",
+      source: "remote"
+    };
+  })();
+
+  try {
+    return await Promise.race([request, cancellation]);
+  } finally {
+    globalThis.clearTimeout(timeoutId);
+    signal?.removeEventListener?.("abort", cancelForCaller);
+  }
+}
+
+function readCachedModel(configurationHash) {
+  const cached = configurationCache.get(configurationHash);
+  if (!cached) return null;
+  configurationCache.delete(configurationHash);
+  configurationCache.set(configurationHash, cached);
+  return cached;
+}
+
+function writeCachedModel(configurationHash, model, releasedUrls = new Set()) {
+  const existing = readCachedModel(configurationHash);
+  if (existing) {
+    releaseModelObjectUrls(model, releasedUrls);
+    return existing;
+  }
+  configurationCache.set(configurationHash, model);
+  while (configurationCache.size > CABINET_AR_MODEL_CACHE_LIMIT) {
+    const oldestHash = configurationCache.keys().next().value;
+    const oldestModel = configurationCache.get(oldestHash);
+    configurationCache.delete(oldestHash);
+    releaseModelObjectUrls(oldestModel);
+  }
+  return model;
+}
+
+function releaseModelObjectUrls(model, releasedUrls = new Set()) {
+  [model?.glbUrl, model?.usdzUrl, model?.posterUrl].forEach((url) => {
+    if (!isObjectUrl(url) || releasedUrls.has(url) || cacheReferencesUrl(url)) return;
+    releasedUrls.add(url);
+    revokeObjectUrl(url);
+  });
+}
+
+function releaseUnusedObjectUrl(url, retainedModel, releasedUrls = new Set()) {
+  if (!isObjectUrl(url) || releasedUrls.has(url) || modelReferencesUrl(retainedModel, url) || cacheReferencesUrl(url)) return;
+  releasedUrls.add(url);
+  revokeObjectUrl(url);
+}
+
+function modelReferencesUrl(model, url) {
+  return Boolean(model && [model.glbUrl, model.usdzUrl, model.posterUrl].includes(url));
+}
+
+function cacheReferencesUrl(url) {
+  return [...configurationCache.values()].some((model) => modelReferencesUrl(model, url));
+}
+
+function isObjectUrl(value) {
+  return typeof value === "string" && value.trim().startsWith("blob:");
+}
+
+function revokeObjectUrl(url) {
+  try {
+    globalThis.URL?.revokeObjectURL?.(url);
+  } catch {
+    // Object URL cleanup is best-effort and must not hide the model result.
+  }
+}
+
+function normalizeTimeout(value, fallback) {
+  if (value === undefined) return fallback;
+  const milliseconds = Number(value);
+  return Number.isFinite(milliseconds) && milliseconds >= 0 ? milliseconds : fallback;
+}
+
+function throwIfAborted(signal) {
+  if (signal?.aborted) throw abortReason(signal);
+}
+
+function abortReason(signal) {
+  if (signal?.reason instanceof Error) return signal.reason;
+  if (typeof DOMException === "function") return new DOMException("The operation was aborted.", "AbortError");
+  const error = new Error("The operation was aborted.");
+  error.name = "AbortError";
+  return error;
+}
+
+function isAbortError(error) {
+  return error?.name === "AbortError";
 }
 
 function validateRawDimensions(config) {
