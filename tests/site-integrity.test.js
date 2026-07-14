@@ -27,8 +27,8 @@ const configuratorSource = readFileSync(
   path.join(rootDir, "configurator-3d.js"),
   "utf8",
 );
-const pagesWorkflowSource = readFileSync(
-  path.join(rootDir, ".github", "workflows", "pages.yml"),
+const productionWorkflowSource = readFileSync(
+  path.join(rootDir, ".github", "workflows", "deploy-pages-production.yml"),
   "utf8",
 );
 const packageSource = readFileSync(path.join(rootDir, "package.json"), "utf8");
@@ -511,35 +511,24 @@ test("browser modules use one cache identity for every shared dependency", () =>
   }
 });
 
-test("production Pages deploys are main-only and omit development artifacts", () => {
-  assert.doesNotMatch(
-    pagesWorkflowSource,
-    /codex\/cabinet-ar-mvp/,
-    "the retired AR feature branch must not deploy to the production Pages environment",
-  );
-  assert.equal(
-    matches(pagesWorkflowSource, /if: github\.ref == 'refs\/heads\/main'/g).length,
-    2,
-    "artifact publication and deployment must both be guarded to the main ref",
-  );
-
-  assert.match(pagesWorkflowSource, /find \. -maxdepth 1 -type f/);
-  assert.match(pagesWorkflowSource, /-name '\*\.html'/);
-  assert.match(pagesWorkflowSource, /-name '\*\.css'/);
-  assert.match(pagesWorkflowSource, /-name '\*\.js'/);
-  assert.match(pagesWorkflowSource, /! -name 'playwright\.config\.js'/);
-  assert.match(pagesWorkflowSource, /cp -R assets styles _site\//);
-  assert.match(pagesWorkflowSource, /cp -R data\/generated _site\/data\//);
-  assert.doesNotMatch(pagesWorkflowSource, /rsync -a|cp -R \.\/ _site/);
-  assert.match(pagesWorkflowSource, /test ! -e _site\/playwright\.config\.js/);
-  assert.match(pagesWorkflowSource, /test ! -e _site\/package\.json/);
+test("manual production release uses an allowlisted Pages artifact", () => {
+  assert.match(productionWorkflowSource, /find \. -maxdepth 1 -type f/);
+  assert.match(productionWorkflowSource, /-name '\*\.html'/);
+  assert.match(productionWorkflowSource, /-name '\*\.css'/);
+  assert.match(productionWorkflowSource, /-name '\*\.js'/);
+  assert.match(productionWorkflowSource, /! -name 'playwright\.config\.js'/);
+  assert.match(productionWorkflowSource, /cp -R assets styles _site\//);
+  assert.match(productionWorkflowSource, /cp -R data\/generated _site\/data\//);
+  assert.doesNotMatch(productionWorkflowSource, /rsync -a|cp -R \.\/ _site/);
+  assert.match(productionWorkflowSource, /test ! -e _site\/playwright\.config\.js/);
+  assert.match(productionWorkflowSource, /test ! -e _site\/package\.json/);
 
   for (const runtimeAsset of [
     "_site/assets/vendor/three.module.js",
     "_site/data/generated/benjamin-moore-colors.json",
   ]) {
     assert.match(
-      pagesWorkflowSource,
+      productionWorkflowSource,
       new RegExp("test -f " + runtimeAsset.replaceAll("/", "\\/")),
       runtimeAsset + " must be verified before upload",
     );

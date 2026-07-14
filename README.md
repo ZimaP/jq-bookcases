@@ -40,6 +40,10 @@ npm run build
 npm test
 ```
 
+Pull requests and pushes to `main` validate without publishing. The manual-only
+production procedure and its exact confirmation contract are documented in
+`RELEASE.md`.
+
 The parametric model architecture is documented in
 `CONFIGURATOR-ARCHITECTURE.md`. Repeatable desktop, mobile, preset, and
 geometry checks are listed in `CONFIGURATOR-QA.md`.
