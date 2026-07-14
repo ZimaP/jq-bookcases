@@ -232,7 +232,7 @@ test("construction, fronts, finish, hardware, lighting, and service selections p
   await colorSearch.fill("HC-154");
   await colorSearch.press("Enter");
   await expect.poll(async () => (await readDesign(page)).state.finish).toBe("custom_bm");
-  await expect(page.getByText("Hale Navy", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Applied Benjamin Moore color").getByText("Hale Navy", { exact: true })).toBeVisible();
 
   let design = await readDesign(page);
   expect(design.state).toMatchObject({
