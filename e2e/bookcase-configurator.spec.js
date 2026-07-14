@@ -170,8 +170,9 @@ test("custom-space route creates the first neutral accepted design exactly once"
   await page.locator('[data-studio-dimension="width"]').fill("108");
   await page.locator('[data-studio-dimension="height"]').fill("100");
   await page.locator('[data-studio-dimension="depth"]').fill("16");
-  await page.locator('[data-studio-sections][value="5"]').check();
-  await page.getByRole("button", { name: "Build my starting structure" }).click();
+  await expect(page.locator("[data-studio-sections]")).toHaveCount(0);
+  await expect(page.getByText("You can change wall width, height, and depth at any time inside the design studio.")).toBeVisible();
+  await page.getByRole("button", { name: "Start with these dimensions" }).click();
 
   const viewer = page.locator("[data-3d-viewer]");
   await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
@@ -431,20 +432,62 @@ test("welcome composition is usable at every required desktop and mobile viewpor
       const leftCopy = document.querySelector(".studio-welcome-heading p");
       const rightCopy = document.querySelector(".studio-intro-heading p");
       const preview = document.querySelector(".studio-preview-composition");
+      const leftTitle = document.querySelector(".studio-welcome-heading h1").getBoundingClientRect();
+      const rightTitle = document.querySelector(".studio-intro-heading h2").getBoundingClientRect();
+      const rightHeading = document.querySelector(".studio-intro-heading").getBoundingClientRect();
+      const previewBounds = preview.getBoundingClientRect();
+      const stageBounds = document.querySelector(".studio-intro-stage").getBoundingClientRect();
+      const drawingBounds = document.querySelector(".studio-preview-drawing").getBoundingClientRect();
       return {
         bodyToken: getComputedStyle(shell).getPropertyValue("--studio-type-body").trim(),
         leftBodySize: getComputedStyle(leftCopy).fontSize,
         rightBodySize: getComputedStyle(rightCopy).fontSize,
-        previewHeight: preview.getBoundingClientRect().height
+        previewHeight: previewBounds.height,
+        leftTitleSize: parseFloat(getComputedStyle(document.querySelector(".studio-welcome-heading h1")).fontSize),
+        rightTitleSize: parseFloat(getComputedStyle(document.querySelector(".studio-intro-heading h2")).fontSize),
+        titleTopDelta: Math.abs(leftTitle.top - rightTitle.top),
+        rightCenterDelta: Math.abs((rightHeading.left + rightHeading.width / 2) - (previewBounds.left + previewBounds.width / 2)),
+        previewStageCenterDelta: Math.abs((previewBounds.left + previewBounds.width / 2) - (stageBounds.left + stageBounds.width / 2)),
+        drawingCenterDelta: Math.abs((drawingBounds.left + drawingBounds.width / 2) - (previewBounds.left + previewBounds.width / 2)),
+        verticalSpaceDelta: Math.abs((rightHeading.top - stageBounds.top) - (stageBounds.bottom - previewBounds.bottom)),
+        variantSize: parseFloat(getComputedStyle(document.querySelector(".studio-preview-variants button")).fontSize),
+        dimensionSize: parseFloat(getComputedStyle(document.querySelector(".studio-dimension-line small")).fontSize),
+        calloutSize: parseFloat(getComputedStyle(document.querySelector(".studio-preview-callout")).fontSize)
       };
     });
     expect(composition.bodyToken).toBe("13px");
     expect(composition.leftBodySize).toBe(composition.rightBodySize);
-    if (viewport.width > 760) expect(composition.previewHeight).toBeLessThanOrEqual(620.5);
+    expect(composition.leftTitleSize).toBe(composition.rightTitleSize);
+    expect(composition.drawingCenterDelta).toBeLessThanOrEqual(1);
+    if (viewport.width > 760) {
+      expect(composition.previewHeight).toBeLessThanOrEqual(620.5);
+      expect(composition.titleTopDelta).toBeLessThanOrEqual(1);
+      expect(composition.rightCenterDelta).toBeLessThanOrEqual(1);
+      expect(composition.previewStageCenterDelta).toBeLessThanOrEqual(1);
+      if (viewport.height >= 1100) expect(composition.verticalSpaceDelta).toBeLessThanOrEqual(8);
+      expect(composition.variantSize).toBeGreaterThanOrEqual(13);
+      expect(composition.dimensionSize).toBeGreaterThanOrEqual(13);
+      expect(composition.calloutSize).toBeGreaterThanOrEqual(12);
+    } else {
+      expect(composition.variantSize).toBeGreaterThanOrEqual(11);
+      expect(composition.calloutSize).toBeGreaterThanOrEqual(10);
+    }
     await page.screenshot({
       path: `artifacts/custom-studio-qa/welcome-${viewport.width}x${viewport.height}.png`,
       animations: "disabled"
     });
+    await page.getByRole("button", { name: /Start with my space/ }).click();
+    await expect(page.locator("[data-studio-sections]")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Start with these dimensions" })).toBeVisible();
+    const customHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(customHorizontalOverflow).toBeLessThanOrEqual(1);
+    if (viewport.width <= 760) {
+      await page.screenshot({
+        path: `artifacts/custom-studio-qa/custom-${viewport.width}x${viewport.height}.png`,
+        fullPage: true,
+        animations: "disabled"
+      });
+    }
   }
   expect(errors).toEqual([]);
 });
@@ -477,6 +520,10 @@ test("opening a studio route preserves the desktop composition anchors", async (
     });
     await page.getByRole("button", { name: /Start with my space/ }).click();
     const custom = await measure();
+    await page.screenshot({
+      path: `artifacts/custom-studio-qa/custom-${viewport.width}x${viewport.height}.png`,
+      animations: "disabled"
+    });
     await page.getByRole("button", { name: "Back to studio start" }).click();
     await page.getByRole("button", { name: /Use an editable idea/ }).click();
     const ideas = await measure();

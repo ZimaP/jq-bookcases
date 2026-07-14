@@ -22,12 +22,13 @@ body[data-page="configurator"] .studio-entry-shell {
      instead of inventing per-panel typography and proportions. */
   --studio-copy-width: 620px;
   --studio-reading-width: 560px;
-  --studio-preview-height: 620px;
   --studio-type-body: 13px;
   --studio-type-card-title: 20px;
-  --studio-type-control: 10px;
+  --studio-type-control: 11px;
+  --studio-type-title: clamp(36px, 2.15vw, 42px);
   --studio-leading-body: 1.62;
   --studio-entry-anchor: clamp(40px, 5.4vh, 56px);
+  --studio-preview-height: clamp(420px, calc(100dvh - var(--studio-entry-anchor) - 320px), 620px);
   --studio-copy-gutter: clamp(32px, 4vw, 64px);
   position: relative;
   display: grid;
@@ -69,7 +70,7 @@ body[data-page="configurator"] .studio-welcome-heading h1 {
   margin: 16px 0 20px;
   color: #fffaf4;
   font-family: var(--serif);
-  font-size: clamp(46px, 3vw, 56px);
+  font-size: var(--studio-type-title);
   font-weight: 400;
   letter-spacing: -0.035em;
   line-height: 1.01;
@@ -77,7 +78,7 @@ body[data-page="configurator"] .studio-welcome-heading h1 {
 }
 
 body[data-page="configurator"] .studio-welcome-heading.is-compact h1 {
-  font-size: clamp(36px, 3vw, 49px);
+  font-size: var(--studio-type-title);
 }
 
 body[data-page="configurator"] .studio-welcome-heading p {
@@ -261,10 +262,10 @@ body[data-page="configurator"] .studio-intro-heading {
 }
 
 body[data-page="configurator"] .studio-intro-heading h2 {
-  margin: 9px 0 9px;
+  margin: 16px 0 12px;
   color: #fff8ef;
   font-family: var(--serif);
-  font-size: clamp(34px, 2.3vw, 44px);
+  font-size: var(--studio-type-title);
   font-weight: 400;
   line-height: 1.05;
 }
@@ -283,8 +284,8 @@ body[data-page="configurator"] .studio-preview-composition {
   min-width: 0;
   min-height: 0;
   grid-template-rows: minmax(0, 1fr) auto;
-  width: 100%;
-  max-width: 1040px;
+  width: min(100%, 1040px);
+  max-width: none;
   justify-self: center;
   margin-top: 0;
   overflow: hidden;
@@ -310,6 +311,7 @@ body[data-page="configurator"] .studio-preview-scaffold {
   width: min(94%, 720px);
   height: min(94%, 470px);
   min-height: 316px;
+  place-self: center;
 }
 
 body[data-page="configurator"] .studio-preview-scaffold::before {
@@ -326,7 +328,7 @@ body[data-page="configurator"] .studio-preview-scaffold::before {
 
 body[data-page="configurator"] .studio-preview-drawing {
   position: absolute;
-  inset: 24px 36px 34px 58px;
+  inset: 30px 48px;
   display: grid;
   place-items: end center;
 }
@@ -371,8 +373,8 @@ body[data-page="configurator"] .studio-dimension-line {
   align-items: center;
   gap: 9px;
   color: rgba(231, 207, 175, 0.68);
-  font-size: 8px;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -388,9 +390,9 @@ body[data-page="configurator"] .studio-dimension-line small {
   flex: 0 0 auto;
   gap: 2px;
   color: rgba(236, 216, 188, 0.8);
-  font-size: 7px;
-  font-weight: 500;
-  line-height: 1.15;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.12;
   text-align: center;
 }
 
@@ -402,9 +404,9 @@ body[data-page="configurator"] .studio-dimension-line small span {
 }
 
 body[data-page="configurator"] .studio-dimension-line.is-width {
-  right: 36px;
+  right: 48px;
   bottom: 4px;
-  left: 58px;
+  left: 48px;
 }
 
 body[data-page="configurator"] .studio-dimension-line.is-width i {
@@ -413,8 +415,8 @@ body[data-page="configurator"] .studio-dimension-line.is-width i {
 }
 
 body[data-page="configurator"] .studio-dimension-line.is-height {
-  top: 24px;
-  bottom: 34px;
+  top: 30px;
+  bottom: 30px;
   left: 4px;
   flex-direction: column;
 }
@@ -426,7 +428,7 @@ body[data-page="configurator"] .studio-dimension-line.is-height i {
 }
 
 body[data-page="configurator"] .studio-dimension-line.is-height small {
-  width: 50px;
+  width: 86px;
 }
 
 body[data-page="configurator"] .studio-preview-callout {
@@ -434,19 +436,24 @@ body[data-page="configurator"] .studio-preview-callout {
   z-index: 4;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   border: 1px solid rgba(224, 185, 130, 0.26);
   border-radius: 999px;
   background: rgba(27, 23, 20, 0.92);
-  padding: 8px 11px;
+  padding: 10px 14px;
   color: #e4bd83;
-  font-size: 8px;
+  font-size: 12px;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
 }
 
 body[data-page="configurator"] .studio-preview-callout svg {
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
+}
+
+body[data-page="configurator"] .studio-preview-callout small {
+  font: inherit;
+  white-space: nowrap;
 }
 
 body[data-page="configurator"] .studio-preview-callout.is-add {
@@ -469,7 +476,7 @@ body[data-page="configurator"] .studio-preview-caption {
   gap: 8px;
   margin: 0;
   color: rgba(247, 243, 237, 0.58);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 body[data-page="configurator"] .studio-preview-caption strong {
@@ -493,7 +500,7 @@ body[data-page="configurator"] .studio-preview-variants {
 
 body[data-page="configurator"] .studio-preview-variants button,
 body[data-page="configurator"] .studio-idea-filters button {
-  min-height: 34px;
+  min-height: 42px;
   border: 1px solid transparent;
   border-radius: 999px;
   background: transparent;
@@ -504,6 +511,8 @@ body[data-page="configurator"] .studio-idea-filters button {
 
 body[data-page="configurator"] .studio-preview-variants button {
   flex: 1 1 0;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 body[data-page="configurator"] .studio-preview-variants button[aria-pressed="true"],
@@ -599,6 +608,26 @@ body[data-page="configurator"] .studio-entry-back {
     width: 100%;
   }
 
+  /* The two columns are one composition: their kickers and title tops share
+     an anchor, while the preview heading sits on the card's centerline. */
+  body[data-page="configurator"] .studio-intro-stage {
+    grid-template-rows: auto minmax(420px, var(--studio-preview-height));
+    align-content: start;
+    padding-top: var(--studio-entry-anchor);
+  }
+
+  body[data-page="configurator"] .studio-intro-heading {
+    width: min(100%, 760px);
+    max-width: none;
+    justify-self: center;
+    text-align: center;
+  }
+
+  body[data-page="configurator"] .studio-intro-heading p {
+    margin-right: auto;
+    margin-left: auto;
+  }
+
   body[data-page="configurator"] .studio-entry-shell[data-entry-view="custom"] .studio-entry-copy > * {
     max-width: var(--studio-copy-width);
   }
@@ -617,9 +646,9 @@ body[data-page="configurator"] .studio-entry-back {
 
 @media (min-width: 1101px) {
   body[data-page="configurator"] .studio-entry-shell {
-    /* Centers the welcome stack at large heights, then reuses its heading
-       origin for Custom Space and Editable Ideas. */
-    --studio-entry-anchor: max(56px, calc((100svh - 697px) / 2));
+    /* The complete right-side group now shares the remaining vertical space
+       evenly above and below on tall displays. */
+    --studio-entry-anchor: clamp(56px, calc(15svh - 59px), 120px);
   }
 }
 
@@ -628,16 +657,14 @@ body[data-page="configurator"] .studio-entry-back svg {
   height: 14px;
 }
 
-body[data-page="configurator"] .studio-dimension-fields,
-body[data-page="configurator"] .studio-section-choice {
+body[data-page="configurator"] .studio-dimension-fields {
   max-width: 680px;
   border: 0;
   margin: 21px 0 0;
   padding: 0;
 }
 
-body[data-page="configurator"] .studio-dimension-fields > legend,
-body[data-page="configurator"] .studio-section-choice > legend {
+body[data-page="configurator"] .studio-dimension-fields > legend {
   margin-bottom: 9px;
   color: #f7eee2;
   font-family: var(--serif);
@@ -706,8 +733,19 @@ body[data-page="configurator"] .studio-field-error {
   line-height: 1.35;
 }
 
+body[data-page="configurator"] .studio-dimension-reassurance {
+  max-width: 680px;
+  border-left: 2px solid rgba(218, 171, 105, 0.82);
+  margin: 10px 0 0;
+  background: rgba(174, 119, 56, 0.09);
+  padding: 10px 12px;
+  color: rgba(247, 243, 237, 0.76);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 body[data-page="configurator"] .studio-unsure-button {
-  margin-top: 2px;
+  margin-top: 6px;
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -725,44 +763,6 @@ body[data-page="configurator"] .studio-provisional-note {
 
 body[data-page="configurator"] .studio-provisional-note strong {
   color: #efd0a3;
-}
-
-body[data-page="configurator"] .studio-section-choice > p {
-  margin: -3px 0 10px;
-  color: rgba(247, 243, 237, 0.56);
-  font-size: 10px;
-}
-
-body[data-page="configurator"] .studio-section-choice > div {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 7px;
-}
-
-body[data-page="configurator"] .studio-section-choice label {
-  position: relative;
-}
-
-body[data-page="configurator"] .studio-section-choice input {
-  position: absolute;
-  opacity: 0;
-}
-
-body[data-page="configurator"] .studio-section-choice label span {
-  display: grid;
-  min-height: 42px;
-  place-items: center;
-  border: 1px solid rgba(228, 203, 168, 0.18);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.025);
-  color: rgba(247, 243, 237, 0.75);
-  font-size: 12px;
-}
-
-body[data-page="configurator"] .studio-section-choice input:checked + span {
-  border-color: rgba(222, 174, 108, 0.75);
-  background: rgba(174, 119, 57, 0.18);
-  color: #f5d29e;
 }
 
 body[data-page="configurator"] .studio-create-button {
@@ -902,10 +902,6 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
     padding-left: 28px;
   }
 
-  body[data-page="configurator"] .studio-welcome-heading h1 {
-    font-size: clamp(43px, 4.6vw, 50px);
-  }
-
   body[data-page="configurator"] .studio-capability-list {
     grid-template-columns: repeat(2, max-content);
     margin: 22px 0 24px;
@@ -925,8 +921,8 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
   }
 
   body[data-page="configurator"] .studio-preview-drawing {
-    right: 24px;
-    left: 52px;
+    right: 40px;
+    left: 40px;
   }
 
   body[data-page="configurator"] .studio-idea-grid {
@@ -940,6 +936,7 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
 
 @media (max-width: 760px) {
   body[data-page="configurator"] .studio-entry-shell {
+    --studio-type-title: clamp(34px, 9.6vw, 38px);
     height: auto;
     min-height: calc(100svh - 68px);
     grid-template-columns: minmax(0, 1fr);
@@ -960,7 +957,7 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
   body[data-page="configurator"] .studio-welcome-heading h1,
   body[data-page="configurator"] .studio-welcome-heading.is-compact h1 {
     margin: 14px 0 18px;
-    font-size: clamp(38px, 10.8vw, 44px);
+    font-size: var(--studio-type-title);
     line-height: 1.01;
   }
 
@@ -1010,7 +1007,7 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
   }
 
   body[data-page="configurator"] .studio-intro-heading h2 {
-    font-size: 30px;
+    font-size: var(--studio-type-title);
   }
 
   body[data-page="configurator"] .studio-preview-composition {
@@ -1032,18 +1029,18 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
   }
 
   body[data-page="configurator"] .studio-preview-drawing {
-    inset: 28px 18px 40px 48px;
+    inset: 34px 40px;
   }
 
   body[data-page="configurator"] .studio-dimension-line.is-width {
-    right: 18px;
+    right: 40px;
     bottom: 7px;
-    left: 48px;
+    left: 40px;
   }
 
   body[data-page="configurator"] .studio-dimension-line.is-height {
-    top: 28px;
-    bottom: 40px;
+    top: 34px;
+    bottom: 34px;
     left: 0;
   }
 
@@ -1071,7 +1068,7 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
   body[data-page="configurator"] .studio-preview-variants button {
     padding-right: 7px;
     padding-left: 7px;
-    font-size: 9px;
+    font-size: 11px;
   }
 
   body[data-page="configurator"] .studio-entry-lockbar {
@@ -1124,16 +1121,13 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
 
   body[data-page="configurator"] .studio-preview-callout {
     padding: 7px 9px;
-    font-size: 7px;
+    font-size: 10px;
   }
 
   body[data-page="configurator"] .studio-idea-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  body[data-page="configurator"] .studio-section-choice > div {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
