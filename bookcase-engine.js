@@ -1,10 +1,10 @@
-import { normalizeBookcaseConfig } from "./bookcase-config.js?v=engine-hardening-20260711a";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=engine-hardening-20260711a";
-import { createLayoutFingerprint } from "./bookcase-bom.js?v=engine-hardening-20260711a";
+import { normalizeBookcaseConfig } from "./bookcase-config.js?v=full-system-20260714a";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=full-system-20260714a";
+import { createLayoutFingerprint } from "./bookcase-bom.js?v=full-system-20260714a";
 import {
   PRICING_VERSION,
   calculateBookcasePriceBreakdown
-} from "./bookcase-pricing.js?v=engine-hardening-20260711a";
+} from "./bookcase-pricing.js?v=full-system-20260714a";
 
 export const ENGINE_VERSION = "2026.07-hardening-v2";
 export const DESIGN_SCHEMA_VERSION = 4;

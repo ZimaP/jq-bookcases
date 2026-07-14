@@ -51,6 +51,7 @@ test("one delegated action path owns Save Design and Request Quote", () => {
   assert.equal((source.match(/saveCurrentDesign\(\) \{/g) || []).length, 1);
   assert.equal((source.match(/openQuotePage\(\) \{/g) || []).length, 1);
   assert.match(source, /openQuotePage\(\) \{[\s\S]*this\.saveCurrentDesign\(\)[\s\S]*window\.location\.assign/);
+  assert.match(source, /if \(!design\.persisted\)[\s\S]*blocked local design storage[\s\S]*return false/);
 });
 
 test("one accepted edit pipeline serves both modes after the explicit studio commit", () => {
@@ -145,6 +146,19 @@ test("section steppers use buildable counts and the viewer never retains stale g
   assert.match(controls, /decrement\.disabled/);
   assert.doesNotMatch(rebuild, /if \(!this\.lastLayout\.validation\.valid\)[\s\S]*return/);
   assert.match(rebuild, /this\.scene\.remove\(this\.model\)[\s\S]*this\.model = nextModel/);
+});
+
+test("Section Designer enforces its hard limit and scopes undo history to structural state", () => {
+  const designer = methodBody("renderSectionDesignerGroup", "renderDoorGroup");
+  const commit = methodBody("commitSectionOperation", "undoSectionChange");
+  const undo = methodBody("undoSectionChange", "redoSectionChange");
+  const redo = methodBody("redoSectionChange", "refreshSectionDesignerPresentation");
+
+  assert.match(designer, /designer\.sections\.length >= this\.layout\.rules\.maxSections \? "disabled"/);
+  assert.match(commit, /createSectionHistorySnapshot\(this\.state\)/);
+  assert.match(undo, /applySectionHistorySnapshot\(this\.state, previous\)/);
+  assert.match(redo, /applySectionHistorySnapshot\(this\.state, next\)/);
+  assert.doesNotMatch(`${commit}\n${undo}\n${redo}`, /structuredClone\(this\.state\)/);
 });
 
 test("service and derived metadata updates never rebuild unchanged 3D geometry", () => {
@@ -274,7 +288,7 @@ test("profile framing uses semantic detail regions and the unobstructed viewer a
   assert.match(source, /focusTargetCache = new Map\(\)/);
 });
 
-test("smart camera transitions replace stale work, honor reduced motion, and use one render loop", () => {
+test("smart camera transitions replace stale work and use one on-demand render scheduler", () => {
   assert.match(source, /const SMART_CAMERA_DURATION = PROFILE_CAMERA_DURATION/);
   assert.ok(PROFILE_CAMERA_DURATION >= 600 && PROFILE_CAMERA_DURATION <= 900, "profile focus should animate for 600-900ms");
   assert.match(source, /window\.matchMedia\?\.\("\(prefers-reduced-motion: reduce\)"\)/);
@@ -286,18 +300,31 @@ test("smart camera transitions replace stale work, honor reduced motion, and use
   assert.match(transition, /if \(this\.cameraTransition\) this\.cameraTransitionCancellationCount \+= 1/);
   assert.match(transition, /sequence: \+\+this\.cameraTransitionSequence/);
   assert.match(transition, /duration,/);
-  assert.doesNotMatch(transition, /requestAnimationFrame/, "camera transitions must use the persistent renderer loop");
+  assert.doesNotMatch(transition, /requestAnimationFrame/, "camera transitions must use the shared render scheduler");
+  assert.match(transition, /this\.requestRender\(\)/);
 
   const transitionUpdate = methodBody("updateCameraTransition", "cancelCameraTransition");
   assert.match(transitionUpdate, /easeInOutCubic\(progress\)/);
   assert.match(transitionUpdate, /this\.target\.lerpVectors/);
 
-  const cancellation = methodBody("cancelCameraTransition", "applyComponentHighlight");
+  const cancellation = methodBody("cancelCameraTransition", "setEnvironmentLightScale");
   assert.match(cancellation, /if \(this\.cameraTransition\) this\.cameraTransitionCancellationCount \+= 1/);
   assert.match(cancellation, /this\.cameraTransition = null/);
 
+  const scheduler = methodBody("requestRender", "animate");
+  assert.match(scheduler, /this\.destroyed \|\| this\.isRenderingFrame \|\| this\.animationFrame !== null/);
+  assert.match(scheduler, /this\.animationFrame = window\.requestAnimationFrame\(\(time\) => this\.animate\(time\)\)/);
+
+  const renderFrame = methodBody("animate", "getViewState");
+  assert.match(renderFrame, /this\.animationFrame = null/);
+  assert.match(renderFrame, /this\.renderCount \+= 1/);
+  assert.match(renderFrame, /if \(this\.cameraTransition\) this\.requestRender\(\)/);
+  assert.doesNotMatch(renderFrame, /requestAnimationFrame/, "render frames must reschedule only through the guarded scheduler");
+
   const viewer = source.slice(source.indexOf("class BookcaseViewer3D"));
   assert.equal((viewer.match(/this\.animationFrame = window\.requestAnimationFrame\(\(time\) => this\.animate\(time\)\)/g) || []).length, 1);
+  assert.match(viewer, /renderCount: this\.renderCount/);
+  assert.match(viewer, /renderScheduled: this\.animationFrame !== null/);
   assert.match(viewer, /cameraTransitionSequence: this\.cameraTransitionSequence/);
   assert.match(viewer, /cameraTransitionCancellations: this\.cameraTransitionCancellationCount/);
 
@@ -322,10 +349,29 @@ test("puck lights render as restrained recessed diffusers instead of hanging sph
 });
 
 test("detail camera positions are relative to the focus target", () => {
-  const updateCamera = methodBody("updateCamera", "animate");
+  const updateCamera = methodBody("updateCamera", "requestRender");
   assert.match(updateCamera, /this\.target\.x \+ Math\.sin\(this\.theta\) \* horizontal/);
   assert.match(updateCamera, /this\.target\.z \+ Math\.cos\(this\.theta\) \* horizontal/);
   assert.match(updateCamera, /this\.camera\.lookAt\(this\.target\)/);
+  assert.match(updateCamera, /this\.requestRender\(\)/);
+});
+
+test("visual-only mutations and restored camera state request an on-demand frame", () => {
+  const environment = methodBody("setEnvironmentLightScale", "applyComponentHighlight");
+  assert.match(environment, /light\.intensity =/);
+  assert.match(environment, /this\.requestRender\(\)/);
+
+  const finish = methodBody("applyFinishMaterials", "applyHardwareMaterial");
+  const hardware = methodBody("applyHardwareMaterial", "applyLightingWarmth");
+  const lighting = methodBody("applyLightingWarmth", "frameModel");
+  const selection = methodBody("setSectionSelection", "refreshSectionInteractionLayer");
+  for (const visualMutation of [finish, hardware, lighting, selection]) {
+    assert.match(visualMutation, /this\.requestRender\(\)/);
+  }
+
+  const restore = methodBody("restoreCameraState", "resize");
+  assert.match(restore, /this\.setEnvironmentLightScale/);
+  assert.match(restore, /this\.updateCamera\(\)/);
 });
 
 test("hover option preview is reversible and isolated from canonical pricing state", () => {

@@ -1,4 +1,4 @@
-import { normalizeSectionTypeValue } from "./bookcase-config.js?v=section-designer-20260713a";
+import { normalizeSectionTypeValue } from "./bookcase-config.js?v=full-system-20260714a";
 
 /**
  * Pure parametric layout engine for JQ Bookcases.
@@ -201,13 +201,16 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
 
   const lowerCabinets = normalizeBoolean(source.lowerCabinets, LAYOUT_DEFAULTS.lowerCabinets);
   const rawSectionTypes = source.layoutMetadata?.sectionTypes;
-  const hasExplicitLowerStorage = Array.isArray(rawSectionTypes) && rawSectionTypes.some((type) => {
-    const normalizedType = normalizeSectionTypeValue(type);
+  const hasCompleteExplicitSectionTypes = Array.isArray(rawSectionTypes) && rawSectionTypes.length === sections;
+  const hasExplicitLowerStorage = hasCompleteExplicitSectionTypes && rawSectionTypes.some((type, index) => {
+    const normalizedType = normalizeSectionTypeValue(type) || getImplicitSectionType(source, index, sections);
     return normalizedType === "lower_doors" || normalizedType === "drawers";
   });
   const hasLegacyDrawerSections = Array.isArray(source.layoutMetadata?.drawerSections) &&
     source.layoutMetadata.drawerSections.length > 0;
-  const hasAnyLowerStorage = lowerCabinets || hasExplicitLowerStorage || hasLegacyDrawerSections;
+  const hasAnyLowerStorage = hasCompleteExplicitSectionTypes
+    ? hasExplicitLowerStorage
+    : lowerCabinets || hasLegacyDrawerSections;
   const baseStyle = normalizeString(source.baseStyle, LAYOUT_DEFAULTS.baseStyle);
   const baseHeight = getBaseHeight(baseStyle);
   const clearBottom = baseHeight + panelThickness;
@@ -284,7 +287,28 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
     source
   );
   const layoutType = normalizeString(source.layoutType, LAYOUT_DEFAULTS.layoutType);
-  const lowerStorage = normalizeLowerStorage(source.lowerStorage, layoutType, metadata);
+  const normalizedLowerStorage = normalizeLowerStorage(source.lowerStorage, layoutType, metadata);
+  const normalizedTallDoors = normalizeBoolean(source.tallDoors, LAYOUT_DEFAULTS.tallDoors);
+  const explicitSectionTypes = Array.isArray(metadata.sectionTypes) && metadata.sectionTypes.length === sections
+    ? metadata.sectionTypes
+    : null;
+  const explicitLowerStorageTypes = explicitSectionTypes?.filter(
+    (type) => type === "lower_doors" || type === "drawers"
+  ) || [];
+  // Explicit per-section types are the physical source of truth. Keep the
+  // legacy/global fields synchronized because controls, summaries, saving, and
+  // quote preparation still consume them alongside the descriptor graph.
+  const canonicalLowerCabinets = explicitSectionTypes
+    ? explicitLowerStorageTypes.length > 0
+    : lowerCabinets;
+  const canonicalLowerStorage = explicitSectionTypes
+    ? explicitLowerStorageTypes.length > 0 && explicitLowerStorageTypes.every((type) => type === "drawers")
+      ? "drawers"
+      : "doors"
+    : normalizedLowerStorage;
+  const canonicalTallDoors = explicitSectionTypes
+    ? explicitSectionTypes.includes("tall_doors")
+    : normalizedTallDoors;
 
   const config = {
     layoutPreset: normalizeString(source.layoutPreset, LAYOUT_DEFAULTS.layoutPreset),
@@ -300,13 +324,13 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
     shelves,
     requestedShelves,
     shelfThickness,
-    lowerCabinets,
-    lowerStorage,
+    lowerCabinets: canonicalLowerCabinets,
+    lowerStorage: canonicalLowerStorage,
     drawerCount: normalizeInteger(source.drawerCount, LAYOUT_DEFAULTS.drawerCount, 2, 5, "drawerCount", corrections),
     centerOpening: normalizeBoolean(source.centerOpening, LAYOUT_DEFAULTS.centerOpening),
     deskOpening: normalizeBoolean(source.deskOpening, LAYOUT_DEFAULTS.deskOpening),
     featureOpening: normalizeBoolean(source.featureOpening, LAYOUT_DEFAULTS.featureOpening),
-    tallDoors: normalizeBoolean(source.tallDoors, LAYOUT_DEFAULTS.tallDoors),
+    tallDoors: canonicalTallDoors,
     doorCount: normalizeInteger(source.doorCount, LAYOUT_DEFAULTS.doorCount, 0, 12, "doorCount", corrections),
     doorStyle: normalizeString(source.doorStyle, LAYOUT_DEFAULTS.doorStyle),
     hardware: normalizeString(source.hardware, LAYOUT_DEFAULTS.hardware),
@@ -1024,7 +1048,8 @@ function addLighting(context) {
 
   if (modes.includes("vertical_led")) {
     for (const section of eligibleSections) {
-      const yMin = config.lowerCabinets ? lowerOpeningTop + config.shelfThickness + 2 : section.bounds.min.y + 2;
+      const hasLowerStorage = section.metadata.type === "lower_doors" || section.metadata.type === "drawers";
+      const yMin = hasLowerStorage ? lowerOpeningTop + config.shelfThickness + 2 : section.bounds.min.y + 2;
       const yMax = section.bounds.max.y - 2;
       const sides = [
         {

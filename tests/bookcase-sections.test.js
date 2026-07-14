@@ -12,7 +12,9 @@ import { createAcceptedDesignSnapshot, evaluateBookcaseCandidate, restoreAccepte
 import { deriveBookcaseBOM } from "../bookcase-bom.js";
 import { CONSTRUCTION_RULES, generateBookcaseLayout } from "../bookcase-layout.js";
 import {
+  applySectionHistorySnapshot,
   applySectionWidths,
+  createSectionHistorySnapshot,
   equalizeSectionWidths,
   getSectionDesignerState,
   mergeSection,
@@ -155,6 +157,59 @@ test("split and merge account for divider thickness and restore identity", () =>
   assert.deepEqual(generateBookcaseLayout(merged.config).metrics.sectionClearWidths, layout.metrics.sectionClearWidths);
 });
 
+test("split rejects the seventh section before config normalization can discard custom widths", () => {
+  const widths = [60, 15.75, 15.75, 15.75, 15.75, 15.75];
+  const config = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    width: 144,
+    sections: 6,
+    lowerCabinets: false,
+    layoutMetadata: {
+      sectionRatios: sectionWidthsToRatios(widths),
+      sectionTypes: Array.from({ length: 6 }, () => "open")
+    }
+  });
+  const layout = generateBookcaseLayout(config);
+  assert.deepEqual(layout.metrics.sectionClearWidths, widths);
+
+  const result = splitSection(config, layout, 0);
+
+  assert.equal(result.accepted, false);
+  assert.equal(result.error.code, "MAX_SECTION_COUNT");
+  assert.deepEqual(result.config, config);
+  assert.deepEqual(generateBookcaseLayout(result.config).metrics.sectionClearWidths, widths);
+});
+
+test("section type edits keep legacy storage flags synchronized with explicit geometry", () => {
+  const openConfig = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    sections: 2,
+    lowerCabinets: false,
+    tallDoors: false,
+    layoutMetadata: { sectionRatios: [1, 1], sectionTypes: ["open", "open"] }
+  });
+  const lowerDoor = setSectionType(openConfig, 0, "lower_doors", generateBookcaseLayout(openConfig));
+  assert.equal(lowerDoor.accepted, true);
+  assert.equal(lowerDoor.config.lowerCabinets, true);
+  assert.equal(lowerDoor.config.lowerStorage, "doors");
+  assert.equal(deriveBookcaseBOM(generateBookcaseLayout(lowerDoor.config)).openings.lowerStorageCount, 1);
+
+  const mixed = setSectionType(lowerDoor.config, 1, "drawers", generateBookcaseLayout(lowerDoor.config));
+  assert.equal(mixed.config.lowerCabinets, true);
+  assert.equal(mixed.config.lowerStorage, "doors");
+
+  const allDrawers = setSectionType(mixed.config, 0, "drawers", generateBookcaseLayout(mixed.config));
+  assert.equal(allDrawers.config.lowerCabinets, true);
+  assert.equal(allDrawers.config.lowerStorage, "drawers");
+
+  const tallDoor = setSectionType(openConfig, 0, "tall_doors", generateBookcaseLayout(openConfig));
+  assert.equal(tallDoor.config.lowerCabinets, false);
+  assert.equal(tallDoor.config.tallDoors, true);
+  const restoredOpen = setSectionType(tallDoor.config, 0, "open", generateBookcaseLayout(tallDoor.config));
+  assert.equal(restoredOpen.config.lowerCabinets, false);
+  assert.equal(restoredOpen.config.tallDoors, false);
+});
+
 test("equalize and section-count reconciliation remain deterministic and buildable", () => {
   const { config, layout } = scenarioA();
   const equalized = equalizeSectionWidths(config, layout);
@@ -189,6 +244,44 @@ test("section helpers are deterministic, non-mutating, and JSON-stable", () => {
   assert.deepEqual(JSON.parse(JSON.stringify(first.config)), first.config);
 });
 
+test("section history restores structure without reverting later dimensions, finish, or services", () => {
+  const original = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    width: 72,
+    sections: 2,
+    lowerCabinets: false,
+    layoutMetadata: { sectionRatios: [1, 1], sectionTypes: ["open", "open"] }
+  });
+  const snapshot = createSectionHistorySnapshot(original);
+  const changed = setSectionType(original, 0, "lower_doors", generateBookcaseLayout(original));
+  const current = normalizeBookcaseConfig({
+    ...changed.config,
+    width: 120,
+    height: 108,
+    depth: 18,
+    shelves: 7,
+    finish: "silver_satin",
+    lighting: "no_lighting",
+    installation: "no_installation",
+    delivery: "priority"
+  });
+
+  const restored = applySectionHistorySnapshot(current, snapshot);
+
+  assert.equal(restored.width, 120);
+  assert.equal(restored.height, 108);
+  assert.equal(restored.depth, 18);
+  assert.equal(restored.shelves, 7);
+  assert.equal(restored.finish, "silver_satin");
+  assert.equal(restored.lighting, "no_lighting");
+  assert.equal(restored.installation, "no_installation");
+  assert.equal(restored.delivery, "priority");
+  assert.equal(restored.layoutPreset, original.layoutPreset);
+  assert.equal(restored.sections, original.sections);
+  assert.equal(restored.lowerCabinets, false);
+  assert.deepEqual(restored.layoutMetadata, original.layoutMetadata);
+});
+
 test("mixed accepted state keeps BOM, pricing, fingerprint, save, and restore in parity", () => {
   const { config } = scenarioA();
   const evaluation = evaluateBookcaseCandidate(config);
@@ -203,6 +296,30 @@ test("mixed accepted state keeps BOM, pricing, fingerprint, save, and restore in
   assert.equal(restored.accepted, true);
   assert.equal(restored.layoutFingerprint, evaluation.layoutFingerprint);
   assert.deepEqual(restored.state.layoutMetadata, evaluation.state.layoutMetadata);
+});
+
+test("accepted explicit section types keep global state and generated BOM synchronized", () => {
+  const evaluation = evaluateBookcaseCandidate({
+    ...defaultBookcaseConfig,
+    sections: 3,
+    lowerCabinets: false,
+    lowerStorage: "drawers",
+    tallDoors: false,
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1],
+      sectionTypes: ["lower_doors", "drawers", "tall_doors"]
+    }
+  });
+
+  assert.equal(evaluation.accepted, true);
+  assert.equal(evaluation.state.lowerCabinets, true);
+  assert.equal(evaluation.state.lowerStorage, "doors");
+  assert.equal(evaluation.state.tallDoors, true);
+  assert.equal(evaluation.layout.config.lowerCabinets, true);
+  assert.equal(evaluation.layout.config.lowerStorage, "doors");
+  assert.equal(evaluation.layout.config.tallDoors, true);
+  assert.equal(evaluation.bom.openings.lowerStorageCount, 2);
+  assert.equal(evaluation.bom.openings.tallStorageCount, 1);
 });
 
 test("invalid custom widths reject the candidate and preserve the last accepted artifacts", () => {

@@ -7,8 +7,8 @@ API framework, authentication layer, deployment-time environment substitution,
 or analytics SDK. The configurator is one `BookcaseConfigurator` controller and
 one persistent Three.js r166 preview. `BookcaseConfigurator.state` is the single
 normalized product state, `bookcase-layout.js` produces the validated physical
-descriptor graph in inches, and schema-v3 saved designs are stored in
-`localStorage` under `jqBookcasesDesign`.
+descriptor graph in inches, and schema-v4 accepted-design snapshots are stored
+in `localStorage` under `jqBookcasesDesign` (with schema-v2/v3 restore support).
 
 The AR feature integrates at those boundaries; it does not create a second
 configurator or change pricing, manufacturing dimensions, quote behavior, or
@@ -47,8 +47,12 @@ resolveArModel(configuration, context) => {
 ```
 
 Identical normalized configurations use the same deterministic hash and share a
-page-session cache entry. An incrementing request coordinator marks older async
-results stale so a slow response cannot replace a newer design.
+page-session cache entry. The cache is an eight-entry LRU and revokes owned blob
+URLs on duplicate resolution, eviction, failure, and explicit clearing. Remote
+model requests have a 10-second deadline and fall back to the procedural model;
+caller cancellation still aborts the full operation. An incrementing request
+coordinator marks older async results stale so a slow response cannot replace a
+newer design.
 
 ## AR configuration and units
 
@@ -228,4 +232,3 @@ procedural GLB without changing the dialog or configurator integration.
 - QR and model-viewer runtime files currently require their pinned CDNs.
 - Share tokens are compact and validated but not signed. They contain no
   sensitive data; a future server endpoint must treat them as untrusted input.
-

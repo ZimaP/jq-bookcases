@@ -4,12 +4,24 @@ import {
   layoutPresets,
   normalizeBookcaseConfig,
   normalizeSectionTypeValue
-} from "./bookcase-config.js?v=section-designer-20260713a";
-import { CONSTRUCTION_RULES } from "./bookcase-layout.js?v=section-designer-20260713a";
+} from "./bookcase-config.js?v=full-system-20260714a";
+import { CONSTRUCTION_RULES } from "./bookcase-layout.js?v=full-system-20260714a";
 
 const PRECISION = 1e6;
 const RATIO_PRECISION = 1e12;
 const EPSILON = 1e-6;
+const SECTION_HISTORY_FIELDS = Object.freeze([
+  "layoutPreset",
+  "layoutType",
+  "sections",
+  "lowerCabinets",
+  "lowerStorage",
+  "centerOpening",
+  "deskOpening",
+  "featureOpening",
+  "tallDoors",
+  "layoutMetadata"
+]);
 
 export function getSectionDesignerState(config, layout) {
   const state = normalizeBookcaseConfig(config);
@@ -148,6 +160,13 @@ export function splitSection(config, layout, sectionIndex, rules = CONSTRUCTION_
   const section = designer.sections[index];
   if (!section) return rejectedConfig("INVALID_SECTION", "Choose a section to split.", config);
   if (section.locked) return rejectedConfig("LOCKED_SECTION", "Preset feature sections cannot be split.", config);
+  if (designer.sections.length >= Number(rules?.maxSections || CONSTRUCTION_RULES.maxSections)) {
+    return rejectedConfig(
+      "MAX_SECTION_COUNT",
+      `A bookcase can contain at most ${Number(rules?.maxSections || CONSTRUCTION_RULES.maxSections)} sections.`,
+      config
+    );
+  }
   const panel = getPanel(rules);
   const minimum = getMinimum(rules);
   const available = round(section.width - panel);
@@ -324,6 +343,32 @@ export function resetSectionCustomization(config, presetId) {
   return { accepted: true, config: reset, widths: [], affectedSections: [] };
 }
 
+/**
+ * Capture only state owned by Section Designer operations. Keeping dimensions,
+ * finish, lighting, and fulfillment choices outside this snapshot prevents a
+ * later section undo from rolling back unrelated customer decisions.
+ */
+export function createSectionHistorySnapshot(config) {
+  const state = normalizeBookcaseConfig(config);
+  return SECTION_HISTORY_FIELDS.reduce((snapshot, field) => {
+    snapshot[field] = cloneHistoryValue(state[field]);
+    return snapshot;
+  }, {});
+}
+
+/** Merge a Section Designer snapshot into the customer's current selections. */
+export function applySectionHistorySnapshot(config, snapshot) {
+  const current = normalizeBookcaseConfig(config);
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return current;
+  const next = { ...current };
+  for (const field of SECTION_HISTORY_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(snapshot, field)) {
+      next[field] = cloneHistoryValue(snapshot[field]);
+    }
+  }
+  return normalizeBookcaseConfig(next);
+}
+
 function getAcceptedWidths(config, layout) {
   const metrics = layout?.metrics?.sectionClearWidths;
   if (Array.isArray(metrics) && metrics.length === config.sections && metrics.every(isPositiveFinite)) {
@@ -359,10 +404,16 @@ function resolveSectionTypes(config, descriptors) {
 
 function applyCustomization(config, widths, types) {
   const state = normalizeBookcaseConfig(config);
+  const lowerStorageTypes = types.filter((type) => type === "lower_doors" || type === "drawers");
   return normalizeBookcaseConfig({
     ...state,
     layoutPreset: "custom",
     sections: widths.length,
+    lowerCabinets: lowerStorageTypes.length > 0,
+    lowerStorage: lowerStorageTypes.length > 0 && lowerStorageTypes.every((type) => type === "drawers")
+      ? "drawers"
+      : "doors",
+    tallDoors: types.some((type) => type === "tall_doors"),
     layoutMetadata: {
       ...state.layoutMetadata,
       sectionRatios: sectionWidthsToRatios(widths),
@@ -370,6 +421,10 @@ function applyCustomization(config, widths, types) {
       drawerSections: undefined
     }
   });
+}
+
+function cloneHistoryValue(value) {
+  return value && typeof value === "object" ? structuredClone(value) : value;
 }
 
 function allocateWidths(totalWidth, ratios) {
