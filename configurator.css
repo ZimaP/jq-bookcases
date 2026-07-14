@@ -131,7 +131,7 @@ body[data-page="configurator"] .nav-link {
 }
 
 body[data-page="configurator"] .nav-link::after {
-  bottom: 20px;
+  bottom: 7px;
   height: 1px;
   background: var(--cfg-gold);
 }
