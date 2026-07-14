@@ -18,6 +18,15 @@ body[data-page="configurator"]:not([data-studio-state="accepted"]) .header-actio
 }
 
 body[data-page="configurator"] .studio-entry-shell {
+  /* Studio composition contract: route layouts consume these shared values
+     instead of inventing per-panel typography and proportions. */
+  --studio-copy-width: 620px;
+  --studio-reading-width: 560px;
+  --studio-preview-height: 620px;
+  --studio-type-body: 13px;
+  --studio-type-card-title: 20px;
+  --studio-type-control: 10px;
+  --studio-leading-body: 1.62;
   position: relative;
   display: grid;
   width: 100%;
@@ -41,22 +50,34 @@ body[data-page="configurator"] .studio-entry-copy {
   scrollbar-color: rgba(207, 165, 108, 0.46) transparent;
 }
 
+body[data-page="configurator"] .studio-entry-shell[data-entry-view="welcome"] .studio-entry-copy {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  justify-content: safe center;
+}
+
+body[data-page="configurator"] .studio-entry-shell[data-entry-view="welcome"] .studio-entry-copy > * {
+  width: 100%;
+}
+
 body[data-page="configurator"] .studio-welcome-heading {
-  max-width: 584px;
+  max-width: var(--studio-copy-width);
 }
 
 body[data-page="configurator"] .studio-welcome-heading .section-kicker,
 body[data-page="configurator"] .studio-intro-heading .section-kicker {
   color: #deb578;
+  font-size: var(--type-small);
   letter-spacing: 0.14em;
 }
 
 body[data-page="configurator"] .studio-welcome-heading h1 {
-  max-width: 584px;
+  max-width: var(--studio-copy-width);
   margin: 16px 0 20px;
   color: #fffaf4;
   font-family: var(--serif);
-  font-size: clamp(48px, 3.85vw, 60px);
+  font-size: clamp(46px, 3vw, 56px);
   font-weight: 400;
   letter-spacing: -0.035em;
   line-height: 1.01;
@@ -68,16 +89,16 @@ body[data-page="configurator"] .studio-welcome-heading.is-compact h1 {
 }
 
 body[data-page="configurator"] .studio-welcome-heading p {
-  max-width: 552px;
+  max-width: var(--studio-reading-width);
   margin: 0;
   color: rgba(247, 243, 237, 0.78);
-  font-size: 14px;
-  line-height: 1.72;
+  font-size: var(--studio-type-body);
+  line-height: var(--studio-leading-body);
 }
 
 body[data-page="configurator"] .studio-capability-list {
   display: grid;
-  max-width: 584px;
+  max-width: var(--studio-copy-width);
   grid-template-columns: repeat(3, max-content);
   gap: 8px;
   margin: 28px 0 28px;
@@ -95,7 +116,7 @@ body[data-page="configurator"] .studio-capability-list li {
   background: rgba(255, 255, 255, 0.035);
   padding: 7px 11px;
   color: rgba(250, 246, 240, 0.86);
-  font-size: 10px;
+  font-size: var(--studio-type-control);
   line-height: 1.2;
 }
 
@@ -107,7 +128,7 @@ body[data-page="configurator"] .studio-capability-list svg {
 
 body[data-page="configurator"] .studio-entry-routes {
   display: grid;
-  max-width: 584px;
+  max-width: var(--studio-copy-width);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
@@ -115,14 +136,14 @@ body[data-page="configurator"] .studio-entry-routes {
 body[data-page="configurator"] .studio-route-card {
   position: relative;
   display: grid;
-  min-height: 142px;
+  min-height: 128px;
   grid-template-columns: minmax(0, 1fr) 24px;
   gap: 16px;
   align-items: start;
   border: 1px solid rgba(225, 194, 151, 0.25);
   border-radius: 16px;
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018));
-  padding: 22px 20px 20px;
+  padding: 20px;
   color: #f8f3ec;
   text-align: left;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
@@ -155,7 +176,7 @@ body[data-page="configurator"] .studio-route-card > span:nth-child(2) {
   display: grid;
   grid-column: 1;
   grid-row: 1;
-  gap: 7px;
+  gap: 6px;
 }
 
 body[data-page="configurator"] .studio-route-card small,
@@ -175,7 +196,7 @@ body[data-page="configurator"] .studio-route-card small {
 
 body[data-page="configurator"] .studio-route-card strong {
   font-family: var(--serif);
-  font-size: 21px;
+  font-size: var(--studio-type-card-title);
   font-weight: 400;
   line-height: 1.08;
 }
@@ -183,12 +204,12 @@ body[data-page="configurator"] .studio-route-card strong {
 body[data-page="configurator"] .studio-route-card em,
 body[data-page="configurator"] .studio-route-number {
   color: rgba(247, 243, 237, 0.64);
-  font-size: 10px;
+  font-size: var(--studio-type-control);
 }
 
 body[data-page="configurator"] .studio-route-number {
   position: absolute;
-  bottom: 22px;
+  bottom: 20px;
   left: 20px;
   margin: 0;
 }
@@ -199,12 +220,12 @@ body[data-page="configurator"] .studio-route-card em {
 
 body[data-page="configurator"] .studio-reassurance {
   display: flex;
-  max-width: 584px;
+  max-width: var(--studio-copy-width);
   align-items: flex-start;
   gap: 10px;
   margin: 20px 0 0;
   color: rgba(247, 243, 237, 0.61);
-  font-size: 10px;
+  font-size: var(--studio-type-control);
   line-height: 1.6;
 }
 
@@ -229,7 +250,9 @@ body[data-page="configurator"] .studio-intro-stage {
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(420px, var(--studio-preview-height));
+  row-gap: 24px;
+  align-content: center;
   overflow: hidden;
   border-left: 1px solid rgba(231, 210, 181, 0.1);
   background:
@@ -241,24 +264,25 @@ body[data-page="configurator"] .studio-intro-stage {
 body[data-page="configurator"] .studio-intro-heading {
   position: relative;
   z-index: 2;
-  max-width: 560px;
+  width: 100%;
+  max-width: var(--studio-copy-width);
 }
 
 body[data-page="configurator"] .studio-intro-heading h2 {
   margin: 9px 0 9px;
   color: #fff8ef;
   font-family: var(--serif);
-  font-size: clamp(28px, 2.35vw, 38px);
+  font-size: clamp(34px, 2.3vw, 44px);
   font-weight: 400;
   line-height: 1.05;
 }
 
 body[data-page="configurator"] .studio-intro-heading p {
-  max-width: 500px;
+  max-width: var(--studio-reading-width);
   margin: 0;
   color: rgba(247, 243, 237, 0.58);
-  font-size: 11px;
-  line-height: 1.55;
+  font-size: var(--studio-type-body);
+  line-height: var(--studio-leading-body);
 }
 
 body[data-page="configurator"] .studio-preview-composition {
@@ -267,7 +291,10 @@ body[data-page="configurator"] .studio-preview-composition {
   min-width: 0;
   min-height: 0;
   grid-template-rows: minmax(0, 1fr) auto;
-  margin-top: 24px;
+  width: 100%;
+  max-width: 1040px;
+  justify-self: center;
+  margin-top: 0;
   overflow: hidden;
   border: 1px solid rgba(232, 211, 182, 0.12);
   border-radius: 18px;
@@ -462,7 +489,7 @@ body[data-page="configurator"] .studio-preview-variants {
   position: relative;
   z-index: 4;
   display: flex;
-  width: min(100%, 470px);
+  width: min(100%, 520px);
   justify-content: center;
   gap: 4px;
   margin: 14px auto 0;
@@ -480,7 +507,7 @@ body[data-page="configurator"] .studio-idea-filters button {
   background: transparent;
   padding: 7px 15px;
   color: rgba(247, 243, 237, 0.68);
-  font-size: 10px;
+  font-size: var(--studio-type-control);
 }
 
 body[data-page="configurator"] .studio-preview-variants button {
@@ -893,6 +920,10 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
     padding: 36px 18px 32px;
   }
 
+  body[data-page="configurator"] .studio-entry-shell[data-entry-view="welcome"] .studio-entry-copy {
+    display: block;
+  }
+
   body[data-page="configurator"] .studio-welcome-heading h1,
   body[data-page="configurator"] .studio-welcome-heading.is-compact h1 {
     margin: 14px 0 18px;
@@ -937,6 +968,9 @@ body[data-page="configurator"] .studio-entry-shell > .status-message.is-visible 
   body[data-page="configurator"] .studio-intro-stage {
     grid-row: 2;
     min-height: 610px;
+    grid-template-rows: auto auto;
+    row-gap: 0;
+    align-content: start;
     border-top: 1px solid rgba(231, 210, 181, 0.1);
     border-left: 0;
     padding: 32px 18px 24px;

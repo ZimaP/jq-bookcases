@@ -411,6 +411,7 @@ test("rapid preset cycling is leak-bounded and leaves one verified model", async
 
 test("welcome composition is usable at every required desktop and mobile viewport", async ({ page }) => {
   const viewports = [
+    { width: 2011, height: 1198 },
     { width: 1440, height: 900 },
     { width: 1024, height: 900 },
     { width: 390, height: 844 },
@@ -425,12 +426,50 @@ test("welcome composition is usable at every required desktop and mobile viewpor
     await expect(page.locator("canvas")).toHaveCount(0);
     const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(horizontalOverflow).toBeLessThanOrEqual(1);
+    const composition = await page.evaluate(() => {
+      const shell = document.querySelector(".studio-entry-shell");
+      const leftCopy = document.querySelector(".studio-welcome-heading p");
+      const rightCopy = document.querySelector(".studio-intro-heading p");
+      const preview = document.querySelector(".studio-preview-composition");
+      return {
+        bodyToken: getComputedStyle(shell).getPropertyValue("--studio-type-body").trim(),
+        leftBodySize: getComputedStyle(leftCopy).fontSize,
+        rightBodySize: getComputedStyle(rightCopy).fontSize,
+        previewHeight: preview.getBoundingClientRect().height
+      };
+    });
+    expect(composition.bodyToken).toBe("13px");
+    expect(composition.leftBodySize).toBe(composition.rightBodySize);
+    if (viewport.width > 760) expect(composition.previewHeight).toBeLessThanOrEqual(620.5);
     await page.screenshot({
       path: `artifacts/custom-studio-qa/welcome-${viewport.width}x${viewport.height}.png`,
       animations: "disabled"
     });
   }
   expect(errors).toEqual([]);
+});
+
+test("navigation hover uses the shared underline position on every public page", async ({ page }) => {
+  const routes = [
+    "/index.html",
+    "/how-it-works.html",
+    "/materials.html",
+    "/inspiration.html",
+    "/about.html",
+    "/faq.html",
+    "/configurator.html?start=welcome"
+  ];
+
+  for (const route of routes) {
+    await page.goto(route, { waitUntil: "networkidle" });
+    const link = page.locator('.nav-links a.nav-link', { hasText: "How It Works" });
+    await link.hover();
+    const underline = await link.evaluate((element) => {
+      const style = getComputedStyle(element, "::after");
+      return { bottom: style.bottom, height: style.height };
+    });
+    expect(underline).toEqual({ bottom: "7px", height: "1px" });
+  }
 });
 
 test("Start over clears the accepted design and returns to both studio routes", async ({ page }) => {
