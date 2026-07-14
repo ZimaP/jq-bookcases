@@ -60,9 +60,13 @@ Subject: `Stabilize studio route transitions`
 
 ## 4. Final commit
 
-Final tested application and Playwright-config commit:
+Final tested application and browser-suite content checkpoint:
 
 `c9969e8169276327469e7c010f238826bbb8e718`
+
+Final tested browser workflow/configuration checkpoint:
+
+`d501aa02ff27803656ab3a21cfdff1840b4f29f9`
 
 Checkpoint history:
 
@@ -72,12 +76,15 @@ Checkpoint history:
 - `7d9d73a` — Add final full-system QA report
 - `af52d12` — Record draft PR in QA report
 - `c9969e8` — Fix CI browser portability regressions
-- final CI follow-up (this report commit) — force Mesa software rendering on the
-  GPU-less hosted Linux browser runner
+- `6ecbb6b` — Document final CI portability verification
+- `50f2ad0` — Enable software GL for hosted Firefox QA
+- `469d2f7` — Run Firefox WebGL QA under Xvfb
+- `d501aa0` — Refresh GitHub Actions Node 24 runtimes
+- final report-only checkpoint — record the terminal hosted result and handoff
 
-The final workflow/report refresh follows the tested application commit. The
-exact final branch HEAD is also recorded in the Codex handoff and draft PR
-because a commit cannot contain its own hash.
+The final report-only checkpoint follows the tested code/workflow checkpoint.
+Its exact branch HEAD is recorded in the Codex handoff and draft PR because a
+commit cannot contain its own hash.
 
 ## 5. Environment used
 
@@ -89,7 +96,8 @@ because a commit cannot contain its own hash.
 - Playwright 1.61.1
 - Axe Playwright 4.10.2
 - Chromium, Firefox, and WebKit supplied by Playwright
-- GitHub-hosted `ubuntu-latest` runner for remote Node/browser/Pages gates
+- GitHub-hosted `ubuntu-latest` runner with Xvfb and Mesa software GL for the
+  headed Firefox browser gate
 - Local server bound to `127.0.0.1:5173`
 - Time zone: America/New_York
 
@@ -113,6 +121,7 @@ npm run build
 npm test
 npm run test:browser
 npx playwright test --list
+xvfb-run --auto-servernum -- npm run test:browser
 npx playwright test e2e/site-quality.spec.js --project=chromium
 npx playwright test e2e/configurator-options.spec.js --project=chromium
 npx playwright test e2e/configurator-render-scheduling.spec.js --project=chromium --repeat-each=10
@@ -125,6 +134,10 @@ gh repo view ZimaP/jq-bookcases ...
 gh api repos/ZimaP/jq-bookcases/...
 gh run view 29308111566 --log-failed
 gh run download 29308111566 --name playwright-diagnostics-29308111566 ...
+gh run view 29310037130
+gh run view 29310037135
+gh run view 29310037167
+gh pr checks 4 --repo ZimaP/jq-bookcases
 ```
 
 Additional Playwright scripts measured element rectangles, intersection areas,
@@ -338,7 +351,19 @@ rather than a basic build failure.
   console errors, failed local assets, or failed route responses;
 - Pages allowlist simulation: 85 runtime files, approximately 5.9 MB;
 - `git diff --check`: passed;
-- workflow YAML parse: passed.
+- workflow YAML parse: passed;
+- hosted Engine run
+  [29310037130](https://github.com/ZimaP/jq-bookcases/actions/runs/29310037130):
+  Node 20 and Node 22 jobs passed;
+- hosted browser run
+  [29310037135](https://github.com/ZimaP/jq-bookcases/actions/runs/29310037135):
+  52/52 passed in 6.6 minutes;
+- hosted Pages run
+  [29310037167](https://github.com/ZimaP/jq-bookcases/actions/runs/29310037167):
+  validation and 46/46 Chromium cases passed; publication and deployment were
+  skipped as required for a pull request;
+- final GitHub check annotations: zero; deployment records for the tested SHA:
+  zero.
 
 ## 16. Build result
 
@@ -396,14 +421,18 @@ coverage remains Chromium-only to keep CI practical.
 
 The first remote run exposed two test-infrastructure portability defects rather
 than product regressions: an unscoped color-name locator became ambiguous after
-the color was applied, and GPU-less Firefox correctly chose the WebGL fallback
-instead of satisfying the real-render smoke contract. The locator is now scoped
-to the applied-color summary, and Firefox CI explicitly enables its software
-WebGL path while retaining the strict real-canvas assertions. The hosted trace
-then proved Firefox also lacked a usable native GL driver, so the browser job
-now forces Mesa software GL as well. The affected Chromium case and all three
-Firefox smoke cases pass locally after the repair; final remote results are
-recorded on draft PR #4 after this report commit.
+the color was applied, and Linux headless Firefox correctly chose the WebGL
+fallback instead of satisfying the real-render smoke contract. The locator is
+now scoped to the applied-color summary. Mozilla's open
+[headless-WebGL issue](https://bugzilla.mozilla.org/show_bug.cgi?id=1375585)
+documents the missing display-backed WebGL path on Linux; the browser gate now
+runs Firefox headed under Xvfb with its WebGL preference and Mesa software
+rendering enabled. This retains the strict real-canvas assertions instead of
+weakening them for CI. The affected Chromium case and all three Firefox smoke
+cases pass locally in CI mode after the repair. The final hosted browser run
+[29310037135](https://github.com/ZimaP/jq-bookcases/actions/runs/29310037135)
+then passed all 52 cases, including the three strict headed-Firefox WebGL/GLB
+cases, in 6.6 minutes. The separate Pages gate passed all 46 Chromium cases.
 
 ## 22. Accessibility result
 
@@ -524,8 +553,11 @@ None. The baseline built and core paths opened.
 - construction copy referenced a wood-tone choice the current UI does not offer;
 - schema and lifecycle architecture documentation needed updating;
 - browser screenshots were written to tracked artifact paths by an existing E2E.
-- CI paint lookup used a globally ambiguous text locator, and GPU-less Firefox
-  was not configured to expose software WebGL for the strict render gate.
+- CI paint lookup used a globally ambiguous text locator, and Linux headless
+  Firefox lacked the display-backed WebGL path required by the strict render
+  gate.
+- browser and engine workflows still used Node-20-based action majors that
+  GitHub's hosted runner had begun force-upgrading with deprecation warnings.
 
 ## 27. Issues fixed
 
@@ -550,18 +582,22 @@ Key implementation changes:
 - standardized module identities, lazy-loaded quote dependencies, and bound
   development/test servers to loopback;
 - added cross-browser/Axe/deep configurator regression coverage;
-- scoped the applied-paint assertion and enabled Firefox plus Mesa software
-  WebGL in CI without weakening the cross-browser real-render contract;
+- scoped the applied-paint assertion and ran Firefox headed under Xvfb with its
+  WebGL preference and Mesa software rendering enabled, without weakening the
+  cross-browser real-render contract;
+- refreshed checkout, Node setup, diagnostics upload, and main-only Pages
+  actions to stable Node-24-compatible majors;
 - restricted Pages deployment to main, added a Chromium deployment gate, and
   assembled the public site from an explicit runtime allowlist.
 
 ## 28. Files changed
 
-Relative to the starting commit including this final report refresh: **62 files
-changed, 3,679 insertions, 504 deletions**. The set is:
+Relative to the starting commit including this final report refresh: **63 files
+changed, 3,728 insertions, 513 deletions**. The set is:
 
 ```text
 .github/workflows/browser-quality.yml
+.github/workflows/engine-quality.yml
 .github/workflows/pages.yml
 CABINET-AR-ARCHITECTURE.md
 OVERNIGHT-FULL-SYSTEM-QA-REPORT.md
@@ -730,10 +766,10 @@ excluded from Pages.
 [Draft PR #4: Full-system configurator QA, resilience, and visual polish](https://github.com/ZimaP/jq-bookcases/pull/4)
 
 The working tree began at `454cf75` on an existing, unmerged custom-studio
-lineage that was already 58 commits ahead of `main`. This audit adds eight
+lineage that was already 58 commits ahead of `main`. This audit adds eleven
 commits from that explicit starting point, including report/PR metadata; the
 main-targeted draft PR therefore shows the inherited lineage as well as this
-audit (66 commits after the final report push). No history was rewritten to
+audit (69 commits after the final report push). No history was rewritten to
 conceal or flatten that context.
 
 ## 35. Clear final status
