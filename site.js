@@ -473,10 +473,15 @@ async function initQuoteForm() {
       const activeDesignId = activeStoredDesign.snapshot.id;
       const config = activeStoredDesign.restored.state;
       const quotePrefill = createQuotePrefill(config);
+      const doorFrontSummary = quotePrefill.frontProfiles?.door?.styles?.length
+        ? quotePrefill.frontProfiles.door.styles
+            .map((profile) => `${profile.count} ${profile.label}`)
+            .join(" + ")
+        : quotePrefill.frontProfiles?.door?.label || "";
       const designDetails = [
         formatStoredPrice(quotePrefill.price),
         quotePrefill.layoutLabel || "Custom layout",
-        quotePrefill.frontProfiles?.door?.label ? `Door fronts: ${quotePrefill.frontProfiles.door.label}` : "",
+        doorFrontSummary ? `Door fronts: ${doorFrontSummary}` : "",
         quotePrefill.frontProfiles?.drawer?.label ? `Drawer fronts: ${quotePrefill.frontProfiles.drawer.label}` : "",
         quotePrefill.hardwareSelection?.label ? `Hardware: ${quotePrefill.hardwareSelection.label}` : ""
       ].filter(Boolean).map(escapeHtml).join(" &middot; ");

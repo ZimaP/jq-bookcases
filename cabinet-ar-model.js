@@ -1,7 +1,11 @@
 import { hashCabinetArConfiguration, inchesToMeters } from "./cabinet-ar.js?v=configurator-refine-20260714a";
-import { getHardwareFinish, getHardwareFinishOption } from "./bookcase-config.js?v=configurator-refine-20260714a";
+import {
+  getHardwareFinish,
+  getHardwareFinishOption,
+  getHardwareType
+} from "./bookcase-config.js?v=configurator-refine-20260714a";
 
-const NON_RENDERED_ROLES = new Set(["assembly", "section", "section_group", "opening", "light"]);
+const NON_RENDERED_ROLES = new Set(["assembly", "section", "section_group", "opening"]);
 const GLB_MAGIC = 0x46546c67;
 const GLB_VERSION = 2;
 const JSON_CHUNK_TYPE = 0x4e4f534a;
@@ -34,20 +38,22 @@ export function generateCabinetGlbArrayBuffer(configuration, layout) {
 
   (layout.components || []).forEach((component) => {
     if (!component?.bounds || NON_RENDERED_ROLES.has(component.role)) return;
-    const size = [
-      inchesToMeters(component.size.x),
-      inchesToMeters(component.size.y),
-      inchesToMeters(component.size.z)
-    ];
-    if (size.some((value) => !Number.isFinite(value) || value <= 0)) return;
-    const center = [
-      coordinateInchesToMeters(component.position.x),
-      coordinateInchesToMeters(component.position.y),
-      cabinetDepth / 2 - coordinateInchesToMeters(component.position.z)
-    ];
+    const envelope = getArDescriptorEnvelope(component, cabinetDepth);
+    if (!envelope) return;
+    const { center, size } = envelope;
     if (component.role === "door" || component.role === "drawer_front") {
-      createArFrontProfileParts(component, center, size).forEach((part) => {
-        appendBox(groups.get(part.material) || groups.get("finish"), part.center, part.size);
+      const parts = createArFrontProfileParts(component, center, size);
+      assertPartsWithinDescriptorEnvelope(component, center, size, parts);
+      parts.forEach((part) => {
+        appendGeometryPart(groups.get(part.material) || groups.get("finish"), part);
+      });
+      return;
+    }
+    if (component.role === "handle") {
+      const parts = createArHandleGeometryParts(component, center, size);
+      assertPartsWithinDescriptorEnvelope(component, center, size, parts);
+      parts.forEach((part) => {
+        appendGeometryPart(groups.get("hardware"), part);
       });
       return;
     }
@@ -68,6 +74,7 @@ export function generateCabinetGlbArrayBuffer(configuration, layout) {
         metallicFactor: material.metallic,
         roughnessFactor: material.roughness
       },
+      ...(material.emissive ? { emissiveFactor: material.emissive } : {}),
       ...(material.alpha < 1 ? { alphaMode: "BLEND", doubleSided: true } : {})
     })),
     buffers: [{ byteLength: 0 }],
@@ -81,7 +88,14 @@ export function generateCabinetGlbArrayBuffer(configuration, layout) {
         door: configuration.doorStyleId,
         drawer: configuration.drawerFrontStyleId
       },
-      hardwareVariant: configuration.hardwareId
+      hardwareVariant: configuration.hardwareId,
+      constructionProfile: configuration.constructionProfileId,
+      doorLeafCount: configuration.doorLeafCount ?? configuration.doorCount,
+      geometryContract: {
+        fronts: "descriptor-profile-geometry",
+        hardware: "descriptor-hardware-geometry",
+        lights: "descriptor-light-geometry"
+      }
     }
   };
 
@@ -148,13 +162,49 @@ function createMaterialDefinitions(configuration) {
   const hardwareFinish = getHardwareFinish(configuration.hardwareId);
   const hardwareMetadata = getHardwareFinishOption(hardwareFinish) || getHardwareFinishOption("brass");
   const hardware = hexToLinearColor(numberToHex(hardwareMetadata.materialColor));
+  const light = lightColorForWarmth(configuration.lightingWarmthKelvin);
   return [
     { name: "finish", color: finish, metallic: 0, roughness: 0.68, alpha: 1 },
     { name: "back", color: darken(finish, 0.9), metallic: 0, roughness: 0.8, alpha: 1 },
     { name: "hardware", color: hardware, metallic: hardwareMetadata.metalness, roughness: hardwareMetadata.roughness, alpha: 1 },
     { name: "shadow", color: [0.021, 0.016, 0.012, 1], metallic: 0, roughness: 0.92, alpha: 1 },
-    { name: "glass", color: [0.78, 0.86, 0.9, 0.2], metallic: 0, roughness: 0.12, alpha: 0.2 }
+    { name: "glass", color: [0.78, 0.86, 0.9, 0.2], metallic: 0, roughness: 0.12, alpha: 0.2 },
+    { name: "light", color: light, emissive: light.slice(0, 3), metallic: 0, roughness: 0.32, alpha: 1 }
   ];
+}
+
+/**
+ * Convert the authoritative descriptor bounds into the procedural AR scene.
+ *
+ * Layout descriptors round each bound once, then expose convenience `size`
+ * and `position` fields that are rounded independently. Reconstructing an AR
+ * envelope from those convenience fields can move a profile region a few
+ * millionths of an inch outside its bounds. The GLB therefore consumes only
+ * the layout-owned bounds for both dimensions and center coordinates.
+ */
+export function getArDescriptorEnvelope(component, cabinetDepthMeters) {
+  const minimum = component?.bounds?.min;
+  const maximum = component?.bounds?.max;
+  const bounds = [
+    Number(minimum?.x), Number(maximum?.x),
+    Number(minimum?.y), Number(maximum?.y),
+    Number(minimum?.z), Number(maximum?.z)
+  ];
+  const depth = Number(cabinetDepthMeters);
+  if (!bounds.every(Number.isFinite) || !Number.isFinite(depth) || depth <= 0) return null;
+  if (maximum.x <= minimum.x || maximum.y <= minimum.y || maximum.z <= minimum.z) return null;
+
+  const size = [
+    coordinateInchesToMeters(maximum.x - minimum.x),
+    coordinateInchesToMeters(maximum.y - minimum.y),
+    coordinateInchesToMeters(maximum.z - minimum.z)
+  ];
+  const center = [
+    coordinateInchesToMeters((minimum.x + maximum.x) / 2),
+    coordinateInchesToMeters((minimum.y + maximum.y) / 2),
+    depth / 2 - coordinateInchesToMeters((minimum.z + maximum.z) / 2)
+  ];
+  return { center, size };
 }
 
 export function createArFrontProfileParts(component, center, size) {
@@ -168,65 +218,251 @@ export function createArFrontProfileParts(component, center, size) {
 
   const [x, y, z] = center.map(Number);
   const style = getArFrontStyle(component);
-  if (style === "flat") {
-    return [{ kind: "slab", material: "finish", center: [x, y, z], size: [width, height, depth] }];
+  const profile = component?.metadata?.profileGeometry;
+  const slab = [{
+    kind: "slab",
+    shape: "box",
+    material: "finish",
+    center: [x, y, z],
+    size: [width, height, depth]
+  }];
+  if (style === "flat" || profile?.kind === "slab") return slab;
+  if (!profile?.valid || !Number.isFinite(Number(profile.frameWidth)) || Number(profile.frameWidth) <= 0) {
+    return [];
   }
 
-  const minimumSpan = Math.min(width, height);
-  const rail = clamp(
-    minimumSpan * (style === "slim_shaker" ? 0.065 : 0.095),
-    minimumSpan * 0.035,
-    Math.min(width * 0.22, height * 0.22)
+  const frameWidth = positiveInchesToMeters(profile.frameWidth);
+  const frameDepth = clamp(positiveInchesToMeters(profile.frameDepth), 0.0001, depth);
+  const panelRecess = clamp(nonNegativeInchesToMeters(profile.panelRecess), 0, Math.max(0, depth - 0.0001));
+  const panelDepth = clamp(
+    positiveInchesToMeters(profile.panelDepth),
+    0.0001,
+    Math.max(0.0001, depth - panelRecess)
   );
-  const backingDepth = depth * 0.46;
-  const faceDepth = depth - backingDepth;
-  const backZ = z - depth / 2 + backingDepth / 2;
-  const faceZ = z + depth / 2 - faceDepth / 2;
-  const centerWidth = Math.max(width - rail * 2, width * 0.5);
-  const centerHeight = Math.max(height - rail * 2, height * 0.5);
-  const parts = [
-    {
-      kind: "backing",
-      material: style === "glass" ? "glass" : "finish",
-      center: [x, y, backZ],
-      size: [width, height, backingDepth]
-    },
-    {
-      kind: "top_rail",
-      material: "finish",
-      center: [x, y + height / 2 - rail / 2, faceZ],
-      size: [width, rail, faceDepth]
-    },
-    {
-      kind: "bottom_rail",
-      material: "finish",
-      center: [x, y - height / 2 + rail / 2, faceZ],
-      size: [width, rail, faceDepth]
-    },
-    {
-      kind: "left_stile",
-      material: "finish",
-      center: [x - width / 2 + rail / 2, y, faceZ],
-      size: [rail, centerHeight, faceDepth]
-    },
-    {
-      kind: "right_stile",
-      material: "finish",
-      center: [x + width / 2 - rail / 2, y, faceZ],
-      size: [rail, centerHeight, faceDepth]
-    }
-  ];
+  if (![frameWidth, frameDepth, panelRecess, panelDepth].every(Number.isFinite)) return [];
 
-  if (style !== "glass") {
-    const panelDepth = Math.min(faceDepth * 0.48, depth * 0.28);
-    parts.push({
-      kind: "inset_panel",
+  const outward = getArOutwardDirection(component);
+  const visibleFrontZ = z + outward * depth / 2;
+  const frameZ = visibleFrontZ - outward * frameDepth / 2;
+  const panelZ = visibleFrontZ - outward * (panelRecess + panelDepth / 2);
+  const descriptorCenter = getDescriptorCenterInches(component);
+  const solidRegions = Array.isArray(profile.solidRegions) && profile.solidRegions.length
+    ? profile.solidRegions
+    : [];
+  if (solidRegions.length !== 4) return [];
+  const parts = solidRegions.flatMap((region) => {
+    const rectangle = arRectangleForProfileRegion(region, component, descriptorCenter, [x, y]);
+    if (!rectangle) return [];
+    return [{
+      kind: region.id || "frame",
+      shape: "box",
       material: "finish",
-      center: [x, y, z + depth / 2 - faceDepth + panelDepth / 2],
-      size: [centerWidth, centerHeight, panelDepth]
+      center: [rectangle.center[0], rectangle.center[1], frameZ],
+      size: [rectangle.size[0], rectangle.size[1], frameDepth]
+    }];
+  });
+
+  const field = profile.fieldRegion;
+  const fieldRectangle = arRectangleForProfileRegion(field, component, descriptorCenter, [x, y]);
+  if (!fieldRectangle || !parts.length) return [];
+  const renderGlassField = field.kind === "glass" && component?.role !== "drawer_front";
+  parts.push({
+    kind: renderGlassField ? "glass_field" : "inset_panel",
+    shape: "box",
+    material: renderGlassField ? "glass" : "finish",
+    center: [fieldRectangle.center[0], fieldRectangle.center[1], panelZ],
+    size: [fieldRectangle.size[0], fieldRectangle.size[1], panelDepth]
+  });
+  return parts.every(isPositiveGeometryPart) ? parts : [];
+}
+
+/**
+ * Build explicit knob/pull geometry from the layout-owned hardware catalog
+ * metadata. Returned cylinders/ellipsoids remain inside the descriptor box;
+ * the GLB writer never stretches an arbitrary handle bounding box into a part.
+ */
+export function createArHandleGeometryParts(component, center, size) {
+  if (
+    component?.role !== "handle"
+    || !Array.isArray(center)
+    || center.length !== 3
+    || !Array.isArray(size)
+    || size.length !== 3
+  ) return [];
+  const envelope = size.map(Number);
+  if (!envelope.every((value) => Number.isFinite(value) && value > 0)) return [];
+  const origin = center.map(Number);
+  if (!origin.every(Number.isFinite)) return [];
+
+  const metadata = component.metadata || {};
+  const declared = metadata.visualDimensions;
+  if (!declared || ![declared.x, declared.y, declared.z].every((value) => Number.isFinite(Number(value)) && Number(value) > 0)) {
+    return [];
+  }
+  const declaredMeters = [declared.x, declared.y, declared.z].map(positiveInchesToMeters);
+  const visual = declaredMeters.map((value, axis) => Math.min(value, envelope[axis]));
+  const declaredProjection = positiveInchesToMeters(metadata.projection);
+  if (!Number.isFinite(declaredProjection)) return [];
+  visual[2] = Math.min(visual[2], declaredProjection, envelope[2]);
+  const hardwareType = metadata.hardwareType || getHardwareType(metadata.hardware);
+  const outward = metadata.attachment?.componentFace === "min" ? -1 : 1;
+  const mountingZ = origin[2] - outward * envelope[2] / 2;
+  const outerZ = origin[2] + outward * envelope[2] / 2;
+
+  if (hardwareType === "pull") {
+    const horizontal = metadata.orientation === "horizontal";
+    if (!horizontal && metadata.orientation !== "vertical") return [];
+    const longAxis = horizontal ? 0 : 1;
+    const crossAxis = horizontal ? 1 : 0;
+    const nominalLength = Number(metadata.nominalLength) > 0
+      ? positiveInchesToMeters(metadata.nominalLength)
+      : visual[longAxis];
+    const length = Math.min(nominalLength, visual[longAxis], envelope[longAxis]);
+    const diameter = Math.min(visual[crossAxis], visual[2], envelope[crossAxis], envelope[2]);
+    if (![length, diameter].every((value) => Number.isFinite(value) && value > 0)) return [];
+    const radius = diameter / 2;
+    const barZ = outerZ - outward * radius;
+    const barSize = horizontal
+      ? [length, diameter, diameter]
+      : [diameter, length, diameter];
+    const parts = [{
+      kind: "pull_bar",
+      shape: "cylinder",
+      axis: horizontal ? "x" : "y",
+      material: "hardware",
+      center: [origin[0], origin[1], barZ],
+      size: barSize
+    }];
+    const standoffDepth = Math.abs(barZ - mountingZ);
+    const standoffDiameter = Math.min(diameter * 0.46, envelope[0], envelope[1]);
+    const along = Math.max(0, length / 2 - radius * 1.5);
+    if (standoffDepth > 0 && standoffDiameter > 0) {
+      for (const direction of [-1, 1]) {
+        parts.push({
+          kind: "pull_standoff",
+          shape: "cylinder",
+          axis: "z",
+          material: "hardware",
+          center: [
+            origin[0] + (horizontal ? along * direction : 0),
+            origin[1] + (horizontal ? 0 : along * direction),
+            mountingZ + outward * standoffDepth / 2
+          ],
+          size: [standoffDiameter, standoffDiameter, standoffDepth]
+        });
+      }
+    }
+    return parts.every(isPositiveGeometryPart) ? parts : [];
+  }
+
+  if (hardwareType !== "knob") return [];
+  const diameter = Math.min(visual[0], visual[1], envelope[0], envelope[1]);
+  const projection = Math.min(visual[2], envelope[2]);
+  if (![diameter, projection].every((value) => Number.isFinite(value) && value > 0)) return [];
+  const capDepth = Math.min(diameter, projection * 0.65);
+  const capZ = outerZ - outward * capDepth / 2;
+  const stemDepth = Math.max(0, projection - capDepth);
+  const parts = [{
+    kind: "knob_cap",
+    shape: "ellipsoid",
+    material: "hardware",
+    center: [origin[0], origin[1], capZ],
+    size: [diameter, diameter, capDepth]
+  }];
+  if (stemDepth > 0) {
+    const stemDiameter = Math.min(diameter * 0.32, envelope[0], envelope[1]);
+    parts.push({
+      kind: "knob_stem",
+      shape: "cylinder",
+      axis: "z",
+      material: "hardware",
+      center: [origin[0], origin[1], mountingZ + outward * stemDepth / 2],
+      size: [stemDiameter, stemDiameter, stemDepth]
     });
   }
-  return parts;
+  return parts.every(isPositiveGeometryPart) ? parts : [];
+}
+
+function getArOutwardDirection(component) {
+  const frontPlane = Number(component?.metadata?.frontPlaneZ);
+  const backPlane = Number(component?.metadata?.backPlaneZ);
+  if (Number.isFinite(frontPlane) && Number.isFinite(backPlane) && Math.abs(frontPlane - backPlane) > 1e-9) {
+    // Layout +Z points inward, while procedural scene +Z points outward.
+    return frontPlane < backPlane ? 1 : -1;
+  }
+  return 1;
+}
+
+function getDescriptorCenterInches(component) {
+  const bounds = component?.bounds;
+  if (bounds) {
+    const center = [
+      (Number(bounds.min?.x) + Number(bounds.max?.x)) / 2,
+      (Number(bounds.min?.y) + Number(bounds.max?.y)) / 2
+    ];
+    if (center.every(Number.isFinite)) return center;
+  }
+  if (component?.position && [component.position.x, component.position.y].every(Number.isFinite)) {
+    return [component.position.x, component.position.y];
+  }
+  return [0, 0];
+}
+
+function arRectangleForProfileRegion(region, component, descriptorCenter, renderedCenter) {
+  const minX = Number(region?.bounds?.min?.x);
+  const maxX = Number(region?.bounds?.max?.x);
+  const minY = Number(region?.bounds?.min?.y);
+  const maxY = Number(region?.bounds?.max?.y);
+  if (![minX, maxX, minY, maxY].every(Number.isFinite) || maxX <= minX || maxY <= minY) return null;
+  const width = coordinateInchesToMeters(maxX - minX);
+  const height = coordinateInchesToMeters(maxY - minY);
+  return {
+    center: [
+      renderedCenter[0] + coordinateInchesToMeters((minX + maxX) / 2 - descriptorCenter[0]),
+      renderedCenter[1] + coordinateInchesToMeters((minY + maxY) / 2 - descriptorCenter[1])
+    ],
+    size: [width, height]
+  };
+}
+
+function positiveInchesToMeters(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric * 0.0254 : Number.NaN;
+}
+
+function nonNegativeInchesToMeters(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric >= 0 ? numeric * 0.0254 : Number.NaN;
+}
+
+function isPositiveGeometryPart(part) {
+  return Array.isArray(part?.center)
+    && part.center.length === 3
+    && part.center.every(Number.isFinite)
+    && Array.isArray(part?.size)
+    && part.size.length === 3
+    && part.size.every((value) => Number.isFinite(value) && value > 0);
+}
+
+function assertPartsWithinDescriptorEnvelope(component, center, size, parts) {
+  if (!Array.isArray(parts) || !parts.length) {
+    throw new RangeError(`AR component ${component?.id || "unknown"} did not produce semantic geometry.`);
+  }
+  const tolerance = 1e-9;
+  for (const part of parts) {
+    if (!isPositiveGeometryPart(part)) {
+      throw new RangeError(`AR component ${component?.id || "unknown"} produced invalid geometry.`);
+    }
+    for (let axis = 0; axis < 3; axis += 1) {
+      const descriptorMinimum = center[axis] - size[axis] / 2;
+      const descriptorMaximum = center[axis] + size[axis] / 2;
+      const partMinimum = part.center[axis] - part.size[axis] / 2;
+      const partMaximum = part.center[axis] + part.size[axis] / 2;
+      if (partMinimum < descriptorMinimum - tolerance || partMaximum > descriptorMaximum + tolerance) {
+        throw new RangeError(`AR component ${component?.id || "unknown"} escaped its descriptor envelope.`);
+      }
+    }
+  }
 }
 
 function getArFrontStyle(component) {
@@ -239,10 +475,18 @@ function getArFrontStyle(component) {
 
 function materialNameForComponent(component) {
   if (component.role === "handle") return "hardware";
+  if (component.role === "light") return "light";
   if (component.role === "back_panel") return "back";
   if (component.metadata?.purpose === "recess") return "shadow";
   if (component.metadata?.style === "glass" || component.metadata?.material === "glass") return "glass";
   return "finish";
+}
+
+function lightColorForWarmth(value) {
+  const kelvin = Number(value);
+  if (Number.isFinite(kelvin) && kelvin <= 2800) return hexToLinearColor("#ffd6a3");
+  if (Number.isFinite(kelvin) && kelvin <= 3500) return hexToLinearColor("#ffe5bd");
+  return hexToLinearColor("#fff1db");
 }
 
 function throwIfGenerationAborted(signal) {
@@ -264,6 +508,18 @@ function createGeometryGroup(materialIndex) {
     minimum: [Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY],
     maximum: [Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY]
   };
+}
+
+function appendGeometryPart(group, part) {
+  if (part.shape === "cylinder") {
+    appendCylinder(group, part.center, part.size, part.axis || "z");
+    return;
+  }
+  if (part.shape === "ellipsoid") {
+    appendEllipsoid(group, part.center, part.size);
+    return;
+  }
+  appendBox(group, part.center, part.size);
 }
 
 function appendBox(group, center, size) {
@@ -291,6 +547,108 @@ function appendBox(group, center, size) {
     });
     group.indices.push(baseIndex, baseIndex + 1, baseIndex + 2, baseIndex, baseIndex + 2, baseIndex + 3);
   });
+}
+
+function appendCylinder(group, center, size, axis = "z", segments = 16) {
+  const [cx, cy, cz] = center;
+  const half = size.map((value) => value / 2);
+  const axisIndex = { x: 0, y: 1, z: 2 }[axis] ?? 2;
+  const radialAxes = [0, 1, 2].filter((index) => index !== axisIndex);
+  const axisHalf = half[axisIndex];
+  const radiusA = half[radialAxes[0]];
+  const radiusB = half[radialAxes[1]];
+  const origin = [cx, cy, cz];
+
+  for (let index = 0; index < segments; index += 1) {
+    const next = (index + 1) % segments;
+    const angle = index / segments * Math.PI * 2;
+    const nextAngle = next / segments * Math.PI * 2;
+    const radial = [Math.cos(angle) * radiusA, Math.sin(angle) * radiusB];
+    const radialNext = [Math.cos(nextAngle) * radiusA, Math.sin(nextAngle) * radiusB];
+    const normal = ellipticalNormal(angle, radiusA, radiusB);
+    const normalNext = ellipticalNormal(nextAngle, radiusA, radiusB);
+    const sideBase = group.positions.length / 3;
+    pushCylinderVertex(group, origin, axisIndex, radialAxes, -axisHalf, radial, normal);
+    pushCylinderVertex(group, origin, axisIndex, radialAxes, axisHalf, radial, normal);
+    pushCylinderVertex(group, origin, axisIndex, radialAxes, axisHalf, radialNext, normalNext);
+    pushCylinderVertex(group, origin, axisIndex, radialAxes, -axisHalf, radialNext, normalNext);
+    group.indices.push(sideBase, sideBase + 1, sideBase + 2, sideBase, sideBase + 2, sideBase + 3);
+
+    for (const direction of [-1, 1]) {
+      const capNormal = [0, 0, 0];
+      capNormal[axisIndex] = direction;
+      const capBase = group.positions.length / 3;
+      const capCenter = origin.slice();
+      capCenter[axisIndex] += axisHalf * direction;
+      pushGeometryVertex(group, capCenter, capNormal);
+      const first = capCenter.slice();
+      first[radialAxes[0]] += (direction > 0 ? radial : radialNext)[0];
+      first[radialAxes[1]] += (direction > 0 ? radial : radialNext)[1];
+      const second = capCenter.slice();
+      second[radialAxes[0]] += (direction > 0 ? radialNext : radial)[0];
+      second[radialAxes[1]] += (direction > 0 ? radialNext : radial)[1];
+      pushGeometryVertex(group, first, capNormal);
+      pushGeometryVertex(group, second, capNormal);
+      group.indices.push(capBase, capBase + 1, capBase + 2);
+    }
+  }
+}
+
+function appendEllipsoid(group, center, size, longitudeSegments = 18, latitudeSegments = 10) {
+  const radii = size.map((value) => value / 2);
+  const baseIndex = group.positions.length / 3;
+  for (let latitude = 0; latitude <= latitudeSegments; latitude += 1) {
+    const phi = latitude / latitudeSegments * Math.PI;
+    const sinPhi = Math.sin(phi);
+    const cosPhi = Math.cos(phi);
+    for (let longitude = 0; longitude <= longitudeSegments; longitude += 1) {
+      const theta = longitude / longitudeSegments * Math.PI * 2;
+      const unit = [sinPhi * Math.cos(theta), cosPhi, sinPhi * Math.sin(theta)];
+      const position = unit.map((value, axis) => center[axis] + value * radii[axis]);
+      const normal = normalizeVector(unit.map((value, axis) => value / Math.max(radii[axis], 1e-12)));
+      pushGeometryVertex(group, position, normal);
+    }
+  }
+  const row = longitudeSegments + 1;
+  for (let latitude = 0; latitude < latitudeSegments; latitude += 1) {
+    for (let longitude = 0; longitude < longitudeSegments; longitude += 1) {
+      const first = baseIndex + latitude * row + longitude;
+      const second = first + row;
+      group.indices.push(first, second, first + 1, second, second + 1, first + 1);
+    }
+  }
+}
+
+function pushCylinderVertex(group, origin, axisIndex, radialAxes, axialOffset, radialOffset, radialNormal) {
+  const position = origin.slice();
+  position[axisIndex] += axialOffset;
+  position[radialAxes[0]] += radialOffset[0];
+  position[radialAxes[1]] += radialOffset[1];
+  const normal = [0, 0, 0];
+  normal[radialAxes[0]] = radialNormal[0];
+  normal[radialAxes[1]] = radialNormal[1];
+  pushGeometryVertex(group, position, normal);
+}
+
+function pushGeometryVertex(group, position, normal) {
+  group.positions.push(...position);
+  group.normals.push(...normal);
+  position.forEach((value, axis) => {
+    group.minimum[axis] = Math.min(group.minimum[axis], value);
+    group.maximum[axis] = Math.max(group.maximum[axis], value);
+  });
+}
+
+function ellipticalNormal(angle, radiusA, radiusB) {
+  return normalizeVector([
+    Math.cos(angle) / Math.max(radiusA, 1e-12),
+    Math.sin(angle) / Math.max(radiusB, 1e-12)
+  ]);
+}
+
+function normalizeVector(vector) {
+  const length = Math.hypot(...vector) || 1;
+  return vector.map((value) => value / length);
 }
 
 function appendBinaryView(gltf, binaryParts, typedArray, target, currentOffset) {

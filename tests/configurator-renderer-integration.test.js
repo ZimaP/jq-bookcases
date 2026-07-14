@@ -70,10 +70,23 @@ test("active physical renderer consumes descriptor dimensions without base, crow
   assert.match(renderer, /addBox\(componentGroup, size, position, material/);
 });
 
+test("front profile rendering derives scene depth from semantic mounting planes", () => {
+  const frontRenderer = block(
+    "function renderDescriptorDoor(",
+    "function renderDescriptorHandle("
+  );
+  assert.match(frontRenderer, /resolveRenderedFrontSemantics\(component, z, depth\)/);
+  assert.match(frontRenderer, /component\.metadata\?\.frontPlaneZ/);
+  assert.match(frontRenderer, /component\.metadata\?\.backPlaneZ/);
+  assert.match(frontRenderer, /component\.metadata\?\.mounting/);
+  assert.match(frontRenderer, /inwardDirection/);
+  assert.doesNotMatch(frontRenderer, /const visibleFrontZ = z \+ depth \/ 2/);
+});
+
 test("physical child groups are excluded from parent render-bound records", () => {
   const collector = block(
     "function collectOwnedMeshRecord(componentGroup, componentId) {",
-    "function renderLayoutOpening("
+    "function createContactShadowTexture("
   );
   assert.match(collector, /object !== componentGroup && object\.userData\?\.componentId/);
   assert.match(collector, /object\.geometry\.boundingBox\.clone\(\)\.applyMatrix4\(object\.matrixWorld\)/);

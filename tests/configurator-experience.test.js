@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  CONSTRUCTION_PROFILE_IDS,
   defaultBookcaseConfig,
   layoutPresets,
   normalizeBookcaseConfig
@@ -310,7 +311,7 @@ test("review groups contain applicable physical selections and omit irrelevant o
     .find((group) => group.id === "storage")
     .items.find((item) => item.label === "Doors").value;
   assert.match(glassDoors, /8 Shaker/);
-  assert.match(glassDoors, /4 Glass Frame/);
+  assert.match(glassDoors, /8 Glass Frame/);
 });
 
 test("mixed storage reviews keep door and drawer front profiles independent", () => {
@@ -343,6 +344,8 @@ test("saved design records are mode-independent schema 3 physical payloads", () 
   assert.deepEqual(Object.keys(guided), ["schemaVersion", "id", "price", "config", "savedAt"]);
   assert.equal(guided.schemaVersion, 3);
   assert.equal(guided.price, calculateBookcasePrice(state, layout));
+  assert.equal(guided.config.constructionProfile, CONSTRUCTION_PROFILE_IDS.inset);
+  assert.deepEqual(guided.config.layoutMetadata.sectionDoorLayouts, state.layoutMetadata.sectionDoorLayouts);
   assert.equal("mode" in guided.config, false);
   assert.equal("guidedStep" in guided.config, false);
 });
@@ -363,6 +366,10 @@ test("no-op presentation changes do not masquerade as physical configuration cha
   assert.equal(configsAreEqual(state, { ...state }), true);
   assert.deepEqual(getChangedConfigFields(state, { ...state }), []);
   assert.deepEqual(getChangedConfigFields(state, { ...state, width: state.width + 1 }), ["width"]);
+  assert.deepEqual(
+    getChangedConfigFields(state, { ...state, constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay }),
+    ["constructionProfile"]
+  );
 });
 
 test("identical physical configuration always has identical pricing", () => {

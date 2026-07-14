@@ -295,17 +295,26 @@ test("shelves stay inside their sections and preserve vertical clearance", () =>
   }
 });
 
-test("default lower cabinet emits exactly eight hosted doors", () => {
+test("default lower cabinet Auto layout emits one inset leaf per supported opening", () => {
   const layout = generateBookcaseLayout();
   const doors = byRole(layout, "door");
-  assert.equal(doors.length, 8);
-  assert.equal(layout.metrics.generatedDoorCount, 8);
+  assert.equal(doors.length, 4);
+  assert.equal(layout.metrics.generatedDoorCount, 4);
+  assert.deepEqual(doors.map((door) => door.metadata.hingeSide), [
+    "hinge_left", "hinge_left", "hinge_right", "hinge_right"
+  ]);
   for (const door of doors) {
     const opening = findComponent(layout, door.hostId);
     assert.ok(opening);
     assert.equal(opening.role, "opening");
     assert.equal(door.parentId, opening.id);
     assert.equal(door.metadata.reveal, CONSTRUCTION_RULES.doorReveal);
+    assert.equal(door.metadata.mounting, "inset");
+    assert.equal(door.metadata.leafCount, 1);
+    assert.ok(door.metadata.arrangement.startsWith("single_hinge_"));
+    assert.notEqual(door.metadata.hingeSide.replace("hinge_", ""), door.metadata.latchSide.replace("latch_", ""));
+    approximately(door.bounds.min.z, layout.coordinateSystem.referencePlanes.finishedFrontPlaneZ);
+    approximately(door.bounds.max.z, CONSTRUCTION_RULES.doorThickness);
   }
   assert.equal(layout.validation.valid, true);
 });
@@ -321,23 +330,40 @@ test("door count is canonicalized from generated openings", () => {
 });
 
 test("double doors have equal slabs, consistent edge reveals, and the exact center gap", () => {
-  const layout = generateBookcaseLayout();
+  const layout = generateBookcaseLayout({
+    ...defaultBookcaseConfig,
+    width: 48,
+    sections: 1,
+    layoutMetadata: {
+      sectionRatios: [1],
+      sectionTypes: ["lower_doors"],
+      sectionDoorLayouts: [{ arrangement: "pair" }]
+    }
+  });
   const opening = findComponent(layout, "section-01-lower-opening");
   const left = findComponent(layout, opening.id + "-door-left");
   const right = findComponent(layout, opening.id + "-door-right");
 
+  assert.ok(left && right);
   approximately(left.size.x, right.size.x);
   approximately(left.bounds.min.x - opening.bounds.min.x, CONSTRUCTION_RULES.doorReveal);
   approximately(opening.bounds.max.x - right.bounds.max.x, CONSTRUCTION_RULES.doorReveal);
   approximately(left.bounds.min.y - opening.bounds.min.y, CONSTRUCTION_RULES.doorReveal);
   approximately(opening.bounds.max.y - left.bounds.max.y, CONSTRUCTION_RULES.doorReveal);
   approximately(right.bounds.min.x - left.bounds.max.x, CONSTRUCTION_RULES.doubleDoorCenterGap);
+  assert.deepEqual(
+    [left.metadata.hingeSide, left.metadata.latchSide, right.metadata.hingeSide, right.metadata.latchSide],
+    ["hinge_left", "latch_right", "hinge_right", "latch_left"]
+  );
+  assert.ok([left, right].every((door) => door.metadata.arrangement === "pair" && door.metadata.leafCount === 2));
+  assert.equal(layout.validation.valid, true, JSON.stringify(layout.validation.errors));
 });
 
 test("handles remain attached to and bounded by their parent faces", () => {
   const layout = generateBookcaseLayout({ hardware: "brass_pull" });
   const handles = byRole(layout, "handle");
-  assert.equal(handles.length, 8);
+  assert.equal(handles.length, byRole(layout, "door").length);
+  assert.equal(handles.length, 4);
   for (const handle of handles) {
     const face = findComponent(layout, handle.hostId);
     assert.equal(handle.parentId, face.id);
@@ -345,7 +371,10 @@ test("handles remain attached to and bounded by their parent faces", () => {
     assert.ok(handle.bounds.max.x <= face.bounds.max.x);
     assert.ok(handle.bounds.min.y >= face.bounds.min.y);
     assert.ok(handle.bounds.max.y <= face.bounds.max.y);
-    approximately(handle.bounds.max.z, face.bounds.min.z);
+    assert.equal(handle.metadata.attachment.hostPlane, "finished_front");
+    assert.equal(handle.metadata.latchSide, face.metadata.latchSide);
+    approximately(handle.metadata.mountingCenter.z, face.metadata.frontPlaneZ);
+    approximately(handle.bounds.max.z, face.metadata.frontPlaneZ);
   }
   assert.equal(layout.validation.valid, true);
 });
@@ -406,7 +435,8 @@ test("preset metadata can assign drawers to selected sections only", () => {
     drawerCount: 4
   });
   assert.equal(byRole(layout, "drawer_front").length, 4);
-  assert.equal(byRole(layout, "door").filter((door) => door.metadata.tier === "primary").length, 6);
+  assert.equal(byRole(layout, "door").filter((door) => door.metadata.tier === "primary").length, 3);
+  assert.ok(byRole(layout, "door").every((door) => door.metadata.leafCount === 1));
   assert.equal(layout.validation.valid, true);
 });
 
@@ -426,7 +456,7 @@ test("warm puck lights attach to the underside of the top panel", () => {
   assert.equal(layout.validation.valid, true);
 });
 
-test("warm puck lights mount below every crown profile instead of being buried inside trim", () => {
+test("warm puck lights remain top-panel hosted and clear every crown profile", () => {
   const cases = [
     ["slim_cap", "crown-slim-cap"],
     ["classic_crown", "crown-classic-cap"],
@@ -435,12 +465,15 @@ test("warm puck lights mount below every crown profile instead of being buried i
   for (const [crownStyle, crownId] of cases) {
     const layout = generateBookcaseLayout({ crownStyle, lighting: "warm_pucks" });
     const crown = findComponent(layout, crownId);
+    const top = findComponent(layout, "top-panel");
     const lights = byRole(layout, "light");
     assert.equal(lights.length, layout.config.sections);
     for (const light of lights) {
-      assert.equal(light.hostId, crown.id);
-      approximately(light.bounds.max.y, crown.bounds.min.y);
-      assert.ok(light.bounds.min.y < crown.bounds.min.y);
+      assert.equal(light.hostId, top.id);
+      approximately(light.bounds.max.y, top.bounds.min.y);
+      assert.ok(light.bounds.min.z >= top.bounds.min.z);
+      assert.ok(light.bounds.max.z <= top.bounds.max.z);
+      assert.ok(light.bounds.min.z >= crown.bounds.max.z, "puck footprint must remain behind the crown front");
     }
     assert.equal(layout.validation.valid, true);
   }
@@ -498,13 +531,33 @@ test("base and crown styles emit distinct renderer-facing descriptors", () => {
   const furniture = generateBookcaseLayout({ baseStyle: "furniture_base", crownStyle: "classic_crown" });
   const soffit = generateBookcaseLayout({ crownStyle: "modern_soffit" });
 
-  assert.ok(findComponent(toe, "base-toe-shadow"));
+  const toeVoid = findComponent(toe, "base-toe-kick-void");
+  const kickPlate = findComponent(toe, "base-toe-kick-plate");
+  assert.ok(toeVoid);
+  assert.ok(kickPlate);
+  assert.equal(findComponent(toe, "base-toe-shadow"), null);
+  assert.equal(toeVoid.metadata.kind, "toe_kick_void");
+  approximately(toeVoid.size.z, CONSTRUCTION_RULES.recessedToeKickDepth);
+  approximately(kickPlate.bounds.min.z, CONSTRUCTION_RULES.recessedToeKickDepth);
   assert.equal(byRole(toe, "crown").length, 0);
-  assert.ok(findComponent(plinth, "base-plinth-cap"));
-  assert.equal(byRole(plinth, "crown").length, 1);
-  assert.equal(byRole(furniture, "trim").filter((item) => item.metadata.purpose === "foot").length, 2);
-  assert.equal(byRole(furniture, "crown").length, 2);
-  assert.equal(byRole(soffit, "crown").length, 1);
+  assert.equal(findComponent(plinth, "base-plinth-cap"), null);
+  assert.equal(findComponent(plinth, "base").metadata.purpose, "flush_plinth");
+  approximately(findComponent(plinth, "base").bounds.min.x, -plinth.config.width / 2);
+  approximately(findComponent(plinth, "base").bounds.max.x, plinth.config.width / 2);
+  approximately(findComponent(plinth, "base").bounds.min.z, plinth.coordinateSystem.referencePlanes.finishedFrontPlaneZ);
+  assert.equal(byRole(plinth, "crown").length, 3);
+  const furnitureFeet = byRole(furniture, "trim").filter((item) => item.metadata.purpose === "front_foot");
+  assert.equal(furnitureFeet.length, 2);
+  assert.ok(furnitureFeet.every((foot) => foot.size.z === CONSTRUCTION_RULES.furnitureFootDepth));
+  assert.ok(findComponent(furniture, "base-furniture-apron"));
+  assert.equal(byRole(furniture, "crown").length, 6);
+  assert.equal(byRole(soffit, "crown").length, 3);
+  for (const layout of [plinth, furniture, soffit]) {
+    const returns = byRole(layout, "crown").filter((item) => item.metadata.hostSurface === "side_panel");
+    assert.ok(returns.length > 0);
+    assert.ok(returns.every((item) => item.metadata.attachment.axis === "x"));
+    assert.ok(returns.every((item) => findComponent(layout, item.hostId)?.role === "side_panel"));
+  }
   assert.equal(toe.validation.valid && plinth.validation.valid && furniture.validation.valid && soffit.validation.valid, true);
 });
 
@@ -549,8 +602,12 @@ test("media, desk, glass, tall-storage, and asymmetric families use shared struc
   assert.equal(findComponent(media, "feature-zone").metadata.kind, "media");
   assert.equal(findComponent(media, "feature-zone").metadata.memberSectionIds.length, 3);
   assert.ok(findComponent(desk, "desk-worktop"));
-  assert.equal(byRole(glass, "door").filter((door) => door.id.includes("upper-glass-door")).length, glass.config.sections);
-  assert.equal(byRole(tall, "door").filter((door) => door.id.includes("tall-door")).length, 2);
+  const upperGlassDoors = byRole(glass, "door").filter((door) => door.id.includes("upper-glass-door"));
+  assert.equal(upperGlassDoors.length, glass.config.sections * 2);
+  assert.ok(upperGlassDoors.every((door) => door.metadata.arrangement === "pair"));
+  const tallDoors = byRole(tall, "door").filter((door) => door.id.includes("tall-door"));
+  assert.equal(tallDoors.length, 4);
+  assert.ok(tallDoors.every((door) => door.metadata.arrangement === "pair"));
   const firstShelf = findComponent(asymmetric, "section-01-shelf-01");
   const secondShelf = findComponent(asymmetric, "section-02-shelf-01");
   assert.notEqual(firstShelf.position.y, secondShelf.position.y);
@@ -669,7 +726,7 @@ test("configuration changes in sequence do not retain stale components", () => {
   const drawerLayout = generateBookcaseLayout({ lowerCabinets: true, lowerStorage: "drawers" });
   const restoredDoorLayout = generateBookcaseLayout({ lowerCabinets: true, lowerStorage: "doors" });
 
-  assert.equal(byRole(doorLayout, "door").length, 8);
+  assert.equal(byRole(doorLayout, "door").length, 4);
   assert.equal(byRole(openLayout, "door").length, 0);
   assert.equal(byRole(openLayout, "drawer_front").length, 0);
   assert.ok(byRole(drawerLayout, "drawer_front").length > 0);
@@ -693,7 +750,7 @@ test("moving a handle outside its door is detected", () => {
   handle.position.x += 100;
   const validation = validateBookcaseLayout(layout);
   assert.equal(validation.valid, false);
-  assert.ok(issueCodes(validation).includes("HANDLE_OUTSIDE_FACE"));
+  assert.ok(issueCodes(validation).includes("HARDWARE_OUTSIDE_FRONT"));
 });
 
 test("moving a shelf outside its section is detected", () => {

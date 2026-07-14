@@ -2,7 +2,20 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { createArFrontProfileParts } from "../cabinet-ar-model.js";
+import {
+  createArFrontProfileParts,
+  createArHandleGeometryParts
+} from "../cabinet-ar-model.js";
+import { inchesToMeters } from "../cabinet-ar.js";
+import {
+  defaultBookcaseConfig,
+  normalizeBookcaseConfig
+} from "../bookcase-config.js";
+import {
+  generateBookcaseLayout,
+  getFrontProfileDefinition,
+  resolveFrontProfileGeometry
+} from "../bookcase-layout.js";
 
 const viewerSource = readFileSync(new URL("../configurator-3d.js", import.meta.url), "utf8");
 
@@ -151,14 +164,56 @@ test("hardware appearance resolves canonical finish metadata for partial and reb
   assert.match(materials, /getHardwareAppearance\(config\.hardware\)/);
 });
 
-function frontComponent(role, style) {
-  return { role, metadata: { style } };
+function frontComponent(role, style, options = {}) {
+  const width = options.width ?? 24;
+  const height = options.height ?? 30;
+  const depth = options.depth ?? 0.75;
+  const x = options.x ?? 0;
+  const minY = options.minY ?? 0;
+  const frontPlaneZ = options.frontPlaneZ ?? 0;
+  const component = {
+    id: options.id || `${role}-${style}`,
+    role,
+    bounds: {
+      min: { x: x - width / 2, y: minY, z: frontPlaneZ },
+      max: { x: x + width / 2, y: minY + height, z: frontPlaneZ + depth }
+    },
+    size: { x: width, y: height, z: depth },
+    position: { x, y: minY + height / 2, z: frontPlaneZ + depth / 2 },
+    metadata: {
+      style,
+      mounting: frontPlaneZ < 0 ? "overlay" : "inset",
+      frontPlaneZ,
+      backPlaneZ: frontPlaneZ + depth
+    }
+  };
+  component.metadata.profileGeometry = resolveFrontProfileGeometry(
+    component,
+    getFrontProfileDefinition(style)
+  );
+  return component;
 }
 
-function assertPartsFitEnvelope(parts, center, size) {
+function componentArInput(component, cabinetDepthInches = 15) {
+  return {
+    center: [
+      component.position.x * 0.0254,
+      component.position.y * 0.0254,
+      cabinetDepthInches * 0.0254 / 2 - component.position.z * 0.0254
+    ],
+    size: [component.size.x, component.size.y, component.size.z].map(inchesToMeters)
+  };
+}
+
+function frontParts(component, cabinetDepthInches = 15) {
+  const input = componentArInput(component, cabinetDepthInches);
+  return { ...input, parts: createArFrontProfileParts(component, input.center, input.size) };
+}
+
+function assertPartsFitEnvelope(parts, center, size, allowedMaterials = ["finish", "glass"]) {
   assert.ok(parts.length > 0, "A front profile must emit geometry.");
   for (const part of parts) {
-    assert.ok(["finish", "glass"].includes(part.material), `Unexpected front material: ${part.material}`);
+    assert.ok(allowedMaterials.includes(part.material), `Unexpected material: ${part.material}`);
     assert.equal(part.center.length, 3);
     assert.equal(part.size.length, 3);
     part.size.forEach((dimension) => assert.ok(Number.isFinite(dimension) && dimension > 0));
@@ -173,49 +228,152 @@ function assertPartsFitEnvelope(parts, center, size) {
   }
 }
 
-function horizontalRailThickness(parts, frontSize) {
-  const rails = parts.filter((part) => (
-    Math.abs(part.size[0] - frontSize[0]) < 1e-9
-    && part.size[1] < frontSize[1] * 0.5
-  ));
+function horizontalRailThickness(parts) {
+  const rails = parts.filter((part) => ["top_rail", "bottom_rail"].includes(part.kind));
   assert.ok(rails.length >= 2, "A framed profile must emit top and bottom rails.");
   return Math.min(...rails.map((part) => part.size[1]));
 }
 
-test("AR door and drawer front profiles distinguish flat, Shaker, and slim Shaker geometry", () => {
-  const center = [0.15, 0.4, -0.02];
-  const size = [0.6, 0.32, 0.024];
-
+test("AR door and drawer profiles consume stable descriptor frame widths in inches", () => {
   for (const role of ["door", "drawer_front"]) {
-    const flat = createArFrontProfileParts(frontComponent(role, "flat"), center, size);
-    const shaker = createArFrontProfileParts(frontComponent(role, "shaker"), center, size);
-    const slim = createArFrontProfileParts(frontComponent(role, "slim_shaker"), center, size);
+    const flatInput = frontParts(frontComponent(role, "flat"));
+    const shakerInput = frontParts(frontComponent(role, "shaker"));
+    const slimInput = frontParts(frontComponent(role, "slim_shaker"));
+    const wideShaker = frontParts(frontComponent(role, "shaker", { width: 40, height: 42 }));
 
-    assert.equal(flat.length, 1, `${role} flat fronts must remain a single slab.`);
-    assert.ok(shaker.length > flat.length, `${role} Shaker fronts must include frame detail.`);
-    assert.ok(slim.length > flat.length, `${role} slim Shaker fronts must include frame detail.`);
-    assert.ok(horizontalRailThickness(slim, size) < horizontalRailThickness(shaker, size));
-    assertPartsFitEnvelope(flat, center, size);
-    assertPartsFitEnvelope(shaker, center, size);
-    assertPartsFitEnvelope(slim, center, size);
+    assert.equal(flatInput.parts.length, 1, `${role} flat fronts must remain a single slab.`);
+    assert.ok(shakerInput.parts.length > flatInput.parts.length, `${role} Shaker fronts must include frame detail.`);
+    assert.ok(slimInput.parts.length > flatInput.parts.length, `${role} slim Shaker fronts must include frame detail.`);
+    assert.equal(horizontalRailThickness(shakerInput.parts), inchesToMeters(2.25));
+    assert.equal(horizontalRailThickness(wideShaker.parts), inchesToMeters(2.25));
+    assert.equal(horizontalRailThickness(slimInput.parts), inchesToMeters(1.25));
+    assert.ok(horizontalRailThickness(slimInput.parts) < horizontalRailThickness(shakerInput.parts));
+    for (const input of [flatInput, shakerInput, slimInput, wideShaker]) {
+      assertPartsFitEnvelope(input.parts, input.center, input.size);
+    }
   }
 });
 
-test("AR glass is door-only and short drawer profiles remain positive and clamped", () => {
-  const center = [0, 0, 0];
-  const standardSize = [0.52, 0.3, 0.02];
-  const glassDoor = createArFrontProfileParts(frontComponent("door", "glass"), center, standardSize);
-  const invalidGlassDrawer = createArFrontProfileParts(frontComponent("drawer_front", "glass"), center, standardSize);
+test("AR glass uses the exact descriptor field and short drawers use the clamped profile", () => {
+  const glassComponent = frontComponent("door", "glass", { width: 24, height: 30 });
+  const glassInput = frontParts(glassComponent);
+  const glassPart = glassInput.parts.find((part) => part.material === "glass");
+  const field = glassComponent.metadata.profileGeometry.fieldRegion;
+  assert.ok(glassPart, "Glass doors must contain a glass center field.");
+  assert.equal(glassPart.size[0], inchesToMeters(field.bounds.max.x - field.bounds.min.x));
+  assert.equal(glassPart.size[1], inchesToMeters(field.bounds.max.y - field.bounds.min.y));
+  assert.ok(glassPart.size[0] < glassInput.size[0] && glassPart.size[1] < glassInput.size[1]);
+  assert.equal(glassInput.parts.filter((part) => part.material === "finish").length, 4);
+  assertPartsFitEnvelope(glassInput.parts, glassInput.center, glassInput.size);
 
-  assert.ok(glassDoor.some((part) => part.material === "glass"), "Glass doors must contain a glass panel.");
-  assert.ok(glassDoor.some((part) => part.material === "finish"), "Glass doors must retain a finished frame.");
-  assert.ok(invalidGlassDrawer.length > 1, "An invalid glass drawer request must fall back to a framed profile.");
-  assert.ok(invalidGlassDrawer.every((part) => part.material !== "glass"), "Drawer geometry can never contain glass.");
+  const invalidGlassDrawer = frontParts(frontComponent("drawer_front", "glass"));
+  assert.ok(invalidGlassDrawer.parts.length > 1, "An invalid glass drawer fixture remains framed.");
+  assert.ok(invalidGlassDrawer.parts.every((part) => part.material !== "glass"), "Drawer geometry can never contain glass.");
 
-  const shortSize = [0.24, 0.012, 0.009];
-  for (const style of ["shaker", "slim_shaker", "glass"]) {
-    const role = style === "glass" ? "door" : "drawer_front";
-    const parts = createArFrontProfileParts(frontComponent(role, style), center, shortSize);
-    assertPartsFitEnvelope(parts, center, shortSize);
+  const shortDrawer = frontComponent("drawer_front", "shaker", { width: 12, height: 4 });
+  const shortInput = frontParts(shortDrawer);
+  assert.equal(
+    horizontalRailThickness(shortInput.parts),
+    inchesToMeters(shortDrawer.metadata.profileGeometry.frameWidth)
+  );
+  assert.equal(shortDrawer.metadata.profileGeometry.correction, "PROFILE_FRAME_WIDTH_REDUCED");
+  assertPartsFitEnvelope(shortInput.parts, shortInput.center, shortInput.size);
+});
+
+test("AR front depth follows semantic visible-front and panel-recess planes for inset and overlay", () => {
+  for (const frontPlaneZ of [0, -0.75]) {
+    const component = frontComponent("door", "shaker", { frontPlaneZ });
+    const input = frontParts(component);
+    const visibleFrontSceneZ = inchesToMeters(15) / 2 - frontPlaneZ * 0.0254;
+    const frameParts = input.parts.filter((part) => part.kind !== "inset_panel");
+    const panel = input.parts.find((part) => part.kind === "inset_panel");
+    assert.ok(frameParts.length === 4 && panel);
+    frameParts.forEach((part) => {
+      assert.ok(Math.abs(part.center[2] + part.size[2] / 2 - visibleFrontSceneZ) < 1e-9);
+    });
+    assert.ok(Math.abs(
+      panel.center[2] + panel.size[2] / 2
+      - (visibleFrontSceneZ - inchesToMeters(component.metadata.profileGeometry.panelRecess))
+    ) < 1e-9);
+    assertPartsFitEnvelope(input.parts, input.center, input.size);
+  }
+});
+
+function firstHandleFor(hardware, overrides = {}) {
+  const config = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    width: 72,
+    sections: 3,
+    lighting: "no_lighting",
+    hardware,
+    ...overrides
+  });
+  const layout = generateBookcaseLayout(config);
+  assert.equal(layout.validation.valid, true, JSON.stringify(layout.validation.errors));
+  const handle = layout.components.find((component) => component.role === "handle");
+  assert.ok(handle);
+  return { config, layout, handle, input: componentArInput(handle, config.depth) };
+}
+
+function partSignature(parts) {
+  return parts.map(({ kind, shape, axis, center, size }) => ({ kind, shape, axis, center, size }));
+}
+
+test("AR knobs and pulls use descriptor hardware metadata and remain inside their envelopes", () => {
+  const knob = firstHandleFor("brass_knob");
+  const knobParts = createArHandleGeometryParts(knob.handle, knob.input.center, knob.input.size);
+  assert.deepEqual(knobParts.map((part) => part.kind), ["knob_cap", "knob_stem"]);
+  assert.equal(knobParts[0].shape, "ellipsoid");
+  assertPartsFitEnvelope(knobParts, knob.input.center, knob.input.size, ["hardware"]);
+
+  const pull = firstHandleFor("brass_pull");
+  const pullParts = createArHandleGeometryParts(pull.handle, pull.input.center, pull.input.size);
+  assert.equal(pull.handle.metadata.orientation, "vertical");
+  assert.deepEqual(pullParts.map((part) => part.kind), ["pull_bar", "pull_standoff", "pull_standoff"]);
+  assert.equal(pullParts[0].axis, "y");
+  assert.equal(pullParts[0].size[1], inchesToMeters(pull.handle.metadata.nominalLength));
+  assertPartsFitEnvelope(pullParts, pull.input.center, pull.input.size, ["hardware"]);
+
+  const otherFinish = firstHandleFor("matte_black_pull");
+  const otherParts = createArHandleGeometryParts(otherFinish.handle, otherFinish.input.center, otherFinish.input.size);
+  assert.deepEqual(partSignature(otherParts), partSignature(pullParts));
+  assert.notDeepEqual(partSignature(knobParts), partSignature(pullParts));
+});
+
+test("AR drawer pulls stay horizontal and paired door pulls mirror their descriptor centers", () => {
+  const drawer = firstHandleFor("brass_pull", {
+    width: 48,
+    sections: 2,
+    lowerStorage: "drawers",
+    layoutMetadata: {
+      sectionRatios: [1, 1],
+      sectionTypes: ["drawers", "drawers"]
+    }
+  });
+  const drawerParts = createArHandleGeometryParts(drawer.handle, drawer.input.center, drawer.input.size);
+  assert.equal(drawer.handle.metadata.orientation, "horizontal");
+  assert.equal(drawerParts[0].axis, "x");
+  assertPartsFitEnvelope(drawerParts, drawer.input.center, drawer.input.size, ["hardware"]);
+
+  const pairConfig = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    width: 48,
+    sections: 1,
+    hardware: "brass_pull",
+    layoutMetadata: {
+      sectionRatios: [1],
+      sectionTypes: ["lower_doors"],
+      sectionDoorLayouts: [{ arrangement: "pair" }]
+    }
+  });
+  const pairLayout = generateBookcaseLayout(pairConfig);
+  assert.equal(pairLayout.validation.valid, true, JSON.stringify(pairLayout.validation.errors));
+  const handles = pairLayout.components.filter((component) => component.role === "handle");
+  assert.equal(handles.length, 2);
+  assert.ok(Math.abs(handles[0].position.x + handles[1].position.x) < 1e-9);
+  for (const handle of handles) {
+    const input = componentArInput(handle, pairConfig.depth);
+    const parts = createArHandleGeometryParts(handle, input.center, input.size);
+    assertPartsFitEnvelope(parts, input.center, input.size, ["hardware"]);
   }
 });

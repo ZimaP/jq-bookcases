@@ -1,3 +1,20 @@
+export const CONSTRUCTION_PROFILE_IDS = Object.freeze({
+  inset: "jq_inset_v1",
+  legacyOverlay: "legacy_overlay_v1"
+});
+
+export const DEFAULT_CONSTRUCTION_PROFILE = CONSTRUCTION_PROFILE_IDS.inset;
+export const CONSTRUCTION_PROFILE_VALUES = Object.freeze(Object.values(CONSTRUCTION_PROFILE_IDS));
+
+export const DOOR_ARRANGEMENTS = Object.freeze([
+  "auto",
+  "single_hinge_left",
+  "single_hinge_right",
+  "pair"
+]);
+
+const DOOR_SECTION_TYPES = new Set(["lower_doors", "tall_doors"]);
+
 export const defaultBookcaseConfig = {
   layoutPreset: "lower-cabinets",
   layoutType: "lower_cabinets",
@@ -14,6 +31,7 @@ export const defaultBookcaseConfig = {
   deskOpening: false,
   featureOpening: false,
   tallDoors: false,
+  constructionProfile: DEFAULT_CONSTRUCTION_PROFILE,
   doorStyle: "shaker",
   drawerFrontStyle: "shaker",
   doorCount: 8,
@@ -27,7 +45,10 @@ export const defaultBookcaseConfig = {
   paintSelection: null,
   crownStyle: "classic_crown",
   baseStyle: "furniture_base",
-  layoutMetadata: { sectionRatios: [1, 1, 1, 1] },
+  layoutMetadata: {
+    sectionRatios: [1, 1, 1, 1],
+    sectionDoorLayouts: Array.from({ length: 4 }, () => ({ arrangement: "auto" }))
+  },
   installation: "professional",
   delivery: "standard"
 };
@@ -60,6 +81,21 @@ export function normalizeSectionTypeValue(value) {
     .replace(/[\s-]+/g, "_");
   const normalized = SECTION_TYPE_ALIASES[token] || token;
   return SECTION_TYPE_VALUES.includes(normalized) ? normalized : null;
+}
+
+export function normalizeDoorArrangementValue(value) {
+  const candidate = value && typeof value === "object" && !Array.isArray(value)
+    ? value.arrangement
+    : value;
+  const token = String(candidate ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+  return DOOR_ARRANGEMENTS.includes(token) ? token : null;
+}
+
+export function normalizeConstructionProfileValue(value) {
+  return CONSTRUCTION_PROFILE_VALUES.includes(value) ? value : DEFAULT_CONSTRUCTION_PROFILE;
 }
 
 export const recommendedFinishOptions = [
@@ -101,6 +137,12 @@ export const hardwareVariants = Object.freeze([
   Object.freeze({ value: "matte_black_pull", type: "pull", finish: "matte_black", label: "Matte Black Pull" }),
   Object.freeze({ value: "polished_nickel_pull", type: "pull", finish: "polished_nickel", label: "Polished Nickel Pull" })
 ]);
+
+// Push-to-open is an internal physical selection used by restored or
+// programmatically-authored designs. It intentionally stays out of
+// `hardwareVariants`/`hardwareOptions`, so the normal customer hardware picker
+// continues to offer only supported visible knob and pull combinations.
+export const PUSH_LATCH_HARDWARE = "push_latch";
 
 export const hardwareOptions = hardwareVariants.map(({ value, label }) => ({ value, label }));
 
@@ -516,10 +558,11 @@ export function normalizeBookcaseConfig(config = {}) {
     deskOpening: merged.deskOpening === true || merged.deskOpening === "true",
     featureOpening: merged.featureOpening === true || merged.featureOpening === "true",
     tallDoors: merged.tallDoors === true || merged.tallDoors === "true",
+    constructionProfile: normalizeConstructionProfileValue(merged.constructionProfile),
     doorStyle,
     drawerFrontStyle,
     doorCount,
-    hardware: normalizeOption(merged.hardware, hardwareOptions, defaultBookcaseConfig.hardware),
+    hardware: normalizeHardwareValue(merged.hardware),
     lighting: normalizeOption(merged.lighting, lightingOptions, defaultBookcaseConfig.lighting),
     lightingWarmth: normalizeNumericOption(
       merged.lightingWarmth ?? merged.warmth,
@@ -533,9 +576,53 @@ export function normalizeBookcaseConfig(config = {}) {
     paintSelection: finish === "custom_bm" ? paintSelection : null,
     crownStyle: normalizeOption(merged.crownStyle, crownStyleOptions, defaultBookcaseConfig.crownStyle),
     baseStyle: normalizeOption(merged.baseStyle, baseStyleOptions, defaultBookcaseConfig.baseStyle),
-    layoutMetadata: normalizeLayoutMetadata(merged.layoutMetadata, sections),
+    layoutMetadata: normalizeLayoutMetadata(merged.layoutMetadata, sections, merged),
     installation: normalizeOption(merged.installation, installationOptions, defaultBookcaseConfig.installation),
     delivery: normalizeOption(merged.delivery, deliveryOptions, defaultBookcaseConfig.delivery)
+  };
+}
+
+/**
+ * Restore the physical meaning of records created before construction profiles
+ * and per-section door layouts were persisted. Callers opt into this migration
+ * only for a known legacy save/share contract; ordinary new configurations
+ * continue to default to the current inset profile.
+ */
+export function migrateLegacyConstructionConfig(config = {}) {
+  const source = config && typeof config === "object" && !Array.isArray(config) ? config : {};
+  if (Object.prototype.hasOwnProperty.call(source, "constructionProfile")) return { ...source };
+
+  const legacyState = normalizeBookcaseConfig({
+    ...source,
+    constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay
+  });
+  const sourceMetadata = source.layoutMetadata && typeof source.layoutMetadata === "object"
+    && !Array.isArray(source.layoutMetadata)
+    ? source.layoutMetadata
+    : {};
+  const sectionTypes = legacyState.layoutMetadata?.sectionTypes || [];
+  const sectionDoorLayouts = legacyState.layoutMetadata.sectionDoorLayouts.map((entry, index) => {
+    if (!entry) return null;
+    const explicitType = sectionTypes[index];
+    const isTallDoor = explicitType === "tall_doors"
+      || (!explicitType && legacyState.tallDoors && (index === 0 || index === legacyState.sections - 1));
+    if (isTallDoor) {
+      return {
+        arrangement: index < legacyState.sections / 2
+          ? "single_hinge_left"
+          : "single_hinge_right"
+      };
+    }
+    return { arrangement: "pair" };
+  });
+
+  return {
+    ...source,
+    constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay,
+    layoutMetadata: {
+      ...sourceMetadata,
+      sectionDoorLayouts
+    }
   };
 }
 
@@ -572,7 +659,6 @@ function normalizeLegacyConfigValues(config) {
   if (next.shelfThickness == null && next.shelf_thickness != null) next.shelfThickness = next.shelf_thickness;
   if (next.lightingWarmth == null && next.warmth != null) next.lightingWarmth = next.warmth;
   if (next.hardware === "polished_nickel_knob") next.hardware = "polished_nickel_pull";
-  if (next.hardware === "push_latch") next.hardware = "matte_black_pull";
   if (next.lighting === "shelf_wash") next.lighting = "shelf_accent";
   if (next.lighting === "top_puck_lights") next.lighting = "warm_pucks";
   if (next.lighting === "shelf_led_strips") next.lighting = "shelf_accent";
@@ -585,6 +671,12 @@ function normalizeLegacyConfigValues(config) {
   }
   if (next.baseStyle === "projected" || next.baseStyle === "projected_base" || next.baseStyle === "projected_furniture_base") next.baseStyle = "furniture_base";
   return next;
+}
+
+function normalizeHardwareValue(value) {
+  return value === PUSH_LATCH_HARDWARE
+    ? PUSH_LATCH_HARDWARE
+    : normalizeOption(value, hardwareOptions, defaultBookcaseConfig.hardware);
 }
 
 function cleanText(value, maximumLength) {
@@ -634,30 +726,73 @@ function normalizeNumericOption(value, options, fallback) {
   return match ? match.value : fallback;
 }
 
-function normalizeLayoutMetadata(value, sections) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+function normalizeLayoutMetadata(value, sections, source = {}) {
+  const input = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   const metadata = {};
-  if (Number.isInteger(Number(value.specialSpan))) {
-    metadata.specialSpan = Math.min(sections, Math.max(1, Number(value.specialSpan)));
+  if (Number.isInteger(Number(input.specialSpan))) {
+    metadata.specialSpan = Math.min(sections, Math.max(1, Number(input.specialSpan)));
   }
-  if (Array.isArray(value.sectionRatios)) {
-    if (value.sectionRatios.length === sections && value.sectionRatios.every(
+  if (Array.isArray(input.sectionRatios)) {
+    if (input.sectionRatios.length === sections && input.sectionRatios.every(
       (ratio) => typeof ratio === "number" && Number.isFinite(ratio) && ratio > 0
     )) {
-      metadata.sectionRatios = value.sectionRatios.slice();
+      metadata.sectionRatios = input.sectionRatios.slice();
     }
   }
-  if (Array.isArray(value.drawerSections)) {
-    metadata.drawerSections = [...new Set(value.drawerSections.map(Number))]
+  if (Array.isArray(input.drawerSections)) {
+    metadata.drawerSections = [...new Set(input.drawerSections.map(Number))]
       .filter((index) => Number.isInteger(index) && index >= 0 && index < sections);
   }
-  if (Array.isArray(value.sectionTypes)) {
-    const normalizedTypes = value.sectionTypes.map(normalizeSectionTypeValue);
-    if (value.sectionTypes.length === sections && normalizedTypes.every(Boolean)) {
+  if (Array.isArray(input.sectionTypes)) {
+    const normalizedTypes = input.sectionTypes.map(normalizeSectionTypeValue);
+    if (input.sectionTypes.length === sections && normalizedTypes.every(Boolean)) {
       metadata.sectionTypes = normalizedTypes;
     }
   }
+  const sectionTypes = resolveMetadataSectionTypes(metadata, sections, source);
+  const requestedDoorLayouts = Array.isArray(input.sectionDoorLayouts) ? input.sectionDoorLayouts : [];
+  metadata.sectionDoorLayouts = sectionTypes.map((type, index) => {
+    if (!DOOR_SECTION_TYPES.has(type)) return null;
+    return {
+      arrangement: normalizeDoorArrangementValue(requestedDoorLayouts[index]) || "auto"
+    };
+  });
   return metadata;
+}
+
+function resolveMetadataSectionTypes(metadata, sections, source) {
+  if (Array.isArray(metadata.sectionTypes) && metadata.sectionTypes.length === sections) {
+    return metadata.sectionTypes.slice();
+  }
+
+  const special = getMetadataSpecialZone(source, metadata, sections);
+  const drawerSections = new Set(metadata.drawerSections || []);
+  const tallDoors = source.tallDoors === true || source.tallDoors === "true";
+  const lowerCabinets = source.lowerCabinets !== false && source.lowerCabinets !== "false";
+  return Array.from({ length: sections }, (_, index) => {
+    if (special.indices.has(index)) return special.kind;
+    if (drawerSections.has(index)) return "drawers";
+    if (tallDoors && (index === 0 || index === sections - 1)) return "tall_doors";
+    if (!lowerCabinets) return "open";
+    return source.lowerStorage === "drawers" ? "drawers" : "lower_doors";
+  });
+}
+
+function getMetadataSpecialZone(source, metadata, sections) {
+  const layoutType = typeof source.layoutType === "string" ? source.layoutType : "";
+  let kind = null;
+  if (source.deskOpening === true || source.deskOpening === "true" || layoutType === "desk_niche") kind = "desk";
+  else if (source.centerOpening === true || source.centerOpening === "true" || layoutType === "media_wall") kind = "media";
+  else if (source.featureOpening === true || source.featureOpening === "true" || layoutType === "feature_wall") kind = "feature";
+  if (!kind) return { kind: null, indices: new Set() };
+
+  const defaultSpan = sections >= 4 && sections % 2 === 0 ? 2 : 1;
+  const span = Math.min(sections, Math.max(1, Number(metadata.specialSpan) || defaultSpan));
+  const start = Math.floor((sections - span) / 2);
+  return {
+    kind,
+    indices: new Set(Array.from({ length: span }, (_, index) => start + index))
+  };
 }
 
 function normalizeHexColor(value) {

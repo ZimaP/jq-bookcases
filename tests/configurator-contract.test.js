@@ -449,7 +449,7 @@ test("lighting packages can replace an in-flight lighting camera pose", () => {
 });
 
 test("puck lights render as restrained recessed diffusers instead of hanging spheres", () => {
-  assert.match(source, /CylinderGeometry\(radius \* 0\.68, radius \* 0\.68, Math\.min\(size\[1\] \* 0\.22, 0\.007\), 28\)/);
+  assert.match(source, /CylinderGeometry\(radius, radius, size\[1\] \* 0\.8, 20\)/);
   assert.doesNotMatch(source, /SphereGeometry\(radius \* 0\.78/);
   assert.doesNotMatch(source, /getLightingLensColor/);
 });

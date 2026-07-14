@@ -1,4 +1,8 @@
-import { createDesignId, normalizeBookcaseConfig } from "./bookcase-config.js?v=configurator-refine-20260714a";
+import {
+  createDesignId,
+  migrateLegacyConstructionConfig,
+  normalizeBookcaseConfig
+} from "./bookcase-config.js?v=configurator-refine-20260714a";
 
 export const CABINET_AR_SCHEMA_VERSION = 1;
 export const CABINET_AR_FEATURE_ATTRIBUTE = "data-enable-cabinet-ar";
@@ -9,7 +13,8 @@ export const CABINET_AR_MODEL_CACHE_LIMIT = 8;
 export const CABINET_AR_REMOTE_TIMEOUT_MS = 10000;
 
 // Schema-v1 tokens are positional. Keep the original order immutable and append
-// new optional fields so links created before drawer profiles still decode.
+// new optional fields so links created before drawer profiles or construction
+// profiles still decode without shifting any established position.
 const LEGACY_CONFIGURATION_FIELDS = Object.freeze([
   "layoutPreset",
   "layoutType",
@@ -42,7 +47,11 @@ const LEGACY_CONFIGURATION_FIELDS = Object.freeze([
   "installation",
   "delivery"
 ]);
-const CONFIGURATION_FIELDS = Object.freeze([...LEGACY_CONFIGURATION_FIELDS, "drawerFrontStyle"]);
+const CONFIGURATION_FIELDS = Object.freeze([
+  ...LEGACY_CONFIGURATION_FIELDS,
+  "drawerFrontStyle",
+  "constructionProfile"
+]);
 const MODEL_URL_PROTOCOLS = new Set(["http:", "https:", "blob:"]);
 const configurationCache = new Map();
 
@@ -56,8 +65,6 @@ export function normalizeCabinetArConfiguration(config, layout, options = {}) {
   validateRawDimensions(config);
   const normalized = normalizeBookcaseConfig(config);
   if (!layout?.validation?.valid) throw new RangeError("The cabinet layout must be valid before preparing AR.");
-  const productId = cleanIdentifier(options.productId || normalized.layoutType || normalized.layoutPreset, "cabinet");
-  const configurationId = cleanIdentifier(options.configurationId || createDesignId(normalized, options.price || 0), "");
   const sectionLookup = new Map(
     (layout.components || [])
       .filter((component) => component.role === "section")
@@ -70,37 +77,62 @@ export function normalizeCabinetArConfiguration(config, layout, options = {}) {
       positionMeters: roundMeters(inchesToMeters(component.position.y))
     }))
     .sort((left, right) => left.section - right.section || left.positionMeters - right.positionMeters);
+  const generatedDoorLeafCount = (layout.components || [])
+    .filter((component) => component.role === "door")
+    .length;
+  const descriptorConstructionProfiles = new Set(
+    (layout.components || [])
+      .filter((component) => ["door", "drawer_front"].includes(component.role))
+      .map((component) => component.metadata?.constructionProfile)
+      .filter(Boolean)
+  );
+  const layoutConstructionProfile = layout.config?.constructionProfile || normalized.constructionProfile;
+  if (
+    layoutConstructionProfile !== normalized.constructionProfile
+    || [...descriptorConstructionProfiles].some((profile) => profile !== layoutConstructionProfile)
+  ) {
+    throw new RangeError("The AR configuration and generated front construction profile must match.");
+  }
+  const canonical = normalizeBookcaseConfig({
+    ...normalized,
+    ...(layout.config || {}),
+    doorCount: generatedDoorLeafCount
+  });
+  const productId = cleanIdentifier(options.productId || canonical.layoutType || canonical.layoutPreset, "cabinet");
+  const configurationId = cleanIdentifier(options.configurationId || createDesignId(canonical, options.price || 0), "");
 
   return {
     schemaVersion: CABINET_AR_SCHEMA_VERSION,
     productId,
     ...(configurationId ? { configurationId } : {}),
     units: "meters",
-    widthMeters: roundMeters(inchesToMeters(normalized.width)),
-    heightMeters: roundMeters(inchesToMeters(normalized.height)),
-    depthMeters: roundMeters(inchesToMeters(normalized.depth)),
-    sections: normalized.sections,
+    widthMeters: roundMeters(inchesToMeters(canonical.width)),
+    heightMeters: roundMeters(inchesToMeters(canonical.height)),
+    depthMeters: roundMeters(inchesToMeters(canonical.depth)),
+    sections: canonical.sections,
     shelves,
-    layoutType: normalized.layoutType,
-    shelfThicknessMeters: roundMeters(inchesToMeters(normalized.shelfThickness)),
-    lowerCabinets: normalized.lowerCabinets,
-    lowerStorage: normalized.lowerStorage,
-    drawerCount: normalized.drawerCount,
-    centerOpening: normalized.centerOpening,
-    deskOpening: normalized.deskOpening,
-    featureOpening: normalized.featureOpening,
-    tallDoors: normalized.tallDoors,
-    doorStyleId: normalized.doorStyle,
-    drawerFrontStyleId: normalized.drawerFrontStyle,
-    doorCount: normalized.doorCount,
-    baseStyleId: normalized.baseStyle,
-    crownStyleId: normalized.crownStyle,
-    finishId: normalized.finish,
-    finishPreviewHex: normalized.customPaintHex || null,
-    hardwareId: normalized.hardware,
-    lightingId: normalized.lighting,
-    lightingWarmthKelvin: normalized.lightingWarmth,
-    layoutMetadata: normalized.layoutMetadata
+    layoutType: canonical.layoutType,
+    shelfThicknessMeters: roundMeters(inchesToMeters(canonical.shelfThickness)),
+    lowerCabinets: canonical.lowerCabinets,
+    lowerStorage: canonical.lowerStorage,
+    drawerCount: canonical.drawerCount,
+    centerOpening: canonical.centerOpening,
+    deskOpening: canonical.deskOpening,
+    featureOpening: canonical.featureOpening,
+    tallDoors: canonical.tallDoors,
+    constructionProfileId: layoutConstructionProfile,
+    doorStyleId: canonical.doorStyle,
+    drawerFrontStyleId: canonical.drawerFrontStyle,
+    doorCount: generatedDoorLeafCount,
+    doorLeafCount: generatedDoorLeafCount,
+    baseStyleId: canonical.baseStyle,
+    crownStyleId: canonical.crownStyle,
+    finishId: canonical.finish,
+    finishPreviewHex: canonical.customPaintHex || null,
+    hardwareId: canonical.hardware,
+    lightingId: canonical.lighting,
+    lightingWarmthKelvin: canonical.lightingWarmth,
+    layoutMetadata: canonical.layoutMetadata
   };
 }
 
@@ -138,7 +170,7 @@ export function decodeCabinetConfiguration(token) {
       if (index < payload[1].length) candidate[field] = payload[1][index];
     });
     validateRawDimensions(candidate);
-    return normalizeBookcaseConfig(candidate);
+    return normalizeBookcaseConfig(migrateLegacyConstructionConfig(candidate));
   } catch (error) {
     return null;
   }

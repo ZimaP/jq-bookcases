@@ -54,9 +54,28 @@ test("drawer front profiles are carried physically without inventing a price dif
   assert.deepEqual(totals, [totals[0], totals[0], totals[0]]);
 });
 
+test("push latch persists canonically while pricing only generated visible hardware", () => {
+  const config = { ...defaultBookcaseConfig, hardware: "push_latch" };
+  const pricing = contextFor(config);
+  const saved = createSavedDesignRecord(config, pricing.total, {
+    id: "JQ-PUSH01",
+    savedAt: "2026-07-14T00:00:00.000Z"
+  });
+
+  assert.equal(pricing.valid, true);
+  assert.equal(pricing.selections.hardware, "push_latch");
+  assert.equal(pricing.billableQuantities.hardwareUnits, 0);
+  assert.deepEqual(pricing.billableQuantities.hardwareByType, {});
+  assert.equal(pricing.componentCharges.hardware.quantity, 0);
+  assert.equal(pricing.componentCharges.hardware.amount, 0);
+  assert.equal(pricing.lineItems.some((item) => item.code.startsWith("HARDWARE_")), false);
+  assert.equal(saved.config.hardware, "push_latch");
+});
+
 test("generated tall doors and their hardware are priced while zero compatible lights are not", () => {
   const config = {
     ...preset("tall-storage").config,
+    width: 96,
     sections: 2,
     lowerCabinets: false,
     doorStyle: "slim_shaker",
@@ -64,17 +83,20 @@ test("generated tall doors and their hardware are priced while zero compatible l
     lighting: "full_package",
     layoutMetadata: { sectionRatios: [1, 1] }
   };
+  const overWide = generateBookcaseLayout({ ...config, width: 132 });
+  assert.equal(overWide.validation.valid, false);
+  assert.ok(overWide.validation.errors.some((error) => error.code === "DOOR_LEAF_TOO_WIDE"));
   const selected = contextFor(config);
   const disabled = contextFor({ ...config, lighting: "no_lighting" });
 
-  assert.equal(selected.billableQuantities.generatedTallDoors, 2);
-  assert.equal(selected.billableQuantities.hingedDoorLeaves, 2);
-  assert.equal(selected.billableQuantities.doorHardwareUnits, 2);
+  assert.equal(selected.billableQuantities.generatedTallDoors, 4);
+  assert.equal(selected.billableQuantities.hingedDoorLeaves, 4);
+  assert.equal(selected.billableQuantities.doorHardwareUnits, 4);
   assert.equal(selected.billableQuantities.compatibleLightingComponents, 0);
-  assert.equal(selected.componentCharges.doorStyle.amount, 62.5);
-  assert.equal(selected.componentCharges.hardware.amount, 56.25);
+  assert.equal(selected.componentCharges.doorStyle.amount, 125);
+  assert.equal(selected.componentCharges.hardware.amount, 112.5);
   assert.equal(selected.componentCharges.lighting.amount, 0);
-  assert.equal(selected.total, 13650);
+  assert.equal(selected.total, 11100);
   assert.equal(disabled.total, selected.total);
 });
 
@@ -98,8 +120,9 @@ test("valid lighting uses generated component quantities and preserved rates", (
 
   assert.equal(pucks.billableQuantities.puckLightLocations, 4);
   assert.equal(pucks.componentCharges.lighting.amount, 450);
-  assert.equal(pucks.total, 14800);
-  assert.equal(disabled.total, 14350);
+  assert.equal(pucks.billableQuantities.hingedDoorLeaves, 4);
+  assert.equal(pucks.total, 14700);
+  assert.equal(disabled.total, 14250);
 
   assert.deepEqual(
     [fullOpen.billableQuantities.compatibleLightingComponents, fullOpen.componentCharges.lighting.amount, fullOpen.total],
@@ -158,13 +181,13 @@ test("forced upper glass doors are distinguished from selected lower-door style"
   const pricing = contextFor(preset("glass-library").config);
 
   assert.equal(pricing.billableQuantities.generatedCabinetDoors, 8);
-  assert.equal(pricing.billableQuantities.generatedGlassDoors, 4);
-  assert.deepEqual(pricing.billableQuantities.doorsByStyle, { glass: 4, shaker: 8 });
-  assert.equal(pricing.componentCharges.doorStyle.quantity, 12);
-  assert.equal(pricing.componentCharges.doorStyle.amount, 350);
-  assert.equal(pricing.componentCharges.hardware.quantity, 12);
-  assert.equal(pricing.componentCharges.hardware.amount, 225);
-  assert.equal(pricing.total, 16050);
+  assert.equal(pricing.billableQuantities.generatedGlassDoors, 8);
+  assert.deepEqual(pricing.billableQuantities.doorsByStyle, { glass: 8, shaker: 8 });
+  assert.equal(pricing.componentCharges.doorStyle.quantity, 16);
+  assert.equal(pricing.componentCharges.doorStyle.amount, 700);
+  assert.equal(pricing.componentCharges.hardware.quantity, 16);
+  assert.equal(pricing.componentCharges.hardware.amount, 300);
+  assert.equal(pricing.total, 16450);
 });
 
 test("mixed doors and drawers price only their generated styles and attached hardware", () => {
@@ -239,6 +262,7 @@ test("representative displayed, saved, and quote-prefill totals share one correc
     },
     noCompatibleLighting: {
       ...tallBase,
+      width: 96,
       sections: 2,
       lowerCabinets: false,
       doorStyle: "slim_shaker",

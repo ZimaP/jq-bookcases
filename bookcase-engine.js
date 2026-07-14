@@ -1,4 +1,8 @@
-import { normalizeBookcaseConfig } from "./bookcase-config.js?v=configurator-refine-20260714a";
+import {
+  CONSTRUCTION_PROFILE_IDS,
+  migrateLegacyConstructionConfig,
+  normalizeBookcaseConfig
+} from "./bookcase-config.js?v=configurator-refine-20260714a";
 import { generateBookcaseLayout } from "./bookcase-layout.js?v=configurator-refine-20260714a";
 import {
   createLayoutFingerprint,
@@ -9,7 +13,7 @@ import {
   calculateBookcasePriceBreakdown
 } from "./bookcase-pricing.js?v=configurator-refine-20260714a";
 
-export const ENGINE_VERSION = "2026.07-hardening-v2";
+export const ENGINE_VERSION = "2026.07-jq-construction-v1";
 export const DESIGN_SCHEMA_VERSION = 4;
 export const DESIGN_SELECTION_FINGERPRINT_VERSION = 1;
 
@@ -169,7 +173,11 @@ export function restoreAcceptedDesignSnapshot(payload) {
     };
   }
 
-  const evaluation = evaluateBookcaseCandidate(sourceConfig);
+  const savedConfigMigration = {
+    migrated: !Object.prototype.hasOwnProperty.call(sourceConfig, "constructionProfile"),
+    config: migrateLegacyConstructionConfig(sourceConfig)
+  };
+  const evaluation = evaluateBookcaseCandidate(savedConfigMigration.config);
   if (!evaluation.accepted) {
     return { ...evaluation, compatible: false };
   }
@@ -177,28 +185,19 @@ export function restoreAcceptedDesignSnapshot(payload) {
   const expectedFingerprint = typeof payload.layoutFingerprint === "string"
     ? payload.layoutFingerprint
     : null;
-  const isLegacyDrawerProfileSave = !Object.prototype.hasOwnProperty.call(sourceConfig, "drawerFrontStyle");
-  const legacyLayoutFingerprint = isLegacyDrawerProfileSave
-    ? createLegacyLayoutFingerprint(evaluation.layout)
-    : null;
-  const matchedLayoutFingerprint = expectedFingerprint === evaluation.layoutFingerprint
-    ? evaluation.layoutFingerprint
-    : expectedFingerprint && expectedFingerprint === legacyLayoutFingerprint
-      ? legacyLayoutFingerprint
-      : null;
-  if (expectedFingerprint && !matchedLayoutFingerprint) {
+  const savedArtifactIssue = getSchemaFourSavedArtifactIssue(payload, evaluation, expectedFingerprint);
+  if (savedArtifactIssue) {
     return {
       ...evaluation,
       accepted: false,
       compatible: false,
-      errors: [{
-        code: "LAYOUT_FINGERPRINT_MISMATCH",
-        severity: "error",
-        message: "The saved design was created by an incompatible geometry result and must be reviewed."
-      }]
+      errors: [savedArtifactIssue]
     };
   }
-
+  const isLegacyDrawerProfileSave = !Object.prototype.hasOwnProperty.call(sourceConfig, "drawerFrontStyle");
+  const legacyLayoutFingerprint = isLegacyDrawerProfileSave
+    ? createLegacyLayoutFingerprint(evaluation.layout)
+    : null;
   const selectionFingerprint = createDesignSelectionFingerprint(evaluation.state);
   const expectedSelectionFingerprint = typeof payload.selectionFingerprint === "string"
     ? payload.selectionFingerprint
@@ -213,6 +212,34 @@ export function restoreAcceptedDesignSnapshot(payload) {
         code: "SELECTION_FINGERPRINT_MISMATCH",
         severity: "error",
         message: "The saved finish or fulfillment selections no longer match the regenerated design."
+      }]
+    };
+  }
+
+  let matchedLayoutFingerprint = expectedFingerprint === evaluation.layoutFingerprint
+    ? evaluation.layoutFingerprint
+    : expectedFingerprint && expectedFingerprint === legacyLayoutFingerprint
+      ? legacyLayoutFingerprint
+      : null;
+  const verifiedLegacyConstructionSnapshot = !matchedLayoutFingerprint
+    && savedConfigMigration.migrated
+    && verifyLegacySchemaFourSnapshot({
+      payload,
+      evaluation,
+      expectedFingerprint,
+      expectedSelectionFingerprint,
+      selectionFingerprint
+    });
+  if (verifiedLegacyConstructionSnapshot) matchedLayoutFingerprint = expectedFingerprint;
+  if (expectedFingerprint && !matchedLayoutFingerprint) {
+    return {
+      ...evaluation,
+      accepted: false,
+      compatible: false,
+      errors: [{
+        code: "LAYOUT_FINGERPRINT_MISMATCH",
+        severity: "error",
+        message: "The saved design was created by an incompatible geometry result and must be reviewed."
       }]
     };
   }
@@ -245,7 +272,97 @@ export function restoreAcceptedDesignSnapshot(payload) {
     ...evaluation,
     compatible: true,
     selectionFingerprint,
+    ...(savedConfigMigration.migrated ? {
+      migration: {
+        constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay,
+        preservedLegacyDoorArrangements: true,
+        verifiedPriorLayoutFingerprint: verifiedLegacyConstructionSnapshot
+      }
+    } : {}),
     errors: []
+  };
+}
+
+/**
+ * Construction V1 intentionally changes descriptor metadata and corrected
+ * base geometry, so a pre-profile schema-4 fingerprint cannot always be
+ * reproduced from the new graph. Compatibility remains bounded to a complete
+ * accepted schema-4 snapshot whose saved ID, selection fingerprint, BOM
+ * quantities, pricing version, and full serialized price breakdown all verify.
+ */
+function verifyLegacySchemaFourSnapshot({
+  payload,
+  evaluation,
+  expectedFingerprint,
+  expectedSelectionFingerprint,
+  selectionFingerprint
+}) {
+  if (Number(payload?.schemaVersion) !== 4) return false;
+  if (!/^jq-layout-v1-[0-9a-f]{16}$/.test(expectedFingerprint || "")) return false;
+  if (!expectedSelectionFingerprint || expectedSelectionFingerprint !== selectionFingerprint) return false;
+  if (payload?.bom?.layoutFingerprint !== expectedFingerprint) return false;
+  if (payload?.pricingVersion !== evaluation.pricing.pricingVersion) return false;
+  if (payload?.priceBreakdown?.pricingVersion !== payload.pricingVersion) return false;
+  if (Number(payload?.total) !== evaluation.pricing.total) return false;
+  if (Number(payload?.priceBreakdown?.total) !== Number(payload?.total)) return false;
+  if (stableStringify(payload.priceBreakdown) !== stableStringify(serializePriceBreakdown(evaluation.pricing))) return false;
+  if (stableStringify(getLegacyBomCompatibilitySignature(payload.bom))
+    !== stableStringify(getLegacyBomCompatibilitySignature(evaluation.bom))) return false;
+  if (typeof payload?.id !== "string") return false;
+  return payload.id === createAcceptedDesignId(
+    expectedFingerprint,
+    payload.total,
+    payload.pricingVersion,
+    expectedSelectionFingerprint
+  );
+}
+
+function getSchemaFourSavedArtifactIssue(payload, evaluation, expectedFingerprint) {
+  if (Number(payload?.schemaVersion) !== 4) return null;
+  if (!expectedFingerprint || payload?.bom?.layoutFingerprint !== expectedFingerprint) {
+    return {
+      code: "LAYOUT_FINGERPRINT_MISMATCH",
+      severity: "error",
+      message: "The saved layout fingerprint and serialized BOM do not identify the same accepted geometry."
+    };
+  }
+  const pricingMatches = payload?.pricingVersion === evaluation.pricing.pricingVersion
+    && Number(payload?.total) === evaluation.pricing.total
+    && payload?.priceBreakdown?.pricingVersion === payload.pricingVersion
+    && Number(payload?.priceBreakdown?.total) === Number(payload.total)
+    && stableStringify(payload.priceBreakdown) === stableStringify(serializePriceBreakdown(evaluation.pricing));
+  if (!pricingMatches) {
+    return {
+      code: "SAVED_PRICING_MISMATCH",
+      severity: "error",
+      message: "The saved price artifacts do not match the regenerated accepted design."
+    };
+  }
+  return null;
+}
+
+function getLegacyBomCompatibilitySignature(bom = {}) {
+  return {
+    schemaVersion: bom.schemaVersion,
+    overall: {
+      widthIn: bom.overall?.widthIn,
+      heightIn: bom.overall?.heightIn,
+      depthIn: bom.overall?.depthIn
+    },
+    sections: {
+      count: bom.sections?.count,
+      clearWidthsIn: bom.sections?.clearWidthsIn
+    },
+    shelves: {
+      adjustableCount: bom.shelves?.adjustableCount,
+      fixedCount: bom.shelves?.fixedCount,
+      byThicknessIn: bom.shelves?.byThicknessIn
+    },
+    doors: bom.doors,
+    drawers: bom.drawers,
+    hardware: bom.hardware,
+    lighting: bom.lighting,
+    openings: bom.openings
   };
 }
 

@@ -1,7 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { defaultBookcaseConfig, layoutPresets } from "../bookcase-config.js";
+import {
+  CONSTRUCTION_PROFILE_IDS,
+  defaultBookcaseConfig,
+  layoutPresets
+} from "../bookcase-config.js";
 import { createLegacyLayoutFingerprint } from "../bookcase-bom.js";
 import {
   DESIGN_SCHEMA_VERSION,
@@ -13,6 +17,13 @@ import {
 } from "../bookcase-engine.js";
 
 const clone = (value) => structuredClone(value);
+
+function createPreProfileSavedConfig(overrides = {}) {
+  const config = clone({ ...defaultBookcaseConfig, ...overrides });
+  delete config.constructionProfile;
+  if (config.layoutMetadata) delete config.layoutMetadata.sectionDoorLayouts;
+  return config;
+}
 
 test("accepted evaluation commits one synchronized state, layout, BOM, and price", () => {
   const input = {
@@ -84,6 +95,11 @@ test("accepted snapshot stores versioned canonical artifacts without trusting se
   assert.equal(snapshot.engineVersion, ENGINE_VERSION);
   assert.equal(snapshot.pricingVersion, evaluation.pricing.pricingVersion);
   assert.deepEqual(snapshot.canonicalConfig, evaluation.state);
+  assert.equal(snapshot.canonicalConfig.constructionProfile, CONSTRUCTION_PROFILE_IDS.inset);
+  assert.deepEqual(
+    snapshot.canonicalConfig.layoutMetadata.sectionDoorLayouts,
+    evaluation.state.layoutMetadata.sectionDoorLayouts
+  );
   assert.equal(snapshot.layoutFingerprint, evaluation.layoutFingerprint);
   assert.deepEqual(snapshot.bom, evaluation.bom);
   assert.equal(snapshot.priceBreakdown.total, evaluation.pricing.total);
@@ -108,6 +124,12 @@ test("snapshot restoration regenerates and verifies the layout fingerprint", () 
   assert.equal(rejected.accepted, false);
   assert.equal(rejected.compatible, false);
   assert.ok(rejected.errors.some((error) => error.code === "LAYOUT_FINGERPRINT_MISMATCH"));
+
+  const repriced = { ...snapshot, total: snapshot.total + 50 };
+  const rejectedPrice = restoreAcceptedDesignSnapshot(repriced);
+  assert.equal(rejectedPrice.accepted, false);
+  assert.equal(rejectedPrice.compatible, false);
+  assert.ok(rejectedPrice.errors.some((error) => error.code === "SAVED_PRICING_MISMATCH"));
 });
 
 test("schema-4 saves without drawer profile metadata verify through the legacy fingerprint", () => {
@@ -132,6 +154,7 @@ test("schema-4 saves without drawer profile metadata verify through the legacy f
     ...snapshot,
     canonicalConfig,
     layoutFingerprint: legacyFingerprint,
+    bom: { ...snapshot.bom, layoutFingerprint: legacyFingerprint },
     id: legacyId
   });
   assert.equal(restored.accepted, true);
@@ -140,18 +163,70 @@ test("schema-4 saves without drawer profile metadata verify through the legacy f
   assert.notEqual(restored.layoutFingerprint, legacyFingerprint);
 });
 
-test("legacy saved config can be regenerated while missing config is rejected", () => {
-  const restoredLegacy = restoreAcceptedDesignSnapshot({
-    schemaVersion: 3,
-    config: defaultBookcaseConfig
-  });
-  assert.equal(restoredLegacy.accepted, true);
-  assert.equal(restoredLegacy.compatible, true);
+test("schema-2 and schema-3 configs without a profile restore overlay fronts and historical door counts", () => {
+  const sourceConfig = createPreProfileSavedConfig();
+  for (const payload of [
+    { schemaVersion: 2, state: sourceConfig },
+    { schemaVersion: 3, config: sourceConfig }
+  ]) {
+    const restoredLegacy = restoreAcceptedDesignSnapshot(payload);
+    assert.equal(restoredLegacy.accepted, true);
+    assert.equal(restoredLegacy.compatible, true);
+    assert.equal(restoredLegacy.state.constructionProfile, CONSTRUCTION_PROFILE_IDS.legacyOverlay);
+    assert.equal(restoredLegacy.migration.preservedLegacyDoorArrangements, true);
+    assert.ok(restoredLegacy.state.layoutMetadata.sectionDoorLayouts
+      .filter(Boolean)
+      .every((entry) => entry.arrangement === "pair"));
+    assert.equal(restoredLegacy.layout.components.filter((component) => component.role === "door").length, 8);
+    assert.ok(restoredLegacy.layout.components
+      .filter((component) => component.role === "door")
+      .every((component) => component.metadata?.mounting === "overlay"));
+  }
 
   const missing = restoreAcceptedDesignSnapshot({ schemaVersion: 3 });
   assert.equal(missing.accepted, false);
   assert.equal(missing.compatible, false);
   assert.equal(missing.errors[0].code, "MISSING_SAVED_CONFIG");
+});
+
+test("pre-profile schema-4 snapshots pass only with a complete verified legacy integrity chain", () => {
+  const sourceConfig = createPreProfileSavedConfig();
+  const restoredSource = restoreAcceptedDesignSnapshot({ schemaVersion: 3, config: sourceConfig });
+  assert.equal(restoredSource.accepted, true);
+  const evaluation = evaluateBookcaseCandidate(restoredSource.state);
+  const snapshot = createAcceptedDesignSnapshot(evaluation);
+  const priorFingerprint = "jq-layout-v1-0123456789abcdef";
+  const legacySnapshot = {
+    ...snapshot,
+    canonicalConfig: sourceConfig,
+    layoutFingerprint: priorFingerprint,
+    bom: { ...snapshot.bom, layoutFingerprint: priorFingerprint },
+    id: createAcceptedDesignId(
+      priorFingerprint,
+      snapshot.total,
+      snapshot.pricingVersion,
+      snapshot.selectionFingerprint
+    )
+  };
+
+  const restored = restoreAcceptedDesignSnapshot(legacySnapshot);
+  assert.equal(restored.accepted, true);
+  assert.equal(restored.compatible, true);
+  assert.equal(restored.migration.verifiedPriorLayoutFingerprint, true);
+  assert.equal(restored.state.constructionProfile, CONSTRUCTION_PROFILE_IDS.legacyOverlay);
+  assert.equal(restored.pricing.total, snapshot.total);
+  assert.notEqual(restored.layoutFingerprint, priorFingerprint);
+
+  const tamperedBom = clone(legacySnapshot);
+  tamperedBom.bom.doors.count += 1;
+  const rejectedBom = restoreAcceptedDesignSnapshot(tamperedBom);
+  assert.equal(rejectedBom.accepted, false);
+  assert.ok(rejectedBom.errors.some((error) => error.code === "LAYOUT_FINGERPRINT_MISMATCH"));
+
+  const tamperedTotal = { ...legacySnapshot, total: legacySnapshot.total + 50 };
+  const rejectedTotal = restoreAcceptedDesignSnapshot(tamperedTotal);
+  assert.equal(rejectedTotal.accepted, false);
+  assert.ok(rejectedTotal.errors.some((error) => error.code === "SAVED_PRICING_MISMATCH"));
 });
 
 test("accepted design identity is deterministic and changes with geometry or total", () => {

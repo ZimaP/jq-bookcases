@@ -36,6 +36,7 @@ import {
   resetSectionCustomization,
   resizeAdjacentSections,
   setSectionClearWidth,
+  setSectionDoorArrangement,
   setSectionType,
   splitSection
 } from "./bookcase-sections.js?v=configurator-refine-20260714a";
@@ -980,7 +981,7 @@ class BookcaseConfigurator {
       open: ["Open Shelves", "Full-height adjustable shelving"],
       lower_doors: ["Lower Doors", "Closed storage with shelves above"],
       drawers: ["Lower Drawers", `${this.state.drawerCount} drawers with shelves above`],
-      tall_doors: ["Tall Door", "One fitted full-height door"]
+      tall_doors: ["Tall Door", "Fitted full-height hinged storage"]
     };
     const sectionComponents = this.layout.components.filter((component) => component.id.startsWith(`${selected.id}-`));
     const generated = {
@@ -989,6 +990,16 @@ class BookcaseConfigurator {
       handles: sectionComponents.filter((component) => component.role === "handle").length,
       shelves: sectionComponents.filter((component) => component.role === "shelf").length
     };
+    const generatedDoor = sectionComponents.find((component) => component.role === "door");
+    const doorAvailability = generatedDoor?.metadata?.arrangementAvailability || {};
+    const doorArrangement = selected.doorLayout?.arrangement || "auto";
+    const doorArrangementOptions = [
+      ["auto", "Auto"],
+      ["single_hinge_left", "Single, hinge left"],
+      ["single_hinge_right", "Single, hinge right"],
+      ["pair", "Pair"]
+    ];
+    const usesHingedDoors = selected.type === "lower_doors" || selected.type === "tall_doors";
     const widthValue = this.sectionWidthDraft || formatSectionWidth(selected.width);
     const splitMinimumWidth = designer.minimumClearWidth * 2 + designer.panelThickness;
     const splitTooNarrow = selected.width + 1e-6 < splitMinimumWidth;
@@ -1054,6 +1065,25 @@ class BookcaseConfigurator {
               `).join("")}
             </div>
           </fieldset>
+          ${usesHingedDoors ? `
+            <fieldset class="section-door-arrangement-field">
+              <legend>Door arrangement</legend>
+              <div class="segmented-options section-door-arrangement-options">
+                ${doorArrangementOptions.map(([value, label]) => {
+                  const option = doorAvailability[value] || { enabled: true, reason: null };
+                  const reasonId = `${this.id}-door-arrangement-${value}-reason`;
+                  return `
+                    <label class="section-door-arrangement-option${option.enabled ? "" : " is-disabled"}" ${option.reason ? `title="${escapeHtml(option.reason)}"` : ""}>
+                      <input type="radio" name="${this.id}-section-door-arrangement" data-section-door-arrangement="${value}" value="${value}" ${doorArrangement === value ? "checked" : ""} ${option.enabled ? "" : `disabled aria-describedby="${reasonId}"`}>
+                      <span>${label}</span>
+                    </label>
+                    ${option.reason ? `<small id="${reasonId}" class="sr-only">${escapeHtml(option.reason)}</small>` : ""}
+                  `;
+                }).join("")}
+              </div>
+              <p class="control-helper">Auto selects one leaf when it fits the supported width, otherwise a valid pair.</p>
+            </fieldset>
+          ` : ""}
           ${selected.locked ? `<p class="section-lock-note">This section belongs to the preset’s ${escapeHtml(formatSectionType(selected.type))} zone. Change to a non-feature layout to edit its type.</p>` : ""}
           <dl class="section-generated-summary">
             <div><dt>Generated fronts</dt><dd>${generated.doors} doors · ${generated.drawers} drawers</dd></div>
@@ -1749,6 +1779,19 @@ class BookcaseConfigurator {
         this.commitSectionOperation(
           setSectionType(this.state, this.selectedSectionIndex, sectionTypeInput.dataset.sectionType, this.layout),
           `${formatSectionType(sectionTypeInput.dataset.sectionType)} applied to Section ${this.selectedSectionIndex + 1}.`
+        );
+        return;
+      }
+      const doorArrangementInput = event.target.closest?.("[data-section-door-arrangement]");
+      if (doorArrangementInput && this.host.contains(doorArrangementInput)) {
+        this.commitSectionOperation(
+          setSectionDoorArrangement(
+            this.state,
+            this.selectedSectionIndex,
+            doorArrangementInput.dataset.sectionDoorArrangement,
+            this.layout
+          ),
+          `Door arrangement updated for Section ${this.selectedSectionIndex + 1}.`
         );
         return;
       }
@@ -3488,6 +3531,14 @@ class BookcaseViewer3D {
     this.isRenderingFrame = false;
     this.destroyed = false;
     this.controlAbortController = new AbortController();
+    this.constructionDebugEnabled = new URLSearchParams(window.location.search).get("constructionDebug") === "1";
+    this.constructionDebugState = {
+      isolate: "all",
+      showBounds: false,
+      showRenderedBounds: false,
+      showPlanes: true,
+      showToeVoid: true
+    };
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100);
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true, powerPreference: "high-performance" });
@@ -3503,6 +3554,11 @@ class BookcaseViewer3D {
     this.sectionInteractionLayer.name = "section-designer-interaction-layer";
     this.sectionInteractionLayer.userData.nonPhysicalHelper = true;
     this.scene.add(this.sectionInteractionLayer);
+    this.constructionDebugGroup = new THREE.Group();
+    this.constructionDebugGroup.name = "construction-debug-helpers";
+    this.constructionDebugGroup.userData.nonPhysicalHelper = true;
+    this.constructionDebugGroup.visible = this.constructionDebugEnabled;
+    this.scene.add(this.constructionDebugGroup);
     this.sectionOverlay = document.createElement("div");
     this.sectionOverlay.className = "section-designer-overlay";
     this.sectionOverlay.dataset.sectionOverlay = "";
@@ -3545,6 +3601,7 @@ class BookcaseViewer3D {
     this.model = new THREE.Group();
     this.scene.add(this.model);
     this.setupEnvironment();
+    this.setupConstructionInspector();
     this.bindControls();
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(this.root);
@@ -3600,10 +3657,55 @@ class BookcaseViewer3D {
       side: THREE.DoubleSide
     });
     const contact = new THREE.Mesh(new THREE.PlaneGeometry(13, 4.2), contactMaterial);
+    contact.userData.nonPhysicalHelper = true;
+    contact.name = "nonphysical-contact-shadow";
     contact.rotation.x = -Math.PI / 2;
     contact.position.set(0, -0.025, 0.12);
     this.scene.add(contact);
 
+  }
+
+  setupConstructionInspector() {
+    if (!this.constructionDebugEnabled) return;
+    const inspector = document.createElement("aside");
+    inspector.className = "construction-inspector";
+    inspector.dataset.constructionInspector = "";
+    inspector.setAttribute("aria-label", "JQ construction inspector");
+    inspector.innerHTML = `
+      <header><strong>JQ Construction Inspector</strong><small>Developer mode</small></header>
+      <div class="construction-inspector-actions" role="group" aria-label="Isolate components">
+        <button type="button" data-construction-isolate="all" aria-pressed="true">All</button>
+        <button type="button" data-construction-isolate="base" aria-pressed="false">Base</button>
+        <button type="button" data-construction-isolate="fronts" aria-pressed="false">Fronts</button>
+        <button type="button" data-construction-isolate="hardware" aria-pressed="false">Hardware</button>
+      </div>
+      <label><input type="checkbox" data-construction-debug="planes" checked> Reference planes</label>
+      <label><input type="checkbox" data-construction-debug="bounds"> Descriptor bounds</label>
+      <label><input type="checkbox" data-construction-debug="rendered"> Rendered bounds</label>
+      <label><input type="checkbox" data-construction-debug="toe" checked> Toe-kick void</label>
+      <pre data-construction-report></pre>
+    `;
+    this.root.appendChild(inspector);
+    this.constructionInspector = inspector;
+    inspector.addEventListener("click", (event) => {
+      const button = event.target.closest?.("[data-construction-isolate]");
+      if (!button) return;
+      this.constructionDebugState.isolate = button.dataset.constructionIsolate;
+      inspector.querySelectorAll("[data-construction-isolate]").forEach((item) => {
+        item.setAttribute("aria-pressed", String(item === button));
+      });
+      this.updateConstructionInspector(this.lastLayout);
+    }, { signal: this.controlAbortController.signal });
+    inspector.addEventListener("change", (event) => {
+      const toggle = event.target.closest?.("[data-construction-debug]");
+      if (!toggle) return;
+      const key = toggle.dataset.constructionDebug;
+      if (key === "planes") this.constructionDebugState.showPlanes = toggle.checked;
+      if (key === "bounds") this.constructionDebugState.showBounds = toggle.checked;
+      if (key === "rendered") this.constructionDebugState.showRenderedBounds = toggle.checked;
+      if (key === "toe") this.constructionDebugState.showToeVoid = toggle.checked;
+      this.updateConstructionInspector(this.lastLayout);
+    }, { signal: this.controlAbortController.signal });
   }
 
   bindControls() {
@@ -4718,6 +4820,7 @@ class BookcaseViewer3D {
     disposeObject(this.model);
     this.model = nextModel;
     this.scene.add(this.model);
+    this.updateConstructionInspector(this.lastLayout);
     if (this.sectionDesigner.active) this.refreshSectionInteractionLayer(this.lastLayout);
     this.rebuildCount += 1;
     this.focusTargetCache.clear();
@@ -4725,6 +4828,135 @@ class BookcaseViewer3D {
     this.root.dataset.renderComponents = String(this.lastRenderAudit.renderedCount || 0);
     this.root.dataset.renderExpected = String(this.lastRenderAudit.expectedCount || 0);
     return true;
+  }
+
+  updateConstructionInspector(layout) {
+    if (!this.constructionDebugEnabled || !layout?.components) return;
+    while (this.constructionDebugGroup.children.length) {
+      const child = this.constructionDebugGroup.children.pop();
+      disposeObject(child);
+    }
+    const isolate = this.constructionDebugState.isolate;
+    const visibleRoles = isolate === "base"
+      ? new Set(["base", "trim"])
+      : isolate === "fronts"
+        ? new Set(["door", "drawer_front"])
+        : isolate === "hardware"
+          ? new Set(["handle"])
+          : null;
+    this.model.traverse((object) => {
+      if (!object.userData?.componentId) return;
+      const role = object.userData.role;
+      if (["assembly", "section", "section_group", "opening"].includes(role)) {
+        object.visible = true;
+        return;
+      }
+      object.visible = !visibleRoles || visibleRoles.has(role);
+    });
+
+    const depth = inchesToUnits(layout.config.depth);
+    const toSceneBox = (component) => new THREE.Box3(
+      new THREE.Vector3(
+        inchesToUnits(component.bounds.min.x),
+        inchesToUnits(component.bounds.min.y),
+        depth / 2 - inchesToUnits(component.bounds.max.z)
+      ),
+      new THREE.Vector3(
+        inchesToUnits(component.bounds.max.x),
+        inchesToUnits(component.bounds.max.y),
+        depth / 2 - inchesToUnits(component.bounds.min.z)
+      )
+    );
+    const addBounds = (component, color) => {
+      const helper = new THREE.Box3Helper(toSceneBox(component), color);
+      helper.userData.nonPhysicalHelper = true;
+      helper.name = `debug-bounds-${component.id}`;
+      this.constructionDebugGroup.add(helper);
+    };
+
+    if (this.constructionDebugState.showBounds) {
+      for (const component of layout.components) {
+        if (!component.bounds || ["assembly", "section", "section_group", "opening"].includes(component.role)) continue;
+        if (visibleRoles && !visibleRoles.has(component.role)) continue;
+        addBounds(component, component.role === "handle" ? 0xffb000 : 0x49a7ff);
+      }
+    }
+    if (this.constructionDebugState.showRenderedBounds) {
+      const componentById = new Map(layout.components.map((component) => [component.id, component]));
+      for (const record of this.model.userData?.renderRecords || []) {
+        const component = componentById.get(record.componentId);
+        if (!component || (visibleRoles && !visibleRoles.has(component.role))) continue;
+        const renderedBox = new THREE.Box3(
+          new THREE.Vector3(record.bounds.min.x, record.bounds.min.y, record.bounds.min.z),
+          new THREE.Vector3(record.bounds.max.x, record.bounds.max.y, record.bounds.max.z)
+        );
+        const helper = new THREE.Box3Helper(renderedBox, 0xff4dff);
+        helper.userData.nonPhysicalHelper = true;
+        helper.name = `debug-rendered-bounds-${record.componentId}`;
+        this.constructionDebugGroup.add(helper);
+      }
+    }
+    const toeVoid = layout.components.find((component) => component.metadata?.kind === "toe_kick_void");
+    if (toeVoid && this.constructionDebugState.showToeVoid) addBounds(toeVoid, 0x55ff88);
+
+    if (this.constructionDebugState.showPlanes) {
+      const planes = layout.metrics.referencePlanes || {};
+      const width = inchesToUnits(layout.config.width);
+      const height = inchesToUnits(layout.config.height);
+      const addVerticalPlane = (name, planeZ, color) => {
+        if (!Number.isFinite(planeZ)) return;
+        const material = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.1, side: THREE.DoubleSide, depthWrite: false });
+        const plane = new THREE.Mesh(new THREE.PlaneGeometry(width, height), material);
+        plane.position.set(0, height / 2, depth / 2 - inchesToUnits(planeZ));
+        plane.userData.nonPhysicalHelper = true;
+        plane.name = `debug-plane-${name}`;
+        this.constructionDebugGroup.add(plane);
+      };
+      addVerticalPlane("carcass-front", planes.carcassFrontPlaneZ, 0x4da3ff);
+      addVerticalPlane("finished-front", planes.finishedFrontPlaneZ, 0xffb347);
+      addVerticalPlane("toe-kick-plate", planes.toeKickPlatePlaneZ, 0x55dd88);
+    }
+
+    for (const validationIssue of layout.validation?.issues || []) {
+      if (!/COLLISION/.test(validationIssue.code)) continue;
+      const component = layout.components.find((item) => item.id === validationIssue.componentId);
+      if (component) addBounds(component, 0xff3344);
+    }
+
+    const report = this.constructionInspector?.querySelector("[data-construction-report]");
+    if (report) {
+      const planes = layout.metrics.referencePlanes || {};
+      const fronts = layout.components.filter((component) => ["door", "drawer_front"].includes(component.role));
+      const handles = layout.components.filter((component) => component.role === "handle");
+      const bases = layout.components.filter((component) => ["base", "trim"].includes(component.role) && component.metadata?.style === layout.config.baseStyle);
+      const collisionPairs = (layout.validation?.issues || [])
+        .filter((item) => /COLLISION/.test(item.code))
+        .map((item) => `${item.componentId} ↔ ${item.relatedId}`);
+      report.textContent = [
+        `Profile: ${layout.config.constructionProfile}`,
+        `Front plane: ${planes.finishedFrontPlaneZ} in`,
+        `Base height: ${layout.metrics.baseHeight} in`,
+        `Nominal bounds: ${JSON.stringify(layout.metrics.nominalBounds)}`,
+        `Decorative bounds: ${JSON.stringify(layout.metrics.decorativeBounds)}`,
+        `Render: ${this.lastRenderAudit?.renderedCount || 0}/${this.lastRenderAudit?.expectedCount || 0}`,
+        `Render/descriptor issues: ${(this.lastRenderAudit?.issues || []).map((item) => item.code).join(", ") || "none"}`,
+        `Validation: ${layout.validation.valid ? "valid" : layout.validation.issues.map((item) => item.code).join(", ")}`,
+        `Collision pairs: ${collisionPairs.join(", ") || "none"}`,
+        "",
+        "COMPONENTS",
+        ...layout.components.map((component) => `${component.id} · ${component.role} · host ${component.hostId || "—"}`),
+        "",
+        "BASE",
+        ...bases.map((component) => `${component.id} · ${component.metadata?.purpose} · recess ${component.metadata?.recessDepth || 0} in`),
+        "",
+        "FRONTS",
+        ...fronts.map((component) => `${component.id} · ${component.size.x} in · ${component.metadata?.mounting} · reveal ${component.metadata?.reveal} · gap ${component.metadata?.meetingGap ?? "—"} · ${component.metadata?.hingeSide || "drawer"}/${component.metadata?.latchSide || "—"}`),
+        "",
+        "HARDWARE",
+        ...handles.map((component) => `${component.id} · ${JSON.stringify(component.metadata?.mountingCenter)} · ${component.metadata?.placementRuleId}`)
+      ].join("\n");
+    }
+    this.requestRender();
   }
 
   updateCamera() {
@@ -4800,6 +5032,12 @@ class BookcaseViewer3D {
       controlsEnabled: !this.destroyed,
       reducedMotion: Boolean(this.reducedMotionQuery?.matches),
       canvasConnected: Boolean(this.renderer.domElement?.isConnected),
+      constructionDebug: this.constructionDebugEnabled ? {
+        ...this.constructionDebugState,
+        profile: this.lastLayout?.config?.constructionProfile,
+        referencePlanes: this.lastLayout?.metrics?.referencePlanes,
+        validationIssues: this.lastLayout?.validation?.issues || []
+      } : null,
       renderAudit: this.lastRenderAudit,
       webgl: {
         geometries: this.renderer.info.memory.geometries || 0,
@@ -4821,6 +5059,9 @@ class BookcaseViewer3D {
     this.scene.remove(this.model);
     this.clearSectionInteractionLayer();
     this.sectionOverlay?.remove();
+    this.constructionInspector?.remove();
+    this.scene.remove(this.constructionDebugGroup);
+    disposeObject(this.constructionDebugGroup);
     disposeMaterialSet(this.model?.userData?.materials);
     disposeObject(this.model);
     disposeObject(this.scene);
@@ -4850,7 +5091,7 @@ function buildBookcaseModel(state, precomputedLayout = null) {
   };
 
   const depth = inchesToUnits(layout.config.depth);
-  const logicalRoles = new Set(["assembly", "section", "section_group"]);
+  const logicalRoles = new Set(["assembly", "section", "section_group", "opening"]);
   const componentGroups = new Map();
   componentGroups.set("bookcase", group);
 
@@ -4915,10 +5156,6 @@ function renderLayoutComponent(componentGroup, rootGroup, component, config, mat
   ];
   if (size.some((value) => !Number.isFinite(value) || value <= 0)) return;
 
-  if (component.role === "opening") {
-    renderLayoutOpening(componentGroup, component, materials, size, position, bookcaseDepth);
-    return;
-  }
   if (component.role === "door" || component.role === "drawer_front") {
     renderDescriptorDoor(componentGroup, component, config, materials, size, position);
     return;
@@ -4939,7 +5176,6 @@ function renderLayoutComponent(componentGroup, rootGroup, component, config, mat
 
 function getLayoutMaterial(component, materials) {
   if (component.role === "back_panel") return materials.back;
-  if (component.metadata?.purpose === "recess") return materials.shadow;
   return materials.case;
 }
 
@@ -4953,41 +5189,60 @@ function renderDescriptorDoor(group, component, config, materials, size, positio
     return;
   }
 
-  const minimumSpan = Math.min(width, height);
-  const rail = clamp(
-    style === "slim_shaker" ? minimumSpan * 0.065 : minimumSpan * 0.095,
-    minimumSpan * 0.035,
-    Math.min(width * 0.22, height * 0.22)
-  );
-  const backingDepth = depth * 0.46;
-  const faceDepth = depth - backingDepth;
-  const backZ = z - depth / 2 + backingDepth / 2;
-  const faceZ = z + depth / 2 - faceDepth / 2;
-  const centerWidth = Math.max(width - rail * 2, width * 0.5);
-  const centerHeight = Math.max(height - rail * 2, height * 0.5);
+  const profile = component.metadata?.profileGeometry;
+  if (!profile || !Number.isFinite(profile.frameWidth) || profile.frameWidth <= 0) {
+    addBox(group, size, position, materials.case);
+    return;
+  }
+  const rail = inchesToUnits(profile.frameWidth);
+  const frameDepth = clamp(inchesToUnits(profile.frameDepth), 0.001, depth);
+  const panelRecess = clamp(inchesToUnits(profile.panelRecess), 0, Math.max(0, depth - 0.001));
+  const panelDepth = clamp(inchesToUnits(profile.panelDepth), 0.001, Math.max(0.001, depth - panelRecess));
+  const frontSemantics = resolveRenderedFrontSemantics(component, z, depth);
+  const frameZ = frontSemantics.visibleFrontZ + frontSemantics.inwardDirection * frameDepth / 2;
+  const panelZ = frontSemantics.visibleFrontZ + frontSemantics.inwardDirection * (panelRecess + panelDepth / 2);
+  const centerWidth = width - rail * 2;
+  const centerHeight = height - rail * 2;
+  if (centerWidth <= 0 || centerHeight <= 0) {
+    addBox(group, size, position, materials.case);
+    return;
+  }
 
+  addBox(group, [width, rail, frameDepth], [x, y + height / 2 - rail / 2, frameZ], materials.case, false);
+  addBox(group, [width, rail, frameDepth], [x, y - height / 2 + rail / 2, frameZ], materials.case, false);
+  addBox(group, [rail, centerHeight, frameDepth], [x - width / 2 + rail / 2, y, frameZ], materials.case, false);
+  addBox(group, [rail, centerHeight, frameDepth], [x + width / 2 - rail / 2, y, frameZ], materials.case, false);
   addBox(
     group,
-    [width, height, backingDepth],
-    [x, y, backZ],
+    [centerWidth, centerHeight, panelDepth],
+    [x, y, panelZ],
     style === "glass" ? materials.glass : materials.inset,
     false
   );
-  addBox(group, [width, rail, faceDepth], [x, y + height / 2 - rail / 2, faceZ], materials.case, false);
-  addBox(group, [width, rail, faceDepth], [x, y - height / 2 + rail / 2, faceZ], materials.case, false);
-  addBox(group, [rail, centerHeight, faceDepth], [x - width / 2 + rail / 2, y, faceZ], materials.case, false);
-  addBox(group, [rail, centerHeight, faceDepth], [x + width / 2 - rail / 2, y, faceZ], materials.case, false);
+}
 
-  if (style !== "glass") {
-    const panelDepth = Math.min(faceDepth * 0.48, depth * 0.28);
-    addBox(
-      group,
-      [centerWidth, centerHeight, panelDepth],
-      [x, y, z + depth / 2 - faceDepth + panelDepth / 2],
-      materials.inset,
-      false
-    );
+function resolveRenderedFrontSemantics(component, descriptorCenterZ, descriptorDepth) {
+  const frontPlaneZ = Number(component.metadata?.frontPlaneZ);
+  const backPlaneZ = Number(component.metadata?.backPlaneZ);
+  const mounting = component.metadata?.mounting;
+  if (
+    !["inset", "overlay"].includes(mounting) ||
+    !Number.isFinite(frontPlaneZ) ||
+    !Number.isFinite(backPlaneZ) ||
+    Math.abs(frontPlaneZ - backPlaneZ) <= 1e-9
+  ) {
+    throw new RangeError(`Front ${component.id} is missing semantic mounting planes.`);
   }
+  // Layout +Z points inward while scene +Z points outward. The descriptor's
+  // declared front/back planes determine the scene direction once; profile
+  // subgeometry never guesses from an AABB sign.
+  const outwardDirection = frontPlaneZ < backPlaneZ ? 1 : -1;
+  return {
+    mounting,
+    visibleFrontZ: descriptorCenterZ + outwardDirection * descriptorDepth / 2,
+    outwardDirection,
+    inwardDirection: -outwardDirection
+  };
 }
 
 function renderDescriptorHandle(group, component, config, materials, size, position) {
@@ -4998,19 +5253,39 @@ function renderDescriptorHandle(group, component, config, materials, size, posit
 
   if (isPull) {
     const horizontal = orientation === "horizontal";
-    const length = (horizontal ? size[0] : size[1]) * 0.72;
+    const length = horizontal ? size[0] : size[1];
     const crossA = horizontal ? size[1] : size[0];
-    const radius = Math.max(0.003, Math.min(crossA, size[2]) * 0.24);
+    const radius = Math.max(0.003, crossA / 2);
+    const mountZ = position[2] - size[2] / 2;
+    const barZ = position[2] + size[2] / 2 - radius;
     const pull = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length, 18), materials.hardware);
     if (horizontal) pull.rotation.z = Math.PI / 2;
-    pull.position.set(...position);
+    pull.position.set(position[0], position[1], barZ);
     pull.castShadow = true;
     group.add(pull);
+    const standoffLength = Math.max(0.003, barZ - mountZ);
+    const standoffRadius = Math.max(0.002, radius * 0.46);
+    const along = Math.max(0, length / 2 - radius * 1.5);
+    for (const direction of [-1, 1]) {
+      const standoff = new THREE.Mesh(
+        new THREE.CylinderGeometry(standoffRadius, standoffRadius, standoffLength, 14),
+        materials.hardware
+      );
+      standoff.rotation.x = Math.PI / 2;
+      standoff.position.set(
+        position[0] + (horizontal ? along * direction : 0),
+        position[1] + (horizontal ? 0 : along * direction),
+        mountZ + standoffLength / 2
+      );
+      standoff.castShadow = true;
+      group.add(standoff);
+    }
     return;
   }
 
-  const radius = Math.max(0.004, Math.min(size[0], size[1], size[2]) * 0.38);
+  const radius = Math.max(0.004, Math.min(size[0], size[1]) / 2);
   const knob = new THREE.Mesh(new THREE.SphereGeometry(radius, 20, 16), materials.hardware);
+  knob.scale.z = size[2] / (radius * 2);
   knob.position.set(...position);
   knob.castShadow = true;
   group.add(knob);
@@ -5045,11 +5320,17 @@ function renderDescriptorLight(group, rootGroup, component, materials, size, pos
 
 function collectRenderedComponentRecords(layout, componentGroups) {
   const expected = createExpectedRenderManifest(layout);
+  const expectedIds = new Set(expected.map((descriptor) => descriptor.componentId));
   const records = [];
   for (const descriptor of expected) {
     const componentGroup = componentGroups.get(descriptor.componentId);
     const record = componentGroup ? collectOwnedMeshRecord(componentGroup, descriptor.componentId) : null;
     if (record) records.push(record);
+  }
+  for (const [componentId, componentGroup] of componentGroups) {
+    if (componentId === "bookcase" || expectedIds.has(componentId)) continue;
+    const unexpected = collectOwnedMeshRecord(componentGroup, componentId);
+    if (unexpected) records.push(unexpected);
   }
   return records;
 }
@@ -5081,152 +5362,6 @@ function collectOwnedMeshRecord(componentGroup, componentId) {
   };
 }
 
-function renderLayoutOpening(group, component, materials, size, position, bookcaseDepth) {
-  if (component.id !== "feature-opening") return;
-  const kind = component.metadata?.kind;
-  const backZ = -bookcaseDepth / 2 + 0.024;
-  const bottom = position[1] - size[1] / 2;
-  if (kind === "media") {
-    const screenWidth = size[0] * 0.72;
-    const screenHeight = Math.min(size[1] * 0.5, screenWidth * 0.56);
-    const screenY = bottom + size[1] * 0.56;
-    addBox(group, [screenWidth, screenHeight, 0.028], [position[0], screenY, backZ], materials.screen, false);
-    addBox(group, [screenWidth * 0.94, 0.012, 0.018], [position[0], screenY - screenHeight / 2 - 0.035, backZ + 0.018], materials.hardware, false);
-    return;
-  }
-  if (kind === "feature") {
-    const fireboxWidth = size[0] * 0.5;
-    const fireboxHeight = size[1] * 0.44;
-    const fireboxY = bottom + fireboxHeight / 2 + size[1] * 0.04;
-    addBox(group, [fireboxWidth, fireboxHeight, 0.045], [position[0], fireboxY, backZ + 0.014], materials.firebox, false);
-    addBox(group, [size[0] * 0.76, 0.075, 0.19], [position[0], bottom + size[1] * 0.56, backZ + 0.08], materials.case, false);
-  }
-}
-
-function renderLayoutBase(group, component, config, materials, size, position) {
-  const [width, height, depth] = size;
-  if (config.baseStyle === "toe_kick") {
-    addBox(group, size, position, materials.case);
-    addBox(group, [width * 0.97, height * 0.72, 0.018], [position[0], position[1] - height * 0.08, position[2] + depth / 2 + 0.008], materials.shadow, false);
-    return;
-  }
-  if (config.baseStyle === "furniture_base") {
-    const front = position[2] + depth / 2;
-    const apronHeight = height * 0.46;
-    const footWidth = Math.min(width * 0.08, 0.25);
-    addBox(group, [width * 0.94, height * 0.54, depth * 0.55], [position[0], position[1] + height * 0.23, position[2] - depth * 0.2], materials.case);
-    addBox(group, [width * 0.98, apronHeight, 0.16], [position[0], position[1] + height * 0.27, front - 0.08], materials.case);
-    [-1, 1].forEach((direction) => {
-      addBox(group, [footWidth, height * 0.64, 0.2], [position[0] + direction * (width / 2 - footWidth * 0.9), position[1] - height * 0.18, front - 0.1], materials.case);
-    });
-    return;
-  }
-  addBox(group, size, position, materials.case);
-  addBox(group, [width + 0.045, Math.min(0.065, height * 0.24), depth + 0.035], [position[0], position[1] + height / 2 - Math.min(0.032, height * 0.12), position[2]], materials.case);
-}
-
-function renderLayoutCrown(group, component, config, materials, bookcaseDepth) {
-  const purpose = component.metadata?.purpose;
-  if (config.crownStyle === "classic_crown" && purpose !== "classic_cap") return;
-  const width = inchesToUnits(config.width);
-  const top = inchesToUnits(config.height);
-  const depth = bookcaseDepth;
-  if (config.crownStyle === "slim_cap") {
-    addBox(group, [width + 0.08, 0.055, depth + 0.07], [0, top - 0.027, 0], materials.case);
-    addBox(group, [width + 0.03, 0.045, depth + 0.025], [0, top - 0.077, 0], materials.case);
-    return;
-  }
-  if (config.crownStyle === "modern_soffit") {
-    addBox(group, [width + 0.035, 0.2, depth + 0.03], [0, top - 0.1, 0], materials.case);
-    addBox(group, [width + 0.095, 0.045, depth + 0.09], [0, top - 0.022, 0], materials.case);
-    addBox(group, [width + 0.065, 0.04, depth + 0.055], [0, top - 0.2, 0], materials.case);
-    return;
-  }
-  addBox(group, [width + 0.04, 0.055, depth + 0.035], [0, top - 0.165, 0], materials.case);
-  addBox(group, [width + 0.1, 0.085, depth + 0.105], [0, top - 0.102, 0], materials.case);
-  addBox(group, [width + 0.16, 0.055, depth + 0.16], [0, top - 0.027, 0], materials.case);
-  addBox(group, [width + 0.12, 0.018, 0.02], [0, top - 0.07, depth / 2 + 0.07], materials.highlight, false);
-}
-
-function addLayoutHandle(group, component, config, materials, size, position) {
-  const hardwareType = component.metadata?.hardware || config.hardware;
-  if (hardwareType === "push_latch") return;
-  const isPull = hardwareType.endsWith("_pull") || component.metadata?.kind === "pull";
-  const hostPlane = position[2] - size[2] / 2;
-  const gripPlane = position[2] + size[2] / 2;
-
-  if (isPull) {
-    const length = Math.max(size[0], size[1], 0.26);
-    const pull = new THREE.Mesh(new THREE.CylinderGeometry(0.023, 0.023, length, 18), materials.hardware);
-    if (size[0] > size[1]) pull.rotation.z = Math.PI / 2;
-    pull.position.set(position[0], position[1], gripPlane - 0.012);
-    pull.castShadow = true;
-    group.add(pull);
-    const stemOffset = length * 0.34;
-    const horizontal = size[0] > size[1];
-    [-1, 1].forEach((direction) => {
-      const stemPosition = [...position];
-      if (horizontal) stemPosition[0] += direction * stemOffset;
-      else stemPosition[1] += direction * stemOffset;
-      stemPosition[2] = hostPlane + size[2] * 0.48;
-      addBox(group, [0.055, 0.03, Math.max(size[2] * 0.9, 0.04)], stemPosition, materials.hardware, false);
-    });
-    return;
-  }
-
-  const radius = clamp(Math.min(size[0], size[1]) * 0.5, 0.035, 0.064);
-  const knob = new THREE.Mesh(new THREE.SphereGeometry(radius, 20, 16), materials.hardware);
-  knob.position.set(position[0], position[1], hostPlane + size[2] * 0.72);
-  knob.castShadow = true;
-  group.add(knob);
-  const rosette = new THREE.Mesh(new THREE.CylinderGeometry(radius * 1.15, radius * 1.15, 0.014, 22), materials.hardware);
-  rosette.rotation.x = Math.PI / 2;
-  rosette.position.set(position[0], position[1], hostPlane + 0.008);
-  rosette.castShadow = true;
-  group.add(rosette);
-}
-
-function addLayoutLight(group, rootGroup, component, materials, size, position) {
-  const type = component.metadata?.lightType || "puck";
-  if (type === "puck") {
-    const radius = Math.max(size[0], size[2]) * 0.5;
-    const housing = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, size[1], 28), materials.puckTrim);
-    housing.position.set(position[0], position[1] - 0.003, position[2]);
-    housing.castShadow = false;
-    group.add(housing);
-
-    // Keep the visible diffuser as a thin recessed lens. A spherical glow
-    // reads as a hanging bulb at profile-camera distance and exaggerates the
-    // fixture, especially below the tall built-up soffit.
-    const diffuser = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.68, radius * 0.68, Math.min(size[1] * 0.22, 0.007), 28), materials.puckLight);
-    diffuser.position.set(position[0], position[1] - size[1] * 0.56 - 0.004, position[2]);
-    diffuser.castShadow = false;
-    diffuser.renderOrder = 3;
-    group.add(diffuser);
-  } else {
-    addBox(group, size, position, materials.ledStrip, false);
-  }
-
-  if (rootGroup.userData.pointLightCount >= 18) return;
-  const temperature = Number(component.metadata?.warmth) || 2700;
-  const color = getLightingTemperatureColor(temperature);
-  const glow = type === "puck"
-    ? new THREE.SpotLight(color, 0.36, 2.8, Math.PI * 0.34, 0.76, 1.2)
-    : new THREE.PointLight(color, 0.11, 1.5);
-  glow.userData.productLight = true;
-  glow.position.set(position[0], position[1] - (type === "vertical_led" ? 0 : 0.09), position[2] + 0.025);
-  group.add(glow);
-  if (type === "puck") {
-    glow.target.position.set(position[0], position[1] - 0.95, position[2] + 0.08);
-    group.add(glow.target);
-    const halo = new THREE.PointLight(color, 0.055, 0.72, 1.55);
-    halo.userData.productLight = true;
-    halo.position.set(position[0], position[1] - 0.055, position[2] + 0.012);
-    group.add(halo);
-  }
-  rootGroup.userData.pointLightCount += 1;
-}
-
 function createContactShadowTexture() {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
@@ -5242,501 +5377,6 @@ function createContactShadowTexture() {
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.needsUpdate = true;
   return texture;
-}
-
-function getBayX(bay, innerWidth, bayWidth, partition) {
-  return -innerWidth / 2 + bayWidth / 2 + bay * (bayWidth + partition);
-}
-
-function addShelf(group, materials, size, position, depth) {
-  const [width, height, shelfDepth] = size;
-  const [x, y, z] = position;
-  addBox(group, size, position, materials.case);
-  addBox(group, [width + 0.04, height * 1.08, 0.078], [x, y + height * 0.02, depth / 2 - 0.044], materials.case, false);
-  addBox(group, [width + 0.01, 0.014, 0.028], [x, y + height / 2 + 0.016, depth / 2 - 0.076], materials.highlight, false);
-  addBox(group, [width + 0.018, 0.016, 0.032], [x, y - height / 2 - 0.012, depth / 2 - 0.086], materials.reveal, false);
-  addBox(group, [width * 0.94, 0.018, 0.045], [x, y + height / 2 + 0.014, -shelfDepth / 2 + 0.078], materials.innerShadow, false);
-}
-
-function addShelfPinRows(group, config, materials, metrics) {
-  if (metrics.shelfSpan < 1.2) return;
-  const holeCount = Math.min(9, Math.max(5, config.shelves + 3));
-  const frontZ = metrics.depth / 2 - 0.23;
-  const backZ = metrics.depth / 2 - 0.43;
-  const yStart = metrics.upperBottom + 0.34;
-  const yEnd = metrics.upperTop - 0.34;
-  const span = Math.max(0.1, yEnd - yStart);
-
-  for (let bay = 0; bay < config.sections; bay += 1) {
-    if (config.tallDoors && (bay === 0 || bay === config.sections - 1)) continue;
-    const bayX = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-    const sideXs = [bayX - metrics.bayWidth / 2 + 0.035, bayX + metrics.bayWidth / 2 - 0.035];
-    for (let index = 0; index < holeCount; index += 1) {
-      const y = yStart + (span / Math.max(1, holeCount - 1)) * index;
-      sideXs.forEach((x) => {
-        addBox(group, [0.008, 0.024, 0.024], [x, y, frontZ], materials.pinHole, false);
-        addBox(group, [0.008, 0.02, 0.02], [x, y, backZ], materials.pinHole, false);
-      });
-    }
-  }
-}
-
-function addFaceFrameDetails(group, config, materials, metrics) {
-  const faceZ = metrics.depth / 2 + 0.018;
-  const stile = 0.105;
-  const topY = metrics.height - metrics.outer / 2;
-  const bottomY = metrics.outer / 2;
-
-  addBox(group, [stile, metrics.height - metrics.outer * 0.5, 0.08], [-metrics.width / 2 + metrics.outer / 2, metrics.height / 2, faceZ], materials.case, false);
-  addBox(group, [stile, metrics.height - metrics.outer * 0.5, 0.08], [metrics.width / 2 - metrics.outer / 2, metrics.height / 2, faceZ], materials.case, false);
-  addBox(group, [0.018, metrics.height - metrics.outer * 0.8, 0.032], [-metrics.width / 2 + metrics.outer + 0.018, metrics.height / 2, faceZ + 0.044], materials.highlight, false);
-  addBox(group, [0.018, metrics.height - metrics.outer * 0.8, 0.032], [metrics.width / 2 - metrics.outer - 0.018, metrics.height / 2, faceZ + 0.044], materials.innerShadow, false);
-  for (let index = 1; index < config.sections; index += 1) {
-    const x = -metrics.innerWidth / 2 + index * (metrics.bayWidth + metrics.partition) - metrics.partition / 2;
-    if (isPartitionInsideClearOpening(config, index)) {
-      const lowerStileHeight = Math.max(0.4, metrics.lowerHeight + 0.08);
-      addBox(group, [stile, lowerStileHeight, 0.08], [x, lowerStileHeight / 2, faceZ], materials.case, false);
-      addBox(group, [0.016, lowerStileHeight * 0.96, 0.03], [x - stile * 0.25, lowerStileHeight / 2, faceZ + 0.044], materials.highlight, false);
-    } else {
-      addBox(group, [stile, metrics.height - metrics.outer * 1.7, 0.08], [x, metrics.height / 2, faceZ], materials.case, false);
-      addBox(group, [0.016, metrics.height - metrics.outer * 2.05, 0.03], [x - stile * 0.25, metrics.height / 2, faceZ + 0.044], materials.highlight, false);
-    }
-  }
-
-  addBox(group, [metrics.width + 0.03, 0.095, 0.08], [0, topY, faceZ], materials.case, false);
-  addBox(group, [metrics.width + 0.03, 0.08, 0.08], [0, bottomY, faceZ], materials.case, false);
-  addBox(group, [metrics.width * 0.98, 0.018, 0.032], [0, topY + 0.036, faceZ + 0.044], materials.highlight, false);
-  addBox(group, [metrics.width * 0.98, 0.018, 0.035], [0, bottomY - 0.034, faceZ + 0.046], materials.innerShadow, false);
-  if (config.lowerCabinets) {
-    addBox(group, [metrics.width + 0.02, 0.115, 0.085], [0, metrics.lowerHeight + 0.05, faceZ + 0.01], materials.case, false);
-    addBox(group, [metrics.width * 0.98, 0.018, 0.036], [0, metrics.lowerHeight + 0.108, faceZ + 0.06], materials.highlight, false);
-  }
-}
-
-function getCenterRange(config, wide = false) {
-  const span = wide && config.sections >= 4 ? 2 : 1;
-  const start = Math.max(0, Math.floor((config.sections - span) / 2));
-  return { start, end: start + span - 1, span };
-}
-
-function isBayInRange(bay, range) {
-  return bay >= range.start && bay <= range.end;
-}
-
-function isPartitionInsideClearOpening(config, partitionIndex) {
-  if (!config.centerOpening && !config.deskOpening && !config.featureOpening) return false;
-  const range = getCenterRange(config, true);
-  return partitionIndex > range.start && partitionIndex <= range.end;
-}
-
-function shouldSkipShelf(config, bay, row) {
-  if (config.tallDoors && (bay === 0 || bay === config.sections - 1)) return true;
-  if (config.centerOpening && isBayInRange(bay, getCenterRange(config, true))) return true;
-  if (config.deskOpening && isBayInRange(bay, getCenterRange(config, true))) return true;
-  if (config.featureOpening && isBayInRange(bay, getCenterRange(config, true))) return true;
-  if (config.layoutType === "display_wall" && bay === Math.floor(config.sections / 2) && row === 2) return true;
-  if (config.layoutType === "asymmetric") return (bay === 1 && row === 2) || (bay === 2 && row === 3) || (bay === 3 && row === 1);
-  if (config.layoutType === "walnut_modern") return (bay === 0 && row === 3) || (bay === 2 && row === 1);
-  return false;
-}
-
-function getRenderedShelfCount(config) {
-  return config.lowerCabinets ? Math.max(1, config.shelves - 1) : config.shelves;
-}
-
-function getShelfY(config, bay, row, upperBottom, upperTop, shelfSpan, shelfCount = config.shelves) {
-  const baseY = getAlignedShelfY(config, row, upperBottom, shelfSpan, shelfCount);
-  if (config.layoutType !== "asymmetric") return baseY;
-  const offsets = [0.12, -0.16, 0.08, -0.08, 0.15, -0.12];
-  const offset = offsets[bay % offsets.length] * (shelfSpan / Math.max(shelfCount, 2));
-  return clamp(baseY + offset, upperBottom + 0.28, upperTop - 0.18);
-}
-
-function getAlignedShelfY(config, row, upperBottom, shelfSpan, shelfCount = config.shelves) {
-  return upperBottom + (shelfSpan / (shelfCount + 1)) * row;
-}
-
-function addMediaOpening(group, config, materials, metrics) {
-  const range = getCenterRange(config, true);
-  const openingWidth = metrics.bayWidth * range.span + metrics.partition * (range.span - 1);
-  const centerBay = (range.start + range.end) / 2;
-  const x = getBayX(centerBay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-  const backZ = -metrics.depth / 2 + 0.088;
-  const screenWidth = openingWidth * 0.76;
-  const screenHeight = Math.min(metrics.shelfSpan * 0.52, 2.5);
-  const screenY = metrics.upperBottom + metrics.shelfSpan * 0.42;
-
-  addBox(group, [openingWidth, metrics.shelf * 1.1, metrics.shelfDepth], [x, metrics.upperBottom + metrics.shelf * 0.5, 0.02], materials.case);
-  addBox(group, [openingWidth, metrics.shelf * 1.1, metrics.shelfDepth], [x, metrics.upperTop - metrics.shelf * 1.2, 0.02], materials.case);
-  addBox(group, [screenWidth + 0.16, screenHeight + 0.16, 0.035], [x, screenY, backZ - 0.012], materials.edgeBlock, false);
-  addBox(group, [screenWidth, screenHeight, 0.04], [x, screenY, backZ + 0.016], materials.shadow, false);
-  addBox(group, [screenWidth * 0.74, 0.03, 0.032], [x, screenY - screenHeight / 2 - 0.14, backZ + 0.032], materials.case, false);
-}
-
-function addDeskNiche(group, config, materials, metrics) {
-  const range = getCenterRange(config, true);
-  const openingWidth = metrics.bayWidth * range.span + metrics.partition * (range.span - 1);
-  const centerBay = (range.start + range.end) / 2;
-  const x = getBayX(centerBay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-  const faceZ = metrics.depth / 2 + 0.035;
-  const deskY = metrics.lowerHeight + 0.22;
-  const backHeight = Math.min(metrics.shelfSpan * 0.5, 2.45);
-  const backY = deskY + backHeight / 2 + 0.08;
-
-  addBox(group, [openingWidth + 0.1, 0.12, metrics.depth - 0.08], [x, deskY, 0.03], materials.edgeBlock);
-  addBox(group, [openingWidth * 0.94, backHeight, 0.045], [x, backY, -metrics.depth / 2 + 0.09], materials.inset, false);
-  addBox(group, [openingWidth * 0.22, 0.035, 0.12], [x - openingWidth * 0.18, deskY + 0.08, faceZ], materials.hardware, false);
-}
-
-function addFeatureWallOpening(group, config, materials, metrics) {
-  const range = getCenterRange(config, true);
-  const openingWidth = metrics.bayWidth * range.span + metrics.partition * (range.span - 1);
-  const centerBay = (range.start + range.end) / 2;
-  const x = getBayX(centerBay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-  const backZ = -metrics.depth / 2 + 0.088;
-  const faceZ = metrics.depth / 2 + 0.04;
-  const panelWidth = openingWidth * 0.84;
-  const panelHeight = Math.min(metrics.shelfSpan * 0.5, 2.24);
-  const panelY = metrics.upperBottom + metrics.shelfSpan * 0.55;
-  const mantelY = metrics.lowerHeight + Math.min(0.5, metrics.shelfSpan * 0.13);
-  const fireboxWidth = Math.min(openingWidth * 0.48, 1.25);
-  const fireboxHeight = Math.min(metrics.shelfSpan * 0.19, 0.78);
-  const fireboxY = mantelY - fireboxHeight * 0.66;
-
-  addBox(group, [openingWidth, metrics.shelf * 1.12, metrics.shelfDepth], [x, metrics.upperBottom + metrics.shelf * 0.5, 0.02], materials.case);
-  addBox(group, [openingWidth, metrics.shelf * 1.12, metrics.shelfDepth], [x, metrics.upperTop - metrics.shelf * 1.2, 0.02], materials.case);
-  addBox(group, [panelWidth, panelHeight, 0.04], [x, panelY, backZ], materials.inset, false);
-  addBox(group, [panelWidth * 1.08, 0.07, 0.065], [x, panelY + panelHeight / 2 + 0.04, backZ + 0.024], materials.edgeBlock, false);
-  addBox(group, [panelWidth * 1.08, 0.07, 0.065], [x, panelY - panelHeight / 2 - 0.04, backZ + 0.024], materials.edgeBlock, false);
-  addBox(group, [0.07, panelHeight + 0.14, 0.065], [x - panelWidth * 0.54, panelY, backZ + 0.024], materials.edgeBlock, false);
-  addBox(group, [0.07, panelHeight + 0.14, 0.065], [x + panelWidth * 0.54, panelY, backZ + 0.024], materials.edgeBlock, false);
-  addBox(group, [openingWidth * 0.72, 0.16, metrics.depth * 0.62], [x, mantelY, 0.03], materials.case);
-  addBox(group, [fireboxWidth + 0.22, fireboxHeight + 0.2, 0.052], [x, fireboxY, faceZ - 0.08], materials.edgeBlock, false);
-  addBox(group, [fireboxWidth, fireboxHeight, 0.06], [x, fireboxY, faceZ - 0.045], materials.shadow, false);
-  addBox(group, [fireboxWidth * 0.72, 0.025, 0.034], [x, fireboxY - fireboxHeight * 0.38, faceZ - 0.005], materials.hardware, false);
-}
-
-function addDisplayWallMoment(group, config, materials, metrics) {
-  const bay = Math.floor(config.sections / 2);
-  const bayX = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-  const faceZ = metrics.depth / 2 - 0.14;
-  const artHeight = Math.min(metrics.shelfSpan * 0.34, 1.52);
-  const artY = metrics.upperBottom + metrics.shelfSpan * 0.45;
-
-  addBox(group, [metrics.bayWidth * 0.52, artHeight, 0.045], [bayX, artY, faceZ], materials.inset, false);
-  addBox(group, [metrics.bayWidth * 0.62, 0.045, 0.055], [bayX, artY + artHeight / 2 + 0.04, faceZ + 0.02], materials.edgeBlock, false);
-  addBox(group, [metrics.bayWidth * 0.62, 0.045, 0.055], [bayX, artY - artHeight / 2 - 0.04, faceZ + 0.02], materials.edgeBlock, false);
-  addBox(group, [0.045, artHeight + 0.12, 0.055], [bayX - metrics.bayWidth * 0.31, artY, faceZ + 0.02], materials.edgeBlock, false);
-  addBox(group, [0.045, artHeight + 0.12, 0.055], [bayX + metrics.bayWidth * 0.31, artY, faceZ + 0.02], materials.edgeBlock, false);
-}
-
-function addAsymmetricAccents(group, config, materials, metrics) {
-  const dividerHeight = metrics.shelfSpan * 0.42;
-  const dividerY = metrics.upperBottom + metrics.shelfSpan * 0.46;
-  const bay = Math.min(config.sections - 1, 2);
-  const bayX = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-  addBox(group, [0.08, dividerHeight, metrics.shelfDepth], [bayX + metrics.bayWidth * 0.22, dividerY, 0.02], materials.case);
-
-  const longBay = config.sections > 3 ? 0 : config.sections - 1;
-  const longBayX = getBayX(longBay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-  addBox(group, [metrics.bayWidth * 0.7, 0.08, metrics.shelfDepth], [longBayX + metrics.bayWidth * 0.08, metrics.upperBottom + metrics.shelfSpan * 0.68, 0.02], materials.case);
-}
-
-function addUpperGlassDoors(group, config, materials, metrics) {
-  const faceZ = metrics.depth / 2 + 0.04;
-  const glassConfig = { ...config, doorStyle: "glass" };
-  const doorHeight = metrics.upperTop - metrics.upperBottom + 0.08;
-  for (let bay = 0; bay < config.sections; bay += 1) {
-    const x = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-    const doorCenterY = metrics.upperBottom + doorHeight / 2 - 0.02;
-    const openingSide = bay % 2 === 0 ? "right" : "left";
-    addDoor(group, glassConfig, materials, [metrics.bayWidth * 0.94, doorHeight, 0.045], [x, doorCenterY, faceZ], { openingSide });
-    addHardware(group, config, materials, {
-      doorX: x,
-      doorWidth: metrics.bayWidth * 0.94,
-      doorHeight,
-      doorCenterY,
-      z: faceZ + 0.05,
-      openingSide,
-      placement: "upper",
-      scale: 0.82
-    });
-  }
-}
-
-function addTallStorageDoors(group, config, materials, metrics) {
-  const faceZ = metrics.depth / 2 + 0.06;
-  const doorHeight = metrics.height - metrics.outer * 2 - 0.34;
-  [0, config.sections - 1].forEach((bay, index) => {
-    const x = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-    const doorCenterY = metrics.outer + doorHeight / 2 + 0.18;
-    const openingSide = index === 0 ? "right" : "left";
-    addDoor(group, config, materials, [metrics.bayWidth * 0.94, doorHeight, 0.07], [x, doorCenterY, faceZ], { openingSide });
-    addHardware(group, config, materials, {
-      doorX: x,
-      doorWidth: metrics.bayWidth * 0.94,
-      doorHeight,
-      doorCenterY,
-      z: faceZ + 0.052,
-      openingSide,
-      placement: "tall",
-      scale: 0.92
-    });
-  });
-}
-
-function addPuckLights(group, config, materials, metrics) {
-  if (config.lighting === "no_lighting") return;
-  const lightBays = [];
-  for (let bay = 0; bay < config.sections; bay += 1) {
-    if (config.tallDoors && (bay === 0 || bay === config.sections - 1)) continue;
-    if (config.centerOpening && isBayInRange(bay, getCenterRange(config, true))) continue;
-    if (config.deskOpening && isBayInRange(bay, getCenterRange(config, true))) continue;
-    if (config.featureOpening && isBayInRange(bay, getCenterRange(config, true))) continue;
-    lightBays.push(bay);
-  }
-
-  if (config.lighting === "vertical_led") {
-    addVerticalLedStrips(group, materials, metrics, lightBays);
-    return;
-  }
-
-  if (config.lighting === "shelf_accent") {
-    addShelfAccentLights(group, config, materials, metrics, lightBays);
-    return;
-  }
-
-  lightBays.slice(0, 6).forEach((bay) => {
-    const x = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-    const y = Math.min(metrics.height - metrics.outer * 0.48, metrics.upperTop + metrics.shelf * 0.08);
-    const z = metrics.depth / 2 - 0.26;
-    const puck = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.018, 18), materials.puckLight);
-    puck.position.set(x, y, z);
-    puck.castShadow = false;
-    group.add(puck);
-
-    const glow = new THREE.PointLight(0xffd89b, 0.18, 1.8);
-    glow.position.set(x, y - 0.14, z - 0.08);
-    group.add(glow);
-  });
-}
-
-function addVerticalLedStrips(group, materials, metrics, lightBays) {
-  const stripHeight = Math.max(0.8, metrics.upperTop - metrics.upperBottom - 0.36);
-  const stripY = metrics.upperBottom + stripHeight / 2 + 0.16;
-  const stripZ = metrics.depth / 2 - 0.22;
-
-  lightBays.forEach((bay, index) => {
-    const bayX = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-    const sideOffset = metrics.bayWidth / 2 - 0.065;
-    const stripXs = [bayX - sideOffset, bayX + sideOffset];
-    stripXs.forEach((x) => {
-      addBox(group, [0.018, stripHeight, 0.018], [x, stripY, stripZ], materials.ledStrip, false);
-    });
-    if (index < 4) {
-      const glow = new THREE.PointLight(0xffd4a2, 0.11, 2.4);
-      glow.position.set(bayX, stripY, stripZ - 0.14);
-      group.add(glow);
-    }
-  });
-}
-
-function addShelfAccentLights(group, config, materials, metrics, lightBays) {
-  lightBays.forEach((bay) => {
-    const bayX = getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition);
-    for (let row = 1; row <= Math.min(metrics.renderedShelfCount, 5); row += 1) {
-      if (shouldSkipShelf(config, bay, row)) continue;
-      const shelfY = getShelfY(config, bay, row, metrics.upperBottom, metrics.upperTop, metrics.shelfSpan, metrics.renderedShelfCount);
-      const y = shelfY - metrics.shelf * 0.68;
-      const z = metrics.depth / 2 - 0.16;
-      addBox(group, [metrics.bayWidth * 0.62, 0.014, 0.018], [bayX, y, z], materials.ledStrip, false);
-      if (row <= 2) {
-        const glow = new THREE.PointLight(0xffd7a0, 0.065, 1.35);
-        glow.position.set(bayX, y - 0.08, z - 0.08);
-        group.add(glow);
-      }
-    }
-  });
-}
-
-function addLowerCabinets(group, config, materials, metrics) {
-  const { width, depth, lowerHeight } = metrics;
-  const faceZ = depth / 2 + 0.034;
-  const topRailHeight = 0.16;
-  const sideReveal = 0.18;
-  const pairGap = 0.045;
-  const centerGap = 0.026;
-  const pairCount = Math.max(1, Math.floor(config.doorCount / 2));
-  const doorHeight = lowerHeight - 0.28;
-  const doorCenterY = lowerHeight / 2 + 0.02;
-  addBox(group, [width - 0.05, topRailHeight, depth], [0, lowerHeight + topRailHeight / 2, 0], materials.case);
-  addBox(group, [width - 0.1, lowerHeight - 0.14, 0.06], [0, lowerHeight / 2 + 0.02, faceZ - 0.025], materials.reveal);
-
-  const addDoorPair = (pairX, pairWidth) => {
-    const doorWidth = (pairWidth - centerGap) / 2;
-    const leftX = pairX - centerGap / 2 - doorWidth / 2;
-    const rightX = pairX + centerGap / 2 + doorWidth / 2;
-
-    addBox(group, [0.018, doorHeight + 0.08, 0.025], [pairX, doorCenterY, faceZ + 0.025], materials.reveal, false);
-    addDoor(group, config, materials, [doorWidth, doorHeight, 0.07], [leftX, doorCenterY, faceZ], { openingSide: "right" });
-    addDoor(group, config, materials, [doorWidth, doorHeight, 0.07], [rightX, doorCenterY, faceZ], { openingSide: "left" });
-    addHardware(group, config, materials, {
-      doorX: leftX,
-      doorWidth,
-      doorHeight,
-      doorCenterY,
-      z: faceZ + 0.052,
-      openingSide: "right",
-      placement: "lower"
-    });
-    addHardware(group, config, materials, {
-      doorX: rightX,
-      doorWidth,
-      doorHeight,
-      doorCenterY,
-      z: faceZ + 0.052,
-      openingSide: "left",
-      placement: "lower"
-    });
-  };
-
-  if (config.tallDoors && config.sections > 2) {
-    for (let bay = 1; bay < config.sections - 1; bay += 1) {
-      addDoorPair(getBayX(bay, metrics.innerWidth, metrics.bayWidth, metrics.partition), metrics.bayWidth * 0.92);
-    }
-    return;
-  }
-
-  const usableWidth = width - sideReveal * 2 - pairGap * Math.max(0, pairCount - 1);
-  const pairWidth = usableWidth / pairCount;
-  const startX = -width / 2 + sideReveal + pairWidth / 2;
-
-  for (let pair = 0; pair < pairCount; pair += 1) {
-    addDoorPair(startX + pair * (pairWidth + pairGap), pairWidth);
-  }
-}
-
-function addDoor(group, config, materials, size, position, options = {}) {
-  const [width, height, depth] = size;
-  const revealPad = 0.026;
-  addBox(group, [width + revealPad, height + revealPad, 0.018], [position[0], position[1], position[2] - depth / 2 - 0.006], materials.reveal, false);
-  const z = position[2] + depth / 2 + 0.012;
-  const rail = config.doorStyle === "slim_shaker" ? 0.062 : 0.105;
-
-  if (config.doorStyle === "glass") {
-    const glassWidth = Math.max(0.04, width - rail * 2.25);
-    const glassHeight = Math.max(0.08, height - rail * 2.25);
-    addBox(group, [width - rail, rail, depth], [position[0], position[1] + height / 2 - rail / 2, position[2]], materials.case, false);
-    addBox(group, [width - rail, rail, depth], [position[0], position[1] - height / 2 + rail / 2, position[2]], materials.case, false);
-    addBox(group, [rail, height - rail, depth], [position[0] - width / 2 + rail / 2, position[1], position[2]], materials.case, false);
-    addBox(group, [rail, height - rail, depth], [position[0] + width / 2 - rail / 2, position[1], position[2]], materials.case, false);
-    addBox(group, [0.012, glassHeight, 0.012], [position[0], position[1], z + 0.012], materials.glassLine, false);
-    addBox(group, [glassWidth * 0.9, 0.01, 0.012], [position[0], position[1] + glassHeight * 0.42, z + 0.012], materials.glassLine, false);
-    return;
-  }
-
-  addBox(group, size, position, materials.case);
-
-  if (config.doorStyle === "flat") {
-    addBox(group, [width * 0.92, 0.014, 0.022], [position[0], position[1] + height * 0.38, z], materials.reveal, false);
-    addBox(group, [width * 0.92, 0.014, 0.022], [position[0], position[1] - height * 0.38, z], materials.reveal, false);
-    if (options.openingSide) {
-      const stileX = position[0] + (options.openingSide === "right" ? width / 2 - 0.045 : -width / 2 + 0.045);
-      addBox(group, [0.014, height * 0.82, 0.024], [stileX, position[1], z + 0.004], materials.reveal, false);
-    }
-    return;
-  }
-
-  addBox(group, [width - rail * 2.3, height - rail * 2.3, 0.028], [position[0], position[1], z - 0.006], materials.inset, false);
-  addBox(group, [width - rail * 2.65, 0.018, 0.02], [position[0], position[1] + height / 2 - rail * 1.38, z + 0.012], materials.highlight, false);
-  addBox(group, [0.016, height - rail * 2.75, 0.02], [position[0] - width / 2 + rail * 1.36, position[1], z + 0.012], materials.highlight, false);
-
-  addBox(group, [width - rail, rail, 0.038], [position[0], position[1] + height / 2 - rail / 2, z], materials.case, false);
-  addBox(group, [width - rail, rail, 0.038], [position[0], position[1] - height / 2 + rail / 2, z], materials.case, false);
-  addBox(group, [rail, height - rail, 0.038], [position[0] - width / 2 + rail / 2, position[1], z], materials.case, false);
-  addBox(group, [rail, height - rail, 0.038], [position[0] + width / 2 - rail / 2, position[1], z], materials.case, false);
-  addBox(group, [width - rail * 1.25, 0.014, 0.018], [position[0], position[1] + height / 2 - rail * 0.28, z + 0.028], materials.highlight, false);
-  addBox(group, [0.014, height - rail * 1.25, 0.018], [position[0] - width / 2 + rail * 0.28, position[1], z + 0.028], materials.highlight, false);
-}
-
-function addHardware(group, config, materials, options) {
-  if (config.hardware === "push_latch") return;
-  const {
-    doorX,
-    doorWidth,
-    doorHeight,
-    doorCenterY,
-    z,
-    openingSide,
-    placement,
-    scale = 1
-  } = options;
-  const railInset = clamp(doorWidth * 0.18, 0.105, 0.18);
-  const x = doorX + (openingSide === "right" ? doorWidth / 2 - railInset : -doorWidth / 2 + railInset);
-  const doorTop = doorCenterY + doorHeight / 2;
-  const y = placement === "tall"
-    ? clamp(3.55, doorCenterY - doorHeight * 0.2, doorTop - 0.42)
-    : placement === "upper"
-      ? doorCenterY - doorHeight * 0.1
-      : doorTop - clamp(doorHeight * 0.18, 0.24, 0.34);
-
-  if (config.hardware.endsWith("_pull")) {
-    const pullHeight = (placement === "tall" ? 0.66 : 0.46) * scale;
-    const pull = new THREE.Mesh(new THREE.CylinderGeometry(0.023 * scale, 0.023 * scale, pullHeight, 16), materials.hardware);
-    pull.position.set(x, y, z + 0.028);
-    pull.castShadow = true;
-    group.add(pull);
-    addBox(group, [0.062 * scale, 0.03 * scale, 0.048], [x, y + pullHeight * 0.36, z + 0.01], materials.hardware, false);
-    addBox(group, [0.062 * scale, 0.03 * scale, 0.048], [x, y - pullHeight * 0.36, z + 0.01], materials.hardware, false);
-    return;
-  }
-
-  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.058 * scale, 20, 16), materials.hardware);
-  knob.position.set(x, y, z + 0.04);
-  knob.castShadow = true;
-  group.add(knob);
-  const rosette = new THREE.Mesh(new THREE.CylinderGeometry(0.072 * scale, 0.072 * scale, 0.014, 22), materials.hardware);
-  rosette.rotation.x = Math.PI / 2;
-  rosette.position.set(x, y, z + 0.016);
-  rosette.castShadow = true;
-  group.add(rosette);
-}
-
-function addCrown(group, config, materials, width, height, depth) {
-  if (config.crownStyle === "none") return;
-  if (config.crownStyle === "slim_cap") {
-    addBox(group, [width + 0.24, 0.14, depth + 0.18], [0, height + 0.07, 0], materials.case);
-    return;
-  }
-  if (config.crownStyle === "modern_soffit") {
-    addBox(group, [width + 0.08, 0.46, depth + 0.08], [0, height + 0.23, -0.02], materials.case);
-    addBox(group, [width + 0.24, 0.08, depth + 0.18], [0, height + 0.5, 0], materials.side);
-    return;
-  }
-  addBox(group, [width + 0.16, 0.1, depth + 0.08], [0, height + 0.05, 0], materials.case);
-  addBox(group, [width + 0.34, 0.14, depth + 0.24], [0, height + 0.17, 0], materials.side);
-  addBox(group, [width + 0.22, 0.1, depth + 0.14], [0, height + 0.3, 0], materials.case);
-  addBox(group, [width + 0.18, 0.018, 0.035], [0, height + 0.345, depth / 2 + 0.055], materials.highlight, false);
-  addBox(group, [width + 0.3, 0.02, 0.05], [0, height + 0.11, depth / 2 + 0.12], materials.innerShadow, false);
-}
-
-function addBase(group, config, materials, width, depth) {
-  if (config.baseStyle === "toe_kick") {
-    addBox(group, [width - 0.45, 0.22, 0.22], [0, 0.11, depth / 2 - 0.17], materials.shadow, false);
-    return;
-  }
-  if (config.baseStyle === "furniture_base") {
-    addBox(group, [width + 0.18, 0.14, depth + 0.12], [0, 0.07, 0], materials.side);
-    const footPositions = [-width / 2 + 0.28, width / 2 - 0.28];
-    footPositions.forEach((x) => {
-      addBox(group, [0.18, 0.36, 0.24], [x, 0.18, depth / 2 - 0.12], materials.side);
-    });
-    return;
-  }
-  addBox(group, [width + 0.28, 0.26, depth + 0.14], [0, 0.13, 0], materials.side);
-  addBox(group, [width + 0.08, 0.08, depth + 0.04], [0, 0.31, 0], materials.case);
-  addBox(group, [width + 0.18, 0.02, 0.035], [0, 0.45, depth / 2 + 0.04], materials.highlight, false);
-  addBox(group, [width + 0.36, 0.035, 0.06], [0, 0.035, depth / 2 + 0.08], materials.innerShadow, false);
 }
 
 function createFinishTexture(surface) {

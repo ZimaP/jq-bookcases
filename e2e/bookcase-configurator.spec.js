@@ -353,7 +353,7 @@ test("Section Designer accepts the canonical mixed design with undo, redo, split
   let accepted = await readAcceptedDesign(page);
   expect(accepted.widths).toEqual([18, 30, 20, 24.25]);
   expect(accepted.types).toEqual(["open", "drawers", "lower_doors", "tall_doors"]);
-  expect(accepted.doors).toBe(3);
+  expect(accepted.doors).toBe(2);
   expect(accepted.drawers).toBe(3);
   expect(accepted.diagnostics.canvasCount).toBe(1);
   await expect(viewer).toHaveAttribute("data-render-valid", "true");

@@ -1,5 +1,5 @@
 export const SCENE_UNITS_PER_INCH = 1 / 12;
-export const RENDER_CONTRACT_VERSION = 1;
+export const RENDER_CONTRACT_VERSION = 2;
 
 export const PHYSICAL_RENDER_ROLES = Object.freeze([
   "base",
