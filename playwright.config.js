@@ -45,6 +45,9 @@ export default defineConfig({
       testMatch: /cross-browser-smoke\.spec\.js/,
       use: {
         ...devices["Desktop Firefox"],
+        ...(process.env.PLAYWRIGHT_FIREFOX_HEADFUL === "1"
+          ? { headless: false }
+          : {}),
         launchOptions: {
           firefoxUserPrefs: {
             "webgl.force-enabled": true
