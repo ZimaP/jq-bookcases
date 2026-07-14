@@ -43,7 +43,14 @@ export default defineConfig({
     {
       name: "firefox",
       testMatch: /cross-browser-smoke\.spec\.js/,
-      use: { ...devices["Desktop Firefox"] }
+      use: {
+        ...devices["Desktop Firefox"],
+        launchOptions: {
+          firefoxUserPrefs: {
+            "webgl.force-enabled": true
+          }
+        }
+      }
     },
     {
       name: "webkit",
