@@ -2398,6 +2398,10 @@ class BookcaseConfigurator {
     this.elements.reviewDialog?.addEventListener("click", (event) => {
       if (event.target === this.elements.reviewDialog) this.closeReviewDialog();
     }, { signal });
+    this.elements.reviewDialog?.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      this.closeReviewDialog();
+    }, { signal });
     this.elements.reviewDialog?.addEventListener("close", () => this.restoreReviewFocus(), { signal });
     this.elements.form?.addEventListener("submit", (event) => event.preventDefault(), { signal });
     document.addEventListener("fullscreenchange", () => {
@@ -3167,8 +3171,12 @@ class BookcaseConfigurator {
   }
 
   restoreReviewFocus() {
-    if (this.reviewInvoker?.isConnected) this.reviewInvoker.focus();
+    const invoker = this.reviewInvoker;
     this.reviewInvoker = null;
+    if (!invoker?.isConnected) return;
+    window.requestAnimationFrame(() => {
+      if (invoker.isConnected && !this.elements.reviewDialog?.open) invoker.focus({ preventScroll: true });
+    });
   }
 
   applyRecommendedChoice(kind) {

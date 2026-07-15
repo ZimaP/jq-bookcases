@@ -55,7 +55,8 @@ test("the 3D viewer renders on demand, animates camera moves, and returns to idl
   await waitForViewerIdle(page, { stableFor: 200 });
   const transitionStart = await readViewerDiagnostics(page);
   await page.locator("[data-reset-view]").click();
-  await expect.poll(async () => (await readViewerDiagnostics(page))?.cameraTransitionActive).toBe(true);
+  await expect.poll(async () => (await readViewerDiagnostics(page))?.cameraTransitionSequence || 0)
+    .toBeGreaterThan(transitionStart.cameraTransitionSequence);
   await expect.poll(async () => (await readViewerDiagnostics(page))?.renderCount || 0).toBeGreaterThan(transitionStart.renderCount);
   await expect.poll(async () => (await readViewerDiagnostics(page))?.cameraTransitionActive, { timeout: 3_000 }).toBe(false);
 
