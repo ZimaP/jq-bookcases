@@ -129,11 +129,13 @@ jobs:
           cp -R assets styles _site/
           mkdir -p _site/data
           cp -R data/generated _site/data/
+          cp -R data/hardware _site/data/
           touch _site/.nojekyll
           test -f _site/index.html
           test -f _site/configurator.html
           test -f _site/assets/vendor/three.module.js
           test -f _site/data/generated/benjamin-moore-colors.json
+          test -f _site/data/hardware/jq-hardware-catalog.seed.json
           test -f _site/styles/icons.css
           test ! -e _site/playwright.config.js
           test ! -e _site/package.json
