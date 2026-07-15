@@ -20,10 +20,12 @@ Premium static website and parametric 3D configurator for JQ Bookcases — Built
 `request-quote.html`. The shared header, footer, navigation, icons, tokens, and
 responsive primitives are owned by `site.js` and `styles.css`.
 
-The configurator provides synchronized Guided Setup and All Controls modes
-over one physical configuration and one persistent 3D viewer. Workflow rules
-live in `configurator-experience.js`; the controller and renderer integration
-remain in `configurator-3d.js`.
+The configurator provides one persistent inspector beside one selectable 3D
+model. Selecting a section, shelf, front, hardware item, divider, base, or
+crown opens a contextual editor backed by the same accepted configuration,
+pricing transaction, and persistent viewer. Pure configuration and selection
+rules live in `configurator-experience.js`; the controller and renderer
+integration remain in `configurator-3d.js`.
 
 ## Run Locally
 
@@ -36,8 +38,11 @@ npm run serve
 ## Verify
 
 ```sh
+npm ci
 npm run build
 npm test
+npm run test:browser
+git diff --check
 ```
 
 Pull requests and pushes to `main` validate without publishing. The manual-only
@@ -59,7 +64,7 @@ are documented in `SITE-ARCHITECTURE.md`.
 ## Benjamin Moore lookup
 
 `benjamin-moore-colors.js` implements the shared lazy-loaded catalog-provider
-contract used by both configurator modes. The generated local catalog contains
+contract used by the inspector and contextual editor. The generated local catalog contains
 4,056 unique codes imported from the 11 Adobe ASE palettes linked by Benjamin
 Moore's official professional palette-download page on 2026-07-12. Run
 `npm run catalog:benjamin-moore` to regenerate the catalog and provenance

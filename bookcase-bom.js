@@ -97,6 +97,7 @@ export function deriveBookcaseBOM(layout) {
   const doorStyles = countBy(doors, (component) => component.metadata?.style || "unknown");
   const drawerStyles = countBy(drawers, (component) => component.metadata?.style || "unknown");
   const hardwareTypes = countBy(handles, (component) => component.metadata?.hardware || "unknown");
+  const hardwareSchedule = deriveHardwareSchedule(layout, handles);
   const lightTypes = countBy(lights, (component) => component.metadata?.lightType || "unknown");
   const crownStyles = countBy(crowns, (component) => component.metadata?.style || "unknown");
   const trimPurposes = countBy(trims, (component) => component.metadata?.purpose || "unknown");
@@ -142,7 +143,10 @@ export function deriveBookcaseBOM(layout) {
     },
     hardware: {
       handleCount: handles.length,
-      byType: hardwareTypes
+      byType: hardwareTypes,
+      catalogVersion: layout.config?.hardwareSelections?.catalogVersion || hardwareSchedule[0]?.catalogVersion || null,
+      schedule: hardwareSchedule,
+      warnings: [...new Set(hardwareSchedule.flatMap((entry) => entry.warnings || []))]
     },
     lighting: {
       count: lights.length,
@@ -164,6 +168,94 @@ export function deriveBookcaseBOM(layout) {
     byRole,
     physicalComponentIds: physical.map((component) => component.id)
   };
+}
+
+export function deriveHardwareSchedule(layout, prefilteredHandles = null) {
+  assertLayoutShape(layout);
+  const handles = Array.isArray(prefilteredHandles)
+    ? prefilteredHandles
+    : layout.components.filter((component) => component.role === "handle");
+  const groups = new Map();
+  for (const handle of handles) {
+    const metadata = handle.metadata || {};
+    const facts = metadata.hardwareFacts || {};
+    const placement = metadata.placement || {};
+    const variantId = metadata.variantId || facts.variantId || metadata.hardware || "unknown";
+    const key = stableStringify({
+      variantId,
+      placement,
+      resolvedFrom: metadata.resolvedFrom || null,
+      factualSnapshot: metadata.hardwareSnapshot || null
+    });
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        variantId,
+        legacyHardware: facts.legacyHardware || metadata.hardware || "unknown",
+        brandId: facts.brandId || null,
+        brand: facts.brandName || null,
+        collectionId: facts.collectionId || null,
+        collection: facts.collectionName || null,
+        familyId: facts.familyId || null,
+        family: facts.familyName || null,
+        category: facts.category || null,
+        manufacturerProductNumber: facts.manufacturerProductNumber ?? null,
+        sku: facts.sku ?? null,
+        sizeVariantId: facts.sizeVariantId || null,
+        size: facts.sizeLabel || null,
+        centerToCenterMm: finiteOrNull(facts.dimensionsMm?.centerToCenter),
+        overallLengthMm: finiteOrNull(facts.dimensionsMm?.overallLength),
+        projectionMm: finiteOrNull(facts.dimensionsMm?.projection),
+        finishVariantId: facts.finishVariantId || null,
+        finish: facts.finishName || null,
+        finishCode: facts.finishCode || null,
+        material: facts.material || null,
+        quantity: 0,
+        locations: [],
+        placement: cloneValue(placement),
+        compatibility: metadata.compatibilityLevel || null,
+        modelAccuracy: facts.modelAccuracy || metadata.modelAccuracy || null,
+        warnings: [],
+        links: cloneValue(facts.links || []),
+        catalogVersion: metadata.catalogVersion || layout.config?.hardwareSelections?.catalogVersion || null,
+        verifiedAt: facts.verifiedAt || null,
+        pricing: cloneValue(facts.pricing || metadata.pricing || null),
+        factualSnapshot: cloneValue(metadata.hardwareSnapshot || null),
+        resolvedFrom: metadata.resolvedFrom || null,
+        _locationsByHost: new Map()
+      };
+      groups.set(key, group);
+    }
+    group.quantity += 1;
+    group.warnings.push(...(metadata.warnings || []));
+    const hostId = handle.hostId;
+    const existing = group._locationsByHost.get(hostId) || {
+      hostId,
+      sectionId: metadata.sectionId || null,
+      quantity: 0,
+      handleIds: []
+    };
+    existing.quantity += 1;
+    existing.handleIds.push(handle.id);
+    group._locationsByHost.set(hostId, existing);
+  }
+  return [...groups.values()]
+    .map((group) => {
+      const { _locationsByHost, ...publicGroup } = group;
+      const locations = [..._locationsByHost.values()].sort((left, right) => left.hostId.localeCompare(right.hostId));
+      const handleIds = new Set(locations.flatMap((location) => location.handleIds));
+      const validationWarnings = (layout.validation?.warnings || [])
+        .filter((warning) => handleIds.has(warning.componentId) || handleIds.has(warning.relatedId))
+        .filter((warning) => /HARDWARE/.test(String(warning.code || "")))
+        .map((warning) => warning.message || warning.code);
+      return {
+        ...publicGroup,
+        quantity: Number(publicGroup.quantity),
+        warnings: [...new Set([...publicGroup.warnings, ...validationWarnings])],
+        locations
+      };
+    })
+    .sort((left, right) => `${left.variantId}|${stableStringify(left.placement)}`.localeCompare(`${right.variantId}|${stableStringify(right.placement)}`));
 }
 
 function assertLayoutShape(layout) {
@@ -200,6 +292,16 @@ function longestSpan(component) {
 
 function stableStringify(value) {
   return JSON.stringify(sortValue(value));
+}
+
+function finiteOrNull(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function cloneValue(value) {
+  if (value === undefined) return null;
+  return value == null ? value : JSON.parse(JSON.stringify(value));
 }
 
 function omitProperty(value, property) {

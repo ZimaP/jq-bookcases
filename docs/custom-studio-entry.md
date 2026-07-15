@@ -12,14 +12,14 @@ snapshot. An invalid source never falls through to a finished default product.
 Every accepted entry has one of two explicit intents:
 
 - `new`: valid shared configurations, explicit presets, My Space commits, and
-  selected ideas begin Guided Setup at Space with only the first Guided step
-  unlocked. `?start=welcome` remains presentation-only until My Space or an idea
-  is accepted. Stale mode, step, and category preferences are reset and
-  persisted; per-mode scroll state is also reset.
+  selected ideas enter the same unified workspace with Overall Size expanded.
+  `?start=welcome` remains presentation-only until My Space or an idea is
+  accepted. Obsolete mode and step preferences are ignored; inspector scroll,
+  model selection, and contextual-editor state start fresh.
 - `resume`: a valid browser-local accepted snapshot restores its sanitized
-  presentation context. Bare `configurator.html` and `?start=resume` both use
-  this path when the snapshot verifies; the explicit resume parameter is
-  consumed after startup.
+  physical configuration in that same unified workspace. Bare
+  `configurator.html` and `?start=resume` both use this path when the snapshot
+  verifies; the explicit resume parameter is consumed after startup.
 
 Marketing start/design calls to action use `?start=welcome` to express a new
 design journey. That request displays the welcome even when the browser
@@ -28,18 +28,14 @@ temporary query flag after entry. Plain links labeled Design Your Bookcase
 continue valid saved work. Valid shared configurations and explicit presets
 retain priority over either temporary start parameter.
 
-## Guided label mapping
+## Unified accepted workspace
 
-Stable internal IDs remain in place to avoid saved-preference and control-registry migration risk. Customer-facing order is:
-
-| Visible step | Internal ID | Primary responsibility |
-| --- | --- | --- |
-| Space | `dimensions` | wall width, available height, depth |
-| Structure | `layout` | section count, overview grid, exact widths, and per-section storage types |
-| Storage | `storage` | shelf count, lower storage, and separate door/drawer front profiles |
-| Build | `construction` | shelf thickness, base, crown/top |
-| Style | `appearance` | finish, hardware type/finish, and lighting |
-| Review | `review` | physical summary and project service |
+Accepted designs expose one permanent inspector in this order: Overall Size,
+Sections & Layout, Shelves, Storage & Fronts, Base & Crown, Finish, Hardware,
+Lighting, and Project Service. Descriptor-backed model selection opens the
+matching contextual editor over the persistent viewer. Both surfaces render
+the same controls and commit through the same accepted transaction; selection,
+category expansion, and contextual-editor movement are presentation-only.
 
 ## Custom start
 
@@ -48,9 +44,9 @@ clamping. “I’m not sure yet” uses a clearly labeled 96 × 96 × 15 inch
 provisional boundary. The first accepted custom configuration is a neutral
 `classic` structure with equal-width open sections, two shelves per section,
 no lower cabinets, no lighting, a slim cap, a recessed toe kick, and White
-Dove. My Space always enters at Space; choosing a section count later in
-Structure explicitly regenerates equal clear widths for that count. Pricing is
-evaluated only as part of that first accepted transaction.
+Dove. My Space enters with Overall Size expanded; choosing a section count in
+Sections & Layout explicitly regenerates equal clear widths for that count.
+Pricing is evaluated only as part of that first accepted transaction.
 
 ## Inspiration library
 

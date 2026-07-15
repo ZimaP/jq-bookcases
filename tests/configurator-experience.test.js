@@ -9,13 +9,11 @@ import {
 import { generateBookcaseLayout } from "../bookcase-layout.js";
 import { buildPricingContext, calculateBookcasePrice } from "../bookcase-pricing.js";
 import {
-  ALL_CONTROL_CATEGORIES,
-  CONFIGURATOR_MODES,
+  COMPONENT_ROLE_TO_EDITOR,
+  CONTEXT_EDITOR_DEFINITIONS,
   CONTROL_REGISTRY,
-  GUIDED_STEPS,
   PHYSICAL_CONFIG_FIELDS,
-  categoryForField,
-  categoryForGuidedStep,
+  UNIFIED_CONTROL_GROUPS,
   configsAreEqual,
   createPresetTransition,
   createQuoteUrl,
@@ -23,48 +21,55 @@ import {
   createSavedDesignRecord,
   escapeHtml,
   getApplicability,
-  getCategorySummary,
   getChangedConfigFields,
-  guidedStepForCategory,
-  guidedStepForField,
+  getInspectorGroupSummary,
   hasBlockingConfigurationIssue,
   inferBasePresetId,
-  normalizeAllCategory,
-  normalizeConfiguratorMode,
-  normalizeGuidedStep,
+  inspectorGroupForField,
+  normalizeInspectorGroup,
+  reconcileSelectionContext,
+  resolveSelectionContext,
   shouldRunAction,
-  validateGuidedStep
+  validateUnifiedConfiguration
 } from "../configurator-experience.js";
 
 const preset = (id) => layoutPresets.find((item) => item.id === id);
 const layoutFor = (config) => generateBookcaseLayout(normalizeBookcaseConfig(config));
+const componentByRole = (layout, role, predicate = () => true) => (
+  layout.components.find((component) => component.role === role && predicate(component))
+);
 
-test("Guided Setup exposes the six required steps in customer order", () => {
-  assert.deepEqual(GUIDED_STEPS.map((step) => step.id), [
-    "dimensions", "layout", "storage", "construction", "appearance", "review"
+test("the unified inspector exposes exactly the nine target groups in customer order", () => {
+  assert.deepEqual(UNIFIED_CONTROL_GROUPS.map((group) => group.id), [
+    "overall_size",
+    "sections_layout",
+    "shelves",
+    "storage_fronts",
+    "base_crown",
+    "finish",
+    "hardware",
+    "lighting",
+    "project_service"
   ]);
-  assert.deepEqual(GUIDED_STEPS.map((step) => step.label), [
-    "Space", "Structure", "Storage", "Build", "Style", "Review"
+  assert.deepEqual(UNIFIED_CONTROL_GROUPS.map((group) => group.label), [
+    "Overall Size",
+    "Sections & Layout",
+    "Shelves",
+    "Storage & Fronts",
+    "Base & Crown",
+    "Finish",
+    "Hardware",
+    "Lighting",
+    "Project Service"
   ]);
-  assert.equal(GUIDED_STEPS.length, 6);
+  assert.equal(new Set(UNIFIED_CONTROL_GROUPS.map((group) => group.id)).size, 9);
 });
 
-test("All Controls exposes every organized category exactly once", () => {
-  assert.deepEqual(ALL_CONTROL_CATEGORIES.map((category) => category.id), [
-    "dimensions", "layout", "section_designer", "storage", "construction", "doors", "finish", "hardware", "lighting", "service"
-  ]);
-  assert.equal(new Set(ALL_CONTROL_CATEGORIES.map((category) => category.id)).size, ALL_CONTROL_CATEGORIES.length);
-});
-
-test("missing and invalid preferences safely fall back to Guided, Space, and Dimensions", () => {
-  for (const invalid of [null, "", "professional", "GUIDED", "review-mode"]) {
-    assert.equal(normalizeConfiguratorMode(invalid), CONFIGURATOR_MODES.guided);
-    assert.equal(normalizeGuidedStep(invalid), "dimensions");
-    assert.equal(normalizeAllCategory(invalid), "dimensions");
+test("missing and invalid inspector groups safely fall back to Overall Size", () => {
+  for (const invalid of [null, "", "guided", "all", "review-mode"]) {
+    assert.equal(normalizeInspectorGroup(invalid), "overall_size");
   }
-  assert.equal(normalizeConfiguratorMode("all"), "all");
-  assert.equal(normalizeGuidedStep("appearance"), "appearance");
-  assert.equal(normalizeAllCategory("lighting"), "lighting");
+  assert.equal(normalizeInspectorGroup("lighting"), "lighting");
 });
 
 test("customer-provided text is escaped before HTML template rendering", () => {
@@ -86,72 +91,205 @@ test("customized saved designs recover their structural preset ancestry", () => 
   assert.equal(inferBasePresetId({ layoutPreset: "custom", layoutType: "unknown" }), defaultBookcaseConfig.layoutPreset);
 });
 
-test("mode categories map to the correct Guided steps and fields", () => {
+test("every physical field maps directly to one unified inspector group", () => {
   const expected = {
-    layout: "layout",
-    dimensions: "dimensions",
-    section_designer: "layout",
-    storage: "storage",
-    construction: "construction",
-    doors: "storage",
-    finish: "appearance",
-    hardware: "appearance",
-    lighting: "appearance",
-    service: "review"
+    width: "overall_size",
+    height: "overall_size",
+    depth: "overall_size",
+    sections: "sections_layout",
+    layoutMetadata: "sections_layout",
+    shelves: "shelves",
+    shelfThickness: "shelves",
+    lowerStorage: "storage_fronts",
+    drawerCount: "storage_fronts",
+    doorStyle: "storage_fronts",
+    drawerFrontStyle: "storage_fronts",
+    baseStyle: "base_crown",
+    crownStyle: "base_crown",
+    customPaintColor: "finish",
+    hardwareSelections: "hardware",
+    lightingWarmth: "lighting",
+    installation: "project_service"
   };
-  for (const [category, step] of Object.entries(expected)) assert.equal(guidedStepForCategory(category), step);
-  assert.equal(categoryForGuidedStep("layout"), "section_designer");
-  assert.equal(categoryForGuidedStep("appearance", "hardware"), "hardware");
-  assert.equal(categoryForGuidedStep("review"), "service");
-  assert.equal(guidedStepForField("customPaintColor"), "appearance");
-  assert.equal(categoryForField("customPaintColor"), "finish");
-  assert.equal(guidedStepForField("drawerCount"), "storage");
-  assert.equal(categoryForField("drawerCount"), "storage");
-  assert.equal(guidedStepForField("sections"), "layout");
-  assert.equal(categoryForField("sections"), "section_designer");
-  assert.equal(guidedStepForField("shelves"), "storage");
-  assert.equal(guidedStepForField("shelfThickness"), "construction");
-  assert.equal(guidedStepForField("doorStyle"), "storage");
-  assert.equal(guidedStepForField("drawerFrontStyle"), "storage");
-  assert.equal(categoryForField("drawerFrontStyle"), "doors");
+  for (const [field, group] of Object.entries(expected)) assert.equal(inspectorGroupForField(field), group);
+  assert.equal(inspectorGroupForField("unknownPhysicalField"), "overall_size");
 });
 
-test("the control registry maps every physical field once without UI-mode state", () => {
+test("the control registry maps every physical field once without workflow navigation state", () => {
   const registryFields = CONTROL_REGISTRY.map((entry) => entry.field);
+  const groupIds = new Set(UNIFIED_CONTROL_GROUPS.map((group) => group.id));
   assert.equal(new Set(registryFields).size, registryFields.length);
   assert.deepEqual([...registryFields].sort(), [...PHYSICAL_CONFIG_FIELDS].sort());
   assert.deepEqual([...registryFields].sort(), Object.keys(defaultBookcaseConfig).sort());
-  for (const forbidden of ["mode", "guidedStep", "expandedCategory", "appearanceTab", "drafts"]) {
+  for (const entry of CONTROL_REGISTRY) {
+    assert.equal(groupIds.has(entry.group), true, `${entry.field} has a known inspector group`);
+    assert.equal("step" in entry, false);
+    assert.equal("category" in entry, false);
+  }
+  for (const forbidden of ["mode", "guidedStep", "expandedCategory", "selection", "contextEditorOpen", "drafts"]) {
     assert.equal(PHYSICAL_CONFIG_FIELDS.includes(forbidden), false);
   }
 });
 
-test("dimension drafts block Dimensions and Review but not unrelated steps", () => {
+test("context editor definitions distinguish fronts, hardware, construction, lighting, and body roles", () => {
+  assert.equal(COMPONENT_ROLE_TO_EDITOR.door, "door");
+  assert.equal(COMPONENT_ROLE_TO_EDITOR.drawer_front, "drawer");
+  assert.equal(COMPONENT_ROLE_TO_EDITOR.handle, "hardware");
+  assert.equal(COMPONENT_ROLE_TO_EDITOR.light, "lighting");
+  assert.equal(COMPONENT_ROLE_TO_EDITOR.side_panel, "body");
+  assert.equal(COMPONENT_ROLE_TO_EDITOR.divider, "divider");
+  assert.equal(CONTEXT_EDITOR_DEFINITIONS.shelves.scope, "global");
+  assert.equal(CONTEXT_EDITOR_DEFINITIONS.divider.scope, "adjacent-pair");
+  assert.equal(CONTEXT_EDITOR_DEFINITIONS.door.inspectorGroupId, "storage_fronts");
+});
+
+test("descriptor selection resolves semantic editors and owning sections from accepted layout data", () => {
+  const layout = layoutFor(defaultBookcaseConfig);
+  const section = componentByRole(layout, "section", (component) => component.metadata.index === 0);
+  const shelf = componentByRole(layout, "shelf", (component) => component.parentId === section.id);
+  const door = componentByRole(layout, "door", (component) => component.metadata.sectionId === section.id);
+  const handle = componentByRole(layout, "handle", (component) => component.hostId === door.id);
+  const trim = componentByRole(layout, "trim");
+  const crown = componentByRole(layout, "crown");
+  const light = componentByRole(layout, "light", (component) => component.parentId === section.id);
+  const side = componentByRole(layout, "side_panel");
+
+  const sectionContext = resolveSelectionContext(layout, { componentId: section.id, source: "canvas", anchorClientX: 120, anchorClientY: 240 });
+  assert.deepEqual(
+    [sectionContext.kind, sectionContext.sectionIndex, sectionContext.inspectorGroupId, sectionContext.highlightTarget.componentId],
+    ["section", 0, "sections_layout", section.id]
+  );
+  assert.deepEqual([sectionContext.anchorClientX, sectionContext.anchorClientY, sectionContext.source], [120, 240, "canvas"]);
+
+  const shelfContext = resolveSelectionContext(layout, shelf.id);
+  assert.deepEqual([shelfContext.kind, shelfContext.sectionId, shelfContext.scope], ["shelf", section.id, "global"]);
+  assert.match(shelfContext.title, /Shelf · Section 1/);
+
+  const doorContext = resolveSelectionContext(layout, door.id);
+  assert.deepEqual([doorContext.editorId, doorContext.frontId, doorContext.sectionId], ["door", door.id, section.id]);
+
+  const hardwareContext = resolveSelectionContext(layout, handle.id);
+  assert.deepEqual([hardwareContext.editorId, hardwareContext.frontId, hardwareContext.sectionId], ["hardware", door.id, section.id]);
+
+  assert.equal(resolveSelectionContext(layout, trim.id).editorId, "base");
+  assert.equal(resolveSelectionContext(layout, crown.id).editorId, "crown");
+  assert.deepEqual(
+    [resolveSelectionContext(layout, light.id).editorId, resolveSelectionContext(layout, light.id).sectionId],
+    ["lighting", section.id]
+  );
+  assert.deepEqual(
+    [resolveSelectionContext(layout, side.id).editorId, resolveSelectionContext(layout, side.id).inspectorGroupId],
+    ["body", "overall_size"]
+  );
+  assert.equal(resolveSelectionContext(layout, "not-an-accepted-component"), null);
+});
+
+test("drawer, feature group, top-panel, and divider hits expose exact contextual ownership", () => {
+  const drawerState = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    lowerStorage: "drawers",
+    layoutMetadata: {
+      ...defaultBookcaseConfig.layoutMetadata,
+      sectionTypes: ["drawers", "drawers", "drawers", "drawers"]
+    }
+  });
+  const drawerLayout = layoutFor(drawerState);
+  const drawer = componentByRole(drawerLayout, "drawer_front");
+  const drawerContext = resolveSelectionContext(drawerLayout, drawer.id);
+  assert.equal(drawerContext.editorId, "drawer");
+  assert.equal(drawerContext.frontId, drawer.id);
+  assert.equal(drawerContext.controlIds.includes("drawerFrontStyle"), true);
+  assert.equal(drawerContext.controlIds.includes("doorStyle"), false);
+
+  const featureLayout = layoutFor(preset("media-wall").config);
+  const featureGroup = componentByRole(featureLayout, "section_group");
+  const featureContext = resolveSelectionContext(featureLayout, featureGroup.id);
+  assert.equal(featureContext.editorId, "section");
+  assert.equal(featureContext.sectionId, featureGroup.metadata.memberSectionIds[0]);
+  const featureOpeningContext = resolveSelectionContext(featureLayout, "feature-opening");
+  assert.equal(featureOpeningContext.sectionId, featureGroup.metadata.memberSectionIds[0]);
+
+  const flatTopLayout = layoutFor({ ...defaultBookcaseConfig, crownStyle: "none" });
+  assert.equal(resolveSelectionContext(flatTopLayout, "top-panel").editorId, "crown");
+
+  const divider = componentByRole(drawerLayout, "divider", (component) => component.metadata.boundaryIndex === 1);
+  const dividerContext = resolveSelectionContext(drawerLayout, divider.id);
+  assert.deepEqual(dividerContext.adjacentSectionIds, ["section-01", "section-02"]);
+  assert.deepEqual([dividerContext.kind, dividerContext.scope, dividerContext.sectionIndex], ["divider", "adjacent-pair", 0]);
+});
+
+test("selection reconciliation preserves stable targets and clears deleted topology", () => {
+  const layout = layoutFor(defaultBookcaseConfig);
+  const shelf = componentByRole(layout, "shelf");
+  const shelfSelection = resolveSelectionContext(layout, shelf.id, "canvas");
+  const reconciledShelf = reconcileSelectionContext(shelfSelection, layout);
+  assert.equal(reconciledShelf?.componentId, shelf.id);
+  assert.deepEqual([reconciledShelf.anchorClientX, reconciledShelf.anchorClientY], [null, null]);
+
+  const lastSection = componentByRole(layout, "section", (component) => component.metadata.index === 3);
+  const lastSectionSelection = resolveSelectionContext(layout, lastSection.id);
+  const threeSectionLayout = layoutFor({
+    ...defaultBookcaseConfig,
+    sections: 3,
+    layoutMetadata: { sectionRatios: [1, 1, 1], sectionDoorLayouts: [{ arrangement: "auto" }, { arrangement: "auto" }, { arrangement: "auto" }] }
+  });
+  assert.equal(reconcileSelectionContext(lastSectionSelection, threeSectionLayout), null);
+
+  const trim = componentByRole(layout, "trim");
+  const baseSelection = resolveSelectionContext(layout, trim.id);
+  const plinthLayout = layoutFor({ ...defaultBookcaseConfig, baseStyle: "plinth" });
+  assert.equal(reconcileSelectionContext(baseSelection, plinthLayout)?.editorId, "base");
+});
+
+test("dimension drafts block the unified design and Overall Size but not unrelated groups", () => {
   const state = normalizeBookcaseConfig(defaultBookcaseConfig);
   const layout = layoutFor(state);
   const drafts = { width: "", height: "121" };
-  assert.equal(validateGuidedStep("dimensions", state, layout, drafts).valid, false);
-  assert.equal(validateGuidedStep("storage", state, layout, drafts).valid, true);
-  assert.equal(validateGuidedStep("review", state, layout, drafts).valid, false);
+  assert.equal(validateUnifiedConfiguration(state, layout, drafts).valid, false);
+  assert.equal(validateUnifiedConfiguration(state, layout, drafts, { groupId: "overall_size" }).valid, false);
+  assert.equal(validateUnifiedConfiguration(state, layout, drafts, { groupId: "shelves" }).valid, true);
 });
 
-test("structure, storage, and construction drafts block their visible step and Review", () => {
+test("numeric drafts are attributed to their visible inspector group and block global actions", () => {
   const state = normalizeBookcaseConfig(defaultBookcaseConfig);
   const layout = layoutFor(state);
   const cases = [
-    ["layout", { sections: "" }],
-    ["storage", { drawerCount: "one" }],
-    ["storage", { shelves: "99" }],
-    ["construction", { shelfThickness: "3" }]
+    ["sections_layout", { sections: "" }],
+    ["storage_fronts", { drawerCount: "one" }],
+    ["shelves", { shelves: "99" }],
+    ["shelves", { shelfThickness: "3" }]
   ];
-  for (const [step, drafts] of cases) {
-    assert.equal(validateGuidedStep(step, state, layout, drafts).valid, false);
-    assert.equal(validateGuidedStep("dimensions", state, layout, drafts).valid, true);
-    assert.equal(validateGuidedStep("review", state, layout, drafts).valid, false);
+  for (const [groupId, drafts] of cases) {
+    const groupResult = validateUnifiedConfiguration(state, layout, drafts, { groupId });
+    assert.equal(groupResult.valid, false);
+    assert.equal(groupResult.issues.every((issue) => issue.inspectorGroupId === groupId), true);
+    assert.equal(validateUnifiedConfiguration(state, layout, drafts, { groupId: "overall_size" }).valid, true);
+    assert.equal(validateUnifiedConfiguration(state, layout, drafts).valid, false);
   }
 });
 
-test("unresolved custom paint blocks Appearance, Review, Save, and Quote actionability", () => {
+test("layout validation remains authoritative and is routed to Sections & Layout", () => {
+  const state = normalizeBookcaseConfig(defaultBookcaseConfig);
+  const layout = layoutFor(state);
+  const rejectedLayout = {
+    ...layout,
+    validation: {
+      valid: false,
+      errors: [{ field: "configuration", message: "Adjacent sections are not buildable." }]
+    }
+  };
+  const result = validateUnifiedConfiguration(state, rejectedLayout);
+  assert.equal(result.valid, false);
+  assert.deepEqual(result.issues[0], {
+    field: "configuration",
+    inspectorGroupId: "sections_layout",
+    message: "Adjacent sections are not buildable."
+  });
+  assert.equal(validateUnifiedConfiguration(state, rejectedLayout, {}, "sections_layout").valid, false);
+  assert.equal(validateUnifiedConfiguration(state, rejectedLayout, {}, { groupId: "overall_size" }).valid, true);
+});
+
+test("unresolved custom paint blocks Finish, Save, and Quote actionability", () => {
   const state = normalizeBookcaseConfig({
     ...defaultBookcaseConfig,
     finish: "custom_bm",
@@ -160,8 +298,9 @@ test("unresolved custom paint blocks Appearance, Review, Save, and Quote actiona
     customPaintHex: ""
   });
   const layout = layoutFor(state);
-  assert.equal(validateGuidedStep("appearance", state, layout).valid, false);
-  assert.equal(validateGuidedStep("review", state, layout).valid, false);
+  assert.equal(validateUnifiedConfiguration(state, layout, {}, { groupId: "finish" }).valid, false);
+  assert.equal(validateUnifiedConfiguration(state, layout).valid, false);
+  assert.equal(validateUnifiedConfiguration(state, layout, {}, { groupId: "hardware" }).valid, true);
   assert.equal(hasBlockingConfigurationIssue(state, layout), true);
   const resolved = normalizeBookcaseConfig({ ...state, customPaintColor: "Hale Navy", customPaintCode: "HC-154", customPaintHex: "#45484d" });
   assert.equal(hasBlockingConfigurationIssue(resolved, layoutFor(resolved)), false);
@@ -202,7 +341,7 @@ test("lighting warmth is contextual to an enabled lighting package", () => {
   assert.equal(getApplicability(incompatible, layoutFor(incompatible)).showLightingWarmth, false);
 });
 
-test("review and category summaries distinguish selected lighting from generated lighting", () => {
+test("review and inspector summaries distinguish selected lighting from generated lighting", () => {
   const incompatible = normalizeBookcaseConfig({
     ...preset("tall-storage").config,
     sections: 2,
@@ -213,7 +352,7 @@ test("review and category summaries distinguish selected lighting from generated
   const incompatibleLayout = layoutFor(incompatible);
   const appearance = createReviewGroups(incompatible, incompatibleLayout, "tall-storage")
     .find((group) => group.id === "appearance");
-  assert.match(getCategorySummary("lighting", incompatible, incompatibleLayout), /No compatible locations/);
+  assert.match(getInspectorGroupSummary("lighting", incompatible, incompatibleLayout), /No compatible locations/);
   assert.match(appearance.items.find((item) => item.label === "Lighting").value, /No compatible locations/);
   assert.equal(appearance.items.some((item) => item.label === "Light temperature"), false);
 
@@ -264,13 +403,14 @@ test("preset transitions preserve compatible measured dimensions, construction, 
   assert.equal(transition.config.delivery, "priority");
 });
 
-test("collapsed category summaries use the same normalized configuration", () => {
+test("collapsed inspector summaries use the same normalized configuration", () => {
   const state = normalizeBookcaseConfig({ ...defaultBookcaseConfig, width: 108, lighting: "no_lighting" });
   const layout = layoutFor(state);
-  assert.match(getCategorySummary("dimensions", state, layout), /108 in W/);
-  assert.match(getCategorySummary("storage", state, layout), /sections/);
-  assert.equal(getCategorySummary("lighting", state, layout), "No Lights");
-  assert.match(getCategorySummary("service", state, layout), /Delivery/);
+  assert.match(getInspectorGroupSummary("overall_size", state, layout), /108 in W/);
+  assert.match(getInspectorGroupSummary("sections_layout", state, layout), /sections/);
+  assert.match(getInspectorGroupSummary("shelves", state, layout), /Applies to all open sections/);
+  assert.equal(getInspectorGroupSummary("lighting", state, layout), "No Lights");
+  assert.match(getInspectorGroupSummary("project_service", state, layout), /Delivery/);
 });
 
 test("review summary identifies media, desk, and fireplace openings", () => {
@@ -289,7 +429,7 @@ test("review summary identifies media, desk, and fireplace openings", () => {
 test("modified presets are described as customized rather than untouched", () => {
   const state = normalizeBookcaseConfig({ ...preset("lower-cabinets").config, width: 110, layoutPreset: "custom" });
   const layout = layoutFor(state);
-  assert.match(getCategorySummary("layout", state, layout, "lower-cabinets"), /Customized/);
+  assert.match(getInspectorGroupSummary("sections_layout", state, layout, "lower-cabinets"), /Customized/);
   const design = createReviewGroups(state, layout, "lower-cabinets")[0].items[0].value;
   assert.match(design, /Customized/);
 });
@@ -304,7 +444,12 @@ test("review groups contain applicable physical selections and omit irrelevant o
   const cabinetAppearance = cabinetGroups.find((group) => group.id === "appearance");
   assert.equal(cabinetAppearance.items.find((item) => item.label === "Hardware type")?.value, "Knob");
   assert.match(cabinetAppearance.items.find((item) => item.label === "Hardware finish")?.value, /^Brushed Brass · \d+ generated$/);
-  assert.deepEqual(cabinetGroups.map((group) => group.step), ["layout", "dimensions", "storage", "construction", "appearance", "review"]);
+  assert.deepEqual(cabinetGroups.map((group) => group.inspectorGroupId), [
+    "sections_layout", "overall_size", "storage_fronts", "base_crown", "finish", "project_service"
+  ]);
+  assert.equal(cabinetAppearance.items.find((item) => item.label === "Hardware type")?.inspectorGroupId, "hardware");
+  assert.equal(cabinetAppearance.items.find((item) => item.label === "Lighting")?.inspectorGroupId, "lighting");
+  assert.equal(cabinetGroups.some((group) => "step" in group), false);
 
   const glass = preset("glass-library").config;
   const glassDoors = createReviewGroups(glass, layoutFor(glass), "glass-library")
@@ -328,26 +473,25 @@ test("mixed storage reviews keep door and drawer front profiles independent", ()
   const storage = createReviewGroups(state, layout, "lower-cabinets").find((group) => group.id === "storage");
   assert.equal(storage.items.find((item) => item.label === "Door front profile")?.value, "Glass Frame");
   assert.equal(storage.items.find((item) => item.label === "Drawer front profile")?.value, "Flat Panel");
-  assert.match(getCategorySummary("doors", state, layout), /Glass Frame/);
-  assert.match(getCategorySummary("doors", state, layout), /Flat Panel/);
+  assert.match(getInspectorGroupSummary("storage_fronts", state, layout), /Glass Frame/);
+  assert.match(getInspectorGroupSummary("storage_fronts", state, layout), /Flat Panel/);
 });
 
-test("saved design records are mode-independent schema 3 physical payloads", () => {
+test("saved design records are presentation-independent schema 3 physical payloads", () => {
   const state = normalizeBookcaseConfig({ ...defaultBookcaseConfig, width: 108 });
   const layout = layoutFor(state);
   const pricing = buildPricingContext(state, layout);
   const price = pricing.total;
   const options = { id: "JQ-FIXED", savedAt: "2026-07-11T20:00:00.000Z" };
-  const guided = createSavedDesignRecord(state, price, options);
-  const all = createSavedDesignRecord(state, price, options);
-  assert.deepEqual(guided, all);
-  assert.deepEqual(Object.keys(guided), ["schemaVersion", "id", "price", "config", "savedAt"]);
-  assert.equal(guided.schemaVersion, 3);
-  assert.equal(guided.price, calculateBookcasePrice(state, layout));
-  assert.equal(guided.config.constructionProfile, CONSTRUCTION_PROFILE_IDS.inset);
-  assert.deepEqual(guided.config.layoutMetadata.sectionDoorLayouts, state.layoutMetadata.sectionDoorLayouts);
-  assert.equal("mode" in guided.config, false);
-  assert.equal("guidedStep" in guided.config, false);
+  const saved = createSavedDesignRecord(state, price, options);
+  assert.deepEqual(Object.keys(saved), ["schemaVersion", "id", "price", "config", "savedAt"]);
+  assert.equal(saved.schemaVersion, 3);
+  assert.equal(saved.price, calculateBookcasePrice(state, layout));
+  assert.equal(saved.config.constructionProfile, CONSTRUCTION_PROFILE_IDS.inset);
+  assert.deepEqual(saved.config.layoutMetadata.sectionDoorLayouts, state.layoutMetadata.sectionDoorLayouts);
+  for (const presentationKey of ["mode", "guidedStep", "allCategory", "activeInspectorGroup", "selection", "drafts"]) {
+    assert.equal(presentationKey in saved.config, false);
+  }
 });
 
 test("quote URLs preserve the existing encoded design-id contract", () => {

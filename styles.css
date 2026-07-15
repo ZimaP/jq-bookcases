@@ -1338,6 +1338,53 @@ select {
   color: var(--color-text-muted);
 }
 
+.quote-hardware-schedule {
+  margin-top: 10px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 10px;
+}
+
+.quote-hardware-schedule summary {
+  min-height: 44px;
+  color: var(--color-text);
+  cursor: pointer;
+  font-size: var(--type-small);
+  font-weight: 700;
+  line-height: 44px;
+}
+
+.quote-hardware-schedule ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quote-hardware-schedule li,
+.quote-hardware-schedule li > div {
+  display: grid;
+  gap: 3px;
+}
+
+.quote-hardware-schedule li {
+  border-left: 2px solid var(--color-accent);
+  padding-left: 10px;
+}
+
+.quote-hardware-schedule nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+
+.quote-hardware-schedule a {
+  color: var(--color-accent-strong);
+  font-size: var(--type-small);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
 .quote-form fieldset {
   border-top: 1px solid var(--color-border);
   padding-top: var(--space-6);

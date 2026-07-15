@@ -18,12 +18,6 @@ async function openConfigurator(page) {
   return viewer;
 }
 
-async function useAllControls(page) {
-  const tab = page.getByRole("tab", { name: /All Controls/ });
-  if (await tab.getAttribute("aria-selected") !== "true") await tab.click();
-  await expect(tab).toHaveAttribute("aria-selected", "true");
-}
-
 async function openCategory(page, category) {
   const trigger = page.locator(`[data-category-trigger="${category}"]`);
   if (await trigger.getAttribute("aria-expanded") !== "true") await trigger.click();
@@ -75,7 +69,6 @@ function expectExactCamera(actual, expected) {
 test("hardware finish and type changes preserve the exact custom camera and persistent canvas", async ({ page }) => {
   const runtimeErrors = monitorRuntime(page);
   const viewer = await openConfigurator(page);
-  await useAllControls(page);
   await openCategory(page, "hardware");
   await expect(page.locator("[data-builder-form]")).toHaveAttribute("data-diagnostic-camera-transition", "false");
 
@@ -109,12 +102,85 @@ test("hardware finish and type changes preserve the exact custom camera and pers
   await expect.poll(async () => (await readHardwareViewerState(page)).hardware).toBe("matte_black_pull");
   await expect(page.locator('[data-hardware-type][value="pull"]')).toBeFocused();
   const afterType = await readHardwareViewerState(page);
-  expect(afterType.partialUpdateCount).toBe(afterFinish.partialUpdateCount);
-  expect(afterType.rebuildCount).toBe(afterFinish.rebuildCount + 1);
+  expect(afterType.partialUpdateCount).toBe(afterFinish.partialUpdateCount + 1);
+  expect(afterType.rebuildCount).toBe(afterFinish.rebuildCount);
   expect(afterType.activeView).toBe("custom");
   expect(afterType.canvasCount).toBe(1);
   expect(afterType.canvasIdentity).toBe("persistent-viewer-canvas");
   expectExactCamera(afterType.view, before.view);
+  expect(runtimeErrors).toEqual([]);
+});
+
+test("selecting a front in the model opens its unified context editor without committing a design change", async ({ page }) => {
+  const runtimeErrors = monitorRuntime(page);
+  const viewer = await openConfigurator(page);
+  await page.locator("[data-bookcase-builder]").evaluate((root) => root.__bookcaseConfigurator.setView("front"));
+  await expect(page.locator("[data-builder-form]")).toHaveAttribute("data-diagnostic-camera-transition", "false");
+
+  const host = page.locator("[data-bookcase-builder]");
+  const before = await host.evaluate((root) => {
+    const controller = root.__bookcaseConfigurator;
+    const canvas = root.querySelector("[data-3d-viewer] canvas");
+    canvas.dataset.viewerPrecisionIdentity = "direct-selection-canvas";
+    return {
+      updateCount: controller.updateCount,
+      priceCalculationCount: controller.priceCalculationCount,
+      fingerprint: controller.bom.layoutFingerprint
+    };
+  });
+  const target = await host.evaluate((root) => {
+    const controller = root.__bookcaseConfigurator;
+    const viewerRoot = root.querySelector("[data-3d-viewer]");
+    const rect = viewerRoot.getBoundingClientRect();
+    const candidates = controller.layout.components.filter((component) => ["door", "drawer_front"].includes(component.role));
+    for (const component of candidates) {
+      const anchor = controller.viewer.getComponentScreenAnchor(component.id);
+      if (!anchor?.visible) continue;
+      const clientX = rect.left + anchor.x;
+      const clientY = rect.top + anchor.y;
+      const hit = controller.viewer.resolveDirectHit({ clientX, clientY });
+      if (["door", "drawer_front"].includes(hit?.role)) {
+        return { componentId: hit.id, role: hit.role, clientX, clientY };
+      }
+    }
+    return null;
+  });
+  expect(target).not.toBeNull();
+
+  await page.mouse.click(target.clientX, target.clientY);
+  const contextEditor = page.locator("[data-contextual-editor]");
+  await expect(contextEditor).toBeVisible();
+  await expect(page.locator("[data-context-title]")).toHaveText(/Door|Drawer/);
+  const shell = page.locator("[data-builder-form]");
+  await expect(shell).toHaveAttribute("data-diagnostic-interface", "unified");
+  await expect(shell).toHaveAttribute("data-diagnostic-inspector-group", "storage_fronts");
+  await expect(shell).toHaveAttribute("data-diagnostic-selection-kind", "front");
+  await expect(shell).toHaveAttribute("data-diagnostic-selection-editor", /door|drawer/);
+  await expect(shell).toHaveAttribute("data-diagnostic-direct-selected", target.componentId);
+  await expect(page.locator('[data-category-trigger="storage_fronts"]')).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator('[data-category-panel="storage_fronts"]')).toBeVisible();
+
+  const afterSelection = await host.evaluate((root) => {
+    const controller = root.__bookcaseConfigurator;
+    return {
+      updateCount: controller.updateCount,
+      priceCalculationCount: controller.priceCalculationCount,
+      fingerprint: controller.bom.layoutFingerprint,
+      canvasCount: root.querySelectorAll("[data-3d-viewer] canvas").length,
+      canvasIdentity: root.querySelector("[data-3d-viewer] canvas")?.dataset.viewerPrecisionIdentity || ""
+    };
+  });
+  expect(afterSelection).toEqual({
+    ...before,
+    canvasCount: 1,
+    canvasIdentity: "direct-selection-canvas"
+  });
+
+  await page.locator("[data-close-context]").click();
+  await expect(contextEditor).toBeHidden();
+  await expect(shell).toHaveAttribute("data-diagnostic-selection-kind", "");
+  await expect(shell).toHaveAttribute("data-diagnostic-direct-selected", "");
+  await expect(viewer.locator("canvas")).toHaveCount(1);
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -204,8 +270,7 @@ test("divider drag keeps the captured handle, previews without pricing, then com
 test("Structure precision inputs, keyboard dividers, selection clamping, and merge selection stay synchronized", async ({ page }) => {
   const runtimeErrors = monitorRuntime(page);
   await openConfigurator(page);
-  await page.locator("[data-guided-continue]").click();
-  await expect(page.locator('[data-guided-step-content="layout"]')).toBeVisible();
+  await openCategory(page, "sections_layout");
 
   const host = page.locator("[data-bookcase-builder]");
   const beforeBlank = await host.evaluate((root) => {
@@ -263,11 +328,9 @@ test("Structure precision inputs, keyboard dividers, selection clamping, and mer
   await expect(page.locator('[data-section-select="1"]')).toHaveAttribute("aria-pressed", "true");
   await expect.poll(() => host.evaluate((root) => root.__bookcaseConfigurator.viewer.sectionDesigner.selectedIndex)).toBe(1);
 
-  await useAllControls(page);
-  await openCategory(page, "section_designer");
-  const allControlsSectionCount = page.locator('[data-category-panel="section_designer"] [data-stepper-control="sections"] input[data-field="sections"]');
-  await expect(allControlsSectionCount).toHaveCount(1);
-  await allControlsSectionCount.fill("3");
+  const unifiedSectionCount = page.locator('[data-category-panel="sections_layout"] [data-stepper-control="sections"] input[data-field="sections"]');
+  await expect(unifiedSectionCount).toHaveCount(1);
+  await unifiedSectionCount.fill("3");
   await expect.poll(() => host.evaluate((root) => root.__bookcaseConfigurator.state.sections)).toBe(3);
   await expect.poll(() => host.evaluate((root) => root.__bookcaseConfigurator.layout.metrics.sectionClearWidths)).toEqual([31, 31, 31]);
   expect(runtimeErrors).toEqual([]);

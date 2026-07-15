@@ -377,3 +377,161 @@ test("AR drawer pulls stay horizontal and paired door pulls mirror their descrip
     assertPartsFitEnvelope(parts, input.center, input.size, ["hardware"]);
   }
 });
+
+test("direct model picking covers generated product roles and ignores unrelated helpers", () => {
+  const roles = between(
+    "const DIRECT_EDITABLE_ROLES = new Set([",
+    "const DIRECT_EDIT_KIND_BY_ROLE = Object.freeze({"
+  );
+  const kinds = between(
+    "const DIRECT_EDIT_KIND_BY_ROLE = Object.freeze({",
+    "let viewerInstanceSequence = 0;"
+  );
+  for (const role of [
+    "light",
+    "divider",
+    "top_panel",
+    "side_panel",
+    "back_panel",
+    "bottom_panel",
+    "assembly"
+  ]) {
+    assert.match(roles, new RegExp(`['\"]${role}['\"]`), `${role} must be directly selectable.`);
+  }
+  assert.match(kinds, /light:\s*["']lighting["']/);
+  assert.match(kinds, /divider:\s*["']divider["']/);
+  for (const role of ["side_panel", "back_panel", "bottom_panel", "assembly"]) {
+    assert.match(kinds, new RegExp(`${role}:\\s*[\"']body[\"']`));
+  }
+
+  const hitResolver = between("  resolveDirectHit(event) {", "  updateDirectEditHover(event) {");
+  assert.match(hitResolver, /nonPhysicalHelper/);
+  assert.match(hitResolver, /directEditHitProxy\s*===\s*true/);
+  assert.match(hitResolver, /["']section["']/);
+  assert.match(hitResolver, /["']back_panel["']/);
+
+  const proxy = topLevelFunction("addDirectEditHitProxy");
+  assert.match(proxy, /["']divider["']/);
+  assert.match(proxy, /["']light["']/);
+  assert.match(proxy, /nonPhysicalHelper:\s*true/);
+  assert.match(proxy, /directEditHitProxy:\s*true/);
+});
+
+test("canvas selection carries pointer coordinates and reports a blank click", () => {
+  const payload = between(
+    "  getDirectSelectionPayload(componentId, source = \"canvas\", pointer = null) {",
+    "  resolveDirectHit(event) {"
+  );
+  const pointerSelection = between(
+    "  selectDirectComponentFromPointer(event) {",
+    "  selectDirectComponent(componentId, options = {}) {"
+  );
+  const clearSelection = between(
+    "  clearDirectSelection(options = {}) {",
+    "  clearDirectHighlightGroup() {"
+  );
+
+  assert.match(payload, /anchorClientX/);
+  assert.match(payload, /anchorClientY/);
+  assert.match(pointerSelection, /clientX:\s*event\.clientX/);
+  assert.match(pointerSelection, /clientY:\s*event\.clientY/);
+  assert.match(pointerSelection, /clearDirectSelection\(\{ notifySelect: true \}\)/);
+  assert.match(clearSelection, /onSelect\?\.\(null\)/);
+});
+
+test("accepted layouts reconcile selection while rejected candidates leave accepted audit state untouched", () => {
+  const partial = between(
+    "  applyHardwareDescriptorLayout(nextLayout, nextState) {",
+    "  applyLightingWarmth(warmth) {"
+  );
+  const rebuild = between(
+    "  rebuildModel(nextState, precomputedLayout = null) {",
+    "  updateConstructionInspector(layout) {"
+  );
+
+  assert.match(partial, /const previousLayout = this\.lastLayout/);
+  assert.match(partial, /this\.reconcileDirectSelection\(previousLayout, nextLayout,/);
+  assert.match(partial, /resolveDirectSelectionForLayout/);
+  assert.match(partial, /metadata\?\.boundaryIndex/);
+  assert.match(partial, /component\.hostId === previous\.hostId/);
+
+  const rejectionIndex = rebuild.indexOf("if (!layoutValid || !renderValid)");
+  const layoutCommitIndex = rebuild.indexOf("this.lastLayout = candidateLayout");
+  const auditCommitIndex = rebuild.indexOf("this.lastRenderAudit = candidateRenderAudit");
+  assert.ok(rejectionIndex >= 0);
+  assert.ok(layoutCommitIndex > rejectionIndex, "Accepted layout metadata must commit after validation.");
+  assert.ok(auditCommitIndex > rejectionIndex, "Accepted render audit must commit after validation.");
+  assert.doesNotMatch(rebuild.slice(0, rejectionIndex), /this\.lastLayout\s*=/);
+  assert.doesNotMatch(rebuild.slice(0, rejectionIndex), /this\.lastRenderAudit\s*=/);
+  assert.match(rebuild, /this\.lastRejectedRenderAudit = candidateRenderAudit/);
+  assert.match(rebuild, /this\.reconcileDirectSelection\(previousLayout, candidateLayout,/);
+  assert.match(partial, /queueMicrotask/);
+});
+
+test("selection remapping prefers stable semantic targets and clears deleted sections", () => {
+  const method = between(
+    "  resolveDirectSelectionForLayout(componentId, previousLayout, nextLayout) {",
+    "  reconcileDirectSelection(previousLayout, nextLayout, options = {}) {"
+  ).trim();
+  const directRoles = new Set([
+    "assembly", "section", "shelf", "door", "handle", "light", "divider",
+    "base", "trim", "crown", "top_panel", "side_panel", "back_panel", "bottom_panel"
+  ]);
+  const getDescriptorSectionId = (layout, component) => {
+    const index = new Map((layout?.components || []).map((item) => [item.id, item]));
+    const visited = new Set();
+    let current = component;
+    while (current && !visited.has(current.id)) {
+      visited.add(current.id);
+      if (current.role === "section") return current.id;
+      current = index.get(current.parentId || current.hostId) || null;
+    }
+    return null;
+  };
+  const resolve = Function(
+    "DIRECT_EDITABLE_ROLES",
+    "getDescriptorSectionId",
+    `"use strict"; function ${method} return resolveDirectSelectionForLayout;`
+  )(directRoles, getDescriptorSectionId);
+
+  const sharedPrevious = [
+    { id: "bookcase", role: "assembly" },
+    { id: "section-01", role: "section", hostId: "bookcase", metadata: { index: 0 } },
+    { id: "section-03", role: "section", hostId: "bookcase", metadata: { index: 2 } },
+    { id: "opening-01", role: "opening", parentId: "section-01", hostId: "section-01" },
+    { id: "door-01", role: "door", parentId: "opening-01", hostId: "opening-01" },
+    { id: "handle-old", role: "handle", parentId: "door-01", hostId: "door-01" },
+    { id: "shelf-01", role: "shelf", parentId: "section-01", hostId: "section-01" },
+    { id: "light-old", role: "light", parentId: "section-01", hostId: "shelf-01" },
+    { id: "crown-old", role: "crown", parentId: "bookcase", hostId: "bookcase" },
+    { id: "divider-old", role: "divider", parentId: "bookcase", hostId: "bookcase", metadata: { boundaryIndex: 1 } }
+  ];
+  const next = {
+    components: [
+      { id: "bookcase", role: "assembly" },
+      { id: "section-01", role: "section", hostId: "bookcase", metadata: { index: 0 } },
+      { id: "opening-01", role: "opening", parentId: "section-01", hostId: "section-01" },
+      { id: "door-01", role: "door", parentId: "opening-01", hostId: "opening-01" },
+      { id: "shelf-01", role: "shelf", parentId: "section-01", hostId: "section-01" },
+      { id: "light-new", role: "light", parentId: "section-01", hostId: "top-panel" },
+      { id: "crown-new", role: "crown", parentId: "bookcase", hostId: "bookcase" },
+      { id: "divider-new", role: "divider", parentId: "bookcase", hostId: "bookcase", metadata: { boundaryIndex: 1 } }
+    ]
+  };
+  const previous = { components: sharedPrevious };
+
+  assert.equal(resolve("handle-old", previous, next), "door-01");
+  assert.equal(resolve("light-old", previous, next), "light-new");
+  assert.equal(resolve("crown-old", previous, next), "crown-new");
+  assert.equal(resolve("divider-old", previous, next), "divider-new");
+  assert.equal(resolve("section-03", previous, next), null);
+});
+
+test("safe viewport data exposes local and client-space bounds for contextual UI", () => {
+  const safeViewport = between("  getSafeViewport() {", "  focus(profileKey = \"overview\", options = {}) {");
+  assert.match(safeViewport, /localBounds/);
+  assert.match(safeViewport, /clientBounds/);
+  assert.match(safeViewport, /rootRect\.left \+ localBounds\.left/);
+  assert.match(safeViewport, /rootRect\.top \+ localBounds\.top/);
+  assert.match(safeViewport, /Object\.freeze\(\{ \.\.\.insets \}\)/);
+});

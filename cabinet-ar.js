@@ -2,7 +2,8 @@ import {
   createDesignId,
   migrateLegacyConstructionConfig,
   normalizeBookcaseConfig
-} from "./bookcase-config.js?v=configurator-construction-20260714b";
+} from "./bookcase-config.js?v=direct-hardware-20260714a";
+import { createHardwareVariantSnapshot } from "./hardware-catalog.js?v=direct-hardware-20260714a";
 
 export const CABINET_AR_SCHEMA_VERSION = 1;
 export const CABINET_AR_FEATURE_ATTRIBUTE = "data-enable-cabinet-ar";
@@ -50,8 +51,38 @@ const LEGACY_CONFIGURATION_FIELDS = Object.freeze([
 const CONFIGURATION_FIELDS = Object.freeze([
   ...LEGACY_CONFIGURATION_FIELDS,
   "drawerFrontStyle",
-  "constructionProfile"
+  "constructionProfile",
+  "hardwareSelections"
 ]);
+const COMPRESSED_CONFIGURATION_PREFIX = "z1_";
+const MAX_CONFIGURATION_TOKEN_LENGTH = 65536;
+const MAX_DECOMPRESSED_CONFIGURATION_LENGTH = 262144;
+const COMPRESSION_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+const HARDWARE_HANDOFF_MARKER = "jq-hardware-selections-1";
+const HARDWARE_SNAPSHOT_HANDOFF_MARKER = "jq-hardware-snapshot-1";
+const HARDWARE_HANDOFF_KEYS = Object.freeze([
+  "schemaVersion", "catalogVersion", "defaultVariantId", "defaultSnapshot", "byHostId", "migrationWarnings",
+  "id", "variantId", "brandId", "brandName", "collectionId", "collectionName", "familyId", "familyName",
+  "category", "sizeVariantId", "sizeLabel", "manufacturerSizeCode", "finishVariantId", "finishName", "finishCode",
+  "canonicalFinishId", "canonicalFinishGroup", "canonicalFinishSwatch", "manufacturerProductNumber", "sku",
+  "dimensionsMm", "diameter", "projection", "baseDiameter", "centerToCenter", "overallLength", "width", "height",
+  "mounting", "holeCount", "pricing", "mode", "currency", "amount", "priceBand", "checkedAt", "sourceId", "note",
+  "availability", "status", "leadTimeNote", "productStatus", "lastVerifiedAt", "asset", "strategy", "accuracy",
+  "exactGeometryLicensed", "cadAvailability", "productionRule", "modelAccuracy", "selectable", "releaseGate", "warnings",
+  "brand", "name", "marketPosition", "regions", "officialUrl", "logoUsage", "collection", "styles", "family", "material",
+  "description", "compatiblePlacements", "recommendedApplications", "compatibilityRestrictions", "priceTier",
+  "verificationCaveat", "imageUsage", "size", "label", "finish", "manufacturerName", "manufacturerCode",
+  "isLivingFinish", "digitalSwatchIsApproximate", "canonical", "group", "swatch", "exact", "sourceIds", "sources",
+  "publisher", "title", "type", "url", "accessedAt", "placement", "orientation", "horizontalAnchor", "verticalAnchor",
+  "edgeOffsetMm", "crossAxisOffsetMm", "mirrored", "quantityPerFront", "code", "message", "path", "legacyToken",
+  "fallbackLegacyToken", "currentCatalogVersion", "snapshotMarker"
+]);
+const HARDWARE_HANDOFF_KEY_TO_ALIAS = new Map(
+  HARDWARE_HANDOFF_KEYS.map((key, index) => [key, `~${index.toString(36)}`])
+);
+const HARDWARE_HANDOFF_ALIAS_TO_KEY = new Map(
+  [...HARDWARE_HANDOFF_KEY_TO_ALIAS].map(([key, alias]) => [alias, key])
+);
 const MODEL_URL_PROTOCOLS = new Set(["http:", "https:", "blob:"]);
 const configurationCache = new Map();
 
@@ -100,6 +131,9 @@ export function normalizeCabinetArConfiguration(config, layout, options = {}) {
   });
   const productId = cleanIdentifier(options.productId || canonical.layoutType || canonical.layoutPreset, "cabinet");
   const configurationId = cleanIdentifier(options.configurationId || createDesignId(canonical, options.price || 0), "");
+  const hardwareSchedule = (layout.components || [])
+    .filter((component) => component.role === "handle")
+    .map(createArHardwareScheduleEntry);
 
   return {
     schemaVersion: CABINET_AR_SCHEMA_VERSION,
@@ -130,6 +164,8 @@ export function normalizeCabinetArConfiguration(config, layout, options = {}) {
     finishId: canonical.finish,
     finishPreviewHex: canonical.customPaintHex || null,
     hardwareId: canonical.hardware,
+    hardwareSelections: canonical.hardwareSelections,
+    hardwareSchedule,
     lightingId: canonical.lighting,
     lightingWarmthKelvin: canonical.lightingWarmth,
     layoutMetadata: canonical.layoutMetadata
@@ -154,20 +190,37 @@ export function hashCabinetArConfiguration(configuration) {
   return `ar-${toHex(first)}${toHex(second)}`;
 }
 
-export function encodeCabinetConfiguration(config) {
+export function encodeCabinetConfiguration(config, options = {}) {
   const normalized = normalizeBookcaseConfig(config);
-  const values = CONFIGURATION_FIELDS.map((field) => normalized[field]);
-  return encodeBase64Url(JSON.stringify([CABINET_AR_SCHEMA_VERSION, values]));
+  const values = CONFIGURATION_FIELDS.map((field) => field === "hardwareSelections"
+    ? compactHardwareSelectionsForHandoff(normalized[field])
+    : normalized[field]);
+  const serialized = JSON.stringify([CABINET_AR_SCHEMA_VERSION, values]);
+  const uncompressed = encodeBase64Url(serialized);
+  if (options.compress === false) return uncompressed;
+  const compressed = `${COMPRESSED_CONFIGURATION_PREFIX}${compressConfigurationString(serialized)}`;
+  return compressed.length < uncompressed.length ? compressed : uncompressed;
 }
 
 export function decodeCabinetConfiguration(token) {
-  if (typeof token !== "string" || !token || token.length > 4096 || !/^[A-Za-z0-9_-]+$/.test(token)) return null;
+  if (
+    typeof token !== "string"
+    || !token
+    || token.length > MAX_CONFIGURATION_TOKEN_LENGTH
+    || !/^[A-Za-z0-9_-]+$/.test(token)
+  ) return null;
   try {
-    const payload = JSON.parse(decodeBase64Url(token));
+    const serialized = decodeConfigurationToken(token);
+    if (!serialized || serialized.length > MAX_DECOMPRESSED_CONFIGURATION_LENGTH) return null;
+    const payload = JSON.parse(serialized);
     if (!Array.isArray(payload) || payload[0] !== CABINET_AR_SCHEMA_VERSION || !Array.isArray(payload[1])) return null;
     const candidate = {};
     CONFIGURATION_FIELDS.forEach((field, index) => {
-      if (index < payload[1].length) candidate[field] = payload[1][index];
+      if (index < payload[1].length) {
+        candidate[field] = field === "hardwareSelections"
+          ? expandHardwareSelectionsFromHandoff(payload[1][index])
+          : payload[1][index];
+      }
     });
     validateRawDimensions(candidate);
     return normalizeBookcaseConfig(migrateLegacyConstructionConfig(candidate));
@@ -525,6 +578,173 @@ function parseSectionIndex(parentId) {
   return match ? Math.max(0, Number(match[1]) - 1) : 0;
 }
 
+function createArHardwareScheduleEntry(component) {
+  const metadata = component?.metadata || {};
+  const snapshot = metadata.hardwareSnapshot || metadata.variantSnapshot || {};
+  const category = metadata.category || snapshot.category || (metadata.hardwareType === "knob" ? "round_knob" : "bar_pull");
+  return {
+    componentId: component.id,
+    hostId: component.hostId || component.parentId || null,
+    variantId: metadata.variantId || snapshot.variantId || snapshot.id || metadata.hardware || null,
+    category,
+    canonicalFinishId: snapshot.canonicalFinishId || null,
+    finishName: snapshot.finishName || null,
+    finishSwatch: metadata.finishSwatch || snapshot.canonicalFinishSwatch || null,
+    orientation: metadata.orientation || null,
+    quantityIndex: Number(metadata.quantityIndex) || 1,
+    proxyMode: metadata.proxyMode || null,
+    modelAccuracy: metadata.modelAccuracy || snapshot.modelAccuracy || null
+  };
+}
+
+function compactHardwareSelectionsForHandoff(selections) {
+  const compactable = cloneHardwareHandoffValue(selections);
+  if (isEmbeddedHardwareSnapshot(compactable?.defaultSnapshot, compactable?.defaultVariantId)) {
+    compactable.defaultSnapshot = null;
+  } else if (compactable?.defaultSnapshot) {
+    compactable.defaultSnapshot = compactHardwareSnapshotForHandoff(compactable.defaultSnapshot);
+  }
+  for (const selection of Object.values(compactable?.byHostId || {})) {
+    if (isEmbeddedHardwareSnapshot(selection?.snapshot, selection?.variantId)) selection.snapshot = null;
+    else if (selection?.snapshot) selection.snapshot = compactHardwareSnapshotForHandoff(selection.snapshot);
+  }
+  return {
+    marker: HARDWARE_HANDOFF_MARKER,
+    value: transformHardwareHandoffKeys(compactable, HARDWARE_HANDOFF_KEY_TO_ALIAS)
+  };
+}
+
+function expandHardwareSelectionsFromHandoff(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value) || value.marker !== HARDWARE_HANDOFF_MARKER) {
+    return value;
+  }
+  return expandHardwareSnapshotsFromHandoff(
+    transformHardwareHandoffKeys(value.value, HARDWARE_HANDOFF_ALIAS_TO_KEY)
+  );
+}
+
+function transformHardwareHandoffKeys(value, keyMap) {
+  if (Array.isArray(value)) return value.map((entry) => transformHardwareHandoffKeys(entry, keyMap));
+  if (!value || typeof value !== "object") return value;
+  const encoding = keyMap === HARDWARE_HANDOFF_KEY_TO_ALIAS;
+  return Object.fromEntries(Object.entries(value).map(([key, entry]) => {
+    const transformedKey = encoding
+      ? keyMap.get(key) || (key.startsWith("~") ? `~${key}` : key)
+      : key.startsWith("~~") ? key.slice(1) : keyMap.get(key) || key;
+    return [transformedKey, transformHardwareHandoffKeys(entry, keyMap)];
+  }));
+}
+
+function isEmbeddedHardwareSnapshot(snapshot, variantId) {
+  if (!snapshot || !variantId) return false;
+  const embedded = createHardwareVariantSnapshot(null, variantId);
+  return Boolean(embedded) && equalHardwareHandoffValues(embedded, snapshot);
+}
+
+function cloneHardwareHandoffValue(value) {
+  if (typeof structuredClone === "function") return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
+}
+
+function compactHardwareSnapshotForHandoff(snapshot) {
+  const compact = {
+    snapshotMarker: HARDWARE_SNAPSHOT_HANDOFF_MARKER,
+    schemaVersion: snapshot.schemaVersion,
+    catalogVersion: snapshot.catalogVersion,
+    id: snapshot.id,
+    variantId: snapshot.variantId,
+    selectable: snapshot.selectable,
+    releaseGate: snapshot.releaseGate,
+    warnings: snapshot.warnings,
+    brand: snapshot.brand,
+    collection: snapshot.collection,
+    family: snapshot.family,
+    size: snapshot.size,
+    finish: snapshot.finish,
+    exact: snapshot.exact,
+    sources: snapshot.sources
+  };
+  const expanded = expandCompactHardwareSnapshot(compact);
+  return equalHardwareHandoffValues(expanded, snapshot) ? compact : snapshot;
+}
+
+function equalHardwareHandoffValues(left, right) {
+  if (Object.is(left, right)) return true;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left)
+      && Array.isArray(right)
+      && left.length === right.length
+      && left.every((entry, index) => equalHardwareHandoffValues(entry, right[index]));
+  }
+  if (!left || !right || typeof left !== "object" || typeof right !== "object") return false;
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+  return leftKeys.length === rightKeys.length
+    && leftKeys.every((key, index) => key === rightKeys[index] && equalHardwareHandoffValues(left[key], right[key]));
+}
+
+function expandHardwareSnapshotsFromHandoff(value) {
+  if (Array.isArray(value)) return value.map(expandHardwareSnapshotsFromHandoff);
+  if (!value || typeof value !== "object") return value;
+  if (value.snapshotMarker === HARDWARE_SNAPSHOT_HANDOFF_MARKER) return expandCompactHardwareSnapshot(value);
+  return Object.fromEntries(Object.entries(value).map(([key, entry]) => [
+    key,
+    expandHardwareSnapshotsFromHandoff(entry)
+  ]));
+}
+
+function expandCompactHardwareSnapshot(compact) {
+  const brand = compact.brand || {};
+  const collection = compact.collection || {};
+  const family = compact.family || {};
+  const size = compact.size || {};
+  const finish = compact.finish || {};
+  const canonical = finish.canonical || {};
+  const exact = compact.exact || {};
+  return {
+    schemaVersion: compact.schemaVersion,
+    catalogVersion: compact.catalogVersion,
+    id: compact.id,
+    variantId: compact.variantId,
+    brandId: brand.id,
+    brandName: brand.name,
+    collectionId: collection.id,
+    collectionName: collection.name,
+    familyId: family.id,
+    familyName: family.name,
+    category: family.category,
+    sizeVariantId: size.id,
+    sizeLabel: size.label,
+    manufacturerSizeCode: size.manufacturerSizeCode,
+    finishVariantId: finish.id,
+    finishName: finish.manufacturerName,
+    finishCode: finish.manufacturerCode,
+    canonicalFinishId: finish.canonicalFinishId,
+    canonicalFinishGroup: canonical.group,
+    canonicalFinishSwatch: canonical.swatch,
+    manufacturerProductNumber: exact.manufacturerProductNumber,
+    sku: exact.sku,
+    dimensionsMm: cloneHardwareHandoffValue(size.dimensionsMm),
+    mounting: cloneHardwareHandoffValue(size.mounting),
+    pricing: cloneHardwareHandoffValue(exact.pricing),
+    availability: cloneHardwareHandoffValue(exact.availability),
+    productStatus: exact.productStatus,
+    lastVerifiedAt: exact.lastVerifiedAt,
+    asset: cloneHardwareHandoffValue(family.asset),
+    modelAccuracy: family.asset?.accuracy,
+    selectable: compact.selectable,
+    releaseGate: compact.releaseGate,
+    warnings: cloneHardwareHandoffValue(compact.warnings),
+    brand: cloneHardwareHandoffValue(brand),
+    collection: cloneHardwareHandoffValue(collection),
+    family: cloneHardwareHandoffValue(family),
+    size: cloneHardwareHandoffValue(size),
+    finish: cloneHardwareHandoffValue(finish),
+    exact: cloneHardwareHandoffValue(exact),
+    sources: cloneHardwareHandoffValue(compact.sources)
+  };
+}
+
 function roundMeters(value) {
   return Math.round(value * 1e6) / 1e6;
 }
@@ -554,4 +774,194 @@ function decodeBase64Url(value) {
   const binary = atob(padded);
   const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
   return new TextDecoder().decode(bytes);
+}
+
+function decodeConfigurationToken(token) {
+  if (!token.startsWith(COMPRESSED_CONFIGURATION_PREFIX)) return decodeBase64Url(token);
+  const compressed = token.slice(COMPRESSED_CONFIGURATION_PREFIX.length);
+  const decompressed = decompressConfigurationString(compressed);
+  if (typeof decompressed === "string" && decompressed.startsWith("[")) return decompressed;
+  // A pre-existing raw base64url token can coincidentally start with the
+  // compression marker. Preserve the schema-v1 decoder contract in that case.
+  return decodeBase64Url(token);
+}
+
+// This is the small URI-safe LZ dictionary codec used only for AR handoff
+// tokens. It keeps the synchronous share-link API while making complete saved
+// hardware snapshots practical for QR byte-mode capacity.
+function compressConfigurationString(value) {
+  if (value == null) return "";
+  return compressLz(value, 6, (code) => COMPRESSION_ALPHABET.charAt(code));
+}
+
+function decompressConfigurationString(value) {
+  if (value == null || value === "") return null;
+  const reverse = getCompressionAlphabetReverse();
+  return decompressLz(value.length, 32, (index) => reverse[value.charAt(index)]);
+}
+
+let compressionAlphabetReverse = null;
+function getCompressionAlphabetReverse() {
+  if (compressionAlphabetReverse) return compressionAlphabetReverse;
+  compressionAlphabetReverse = Object.create(null);
+  for (let index = 0; index < COMPRESSION_ALPHABET.length; index += 1) {
+    compressionAlphabetReverse[COMPRESSION_ALPHABET.charAt(index)] = index;
+  }
+  return compressionAlphabetReverse;
+}
+
+function compressLz(uncompressed, bitsPerCharacter, getCharacter) {
+  const dictionary = Object.create(null);
+  const dictionaryToCreate = Object.create(null);
+  let current = "";
+  let combined = "";
+  let previous = "";
+  let enlargeIn = 2;
+  let dictionarySize = 3;
+  let numberOfBits = 2;
+  const data = [];
+  let dataValue = 0;
+  let dataPosition = 0;
+
+  const writeBit = (bit) => {
+    dataValue = (dataValue << 1) | bit;
+    if (dataPosition === bitsPerCharacter - 1) {
+      dataPosition = 0;
+      data.push(getCharacter(dataValue));
+      dataValue = 0;
+    } else {
+      dataPosition += 1;
+    }
+  };
+  const writeBits = (count, input) => {
+    let numeric = input;
+    for (let index = 0; index < count; index += 1) {
+      writeBit(numeric & 1);
+      numeric >>= 1;
+    }
+  };
+  const consumeDictionarySlot = () => {
+    enlargeIn -= 1;
+    if (enlargeIn === 0) {
+      enlargeIn = 2 ** numberOfBits;
+      numberOfBits += 1;
+    }
+  };
+  const writeDictionaryValue = (input) => {
+    if (Object.prototype.hasOwnProperty.call(dictionaryToCreate, input)) {
+      const code = input.charCodeAt(0);
+      if (code < 256) {
+        writeBits(numberOfBits, 0);
+        writeBits(8, code);
+      } else {
+        writeBits(numberOfBits, 1);
+        writeBits(16, code);
+      }
+      consumeDictionarySlot();
+      delete dictionaryToCreate[input];
+    } else {
+      writeBits(numberOfBits, dictionary[input]);
+    }
+    consumeDictionarySlot();
+  };
+
+  for (let index = 0; index < uncompressed.length; index += 1) {
+    current = uncompressed.charAt(index);
+    if (!Object.prototype.hasOwnProperty.call(dictionary, current)) {
+      dictionary[current] = dictionarySize;
+      dictionarySize += 1;
+      dictionaryToCreate[current] = true;
+    }
+    combined = previous + current;
+    if (Object.prototype.hasOwnProperty.call(dictionary, combined)) {
+      previous = combined;
+    } else {
+      writeDictionaryValue(previous);
+      dictionary[combined] = dictionarySize;
+      dictionarySize += 1;
+      previous = current;
+    }
+  }
+  if (previous !== "") writeDictionaryValue(previous);
+  writeBits(numberOfBits, 2);
+  while (true) {
+    dataValue <<= 1;
+    if (dataPosition === bitsPerCharacter - 1) {
+      data.push(getCharacter(dataValue));
+      break;
+    }
+    dataPosition += 1;
+  }
+  return data.join("");
+}
+
+function decompressLz(length, resetValue, getNextValue) {
+  const dictionary = [0, 1, 2];
+  const data = { value: getNextValue(0), position: resetValue, index: 1 };
+  let enlargeIn = 4;
+  let dictionarySize = 4;
+  let numberOfBits = 3;
+
+  const readBits = (count) => {
+    let bits = 0;
+    let power = 1;
+    const maximumPower = 2 ** count;
+    while (power !== maximumPower) {
+      const resultBit = data.value & data.position;
+      data.position >>= 1;
+      if (data.position === 0) {
+        data.position = resetValue;
+        data.value = getNextValue(data.index);
+        data.index += 1;
+      }
+      bits |= (resultBit > 0 ? 1 : 0) * power;
+      power <<= 1;
+    }
+    return bits;
+  };
+
+  let next = readBits(2);
+  let character;
+  if (next === 0) character = String.fromCharCode(readBits(8));
+  else if (next === 1) character = String.fromCharCode(readBits(16));
+  else if (next === 2) return "";
+  else return null;
+  dictionary[3] = character;
+  let previous = character;
+  const result = [character];
+  let resultLength = character.length;
+
+  while (true) {
+    if (data.index > length) return null;
+    let code = readBits(numberOfBits);
+    if (code === 0 || code === 1) {
+      character = String.fromCharCode(readBits(code === 0 ? 8 : 16));
+      dictionary[dictionarySize] = character;
+      code = dictionarySize;
+      dictionarySize += 1;
+      enlargeIn -= 1;
+    } else if (code === 2) {
+      return result.join("");
+    }
+    if (enlargeIn === 0) {
+      enlargeIn = 2 ** numberOfBits;
+      numberOfBits += 1;
+    }
+
+    let entry;
+    if (dictionary[code] !== undefined) entry = dictionary[code];
+    else if (code === dictionarySize) entry = previous + previous.charAt(0);
+    else return null;
+    resultLength += entry.length;
+    if (resultLength > MAX_DECOMPRESSED_CONFIGURATION_LENGTH) return null;
+    result.push(entry);
+    dictionary[dictionarySize] = previous + entry.charAt(0);
+    dictionarySize += 1;
+    enlargeIn -= 1;
+    previous = entry;
+    if (enlargeIn === 0) {
+      enlargeIn = 2 ** numberOfBits;
+      numberOfBits += 1;
+    }
+  }
 }

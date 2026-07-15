@@ -42,9 +42,8 @@ test("accepted Structure stays usable at every required configurator viewport", 
   const viewer = page.locator("[data-3d-viewer]");
   await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
   await expect(viewer.locator("canvas")).toHaveCount(1);
-  await page.locator("[data-guided-continue]").click();
-  await expect(page.locator('[data-guided-step-content="layout"]')).toBeVisible();
-  await expect(page.locator('[data-guided-step="layout"]')).toHaveAttribute("aria-current", "step");
+  await page.locator('[data-category-trigger="sections_layout"]').click();
+  await expect(page.locator('[data-category-panel="sections_layout"]')).toBeVisible();
 
   const sectionCount = page.locator('[data-stepper-control="sections"] input[data-field="sections"]');
   await sectionCount.fill("3");
@@ -86,7 +85,8 @@ test("accepted Structure stays usable at every required configurator viewport", 
       const overallLabel = document.querySelector("[data-overall-dimension-value]")?.closest(".overall-dimension");
       const overflowRegions = {
         page: document.documentElement,
-        guidedStep: document.querySelector('[data-guided-step-content="layout"]'),
+        inspector: document.querySelector("[data-unified-inspector]"),
+        groupPanel: document.querySelector('[data-category-panel="sections_layout"]'),
         sectionDesigner: document.querySelector("[data-section-designer]"),
         sectionOverview: document.querySelector("[data-section-overview]")
       };
@@ -112,7 +112,8 @@ test("accepted Structure stays usable at every required configurator viewport", 
         renderedComponents: Number(viewerRoot?.dataset.renderComponents || 0),
         expectedComponents: Number(viewerRoot?.dataset.renderExpected || 0),
         acceptedDesign: Boolean(controller?.getDiagnostics().acceptedDesign),
-        guidedStep: controller?.getDiagnostics().guidedStep || ""
+        interface: controller?.getDiagnostics().interface || "",
+        activeInspectorGroup: controller?.getDiagnostics().activeInspectorGroup || ""
       };
     });
 
@@ -121,7 +122,8 @@ test("accepted Structure stays usable at every required configurator viewport", 
       expect(overflow, `${label} ${region} horizontal overflow`).toBeLessThanOrEqual(1);
     }
     expect(audit.acceptedDesign, `${label} accepted design`).toBe(true);
-    expect(audit.guidedStep, `${label} guided step`).toBe("layout");
+    expect(audit.interface, `${label} interface`).toBe("unified");
+    expect(audit.activeInspectorGroup, `${label} inspector group`).toBe("sections_layout");
     expect(audit.renderValid, `${label} render validity`).toBe("true");
     expect(audit.canvasCount, `${label} canvas count`).toBe(1);
     expect(audit.renderedComponents, `${label} rendered components`).toBeGreaterThan(0);
@@ -152,7 +154,7 @@ test("six projected clear-width labels do not collide on narrow mobile", async (
   const runtimeIssues = monitorRuntime(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/configurator.html?preset=lower-cabinets", { waitUntil: "networkidle" });
-  await page.locator("[data-guided-continue]").click();
+  await page.locator('[data-category-trigger="sections_layout"]').click();
   await page.locator('[data-stepper-control="sections"] input[data-field="sections"]').fill("6");
   await expect(page.locator("[data-overlay-section]")).toHaveCount(6);
 

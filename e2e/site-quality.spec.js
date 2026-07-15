@@ -290,8 +290,8 @@ test("configurator chrome stays separated at tablet and short-landscape breakpoi
       return {
         alpha,
         model: rect(document.querySelector(".configurator-model")),
-        rail: rect(document.querySelector(".configurator-step-rail")),
-        steps: [...document.querySelectorAll(".configurator-step-rail button")].map(rect),
+        inspector: rect(document.querySelector("[data-unified-inspector]")),
+        groups: [...document.querySelectorAll("[data-unified-inspector] [data-category-trigger]")].map(rect),
         visibleButtons,
         overlappingPairs,
         horizontalOverflow: document.documentElement.scrollWidth - innerWidth,
@@ -311,11 +311,9 @@ test("configurator chrome stays separated at tablet and short-landscape breakpoi
         expect(button.top).toBeGreaterThanOrEqual(layout.model.top);
         expect(button.bottom).toBeLessThanOrEqual(layout.model.bottom);
       }
-      for (const step of layout.steps) {
-        expect(step.left).toBeGreaterThanOrEqual(layout.rail.left);
-        expect(step.right).toBeLessThanOrEqual(layout.rail.right + 1);
-        expect(step.top).toBeGreaterThanOrEqual(layout.rail.top);
-        expect(step.bottom).toBeLessThanOrEqual(layout.rail.bottom + 1);
+      for (const group of layout.groups) {
+        expect(group.left).toBeGreaterThanOrEqual(layout.inspector.left);
+        expect(group.right).toBeLessThanOrEqual(layout.inspector.right + 1);
       }
     }
   }
@@ -336,8 +334,8 @@ test("corrupted saved configuration and malformed query data recover to the stud
 test("selected option illustrations retain visible foreground contrast", async ({ page }) => {
   await page.goto("/configurator.html?preset=lower-cabinets", { waitUntil: "networkidle" });
   await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
-  const allControls = page.getByRole("tab", { name: /All Controls/ });
-  await allControls.click();
+  await page.locator('[data-category-trigger="base_crown"]').click();
+  await expect(page.locator('[data-category-panel="base_crown"]')).toBeVisible();
 
   const findings = await page.evaluate(() => {
     const parse = (value) => {

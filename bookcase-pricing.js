@@ -1,9 +1,9 @@
-import { normalizeBookcaseConfig } from "./bookcase-config.js?v=configurator-construction-20260714b";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=configurator-construction-20260714b";
-import { deriveBookcaseBOM } from "./bookcase-bom.js?v=configurator-construction-20260714b";
-import { deriveBillableComponents } from "./bookcase-billable.js?v=configurator-construction-20260714b";
+import { normalizeBookcaseConfig } from "./bookcase-config.js?v=direct-hardware-20260714a";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=direct-hardware-20260714a";
+import { deriveBookcaseBOM } from "./bookcase-bom.js?v=direct-hardware-20260714a";
+import { deriveBillableComponents } from "./bookcase-billable.js?v=direct-hardware-20260714a";
 
-export const PRICING_VERSION = "2026.07-bom-v1";
+export const PRICING_VERSION = "2026.07-hardware-catalog-v2";
 
 export const PRICING_RATES = Object.freeze({
   baseProject: 1900,
@@ -162,6 +162,7 @@ export function calculateBookcasePriceBreakdown(config, precomputedLayout = null
       PRICING_RATES.hardwarePerHandle[hardware] ?? PRICING_RATES.hardwarePerHandle.unknown
     );
   }
+  const catalogHardwarePricing = addCatalogHardwarePricingLines(lineItems, bom.hardware.schedule || []);
 
   const lightingLines = [];
   for (const [lightType, count] of Object.entries(bom.lighting.byType)) {
@@ -244,6 +245,7 @@ export function calculateBookcasePriceBreakdown(config, precomputedLayout = null
     minimumApplied: subtotal < PRICING_RATES.minimumProjectTotal,
     roundingIncrement: PRICING_RATES.roundingIncrement,
     total,
+    hardwarePricing: catalogHardwarePricing,
     errors: []
   };
 }
@@ -269,7 +271,7 @@ export function buildPricingContext(config, precomputedLayout = null) {
   const billableQuantities = deriveBillableComponents(breakdown.layout);
   const componentCharges = {
     doorStyle: summarizeLines(breakdown.lineItems, "DOOR_STYLE_"),
-    hardware: summarizeLines(breakdown.lineItems, "HARDWARE_"),
+    hardware: summarizeHardwareCharges(breakdown.lineItems, breakdown.hardwarePricing),
     lighting: summarizeLines(breakdown.lineItems, "LIGHTING_")
   };
   return {
@@ -297,14 +299,79 @@ export function formatPrice(value) {
 function addLine(target, code, label, quantity, unit, unitRate) {
   const normalizedQuantity = Number(quantity) || 0;
   const normalizedRate = Number(unitRate) || 0;
-  target.push({
+  const item = {
     code,
     label,
     quantity: roundQuantity(normalizedQuantity),
     unit,
     unitRate: roundCurrency(normalizedRate),
     amount: roundCurrency(normalizedQuantity * normalizedRate)
+  };
+  target.push(item);
+  return item;
+}
+
+function addCatalogHardwarePricingLines(target, schedule) {
+  const result = {
+    estimatedDelta: 0,
+    referenceUnitCount: 0,
+    bandCount: 0,
+    quoteOnlyCount: 0,
+    entries: []
+  };
+  schedule.forEach((entry, index) => {
+    if (entry.resolvedFrom !== "host") return;
+    const pricing = entry.pricing || {};
+    const quantity = Number(entry.quantity) || 0;
+    const legacyRate = PRICING_RATES.hardwarePerHandle[entry.legacyHardware]
+      ?? PRICING_RATES.hardwarePerHandle.unknown;
+    let deltaRate = 0;
+    if (pricing.mode === "reference_unit" && Number.isFinite(Number(pricing.amount))) {
+      deltaRate = Number(pricing.amount) - legacyRate;
+      result.referenceUnitCount += quantity;
+    } else if (pricing.mode === "band") {
+      result.bandCount += quantity;
+    } else {
+      result.quoteOnlyCount += quantity;
+    }
+    const item = addLine(
+      target,
+      `CATALOG_HARDWARE_${String(index + 1).padStart(2, "0")}`,
+      `${entry.brand || "Catalog"} ${entry.family || "hardware"} ${pricing.mode === "reference_unit" ? "reference delta" : "price posture"}`,
+      quantity,
+      "handle",
+      deltaRate
+    );
+    item.catalogVariantId = entry.variantId;
+    item.priceMode = pricing.mode || "quote_only";
+    item.currency = pricing.currency || "USD";
+    item.referenceUnit = Number.isFinite(Number(pricing.amount)) ? Number(pricing.amount) : null;
+    item.legacyAllowanceUnit = legacyRate;
+    item.priceBand = pricing.priceBand || null;
+    item.checkedAt = pricing.checkedAt || null;
+    item.sourceId = pricing.sourceId || null;
+    item.note = pricing.note || "Price confirmed with quote.";
+    result.estimatedDelta = roundCurrency(result.estimatedDelta + item.amount);
+    result.entries.push(item);
   });
+  return result;
+}
+
+function summarizeHardwareCharges(lineItems, hardwarePricing) {
+  const legacy = summarizeLines(lineItems, "HARDWARE_");
+  const catalogItems = lineItems.filter((item) => item.code.startsWith("CATALOG_HARDWARE_"));
+  return {
+    ...legacy,
+    amount: roundCurrency(legacy.amount + catalogItems.reduce((total, item) => total + item.amount, 0)),
+    items: [...legacy.items, ...catalogItems],
+    legacyAllowanceAmount: legacy.amount,
+    catalogDeltaAmount: roundCurrency(hardwarePricing?.estimatedDelta || 0),
+    pricePosture: {
+      referenceUnitCount: hardwarePricing?.referenceUnitCount || 0,
+      bandCount: hardwarePricing?.bandCount || 0,
+      quoteOnlyCount: hardwarePricing?.quoteOnlyCount || 0
+    }
+  };
 }
 
 function summarizeLines(lineItems, prefix) {

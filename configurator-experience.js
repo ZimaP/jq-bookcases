@@ -8,84 +8,65 @@ import {
   layoutPresets,
   normalizeBookcaseConfig,
   optionLabels
-} from "./bookcase-config.js?v=configurator-construction-20260714b";
-import { deriveBillableComponents } from "./bookcase-billable.js?v=configurator-construction-20260714b";
-import { getSectionDesignerState } from "./bookcase-sections.js?v=configurator-construction-20260714b";
+} from "./bookcase-config.js?v=direct-hardware-20260714a";
+import { deriveBillableComponents } from "./bookcase-billable.js?v=direct-hardware-20260714a";
+import { deriveBookcaseBOM } from "./bookcase-bom.js?v=direct-hardware-20260714a";
+import { getSectionDesignerState } from "./bookcase-sections.js?v=direct-hardware-20260714a";
 
-export const CONFIGURATOR_MODES = Object.freeze({
-  guided: "guided",
-  all: "all"
-});
-
-export const CONFIGURATOR_PREFERENCE_KEYS = Object.freeze({
-  mode: "jqConfiguratorMode",
-  guidedStep: "jqConfiguratorGuidedStep",
-  allCategory: "jqConfiguratorAllCategory"
-});
-
-export const GUIDED_STEPS = Object.freeze([
-  { id: "dimensions", label: "Space", shortLabel: "Space", title: "Confirm your space", description: "Set the wall width, available height, and preferred bookcase depth." },
-  { id: "layout", label: "Structure", shortLabel: "Structure", title: "Shape the structure", description: "Choose the section count, then resize or split individual sections." },
-  { id: "storage", label: "Storage", shortLabel: "Storage", title: "Plan the storage", description: "Mix open shelving, doors, drawers, and tall storage by section." },
-  { id: "construction", label: "Build", shortLabel: "Build", title: "Choose construction details", description: "Set shelf thickness, base, and crown or top profiles." },
-  { id: "appearance", label: "Style", shortLabel: "Style", title: "Choose finishes and details", description: "Coordinate finish, hardware, and lighting." },
-  { id: "review", label: "Review", shortLabel: "Review", title: "Review your design", description: "Confirm the physical design and service choices before requesting a quote." }
-]);
-
-export const ALL_CONTROL_CATEGORIES = Object.freeze([
-  { id: "dimensions", label: "Space & Dimensions", step: "dimensions" },
-  { id: "layout", label: "Foundation Idea", step: "layout" },
-  { id: "section_designer", label: "Structure & Sections", step: "layout" },
-  { id: "storage", label: "Shelves & Cabinets", step: "storage" },
-  { id: "construction", label: "Construction", step: "construction" },
-  { id: "doors", label: "Fronts", step: "storage" },
-  { id: "finish", label: "Finish", step: "appearance" },
-  { id: "hardware", label: "Hardware", step: "appearance" },
-  { id: "lighting", label: "Lighting", step: "appearance" },
-  { id: "service", label: "Project Service", step: "review" }
+export const UNIFIED_CONTROL_GROUPS = Object.freeze([
+  { id: "overall_size", label: "Overall Size" },
+  { id: "sections_layout", label: "Sections & Layout" },
+  { id: "shelves", label: "Shelves" },
+  { id: "storage_fronts", label: "Storage & Fronts" },
+  { id: "base_crown", label: "Base & Crown" },
+  { id: "finish", label: "Finish" },
+  { id: "hardware", label: "Hardware" },
+  { id: "lighting", label: "Lighting" },
+  { id: "project_service", label: "Project Service" }
 ]);
 
 export const PHYSICAL_CONFIG_FIELDS = Object.freeze([
   "layoutPreset", "layoutType", "width", "height", "depth", "sections", "shelves",
   "shelfThickness", "lowerCabinets", "lowerStorage", "drawerCount", "centerOpening",
-  "deskOpening", "featureOpening", "tallDoors", "constructionProfile", "doorStyle", "drawerFrontStyle", "doorCount", "hardware",
+  "deskOpening", "featureOpening", "tallDoors", "constructionProfile", "doorStyle", "drawerFrontStyle", "doorCount", "hardware", "hardwareSelections",
   "lighting", "lightingWarmth", "finish", "customPaintColor", "customPaintCode",
   "customPaintHex", "paintSelection", "crownStyle", "baseStyle", "layoutMetadata", "installation", "delivery"
 ]);
 
 export const CONTROL_REGISTRY = Object.freeze([
-  { field: "layoutPreset", step: "layout", category: "layout", access: "direct" },
-  { field: "layoutType", step: "layout", category: "layout", access: "preset-derived" },
-  { field: "centerOpening", step: "layout", category: "layout", access: "preset-derived" },
-  { field: "deskOpening", step: "layout", category: "layout", access: "preset-derived" },
-  { field: "featureOpening", step: "layout", category: "layout", access: "preset-derived" },
-  { field: "tallDoors", step: "layout", category: "layout", access: "preset-derived" },
-  { field: "layoutMetadata", step: "layout", category: "layout", access: "preset-derived" },
-  { field: "width", step: "dimensions", category: "dimensions", access: "direct" },
-  { field: "height", step: "dimensions", category: "dimensions", access: "direct" },
-  { field: "depth", step: "dimensions", category: "dimensions", access: "direct" },
-  { field: "sections", step: "layout", category: "section_designer", access: "direct" },
-  { field: "shelves", step: "storage", category: "storage", access: "direct" },
-  { field: "lowerCabinets", step: "storage", category: "storage", access: "direct" },
-  { field: "lowerStorage", step: "storage", category: "storage", access: "direct" },
-  { field: "drawerCount", step: "storage", category: "storage", access: "direct" },
-  { field: "shelfThickness", step: "construction", category: "construction", access: "direct" },
-  { field: "baseStyle", step: "construction", category: "construction", access: "direct" },
-  { field: "crownStyle", step: "construction", category: "construction", access: "direct" },
-  { field: "constructionProfile", step: "construction", category: "construction", access: "derived" },
-  { field: "doorStyle", step: "storage", category: "doors", access: "direct" },
-  { field: "drawerFrontStyle", step: "storage", category: "doors", access: "direct" },
-  { field: "doorCount", step: "storage", category: "doors", access: "derived" },
-  { field: "finish", step: "appearance", category: "finish", access: "direct" },
-  { field: "customPaintColor", step: "appearance", category: "finish", access: "direct" },
-  { field: "customPaintCode", step: "appearance", category: "finish", access: "direct" },
-  { field: "customPaintHex", step: "appearance", category: "finish", access: "direct" },
-  { field: "paintSelection", step: "appearance", category: "finish", access: "derived" },
-  { field: "hardware", step: "appearance", category: "hardware", access: "direct" },
-  { field: "lighting", step: "appearance", category: "lighting", access: "direct" },
-  { field: "lightingWarmth", step: "appearance", category: "lighting", access: "direct" },
-  { field: "installation", step: "review", category: "service", access: "direct" },
-  { field: "delivery", step: "review", category: "service", access: "direct" }
+  { field: "layoutPreset", group: "sections_layout", access: "direct" },
+  { field: "layoutType", group: "sections_layout", access: "preset-derived" },
+  { field: "centerOpening", group: "sections_layout", access: "preset-derived" },
+  { field: "deskOpening", group: "sections_layout", access: "preset-derived" },
+  { field: "featureOpening", group: "sections_layout", access: "preset-derived" },
+  { field: "tallDoors", group: "sections_layout", access: "preset-derived" },
+  { field: "layoutMetadata", group: "sections_layout", access: "direct" },
+  { field: "width", group: "overall_size", access: "direct" },
+  { field: "height", group: "overall_size", access: "direct" },
+  { field: "depth", group: "overall_size", access: "direct" },
+  { field: "sections", group: "sections_layout", access: "direct" },
+  { field: "shelves", group: "shelves", access: "direct" },
+  { field: "shelfThickness", group: "shelves", access: "direct" },
+  { field: "lowerCabinets", group: "storage_fronts", access: "direct" },
+  { field: "lowerStorage", group: "storage_fronts", access: "direct" },
+  { field: "drawerCount", group: "storage_fronts", access: "direct" },
+  { field: "doorStyle", group: "storage_fronts", access: "direct" },
+  { field: "drawerFrontStyle", group: "storage_fronts", access: "direct" },
+  { field: "doorCount", group: "storage_fronts", access: "derived" },
+  { field: "baseStyle", group: "base_crown", access: "direct" },
+  { field: "crownStyle", group: "base_crown", access: "direct" },
+  { field: "constructionProfile", group: "base_crown", access: "derived" },
+  { field: "finish", group: "finish", access: "direct" },
+  { field: "customPaintColor", group: "finish", access: "direct" },
+  { field: "customPaintCode", group: "finish", access: "direct" },
+  { field: "customPaintHex", group: "finish", access: "direct" },
+  { field: "paintSelection", group: "finish", access: "derived" },
+  { field: "hardware", group: "hardware", access: "direct" },
+  { field: "hardwareSelections", group: "hardware", access: "direct" },
+  { field: "lighting", group: "lighting", access: "direct" },
+  { field: "lightingWarmth", group: "lighting", access: "direct" },
+  { field: "installation", group: "project_service", access: "direct" },
+  { field: "delivery", group: "project_service", access: "direct" }
 ]);
 
 export const DIMENSION_LIMITS = Object.freeze({
@@ -102,20 +83,104 @@ export const EDITABLE_NUMBER_LIMITS = Object.freeze({
   drawerCount: { min: 2, max: 5, label: "Drawers per section", unit: "" }
 });
 
-const stepIds = new Set(GUIDED_STEPS.map((step) => step.id));
-const categoryIds = new Set(ALL_CONTROL_CATEGORIES.map((category) => category.id));
-const modeIds = new Set(Object.values(CONFIGURATOR_MODES));
+const inspectorGroupIds = new Set(UNIFIED_CONTROL_GROUPS.map((group) => group.id));
 
-export function normalizeConfiguratorMode(value) {
-  return modeIds.has(value) ? value : CONFIGURATOR_MODES.guided;
-}
+export const CONTEXT_EDITOR_DEFINITIONS = Object.freeze({
+  section: Object.freeze({
+    id: "section",
+    kind: "section",
+    scope: "section",
+    inspectorGroupId: "sections_layout",
+    controlIds: Object.freeze(["section_width", "section_type", "door_arrangement", "section_actions"])
+  }),
+  shelves: Object.freeze({
+    id: "shelves",
+    kind: "shelf",
+    scope: "global",
+    inspectorGroupId: "shelves",
+    controlIds: Object.freeze(["shelves", "shelfThickness"])
+  }),
+  door: Object.freeze({
+    id: "door",
+    kind: "front",
+    scope: "section",
+    inspectorGroupId: "storage_fronts",
+    controlIds: Object.freeze(["section_type", "doorStyle", "door_arrangement", "section_width", "hardware_shortcut"])
+  }),
+  drawer: Object.freeze({
+    id: "drawer",
+    kind: "front",
+    scope: "section",
+    inspectorGroupId: "storage_fronts",
+    controlIds: Object.freeze(["section_type", "drawerCount", "drawerFrontStyle", "hardware_shortcut"])
+  }),
+  hardware: Object.freeze({
+    id: "hardware",
+    kind: "hardware",
+    scope: "host",
+    inspectorGroupId: "hardware",
+    controlIds: Object.freeze(["hardware", "hardwareSelections"])
+  }),
+  base: Object.freeze({
+    id: "base",
+    kind: "base",
+    scope: "global",
+    inspectorGroupId: "base_crown",
+    controlIds: Object.freeze(["baseStyle"])
+  }),
+  crown: Object.freeze({
+    id: "crown",
+    kind: "crown",
+    scope: "global",
+    inspectorGroupId: "base_crown",
+    controlIds: Object.freeze(["crownStyle"])
+  }),
+  lighting: Object.freeze({
+    id: "lighting",
+    kind: "lighting",
+    scope: "global",
+    inspectorGroupId: "lighting",
+    controlIds: Object.freeze(["lighting", "lightingWarmth"])
+  }),
+  body: Object.freeze({
+    id: "body",
+    kind: "body",
+    scope: "global",
+    inspectorGroupId: "overall_size",
+    controlIds: Object.freeze(["width", "height", "depth", "finish"])
+  }),
+  divider: Object.freeze({
+    id: "divider",
+    kind: "divider",
+    scope: "adjacent-pair",
+    inspectorGroupId: "sections_layout",
+    controlIds: Object.freeze(["divider_position", "section_width"])
+  })
+});
 
-export function normalizeGuidedStep(value) {
-  return stepIds.has(value) ? value : GUIDED_STEPS[0].id;
-}
+export const COMPONENT_ROLE_TO_EDITOR = Object.freeze({
+  section: "section",
+  section_group: "section",
+  opening: "section",
+  shelf: "shelves",
+  fixed_shelf: "shelves",
+  door: "door",
+  drawer_front: "drawer",
+  handle: "hardware",
+  base: "base",
+  trim: "base",
+  crown: "crown",
+  top_panel: "crown",
+  light: "lighting",
+  assembly: "body",
+  side_panel: "body",
+  back_panel: "body",
+  bottom_panel: "body",
+  divider: "divider"
+});
 
-export function normalizeAllCategory(value) {
-  return categoryIds.has(value) ? value : ALL_CONTROL_CATEGORIES[0].id;
+export function normalizeInspectorGroup(value) {
+  return inspectorGroupIds.has(value) ? value : UNIFIED_CONTROL_GROUPS[0].id;
 }
 
 export function escapeHtml(value) {
@@ -128,31 +193,171 @@ export function escapeHtml(value) {
   })[character]);
 }
 
-export function getGuidedStepIndex(stepId) {
-  const index = GUIDED_STEPS.findIndex((step) => step.id === normalizeGuidedStep(stepId));
-  return Math.max(0, index);
+export function inspectorGroupForField(field) {
+  return CONTROL_REGISTRY.find((entry) => entry.field === field)?.group || UNIFIED_CONTROL_GROUPS[0].id;
 }
 
-export function categoryForGuidedStep(stepId, appearanceCategory = "finish") {
-  const normalized = normalizeGuidedStep(stepId);
-  if (normalized === "layout") return "section_designer";
-  if (normalized === "appearance") {
-    return ["finish", "hardware", "lighting"].includes(appearanceCategory) ? appearanceCategory : "finish";
+function getSelectionComponentId(hit) {
+  if (typeof hit === "string") return hit;
+  return hit?.componentId || hit?.id || hit?.descriptor?.id || hit?.component?.id || null;
+}
+
+function getOwningSection(component, componentById) {
+  if (!component) return null;
+  const explicitSectionId = component.metadata?.sectionId || component.sectionId;
+  if (explicitSectionId && componentById.get(explicitSectionId)?.role === "section") {
+    return componentById.get(explicitSectionId);
   }
-  if (normalized === "review") return "service";
-  return normalized;
+  const memberSectionId = component.role === "section_group"
+    ? component.metadata?.memberSectionIds?.[0]
+    : null;
+  if (memberSectionId && componentById.get(memberSectionId)?.role === "section") {
+    return componentById.get(memberSectionId);
+  }
+
+  const pending = [component];
+  const visited = new Set();
+  while (pending.length) {
+    const current = pending.shift();
+    if (!current?.id || visited.has(current.id)) continue;
+    visited.add(current.id);
+    if (current.role === "section") return current;
+    const currentExplicitId = current.metadata?.sectionId || current.sectionId;
+    if (currentExplicitId && componentById.get(currentExplicitId)?.role === "section") {
+      return componentById.get(currentExplicitId);
+    }
+    const currentMemberId = current.role === "section_group"
+      ? current.metadata?.memberSectionIds?.[0]
+      : null;
+    if (currentMemberId && componentById.get(currentMemberId)?.role === "section") {
+      return componentById.get(currentMemberId);
+    }
+    for (const relatedId of [current.parentId, current.hostId]) {
+      const related = relatedId ? componentById.get(relatedId) : null;
+      if (related && !visited.has(related.id)) pending.push(related);
+    }
+  }
+  return null;
 }
 
-export function guidedStepForCategory(categoryId) {
-  return ALL_CONTROL_CATEGORIES.find((category) => category.id === normalizeAllCategory(categoryId))?.step || "layout";
+function getSelectionTitle(editorId, component, sectionIndex) {
+  const sectionSuffix = Number.isInteger(sectionIndex) ? ` · Section ${sectionIndex + 1}` : "";
+  if (editorId === "section") return Number.isInteger(sectionIndex) ? `Section ${sectionIndex + 1}` : "Section";
+  if (editorId === "shelves") return `Shelf${sectionSuffix}`;
+  if (editorId === "door") return `Door${sectionSuffix}`;
+  if (editorId === "drawer") return `Drawer Front${sectionSuffix}`;
+  if (editorId === "hardware") {
+    const label = component.metadata?.hardwareFacts?.familyName
+      || component.metadata?.hardwareFacts?.categoryLabel
+      || "Hardware";
+    return `${label}${sectionSuffix}`;
+  }
+  if (editorId === "base") return "Base";
+  if (editorId === "crown") return "Crown & Top";
+  if (editorId === "lighting") return `Lighting${sectionSuffix}`;
+  if (editorId === "divider") {
+    const boundaryIndex = Number(component.metadata?.boundaryIndex);
+    return Number.isInteger(boundaryIndex) ? `Divider ${boundaryIndex}` : "Divider";
+  }
+  return "Overall Bookcase";
 }
 
-export function guidedStepForField(field) {
-  return CONTROL_REGISTRY.find((entry) => entry.field === field)?.step || "layout";
+/**
+ * Resolve an accepted layout descriptor to one semantic editing context.
+ * The hit may be a component id or a viewer payload containing componentId.
+ * Arbitrary hit metadata is never trusted in place of the accepted descriptor.
+ */
+export function resolveSelectionContext(layout, hit, source = "canvas") {
+  const components = Array.isArray(layout?.components) ? layout.components : [];
+  const componentById = new Map(components.map((component) => [component.id, component]));
+  const component = componentById.get(getSelectionComponentId(hit));
+  if (!component) return null;
+
+  const editorId = COMPONENT_ROLE_TO_EDITOR[component.role];
+  const editor = editorId ? CONTEXT_EDITOR_DEFINITIONS[editorId] : null;
+  if (!editor) return null;
+
+  const section = getOwningSection(component, componentById);
+  const rawSectionIndex = Number(section?.metadata?.index);
+  const sectionIndex = Number.isInteger(rawSectionIndex) ? rawSectionIndex : null;
+  const host = component.hostId ? componentById.get(component.hostId) : null;
+  const front = component.role === "handle" && ["door", "drawer_front"].includes(host?.role)
+    ? host
+    : ["door", "drawer_front"].includes(component.role)
+      ? component
+      : null;
+  const boundaryIndex = component.role === "divider" && Number.isInteger(Number(component.metadata?.boundaryIndex))
+    ? Number(component.metadata.boundaryIndex)
+    : null;
+  const adjacentSections = boundaryIndex === null
+    ? []
+    : components
+      .filter((item) => item.role === "section" && [boundaryIndex - 1, boundaryIndex].includes(Number(item.metadata?.index)))
+      .sort((left, right) => Number(left.metadata?.index) - Number(right.metadata?.index));
+  const resolvedSectionIndex = sectionIndex ?? (boundaryIndex === null ? null : Math.max(0, boundaryIndex - 1));
+  const highlightComponentId = editorId === "section" && section ? section.id : component.id;
+  const hitSource = typeof hit === "object" && hit?.source ? hit.source : source;
+  const controlGroupIds = editorId === "body"
+    ? ["overall_size", "finish"]
+    : ["door", "drawer"].includes(editorId)
+      ? ["storage_fronts", "sections_layout"]
+      : [editor.inspectorGroupId];
+  const anchorClientX = hit?.anchorClientX !== null && hit?.anchorClientX !== undefined && Number.isFinite(Number(hit.anchorClientX))
+    ? Number(hit.anchorClientX)
+    : null;
+  const anchorClientY = hit?.anchorClientY !== null && hit?.anchorClientY !== undefined && Number.isFinite(Number(hit.anchorClientY))
+    ? Number(hit.anchorClientY)
+    : null;
+
+  return Object.freeze({
+    kind: editor.kind,
+    editorId,
+    componentId: component.id,
+    role: component.role,
+    hostId: component.hostId || null,
+    frontId: front?.id || null,
+    sectionId: section?.id || null,
+    sectionIndex: resolvedSectionIndex,
+    adjacentSectionIds: Object.freeze(adjacentSections.map((item) => item.id)),
+    title: getSelectionTitle(editorId, component, resolvedSectionIndex),
+    inspectorGroupId: editor.inspectorGroupId,
+    controlGroupIds: Object.freeze(controlGroupIds),
+    controlIds: editor.controlIds,
+    scope: editor.scope,
+    highlightTarget: Object.freeze({
+      strategy: editorId === "section" ? "section-bounds" : "component-bounds",
+      componentId: highlightComponentId
+    }),
+    anchorComponentId: component.id,
+    anchorClientX,
+    anchorClientY,
+    source: hitSource || null
+  });
 }
 
-export function categoryForField(field) {
-  return CONTROL_REGISTRY.find((entry) => entry.field === field)?.category || "layout";
+/** Re-resolve presentation-only selection after an accepted layout rebuild. */
+export function reconcileSelectionContext(previousSelection, nextLayout) {
+  if (!previousSelection) return null;
+  const exact = resolveSelectionContext(nextLayout, {
+    componentId: previousSelection.componentId,
+    source: previousSelection.source,
+    anchorClientX: previousSelection.anchorClientX,
+    anchorClientY: previousSelection.anchorClientY
+  }, previousSelection.source);
+  if (exact) return exact;
+
+  const components = Array.isArray(nextLayout?.components) ? nextLayout.components : [];
+  let fallback = null;
+  if (previousSelection.kind === "section" && Number.isInteger(previousSelection.sectionIndex)) {
+    fallback = components.find((component) => (
+      component.role === "section" && component.metadata?.index === previousSelection.sectionIndex
+    ));
+  } else if (["base", "crown", "body"].includes(previousSelection.editorId)) {
+    fallback = components.find((component) => COMPONENT_ROLE_TO_EDITOR[component.role] === previousSelection.editorId);
+  }
+  return fallback
+    ? resolveSelectionContext(nextLayout, { componentId: fallback.id, source: previousSelection.source }, previousSelection.source)
+    : null;
 }
 
 export function getApplicability(config, layout) {
@@ -198,43 +403,48 @@ export function getInvalidDraftIssues(drafts = {}) {
   });
 }
 
-export function validateGuidedStep(stepId, config, layout, drafts = {}) {
-  const step = normalizeGuidedStep(stepId);
+export function validateUnifiedConfiguration(config, layout, drafts = {}, options = {}) {
   const state = normalizeBookcaseConfig(config);
   const issues = [];
-  if (["dimensions", "layout", "storage", "construction", "review"].includes(step)) {
-    const relevantFields = step === "dimensions"
-      ? new Set(["width", "height", "depth"])
-      : step === "layout"
-        ? new Set(["sections"])
-      : step === "storage"
-        ? new Set(["shelves", "drawerCount"])
-        : step === "construction"
-          ? new Set(["shelfThickness"])
-        : null;
-    issues.push(...getInvalidDraftIssues(drafts).filter((issue) => !relevantFields || relevantFields.has(issue.field)));
+  issues.push(...getInvalidDraftIssues(drafts).map((issue) => ({
+    ...issue,
+    inspectorGroupId: inspectorGroupForField(issue.field)
+  })));
+  if (state.finish === "custom_bm" && !state.customPaintColor && !state.customPaintCode) {
+    issues.push({
+      field: "customPaintColor",
+      inspectorGroupId: "finish",
+      message: "Choose a Benjamin Moore color or select a standard finish."
+    });
   }
-  if (["appearance", "review"].includes(step) && state.finish === "custom_bm" && !state.customPaintColor && !state.customPaintCode) {
-    issues.push({ field: "customPaintColor", message: "Choose a Benjamin Moore color or select a standard finish." });
-  }
-  if (["storage", "construction", "review"].includes(step) && layout?.validation?.valid === false) {
+  if (layout?.validation?.valid === false) {
     const error = layout.validation.errors?.[0];
-    issues.push({ field: error?.field || "configuration", message: error?.message || "This combination needs attention before you continue." });
+    const field = error?.field || "configuration";
+    issues.push({
+      field,
+      inspectorGroupId: CONTROL_REGISTRY.some((entry) => entry.field === field)
+        ? inspectorGroupForField(field)
+        : "sections_layout",
+      message: error?.message || "This combination needs attention before you continue."
+    });
   }
-  return { valid: issues.length === 0, issues };
+  const requestedGroup = typeof options === "string" ? options : options?.groupId;
+  const filteredIssues = requestedGroup
+    ? issues.filter((issue) => issue.inspectorGroupId === normalizeInspectorGroup(requestedGroup))
+    : issues;
+  return { valid: filteredIssues.length === 0, issues: filteredIssues };
 }
 
 export function hasBlockingConfigurationIssue(config, layout, drafts = {}) {
-  return !validateGuidedStep("review", config, layout, drafts).valid;
+  return !validateUnifiedConfiguration(config, layout, drafts).valid;
 }
 
-export function getCategorySummary(categoryId, config, layout, basePresetId = "") {
+export function getInspectorGroupSummary(groupId, config, layout, basePresetId = "") {
   const state = normalizeBookcaseConfig(config);
   const applicability = getApplicability(state, layout);
-  const category = normalizeAllCategory(categoryId);
-  if (category === "layout") return getLayoutLabel(state, basePresetId);
-  if (category === "dimensions") return `${state.width} in W × ${state.height} in H × ${state.depth} in D · ${state.shelves} shelves · ${optionLabels.shelfThickness[state.shelfThickness]}`;
-  if (category === "section_designer") {
+  const group = normalizeInspectorGroup(groupId);
+  if (group === "overall_size") return `${state.width} in W × ${state.height} in H × ${state.depth} in D`;
+  if (group === "sections_layout") {
     const designer = getSectionDesignerState(state, layout);
     const counts = designer.sections.reduce((result, section) => {
       result[section.type] = (result[section.type] || 0) + 1;
@@ -246,25 +456,27 @@ export function getCategorySummary(categoryId, config, layout, basePresetId = ""
       counts.open ? `${counts.open} open` : "",
       counts.tall_doors ? `${counts.tall_doors} tall` : ""
     ].filter(Boolean);
-    return `${designer.sections.length} sections${parts.length ? ` · ${parts.join(" · ")}` : ""}`;
+    return `${getLayoutLabel(state, basePresetId)} · ${designer.sections.length} sections${parts.length ? ` · ${parts.join(" · ")}` : ""}`;
   }
-  if (category === "storage") return `${state.sections} sections${state.lowerCabinets ? `, ${state.lowerStorage}` : ", open base"}`;
-  if (category === "construction") return `${optionLabels.baseStyle[state.baseStyle]}, ${optionLabels.crownStyle[state.crownStyle]}`;
-  if (category === "doors") {
-    if (!applicability.hasFronts) return "Not applicable to this layout";
+  if (group === "shelves") {
+    return `${state.shelves} per open section · ${optionLabels.shelfThickness[state.shelfThickness]} thick · Applies to all open sections`;
+  }
+  if (group === "storage_fronts") {
+    if (!applicability.hasFronts) return state.lowerCabinets ? `${state.sections} sections · Storage fronts not generated` : "Open storage · No fronts";
     const parts = [];
     if (applicability.hasDoors) parts.push(formatGeneratedDoorStyles(applicability.billableQuantities.doorsByStyle));
     if (applicability.hasDrawers) parts.push(formatGeneratedDrawerStyles(applicability.billableQuantities.drawersByStyle));
-    return parts.join(", ") || "Storage fronts";
+    return `${state.sections} sections · ${parts.join(", ") || "Storage fronts"}`;
   }
-  if (category === "finish") return getFinishLabel(state);
-  if (category === "hardware") return applicability.showHardware ? optionLabels.hardware[state.hardware] : "Not applicable";
-  if (category === "lighting") {
+  if (group === "base_crown") return `${optionLabels.baseStyle[state.baseStyle]}, ${optionLabels.crownStyle[state.crownStyle]}`;
+  if (group === "finish") return getFinishLabel(state);
+  if (group === "hardware") return applicability.showHardware ? optionLabels.hardware[state.hardware] : "Not applicable";
+  if (group === "lighting") {
     if (state.lighting === "no_lighting") return optionLabels.lighting[state.lighting];
     if (!applicability.hasBillableLighting) return `${optionLabels.lighting[state.lighting]} selected · No compatible locations`;
     return `${optionLabels.lighting[state.lighting]}, ${optionLabels.lightingWarmth[state.lightingWarmth]} · ${applicability.generatedLightCount} generated`;
   }
-  if (category === "service") return `${optionLabels.delivery[state.delivery]}, ${optionLabels.installation[state.installation]}`;
+  if (group === "project_service") return `${optionLabels.delivery[state.delivery]}, ${optionLabels.installation[state.installation]}`;
   return "";
 }
 
@@ -274,6 +486,7 @@ export function createReviewGroups(config, layout, basePresetId = "") {
   const designer = getSectionDesignerState(state, layout);
   const hardwareType = hardwareTypeOptions.find((option) => option.value === getHardwareType(state.hardware));
   const hardwareFinish = getHardwareFinishOption(getHardwareFinish(state.hardware));
+  const hardwareSchedule = layout?.validation?.valid ? deriveBookcaseBOM(layout).hardware.schedule || [] : [];
   const openingLabel = {
     media: "Media opening",
     desk: "Desk opening",
@@ -283,7 +496,7 @@ export function createReviewGroups(config, layout, basePresetId = "") {
     {
       id: "layout",
       title: "Layout",
-      step: "layout",
+      inspectorGroupId: "sections_layout",
       items: [
         { label: "Design", value: getLayoutLabel(state, basePresetId) },
         ...(openingLabel ? [{ label: "Feature", value: openingLabel }] : [])
@@ -292,17 +505,17 @@ export function createReviewGroups(config, layout, basePresetId = "") {
     {
       id: "dimensions",
       title: "Dimensions",
-      step: "dimensions",
+      inspectorGroupId: "overall_size",
       items: [
         { label: "Overall size", value: `${state.width} in W × ${state.height} in H × ${state.depth} in D` },
-        { label: "Shelves per section", value: String(state.shelves) },
-        { label: "Shelf thickness", value: optionLabels.shelfThickness[state.shelfThickness] }
+        { label: "Shelves per section", value: String(state.shelves), inspectorGroupId: "shelves" },
+        { label: "Shelf thickness", value: optionLabels.shelfThickness[state.shelfThickness], inspectorGroupId: "shelves" }
       ]
     },
     {
       id: "storage",
       title: "Shelves & Cabinets",
-      step: "storage",
+      inspectorGroupId: "storage_fronts",
       items: [
         { label: "Sections", value: String(state.sections) },
         { label: "Lower storage", value: state.lowerCabinets ? (state.lowerStorage === "drawers" ? "Drawers" : "Doors") : "None" },
@@ -319,7 +532,7 @@ export function createReviewGroups(config, layout, basePresetId = "") {
     {
       id: "construction",
       title: "Construction",
-      step: "construction",
+      inspectorGroupId: "base_crown",
       items: [
         { label: "Base", value: optionLabels.baseStyle[state.baseStyle] },
         { label: "Top", value: optionLabels.crownStyle[state.crownStyle] }
@@ -328,7 +541,7 @@ export function createReviewGroups(config, layout, basePresetId = "") {
     {
       id: "appearance",
       title: "Appearance",
-      step: "appearance",
+      inspectorGroupId: "finish",
       items: [
         ...(state.finish === "custom_bm" && state.paintSelection ? [
           { label: "Finish", value: state.paintSelection.brand || "Benjamin Moore" },
@@ -337,24 +550,31 @@ export function createReviewGroups(config, layout, basePresetId = "") {
           { label: "Preview", value: "Digital preview only · Confirm with an official paint sample" }
         ] : [{ label: "Finish", value: getFinishLabel(state) }]),
         ...(applicability.showHardware ? [
-          { label: "Hardware type", value: hardwareType?.label || optionLabels.hardware[state.hardware] },
-          { label: "Hardware finish", value: `${hardwareFinish?.label || optionLabels.hardware[state.hardware]} · ${applicability.billableQuantities.hardwareUnits} generated` }
+          { label: "Hardware type", value: hardwareType?.label || optionLabels.hardware[state.hardware], inspectorGroupId: "hardware" },
+          { label: "Hardware finish", value: `${hardwareFinish?.label || optionLabels.hardware[state.hardware]} · ${applicability.billableQuantities.hardwareUnits} generated`, inspectorGroupId: "hardware" },
+          ...hardwareSchedule.map((entry, index) => ({
+            label: hardwareSchedule.length === 1 ? "Hardware schedule" : `Hardware schedule ${index + 1}`,
+            value: formatHardwareScheduleEntry(entry),
+            hardwareSchedule: entry,
+            inspectorGroupId: "hardware"
+          }))
         ] : []),
         {
           label: "Lighting",
+          inspectorGroupId: "lighting",
           value: applicability.hasBillableLighting
             ? `${optionLabels.lighting[state.lighting]} · ${applicability.generatedLightCount} generated`
             : state.lighting === "no_lighting"
               ? optionLabels.lighting[state.lighting]
               : `${optionLabels.lighting[state.lighting]} selected · No compatible locations`
         },
-        ...(applicability.showLightingWarmth ? [{ label: "Light temperature", value: `${optionLabels.lightingWarmth[state.lightingWarmth]} · ${getWarmthDescription(state.lightingWarmth)}` }] : [])
+        ...(applicability.showLightingWarmth ? [{ label: "Light temperature", value: `${optionLabels.lightingWarmth[state.lightingWarmth]} · ${getWarmthDescription(state.lightingWarmth)}`, inspectorGroupId: "lighting" }] : [])
       ]
     },
     {
       id: "service",
       title: "Project Service",
-      step: "review",
+      inspectorGroupId: "project_service",
       items: [
         { label: "Delivery", value: optionLabels.delivery[state.delivery] },
         { label: "Installation", value: optionLabels.installation[state.installation] }
@@ -366,6 +586,18 @@ export function createReviewGroups(config, layout, basePresetId = "") {
 
 function formatSectionWidth(value) {
   return Number(Number(value).toFixed(3)).toString();
+}
+
+function formatHardwareScheduleEntry(entry) {
+  const identity = [entry.brand, entry.family, entry.size, entry.finish && `${entry.finish}${entry.finishCode ? ` ${entry.finishCode}` : ""}`]
+    .filter(Boolean)
+    .join(" · ");
+  const posture = entry.pricing?.mode === "reference_unit" && Number.isFinite(Number(entry.pricing?.amount))
+    ? `$${Number(entry.pricing.amount).toFixed(2)} reference each`
+    : entry.pricing?.mode === "band"
+      ? entry.pricing.priceBand
+      : "Price confirmed with quote";
+  return `${entry.quantity} × ${identity || entry.variantId} · ${posture}`;
 }
 
 function formatSectionType(type, drawerCount) {
@@ -433,6 +665,7 @@ export function createPresetTransition(config, currentBasePresetId, nextPresetId
     customPaintHex: state.customPaintHex,
     paintSelection: state.paintSelection,
     hardware: state.hardware,
+    hardwareSelections: state.hardwareSelections,
     lighting: state.lighting,
     lightingWarmth: state.lightingWarmth,
     delivery: state.delivery,

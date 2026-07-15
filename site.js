@@ -1,4 +1,4 @@
-import { mountIcons, setIcon } from "./icon-system.js?v=configurator-construction-20260714b";
+import { mountIcons, setIcon } from "./icon-system.js?v=direct-hardware-20260714a";
 
 const navItems = [
   { label: "How It Works", href: "how-it-works.html", page: "how" },
@@ -443,12 +443,12 @@ async function initQuoteForm() {
   let acceptedStoredDesign = null;
   if (
     storedDesign &&
-    [2, 3, 4].includes(Number(storedDesign.schemaVersion)) &&
+    [2, 3, 4, 5].includes(Number(storedDesign.schemaVersion)) &&
     typeof storedDesign.id === "string" &&
     /^JQ-[A-Z0-9-]{5,20}$/.test(storedDesign.id)
   ) {
     try {
-      const { restoreAcceptedDesignSnapshot } = await import("./bookcase-engine.js?v=configurator-construction-20260714b");
+      const { restoreAcceptedDesignSnapshot } = await import("./bookcase-engine.js?v=direct-hardware-20260714a");
       const restored = restoreAcceptedDesignSnapshot(storedDesign);
       if (restored.accepted && restored.compatible) acceptedStoredDesign = { snapshot: storedDesign, restored };
     } catch (error) {
@@ -467,8 +467,8 @@ async function initQuoteForm() {
   if (activeStoredDesign && savedSummary) {
     try {
       const [{ createQuotePrefill }, { BENJAMIN_MOORE_COLOR_DATA_NOTICE }] = await Promise.all([
-        import("./quote-prefill.js?v=configurator-construction-20260714b"),
-        import("./benjamin-moore-colors.js?v=configurator-construction-20260714b")
+        import("./quote-prefill.js?v=direct-hardware-20260714a"),
+        import("./benjamin-moore-colors.js?v=direct-hardware-20260714a")
       ]);
       const activeDesignId = activeStoredDesign.snapshot.id;
       const config = activeStoredDesign.restored.state;
@@ -485,8 +485,9 @@ async function initQuoteForm() {
         quotePrefill.frontProfiles?.drawer?.label ? `Drawer fronts: ${quotePrefill.frontProfiles.drawer.label}` : "",
         quotePrefill.hardwareSelection?.label ? `Hardware: ${quotePrefill.hardwareSelection.label}` : ""
       ].filter(Boolean).map(escapeHtml).join(" &middot; ");
+      const hardwareSchedule = renderQuoteHardwareSchedule(quotePrefill.hardwareSchedule);
       savedSummary.hidden = false;
-      savedSummary.innerHTML = `<span>Saved design</span><strong>${escapeHtml(activeDesignId)}</strong><small>${designDetails}</small>`;
+      savedSummary.innerHTML = `<span>Saved design</span><strong>${escapeHtml(activeDesignId)}</strong><small>${designDetails}</small>${hardwareSchedule}`;
       if (quotePrefill.customPaint) {
         const paintNotice = document.createElement("p");
         paintNotice.className = "quote-paint-disclaimer";
@@ -544,6 +545,53 @@ function setFormCheckbox(form, name, value) {
 function formatStoredPrice(value) {
   const amount = Number(value);
   return Number.isFinite(amount) ? `${new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(amount)} estimate` : "";
+}
+
+function renderQuoteHardwareSchedule(schedule) {
+  if (!Array.isArray(schedule) || !schedule.length) return "";
+  const total = schedule.reduce((sum, entry) => sum + (Number(entry?.quantity) || 0), 0);
+  const rows = schedule.map((entry) => {
+    const identity = [entry.brand, entry.family].filter(Boolean).join(" · ") || entry.variantId || "Catalog hardware";
+    const specification = [
+      entry.size,
+      entry.finish && `${entry.finish}${entry.finishCode ? ` (${entry.finishCode})` : ""}`,
+      entry.manufacturerProductNumber || entry.sku
+    ].filter(Boolean).join(" · ");
+    const locations = (entry.locations || []).map((location) => location.sectionId || location.hostId).filter(Boolean).join(", ");
+    const placement = formatQuoteHardwarePlacement(entry.placement);
+    const verification = [entry.modelAccuracy, entry.catalogVersion, entry.verifiedAt && `verified ${entry.verifiedAt}`]
+      .filter(Boolean).join(" · ");
+    const warnings = (entry.warnings || []).map((warning) => typeof warning === "string" ? warning : warning?.message || warning?.code).filter(Boolean);
+    const links = [...new Map((entry.links || []).map((link) => [link?.url, link])).values()]
+      .map((link) => {
+        const url = safeExternalUrl(link?.url);
+        return url ? `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link.title || "Official product/specification source")}</a>` : "";
+      }).filter(Boolean).join("");
+    return `<li><div><strong>${Number(entry.quantity) || 0} × ${escapeHtml(identity)}</strong><small>${escapeHtml(specification || "Exact variant " + (entry.variantId || "not stated"))}</small><small>Exact variant: ${escapeHtml(entry.variantId || "not stated")}</small>${locations ? `<small>Location: ${escapeHtml(locations)}</small>` : ""}${placement ? `<small>Placement: ${escapeHtml(placement)}</small>` : ""}${verification ? `<small>Model/catalog: ${escapeHtml(verification)}</small>` : ""}${warnings.length ? `<small>Review: ${escapeHtml(warnings.join(" · "))}</small>` : ""}</div>${links ? `<nav aria-label="Official hardware sources">${links}</nav>` : ""}</li>`;
+  }).join("");
+  return `<details class="quote-hardware-schedule"><summary>Hardware schedule · ${total} piece${total === 1 ? "" : "s"}</summary><ul>${rows}</ul></details>`;
+}
+
+function formatQuoteHardwarePlacement(placement) {
+  if (!placement || typeof placement !== "object") return "";
+  return [
+    placement.orientation,
+    placement.horizontalAnchor,
+    placement.verticalAnchor,
+    Number.isFinite(placement.edgeOffsetMm) ? `${placement.edgeOffsetMm} mm edge offset` : null,
+    Number.isFinite(placement.crossAxisOffsetMm) ? `${placement.crossAxisOffsetMm} mm cross-axis offset` : null,
+    placement.quantityPerFront ? `${placement.quantityPerFront} per front` : null,
+    placement.mirrored ? "mirrored" : null
+  ].filter(Boolean).join(" · ");
+}
+
+function safeExternalUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return ["https:", "http:"].includes(url.protocol) ? url.href : "";
+  } catch (error) {
+    return "";
+  }
 }
 
 function escapeHtml(value) {

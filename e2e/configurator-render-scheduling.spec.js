@@ -58,21 +58,30 @@ test("the 3D viewer renders on demand, animates camera moves, and returns to idl
   expect(settled.renderScheduled).toBe(false);
   expect(settled.cameraTransitionActive).toBe(false);
 
-  // Structure is a strict Guided step with an inline designer. Advancing out
-  // restores its captured camera/light state and must return the viewer idle.
-  await expect(page.locator('[data-guided-step="layout"]')).toBeDisabled();
-  await page.locator("[data-guided-continue]").click();
-  await expect(page.locator('[data-guided-step-content="layout"]')).toBeVisible();
-  await expect(page.locator('[data-guided-step="layout"]')).toHaveAttribute("aria-current", "step");
+  // The section designer stays available in the unified workspace. Opening an
+  // inspector category may animate the detail camera, but it is presentation-
+  // only and the on-demand viewer must settle without a physical transaction.
+  const beforeInspector = await page.locator("[data-bookcase-builder]").evaluate((host) => ({
+    updateCount: host.__bookcaseConfigurator.updateCount,
+    viewerInstance: host.__bookcaseConfigurator.viewer.getDiagnostics().instanceId
+  }));
+  await page.locator('[data-category-trigger="sections_layout"]').click();
+  await expect(page.locator('[data-category-panel="sections_layout"]')).toBeVisible();
   await expect(page.locator("[data-section-designer]")).toBeVisible();
   await expect(page.locator("[data-section-designer-open], [data-section-designer-close]")).toHaveCount(0);
   await expect.poll(async () => (await readViewerDiagnostics(page))?.renderCount || 0).toBeGreaterThan(settled.renderCount);
   const structureIdle = await waitForViewerIdle(page);
-  await page.locator("[data-guided-continue]").click();
-  await expect(page.locator('[data-guided-step-content="storage"]')).toBeVisible();
-  await expect(page.locator("[data-section-designer]")).toHaveCount(0);
+  await page.locator('[data-category-trigger="storage_fronts"]').click();
+  await expect(page.locator('[data-category-panel="storage_fronts"]')).toBeVisible();
+  await expect(page.locator("[data-section-designer]")).toHaveCount(1);
+  await expect(page.locator("[data-section-overlay]")).toBeVisible();
   await expect.poll(async () => (await readViewerDiagnostics(page))?.renderCount || 0).toBeGreaterThan(structureIdle.renderCount);
   await waitForViewerIdle(page);
+  const afterInspector = await page.locator("[data-bookcase-builder]").evaluate((host) => ({
+    updateCount: host.__bookcaseConfigurator.updateCount,
+    viewerInstance: host.__bookcaseConfigurator.viewer.getDiagnostics().instanceId
+  }));
+  expect(afterInspector).toEqual(beforeInspector);
 
   expect(runtimeErrors).toEqual([]);
 });

@@ -29,20 +29,35 @@ test("the route mounts exactly one configurator host and one persistent viewer s
   assert.match(source, /this\.viewer = this\.createViewer\(this\.layout\)/);
 });
 
-test("mode panels never contain or replace the shared viewer", () => {
-  const shell = methodBody("renderFullPageConfigurator", "renderActiveControls");
-  assert.ok(shell.indexOf("data-mode-panel=\"all\"") < shell.indexOf("data-3d-viewer"));
-  const activeControls = methodBody("renderActiveControls", "renderGuidedExperience");
-  assert.match(activeControls, /guidedPanel\.innerHTML/);
-  assert.match(activeControls, /allPanel\.innerHTML/);
-  assert.doesNotMatch(activeControls, /viewer\.innerHTML|host\.innerHTML|createViewer|new BookcaseViewer3D/);
+test("the unified shell owns one inspector and one persistent viewer without mode panels", () => {
+  const shell = methodBody("renderFullPageConfigurator", "renderStudioEntryShell");
+  const inspector = methodBody("renderInspector", "renderUnifiedInspector");
+
+  assert.match(shell, /data-unified-configurator/);
+  assert.match(shell, /aria-label="Bookcase inspector"[^>]*data-unified-inspector/);
+  assert.equal((shell.match(/data-inspector-content/g) || []).length, 1);
+  assert.equal((shell.match(/data-3d-viewer tabindex=/g) || []).length, 1);
+  assert.match(shell, /data-contextual-editor/);
+  assert.doesNotMatch(shell, /data-mode-panel|data-configurator-mode|configurator-step-rail/);
+  assert.match(inspector, /inspectorContent\.innerHTML = this\.renderUnifiedInspector\(\)/);
+  assert.doesNotMatch(inspector, /viewer\.innerHTML|host\.innerHTML|createViewer|new BookcaseViewer3D|viewer\.update/);
 });
 
-test("switching modes is presentation-only and cannot price, update, or remount the model", () => {
-  const switchMode = methodBody("switchMode", "goToAdjacentGuidedStep");
-  assert.match(switchMode, /renderActiveControls/);
-  assert.match(switchMode, /syncInterface/);
-  assert.doesNotMatch(switchMode, /this\.update\(|viewer\.update|calculateBookcasePrice|createViewer|new BookcaseViewer3D/);
+test("inspector expansion and model selection are presentation-only", () => {
+  const toggle = methodBody("toggleInspectorGroup", "activateSectionDesigner");
+  const select = methodBody("handleModelSelection", "renderContextEditor");
+  const close = methodBody("closeContextEditor", "bindEvents");
+
+  assert.match(toggle, /this\.activeInspectorGroup = normalized/);
+  assert.match(select, /this\.selection = selection/);
+  assert.match(select, /this\.renderContextEditor\(\)/);
+  assert.match(close, /this\.selection = null/);
+  for (const presentationOnly of [toggle, select, close]) {
+    assert.doesNotMatch(
+      presentationOnly,
+      /this\.update\(|viewer\.update|evaluateBookcaseCandidate|calculateBookcasePrice|createViewer|new BookcaseViewer3D/
+    );
+  }
 });
 
 test("one delegated action path owns Save Design and Request Quote", () => {
@@ -54,7 +69,7 @@ test("one delegated action path owns Save Design and Request Quote", () => {
   assert.match(source, /if \(!design\.persisted\)[\s\S]*blocked local design storage[\s\S]*return false/);
 });
 
-test("one accepted edit pipeline serves both modes after the explicit studio commit", () => {
+test("one accepted edit pipeline serves inspector and contextual edits after the explicit studio commit", () => {
   assert.equal((source.match(/update\(nextState, options = \{\}\) \{/g) || []).length, 1);
   assert.equal((source.match(/this\.viewer\.update\(state, evaluation\.layout\)/g) || []).length, 1);
   assert.match(source, /const evaluation = evaluateBookcaseCandidate\(nextState\)/);
@@ -66,7 +81,7 @@ test("one accepted edit pipeline serves both modes after the explicit studio com
   assert.doesNotMatch(source, /guidedPrice|allControlsPrice|guidedState|allControlsState/);
 });
 
-test("the cached shared total feeds estimate, review, Save, and Quote without mode-specific arithmetic", () => {
+test("the cached shared total feeds estimate, review, Save, and Quote without surface-specific arithmetic", () => {
   const review = methodBody("renderReviewContent", "renderPresetMini");
   const summary = methodBody("updatePriceAndSummary", "setOptionalText");
   const save = methodBody("saveCurrentDesign", "openQuotePage");
@@ -79,48 +94,90 @@ test("the cached shared total feeds estimate, review, Save, and Quote without mo
   assert.doesNotMatch(`${review}\n${summary}\n${save}\n${quote}`, /calculateBookcasePrice|buildPricingContext|evaluateBookcaseCandidate/);
 });
 
-test("mode tabs, continuous Appearance sections, accordions, and validation have complete ARIA wiring", () => {
-  assert.match(source, /role="tablist" aria-label="Configuration experience"/);
-  assert.match(source, /role="tab" data-configurator-mode="guided" aria-controls=/);
-  assert.match(source, /role="tabpanel" aria-labelledby=.*data-mode-panel="guided"/);
-  assert.match(source, /class="appearance-sections" aria-label="Appearance options"/);
-  assert.doesNotMatch(source, /data-appearance-tab|class="appearance-tabs"/);
-  assert.match(source, /data-category-trigger=.*aria-expanded=.*aria-controls=/);
-  assert.match(source, /data-category-panel=.*role="region" aria-labelledby=/);
+test("the unified inspector, contextual dialog, and validation have complete ARIA wiring", () => {
+  const shell = methodBody("renderFullPageConfigurator", "renderStudioEntryShell");
+  const group = methodBody("renderInspectorGroup", "renderControlGroup");
+
+  assert.match(shell, /aria-label="Bookcase inspector"[^>]*data-unified-inspector/);
+  assert.match(shell, /data-contextual-editor role="dialog" aria-modal="false" aria-labelledby=/);
+  assert.match(shell, /data-close-context aria-label="Close contextual editor"/);
+  assert.match(shell, /data-selection-live role="status" aria-live="polite" aria-atomic="true"/);
+  assert.match(group, /data-category-trigger=.*aria-expanded=.*aria-controls=/);
+  assert.match(group, /data-category-panel=.*role="region" aria-labelledby=/);
   assert.match(source, /data-validation-field="customPaintColor"/);
   assert.match(source, /\[data-field\], \[data-validation-field\]/);
+  assert.doesNotMatch(source, /role="tablist"|data-configurator-mode|data-mode-panel|data-appearance-tab/);
 });
 
-test("Guided-only navigation and All-Controls-only accordions remain separated", () => {
-  const shell = methodBody("renderFullPageConfigurator", "renderActiveControls");
-  const guided = methodBody("renderGuidedExperience", "renderGuidedStepContent");
-  const all = methodBody("renderAllControlsExperience", "renderAccordionCategory");
-  assert.match(shell, /configurator-step-rail/);
-  assert.match(shell, /data-step-rail-item/);
-  assert.match(guided, /data-guided-back/);
-  assert.match(guided, /data-guided-continue/);
-  assert.doesNotMatch(guided, /data-configurator-accordion/);
-  assert.match(all, /data-configurator-accordion/);
-  assert.match(all, /data-review-design/);
-  assert.doesNotMatch(all, /data-guided-back|data-guided-continue/);
+test("the inspector exposes exactly the nine unified control groups", () => {
+  const groupContract = workflow.slice(
+    workflow.indexOf("export const UNIFIED_CONTROL_GROUPS"),
+    workflow.indexOf("export const PHYSICAL_CONFIG_FIELDS")
+  );
+  const groupIds = [...groupContract.matchAll(/\{ id: "([^"]+)", label: "([^"]+)" \}/g)];
+  assert.deepEqual(groupIds.map((match) => match[1]), [
+    "overall_size",
+    "sections_layout",
+    "shelves",
+    "storage_fronts",
+    "base_crown",
+    "finish",
+    "hardware",
+    "lighting",
+    "project_service"
+  ]);
+  assert.deepEqual(groupIds.map((match) => match[2]), [
+    "Overall Size",
+    "Sections & Layout",
+    "Shelves",
+    "Storage & Fronts",
+    "Base & Crown",
+    "Finish",
+    "Hardware",
+    "Lighting",
+    "Project Service"
+  ]);
+
+  const inspector = methodBody("renderUnifiedInspector", "renderInspectorGroup");
+  const controls = methodBody("renderControlGroup", "renderLayoutCards");
+  assert.match(inspector, /UNIFIED_CONTROL_GROUPS\.map\(\(group\) => this\.renderInspectorGroup\(group\)\)/);
+  for (const groupId of groupIds.map((match) => match[1])) {
+    assert.match(controls, new RegExp(`groupId === "${groupId}"`));
+  }
+  assert.doesNotMatch(source, /data-guided-(?:back|continue)|data-mode-panel|data-configurator-mode|configurator-step-rail/);
+  assert.doesNotMatch(workflow, /CONFIGURATOR_MODES|GUIDED_STEPS|ALL_CONTROL_CATEGORIES/);
 });
 
-test("Guided Appearance renders Finish, Hardware, and Lighting together", () => {
-  const appearance = methodBody("renderAppearanceExperience", "renderServiceGroup");
-  assert.match(appearance, /this\.renderFinishGroup\(\)/);
-  assert.match(appearance, /this\.renderHardwareGroup\(\)/);
-  assert.match(appearance, /this\.renderLightingGroup\(\)/);
-  assert.doesNotMatch(appearance, /role="tab"|role="tabpanel"/);
+test("the inspector and contextual editor share one control-group renderer", () => {
+  const inspectorGroup = methodBody("renderInspectorGroup", "renderControlGroup");
+  const contextEditor = methodBody("renderContextEditor", "getSelectionSummary");
+
+  assert.match(inspectorGroup, /this\.renderControlGroup\(group\.id, "inspector"\)/);
+  assert.match(contextEditor, /this\.selection\.controlGroupIds/);
+  assert.match(contextEditor, /this\.renderControlGroup\(groupId, "context"\)/);
+  assert.equal((source.match(/renderControlGroup\(groupId, surface = "inspector"\) \{/g) || []).length, 1);
 });
 
-test("Guided navigation names the next step before the quote step", () => {
-  const guided = methodBody("renderGuidedExperience", "renderGuidedStepContent");
-  assert.match(guided, /data-guided-continue>Continue to \$\{GUIDED_STEPS\[stepIndex \+ 1\]\.shortLabel\}<\/button>/);
-  assert.doesNotMatch(guided, /data-guided-continue>Next<\/button>/);
+test("rejected engine and renderer candidates cannot replace accepted state or pricing", () => {
+  const update = methodBody("update", "renderDoorOptions");
+  const engineRejection = update.indexOf("if (!evaluation.accepted)");
+  const viewerCommit = update.indexOf("this.viewer.update(state, evaluation.layout)");
+  const rendererRejection = update.indexOf("if (rendered === false)");
+  const acceptedCommit = update.indexOf("this.acceptedEvaluation = committedEvaluation");
+
+  assert.notEqual(engineRejection, -1);
+  assert.notEqual(viewerCommit, -1);
+  assert.notEqual(rendererRejection, -1);
+  assert.notEqual(acceptedCommit, -1);
+  assert.ok(engineRejection < viewerCommit, "engine rejection must precede any viewer mutation");
+  assert.ok(rendererRejection < acceptedCommit, "renderer rejection must precede accepted-state mutation");
+  assert.match(update.slice(engineRejection, viewerCommit), /return false/);
+  assert.match(update.slice(rendererRejection, acceptedCommit), /return false/);
+  assert.ok(update.indexOf("this.price = this.pricing.total") > acceptedCommit);
 });
 
 test("Door styles use builder-specific illustrated cards without the shared option-card collision", () => {
-  const doors = methodBody("renderDoorGroup", "renderAppearanceExperience");
+  const doors = methodBody("renderDoorGroup", "renderServiceGroup");
   assert.match(doors, /class="door-style-grid"/);
   assert.match(doors, /class="door-style-card"/);
   assert.match(doors, /doorPreviewIcons\[option\.value\]/);
@@ -129,7 +186,7 @@ test("Door styles use builder-specific illustrated cards without the shared opti
 });
 
 test("door quantity is a generated output and cannot drift from physical openings", () => {
-  const doors = methodBody("renderDoorGroup", "renderAppearanceExperience");
+  const doors = methodBody("renderDoorGroup", "renderServiceGroup");
   const sync = methodBody("renderDoorOptions", "syncControls");
   assert.match(doors, /data-generated-door-count/);
   assert.doesNotMatch(doors, /data-field="doorCount"|data-door-options/);
@@ -137,15 +194,16 @@ test("door quantity is a generated output and cannot drift from physical opening
   assert.match(workflow, /field: "doorCount"[^\n]*access: "derived"/);
 });
 
-test("All Controls exposes one Fronts control set and global Storage reconciles explicit section types", () => {
-  const storage = methodBody("renderStorageGroup", "renderSectionDesignerGroup");
+test("the unified Storage & Fronts group reconciles global storage with explicit section types", () => {
+  const storage = methodBody("renderStorageFrontsGroup", "renderSectionDesignerGroup");
   const input = methodBody("handleFieldInput", "handleStepperClick");
-  assert.match(storage, /context === "guided"[\s\S]*renderDoorGroup\(\)/);
+  assert.match(storage, /this\.renderDoorGroup\(\)/);
+  assert.match(storage, /data-open-structure/);
   assert.match(input, /fieldName === "lowerCabinets" \|\| fieldName === "lowerStorage"/);
   assert.match(input, /applyGlobalStorageSelection\(/);
 });
 
-test("Guided Style hides the complete Hardware section when no generated front uses hardware", () => {
+test("the unified Hardware group hides when no generated front uses hardware", () => {
   const hardware = methodBody("renderHardwareGroup", "renderLightingGroup");
   assert.match(hardware, /control-section-hardware" data-applicability="hardware"/);
   assert.doesNotMatch(hardware, /hardware-selection" data-applicability=/);
@@ -184,26 +242,32 @@ test("service and derived metadata updates never rebuild unchanged 3D geometry",
   assert.match(partial, /every\(\(field\) => nonVisualFields\.has\(field\)\)/);
 });
 
-test("Guided Structure is custom-first while ideas remain engine-backed inspiration", () => {
-  const guided = methodBody("renderGuidedStepContent", "renderAllControlsExperience");
+test("Sections & Layout is custom-first while ideas remain engine-backed inspiration", () => {
+  const controls = methodBody("renderControlGroup", "renderLayoutCards");
   const ideas = methodBody("renderStudioIdeaLibrary", "renderStudioIdeaCard");
-  assert.match(guided, /stepId === "layout"[\s\S]*renderStructureStartGroup/);
-  assert.doesNotMatch(guided, /renderLayoutCards\("guided"\)/);
+  assert.match(controls, /groupId === "sections_layout"[\s\S]*renderLayoutCards\("inspector"\)[\s\S]*renderStructureStartGroup/);
+  assert.match(controls, /surface === "inspector"/);
+  assert.doesNotMatch(controls, /renderLayoutCards\("guided"\)|renderLayoutCards\("all"\)/);
   assert.match(ideas, /filterInspirationIdeas\(this\.inspirationFilter\)/);
   assert.match(ideas, /View all \$\{filtered\.length\} editable ideas/);
 });
 
-test("Guided order separates Space, Structure, Storage, and Construction concerns", () => {
+test("unified groups separate Size, Shelves, Storage & Fronts, and Base & Crown concerns", () => {
   const space = methodBody("renderSpaceGroup", "renderStructureStartGroup");
-  const storage = methodBody("renderStorageGroup", "renderSectionDesignerGroup");
+  const shelves = methodBody("renderShelvesGroup", "renderStorageFrontsGroup");
+  const storage = methodBody("renderStorageFrontsGroup", "renderSectionDesignerGroup");
   const construction = methodBody("renderStructureGroup", "renderFinishGroup");
   assert.match(space, /renderRangeControl\("width"/);
   assert.doesNotMatch(space, /renderRangeControl\("shelves"|renderRangeControl\("shelfThickness"/);
-  assert.match(storage, /renderStepperControl\("shelves"/);
+  assert.match(shelves, /renderStepperControl\("shelves"/);
+  assert.match(shelves, /renderRangeControl\("shelfThickness"/);
+  assert.doesNotMatch(storage, /renderStepperControl\("shelves"/);
   assert.match(storage, /this\.renderDoorGroup\(\)/);
   assert.doesNotMatch(storage, /renderSectionDesignerGroup|data-section-designer-open/);
   assert.match(storage, /data-open-structure/);
-  assert.match(construction, /renderRangeControl\("shelfThickness"/);
+  assert.match(construction, /data-field="baseStyle"/);
+  assert.match(construction, /data-field="crownStyle"/);
+  assert.doesNotMatch(construction, /shelfThickness|lowerCabinets|doorStyle/);
 });
 
 test("Structure is an inline overview grid with selected detail and disclosed advanced actions", () => {
@@ -219,14 +283,14 @@ test("Structure is an inline overview grid with selected detail and disclosed ad
   assert.match(css, /\.section-overview-grid \{[\s\S]*overflow: visible;/);
 });
 
-test("All Controls exposes the shared Structure count and controller guards precision focus", () => {
-  const categories = methodBody("renderCategoryContent", "renderLayoutCards");
-  assert.match(categories, /categoryId === "section_designer"\) return this\.renderStructureStartGroup\(\)/);
+test("the unified Sections & Layout group exposes Structure and guards precision focus", () => {
+  const controls = methodBody("renderControlGroup", "renderLayoutCards");
+  assert.match(controls, /groupId === "sections_layout"[\s\S]*this\.renderStructureStartGroup\(\)/);
   const widthCommit = methodBody("commitSelectedSectionWidth", "commitSectionDividerResize");
   assert.match(widthCommit, /rawValue === "" \|\| !Number\.isFinite\(targetWidth\)/);
   assert.match(widthCommit, /Enter a valid clear section width/);
-  const controls = methodBody("bindControls", "setView");
-  assert.match(controls, /event\.target !== this\.root[\s\S]*?\[data-section-overlay\]/);
+  const viewerControls = methodBody("bindControls", "setView");
+  assert.match(viewerControls, /event\.target !== this\.root[\s\S]*?\[data-section-overlay\]/);
   const update = methodBody("update", "renderDoorOptions");
   assert.match(update, /focusedHardwareInput/);
   assert.match(update, /this\.selectedSectionIndex = clamp\(this\.selectedSectionIndex/);
@@ -239,7 +303,7 @@ test("Structure and Storage subsection headings override the retired dark-panel 
 });
 
 test("door and drawer front profiles render as independent compatible selectors", () => {
-  const fronts = methodBody("renderDoorGroup", "renderAppearanceExperience");
+  const fronts = methodBody("renderDoorGroup", "renderServiceGroup");
   assert.match(fronts, /renderProfiles\("doorStyle", doorStyleOptions, "door"\)/);
   assert.match(fronts, /renderProfiles\("drawerFrontStyle", drawerFrontStyleOptions, "drawer"\)/);
   assert.match(fronts, />Door front profile</);
@@ -271,23 +335,20 @@ test("Review expands canonical hardware into explicit customer-facing type and f
   assert.match(workflow, /getHardwareFinish\(state\.hardware\)/);
 });
 
-test("new Guided journeys reset stale presentation state while resume restores it", () => {
+test("new designs reset unified presentation state while resume restores physical state", () => {
   const reset = methodBody("resetNewDesignPresentation", "consumeStudioStartParameter");
   const load = methodBody("loadInitialDesignRequest", "createStudioIntroViewer");
-  const adjacent = methodBody("goToAdjacentGuidedStep", "goToGuidedStep");
-  const navigation = methodBody("goToGuidedStep", "focusGuidedHeading");
-  const rail = methodBody("syncStepRail", "syncDiagnosticsAttributes");
-  assert.match(reset, /this\.mode = CONFIGURATOR_MODES\.guided/);
-  assert.match(reset, /this\.guidedStep = GUIDED_STEPS\[0\]\.id/);
-  assert.match(reset, /this\.furthestGuidedStepIndex = 0/);
-  assert.match(reset, /this\.scrollPositions = \{ guided: 0, all: 0 \}/);
+  assert.match(reset, /this\.activeInspectorGroup = normalizeInspectorGroup\("overall_size"\)/);
+  assert.match(reset, /this\.inspectorGroupCollapsed = false/);
+  assert.match(reset, /this\.selection = null/);
+  assert.match(reset, /this\.hoverSelection = null/);
+  assert.match(reset, /this\.contextEditorOpen = false/);
+  assert.match(reset, /this\.contextAnchor = null/);
+  assert.match(reset, /this\.inspectorScrollPosition = 0/);
   assert.match(load, /source: "saved", intent: STUDIO_DESIGN_INTENTS\.resume/);
   assert.match(load, /source: "preset",[\s\S]*intent: STUDIO_DESIGN_INTENTS\.newDesign/);
-  assert.match(adjacent, /validateAndFocusStep\(this\.guidedStep\)/);
-  assert.match(adjacent, /unlock: direction > 0/);
-  assert.match(navigation, /nextIndex > this\.furthestGuidedStepIndex && !options\.unlock/);
-  assert.match(rail, /button\.disabled = locked/);
-  assert.match(rail, /button\.setAttribute\("aria-current", "step"\)/);
+  assert.doesNotMatch(reset, /CONFIGURATOR_MODES|guidedStep|furthestGuidedStepIndex|scrollPositions/);
+  assert.doesNotMatch(source, /CONFIGURATOR_PREFERENCE_KEYS|GUIDED_STEPS/);
 });
 
 test("Project service cards avoid the shared option-card grid collision", () => {
@@ -329,14 +390,14 @@ test("base and crown profile radios support repeated click, Enter, and native Sp
 
   const events = methodBody("bindEvents", "handleDelegatedClick");
   const profileKeyboardStart = events.indexOf("const profileRadio = event.target.closest");
-  const profileKeyboardEnd = events.indexOf("const modeButton", profileKeyboardStart);
+  const profileKeyboardEnd = events.indexOf("const colorQuery", profileKeyboardStart);
   assert.notEqual(profileKeyboardStart, -1, "profile radio keyboard handling must exist");
-  assert.notEqual(profileKeyboardEnd, -1, "profile radio keyboard handling must precede mode handling");
+  assert.notEqual(profileKeyboardEnd, -1, "profile radio keyboard handling must precede color search handling");
   const profileKeyboard = events.slice(profileKeyboardStart, profileKeyboardEnd);
   assert.match(profileKeyboard, /event\.key === "Enter"[\s\S]*event\.preventDefault\(\)[\s\S]*profileRadio\.click\(\)/);
   assert.doesNotMatch(profileKeyboard, /event\.key === "(?: |Space|Spacebar)"/, "Space must retain native radio activation");
 
-  const delegatedClick = methodBody("handleDelegatedClick", "handleModeSelectorKeydown");
+  const delegatedClick = methodBody("handleDelegatedClick", "focusInspectorGroup");
   assert.match(delegatedClick, /input\[type="radio"\]\[data-field\]/);
   assert.match(delegatedClick, /PROFILE_FOCUS_FIELDS\.has\(profileRadio\.dataset\.field\)/);
   assert.match(delegatedClick, /String\(this\.state\[fieldName\]\) === String\(profileRadio\.value\)/);
@@ -437,7 +498,7 @@ test("smart camera transitions replace stale work and use one on-demand render s
   assert.match(source, /shortestAngleDelta\(this\.theta, pose\.theta\)/);
   assert.match(source, /setProductLightingBoost\(normalizedKey === "lighting" \? 2\.35 : 1\)/);
   assert.match(source, /this\.viewer\.focus\(wasOpen \? "overview"/);
-  const categoryToggle = methodBody("toggleCategory", "openReviewDialog");
+  const categoryToggle = methodBody("toggleInspectorGroup", "activateSectionDesigner");
   assert.doesNotMatch(categoryToggle, /this\.viewer\.setView/);
 });
 
@@ -491,13 +552,13 @@ test("hover option preview is reversible and isolated from canonical pricing sta
 });
 
 test("the compact AR launch replaces the duplicate preview estimate", () => {
-  const shell = methodBody("renderFullPageConfigurator", "renderActiveControls");
+  const shell = methodBody("renderFullPageConfigurator", "renderStudioEntryShell");
   assert.equal((shell.match(/data-ar-label/g) || []).length, 1);
   assert.equal((shell.match(/>AR View in Your Room<\/span>/g) || []).length, 1);
   assert.match(shell, /aria-label="AR View in Your Room"/);
-  assert.equal((shell.match(/data-price/g) || []).length, 2);
+  assert.equal((shell.match(/data-price/g) || []).length, 1);
   assert.match(shell, /Estimated project price/);
-  assert.match(shell, /Your estimate will appear as you build/);
+  assert.match(shell, /data-price>\$\{formatPrice\(this\.pricing\.total\)\}/);
   assert.doesNotMatch(shell, /preview-price-pill|data-preview-price|Current estimated project price/);
   assert.doesNotMatch(shell, /cabinet-ar-launch-heading|cabinet-ar-launch-help|See this bookcase at true scale/);
   assert.match(shell, /<div class="cabinet-ar-launch">\s*<button class="cabinet-ar-launch-button"/);
@@ -510,7 +571,7 @@ test("the compact AR launch and review action have responsive centered placement
   );
   assert.match(
     precisionCss,
-    /\.cabinet-ar-launch \.cabinet-ar-launch-button \{[\s\S]*?display: inline-flex;[\s\S]*?width: auto;[\s\S]*?align-items: center;[\s\S]*?justify-content: center;/
+    /\.configurator-model > \.cabinet-ar-launch \.cabinet-ar-launch-button \{[\s\S]*?display: inline-flex;[\s\S]*?width: auto;[\s\S]*?align-items: center;[\s\S]*?justify-content: center;/
   );
   assert.match(
     precisionCss,
@@ -518,19 +579,19 @@ test("the compact AR launch and review action have responsive centered placement
   );
   assert.match(
     precisionCss,
-    /@media \(max-width: 767px\)[\s\S]*?\.configurator-model > \.cabinet-ar-launch \{[\s\S]*?right: 0;[\s\S]*?bottom: 0;[\s\S]*?width: var\(--mobile-ar-width\);/
+    /@media \(max-width: 767px\)[\s\S]*?\.configurator-model > \.cabinet-ar-launch \{[\s\S]*?right: 10px;[\s\S]*?left: auto;[\s\S]*?bottom: 72px;/
   );
   assert.match(
     precisionCss,
     /@media \(min-width: 768px\) and \(max-width: 1279px\) and \(orientation: landscape\)[\s\S]*?\.configurator-model > \.cabinet-ar-launch \{[\s\S]*?top: 72px;[\s\S]*?right: 104px;/
   );
-  assert.match(
-    precisionCss,
-    /@media \(max-width: 767px\)[\s\S]*?\.configurator-model > \.cabinet-ar-launch \.cabinet-ar-launch-button \{[\s\S]*?width: 100%;[\s\S]*?min-width: 0;[\s\S]*?white-space: normal;/
-  );
 });
 
 test("browser-verifiable diagnostics expose lifecycle counters without a global controller", () => {
+  assert.match(source, /dataset\.diagnosticInterface = "unified"/);
+  assert.match(source, /dataset\.diagnosticInspectorGroup/);
+  assert.match(source, /dataset\.diagnosticSelectionKind/);
+  assert.match(source, /dataset\.diagnosticSelectionEditor/);
   assert.match(source, /dataset\.diagnosticViewerInstance/);
   assert.match(source, /dataset\.diagnosticPriceCalculations/);
   assert.match(source, /dataset\.diagnosticPhysicalUpdates/);
@@ -542,6 +603,11 @@ test("browser-verifiable diagnostics expose lifecycle counters without a global 
   assert.match(source, /dataset\.diagnosticReducedMotion/);
   assert.match(source, /dataset\.diagnosticConfiguration/);
   assert.match(source, /dataset\.diagnosticPricing/);
+  const diagnostics = methodBody("getDiagnostics", "syncPresetCards");
+  assert.match(diagnostics, /interface: "unified"/);
+  assert.match(diagnostics, /activeInspectorGroup: this\.activeInspectorGroup/);
+  assert.match(diagnostics, /selection: this\.selection/);
+  assert.match(diagnostics, /contextEditorOpen: this\.contextEditorOpen/);
   assert.doesNotMatch(source, /window\.__jqConfigurator/);
 });
 
@@ -565,12 +631,18 @@ test("viewer controls remain enabled after focus and preserve browser zoom short
   assert.match(source, /controlsEnabled: !this\.destroyed/);
 });
 
-test("blocking drafts disable review and link all completion actions to guidance", () => {
+test("unified validation disables completion actions and links them to shared guidance", () => {
   const availability = methodBody("syncActionAvailability", "getDiagnostics");
+  assert.match(availability, /validateUnifiedConfiguration\(this\.state, this\.layout, this\.drafts\)/);
+  assert.match(availability, /\[data-action-hint\]/);
   assert.match(availability, /\[data-review-design\]/);
+  assert.match(availability, /\[data-save-design\]/);
+  assert.match(availability, /\[data-open-order\]/);
+  assert.match(availability, /\[data-open-ar\]/);
   assert.match(availability, /button\.disabled = blocking/);
   assert.match(availability, /aria-describedby/);
-  assert.match(source, /data-guided-errors tabindex="-1"/);
+  assert.match(source, /data-action-hint aria-live="polite"/);
+  assert.doesNotMatch(source, /data-guided-errors/);
 });
 
 test("legacy dual-sidebar handlers and DOM-scanning state reconstruction are gone", () => {
@@ -582,11 +654,12 @@ test("legacy dual-sidebar handlers and DOM-scanning state reconstruction are gon
 
 test("responsive presentation covers desktop, tablet, mobile, touch scrolling, and reduced motion", () => {
   assert.match(css, /grid-template-columns: clamp\(360px, 29vw, 420px\) minmax\(0, 1fr\)/);
-  for (const breakpoint of ["1280px", "900px", "760px", "390px"]) assert.match(css, new RegExp(`max-width: ${breakpoint}`));
-  assert.match(css, /touch-action: pan-y/);
+  for (const breakpoint of ["900px", "767px"]) assert.match(css, new RegExp(`max-width: ${breakpoint}`));
+  assert.match(css, /\.configurator-model \.viewer-stage \{[\s\S]*touch-action: none;/);
+  assert.match(css, /\.configurator-control-experience \{[\s\S]*overflow-y: auto;/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(css, /\.configurator-experience > \.configurator-estimate-bar \{\s*position: static;/);
-  assert.match(css, /\.guided-navigation \{\s*position: sticky;\s*bottom: 0;/);
+  assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.configurator-experience > \.configurator-estimate-bar \{[\s\S]*position: sticky;[\s\S]*bottom: 0;/);
+  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.configurator-experience > \.configurator-estimate-bar \{[\s\S]*position: static;/);
 });
 
 test("light configurator controls use a contrasting focus ring and readable compact copy", () => {
@@ -612,21 +685,24 @@ test("light configurator controls use a contrasting focus ring and readable comp
   );
 });
 
-test("the phone layout uses one natural scroll surface and keeps controls outside the 3D canvas", () => {
-  assert.match(precisionCss, /Mobile document flow[\s\S]*overflow-y: auto;/);
-  assert.match(precisionCss, /Mobile document flow[\s\S]*grid-template-rows:[\s\S]*var\(--mobile-step-rail-height\)[\s\S]*auto[\s\S]*auto;/);
-  assert.match(precisionCss, /\.viewer-stage \{[\s\S]*var\(--mobile-preview-toolbar-height\)[\s\S]*var\(--mobile-preview-dock-height\)/);
-  assert.match(precisionCss, /Mobile document flow[\s\S]*\.configurator-control-experience \{[\s\S]*height: auto;[\s\S]*overflow: visible;/);
-  assert.match(precisionCss, /Mobile document flow[\s\S]*\.guided-navigation \{[\s\S]*position: static;/);
-  assert.match(precisionCss, /Mobile document flow[\s\S]*\.configurator-experience > \.configurator-estimate-bar \{[\s\S]*position: static;[\s\S]*grid-row: 4;/);
-  assert.match(source, /controlsScroll\.scrollIntoView\(\{ behavior, block: "start" \}\)/);
+test("the phone layout keeps the inspector in document flow and opens context as one bottom sheet", () => {
+  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.configurator-experience \{[\s\S]*grid-template-rows: clamp\(350px, 52svh, 430px\) auto 72px;/);
+  assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.configurator-control-experience \{[\s\S]*grid-row: 2;[\s\S]*overflow: visible;/);
+  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.configurator-context-editor \{[\s\S]*position: fixed;[\s\S]*inset: auto 0 0 !important;[\s\S]*max-height: min\(72dvh, 620px\);/);
+  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.configurator-context-leader,[\s\S]*\.configurator-hover-label \{[\s\S]*display: none;/);
+  const anchor = methodBody("updateContextAnchor", "closeContextEditor");
+  assert.match(anchor, /window\.matchMedia\("\(max-width: 767px\)"\)\.matches/);
+  assert.match(anchor, /this\.elements\.contextLeader\.hidden = true/);
+  const focus = methodBody("focusInspectorGroup", "focusCameraForCurrentContext");
+  assert.match(focus, /category\?\.scrollIntoView\?\.\(\{ block: "nearest"/);
 });
 
-test("the phone header and mode switch stay compact so the 3D viewport gets the saved height", () => {
-  assert.match(precisionCss, /Compact mobile chrome[\s\S]*--mobile-configurator-header-height: 52px;/);
-  assert.match(precisionCss, /Compact mobile chrome[\s\S]*--mobile-preview-toolbar-height: 34px;/);
-  assert.match(precisionCss, /Compact mobile chrome[\s\S]*\.configurator-model \{[\s\S]*height: clamp\(276px, 44svh, 316px\);/);
-  assert.match(precisionCss, /Compact mobile chrome[\s\S]*\.configurator-mode-selector button small \{[\s\S]*display: none;/);
+test("the phone header stays compact while the model remains directly selectable", () => {
+  assert.match(css, /@media \(max-width: 767px\)[\s\S]*--mobile-configurator-header-height: 52px;/);
+  assert.match(css, /min-height: calc\(100dvh - var\(--mobile-configurator-header-height\)\)/);
+  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.configurator-model \{[\s\S]*min-height: 350px;/);
+  assert.match(source, /aria-roledescription="interactive 3D configurator"/);
+  assert.doesNotMatch(source, /data-configurator-mode|data-mode-panel/);
 });
 
 test("mobile appearance controls use dense color, hardware, and lighting grids", () => {
@@ -640,10 +716,12 @@ test("the configurator route loads the experience module and final presentation 
   assert.match(html, /configurator-experience\.css/);
   assert.match(html, /configurator-3d\.js/);
   assert.match(source, /from "\.\/configurator-experience\.js/);
-  assert.match(workflow, /export const GUIDED_STEPS/);
+  assert.match(workflow, /export const UNIFIED_CONTROL_GROUPS/);
+  assert.match(workflow, /export const CONTEXT_EDITOR_DEFINITIONS/);
+  assert.match(workflow, /export function validateUnifiedConfiguration/);
 });
 
-test("both interface modes use one lazy official-palette catalog provider", () => {
+test("both unified editing surfaces use one lazy official-palette catalog provider", () => {
   assert.equal((source.match(/getBenjaminMooreColorCatalogProvider\(\)/g) || []).length, 1);
   assert.match(catalogProvider, /class ColorCatalogProvider/);
   assert.match(catalogProvider, /class BenjaminMooreColorCatalogProvider extends ColorCatalogProvider/);

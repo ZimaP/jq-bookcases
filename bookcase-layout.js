@@ -2,9 +2,20 @@ import {
   CONSTRUCTION_PROFILE_IDS as CONFIG_CONSTRUCTION_PROFILE_IDS,
   DOOR_ARRANGEMENTS as CONFIG_DOOR_ARRANGEMENTS,
   getHardwareType,
+  normalizeHardwareConfiguration,
   normalizeDrawerFrontStyleValue,
   normalizeSectionTypeValue
-} from "./bookcase-config.js?v=configurator-construction-20260714b";
+} from "./bookcase-config.js?v=direct-hardware-20260714a";
+import {
+  getHardwareProxySpec,
+  projectVariantToLegacyHardware,
+  resolveHardwareSelectionForHost
+} from "./hardware-catalog.js?v=direct-hardware-20260714a";
+import {
+  createRecommendedHardwarePlacement,
+  evaluateHardwareCompatibility,
+  millimetersToInches
+} from "./hardware-compatibility.js?v=direct-hardware-20260714a";
 
 /**
  * Pure parametric layout engine for JQ Bookcases.
@@ -183,6 +194,10 @@ export const LAYOUT_DEFAULTS = Object.freeze({
 });
 
 const EPSILON = 1e-6;
+// Placement centers and component bounds are persisted at six decimal places.
+// Comparing two independently rounded edges can accumulate two quantization
+// steps, so construction clearances use the matching absolute tolerance.
+const CLEARANCE_EPSILON = EPSILON * 2;
 const SOLID_ROLES = new Set([
   "base",
   "side_panel",
@@ -786,6 +801,7 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
       "Drawer fronts support Shaker, Flat Panel, or Slim Shaker profiles."
     ));
   }
+  const { hardware: projectedHardware, hardwareSelections } = normalizeHardwareConfiguration(source);
 
   const config = {
     layoutPreset: normalizeString(source.layoutPreset, LAYOUT_DEFAULTS.layoutPreset),
@@ -811,7 +827,8 @@ export function normalizeLayoutConfig(input = {}, options = {}) {
     doorCount: normalizeInteger(source.doorCount, LAYOUT_DEFAULTS.doorCount, 0, 12, "doorCount", corrections),
     doorStyle,
     drawerFrontStyle,
-    hardware: normalizeString(source.hardware, LAYOUT_DEFAULTS.hardware),
+    hardware: projectedHardware,
+    hardwareSelections,
     lighting,
     lightingWarmth,
     crownStyle: normalizeString(source.crownStyle, LAYOUT_DEFAULTS.crownStyle),
@@ -1396,6 +1413,7 @@ function addDoorAssembly(add, config, opening, options) {
         hingeSide: semantics.hingeSide,
         latchSide: semantics.latchSide,
         openingKind: options.openingKind,
+        sectionId: opening.hostId,
         tier: options.tier,
         constructionProfile: config.constructionProfile,
         attachment: {
@@ -1458,6 +1476,7 @@ function addDrawerStack(add, config, opening, referencePlanes) {
         reveal,
         gap,
         tier: "primary",
+        sectionId: opening.hostId,
         constructionProfile: config.constructionProfile,
         attachment: {
           axis: "z",
@@ -1476,54 +1495,281 @@ function addDrawerStack(add, config, opening, referencePlanes) {
 }
 
 function addHandle(add, config, face, placementContext, referencePlanes) {
-  if (config.hardware === "push_latch") return null;
-  const resolved = resolveHardwarePlacement({
+  const explicitHostSelection = config.hardwareSelections?.byHostId?.[face.id];
+  if (config.hardware === "push_latch" && !explicitHostSelection) return null;
+  const selection = resolveHardwareSelectionForHost(config, face.id);
+  if (!selection?.variantId) return null;
+  const projectedHardware = projectVariantToLegacyHardware(selection.variantId, config.hardware);
+  const legacyResolved = resolveHardwarePlacement({
     face,
     profile: face.metadata.profileGeometry,
-    hardwareVariant: config.hardware,
+    hardwareVariant: projectedHardware,
     hingeSide: face.metadata.hingeSide,
     latchSide: face.metadata.latchSide,
     placementContext,
     referencePlanes
   });
-  const center = resolved.mountingCenters[0];
-  const halfX = resolved.visualDimensions.x / 2;
-  const halfY = resolved.visualDimensions.y / 2;
-  return add({
-    id: face.id + "-handle",
-    role: "handle",
-    parentId: face.id,
-    hostId: face.id,
-    bounds: bounds(
-      center.x - halfX,
-      center.x + halfX,
-      center.y - halfY,
-      center.y + halfY,
-      center.z - resolved.projection,
-      center.z
-    ),
-    metadata: {
-      hardware: config.hardware,
-      hardwareType: resolved.hardwareType,
-      mountingCenters: resolved.mountingCenters,
-      mountingCenter: center,
-      orientation: resolved.orientation,
-      visualDimensions: resolved.visualDimensions,
-      projection: resolved.projection,
-      latchSide: resolved.latchSide,
-      placementRuleId: resolved.placementRuleId,
-      supportingFrontRegion: resolved.supportingFrontRegion,
-      supportingRegionKind: resolved.supportingRegionKind,
-      correctionWarning: resolved.correctionWarning,
-      nominalLength: resolved.nominalLength,
-      attachment: {
-        axis: "z",
-        hostPlane: "finished_front",
-        hostCoordinate: center.z,
-        componentFace: "max"
+  const rawProxy = getHardwareProxySpec(selection);
+  const proxy = normalizeHardwareProxy(rawProxy, selection.snapshot, legacyResolved);
+  const hasExplicitPlacement = selection.resolvedFrom === "host" && Object.keys(selection.placement || {}).length > 0;
+  const placement = hasExplicitPlacement
+    ? selection.placement
+    : placementFromLegacyResolution(face, legacyResolved);
+  const compatibility = evaluateHardwareCompatibility({ face, host: face, proxySpec: proxy, placement });
+  const resolvedPlacement = compatibility.suggestedPlacement || createRecommendedHardwarePlacement(face, proxy);
+  const hardwareType = proxy.hardwareType || legacyResolved.hardwareType;
+  // A migrated global choice must preserve the geometry of already-valid
+  // designs. Direct host selections opt into the exact catalog envelope.
+  const usesLegacySafeGeometry = selection.resolvedFrom !== "host";
+  const orientation = usesLegacySafeGeometry
+    ? legacyResolved.orientation
+    : proxy.category === "round_knob" ? "neutral" : resolvedPlacement.orientation;
+  const visualDimensions = usesLegacySafeGeometry
+    ? legacyResolved.visualDimensions
+    : getCatalogVisualDimensions(proxy, orientation, legacyResolved.visualDimensions);
+  const projection = visualDimensions.z;
+  const centers = usesLegacySafeGeometry
+    ? legacyResolved.mountingCenters.slice(0, 1)
+    : resolvePlacedHandleCenters(face, resolvedPlacement, visualDimensions, legacyResolved.mountingCenters[0]);
+  const centerToCenterIn = millimetersToInches(proxy.dimensionsMm?.centerToCenter);
+  const holeCount = Number(proxy.mounting?.holeCount);
+  const facts = {
+    ...createHandleFacts(selection, proxy, projectedHardware),
+    ...(usesLegacySafeGeometry ? { modelAccuracy: "legacy_safe_approximation" } : {})
+  };
+  const created = centers.map((center, index) => {
+    const halfX = visualDimensions.x / 2;
+    const halfY = visualDimensions.y / 2;
+    const mountingCenters = usesLegacySafeGeometry
+      ? legacyResolved.mountingCenters.slice(0, 1)
+      : resolveDrillCenters(center, centerToCenterIn, orientation, holeCount);
+    return add({
+      id: face.id + "-handle" + (index === 0 ? "" : "-" + pad(index + 1)),
+      role: "handle",
+      parentId: face.id,
+      hostId: face.id,
+      bounds: bounds(
+        center.x - halfX,
+        center.x + halfX,
+        center.y - halfY,
+        center.y + halfY,
+        center.z - projection,
+        center.z
+      ),
+      metadata: {
+        hardware: projectedHardware,
+        hardwareType,
+        category: proxy.category,
+        variantId: selection.variantId,
+        catalogVersion: selection.catalogVersion || config.hardwareSelections?.catalogVersion || null,
+        hardwareSnapshot: selection.snapshot || null,
+        variantSnapshot: selection.snapshot || null,
+        hardwareFacts: facts,
+        finishSwatch: proxy.finish?.swatch || selection.snapshot?.canonicalFinishSwatch || null,
+        pricing: facts.pricing,
+        modelAccuracy: facts.modelAccuracy,
+        compatibilityLevel: compatibility.level,
+        compatibilityReasonCodes: compatibility.reasonCodes,
+        compatibilityMessages: compatibility.messages,
+        warnings: ["possible_with_warning", "not_compatible"].includes(compatibility.level)
+          ? compatibility.messages
+          : [],
+        resolvedFrom: selection.resolvedFrom,
+        proxyMode: usesLegacySafeGeometry ? "legacy_safe_projection" : "catalog_exact",
+        placement: resolvedPlacement,
+        quantityPerFront: centers.length,
+        quantityIndex: index + 1,
+        mountingCenters,
+        mountingCenter: center,
+        selectionAnchor: center,
+        orientation,
+        visualDimensions,
+        projection,
+        latchSide: legacyResolved.latchSide,
+        placementRuleId: hasExplicitPlacement ? "catalog_explicit_placement" : legacyResolved.placementRuleId,
+        supportingFrontRegion: findSupportingRegion(face, center)?.id || legacyResolved.supportingFrontRegion,
+        supportingRegionKind: findSupportingRegion(face, center)?.kind || legacyResolved.supportingRegionKind,
+        correctionWarning: legacyResolved.correctionWarning,
+        nominalLength: orientation === "horizontal" ? visualDimensions.x : orientation === "vertical" ? visualDimensions.y : Math.max(visualDimensions.x, visualDimensions.y),
+        sectionId: face.metadata?.sectionId || null,
+        attachment: {
+          axis: "z",
+          hostPlane: "finished_front",
+          hostCoordinate: center.z,
+          componentFace: "max"
+        }
       }
-    }
+    });
   });
+  return created[0] || null;
+}
+
+function normalizeHardwareProxy(proxy, snapshot, legacyResolved) {
+  const source = proxy && typeof proxy === "object" ? proxy : {};
+  const saved = snapshot && typeof snapshot === "object" ? snapshot : {};
+  const size = source.size || saved.size || saved.sizeVariant || {};
+  const family = source.family || saved.family || {};
+  const asset = source.asset || saved.asset || family.asset || {};
+  const dimensionsMm = source.dimensionsMm || source.dimensions || size.dimensionsMm || size.dimensions || {};
+  const mounting = source.mounting || size.mounting || {};
+  const category = source.category || family.category || saved.category || "";
+  const hardwareType = source.hardwareType || source.type || (
+    ["round_knob", "t_bar_knob", "cabinet_latch"].includes(category) ? "knob" : "pull"
+  ) || legacyResolved.hardwareType;
+  return {
+    ...source,
+    category,
+    hardwareType,
+    dimensionsMm,
+    mounting,
+    compatiblePlacements: source.compatiblePlacements || family.compatiblePlacements || saved.compatiblePlacements || [],
+    compatibilityRestrictions: source.compatibilityRestrictions || family.compatibilityRestrictions || saved.compatibilityRestrictions || [],
+    asset
+  };
+}
+
+function placementFromLegacyResolution(face, resolved) {
+  const center = resolved.mountingCenters[0];
+  const isDrawer = face.role === "drawer_front";
+  return {
+    orientation: resolved.orientation === "horizontal" ? "horizontal" : "vertical",
+    horizontalAnchor: isDrawer ? "center" : center.x < face.position.x ? "left" : "right",
+    verticalAnchor: isDrawer || resolved.placementRuleId === "tall_latch_stile_aff_40"
+      ? "custom"
+      : center.y < face.position.y ? "bottom" : "top",
+    edgeOffsetMm: isDrawer ? undefined : 50.8,
+    mirrored: face.metadata?.hingeSide === "hinge_right",
+    quantityPerFront: 1
+  };
+}
+
+function getCatalogVisualDimensions(proxy, orientation, fallback) {
+  const dimensions = proxy.dimensionsMm || {};
+  const overall = positiveInches(dimensions.overallLength)
+    || positiveInches(dimensions.diameter)
+    || (orientation === "horizontal" ? fallback.x : fallback.y);
+  const cross = positiveInches(dimensions.diameter)
+    || positiveInches(dimensions.width)
+    || positiveInches(dimensions.height)
+    || (orientation === "horizontal" ? fallback.y : fallback.x);
+  const projection = positiveInches(dimensions.projection) || fallback.z;
+  if (orientation === "horizontal") return { x: round(overall), y: round(cross), z: round(projection) };
+  if (orientation === "vertical") return { x: round(cross), y: round(overall), z: round(projection) };
+  return { x: round(overall), y: round(overall), z: round(projection) };
+}
+
+function resolvePlacedHandleCenters(face, placement, visual, fallbackCenter) {
+  const halfX = visual.x / 2;
+  const halfY = visual.y / 2;
+  const requestedEdgeOffset = millimetersToInches(placement.edgeOffsetMm);
+  const edgeOffset = Number.isFinite(requestedEdgeOffset)
+    ? requestedEdgeOffset
+    : CONSTRUCTION_RULES.handleEdgeInset;
+  const profile = face.metadata?.profileGeometry;
+  let x = fallbackCenter.x;
+  let y = fallbackCenter.y;
+  const horizontal = placement.orientation === "horizontal";
+  const defaultEdgeOffset = CONSTRUCTION_RULES.handleEdgeInset;
+  if (placement.horizontalAnchor === "center") x = face.position.x;
+  if (placement.horizontalAnchor === "left") {
+    const region = profile?.solidRegions?.find((item) => item.id === "left_stile");
+    x = horizontal
+      ? face.bounds.min.x + Math.max(edgeOffset, halfX + CONSTRUCTION_RULES.handleEdgeClearance)
+      : region ? (region.bounds.min.x + region.bounds.max.x) / 2 : face.bounds.min.x + Math.max(defaultEdgeOffset, halfX + CONSTRUCTION_RULES.handleEdgeClearance);
+  }
+  if (placement.horizontalAnchor === "right") {
+    const region = profile?.solidRegions?.find((item) => item.id === "right_stile");
+    x = horizontal
+      ? face.bounds.max.x - Math.max(edgeOffset, halfX + CONSTRUCTION_RULES.handleEdgeClearance)
+      : region ? (region.bounds.min.x + region.bounds.max.x) / 2 : face.bounds.max.x - Math.max(defaultEdgeOffset, halfX + CONSTRUCTION_RULES.handleEdgeClearance);
+  }
+  if (placement.horizontalAnchor === "custom") x = face.position.x + (horizontal ? edgeOffset : 0);
+  if (placement.verticalAnchor === "middle") y = face.position.y;
+  if (placement.verticalAnchor === "bottom") {
+    const region = profile?.solidRegions?.find((item) => item.id === "bottom_rail");
+    y = horizontal
+      ? region ? (region.bounds.min.y + region.bounds.max.y) / 2 : face.bounds.min.y + Math.max(defaultEdgeOffset, halfY + CONSTRUCTION_RULES.handleEdgeClearance)
+      : face.bounds.min.y + Math.max(edgeOffset, halfY + CONSTRUCTION_RULES.handleEdgeClearance);
+  }
+  if (placement.verticalAnchor === "top") {
+    const region = profile?.solidRegions?.find((item) => item.id === "top_rail");
+    y = horizontal
+      ? region ? (region.bounds.min.y + region.bounds.max.y) / 2 : face.bounds.max.y - Math.max(defaultEdgeOffset, halfY + CONSTRUCTION_RULES.handleEdgeClearance)
+      : face.bounds.max.y - Math.max(edgeOffset, halfY + CONSTRUCTION_RULES.handleEdgeClearance);
+  }
+  if (placement.verticalAnchor === "custom") y = face.position.y + (horizontal ? 0 : edgeOffset);
+  const crossOffset = millimetersToInches(placement.crossAxisOffsetMm) || 0;
+  if (placement.orientation === "vertical") x += crossOffset;
+  else y += crossOffset;
+  x = clamp(x, face.bounds.min.x + halfX + CONSTRUCTION_RULES.handleEdgeClearance, face.bounds.max.x - halfX - CONSTRUCTION_RULES.handleEdgeClearance);
+  y = clamp(y, face.bounds.min.y + halfY + CONSTRUCTION_RULES.handleEdgeClearance, face.bounds.max.y - halfY - CONSTRUCTION_RULES.handleEdgeClearance);
+  const base = { x: round(x), y: round(y), z: round(fallbackCenter.z) };
+  if (placement.quantityPerFront !== 2) return [base];
+  if (face.role === "drawer_front") {
+    const inset = Math.max(halfX + CONSTRUCTION_RULES.handleEdgeClearance, face.size.x / 4);
+    return [
+      { ...base, x: round(face.bounds.min.x + inset) },
+      { ...base, x: round(face.bounds.max.x - inset) }
+    ];
+  }
+  const inset = Math.max(halfY + CONSTRUCTION_RULES.handleEdgeClearance, face.size.y / 3);
+  return [
+    { ...base, y: round(face.bounds.min.y + inset) },
+    { ...base, y: round(face.bounds.max.y - inset) }
+  ];
+}
+
+function resolveDrillCenters(center, centerToCenterIn, orientation, holeCount) {
+  if (holeCount !== 2 || !Number.isFinite(centerToCenterIn) || centerToCenterIn <= 0) return [center];
+  const half = centerToCenterIn / 2;
+  return orientation === "horizontal"
+    ? [{ ...center, x: round(center.x - half) }, { ...center, x: round(center.x + half) }]
+    : [{ ...center, y: round(center.y - half) }, { ...center, y: round(center.y + half) }];
+}
+
+function createHandleFacts(selection, proxy, projectedHardware) {
+  const snapshot = selection.snapshot && typeof selection.snapshot === "object" ? selection.snapshot : {};
+  const family = snapshot.family || {};
+  const size = snapshot.size || snapshot.sizeVariant || {};
+  const finish = snapshot.finish || snapshot.finishVariant || {};
+  const exact = snapshot.exactVariant || snapshot.variant || snapshot;
+  const brand = snapshot.brand || {};
+  const collection = snapshot.collection || {};
+  const asset = proxy.asset || snapshot.asset || family.asset || {};
+  return {
+    variantId: selection.variantId,
+    legacyHardware: projectedHardware,
+    brandId: brand.id || snapshot.brandId || family.brandId || null,
+    brandName: brand.name || snapshot.brandName || null,
+    collectionId: collection.id || snapshot.collectionId || family.collectionId || null,
+    collectionName: collection.name || snapshot.collectionName || null,
+    familyId: family.id || snapshot.familyId || null,
+    familyName: family.name || snapshot.familyName || null,
+    category: proxy.category || family.category || snapshot.category || null,
+    material: family.material || snapshot.material || null,
+    manufacturerProductNumber: exact.manufacturerProductNumber ?? snapshot.manufacturerProductNumber ?? null,
+    sku: exact.sku ?? snapshot.sku ?? null,
+    sizeVariantId: size.id || snapshot.sizeVariantId || null,
+    sizeLabel: size.label || snapshot.sizeLabel || null,
+    dimensionsMm: proxy.dimensionsMm,
+    mounting: proxy.mounting,
+    finishVariantId: finish.id || snapshot.finishVariantId || null,
+    finishName: finish.manufacturerName || snapshot.finishName || null,
+    finishCode: finish.manufacturerCode || snapshot.finishCode || null,
+    modelAccuracy: asset.accuracy || proxy.modelAccuracy || snapshot.modelAccuracy || null,
+    pricing: exact.pricing || snapshot.pricing || null,
+    links: snapshot.links || snapshot.sources || exact.links || [],
+    verifiedAt: exact.lastVerifiedAt || snapshot.lastVerifiedAt || snapshot.verifiedAt || null
+  };
+}
+
+function findSupportingRegion(face, center) {
+  return face.metadata?.profileGeometry?.solidRegions?.find((region) => pointWithinRegion(center.x, center.y, region)) || null;
+}
+
+function positiveInches(value) {
+  const result = millimetersToInches(value);
+  return Number.isFinite(result) && result > 0 ? result : null;
 }
 
 function addLighting(context) {
@@ -2197,6 +2443,29 @@ function validateHardware(component, host, components, issues) {
     issues.push(issue("HARDWARE_ATTACHMENT_MISMATCH", "error", component.id, host.id, "Hardware requires a finite drill or mounting center."));
     return;
   }
+  const drillCenters = Array.isArray(component.metadata?.mountingCenters)
+    ? component.metadata.mountingCenters
+    : [center];
+  if (drillCenters.some((point) => !point || ![point.x, point.y, point.z].every(Number.isFinite))) {
+    issues.push(issue("HARDWARE_ATTACHMENT_MISMATCH", "error", component.id, host.id, "Every catalog mounting center must be finite."));
+  }
+  if (component.metadata?.compatibilityLevel === "not_compatible") {
+    issues.push(issue(
+      "HARDWARE_NOT_COMPATIBLE",
+      "error",
+      component.id,
+      host.id,
+      component.metadata?.warnings?.[0] || "The selected catalog hardware is not compatible with this host."
+    ));
+  } else if (component.metadata?.compatibilityLevel === "possible_with_warning") {
+    issues.push(issue(
+      "HARDWARE_COMPATIBILITY_REVIEW",
+      "warning",
+      component.id,
+      host.id,
+      component.metadata?.warnings?.[0] || "The selected catalog hardware requires review."
+    ));
+  }
   if (
     center.x < host.bounds.min.x - EPSILON || center.x > host.bounds.max.x + EPSILON ||
     center.y < host.bounds.min.y - EPSILON || center.y > host.bounds.max.y + EPSILON
@@ -2241,21 +2510,21 @@ function validateHardware(component, host, components, issues) {
     component.bounds.min.y - host.bounds.min.y,
     host.bounds.max.y - component.bounds.max.y
   );
-  if (edgeClearance + EPSILON < CONSTRUCTION_RULES.handleEdgeClearance) {
+  if (edgeClearance + CLEARANCE_EPSILON < CONSTRUCTION_RULES.handleEdgeClearance) {
     issues.push(issue("HARDWARE_TOO_CLOSE_TO_EDGE", "error", component.id, host.id, "Hardware envelope is too close to a front edge."));
   }
   if (host.metadata?.leafCount === 2) {
     const latchClearance = host.metadata.latchSide === "latch_right"
       ? host.bounds.max.x - component.bounds.max.x
       : component.bounds.min.x - host.bounds.min.x;
-    if (latchClearance + EPSILON < CONSTRUCTION_RULES.handleEdgeClearance) {
+    if (latchClearance + CLEARANCE_EPSILON < CONSTRUCTION_RULES.handleEdgeClearance) {
       issues.push(issue("HARDWARE_TOO_CLOSE_TO_MEETING_GAP", "error", component.id, host.id, "Paired hardware must clear the meeting gap."));
     }
   }
-  const expectedOrientation = component.metadata?.hardwareType === "pull"
-    ? host.role === "drawer_front" ? "horizontal" : "vertical"
-    : "neutral";
-  if (component.metadata?.orientation !== expectedOrientation) {
+  const allowedOrientations = component.metadata?.hardwareType === "pull"
+    ? ["horizontal", "vertical"]
+    : ["neutral", "horizontal", "vertical"];
+  if (!allowedOrientations.includes(component.metadata?.orientation)) {
     issues.push(issue("HARDWARE_ORIENTATION_INVALID", "error", component.id, host.id, "Hardware orientation is incompatible with its front context."));
   }
   const declaredRegion = component.metadata?.supportingFrontRegion;
@@ -2279,16 +2548,20 @@ function validateHardwareCompleteness(layout, components, issues) {
   }
   for (const front of components.filter((component) => FACE_CHILD_ROLES.has(component.role))) {
     const count = handlesByHost.get(front.id)?.length || 0;
-    const expected = pushLatch ? 0 : 1;
+    const selection = resolveHardwareSelectionForHost(layout?.config, front.id);
+    const hasExplicitSelection = Boolean(layout?.config?.hardwareSelections?.byHostId?.[front.id]);
+    const expected = pushLatch && !hasExplicitSelection
+      ? 0
+      : selection?.placement?.quantityPerFront === 2 ? 2 : 1;
     if (count !== expected) {
       issues.push(issue(
         "HARDWARE_COUNT_MISMATCH",
         "error",
         front.id,
         front.hostId,
-        pushLatch
+        pushLatch && !hasExplicitSelection
           ? "Push-latch fronts must not generate visible hardware descriptors."
-          : "Every ordinary door leaf and drawer front must generate exactly one hosted hardware descriptor."
+          : `This front must generate exactly ${expected} hosted hardware descriptor${expected === 1 ? "" : "s"}.`
       ));
     }
   }
@@ -2322,7 +2595,7 @@ function validatePairedFronts(components, issues) {
       const mirrored = nearlyEqual(meetingCenter - handles[0].position.x, handles[1].position.x - meetingCenter) &&
         nearlyEqual(handles[0].position.y, handles[1].position.y);
       if (!mirrored) {
-        issues.push(issue("PAIRED_HARDWARE_NOT_MIRRORED", "error", handles[0].id, handles[1].id, "Paired door hardware must mirror around the meeting line."));
+        issues.push(issue("PAIRED_HARDWARE_NOT_MIRRORED", "warning", handles[0].id, handles[1].id, "Paired door hardware does not mirror around the meeting line; confirm the intentional mixed placement during production review."));
       }
     }
   }

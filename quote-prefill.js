@@ -1,10 +1,10 @@
-import { buildPricingContext } from "./bookcase-pricing.js?v=configurator-construction-20260714b";
+import { buildPricingContext } from "./bookcase-pricing.js?v=direct-hardware-20260714a";
 import {
   getHardwareVariant,
   hardwareFinishOptions,
   hardwareTypeOptions,
   optionLabels
-} from "./bookcase-config.js?v=configurator-construction-20260714b";
+} from "./bookcase-config.js?v=direct-hardware-20260714a";
 
 const storedLayoutLabels = Object.freeze({
   "lower-cabinets": "Full Bookcase",
@@ -52,6 +52,7 @@ export function createQuotePrefill(config = {}) {
   const normalizedConfig = pricing.selections;
   const billable = pricing.billableQuantities;
   const hasLowerCabinets = pricing.bom.openings.lowerStorageCount > 0;
+  const hardwareSchedule = pricing.bom.hardware?.schedule || [];
   const hardwareVariant = getHardwareVariant(normalizedConfig.hardware);
   const hardwareTypeLabel = hardwareTypeOptions.find((option) => option.value === hardwareVariant?.type)?.label || "";
   const hardwareFinishLabel = hardwareFinishOptions.find((option) => option.value === hardwareVariant?.finish)?.label || "";
@@ -59,7 +60,7 @@ export function createQuotePrefill(config = {}) {
   const drawerFrontProfile = billable.generatedDrawerFronts > 0
     ? { id: normalizedConfig.drawerFrontStyle, label: optionLabels.drawerFrontStyle[normalizedConfig.drawerFrontStyle], count: billable.generatedDrawerFronts }
     : null;
-  const hardwareSelection = billable.hardwareUnits > 0 && hardwareVariant
+  const legacyHardwareSelection = billable.hardwareUnits > 0 && hardwareVariant
     ? {
         id: hardwareVariant.value,
         label: hardwareVariant.label,
@@ -70,6 +71,11 @@ export function createQuotePrefill(config = {}) {
         count: billable.hardwareUnits
       }
     : null;
+  // The exact production schedule is authoritative once direct selections are
+  // present. This also keeps legacy-migrated designs honest: their projected
+  // token may say “brass knob” while the retained catalog facts identify an
+  // exact manufacturer finish such as Aged Brass.
+  const hardwareSelection = summarizeHardwareSchedule(hardwareSchedule, legacyHardwareSelection);
   const customBmColor = [normalizedConfig.customPaintColor, normalizedConfig.customPaintCode].filter(Boolean).join(" ");
   const paintSelection = normalizedConfig.paintSelection;
   const room = config.centerOpening
@@ -97,6 +103,9 @@ export function createQuotePrefill(config = {}) {
     billableQuantities: billable,
     frontProfiles: { door: doorFrontProfile, drawer: drawerFrontProfile },
     hardwareSelection,
+    hardwareSelections: normalizedConfig.hardwareSelections,
+    hardwareSchedule,
+    hardwareCatalogVersion: pricing.bom.hardware?.catalogVersion || normalizedConfig.hardwareSelections?.catalogVersion || null,
     customPaint: pricing.customPaint.selected,
     paintBrand: paintSelection?.brand || (normalizedConfig.finish === "custom_bm" ? "Benjamin Moore" : ""),
     paintCode: paintSelection?.code || normalizedConfig.customPaintCode || "",
@@ -119,6 +128,11 @@ export function createQuotePrefill(config = {}) {
         hardwareFinish: hardwareSelection.finishLabel,
         hardwareVariant: hardwareSelection.label
       } : {}),
+      ...(hardwareSchedule.length ? {
+        hardwareSchedule: formatHardwareSchedule(hardwareSchedule),
+        hardwareCatalogVersion: pricing.bom.hardware?.catalogVersion || normalizedConfig.hardwareSelections?.catalogVersion || "",
+        hardwareSourceLinks: formatHardwareSourceLinks(hardwareSchedule)
+      } : {}),
       paintFinish: config.finish || "",
       customBmColor,
       customPaint: pricing.customPaint.selected ? "Yes" : "No",
@@ -131,6 +145,104 @@ export function createQuotePrefill(config = {}) {
     },
     options
   };
+}
+
+function formatHardwareSchedule(schedule) {
+  // This hidden handoff is deliberately machine-readable and complete. The
+  // visible quote summary formats the same schedule for people without
+  // discarding exact IDs, placement, verification, or warning metadata.
+  return JSON.stringify(schedule);
+}
+
+const HARDWARE_CATEGORY_LABELS = Object.freeze({
+  round_knob: "Round Knob",
+  t_bar_knob: "T-Bar Knob",
+  d_handle_pull: "D-Handle Pull",
+  bar_pull: "Bar Pull",
+  cup_pull: "Cup Pull",
+  edge_pull: "Edge Pull",
+  appliance_pull: "Appliance Pull",
+  cabinet_latch: "Cabinet Latch"
+});
+
+function summarizeHardwareSchedule(schedule, fallback) {
+  const entries = Array.isArray(schedule)
+    ? schedule.filter((entry) => Number.isFinite(entry?.quantity) && entry.quantity > 0)
+    : [];
+  if (!entries.length) return fallback;
+
+  const variants = new Map();
+  for (const entry of entries) {
+    const id = entry.variantId || "unknown";
+    const existing = variants.get(id);
+    if (existing) {
+      existing.count += entry.quantity;
+    } else {
+      variants.set(id, { entry, count: entry.quantity });
+    }
+  }
+
+  const grouped = [...variants.values()];
+  const categories = unique(grouped.map(({ entry }) => entry.category).filter(Boolean));
+  const finishes = unique(grouped.map(({ entry }) => entry.finish).filter(Boolean));
+  const finishIds = unique(grouped.map(({ entry }) => entry.finishVariantId).filter(Boolean));
+  const total = grouped.reduce((sum, item) => sum + item.count, 0);
+  const typeLabel = categories.length === 1
+    ? HARDWARE_CATEGORY_LABELS[categories[0]] || formatProfileId(categories[0])
+    : "Mixed";
+  const finishLabel = finishes.length === 1 ? finishes[0] : "Mixed";
+
+  if (grouped.length === 1) {
+    const { entry } = grouped[0];
+    return {
+      id: entry.variantId,
+      label: formatExactHardwareIdentity(entry),
+      type: entry.category || fallback?.type || "hardware",
+      typeLabel,
+      finish: entry.finishVariantId || fallback?.finish || "",
+      finishLabel,
+      count: total,
+      exact: true
+    };
+  }
+
+  return {
+    id: "mixed",
+    label: `Mixed exact hardware (${grouped.length} variants)`,
+    type: categories.length === 1 ? categories[0] : "mixed",
+    typeLabel,
+    finish: finishIds.length === 1 ? finishIds[0] : "mixed",
+    finishLabel,
+    count: total,
+    exact: true,
+    variantCount: grouped.length
+  };
+}
+
+function formatExactHardwareIdentity(entry) {
+  return [
+    entry.brand,
+    entry.family,
+    entry.size,
+    entry.finish,
+    entry.manufacturerProductNumber ? `MPN ${entry.manufacturerProductNumber}` : ""
+  ].filter(Boolean).join(" · ");
+}
+
+function unique(values) {
+  return [...new Set(values)];
+}
+
+function formatHardwareSourceLinks(schedule) {
+  return [...new Set(schedule.flatMap((entry) => (
+    entry.links || []
+  )).map((link) => link?.url).filter((url) => {
+    try {
+      return ["https:", "http:"].includes(new URL(String(url)).protocol);
+    } catch (error) {
+      return false;
+    }
+  }))].join(" | ");
 }
 
 function cloneLayoutMetadata(value) {

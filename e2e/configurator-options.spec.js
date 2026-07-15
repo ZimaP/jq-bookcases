@@ -56,12 +56,6 @@ async function readDesign(page) {
   });
 }
 
-async function useAllControls(page) {
-  const tab = page.getByRole("tab", { name: /All Controls/ });
-  if (await tab.getAttribute("aria-selected") !== "true") await tab.click();
-  await expect(tab).toHaveAttribute("aria-selected", "true");
-}
-
 async function openCategory(page, category) {
   const trigger = page.locator(`[data-category-trigger="${category}"]`);
   if (await trigger.getAttribute("aria-expanded") !== "true") await trigger.click();
@@ -111,11 +105,10 @@ function expectVerifiedModel(design) {
 test("dimension boundaries reconcile structurally while invalid drafts preserve the accepted model and estimate", async ({ page }) => {
   const runtimeErrors = monitorRuntime(page);
   const viewer = await openConfigurator(page);
-  await useAllControls(page);
-  await openCategory(page, "dimensions");
+  await openCategory(page, "overall_size");
 
   const initial = await readDesign(page);
-  const width = numberField(page, "dimensions", "width");
+  const width = numberField(page, "overall_size", "width");
   await width.fill("145");
   await expect(page.locator('[data-field-error="width"]')).toContainText("between 24 and 144 inches");
   await expect(page.locator("[data-save-design]").first()).toBeDisabled();
@@ -134,10 +127,10 @@ test("dimension boundaries reconcile structurally while invalid drafts preserve 
   expect(design.bom.sections.count).toBe(1);
   expect(design.sectionWidths[0]).toBeGreaterThanOrEqual(15);
 
-  await setNumber(page, "dimensions", "height", 120);
-  await setNumber(page, "dimensions", "depth", 10);
-  await setNumber(page, "dimensions", "shelves", 8);
-  await setNumber(page, "dimensions", "shelfThickness", 0.75);
+  await setNumber(page, "overall_size", "height", 120);
+  await setNumber(page, "overall_size", "depth", 10);
+  await setNumber(page, "shelves", "shelves", 8);
+  await setNumber(page, "shelves", "shelfThickness", 0.75);
   design = await readDesign(page);
   expect(design.state).toMatchObject({ width: 24, height: 120, depth: 10, sections: 1, shelves: 8, shelfThickness: 0.75 });
   expect(design.bom.overall).toMatchObject({ widthIn: 24, heightIn: 120, depthIn: 10 });
@@ -145,12 +138,13 @@ test("dimension boundaries reconcile structurally while invalid drafts preserve 
   expect(design.roles.shelf).toBe(8);
   expectVerifiedModel(design);
 
-  await numberField(page, "dimensions", "depth").fill("9");
+  await openCategory(page, "overall_size");
+  await numberField(page, "overall_size", "depth").fill("9");
   await expect(page.locator('[data-field-error="depth"]')).toContainText("between 10 and 24 inches");
   const secondInvalid = await readDesign(page);
   expect(secondInvalid.state.depth).toBe(10);
   expect(secondInvalid.fingerprint).toBe(design.fingerprint);
-  await numberField(page, "dimensions", "depth").fill("24");
+  await numberField(page, "overall_size", "depth").fill("24");
   await expect.poll(async () => (await readDesign(page)).state.depth).toBe(24);
   await expect(page.locator('[data-field-error="depth"]')).toBeEmpty();
   await expect(page.locator("[data-save-design]").first()).toBeEnabled();
@@ -160,22 +154,11 @@ test("dimension boundaries reconcile structurally while invalid drafts preserve 
 test("section count and mixed storage changes stay synchronized with geometry, BOM, applicability, undo, and redo", async ({ page }) => {
   const runtimeErrors = monitorRuntime(page);
   const viewer = await openConfigurator(page);
-  await useAllControls(page);
-  await openCategory(page, "storage");
+  await openCategory(page, "storage_fronts");
 
-  const lowerCabinets = page.locator('[data-category-panel="storage"] input[data-field="lowerCabinets"]');
-  await lowerCabinets.uncheck();
-  await expect.poll(async () => (await readDesign(page)).state.lowerCabinets).toBe(false);
+  await chooseRadio(page, "storage_fronts", "lowerStorage", "drawers");
+  await setNumber(page, "storage_fronts", "drawerCount", 5);
   let design = await readDesign(page);
-  expect(design.bom.doors.count).toBe(0);
-  expect(design.bom.drawers.frontCount).toBe(0);
-  expect(design.bom.hardware.handleCount).toBe(0);
-  await expect(page.locator('[data-category-panel="storage"] [data-applicability="cabinets"]')).toBeHidden();
-
-  await lowerCabinets.check();
-  await chooseRadio(page, "storage", "lowerStorage", "drawers");
-  await setNumber(page, "storage", "drawerCount", 5);
-  design = await readDesign(page);
   expect(design.state.lowerCabinets).toBe(true);
   expect(design.bom.doors.count).toBe(0);
   expect(design.bom.drawers.frontCount).toBe(20);
@@ -183,13 +166,8 @@ test("section count and mixed storage changes stay synchronized with geometry, B
   expect(design.roles.drawer).toBe(20);
   expect(design.roles.handle).toBe(20);
 
-  const guidedTab = page.getByRole("tab", { name: /Guided Setup/ });
-  await expect(page.locator('[data-guided-step="layout"]')).toBeDisabled();
-  await guidedTab.click();
-  await expect(page.locator('[data-guided-step-content="dimensions"]')).toBeVisible();
-  await page.locator("[data-guided-continue]").click();
-  await expect(page.locator('[data-guided-step-content="layout"]')).toBeVisible();
-  await expect(page.locator('[data-guided-step="layout"]')).toHaveAttribute("aria-current", "step");
+  await openCategory(page, "sections_layout");
+  await expect(page.locator("[data-builder-form]")).toHaveAttribute("data-diagnostic-inspector-group", "sections_layout");
   const sections = page.locator('[data-stepper-control="sections"] input[data-field="sections"]');
   await sections.fill("6");
   await expect.poll(async () => (await readDesign(page)).state.sections).toBe(6);
@@ -221,21 +199,20 @@ test("section count and mixed storage changes stay synchronized with geometry, B
   design = await readDesign(page);
   expect(design.sectionTypes).toEqual(["drawers", "drawers", "open"]);
 
-  await useAllControls(page);
-  await chooseRadio(page, "storage", "lowerStorage", "doors");
+  await chooseRadio(page, "storage_fronts", "lowerStorage", "doors");
   await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["lower_doors", "lower_doors", "open"]);
   design = await readDesign(page);
   expect(design.state).toMatchObject({ lowerCabinets: true, lowerStorage: "doors" });
   expect(design.roles.door).toBe(4);
   expect(design.roles.drawer).toBe(0);
 
-  await chooseRadio(page, "storage", "lowerStorage", "drawers");
+  await chooseRadio(page, "storage_fronts", "lowerStorage", "drawers");
   await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["drawers", "drawers", "open"]);
   design = await readDesign(page);
   expect(design.roles.door).toBe(0);
   expect(design.roles.drawer).toBe(10);
 
-  const globalLowerCabinets = page.locator('[data-category-panel="storage"] input[data-field="lowerCabinets"]');
+  const globalLowerCabinets = page.locator('[data-category-panel="storage_fronts"] input[data-field="lowerCabinets"]');
   await globalLowerCabinets.uncheck();
   await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["open", "open", "open"]);
   design = await readDesign(page);
@@ -243,6 +220,7 @@ test("section count and mixed storage changes stay synchronized with geometry, B
   expect(design.roles.door).toBe(0);
   expect(design.roles.drawer).toBe(0);
 
+  await expect(globalLowerCabinets).toBeVisible();
   await globalLowerCabinets.check();
   await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["lower_doors", "lower_doors", "lower_doors"]);
   design = await readDesign(page);
@@ -254,20 +232,15 @@ test("section count and mixed storage changes stay synchronized with geometry, B
   expect(runtimeErrors).toEqual([]);
 });
 
-test("All Controls renders one usable Fronts radio set with one checked applicable profile", async ({ page }) => {
+test("the unified inspector renders one usable Fronts radio set with one checked applicable profile", async ({ page }) => {
   const runtimeErrors = monitorRuntime(page);
   await openConfigurator(page);
-  await useAllControls(page);
-
-  const allPanel = page.locator('[data-mode-panel="all"]');
-  await expect(allPanel.locator("[data-front-profile-groups]")).toHaveCount(1);
-  await openCategory(page, "storage");
-  await expect(page.locator('[data-category-panel="storage"] [data-front-profile-groups]')).toHaveCount(0);
-
-  await openCategory(page, "doors");
-  const frontsPanel = page.locator('[data-category-panel="doors"]');
-  const doorProfiles = frontsPanel.locator('[data-applicability="doors"]');
-  const drawerProfiles = frontsPanel.locator('[data-applicability="drawers"]');
+  await openCategory(page, "storage_fronts");
+  const inspector = page.locator("[data-unified-inspector]");
+  await expect(inspector.locator("[data-front-profile-groups]")).toHaveCount(1);
+  const frontsPanel = page.locator('[data-category-panel="storage_fronts"]');
+  const doorProfiles = frontsPanel.locator('.front-profile-group[data-applicability="doors"]');
+  const drawerProfiles = frontsPanel.locator('.front-profile-group[data-applicability="drawers"]');
   await expect(doorProfiles).toBeVisible();
   await expect(drawerProfiles).toBeHidden();
   await expect(drawerProfiles).toHaveAttribute("inert", "");
@@ -277,8 +250,7 @@ test("All Controls renders one usable Fronts radio set with one checked applicab
   await expect.poll(async () => (await readDesign(page)).state.doorStyle).toBe("flat");
   await expect(doorProfiles.locator('input[data-field="doorStyle"]:checked')).toHaveCount(1);
 
-  await chooseRadio(page, "storage", "lowerStorage", "drawers");
-  await openCategory(page, "doors");
+  await chooseRadio(page, "storage_fronts", "lowerStorage", "drawers");
   await expect(doorProfiles).toBeHidden();
   await expect(doorProfiles).toHaveAttribute("inert", "");
   await expect(drawerProfiles).toBeVisible();
@@ -293,18 +265,17 @@ test("All Controls renders one usable Fronts radio set with one checked applicab
 test("construction, fronts, finish, hardware, lighting, and service selections persist with matching geometry, BOM, pricing, and review", async ({ page }) => {
   const runtimeErrors = monitorRuntime(page);
   const viewer = await openConfigurator(page);
-  await useAllControls(page);
   const initial = await readDesign(page);
 
-  await chooseRadio(page, "construction", "baseStyle", "toe_kick");
-  await chooseRadio(page, "construction", "crownStyle", "none");
-  await setNumber(page, "construction", "shelfThickness", 2);
-  await chooseRadio(page, "doors", "doorStyle", "glass");
+  await chooseRadio(page, "base_crown", "baseStyle", "toe_kick");
+  await chooseRadio(page, "base_crown", "crownStyle", "none");
+  await setNumber(page, "shelves", "shelfThickness", 2);
+  await chooseRadio(page, "storage_fronts", "doorStyle", "glass");
   await chooseHardware(page, "pull", "matte_black", "matte_black_pull");
   await chooseRadio(page, "lighting", "lighting", "vertical_led");
   await chooseRadio(page, "lighting", "lightingWarmth", 3500);
-  await chooseRadio(page, "service", "delivery", "pickup");
-  await chooseRadio(page, "service", "installation", "no_installation");
+  await chooseRadio(page, "project_service", "delivery", "pickup");
+  await chooseRadio(page, "project_service", "installation", "no_installation");
 
   await chooseRadio(page, "finish", "finish", "silver_satin");
   await page.locator('[data-category-panel="finish"] [data-toggle-color-search]').click();
@@ -384,20 +355,22 @@ test("construction, fronts, finish, hardware, lighting, and service selections p
   expect(runtimeErrors).toEqual([]);
 });
 
-test("mobile keyboard operation switches modes, manipulates the camera, reviews, saves, and restores without overflow", async ({ page }) => {
+test("mobile keyboard operation navigates inspector groups, manipulates the camera, reviews, saves, and restores without overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const runtimeErrors = monitorRuntime(page);
   const viewer = await openConfigurator(page, "classic-open");
 
-  const guidedTab = page.getByRole("tab", { name: /Guided Setup/ });
-  const allTab = page.getByRole("tab", { name: /All Controls/ });
-  await guidedTab.focus();
-  await guidedTab.press("ArrowRight");
-  await expect(allTab).toBeFocused();
-  await expect(allTab).toHaveAttribute("aria-selected", "true");
+  const sectionsTrigger = page.locator('[data-category-trigger="sections_layout"]');
+  await sectionsTrigger.focus();
+  await sectionsTrigger.press("Enter");
+  await expect(sectionsTrigger).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator('[data-category-panel="sections_layout"]')).toBeVisible();
 
-  await openCategory(page, "dimensions");
-  await numberField(page, "dimensions", "width").fill("120");
+  const sizeTrigger = page.locator('[data-category-trigger="overall_size"]');
+  await sizeTrigger.focus();
+  await sizeTrigger.press("Enter");
+  await expect(sizeTrigger).toHaveAttribute("aria-expanded", "true");
+  await numberField(page, "overall_size", "width").fill("120");
   await expect.poll(async () => (await readDesign(page)).state.width).toBe(120);
 
   await viewer.focus();

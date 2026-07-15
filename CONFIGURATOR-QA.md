@@ -7,51 +7,86 @@ local-storage fixtures so resume preferences cannot accidentally influence it.
 Evidence status is explicit in this document. Sections labeled **Completed**
 record executed work and existing artifacts. Construction V1 was executed on
 2026-07-14 against the candidate branch; exact command results and evidence are
-recorded below.
+recorded below. The unified-inspector matrix is a release requirement until a
+new dated run records its exact results and artifacts; older evidence is not a
+substitute for that run.
 
-## Guided and All Controls regression matrix
+## Unified inspector and direct-selection regression matrix
 
-1. A new My Space design, inspiration idea, valid shared configuration, or
-   explicit preset opens Guided Setup at Space regardless of stale mode, step,
-   category, or scroll preferences.
-2. A valid saved design loaded from the bare configurator URL or
-   `?start=resume` restores its sanitized mode, Guided step, All Controls
-   category, accepted configuration, and the preview focus associated with that
-   restored workflow context.
-3. `?start=welcome` presents a new journey without deleting a valid saved
-   design. Temporary `start` parameters are consumed after startup.
-4. Guided order and visible labels are exactly Space, Structure, Storage,
-   Build, Style, and Review.
-5. Continue validates the active step and unlocks only the next Guided step;
-   Back retains accepted selections. A future locked step cannot be entered
-   directly.
-6. Space contains width, height, and depth. Structure contains the section
-   count and full inline section editor. Storage contains shelving, lower
-   storage, and front profiles. Build contains shelf thickness, base, and
-   crown/top. Style contains finish, hardware, and lighting.
-7. Switching between Guided Setup and All Controls does not reload the page,
-   change physical configuration, recalculate price, remount the viewer, or
-   create a second canvas, scene, camera, or render loop.
-8. The mapped category opens when switching to All Controls, and switching
-   back opens the mapped or independently remembered Guided step.
-9. A physical edit in either presentation appears immediately in the other.
-   Both presentations show the same price, schema-4 save payload, review, and
-   quote handoff for the same accepted configuration.
-10. Incomplete numeric drafts retain their text and connected validation
-    message across presentation changes. They leave model, BOM, price, review,
-    save identity, and quote data at the last accepted transaction.
-11. Every collapsed All Controls category exposes a current-value summary and
-    applicability is derived from generated components rather than only from
-    raw selections.
-12. Review Edit actions return to and focus the owning Guided step. Save Design
-    and Request Quote remain guarded against duplicate rapid actions.
-13. Mode tabs support Arrow Left/Right, Home, and End. The mode selector and
-    Guided progress remain visible, readable, and keyboard-operable at every
-    release viewport.
+1. A new My Space design, inspiration idea, valid share, or explicit preset
+   enters one accepted-design shell with one inspector, one model workspace,
+   one canvas, and the shared estimate/actions row. Retired presentation
+   preferences cannot alter the physical start state.
+2. A verified saved design loaded from the bare URL or `?start=resume` restores
+   its accepted configuration and sanitized inspector group. `?start=welcome`
+   keeps the studio presentation without deleting that record. Temporary
+   `start` parameters are consumed after initialization.
+3. Inspector groups appear exactly once and in this order: Overall Size,
+   Sections & Layout, Shelves, Storage & Fronts, Base & Crown, Finish,
+   Hardware, Lighting, and Project Service. Every collapsed group exposes a
+   current-value summary.
+4. Opening/collapsing an inspector group changes only presentation state. It
+   must not evaluate price, rebuild geometry, reset the camera, replace the
+   canvas, or change the accepted design fingerprint.
+5. Hover identifies a selectable generated component without selecting it or
+   changing state. Leaving the component or opening the context editor removes
+   the hover label.
+6. Selecting a section, shelf, door, drawer front, handle, divider, base,
+   crown, light, or cabinet body creates exactly one semantic selection,
+   highlights the resolved accepted component, opens the matching contextual
+   editor, and expands the linked inspector group.
+7. The contextual editor and inspector render the same registered physical
+   controls and call the same commit function. Editing either surface updates
+   the other immediately with one normalization, validation, pricing, and
+   viewer update.
+8. Clicking model blank space, pressing Escape, or using the editor close
+   button clears the same selection and leader. Keyboard selection moves focus
+   into the editor; closing restores focus to a connected invoker.
+9. Selection, hover, active inspector group, editor position, focus, scroll,
+   and incomplete drafts never enter the save payload, quote URL, BOM, price,
+   layout fingerprint, or AR normalization.
+10. Incomplete or invalid numeric drafts retain their text and connected error
+    while model, BOM, price, Review, save identity, quote data, and AR stay on
+    the last accepted transaction.
+11. Review Edit actions expand and focus the owning inspector group. Review,
+    Save Design, Request a Quote, and AR continue to use their single shared
+    handlers and remain guarded against duplicate rapid actions.
+12. Desktop keeps a 380–410 px inspector and gives remaining width to the
+    model. A 320–410 px context card is clamped inside the usable model area;
+    its leader does not cover or capture input intended for the canvas.
+13. At 900 px and below, the model precedes one stacked inspector drawer with
+    no page-width overflow. At 767 px and below, a selection opens one fixed,
+    vertically scrollable bottom sheet with no horizontal overflow.
+14. Every interactive inspector, context, divider, dock, AR, and shared-action
+    target is at least 44 × 44 CSS px where required. Focus indicators remain
+    visible against both light and dark surfaces.
+15. The model remains orbitable/selectable whenever the context sheet is
+    closed. Context scrolling must not orbit the model or move a divider.
+    Divider interaction must not also rotate the camera.
+16. Reduced-motion mode removes sheet, highlight, and helper transitions
+    without hiding state changes. Every control retains accessible names,
+    expanded/pressed state, dialog naming, status announcements, and logical
+    keyboard order.
+17. Exactly one controller, viewer, renderer, scene, camera, canvas, render
+    loop, accepted state, and pricing pipeline survive category navigation,
+    selection changes, responsive resize, Review, save, quote, and AR entry.
 
-## Structure acceptance matrix
+Required unified evidence belongs in `artifacts/configurator-unified-qa/` and
+must be captured at native viewport size from the actual application without
+post-processing. Do not overwrite older refinement or construction evidence.
 
-1. The Structure step shows all section cards in a wrapping overview grid with
+- `unified-no-selection-desktop.png`
+- `unified-section-selection-desktop.png`
+- `unified-door-context-desktop.png`
+- `unified-shelf-context-desktop.png`
+- `unified-handle-context-desktop.png`
+- `unified-divider-drag-preview-desktop.png`
+- `unified-base-crown-context-desktop.png`
+- `unified-bottom-sheet-mobile.png`
+
+## Sections & Layout acceptance matrix
+
+1. The Sections & Layout group shows all section cards in a wrapping overview grid with
    no nested horizontal scrolling.
 2. Each overview card shows section number, exact clear width, section type,
    selected state, and locked state when applicable. Selection supports click,
@@ -101,7 +136,7 @@ recorded below.
 ## Storage, profiles, and hardware matrix
 
 1. Storage groups controls into Shelving, Lower storage, Front profiles, and a
-   clear route back to Structure for per-section customization.
+   clear route back to Sections & Layout for per-section customization.
 2. Door front profile and drawer front profile are independent controls.
    Shaker, Flat Panel, and Slim Shaker are available for both; Glass Frame is
    door-only and never appears as a drawer choice or drawer descriptor.
@@ -122,7 +157,7 @@ recorded below.
    construction-profile selector. A door-arrangement change immediately updates
    generated leaf/handle counts, estimate, Review, save payload, quote prefill,
    and AR data while preserving camera pose, selected view, selected section,
-   active step, and mode.
+   active inspector group, and semantic selection.
 9. Single hinge-left places hardware on the right latch edge; single hinge-right
    places it on the left. A pair has equal leaves, one exact meeting gap, and
    mirrored hardware. Glass hardware stays on the resolved frame, never the
@@ -160,8 +195,8 @@ completion.
 ## Completed prior-refinement browser matrix — 2026-07-14
 
 `e2e/configurator-viewport-matrix.spec.js` exercised one accepted three-section
-Structure design at every required viewport. Each row passed page, Guided-step,
-Structure-editor, and overview overflow checks; one complete valid canvas;
+structure design at every required viewport. Each row passed the historical
+page, structure-editor, and overview overflow checks; one complete valid canvas;
 three visible section cards and clear-width labels; two visible enabled 44 px+
 divider targets; the overall-width label; and application console monitoring.
 
@@ -190,16 +225,16 @@ widths, one canvas, a valid render, and zero horizontal Structure scrollers.
 
 Completed browser scenarios:
 
-1. Stale All Controls/Storage preferences cannot override a new My Space or
-   editable-idea start: both open Guided Space with prefilled data. A bare URL
-   and `?start=resume` restore verified saved context.
+1. Stale presentation preferences could not override the physical source for a
+   new My Space or editable-idea start. A bare URL and `?start=resume` restored
+   the verified saved configuration.
 2. A 96 × 96 × 15 in design changes to `31, 31, 31`; direct resize produces
    `33, 29, 31` while overall remains 96 in. Pointer preview avoids pricing,
    release commits once, numeric/stepper/keyboard paths use the same adjacent
    transition, blank drafts preserve accepted state, and overshoot clamps.
-3. All Controls exposes the same section count/editor, global storage rewrites
-   compatible explicit section types, count reduction clamps card and preview
-   selection together, and Merge Left selects the resulting merged bay.
+3. The section count/editor and global storage controls used the same accepted
+   section transaction; count reduction clamped card and preview selection
+   together, and Merge Left selected the resulting merged bay.
 4. Door-only, drawer-only, and mixed designs expose the applicable independent
    profile groups. Drawer options are Shaker, Flat Panel, and Slim Shaker only;
    Glass Frame remains door-only. Model, Review, BOM, save/restore, quote, and
@@ -208,9 +243,9 @@ Completed browser scenarios:
    Finish-only changes keep geometry and the exact camera; type changes rebuild
    handle geometry while preserving camera, selected view, focus, viewer, and
    canvas.
-6. Guided/All Controls switching, rail navigation, Front/3/4/Side/free camera,
-   save, reload, Review, quote handoff, and room-view/AR entry keep one accepted
-   state, one controller, one persistent viewer, one canvas, and one price.
+6. Control navigation, Front/3/4/Side/free camera, save, reload, Review, quote
+   handoff, and room-view/AR entry kept one accepted state, one controller, one
+   persistent viewer, one canvas, and one price.
 
 Release automation on the completed tree:
 
@@ -221,8 +256,8 @@ Release automation on the completed tree:
 - `git diff --check`: pass.
 
 The in-app Browser replay reported zero application warnings or errors, one
-canvas, a valid descriptor render, no page overflow, and Space as the active
-new-design step. Headless screenshot capture emitted only Chromium's known
+canvas, a valid descriptor render, no page overflow, and the dimension controls
+as the active new-design surface. Headless screenshot capture emitted only Chromium's known
 `ReadPixels` driver-performance message; it was isolated as capture-driver
 noise, not an application/WebGL validation error. Computer Use opened the 4K
 artifact in Preview and confirmed the full 3840 × 2160 composition was intact.
@@ -323,8 +358,8 @@ or schema-3 pre-profile fixture for the legacy scenario; do not manufacture
 legacy behavior by exposing an unsupported customer control. Open a second
 diagnostic pass with `?constructionDebug=1` to inspect planes, descriptor bounds,
 toe void, isolated Base/Fronts/Hardware, render counts, and validation codes.
-The inspector is evidence only and must remain absent from customer captures
-unless the artifact is explicitly named as a debug capture.
+The construction-debug overlay is evidence only and must remain absent from
+customer captures unless the artifact is explicitly named as a debug capture.
 
 Every required scenario must be checked at the most relevant desktop viewport,
 and the complete responsive shell must pass all of these viewports:
@@ -338,6 +373,7 @@ and the complete responsive shell must pass all of these viewports:
 | Compact desktop | 1180 × 820 | Pass |
 | Tablet landscape/compact | 1024 × 900 | Pass |
 | Tablet portrait | 768 × 1024 | Pass |
+| Short landscape | 844 × 390 | Pass |
 | Mobile | 390 × 844 | Pass |
 | Narrow mobile | 360 × 800 | Pass |
 
@@ -431,10 +467,10 @@ does not replace any customer-view artifact.
   parts, penetrations, z-fighting, filled toe void, full-depth furniture feet,
   plinth overhang, hardware outside a face/on glass, invisible hardware, camera
   clipping, or unexpected camera reset.
-- Guided Setup, All Controls, Review, saved schema-4 payload, quote prefill, AR
-  normalization/model, generated billables, and displayed estimate all agree on
-  profile, section arrangements, door leaves, drawer fronts, and visible
-  hardware quantities.
+- Inspector controls, contextual controls, Review, saved schema-4 payload,
+  quote prefill, AR normalization/model, generated billables, and displayed
+  estimate all agree on profile, section arrangements, door leaves, drawer
+  fronts, and visible hardware quantities.
 
 ## General regression scenarios — Completed 2026-07-14
 
@@ -479,8 +515,8 @@ an unrelated component.
 - Every door has an opposite hinge/latch pair. Hardware stays on the latch side
   and resolved solid material; no glass or recessed field is drilled.
 - The same accepted configuration restores the same geometry and price.
-- Guided Setup, All Controls, both Review surfaces, Save Design, local quote
-  prefill, and AR normalization agree on construction profile, per-section door
+- Inspector, contextual editor, Review Design, Save Design, local quote prefill,
+  and AR normalization agree on construction profile, per-section door
   arrangements, and component-derived leaf/hardware quantities.
 - Benjamin Moore search works by name and code, persists the selected catalog
   record, and returns a clear no-result state without inventing a color.
@@ -490,6 +526,7 @@ an unrelated component.
 ## Release commands
 
 ```sh
+npm ci
 npm run build
 npm test
 npm run test:browser

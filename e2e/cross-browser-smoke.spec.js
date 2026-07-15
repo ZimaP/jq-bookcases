@@ -47,8 +47,10 @@ test("a physical dimension edit rebuilds one valid model and survives reload", a
   await page.goto("/configurator.html?preset=lower-cabinets", { waitUntil: "networkidle" });
   const viewer = page.locator("[data-3d-viewer]");
   await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
-  await page.locator('[data-guided-step="dimensions"]').click();
-  const width = page.locator('input[type="number"][data-field="width"]');
+  const sizeTrigger = page.locator('[data-category-trigger="overall_size"]');
+  if (await sizeTrigger.getAttribute("aria-expanded") !== "true") await sizeTrigger.click();
+  await expect(page.locator('[data-category-panel="overall_size"]')).toBeVisible();
+  const width = page.locator('[data-category-panel="overall_size"] input[type="number"][data-field="width"]');
   await width.fill("120");
   await width.press("Enter");
   await expect(width).toHaveValue("120");

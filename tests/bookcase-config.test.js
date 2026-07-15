@@ -179,6 +179,7 @@ test("push latch remains a canonical internal selection without entering the cus
   });
 
   assert.equal(normalized.hardware, "push_latch");
+  assert.deepEqual(normalized.hardwareSelections.migrationWarnings, []);
   assert.equal(parseHardwareVariant(normalized.hardware), null);
   assert.equal(hardwareOptions.some((option) => option.value === "push_latch"), false);
   assert.equal(hardwareVariants.some((variant) => variant.value === "push_latch"), false);

@@ -59,18 +59,17 @@ async function openVerifiedConfigurator(page, presetId = "lower-cabinets") {
 }
 
 async function openPresetLibrary(page) {
-  const allControls = page.getByRole("tab", { name: /All Controls/ });
-  if (await allControls.getAttribute("aria-selected") !== "true") await allControls.click();
-  const trigger = page.locator('[data-category-trigger="layout"]');
+  const trigger = page.locator('[data-category-trigger="sections_layout"]');
   if (await trigger.getAttribute("aria-expanded") !== "true") await trigger.click();
+  const ideas = page.locator('[data-category-panel="sections_layout"] .layout-ideas');
+  if (await ideas.getAttribute("open") === null) await ideas.locator("summary").click();
   await expect(page.locator("[data-preset-id]").first()).toBeVisible();
 }
 
 async function openSectionDesigner(page) {
-  const guided = page.getByRole("tab", { name: /Guided Setup/ });
-  if (await guided.getAttribute("aria-selected") !== "true") await guided.click();
-  await page.locator("[data-guided-continue]").click();
-  await expect(page.locator('[data-guided-step-content="layout"]')).toBeVisible();
+  const trigger = page.locator('[data-category-trigger="sections_layout"]');
+  if (await trigger.getAttribute("aria-expanded") !== "true") await trigger.click();
+  await expect(page.locator('[data-category-panel="sections_layout"]')).toBeVisible();
   await expect(page.locator("[data-section-designer]")).toBeVisible();
   await expect(page.locator("[data-section-select]")).toHaveCount(4);
   await page.locator(".section-actions-disclosure > summary").click();
@@ -131,16 +130,16 @@ test("new visitor sees an unnumbered presentation-only welcome with no commercia
 test("homepage design CTAs force the welcome while plain configurator links resume saved work", async ({ page }) => {
   const errors = monitorRuntime(page);
   await openVerifiedConfigurator(page, "display-wall");
-  await page.locator("[data-guided-continue]").click();
-  await page.locator("[data-guided-continue]").click();
-  await expect(page.locator("[data-builder-form]")).toHaveAttribute("data-diagnostic-guided-step", "storage");
+  const storageTrigger = page.locator('[data-category-trigger="storage_fronts"]');
+  await storageTrigger.click();
+  await expect(page.locator("[data-builder-form]")).toHaveAttribute("data-diagnostic-inspector-group", "storage_fronts");
   await page.locator("[data-save-design]").first().click();
   await expect.poll(() => page.evaluate(() => localStorage.getItem("jqBookcasesDesign"))).not.toBeNull();
 
   await page.goto("/configurator.html", { waitUntil: "networkidle" });
   await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true");
   await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toHaveCount(0);
-  await expect(page.locator("[data-builder-form]")).toHaveAttribute("data-diagnostic-guided-step", "storage");
+  await expect(page.locator("[data-builder-form]")).toHaveAttribute("data-diagnostic-interface", "unified");
 
   await page.goto("/index.html", { waitUntil: "networkidle" });
   const heroCta = page.getByRole("region", { name: "Custom built-in bookcases, designed around your space." })
@@ -169,17 +168,13 @@ test("homepage design CTAs force the welcome while plain configurator links resu
   const resumed = await readAcceptedDesign(page);
   expect(resumed.diagnostics.initialSource).toBe("saved");
   expect(resumed.diagnostics.state.layoutPreset).toBe("display-wall");
-  expect(resumed.diagnostics.guidedStep).toBe("storage");
+  expect(resumed.diagnostics.interface).toBe("unified");
   expect(new URL(page.url()).searchParams.has("start")).toBe(false);
   expect(errors).toEqual([]);
 });
 
 test("custom-space route creates the first neutral accepted design exactly once", async ({ page }) => {
   const errors = monitorRuntime(page);
-  await page.addInitScript(() => {
-    localStorage.setItem("jqConfiguratorMode", "all");
-    localStorage.setItem("jqConfiguratorGuidedStep", "storage");
-  });
   await page.goto("/configurator.html", { waitUntil: "networkidle" });
   await page.getByRole("button", { name: /Start with my space/ }).click();
   await page.locator('[data-studio-dimension="width"]').fill("108");
@@ -200,8 +195,9 @@ test("custom-space route creates the first neutral accepted design exactly once"
   expect(accepted.diagnostics.state.sections).toBe(5);
   expect(accepted.diagnostics.state.lowerCabinets).toBe(false);
   expect(accepted.diagnostics.state.lighting).toBe("no_lighting");
-  expect(accepted.diagnostics.mode).toBe("guided");
-  expect(accepted.diagnostics.guidedStep).toBe("dimensions");
+  expect(accepted.diagnostics.interface).toBe("unified");
+  expect(accepted.diagnostics.activeInspectorGroup).toBe("overall_size");
+  await expect(page.locator("[data-unified-configurator] [data-category-trigger]")).toHaveCount(9);
   expect(accepted.diagnostics.priceCalculationCount).toBe(1);
   expect(accepted.diagnostics.updateCount).toBe(0);
   expect(errors).toEqual([]);
@@ -209,10 +205,6 @@ test("custom-space route creates the first neutral accepted design exactly once"
 
 test("idea route filters real configurations and accepts one editable idea", async ({ page }) => {
   const errors = monitorRuntime(page);
-  await page.addInitScript(() => {
-    localStorage.setItem("jqConfiguratorMode", "all");
-    localStorage.setItem("jqConfiguratorGuidedStep", "storage");
-  });
   await page.goto("/configurator.html", { waitUntil: "networkidle" });
   await page.getByRole("button", { name: /Use an editable idea/ }).click();
   await expect(page.locator("[data-idea-id]")).toHaveCount(6);
@@ -224,8 +216,9 @@ test("idea route filters real configurations and accepts one editable idea", asy
   const accepted = await readAcceptedDesign(page);
   expect(accepted.diagnostics.state.layoutPreset).toBe("display-wall");
   expect(accepted.diagnostics.initialSource).toBe("idea");
-  expect(accepted.diagnostics.mode).toBe("guided");
-  expect(accepted.diagnostics.guidedStep).toBe("dimensions");
+  expect(accepted.diagnostics.interface).toBe("unified");
+  expect(accepted.diagnostics.activeInspectorGroup).toBe("overall_size");
+  await expect(page.locator("[data-unified-configurator] [data-category-trigger]")).toHaveCount(9);
   expect(errors).toEqual([]);
 });
 
@@ -237,8 +230,9 @@ test("explicit preset bypass boots with a verified WebGL model and no runtime er
   const accepted = await readAcceptedDesign(page);
   expect(accepted.diagnostics.state.width).toBe(96);
   expect(accepted.diagnostics.state.sections).toBe(4);
-  expect(accepted.diagnostics.mode).toBe("guided");
-  expect(accepted.diagnostics.guidedStep).toBe("dimensions");
+  expect(accepted.diagnostics.interface).toBe("unified");
+  expect(accepted.diagnostics.activeInspectorGroup).toBe("overall_size");
+  await expect(page.locator("[data-unified-configurator] [data-category-trigger]")).toHaveCount(9);
   await expect(viewer).toHaveAttribute("aria-label", /bookcase preview/i);
   expect(errors).toEqual([]);
 });
@@ -246,7 +240,6 @@ test("explicit preset bypass boots with a verified WebGL model and no runtime er
 test("hardware type and finish stay canonical, compatible, selected, and camera-stable", async ({ page }) => {
   const errors = monitorRuntime(page);
   await openVerifiedConfigurator(page, "lower-cabinets");
-  await page.getByRole("tab", { name: /All Controls/ }).click();
   await page.locator('[data-category-trigger="hardware"]').click();
   await expect(page.locator("[data-hardware-type]")).toHaveCount(2);
   await expect(page.locator("[data-hardware-finish]")).toHaveCount(2);
@@ -292,6 +285,7 @@ test("all ten commercial presets render through the descriptor contract", async 
   await openPresetLibrary(page);
 
   for (const presetId of presetIds) {
+    await openPresetLibrary(page);
     const card = page.locator(`[data-preset-id="${presetId}"]`);
     await card.click();
     await expect(card).toHaveAttribute("aria-pressed", "true");
@@ -430,7 +424,7 @@ test("saved schema-v4 design is canonical, reloadable, and quote-ready", async (
 
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("jqBookcasesDesign") || "null"));
   expect(saved).toBeTruthy();
-  expect(saved.schemaVersion).toBe(4);
+  expect(saved.schemaVersion).toBe(5);
   expect(saved.id).toMatch(/^JQ-[0-9A-Z]{7}$/);
   expect(saved.canonicalConfig.layoutPreset).toBe("display-wall");
   expect(saved.layoutFingerprint).toMatch(/^jq-layout-v1-[0-9a-f]{16}$/);
@@ -657,8 +651,8 @@ test("mobile viewport keeps controls usable and the accepted model valid", async
   await page.locator('[data-preset-id="classic-open"]').click();
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
   await expect(page.locator('[data-preset-id="classic-open"]')).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("tab", { name: /Guided Setup/ }).click();
-  await page.locator("[data-guided-continue]").click();
+  const structureTrigger = page.locator('[data-category-trigger="sections_layout"]');
+  if (await structureTrigger.getAttribute("aria-expanded") !== "true") await structureTrigger.click();
   await expect(page.locator("[data-section-designer]")).toBeVisible();
   await expect(page.locator("[data-section-width]")).toBeVisible();
   await expect(page.locator("[data-section-select]")).toHaveCount(4);

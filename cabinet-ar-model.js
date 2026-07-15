@@ -1,9 +1,9 @@
-import { hashCabinetArConfiguration, inchesToMeters } from "./cabinet-ar.js?v=configurator-construction-20260714b";
+import { hashCabinetArConfiguration, inchesToMeters } from "./cabinet-ar.js?v=direct-hardware-20260714a";
 import {
   getHardwareFinish,
   getHardwareFinishOption,
   getHardwareType
-} from "./bookcase-config.js?v=configurator-construction-20260714b";
+} from "./bookcase-config.js?v=direct-hardware-20260714a";
 
 const NON_RENDERED_ROLES = new Set(["assembly", "section", "section_group", "opening"]);
 const GLB_MAGIC = 0x46546c67;
@@ -35,6 +35,7 @@ export function generateCabinetGlbArrayBuffer(configuration, layout) {
   const materialDefinitions = createMaterialDefinitions(configuration);
   const groups = new Map(materialDefinitions.map((material, index) => [material.name, createGeometryGroup(index)]));
   const cabinetDepth = configuration.depthMeters;
+  const hardwareSchedule = [];
 
   (layout.components || []).forEach((component) => {
     if (!component?.bounds || NON_RENDERED_ROLES.has(component.role)) return;
@@ -52,8 +53,16 @@ export function generateCabinetGlbArrayBuffer(configuration, layout) {
     if (component.role === "handle") {
       const parts = createArHandleGeometryParts(component, center, size);
       assertPartsWithinDescriptorEnvelope(component, center, size, parts);
+      const identity = createArHandleIdentity(component, configuration);
+      const materialName = ensureArHandleMaterial(materialDefinitions, groups, identity, configuration);
+      hardwareSchedule.push({
+        componentId: component.id,
+        hostId: component.hostId || component.parentId || null,
+        materialName,
+        ...identity
+      });
       parts.forEach((part) => {
-        appendGeometryPart(groups.get("hardware"), part);
+        appendGeometryPart(groups.get(materialName), part);
       });
       return;
     }
@@ -75,7 +84,8 @@ export function generateCabinetGlbArrayBuffer(configuration, layout) {
         roughnessFactor: material.roughness
       },
       ...(material.emissive ? { emissiveFactor: material.emissive } : {}),
-      ...(material.alpha < 1 ? { alphaMode: "BLEND", doubleSided: true } : {})
+      ...(material.alpha < 1 ? { alphaMode: "BLEND", doubleSided: true } : {}),
+      ...(material.extras ? { extras: material.extras } : {})
     })),
     buffers: [{ byteLength: 0 }],
     bufferViews: [],
@@ -89,6 +99,7 @@ export function generateCabinetGlbArrayBuffer(configuration, layout) {
         drawer: configuration.drawerFrontStyleId
       },
       hardwareVariant: configuration.hardwareId,
+      hardwareSchedule,
       constructionProfile: configuration.constructionProfileId,
       doorLeafCount: configuration.doorLeafCount ?? configuration.doorCount,
       geometryContract: {
@@ -171,6 +182,61 @@ function createMaterialDefinitions(configuration) {
     { name: "glass", color: [0.78, 0.86, 0.9, 0.2], metallic: 0, roughness: 0.12, alpha: 0.2 },
     { name: "light", color: light, emissive: light.slice(0, 3), metallic: 0, roughness: 0.32, alpha: 1 }
   ];
+}
+
+function createArHandleIdentity(component, configuration) {
+  const metadata = component?.metadata || {};
+  const snapshot = metadata.hardwareSnapshot || metadata.variantSnapshot || {};
+  const hardwareType = metadata.hardwareType || getHardwareType(metadata.hardware || configuration.hardwareId) || "knob";
+  const category = metadata.category || snapshot.category || (hardwareType === "knob" ? "round_knob" : "bar_pull");
+  const legacyFinish = getHardwareFinish(metadata.hardware || configuration.hardwareId);
+  const legacyFinishMetadata = getHardwareFinishOption(legacyFinish) || getHardwareFinishOption("brass");
+  return {
+    variantId: metadata.variantId || snapshot.variantId || snapshot.id || metadata.hardware || configuration.hardwareId,
+    category,
+    canonicalFinishId: snapshot.canonicalFinishId || legacyFinish || "brass",
+    finishName: snapshot.finishName || legacyFinishMetadata?.label || "Brushed Brass",
+    finishSwatch: metadata.finishSwatch || snapshot.canonicalFinishSwatch || legacyFinishMetadata?.swatch || "#b38a4a",
+    orientation: metadata.orientation || null,
+    proxyMode: metadata.proxyMode || null,
+    modelAccuracy: metadata.modelAccuracy || snapshot.modelAccuracy || "legacy_safe_approximation"
+  };
+}
+
+function ensureArHandleMaterial(materialDefinitions, groups, identity, configuration) {
+  const materialName = [
+    "hardware",
+    cleanGltfName(identity.variantId),
+    cleanGltfName(identity.category),
+    cleanGltfName(identity.canonicalFinishId),
+    cleanGltfName(identity.finishSwatch)
+  ].join("__");
+  if (groups.has(materialName)) return materialName;
+  const fallbackFinish = getHardwareFinishOption(getHardwareFinish(configuration.hardwareId)) || getHardwareFinishOption("brass");
+  const finishIsBlack = identity.canonicalFinishId === "matte-black" || identity.canonicalFinishId === "matte_black";
+  const materialIndex = materialDefinitions.push({
+    name: materialName,
+    color: hexToLinearColor(identity.finishSwatch),
+    metallic: finishIsBlack ? 0.52 : fallbackFinish?.metalness ?? 0.84,
+    roughness: finishIsBlack ? 0.58 : fallbackFinish?.roughness ?? 0.34,
+    alpha: 1,
+    extras: {
+      role: "hardware",
+      variantId: identity.variantId,
+      category: identity.category,
+      canonicalFinishId: identity.canonicalFinishId,
+      finishName: identity.finishName,
+      finishSwatch: identity.finishSwatch,
+      proxyMode: identity.proxyMode,
+      modelAccuracy: identity.modelAccuracy
+    }
+  }) - 1;
+  groups.set(materialName, createGeometryGroup(materialIndex));
+  return materialName;
+}
+
+function cleanGltfName(value) {
+  return String(value || "unknown").replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 96) || "unknown";
 }
 
 /**
@@ -305,9 +371,63 @@ export function createArHandleGeometryParts(component, center, size) {
   if (!Number.isFinite(declaredProjection)) return [];
   visual[2] = Math.min(visual[2], declaredProjection, envelope[2]);
   const hardwareType = metadata.hardwareType || getHardwareType(metadata.hardware);
+  const category = metadata.category || metadata.hardwareSnapshot?.category || metadata.variantSnapshot?.category
+    || (hardwareType === "knob" ? "round_knob" : "bar_pull");
   const outward = metadata.attachment?.componentFace === "min" ? -1 : 1;
   const mountingZ = origin[2] - outward * envelope[2] / 2;
   const outerZ = origin[2] + outward * envelope[2] / 2;
+
+  if (category === "t_bar_knob") {
+    const horizontal = metadata.orientation !== "vertical";
+    const longAxis = horizontal ? 0 : 1;
+    const crossAxis = horizontal ? 1 : 0;
+    const length = Math.min(visual[longAxis], envelope[longAxis]);
+    const diameter = Math.min(visual[crossAxis], visual[2], envelope[crossAxis], envelope[2]);
+    if (![length, diameter].every((value) => Number.isFinite(value) && value > 0)) return [];
+    const barZ = outerZ - outward * diameter / 2;
+    const barInnerZ = barZ - outward * diameter / 2;
+    const stemDepth = Math.abs(barInnerZ - mountingZ);
+    const stemDiameter = Math.min(diameter * 0.58, envelope[0], envelope[1]);
+    const parts = [{
+      kind: "t_bar_grip",
+      shape: "cylinder",
+      axis: horizontal ? "x" : "y",
+      material: "hardware",
+      center: [origin[0], origin[1], barZ],
+      size: horizontal ? [length, diameter, diameter] : [diameter, length, diameter]
+    }];
+    if (stemDepth > 0 && stemDiameter > 0) {
+      parts.push({
+        kind: "t_bar_stem",
+        shape: "cylinder",
+        axis: "z",
+        material: "hardware",
+        center: [origin[0], origin[1], mountingZ + outward * stemDepth / 2],
+        size: [stemDiameter, stemDiameter, stemDepth]
+      });
+    }
+    return parts.every(isPositiveGeometryPart) ? parts : [];
+  }
+
+  if (category === "cup_pull") {
+    return [{
+      kind: "cup_shell",
+      shape: "ellipsoid",
+      material: "hardware",
+      center: origin,
+      size: visual
+    }];
+  }
+
+  if (["edge_pull", "tab_pull", "cabinet_latch"].includes(category)) {
+    return [{
+      kind: category === "cabinet_latch" ? "latch_body" : "edge_tab",
+      shape: "box",
+      material: "hardware",
+      center: origin,
+      size: visual
+    }];
+  }
 
   if (hardwareType === "pull") {
     const horizontal = metadata.orientation === "horizontal";

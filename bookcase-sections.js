@@ -5,11 +5,11 @@ import {
   layoutPresets,
   normalizeBookcaseConfig,
   normalizeSectionTypeValue
-} from "./bookcase-config.js?v=configurator-construction-20260714b";
+} from "./bookcase-config.js?v=direct-hardware-20260714a";
 import {
   CONSTRUCTION_RULES,
   resolveDoorArrangement
-} from "./bookcase-layout.js?v=configurator-construction-20260714b";
+} from "./bookcase-layout.js?v=direct-hardware-20260714a";
 
 const PRECISION = 1e6;
 const RATIO_PRECISION = 1e12;
