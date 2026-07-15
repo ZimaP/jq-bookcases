@@ -468,7 +468,9 @@ test("custom saved designs retain their structural layout in the quote handoff",
 test("quote preview validates saved designs and never retains personal information", () => {
   const quotePage = pageSource.get("request-quote.html");
   assert.match(siteSource, /restoreAcceptedDesignSnapshot\(storedDesign\)/);
+  assert.match(siteSource, /\[2, 3, 4, 5\]\.includes\(Number\(storedDesign\.schemaVersion\)\)/);
   assert.match(siteSource, /requestedDesignId === acceptedStoredDesign\.snapshot\.id/);
+  assert.match(siteSource, /renderQuoteHardwareSchedule\(quotePrefill\.hardwareSchedule\)/);
   assert.match(siteSource, /No personal information was transmitted/);
   assert.doesNotMatch(siteSource, /jqBookcasesQuoteDraft/);
   assert.match(quotePage, /data-quote-fields[^>]*inert/);
@@ -483,6 +485,9 @@ test("quote preview validates saved designs and never retains personal informati
     "hardwareType",
     "hardwareFinish",
     "hardwareVariant",
+    "hardwareSchedule",
+    "hardwareCatalogVersion",
+    "hardwareSourceLinks",
   ]) {
     assert.match(quotePage, new RegExp(`<input\\s+name=["']${field}["']\\s+type=["']hidden["']`));
   }

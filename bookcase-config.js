@@ -1,3 +1,9 @@
+import {
+  createLegacyHardwareSelections,
+  normalizeHardwareSelections,
+  projectVariantToLegacyHardware
+} from "./hardware-catalog.js?v=direct-hardware-20260714a";
+
 export const CONSTRUCTION_PROFILE_IDS = Object.freeze({
   inset: "jq_inset_v1",
   legacyOverlay: "legacy_overlay_v1"
@@ -36,6 +42,7 @@ export const defaultBookcaseConfig = {
   drawerFrontStyle: "shaker",
   doorCount: 8,
   hardware: "brass_knob",
+  hardwareSelections: createLegacyHardwareSelections("brass_knob"),
   lighting: "warm_pucks",
   lightingWarmth: 2700,
   finish: "white_dove",
@@ -537,6 +544,7 @@ export function normalizeBookcaseConfig(config = {}) {
   const drawerFrontStyle = hasDrawerFrontStyle
     ? normalizeDrawerFrontStyleValue(legacyConfig.drawerFrontStyle)
     : normalizeDrawerFrontStyleValue(doorStyle);
+  const { hardware, hardwareSelections } = normalizeHardwareConfiguration(legacyConfig);
 
   return {
     layoutPreset: typeof merged.layoutPreset === "string" ? merged.layoutPreset : defaultBookcaseConfig.layoutPreset,
@@ -562,7 +570,8 @@ export function normalizeBookcaseConfig(config = {}) {
     doorStyle,
     drawerFrontStyle,
     doorCount,
-    hardware: normalizeHardwareValue(merged.hardware),
+    hardware,
+    hardwareSelections,
     lighting: normalizeOption(merged.lighting, lightingOptions, defaultBookcaseConfig.lighting),
     lightingWarmth: normalizeNumericOption(
       merged.lightingWarmth ?? merged.warmth,
@@ -580,6 +589,45 @@ export function normalizeBookcaseConfig(config = {}) {
     installation: normalizeOption(merged.installation, installationOptions, defaultBookcaseConfig.installation),
     delivery: normalizeOption(merged.delivery, deliveryOptions, defaultBookcaseConfig.delivery)
   };
+}
+
+export function normalizeHardwareConfiguration(config = {}) {
+  const hasRequestedLegacyHardware = Object.prototype.hasOwnProperty.call(config, "hardware");
+  const requestedLegacyHardware = typeof config.hardware === "string"
+    ? config.hardware
+    : defaultBookcaseConfig.hardware;
+  const legacyHardware = normalizeHardwareValue(requestedLegacyHardware);
+  let hardwareSelections = normalizeHardwareSelections(
+    config.hardwareSelections,
+    requestedLegacyHardware === PUSH_LATCH_HARDWARE
+      ? defaultBookcaseConfig.hardware
+      : requestedLegacyHardware
+  );
+  const existingProjection = projectVariantToLegacyHardware(
+    hardwareSelections.defaultVariantId,
+    defaultBookcaseConfig.hardware
+  );
+  if (
+    hasRequestedLegacyHardware
+    && requestedLegacyHardware !== PUSH_LATCH_HARDWARE
+    && requestedLegacyHardware !== existingProjection
+  ) {
+    const requestedDefault = createLegacyHardwareSelections(requestedLegacyHardware);
+    hardwareSelections = normalizeHardwareSelections({
+      ...hardwareSelections,
+      catalogVersion: requestedDefault.catalogVersion,
+      defaultVariantId: requestedDefault.defaultVariantId,
+      defaultSnapshot: requestedDefault.defaultSnapshot,
+      migrationWarnings: [
+        ...(hardwareSelections.migrationWarnings || []),
+        ...(requestedDefault.migrationWarnings || [])
+      ]
+    }, requestedLegacyHardware);
+  }
+  const hardware = requestedLegacyHardware === PUSH_LATCH_HARDWARE
+    ? PUSH_LATCH_HARDWARE
+    : projectVariantToLegacyHardware(hardwareSelections.defaultVariantId, legacyHardware);
+  return { hardware, hardwareSelections };
 }
 
 /**

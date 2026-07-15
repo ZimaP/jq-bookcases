@@ -9,9 +9,9 @@ import {
   emitArAnalytics,
   hashCabinetArConfiguration,
   normalizeCabinetArConfiguration
-} from "./cabinet-ar.js?v=configurator-construction-20260714b";
-import { generateProceduralCabinetModel } from "./cabinet-ar-model.js?v=configurator-construction-20260714b";
-import { iconSvg } from "./icon-system.js?v=configurator-construction-20260714b";
+} from "./cabinet-ar.js?v=direct-hardware-20260714a";
+import { generateProceduralCabinetModel } from "./cabinet-ar-model.js?v=direct-hardware-20260714a";
+import { iconSvg } from "./icon-system.js?v=jq-icons-20260715g";
 
 const closeIcon = iconSvg("close");
 const MODEL_VIEWER_DEFINITION_TIMEOUT_MS = 10000;
@@ -239,8 +239,11 @@ export class CabinetArController {
     try {
       const qr = await import(CABINET_AR_QR_MODULE_URL);
       await qr.toCanvas(canvas, shareUrl, {
-        errorCorrectionLevel: "M",
-        width: 184,
+        // Complete direct-hardware snapshots are intentionally carried in the
+        // handoff URL. Level L keeps a typical exact-selection payload within
+        // byte-mode capacity while retaining standard QR recovery.
+        errorCorrectionLevel: "L",
+        width: 320,
         margin: 1,
         color: { dark: "#302923", light: "#fffdf8" }
       });
@@ -418,7 +421,7 @@ function desktopHandoffMarkup(shareUrl) {
       <span class="section-kicker">Open on your phone</span>
       <h3>View this configuration in your room</h3>
       <p>Scan the QR code with a compatible iPhone, iPad, or Android device. The link preserves this exact cabinet configuration.</p>
-      <canvas data-ar-qr width="184" height="184" aria-label="QR code for this cabinet configuration"></canvas>
+      <canvas data-ar-qr width="320" height="320" style="width:min(100%,320px);height:auto" aria-label="QR code for this cabinet configuration"></canvas>
       <p data-ar-qr-fallback hidden>The QR code could not load, but the secure configuration link below still works.</p>
       <a href="${escapeAttribute(shareUrl)}" data-ar-phone-link>Open this configuration on your phone</a>
     </section>

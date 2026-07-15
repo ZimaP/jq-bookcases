@@ -25,249 +25,230 @@ profile rail widths, or light positions. Those are layout responsibilities.
 
 ## Customer experience architecture
 
-The configurator is a static ES-module application with one
-`BookcaseConfigurator` controller and one `BookcaseViewer3D` instance. The
-customer can choose Guided Setup or All Controls, but these are presentation
-modes over the same physical design.
+The accepted-design experience is one static ES-module application with one
+`BookcaseConfigurator`, one `BookcaseViewer3D`, one canvas, and one accepted
+engine transaction. Its reference workspace is a bright, CAD-like composition:
+a fixed seven-stage rail, one persistent model and global toolbar, one fixed
+stage/selection-aware Properties inspector, a persistent section organizer,
+an exact total-width card, and a light estimate/action footer. There is no
+second floating editor, model dock, or alternate configurator.
 
-`BookcaseConfigurator.state` is the single normalized physical configuration.
-It contains the schema-backed layout, dimensions, storage, construction,
-finish, hardware, lighting, delivery, and installation values. The following
-values are presentation state only and never enter a saved design or price:
+`BookcaseConfigurator.state` is the only normalized physical configuration. It
+contains the schema-backed layout, dimensions, storage, construction, finish,
+hardware, lighting, delivery, and installation values. The following are
+presentation state and never enter a design fingerprint, saved record, BOM, or
+price:
 
-- active mode;
-- active Guided step;
-- expanded All Controls category;
-- the most recently used Style category when switching presentations;
-- incomplete input drafts;
-- per-mode scroll position;
-- review/focus state and action locks.
+- active stage, selected Properties tab, and Properties/organizer scroll;
+- selected and hovered component descriptors and selected section;
+- incomplete numeric input drafts and open organizer action menus;
+- Select/Pan tool, Dimensions/Wall display helpers, and fullscreen state;
+- bounded global undo/redo history and focus-return target; and
+- review-dialog, camera-focus, and action-lock presentation state.
 
-`configurator-experience.js` owns the pure workflow contract: six Guided
-steps, ten All Controls categories, mode/category mappings, applicability,
-validation, summaries, preset reconciliation, saved-record creation, quote
-URLs, and action-lock rules. `configurator-3d.js` renders those definitions and
-owns the browser event pipeline. `configurator-experience.css` owns the workflow
-and control presentation; `configurator-precision.css` owns the persistent
-preview, projected measurements, enlarged divider targets, and high-resolution
-refinements over the existing shared site tokens.
+`configurator-experience.js` owns the pure surface contract: seven stage
+definitions, their projection over the nine canonical physical-control groups,
+selected-section tab applicability, component-role routing, the physical-
+control registry, validation, organizer summaries, global history semantics,
+preset reconciliation, saved-record creation, quote URLs, and guarded actions.
+`configurator-3d.js` renders those definitions and owns the browser event,
+selection, display-tool, fullscreen, and viewer integration pipelines.
+`configurator-experience.css` owns the reference-workspace grid, light shell,
+stage rail, toolbar, Properties, organizer, total-width card, footer, and
+responsive reflow. `configurator-precision.css` locks geometry, target sizes,
+singleton-canvas behavior, projected dimensions, divider targets, focus, and
+fullscreen refinements.
 
 The accepted-design shell is mounted once in this DOM order:
 
-    Guided step rail
-    controls panel (Guided or All Controls)
-    persistent preview pane, mode selector, and canvas
-    shared estimate, review, save, and quote actions
-    shared review dialog and status region
+    seven-stage navigation rail and View in Your Room card
+    model toolbar, persistent viewer/canvas, and hover/helper layer
+    fixed contextual Properties inspector
+    persistent section organizer
+    exact total-width status card
+    estimate footer with Save Design and Request a Quote
+    shared review/AR dialogs, status region, and selection announcement
 
-Only the controls panel is rerendered when mode, step, tab, or accordion state
-changes. The preview subtree remains outside both mode panels. Switching modes
-therefore cannot create a second canvas, renderer, scene, camera, render loop,
-price pipeline, or configuration store.
+The rail, Properties body, organizer, and width card may rerender; the model
+subtree never does. Changing a stage or tab, selecting a component or section,
+opening an organizer menu, toggling a display helper, or moving between desktop
+and mobile therefore cannot create a second canvas, renderer, scene, camera,
+render loop, price pipeline, or configuration store.
 
-### Mode synchronization
+### Seven-stage projection and Properties routing
 
-Both presentations call the same field-commit function. A valid physical
-change is normalized once, validated once, priced once, and sent once to the
-viewer. An identical value is a no-op. Incomplete numeric strings remain in a
-shared draft map, are surfaced in the corresponding view, and block only the
-actions that require a valid physical design.
+The customer stages are non-linear and always directly reachable. They project
+the existing nine canonical groups without changing field ownership:
 
-The customer-facing Guided order and its All Controls projection are:
+| Stage | Canonical control groups |
+| --- | --- |
+| Space | Overall Size |
+| Layout | Sections & Layout; Base & Crown |
+| Storage | Shelves; Storage & Fronts |
+| Finish | Finish |
+| Hardware | Hardware |
+| Lighting | Lighting |
+| Preview | Project Service, Review, and accepted estimate context |
 
-| Guided step | Internal step ID | Primary All Controls category | Related categories |
-| --- | --- | --- | --- |
-| Space | `dimensions` | Space & Dimensions | — |
-| Structure | `layout` | Structure & Sections | Foundation Idea |
-| Storage | `storage` | Shelves & Cabinets | Fronts |
-| Build | `construction` | Construction | — |
-| Style | `appearance` | most recently used Finish, Hardware, or Lighting | the other two Style categories |
-| Review | `review` | Project Service | shared review dialog |
+Every physical field still has one registry owner. Stage controls and
+selection-specific Properties controls call the same commit path: a valid
+change is normalized once, validated once, priced once, added to history once,
+and sent once to the viewer. Recommitting the accepted value is a no-op.
+Incomplete numeric strings stay in the shared draft map and cannot replace
+accepted state.
 
-Switching to All Controls opens the mapped category. Switching back opens the
-mapped Guided step while retaining the independently remembered Guided step
-when no newer category context exists. The preferred mode, Guided step, and
-All Controls category are sanitized local preferences, not product data.
+Selecting an accepted section exposes General, Shelves, conditional Doors or
+Drawers, Back, and Lighting Properties tabs. General is always present; Doors
+and Drawers follow the selected section type; Back is descriptor information;
+and the other tabs route to their canonical owners when applicable. Model
+selection is resolved from accepted component descriptors rather than mesh
+names or screen coordinates:
 
-Customized saved designs keep their structural preset ancestry by matching
-the normalized `layoutType`. This preserves the correct selected layout card,
-summary label, and quote-form layout after a reload without adding a field to
-the saved-design schema.
+| Selected descriptor role | Properties context | Stage / tab route |
+| --- | --- | --- |
+| section/opening/divider | type, exact width, adjacent resize | Layout / General |
+| shelf/fixed shelf | shelf quantity and thickness | Storage / Shelves |
+| door | section door profile and arrangement | Storage / Doors |
+| drawer front | section drawer profile | Storage / Drawers |
+| handle | accepted hardware and owning-front context | Hardware / owning Doors or Drawers tab |
+| base/trim | accepted base style | Layout / General |
+| crown/top panel | accepted crown style | Layout / General |
+| light | lighting package and warmth | Lighting / Lighting |
+| assembly/side/bottom | overall bookcase context | Space / General |
+| back panel | fitted-back information | Space / Back |
+
+A single selection descriptor carries the physical component ID, semantic
+kind, section/host context, selected stage/tab, and highlight target. Hover is
+transient and never changes physical state. Pointer or keyboard selection
+updates one highlight, synchronizes the organizer, routes to the matching
+stage/tab, rerenders Properties, and announces the result. Escape or the close
+button clears the same selection and restores focus when an invoker exists.
+
+Desktop uses a fixed 230 px stage rail and approximately 310 px Properties
+column around the remaining model. The organizer and width card sit directly
+above the footer. At 1100 px and below the stage rail becomes a horizontally
+scrollable compact navigator, the organizer remains horizontally contained,
+and Properties becomes a bounded sheet below the model. At 767 px and below
+the model toolbar, stages, organizer, width card, and footer remain reachable
+without horizontal page overflow; coarse-pointer targets are at least 44 px.
+Short landscape uses the same contained sheet with a reduced but usable model.
+Reduced-motion preferences remove ornamental transitions. Reflow and
+fullscreen resize the existing viewer and never remount or duplicate canvas.
 
 ### New-design and resume intent
 
-Studio entry resolves an explicit presentation intent independently from the
-physical source. A valid share, explicit preset, My Space commit, or selected
-idea is a new-design entry: the controller resets to Guided Setup at Space,
-unlocks only Space, moves the controls to the top, and persists the sanitized
-mode/step/category preferences while retaining all prefilled physical values.
-The customer must use Continue to advance in strict Guided order; prefilled
-fields do not silently complete Space.
+Studio entry remains presentation-only until the customer accepts My Space, a
+foundation idea, a valid share, or an explicit preset. Acceptance creates one
+physical transaction and opens Layout with General Properties, Select active,
+Dimensions and Wall visible, fullscreen off, no selection, and empty global
+history. A verified schema-2/3/4 browser-local snapshot restores only the
+accepted physical configuration; stage, tab, tool, display, fullscreen,
+selection, scroll, and history state reset to those presentation defaults.
+`?start=welcome` keeps the customer in the studio without deleting that
+snapshot, while `?start=resume` requests restoration. Temporary start
+parameters are removed after initialization; valid shares and explicit presets
+retain source priority.
 
-A verified schema-2/3/4 browser-local accepted snapshot is a resume entry. Both
-the bare configurator URL and `?start=resume` restore the sanitized presentation
-context, while `?start=welcome` deliberately keeps the customer in the
-presentation-only studio without deleting that snapshot. Temporary `start`
-parameters are removed from the URL after initialization. Shared configurations
-and valid explicit presets retain source priority over those temporary flags.
+Historical local preferences for retired presentation surfaces are ignored.
+They are not migrated into product data and cannot alter the chosen preset,
+accepted configuration, saved identity, or initial stage/tab.
 
-### Inline Structure editor
+Customized saved designs retain structural preset ancestry by matching the
+normalized `layoutType`. This preserves the selected foundation card, summary,
+and quote-form layout after reload without adding a presentation field to the
+saved-design schema.
 
-Section Designer is a presentation over the same accepted physical state, not
-a second model. Guided Setup exposes the complete editor inline in Structure;
-All Controls exposes the same editor through Structure & Sections immediately
-after Foundation Idea. Storage owns shelving, lower-storage choices, and the
-separate door/drawer front profiles, and includes a direct route back to
-Structure for per-section width or storage-type edits. The editor's local-only
-presentation state consists of the selected section, an uncommitted numeric
-width draft, disclosure state for advanced section actions, a bounded 30-entry
-undo/redo history, and the camera snapshot used when entering the editor. None
-of those values affect design identity, BOM, or price.
+### Section organizer, global history, and projected geometry
 
-The Structure overview is a wrapping grid without nested horizontal scrolling.
-Every section card remains visible in the control flow and communicates its
-number, exact clear width, generated type, selected state, and locked feature
-state. The selected section's exact-width stepper, numeric field, section type,
-generated-component summary, warnings, and history actions follow the grid.
-Split, merge, and equalize are grouped under the Section actions disclosure;
-impossible actions are disabled with an associated explanation.
+Section editing is a view over accepted physical state. A persistent organizer
+shows `Sections (N)`, exact total width, Add Section, and one horizontally
+scrollable card per section with descriptor-derived thumbnail, section number,
+exact clear width, selected state, and Duplicate/Delete menu. Selecting a card
+or model section synchronizes Layout / General Properties. The exact numeric
+field and steppers remain the non-drag alternative. Organizer scroll, selection,
+menu state, and numeric drafts do not affect design identity, BOM, or price.
 
-`bookcase-sections.js` owns the pure, non-mutating section operations:
+`bookcase-sections.js` owns pure, non-mutating operations that resize adjacent
+sections while preserving total clear width, split and merge with the 0.75 in
+divider accounted for, equalize/reset ratios, reconcile section-count changes,
+apply editable section types, maintain section-aligned door layouts, and reject
+minimum-width or protected-feature violations. Successful operations flow
+through `evaluateBookcaseCandidate()`; rejected drafts leave every accepted
+artifact unchanged.
 
-- convert accepted clear widths to deterministic ratios;
-- resize one divider or one section while preserving total clear width;
-- split and merge with the 0.75 in divider accounted for exactly;
-- equalize, reset, and reconcile global section-count changes;
-- apply the editable `open`, `lower_doors`, `drawers`, and `tall_doors` types;
-- reconcile the section-aligned `layoutMetadata.sectionDoorLayouts` entries;
-- reject minimum-width violations and edits to generated media, desk, or
-  fireplace feature zones.
+Add and Duplicate split a buildable source section; Delete absorbs its clear
+width and divider allowance into a deterministic neighbor. Each successful
+operation preserves exact overall width and creates one accepted transaction.
+Impossible operations are disabled; engine validation remains authoritative.
+Explicit global section-count selection begins with equal clear widths and a
+deterministic remainder, while saved/preset `layoutMetadata.sectionRatios`
+remain authoritative during ordinary restore and dimension regeneration.
 
-An explicit global section-count selection always starts that count with equal
-clear widths, including when the selected count is unchanged but stale ratios
-exist. The transition computes the exact available clear total from the overall
-width and panel count, allocates equal widths at fixed precision, and assigns
-the deterministic remainder to the final bay. Saved and preset
-`layoutMetadata.sectionRatios` remain authoritative during ordinary load,
-restore, and dimension regeneration until the customer explicitly selects a
-section count. Split and merge remain local operations and do not invoke the
-global equalizer.
+Explicit `layoutMetadata.sectionTypes` become the physical source of truth
+after per-section editing. Global storage choices therefore pass through
+`applyGlobalStorageSelection()` and rewrite only compatible sections. Door
+sections support `auto`, `single_hinge_left`, `single_hinge_right`, or `pair`;
+the layout engine, not the UI, owns buildability and rejection reasons.
 
-Divider resizing affects only its adjacent pair. An overshoot clamps at the
-15 in minimum clear width rather than rejecting the drag, and the returned
-`appliedDelta` drives preview and commit. Every accepted width operation is
-converted back to the single canonical `layoutMetadata.sectionRatios` array;
-there is no second persisted width store. Numeric drafts that cannot produce a
-valid accepted configuration still leave the accepted transaction unchanged.
+The visible Undo and Redo controls operate on one bounded 50-entry accepted-
+configuration history. A successful physical transaction contributes one
+entry; no-op, rejected, preview, stage/tab/selection, tool, display, and
+fullscreen changes contribute none. A new accepted edit clears redo. Keyboard
+shortcuts use the same authority, and replay runs through the normal engine and
+viewer commit without serializing history into saved designs.
 
-Explicit `layoutMetadata.sectionTypes` remain the physical source of truth once
-per-section editing has been used. The global Lower cabinets and Doors/Drawers
-controls therefore pass through `applyGlobalStorageSelection()` instead of
-writing legacy summary fields that normalization would immediately overwrite.
-That helper rewrites only compatible open/lower-storage sections, preserves
-protected feature zones, and commits the resulting config through the same
-accepted transaction as section-card edits. Guided Storage and All Controls
-render the same single Fronts control set from the resulting generated door and
-drawer applicability.
+Projected selection boxes, divider guides, dimension labels, and hover labels
+live in a `nonPhysicalHelper` layer outside the descriptor-backed model. They
+cannot enter render audit, BOM, price, save, quote, or AR. The global
+Dimensions and Wall buttons show or hide nonphysical helpers only. Select and
+Pan are mutually exclusive interaction tools; native or fallback fullscreen
+changes presentation and requests viewer resize. Projected dimensions use
+accepted descriptor bounds and fade in oblique views rather than implying
+false screen-space measurements. Narrow projections use compact labels and
+collision checks while exact numeric values remain available in Properties.
 
-Door-capable section cards also expose one physical arrangement choice:
-`auto`, `single_hinge_left`, `single_hinge_right`, or `pair`. The layout
-engine returns buildability and a concise reason for every choice; the UI only
-presents that result. Non-door and protected sections store `null`. Changing a
-non-door section into a door section starts at Auto, while split, merge, and
-section-count topology changes reset affected door sections to Auto because the
-finished leaf widths changed. Invalid manual arrangements are rejected and
-cannot replace the accepted transaction.
-
-Every successful operation is sent to `evaluateBookcaseCandidate()`. Layout,
-validation, render audit, BOM, price, design fingerprint, review, save, and
-quote therefore advance as one accepted transaction. A rejected draft leaves
-all accepted artifacts unchanged.
-
-The viewer derives hit targets, selection boxes, divider guides, and dimension
-labels from accepted section descriptors. These helpers live in a separate
-`nonPhysicalHelper` scene layer outside the descriptor-backed model, so they
-cannot enter the renderer audit, BOM, price, or saved component graph. The
-dimension overlay projects the real descriptor bounds through the active camera
-and positions the individual clear-width row and overall-width row below the
-cabinet when the view is legible. It fades and disables direct divider editing
-for sufficiently oblique views instead of presenting misleading screen-space
-measurements. Narrow five- and six-bay mobile projections switch to a compact
-inch-mark label and run a per-segment collision audit while the exact clear
-value remains available in the synchronized Structure card and numeric field.
-
-Divider handles remain available on desktop, tablet, and mobile, with enlarged
-pointer targets and the exact numeric editor as a non-drag alternative. Their
-DOM identity is stable throughout a pointer gesture so pointer capture is not
-lost. Pointer drag previews update the overlay and a throttled transient model
-without evaluating price; release commits at most one canonical accepted
-transaction. Keyboard divider steps are 0.5 in, or 1 in with Shift.
-The viewer camera handler ignores interactive overlay descendants, so a
-divider Arrow key cannot also rotate the camera. Blank or non-finite exact-width
-drafts retain the last accepted transaction and expose connected inline
-validation.
+Divider handles remain available on desktop, tablet, and mobile with enlarged
+targets and a numeric alternative. Pointer previews update the overlay and a
+throttled transient model without pricing; release commits at most one accepted
+transaction. Keyboard divider steps are 0.5 in, or 1 in with Shift. Interactive
+overlay descendants do not rotate the camera.
 
 ### Renderer update lifecycle
 
-The viewer is created once after the persistent shell is mounted. It exposes a
-small lifecycle/diagnostic seam and a `destroy()` path, but normal mode and
-control navigation never invoke either initialization or destruction.
-
-Physical changes use the smallest safe path currently supported:
+The viewer is created once after the persistent shell mounts. Ordinary
+stage, tab, selection, organizer, and global-tool navigation never initialize
+or destroy it. Physical
+changes use the smallest safe path:
 
 - finish and lighting warmth update existing materials/lights in place;
-- same-shape hardware finish changes update existing hardware materials;
-- camera view, orbit, and zoom never rebuild physical geometry;
-- geometry, topology, opening, dimension, or hardware-shape changes regenerate
-  the deterministic descriptor model while preserving camera and selected
-  view state.
+- same-shape hardware finish changes update hardware materials in place;
+- camera view, orbit, zoom, hover, and selection never rebuild geometry;
+- topology, dimension, opening, or hardware-shape changes regenerate the
+  deterministic descriptor model while preserving camera and view state.
 
-An invalid generated layout never replaces the last valid rendered model.
-Lifecycle counters are exposed as inert `data-diagnostic-*` attributes on the
-configurator host for browser assertions. No controller is published on
-`window`.
+An invalid generated layout never replaces the last valid model. Lifecycle
+counters remain inert `data-diagnostic-*` attributes for browser assertions;
+no controller is published on `window`.
 
 ### Price, save, review, and quote contracts
 
 There is one accepted engine-evaluation call site and one physical render
-update call site. Presentation changes do not invoke either. The accepted
-transaction contains the canonical state, descriptor graph, BOM, pricing
-breakdown, and layout fingerprint. Guided Review and the All Controls review
-dialog are generated by the same review-summary helper.
+update call site. Presentation changes invoke neither. Review Design is built
+from the accepted transaction's canonical configuration, descriptor graph,
+BOM, pricing breakdown, and layout fingerprint.
 
-Both Save Design entry points delegate to one guarded handler. The persisted
-record is schema version 4 and stores canonical config plus verified BOM,
-pricing, and fingerprint artifacts without serializing render geometry. Both
-Request Quote entry points use that same saved record and the existing encoded
-`request-quote.html?design=<id>` URL. The quote page resolves customized
-structural layouts so its selected layout, dimensions, finish, estimate, and
-saved design ID stay aligned.
+The header/footer Save Design actions delegate to one guarded handler. The
+schema-4 record stores canonical config plus verified BOM, pricing, and
+fingerprint artifacts without render geometry or selection state. Every quote
+entry uses that record and the existing encoded
+`request-quote.html?design=<id>` URL. AR normalization receives the same
+accepted configuration and descriptor-derived front quantities.
 
-New saves explicitly persist `constructionProfile: "jq_inset_v1"` and the
-section-aligned `layoutMetadata.sectionDoorLayouts`. Generated door descriptors,
-not the historical global `doorCount`, are the canonical leaf quantity. One
-single leaf contributes one door billable and normally one visible hardware
-unit; a pair contributes two of each. Push latch produces no visible handle
-descriptor. Existing rates are reused: the construction profile and visual
-profile geometry do not invent surcharges or SKUs.
-
-Saved records restored through a known legacy contract and lacking an explicit
-construction profile are migrated to `legacy_overlay_v1` before ordinary
-normalization. Legacy lower-door sections restore as pairs; legacy tall-door
-sections restore their prior balanced single-leaf behavior. Schema-2 and
-schema-3 config-only records regenerate through that explicit migration.
-Pre-profile schema-4 snapshots pass only through the bounded integrity path:
-the saved ID, selection fingerprint, BOM compatibility signature, pricing
-version, serialized price breakdown, and total must all verify. The older
-drawer-profile fingerprint compatibility remains bounded in the same way.
-Migration never trusts serialized geometry or a stored total independently.
-
-Quote prefill is rebuilt from `buildPricingContext()` and carries the internal
-construction profile plus a clone of `layoutMetadata`, including door
-arrangements. Customer-visible quote fields need not expose the technical
-profile name. AR normalization receives the same accepted config and layout,
-checks that every generated front agrees with the profile, and sets
-`doorLeafCount` from actual generated door descriptors.
+New records persist `constructionProfile: "jq_inset_v1"` and the section-aligned
+`layoutMetadata.sectionDoorLayouts`. Generated door descriptors, rather than
+the historical global `doorCount`, own leaf and visible-hardware quantity.
+Known pre-profile records are restored through the bounded legacy migration;
+serialized geometry or a stored total is never trusted independently.
 
 ## Coordinate and unit system
 
@@ -936,15 +917,19 @@ round-trip validation, and stable rejection issues. The release QA document
 owns the required browser views, viewports, and screenshot evidence; model
 tests alone never imply visual completion.
 
-Workflow and shell contracts are additionally covered by:
+Workspace, selection, and shell contracts are additionally covered by:
 
     node --test tests/configurator-experience.test.js tests/configurator-contract.test.js
 
-Those tests cover the two-mode registry, mappings, draft validation,
-applicability, preset reconciliation, summaries, payload parity, duplicate
-action locks, one-viewer markup, shared handlers, accessibility wiring,
-responsive contracts, diagnostics, and removal of the legacy dual-sidebar
-paths.
+Those tests cover the canonical control registry, seven-stage projection,
+selected-section tab applicability, semantic selection routes, organizer
+summaries, 50-entry history semantics, draft validation, preset reconciliation,
+payload parity, duplicate action locks, one-viewer markup, shared handlers,
+diagnostics, and rejection of retired presentation-preference paths. Browser
+release evidence must separately verify the reference grid, stage and toolbar
+reachability, Properties and organizer containment, fullscreen resize,
+coarse-pointer targets, and singleton canvas at desktop, tablet, phone, and
+short-landscape viewports.
 
 ## Current limitations
 

@@ -1,5 +1,5 @@
 import * as THREE from "./assets/vendor/three.module.js";
-import { diagramSvg, iconSvg } from "./icon-system.js?v=configurator-construction-20260714b";
+import { diagramSvg, iconSvg } from "./icon-system.js?v=jq-icons-20260715g";
 import {
   baseStyleOptions,
   crownStyleOptions,
@@ -21,14 +21,15 @@ import {
   normalizeBookcaseConfig,
   optionLabels,
   resolveHardwareVariant
-} from "./bookcase-config.js?v=configurator-construction-20260714b";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=configurator-construction-20260714b";
-import { formatPrice } from "./bookcase-pricing.js?v=configurator-construction-20260714b";
+} from "./bookcase-config.js?v=direct-hardware-20260714a";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=direct-hardware-20260714a";
+import { formatPrice } from "./bookcase-pricing.js?v=direct-hardware-20260714a";
 import {
-  applySectionHistorySnapshot,
+  addSection,
   applySectionWidths,
   applyGlobalStorageSelection,
-  createSectionHistorySnapshot,
+  deleteSection,
+  duplicateSection,
   equalizeSectionWidths,
   getSectionDesignerState,
   mergeSection,
@@ -39,55 +40,61 @@ import {
   setSectionDoorArrangement,
   setSectionType,
   splitSection
-} from "./bookcase-sections.js?v=configurator-construction-20260714b";
+} from "./bookcase-sections.js?v=reference-layout-20260715g";
 import {
   PROFILE_CAMERA_DURATION,
   calculateProfileCameraPose,
   calculateViewportAwareTarget,
   isProfileCameraKey,
   resolveCameraTransitionDuration
-} from "./profile-camera.js?v=configurator-construction-20260714b";
+} from "./profile-camera.js?v=direct-hardware-20260714a";
 import {
   BENJAMIN_MOORE_COLOR_DATA_NOTICE,
   BENJAMIN_MOORE_OFFICIAL_COLORS_URL,
   createBenjaminMoorePaintSelection,
   getBenjaminMooreColorCatalogProvider
-} from "./benjamin-moore-colors.js?v=configurator-construction-20260714b";
+} from "./benjamin-moore-colors.js?v=direct-hardware-20260714a";
 import {
-  ALL_CONTROL_CATEGORIES,
-  CONFIGURATOR_MODES,
-  CONFIGURATOR_PREFERENCE_KEYS,
-  GUIDED_STEPS,
-  categoryForField,
-  categoryForGuidedStep,
+  INSPECTOR_TAB_DEFINITIONS,
+  STAGE_CONTROL_GROUPS,
+  UNIFIED_CONTROL_GROUPS,
+  WORKSPACE_STAGES,
+  createSectionOrganizerSummary,
   createQuoteUrl,
   createReviewGroups,
   createPresetTransition,
   escapeHtml,
   getApplicability,
-  getCategorySummary,
+  getInspectorGroupSummary,
   getChangedConfigFields,
-  getGuidedStepIndex,
   getInvalidDraftIssues,
-  guidedStepForField,
-  guidedStepForCategory,
   hasBlockingConfigurationIssue,
   inferBasePresetId,
-  normalizeAllCategory,
-  normalizeConfiguratorMode,
-  normalizeGuidedStep,
+  inspectorGroupForField,
+  normalizeInspectorGroup,
+  reconcileSelectionContext,
+  resolveWorkspaceSelection,
+  resolveSelectionContext,
   shouldRunAction,
-  validateGuidedStep
-} from "./configurator-experience.js?v=configurator-construction-20260714b";
+  validateUnifiedConfiguration
+} from "./configurator-experience.js?v=reference-layout-20260715i";
 import {
   createAcceptedDesignSnapshot,
   evaluateBookcaseCandidate,
   restoreAcceptedDesignSnapshot
-} from "./bookcase-engine.js?v=configurator-construction-20260714b";
+} from "./bookcase-engine.js?v=direct-hardware-20260714a";
+import { createLegacyHardwareSelections } from "./hardware-catalog.js?v=direct-hardware-20260714a";
+import { resolveDirectEditIntersection } from "./direct-edit-picking.js?v=direct-hardware-20260714a";
+import {
+  createCabinetLatchProxyParts,
+  createCupPullProxyParts,
+  createLinearPullProxyParts,
+  descriptorMountCentersToScene
+} from "./hardware-proxy-geometry.js?v=direct-hardware-20260714a";
 import {
   createExpectedRenderManifest,
   validateRenderedManifest
-} from "./bookcase-render-contract.js?v=configurator-construction-20260714b";
+} from "./bookcase-render-contract.js?v=direct-hardware-20260714a";
 import {
   INSPIRATION_FILTERS,
   STUDIO_CAPABILITIES,
@@ -105,16 +112,23 @@ import {
   normalizeStudioEntryView,
   suggestStudioSectionCount,
   validateStudioDimensions
-} from "./configurator-studio.js?v=configurator-construction-20260714b";
+} from "./configurator-studio.js?v=direct-hardware-20260714a";
 
 const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "shelfThickness", "lightingWarmth", "drawerCount"]);
 const builderIcons = Object.freeze({
   dimensions: iconSvg("dimensions"),
-  layout: iconSvg("layout"),
+  space: iconSvg("space-frame"),
+  layout: iconSvg("sections"),
+  storage: iconSvg("storage"),
   structure: iconSvg("material-layers"),
-  lighting: iconSvg("lighting"),
+  lighting: iconSvg("light-bulb"),
   finish: iconSvg("paint-finish"),
-  hardware: iconSvg("hardware"),
+  hardware: iconSvg("handle-pull"),
+  preview: iconSvg("preview-eye"),
+  shelves: iconSvg("shelves"),
+  doors: iconSvg("doors"),
+  drawers: iconSvg("drawers"),
+  backPanel: iconSvg("back-panel"),
   save: iconSvg("save"),
   search: iconSvg("search"),
   orbit: iconSvg("camera-orbit"),
@@ -130,6 +144,16 @@ const builderIcons = Object.freeze({
   zoomIn: iconSvg("zoom-in"),
   zoomOut: iconSvg("zoom-out"),
   reset: iconSvg("reset"),
+  undo: iconSvg("undo"),
+  redo: iconSvg("redo"),
+  information: iconSvg("information"),
+  chevronRight: iconSvg("chevron-right"),
+  copy: iconSvg("copy"),
+  delete: iconSvg("trash"),
+  pan: iconSvg("pan"),
+  select: iconSvg("select"),
+  fullscreen: iconSvg("fullscreen"),
+  more: iconSvg("more-horizontal"),
   premiumMaterials: iconSvg("material-layers"),
   craftsmanship: iconSvg("craftsmanship"),
   customFit: iconSvg("dimensions"),
@@ -209,25 +233,15 @@ const LIGHTING_CAMERA_OVERRIDES = Object.freeze({
 });
 
 const CAMERA_PROFILE_BY_CATEGORY = Object.freeze({
-  layout: "overview",
-  dimensions: "overview",
-  storage: "overview",
-  construction: "overview",
-  doors: "doors",
+  overall_size: "overview",
+  sections_layout: "overview",
+  shelves: "shelves",
+  storage_fronts: "doors",
+  base_crown: "overview",
   finish: "finish",
+  hardware: "hardware",
   lighting: "lighting",
-  service: "overview",
-  sidePanels: "sidePanels",
-  backPanel: "backPanel"
-});
-
-const CAMERA_PROFILE_BY_GUIDED_STEP = Object.freeze({
-  layout: "overview",
-  dimensions: "overview",
-  storage: "overview",
-  construction: "overview",
-  appearance: "finish",
-  review: "overview"
+  project_service: "overview"
 });
 
 const CAMERA_PROFILE_BY_FIELD = Object.freeze({
@@ -259,6 +273,43 @@ const CAMERA_PROFILE_BY_FIELD = Object.freeze({
 
 const PROFILE_FOCUS_FIELDS = new Set(["baseStyle", "crownStyle"]);
 const HOVER_PREVIEW_FIELDS = new Set(["doorStyle", "drawerFrontStyle", "baseStyle", "crownStyle", "finish", "lighting", "lightingWarmth"]);
+const DIRECT_EDIT_LAYER = 2;
+const DIRECT_EDITABLE_ROLES = new Set([
+  "handle",
+  "door",
+  "drawer_front",
+  "shelf",
+  "fixed_shelf",
+  "section",
+  "light",
+  "divider",
+  "base",
+  "trim",
+  "crown",
+  "top_panel",
+  "side_panel",
+  "back_panel",
+  "bottom_panel",
+  "assembly"
+]);
+const DIRECT_EDIT_KIND_BY_ROLE = Object.freeze({
+  handle: "hardware",
+  door: "front",
+  drawer_front: "front",
+  shelf: "shelf",
+  fixed_shelf: "shelf",
+  section: "section",
+  light: "lighting",
+  divider: "divider",
+  base: "base",
+  trim: "base",
+  crown: "crown",
+  top_panel: "crown",
+  side_panel: "body",
+  back_panel: "body",
+  bottom_panel: "body",
+  assembly: "body"
+});
 let viewerInstanceSequence = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -266,7 +317,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (host.__bookcaseConfigurator) return;
     if (host.getAttribute("data-enable-cabinet-ar") === "true") {
       try {
-        const { readCabinetArShareConfiguration } = await import("./cabinet-ar.js?v=configurator-construction-20260714b");
+        const { readCabinetArShareConfiguration } = await import("./cabinet-ar.js?v=direct-hardware-20260714a");
         host.__cabinetArSharedConfiguration = readCabinetArShareConfiguration(window.location.href);
       } catch (error) {
         host.__cabinetArSharedConfiguration = null;
@@ -280,7 +331,16 @@ class BookcaseConfigurator {
   constructor(host, index) {
     this.host = host;
     this.id = `jq-builder-${index + 1}`;
+    this.eventAbortController = new AbortController();
+    this.destroyed = false;
     this.arEnabled = this.host.getAttribute("data-enable-cabinet-ar") === "true";
+    const directHardwareFlag = new URLSearchParams(window.location.search).get("directHardwareEditing");
+    this.directHardwareEditingEnabled = this.host.getAttribute("data-direct-hardware-editing") !== "false"
+      && directHardwareFlag !== "0"
+      && directHardwareFlag !== "false";
+    this.directHardwareEditor = null;
+    this.directHardwareEditorPromise = null;
+    this.directHardwareOverlayOpen = false;
     const initialRequest = this.loadInitialDesignRequest();
     const initialEvaluation = initialRequest.config ? evaluateBookcaseCandidate(initialRequest.config) : null;
     this.hasAcceptedDesign = Boolean(initialEvaluation?.accepted);
@@ -292,9 +352,20 @@ class BookcaseConfigurator {
     this.bom = this.hasAcceptedDesign ? initialEvaluation.bom : null;
     this.pricing = this.hasAcceptedDesign ? initialEvaluation.pricing : null;
     this.basePresetId = this.hasAcceptedDesign ? inferBasePresetId(this.state) : defaultBookcaseConfig.layoutPreset;
-    this.mode = this.loadPreference(CONFIGURATOR_PREFERENCE_KEYS.mode, normalizeConfiguratorMode);
-    this.guidedStep = this.loadPreference(CONFIGURATOR_PREFERENCE_KEYS.guidedStep, normalizeGuidedStep);
-    this.expandedCategory = this.loadPreference(CONFIGURATOR_PREFERENCE_KEYS.allCategory, normalizeAllCategory);
+    this.activeInspectorGroup = normalizeInspectorGroup("overall_size");
+    this.activeStageId = "layout";
+    this.activeInspectorTabId = "general";
+    this.activeTool = "select";
+    this.showDimensions = true;
+    this.showWall = true;
+    this.fullscreen = false;
+    this.designHistory = { undo: [], redo: [], limit: 50 };
+    this.inspectorGroupCollapsed = false;
+    this.selection = null;
+    this.hoverSelection = null;
+    this.contextEditorOpen = false;
+    this.contextInvoker = null;
+    this.contextAnchor = null;
     this.entryView = STUDIO_ENTRY_VIEWS.welcome;
     this.inspirationFilter = "all";
     this.inspirationExpanded = false;
@@ -308,7 +379,7 @@ class BookcaseConfigurator {
     this.analyticsEvents = [];
     this.welcomeViewed = false;
     this.drafts = {};
-    this.scrollPositions = { guided: 0, all: 0 };
+    this.inspectorScrollPosition = 0;
     this.actionStartedAt = {};
     this.showColorSearch = false;
     this.colorQueryDraft = "";
@@ -329,12 +400,7 @@ class BookcaseConfigurator {
     this.sectionDesignerCameraState = null;
     this.sectionDesignerCameraChanged = false;
     this.activeSectionDividerDrag = null;
-    this.sectionUndoStack = [];
-    this.sectionRedoStack = [];
-    this.furthestGuidedStepIndex = this.designIntent === STUDIO_DESIGN_INTENTS.resume
-      ? getGuidedStepIndex(this.guidedStep)
-      : 0;
-    this.activeView = "three-quarter";
+    this.activeView = "front";
     this.arController = null;
     this.arControllerPromise = null;
     this.activeRangeDrag = null;
@@ -352,26 +418,20 @@ class BookcaseConfigurator {
     this.bindEvents();
     if (this.hasAcceptedDesign) {
       if (this.arEnabled) this.initializeCabinetAr();
-      this.renderActiveControls();
+      this.renderInspector();
       this.syncInterface();
-      if (
-        (this.mode === CONFIGURATOR_MODES.guided && this.guidedStep === "layout")
-        || (this.mode === CONFIGURATOR_MODES.all && this.expandedCategory === "section_designer")
-      ) this.activateSectionDesigner();
-      this.focusCameraForCurrentContext({ duration: SMART_CAMERA_DURATION });
+      this.initializeUnifiedModelInteraction();
+      this.activateSectionDesigner({ render: false, announce: false, focusCamera: false });
+      this.selectSection(this.selectedSectionIndex, { openProperties: true, render: true });
+      this.viewer.setInteractionTool?.(this.activeTool);
+      this.viewer.setDimensionsVisible?.(this.showDimensions);
+      this.viewer.setWallVisible?.(this.showWall);
+      this.setView("front");
       this.verifyRestoredPaintSelection();
       this.emitStudioEvent("studio_entry_bypassed", { source: this.initialSource });
     } else {
       this.syncStudioEntry();
       this.emitWelcomeViewed();
-    }
-  }
-
-  loadPreference(key, normalizer) {
-    try {
-      return normalizer(localStorage.getItem(key));
-    } catch (error) {
-      return normalizer(null);
     }
   }
 
@@ -387,28 +447,26 @@ class BookcaseConfigurator {
     }
   }
 
-  savePreference(key, value) {
-    try {
-      localStorage.setItem(key, value);
-    } catch (error) {
-      // Preferences are optional when storage is unavailable.
-    }
-  }
-
   resetNewDesignPresentation() {
     this.designIntent = STUDIO_DESIGN_INTENTS.newDesign;
-    this.mode = CONFIGURATOR_MODES.guided;
-    this.guidedStep = GUIDED_STEPS[0].id;
-    this.expandedCategory = normalizeAllCategory("dimensions");
-    this.furthestGuidedStepIndex = 0;
-    this.scrollPositions = { guided: 0, all: 0 };
+    this.activeInspectorGroup = normalizeInspectorGroup("overall_size");
+    this.activeStageId = "layout";
+    this.activeInspectorTabId = "general";
+    this.activeTool = "select";
+    this.showDimensions = true;
+    this.showWall = true;
+    this.fullscreen = false;
+    this.designHistory = { undo: [], redo: [], limit: 50 };
+    this.inspectorGroupCollapsed = false;
+    this.selection = null;
+    this.hoverSelection = null;
+    this.contextEditorOpen = false;
+    this.contextAnchor = null;
+    this.inspectorScrollPosition = 0;
     this.sectionDesignerActive = false;
     this.selectedSectionIndex = 0;
     this.sectionWidthDraft = "";
     this.sectionActionsExpanded = false;
-    this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.mode, this.mode);
-    this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.guidedStep, this.guidedStep);
-    this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.allCategory, this.expandedCategory);
   }
 
   consumeStudioStartParameter() {
@@ -443,7 +501,7 @@ class BookcaseConfigurator {
     if (explicitResume) this.consumeStudioStartParameter();
     try {
       const stored = JSON.parse(localStorage.getItem("jqBookcasesDesign") || "null");
-      if (!stored || ![2, 3, 4].includes(Number(stored.schemaVersion))) {
+      if (!stored || ![2, 3, 4, 5].includes(Number(stored.schemaVersion))) {
         return { config: null, source: "new", intent: STUDIO_DESIGN_INTENTS.newDesign };
       }
       const restored = restoreAcceptedDesignSnapshot(stored);
@@ -463,6 +521,16 @@ class BookcaseConfigurator {
       focus: () => {},
       preview: () => {},
       restorePreview: () => {},
+      setDirectEditing: () => {},
+      setSelectedComponent: () => false,
+      clearDirectSelection: () => {},
+      setInteractionTool: () => {},
+      setDimensionsVisible: () => {},
+      setWallVisible: () => {},
+      resize: () => {},
+      getComponentScreenAnchor: () => null,
+      getSafeViewport: () => Object.freeze({ width: 0, height: 0, insets: Object.freeze({ top: 0, right: 0, bottom: 0, left: 0 }) }),
+      getMeasurementProjection: () => null,
       getViewState: () => null,
       getDiagnostics: () => ({
         instanceId: "studio-intro",
@@ -473,7 +541,8 @@ class BookcaseConfigurator {
         textureCount: 0
       }),
       destroy: () => this.stopStudioPreviewMotion(),
-      lastRenderAudit: { valid: true, issues: [] }
+      lastRenderAudit: { valid: true, issues: [] },
+      lastRejectedRenderAudit: null
     };
   }
 
@@ -505,15 +574,50 @@ class BookcaseConfigurator {
       focus: () => {},
       preview: () => {},
       restorePreview: () => {},
+      setDirectEditing: () => {},
+      setSelectedComponent: () => false,
+      clearDirectSelection: () => {},
+      setInteractionTool: () => {},
+      setDimensionsVisible: () => {},
+      setWallVisible: () => {},
+      resize: () => {},
+      getComponentScreenAnchor: () => null,
+      getSafeViewport: () => {
+        const bounds = this.elements.viewer.getBoundingClientRect();
+        return Object.freeze({
+          width: bounds.width,
+          height: bounds.height,
+          insets: Object.freeze({ top: 0, right: 0, bottom: 0, left: 0 }),
+          localBounds: Object.freeze({ left: 0, top: 0, right: bounds.width, bottom: bounds.height })
+        });
+      },
+      getMeasurementProjection: () => null,
       getViewState: () => null,
       getDiagnostics: () => ({ instanceId: "fallback", updateCount: 0, rebuildCount: 0 }),
       destroy: () => {},
-      lastRenderAudit: { valid: true, issues: [] }
+      lastRenderAudit: { valid: true, issues: [] },
+      lastRejectedRenderAudit: null
     };
   }
 
   render() {
     this.renderFullPageConfigurator();
+  }
+
+  renderWorkspaceStageRail() {
+    return WORKSPACE_STAGES.map((stage, index) => {
+      const active = stage.id === this.activeStageId;
+      const complete = stage.id === "space"
+        && !validateUnifiedConfiguration(this.state, this.layout, this.drafts).issues.some((issue) => issue.inspectorGroupId === "overall_size");
+      const icon = builderIcons[stage.icon || stage.id] || builderIcons.layout;
+      return `
+        <button type="button" class="workspace-stage${active ? " is-active" : ""}${complete ? " is-complete" : ""}" data-workspace-stage="${escapeHtml(stage.id)}" ${active ? 'aria-current="step"' : ""}>
+          <span class="workspace-stage-icon" aria-hidden="true">${icon}</span>
+          <span class="workspace-stage-copy"><strong>${escapeHtml(stage.label)}</strong><small>${escapeHtml(stage.subtitle)}</small></span>
+          <span class="workspace-stage-state" aria-hidden="true">${complete ? builderIcons.check : index + 1}</span>
+        </button>
+      `;
+    }).join("");
   }
 
   renderFullPageConfigurator() {
@@ -522,72 +626,60 @@ class BookcaseConfigurator {
       return;
     }
     this.host.innerHTML = `
-      <form class="builder-shell configurator-shell configurator-experience" data-builder-form novalidate>
+      <form class="builder-shell configurator-shell configurator-experience reference-workspace" data-builder-form data-unified-configurator data-configurator-workspace novalidate>
         <h1 id="${this.id}-viewer-title" class="sr-only">3D Bookcase Configurator</h1>
-
-        <aside class="configurator-step-rail" aria-label="Guided setup steps" data-step-rail>
-          <ol>
-            ${GUIDED_STEPS.map((item, index) => `
-              <li data-step-rail-item="${item.id}">
-                <button type="button" data-guided-step="${item.id}" aria-label="Step ${index + 1}: ${item.shortLabel}">
-                  <span>${index + 1}</span><small>${item.shortLabel}</small>
-                </button>
-              </li>
-            `).join("")}
-          </ol>
-        </aside>
-
-        <aside class="builder-panel configurator-panel configurator-control-experience" aria-label="Bookcase configuration controls" data-controls-scroll>
-          <header class="configurator-panel-intro">
-            <span class="section-kicker">Design your bookcase</span>
-            <strong data-mode-description>Build your bookcase one step at a time.</strong>
-          </header>
-          <section id="${this.id}-guided-panel" role="tabpanel" aria-labelledby="${this.id}-mode-guided" data-mode-panel="guided"></section>
-          <section id="${this.id}-all-panel" role="tabpanel" aria-labelledby="${this.id}-mode-all" data-mode-panel="all" hidden></section>
-        </aside>
-
-        <section class="studio-model configurator-model" aria-labelledby="${this.id}-viewer-title">
-          <header class="configurator-experience-toolbar">
-            <div class="configurator-mode-selector" role="tablist" aria-label="Configuration experience">
-              <button id="${this.id}-mode-guided" type="button" role="tab" data-configurator-mode="guided" aria-controls="${this.id}-guided-panel">
-                <span>Guided Setup</span><small>Step-by-step</small>
-              </button>
-              <button id="${this.id}-mode-all" type="button" role="tab" data-configurator-mode="all" aria-controls="${this.id}-all-panel">
-                <span>All Controls</span><small>Direct access</small>
-              </button>
-            </div>
-          </header>
-          <div class="preview-heading">
-            <div><span>Live preview</span><small>Drag to rotate · Use arrow keys or the view dock</small></div>
-          </div>
-          <div class="viewer-stage" data-3d-viewer tabindex="0" role="group" aria-roledescription="interactive 3D preview" aria-label="Built-in bookcase preview. Use arrow keys to rotate and plus or minus to zoom."></div>
-          <div class="preview-control-dock" aria-label="Preview controls">
-            <div class="preview-tools" role="group" aria-label="Preview zoom and reset controls">
-              <button type="button" data-viewer-zoom="in" aria-label="Zoom in" title="Zoom in"><span class="view-icon" aria-hidden="true">${builderIcons.zoomIn}</span><small>Zoom in</small></button>
-              <button type="button" data-viewer-zoom="out" aria-label="Zoom out" title="Zoom out"><span class="view-icon" aria-hidden="true">${builderIcons.zoomOut}</span><small>Zoom out</small></button>
-              <button type="button" data-reset-view aria-label="Rotate to default view" title="Rotate to default view"><span class="view-icon" aria-hidden="true">${builderIcons.reset}</span><small>Rotate</small></button>
-            </div>
-            <div class="view-controls" role="group" aria-label="3D view controls">
-              <button type="button" data-view="three-dimensional" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.orbit}</span><small>3D</small></button>
-              <button type="button" data-view="front" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.front}</span><small>Front</small></button>
-              <button type="button" data-view="three-quarter" aria-pressed="true"><span class="view-icon" aria-hidden="true">${builderIcons.threeQuarter}</span><small>3/4</small></button>
-              <button type="button" data-view="side" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.side}</span><small>Side</small></button>
-            </div>
-          </div>
+        <nav class="workspace-stage-rail" data-workspace-stages aria-label="Configurator stages">
+          <div class="workspace-stage-list">${this.renderWorkspaceStageRail()}</div>
           ${this.arEnabled ? `
-            <div class="cabinet-ar-launch">
-              <button class="cabinet-ar-launch-button" type="button" data-open-ar aria-label="AR View in Your Room">
-                <span class="view-icon" aria-hidden="true">${builderIcons.augmentedReality}</span><span data-ar-label>AR View in Your Room</span>
-              </button>
-            </div>
+            <button class="workspace-ar-card" type="button" data-open-ar aria-label="View this design in your room">
+              <span class="workspace-ar-mark" aria-hidden="true">AR</span>
+              <span><strong>View in your room</strong><small>See it in your space</small></span>
+              <i aria-hidden="true">${builderIcons.chevronRight}</i>
+            </button>
           ` : ""}
+        </nav>
+
+        <section class="studio-model configurator-model workspace-model" data-model-workspace aria-labelledby="${this.id}-viewer-title">
+          <header class="workspace-model-toolbar" data-model-toolbar>
+            <div class="workspace-toolbar-group workspace-history-tools" role="group" aria-label="Design history">
+              <button type="button" data-history-undo aria-label="Undo design change" aria-keyshortcuts="Control+Z Meta+Z" disabled><span aria-hidden="true">${builderIcons.undo}</span><b>Undo</b></button>
+              <button type="button" class="is-redo" data-history-redo aria-label="Redo design change" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled><span aria-hidden="true">${builderIcons.redo}</span><b>Redo</b></button>
+            </div>
+            <div class="workspace-toolbar-group workspace-display-tools" role="group" aria-label="Model display">
+              <span>Show:</span>
+              <button type="button" data-toggle-dimensions aria-pressed="true">Dimensions</button>
+              <button type="button" data-toggle-wall aria-pressed="true">Wall</button>
+            </div>
+            <div class="workspace-toolbar-group workspace-model-tools" role="group" aria-label="Model interaction tool">
+              <button type="button" data-model-tool="pan" aria-pressed="false" aria-label="Pan model" title="Pan model"><span aria-hidden="true">${builderIcons.pan}</span></button>
+              <button type="button" data-model-tool="select" aria-pressed="true" aria-label="Select model component" title="Select model component"><span aria-hidden="true">${builderIcons.select}</span></button>
+              <button type="button" data-reset-view aria-label="Reset model view" title="Reset model view"><span aria-hidden="true">${builderIcons.reset}</span></button>
+              <button type="button" data-model-fullscreen aria-pressed="false" aria-label="Enter model fullscreen" title="Fullscreen model"><span aria-hidden="true">${builderIcons.fullscreen}</span></button>
+            </div>
+          </header>
+          <div class="workspace-viewer-room" data-viewer-room>
+            <div class="viewer-stage" data-3d-viewer tabindex="0" role="application" aria-roledescription="interactive 3D configurator" aria-label="Built-in bookcase model. Select a component to edit, or choose the hand tool to pan. Use plus or minus to zoom."></div>
+            <div class="configurator-hover-label" data-model-hover-label hidden></div>
+          </div>
         </section>
 
-        <section class="configurator-estimate-bar" aria-label="Estimate and next steps">
+        <aside class="workspace-properties" data-properties-inspector data-controls-scroll aria-label="Selected object properties" tabindex="-1">
+          <div class="workspace-properties-content" data-inspector-content></div>
+        </aside>
+
+        <section class="workspace-section-organizer" data-section-organizer aria-label="Bookcase sections">
+          <div data-section-organizer-content></div>
+        </section>
+
+        <aside class="workspace-total-width" data-total-width-card aria-label="Total width status">
+          <div data-total-width-content></div>
+        </aside>
+
+        <footer class="configurator-estimate-bar workspace-estimate-bar" data-estimate-bar aria-label="Estimate and next steps">
           <div class="configurator-price-block">
-            <span class="price-kicker">Estimated project price</span>
+            <span class="price-kicker">Estimated price</span>
             <strong data-price>${formatPrice(this.pricing.total)}</strong>
-            <p id="${this.id}-action-hint" class="configurator-quote-note" data-action-hint aria-live="polite">Final pricing is confirmed after measurements and project details are verified.</p>
+            <p id="${this.id}-action-hint" class="configurator-quote-note" data-action-hint aria-live="polite">Pricing is estimated and subject to final measurements.</p>
           </div>
           <div class="studio-trust-row" aria-label="JQ Bookcases value commitments">
             <div class="studio-trust-item"><span class="studio-trust-icon" aria-hidden="true">${builderIcons.premiumMaterials}</span><span><strong>Premium Materials</strong><small>Furniture-grade construction</small></span></div>
@@ -595,11 +687,10 @@ class BookcaseConfigurator {
             <div class="studio-trust-item"><span class="studio-trust-icon" aria-hidden="true">${builderIcons.customFit}</span><span><strong>Custom Fit</strong><small>Made for your exact space</small></span></div>
           </div>
           <div class="configurator-actions">
-            <button class="configurator-review-button" type="button" data-review-design>Review Design</button>
             <button class="configurator-save-button" type="button" data-save-design aria-label="Save Design">${builderIcons.save}<span>Save Design</span></button>
             <button class="configurator-quote-button" type="button" data-open-order="measurement">Request a Quote</button>
           </div>
-        </section>
+        </footer>
 
         <dialog class="configurator-review-dialog" data-review-dialog aria-labelledby="${this.id}-review-dialog-title">
           <div class="configurator-review-dialog-shell">
@@ -613,6 +704,7 @@ class BookcaseConfigurator {
 
         ${this.arEnabled ? `<dialog class="cabinet-ar-dialog" data-ar-dialog aria-labelledby="cabinet-ar-title"></dialog>` : ""}
 
+        <p class="sr-only" data-selection-live role="status" aria-live="polite" aria-atomic="true"></p>
         <p class="status-message" data-builder-status role="status" aria-live="polite"></p>
       </form>
     `;
@@ -782,138 +874,286 @@ class BookcaseConfigurator {
     `;
   }
 
-  renderActiveControls(options = {}) {
-    if (!this.elements?.guidedPanel || !this.elements?.allPanel) return;
+  renderInspector(options = {}) {
+    if (!this.elements?.inspectorContent) return;
     this.clearResetConfirmation();
-    const previousMode = options.previousMode || this.mode;
-    if (this.elements.controlsScroll) this.scrollPositions[previousMode] = this.elements.controlsScroll.scrollTop;
-
-    const guidedActive = this.mode === CONFIGURATOR_MODES.guided;
-    this.elements.guidedPanel.hidden = !guidedActive;
-    this.elements.guidedPanel.toggleAttribute("inert", !guidedActive);
-    this.elements.allPanel.hidden = guidedActive;
-    this.elements.allPanel.toggleAttribute("inert", guidedActive);
-
-    if (guidedActive) {
-      this.elements.allPanel.innerHTML = "";
-      this.elements.guidedPanel.innerHTML = this.renderGuidedExperience();
-    } else {
-      this.elements.guidedPanel.innerHTML = "";
-      this.elements.allPanel.innerHTML = this.renderAllControlsExperience();
+    const scrollTop = this.elements.controlsScroll?.scrollTop || 0;
+    this.elements.inspectorContent.innerHTML = this.renderWorkspaceProperties();
+    if (this.elements.sectionOrganizerContent) {
+      this.elements.sectionOrganizerContent.innerHTML = this.renderSectionOrganizer();
     }
-
+    if (this.elements.totalWidthContent) {
+      this.elements.totalWidthContent.innerHTML = this.renderTotalWidthCard();
+    }
+    const stageList = this.elements.stageRail?.querySelector(".workspace-stage-list");
+    if (stageList) stageList.innerHTML = this.renderWorkspaceStageRail();
     window.requestAnimationFrame(() => {
-      if (this.elements.controlsScroll) {
-        const usesMobileDocumentFlow = window.matchMedia("(max-width: 767px)").matches
-          && this.elements.controlsScroll.scrollHeight <= this.elements.controlsScroll.clientHeight + 1;
-
-        if (options.resetScroll && usesMobileDocumentFlow) {
-          const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
-          this.elements.controlsScroll.scrollIntoView({ behavior, block: "start" });
-        } else {
-          this.elements.controlsScroll.scrollTop = options.resetScroll ? 0 : this.scrollPositions[this.mode] || 0;
-        }
-      }
+      if (!this.elements.controlsScroll) return;
+      this.elements.controlsScroll.scrollTop = options.resetScroll ? 0 : scrollTop;
     });
   }
 
-  renderGuidedExperience() {
-    const stepIndex = getGuidedStepIndex(this.guidedStep);
-    const step = GUIDED_STEPS[stepIndex];
+  renderWorkspaceProperties() {
+    const stage = WORKSPACE_STAGES.find((item) => item.id === this.activeStageId) || WORKSPACE_STAGES[0];
+    const selectedSection = this.getSelectedSectionState();
+    const title = this.selection
+      ? this.selection.title
+      : stage.label;
+    const subtitle = this.selection
+      ? (selectedSection ? formatSectionType(selectedSection.type) : this.selection.summary || stage.subtitle)
+      : stage.subtitle;
+    const tabs = this.getWorkspaceInspectorTabs(selectedSection);
+    const activeTab = tabs.find((tab) => tab.id === this.activeInspectorTabId)?.id || tabs[0]?.id || null;
+    if (activeTab) this.activeInspectorTabId = activeTab;
     return `
-      <div class="guided-experience" data-guided-experience>
-        <div class="guided-progress-heading">
-          <span>Step ${stepIndex + 1} of ${GUIDED_STEPS.length}</span>
-          <strong>${step.label}</strong>
+      <header class="workspace-properties-heading">
+        <div><h2>${escapeHtml(title)}</h2><p>${escapeHtml(subtitle)}</p></div>
+        ${this.selection ? `<button type="button" data-close-selection aria-label="Clear model selection">${builderIcons.close}</button>` : ""}
+      </header>
+      ${tabs.length ? `
+        <div class="workspace-inspector-tabs" role="tablist" aria-label="Section properties">
+          ${tabs.map((tab) => `
+            <button id="${this.id}-tab-${tab.id}" type="button" role="tab" data-inspector-tab="${tab.id}" aria-selected="${tab.id === activeTab}" aria-controls="${this.id}-tabpanel-${tab.id}" tabindex="${tab.id === activeTab ? 0 : -1}">
+              <span aria-hidden="true">${builderIcons[tab.icon] || builderIcons.layout}</span><small>${escapeHtml(tab.label)}</small>
+            </button>
+          `).join("")}
         </div>
-        <header class="guided-step-heading" data-guided-heading tabindex="-1">
-          <span class="section-kicker">${step.label}</span>
-          <h2>${step.title}</h2>
-          <p>${step.description}</p>
-        </header>
-        <div class="guided-step-content" data-guided-step-content="${step.id}">
-          ${this.renderGuidedStepContent(step.id)}
-        </div>
-        <div class="guided-step-errors" data-guided-errors tabindex="-1" aria-live="polite"></div>
-        <nav class="guided-navigation" aria-label="Guided setup navigation">
-          <button type="button" class="guided-back" data-guided-back ${stepIndex === 0 ? "disabled" : ""}>Back</button>
-          ${step.id === "review"
-            ? '<button type="button" class="guided-continue is-primary" data-open-order="measurement">Request a Quote</button>'
-            : `<button type="button" class="guided-continue is-primary" data-guided-continue>Continue to ${GUIDED_STEPS[stepIndex + 1].shortLabel}</button>`}
-        </nav>
+      ` : ""}
+      <div id="${this.id}-tabpanel-${activeTab || stage.id}" class="workspace-properties-panel" role="tabpanel" ${activeTab ? `aria-labelledby="${this.id}-tab-${activeTab}"` : ""} data-active-stage-panel="${escapeHtml(stage.id)}">
+        ${this.renderWorkspacePropertiesContent(activeTab, selectedSection)}
       </div>
     `;
   }
 
-  renderGuidedStepContent(stepId) {
-    if (stepId === "layout") {
-      return this.renderStructureStartGroup();
+  getSelectedSectionState() {
+    const sections = getSectionDesignerState(this.state, this.layout).sections;
+    const index = this.selection
+      ? (Number.isInteger(this.selection.sectionIndex) ? this.selection.sectionIndex : -1)
+      : this.selectedSectionIndex;
+    return sections[index] || null;
+  }
+
+  getWorkspaceInspectorTabs(selectedSection) {
+    if (!this.selection || !selectedSection || !["section", "divider", "door", "drawer", "shelves"].includes(this.selection.editorId)) return [];
+    const definitions = INSPECTOR_TAB_DEFINITIONS;
+    const ids = ["general", "shelves"];
+    if (["lower_doors", "tall_doors"].includes(selectedSection.type)) ids.push("doors");
+    if (selectedSection.type === "drawers") ids.push("drawers");
+    ids.push("back", "lighting");
+    return ids.map((id) => definitions[id]).filter(Boolean);
+  }
+
+  renderWorkspacePropertiesContent(activeTab, selectedSection) {
+    if (this.selection) {
+      const editorId = this.selection.editorId;
+      if (selectedSection && ["section", "divider", "door", "drawer", "shelves"].includes(editorId)) {
+        if (activeTab === "shelves") return this.renderShelvesGroup();
+        if (activeTab === "doors" || activeTab === "drawers") return this.renderSelectedSectionFronts(activeTab);
+        if (activeTab === "back") return this.renderBackPanelSummary();
+        if (activeTab === "lighting") return this.renderLightingGroup();
+        return this.renderSectionGeneralInspector({ includeFoundation: this.activeStageId === "layout" });
+      }
+      if (editorId === "hardware") return this.renderHardwareGroup();
+      if (editorId === "lighting") return this.renderLightingGroup();
+      if (editorId === "back") return this.renderBackPanelSummary();
+      if (editorId === "base" || editorId === "crown") return this.renderStructureGroup();
+      if (editorId === "body") return `${this.renderSpaceGroup()}${this.renderFinishGroup()}`;
     }
-    if (stepId === "dimensions") {
-      return this.renderSpaceGroup();
-    }
-    if (stepId === "storage") return this.renderStorageGroup();
-    if (stepId === "construction") return this.renderConstructionExperience();
-    if (stepId === "appearance") return this.renderAppearanceExperience();
-    return `${this.renderReviewContent({ includeActions: false })}
-      <section class="guided-review-service" aria-labelledby="${this.id}-guided-service-heading">
-        <h3 id="${this.id}-guided-service-heading">Confirm project service</h3>
-        <p>Choose the delivery and installation support included in this estimate.</p>
+    if (this.activeStageId === "layout") return this.renderSectionGeneralInspector({ includeFoundation: true });
+    if (this.activeStageId === "storage") return `${this.renderShelvesGroup()}${this.renderStorageFrontsGroup()}`;
+    if (this.activeStageId === "preview") return `
+      <section class="workspace-preview-stage">
+        <button class="workspace-review-launch" type="button" data-review-design>Review Design</button>
         ${this.renderServiceGroup()}
+        <button class="workspace-reset-link" type="button" data-reset-design>Start over</button>
       </section>`;
+    const groups = STAGE_CONTROL_GROUPS[this.activeStageId] || [];
+    return groups.map((groupId) => this.renderControlGroup(groupId, "properties")).join("");
   }
 
-  renderAllControlsExperience() {
+  renderSectionGeneralInspector({ includeFoundation = false } = {}) {
+    const designer = getSectionDesignerState(this.state, this.layout);
+    this.selectedSectionIndex = clamp(this.selectedSectionIndex, 0, Math.max(0, designer.sections.length - 1));
+    const selected = designer.sections[this.selectedSectionIndex];
+    if (!selected) return "";
+    const typeOptions = [
+      ["open", "Open Shelves", "Full-height adjustable"],
+      ["lower_doors", "Lower Doors", "Closed storage"],
+      ["drawers", "Lower Drawers", `${this.state.drawerCount} fitted drawers`],
+      ["tall_doors", "Tall Doors", "Full-height storage"]
+    ];
+    const widthValue = this.sectionWidthDraft || formatSectionWidth(selected.width);
+    const duplicateAvailability = duplicateSection(this.state, this.layout, selected.index);
+    const deleteAvailability = deleteSection(this.state, this.layout, selected.index);
     return `
-      <div class="all-controls-experience" data-all-controls-experience>
-        <header class="all-controls-heading">
-          <div><span class="section-kicker">All Controls</span><h2>Fine-tune every available detail</h2><p>Open any category and edit applicable settings directly.</p></div>
-          <button type="button" data-review-design>Review Design</button>
-        </header>
-        <div class="configurator-accordion" data-configurator-accordion>
-          ${ALL_CONTROL_CATEGORIES.map((category) => this.renderAccordionCategory(category)).join("")}
+      <section class="workspace-section-general" data-section-general>
+        <fieldset class="workspace-section-types" ${selected.locked ? "disabled" : ""}>
+          <legend>Section type</legend>
+          <div class="workspace-section-type-grid">
+            ${typeOptions.map(([type, label, description]) => `
+              <label class="workspace-section-type-card">
+                <input type="radio" name="${this.id}-section-type" data-section-type="${type}" ${selected.type === type ? "checked" : ""}>
+                <span aria-hidden="true">${this.renderSectionThumbnail({ ...selected, type })}</span>
+                <strong>${escapeHtml(label)}</strong><small>${escapeHtml(description)}</small>
+                ${selected.type === type ? `<i class="workspace-type-check" aria-hidden="true">${builderIcons.check}</i>` : ""}
+              </label>
+            `).join("")}
+          </div>
+        </fieldset>
+        ${selected.locked ? `<p class="workspace-property-note">This preset feature is structurally locked. Choose another foundation to change its type.</p>` : ""}
+        <section class="workspace-property-block section-width-editor" aria-labelledby="${this.id}-section-width-label">
+          <h3 id="${this.id}-section-width-label">Width (clear)</h3>
+          <div class="section-width-input workspace-number-stepper">
+            <button type="button" data-section-width-step="-0.5" aria-label="Decrease Section ${selected.index + 1} clear width">${builderIcons.minus}</button>
+            <input id="${this.id}-section-width" data-section-width type="number" min="${designer.minimumClearWidth}" step="0.25" inputmode="decimal" value="${escapeHtml(widthValue)}" aria-describedby="${this.id}-section-width-help ${this.id}-section-width-error">
+            <button type="button" data-section-width-step="0.5" aria-label="Increase Section ${selected.index + 1} clear width">${builderIcons.plus}</button>
+            <span>in</span>
+          </div>
+          <p id="${this.id}-section-width-help" class="control-helper">Overall width stays ${formatSectionWidth(this.state.width)} in. Drag a model divider or use these controls.</p>
+          <p id="${this.id}-section-width-error" class="inline-validation-message" data-section-width-error aria-live="polite"></p>
+        </section>
+        <section class="workspace-global-dimensions" aria-label="Overall dimensions">
+          <h3>Overall dimensions</h3>
+          <p>Height and depth apply to the entire bookcase.</p>
+          ${this.renderStepperControl("height", "Bookcase height (in)", 72, 120)}
+          ${this.renderStepperControl("depth", "Bookcase depth (in)", 10, 24)}
+        </section>
+        <div class="workspace-section-actions">
+          <button type="button" data-section-duplicate ${duplicateAvailability.accepted ? "" : `disabled aria-describedby="${this.id}-duplicate-reason"`}>${builderIcons.copy}<span>Duplicate Section</span></button>
+          <button type="button" class="is-destructive" data-section-delete ${deleteAvailability.accepted ? "" : `disabled aria-describedby="${this.id}-delete-reason"`}>${builderIcons.delete}<span>Delete Section</span></button>
         </div>
-        <div class="all-controls-secondary-actions">
-          <button type="button" data-reset-design>Start over</button>
-        </div>
-      </div>
-    `;
-  }
-
-  renderAccordionCategory(category) {
-    const expanded = category.id === this.expandedCategory;
-    const panelId = `${this.id}-category-${category.id}`;
-    const applicability = category.id === "doors" ? "fronts" : category.id === "hardware" ? "hardware" : "";
-    return `
-      <section class="configurator-category" data-category="${category.id}" ${applicability ? `data-applicability="${applicability}"` : ""}>
-        <h3>
-          <button id="${panelId}-trigger" type="button" data-category-trigger="${category.id}" aria-expanded="${expanded}" aria-controls="${panelId}">
-            <span>${escapeHtml(category.label)}<small data-category-summary="${escapeHtml(category.id)}">${escapeHtml(getCategorySummary(category.id, this.state, this.layout, this.basePresetId))}</small></span>
-            <i aria-hidden="true">${expanded ? builderIcons.minus : builderIcons.plus}</i>
-          </button>
-        </h3>
-        <div id="${panelId}" class="configurator-category-panel" data-category-panel="${category.id}" role="region" aria-labelledby="${panelId}-trigger" ${expanded ? "" : "hidden"}>
-          ${this.renderCategoryContent(category.id)}
-        </div>
+        ${duplicateAvailability.accepted ? "" : `<p id="${this.id}-duplicate-reason" class="workspace-action-reason"><strong>Duplicate unavailable:</strong> ${escapeHtml(duplicateAvailability.error?.message || "This section cannot be duplicated.")}</p>`}
+        ${deleteAvailability.accepted ? "" : `<p id="${this.id}-delete-reason" class="workspace-action-reason"><strong>Delete unavailable:</strong> ${escapeHtml(deleteAvailability.error?.message || "This section cannot be deleted.")}</p>`}
+        ${includeFoundation ? `
+          <details class="workspace-foundation-ideas"><summary>Change foundation idea</summary>${this.renderLayoutCards("inspector")}</details>
+          <details class="workspace-construction-details" open><summary>Base &amp; crown</summary>${this.renderStructureGroup()}</details>
+        ` : ""}
       </section>
     `;
   }
 
-  renderCategoryContent(categoryId) {
-    if (categoryId === "layout") return this.renderLayoutCards("all");
-    if (categoryId === "dimensions") return this.renderDimensionsGroup();
-    if (categoryId === "section_designer") return this.renderStructureStartGroup();
-    if (categoryId === "storage") return this.renderStorageGroup("all");
-    if (categoryId === "construction") return this.renderStructureGroup();
-    if (categoryId === "doors") return this.renderDoorGroup();
-    if (categoryId === "finish") return this.renderFinishGroup();
-    if (categoryId === "hardware") return this.renderHardwareGroup();
-    if (categoryId === "lighting") return this.renderLightingGroup();
-    if (categoryId === "service") return this.renderServiceGroup();
-    return "";
+  renderSelectedSectionFronts(activeTab) {
+    const selected = this.getSelectedSectionState();
+    if (!selected) return "";
+    const isDoors = activeTab === "doors";
+    const arrangement = selected.doorLayout?.arrangement || "auto";
+    const generatedDoor = this.layout.components.find((component) => (
+      component.role === "door" && component.id.startsWith(`${selected.id}-`)
+    ));
+    const arrangementAvailability = generatedDoor?.metadata?.arrangementAvailability || {};
+    return `
+      <section class="workspace-front-properties" aria-label="${isDoors ? "Door" : "Drawer"} properties">
+        <header><h3>${isDoors ? "Door profile" : "Drawer profile"}</h3><p>Applied to the accepted fronts generated for Section ${selected.index + 1}.</p></header>
+        ${this.renderDoorGroup(isDoors ? "doors" : "drawers")}
+        ${isDoors ? `
+          <fieldset class="section-door-arrangement-field">
+            <legend>Door arrangement</legend>
+            <div class="segmented-options section-door-arrangement-options">
+              ${[["auto", "Auto"], ["single_hinge_left", "Left"], ["single_hinge_right", "Right"], ["pair", "Pair"]].map(([value, label]) => `
+                <label title="${escapeHtml(arrangementAvailability[value]?.reason || "")}"><input type="radio" name="${this.id}-section-door-arrangement" data-section-door-arrangement="${value}" value="${value}" ${arrangement === value ? "checked" : ""} ${arrangementAvailability[value]?.enabled === false ? "disabled" : ""}><span>${label}</span></label>
+              `).join("")}
+            </div>
+          </fieldset>
+        ` : ""}
+        <button class="workspace-related-stage" type="button" data-workspace-stage-link="hardware">Choose handles &amp; knobs ${builderIcons.chevronRight}</button>
+      </section>
+    `;
   }
 
-  renderLayoutCards(context = "guided") {
+  renderBackPanelSummary() {
+    return `
+      <section class="workspace-readonly-property">
+        <span aria-hidden="true">${builderIcons.backPanel}</span>
+        <div><h3>Standard fitted back</h3><p>A continuous furniture-grade back is included behind every section and follows the selected finish. Custom back options are not yet available.</p></div>
+        <strong>Included</strong>
+      </section>
+    `;
+  }
+
+  renderSectionThumbnail(section, semanticThumbnail = null) {
+    const sectionType = section.type || semanticThumbnail?.sectionType || "open";
+    const shelfCount = semanticThumbnail
+      ? semanticThumbnail.shelfCount
+      : sectionType === "tall_doors" ? 0 : Math.min(5, Math.max(2, Number(this.state.shelves) || 4));
+    const drawerFrontCount = semanticThumbnail?.drawerFrontCount
+      ?? (sectionType === "drawers" ? Math.min(4, Math.max(2, Number(this.state.drawerCount) || 3)) : 0);
+    const doorLeafCount = semanticThumbnail?.doorLeafCount
+      ?? (["lower_doors", "tall_doors"].includes(sectionType) ? 1 : 0);
+    const lowerFronts = drawerFrontCount
+      ? Array.from({ length: drawerFrontCount }, () => "<i></i>").join("")
+      : sectionType === "lower_doors" && doorLeafCount ? Array.from({ length: doorLeafCount }, () => "<i class=\"is-door\"></i>").join("") : "";
+    return `
+      <span class="workspace-section-thumbnail is-${escapeHtml(sectionType)}">
+        <span class="workspace-thumbnail-shelves">${Array.from({ length: shelfCount }, () => "<i></i>").join("")}</span>
+        ${sectionType === "tall_doors" ? `<span class="workspace-thumbnail-tall-door is-${doorLeafCount > 1 ? "pair" : "single"}"></span>` : ""}
+        ${lowerFronts ? `<span class="workspace-thumbnail-fronts">${lowerFronts}</span>` : ""}
+      </span>
+    `;
+  }
+
+  renderSectionOrganizer() {
+    const organizer = createSectionOrganizerSummary(this.state, this.layout);
+    const addAvailability = addSection(this.state, this.layout, this.selectedSectionIndex);
+    return `
+      <header class="workspace-organizer-summary">
+        <div><strong>Sections (${organizer.sectionCount})</strong><small>${escapeHtml(organizer.totalClearWidthLabel)}</small></div>
+      </header>
+      <div class="workspace-section-cards" role="list" aria-label="Current sections">
+        <button class="workspace-add-section" type="button" data-section-add ${addAvailability.accepted ? "" : `disabled title="${escapeHtml(addAvailability.error?.message || "A section cannot be added.")}"`} role="listitem">
+          <span aria-hidden="true">${builderIcons.plus}</span><strong>Add<br>Section</strong>
+        </button>
+        ${organizer.items.map((section) => {
+          const duplicateAvailability = duplicateSection(this.state, this.layout, section.index);
+          const deleteAvailability = deleteSection(this.state, this.layout, section.index);
+          return `
+          <article class="workspace-section-card${section.index === this.selectedSectionIndex ? " is-selected" : ""}" role="listitem" data-section-card="${section.index}">
+            <button type="button" class="workspace-section-card-main" data-section-select="${section.index}" aria-pressed="${section.index === this.selectedSectionIndex}">
+              ${this.renderSectionThumbnail(section, section.thumbnail)}
+              <span><strong>${escapeHtml(section.title)}</strong><small>${escapeHtml(section.widthLabel.replace(" clear", ""))}</small></span>
+              ${section.index === this.selectedSectionIndex ? `<i class="workspace-selected-check" aria-hidden="true">${builderIcons.check}</i>` : ""}
+            </button>
+            <details class="workspace-section-menu">
+              <summary aria-label="Section ${section.index + 1} actions">${builderIcons.more}</summary>
+              <div><button type="button" data-section-duplicate="${section.index}" ${duplicateAvailability.accepted ? "" : `disabled title="${escapeHtml(duplicateAvailability.error?.message || "Unavailable")}"`}>Duplicate</button><button type="button" data-section-delete="${section.index}" ${deleteAvailability.accepted ? "" : `disabled title="${escapeHtml(deleteAvailability.error?.message || "Unavailable")}"`}>Delete</button></div>
+            </details>
+          </article>
+        `;}).join("")}
+      </div>
+    `;
+  }
+
+  renderTotalWidthCard() {
+    const dimensionValidation = validateUnifiedConfiguration(this.state, this.layout, this.drafts, { groupId: "overall_size" });
+    const accepted = dimensionValidation.valid !== false && this.layout?.validation?.valid !== false;
+    return `
+      <span>Total width</span>
+      <strong>${formatSectionWidth(this.state.width)} <small>in</small></strong>
+      <p>${accepted ? "Valid overall width" : "Review dimensions"}<i aria-hidden="true" class="${accepted ? "is-valid" : "is-invalid"}">${accepted ? builderIcons.check : builderIcons.information}</i></p>
+    `;
+  }
+
+  renderControlGroup(groupId, surface = "inspector") {
+    const originalId = this.id;
+    if (surface !== "inspector") this.id = `${originalId}-${surface}`;
+    try {
+      if (groupId === "overall_size") return this.renderSpaceGroup();
+      if (groupId === "sections_layout") return `
+        ${surface === "inspector" ? `<details class="layout-ideas"><summary>Change foundation idea</summary>${this.renderLayoutCards("inspector")}</details>` : ""}
+        ${this.renderStructureStartGroup()}`;
+      if (groupId === "shelves") return this.renderShelvesGroup();
+      if (groupId === "storage_fronts") return this.renderStorageFrontsGroup();
+      if (groupId === "base_crown") return this.renderStructureGroup();
+      if (groupId === "finish") return this.renderFinishGroup();
+      if (groupId === "hardware") return this.renderHardwareGroup();
+      if (groupId === "lighting") return this.renderLightingGroup();
+      if (groupId === "project_service") return this.renderServiceGroup();
+      return "";
+    } finally {
+      this.id = originalId;
+    }
+  }
+
+  renderLayoutCards(context = "inspector") {
     const renderCards = (presets) => presets.map((preset) => {
       const index = layoutPresets.findIndex((item) => item.id === preset.id) + 1;
       return `
@@ -929,13 +1169,19 @@ class BookcaseConfigurator {
     `;
   }
 
-  renderStorageGroup(context = "guided") {
+  renderShelvesGroup() {
     return `
-      <section class="control-section control-section-storage" aria-label="Storage controls">
-        <section class="storage-control-group storage-shelving-group" aria-labelledby="${this.id}-storage-shelving-heading">
-          <header><h3 id="${this.id}-storage-shelving-heading">Shelving</h3><p>Set the repeatable shelf count for every open section.</p></header>
-          ${this.renderStepperControl("shelves", "Shelves per open section", 2, 8)}
-        </section>
+      <section class="control-section control-section-storage" aria-labelledby="${this.id}-shelves-heading">
+        <header><h2 id="${this.id}-shelves-heading"><span class="control-heading-icon" aria-hidden="true">${builderIcons.structure}</span>Shelves</h2><p>Shelf quantity is currently a global physical setting.</p></header>
+        ${this.renderStepperControl("shelves", "Shelves per open section — applies to all open sections", 2, 8)}
+        ${this.renderRangeControl("shelfThickness", "Shelf thickness", 0.75, 2, 0.25, "in")}
+      </section>
+    `;
+  }
+
+  renderStorageFrontsGroup() {
+    return `
+      <section class="control-section control-section-storage" aria-label="Storage and front controls">
         <section class="storage-control-group storage-lower-group" aria-labelledby="${this.id}-storage-lower-heading">
           <header><h3 id="${this.id}-storage-lower-heading">Lower storage</h3><p>Choose whether applicable sections include fitted storage below.</p></header>
           <div class="toggle-row premium-toggle">
@@ -956,18 +1202,14 @@ class BookcaseConfigurator {
             ${this.renderStepperControl("drawerCount", "Drawers per drawer section", 2, 5)}
           </div>
         </section>
-        ${context === "guided" ? `
-          <section class="storage-control-group storage-fronts-group" data-applicability="fronts" aria-labelledby="${this.id}-storage-fronts-heading">
-            <header><h3 id="${this.id}-storage-fronts-heading">Front profiles</h3><p>Door and drawer fronts use their own compatible millwork profiles.</p></header>
-            ${this.renderDoorGroup()}
-          </section>
-        ` : ""}
-        ${context === "guided" ? `
-          <section class="storage-control-group storage-section-link" aria-labelledby="${this.id}-storage-sections-heading">
-            <header><h3 id="${this.id}-storage-sections-heading">Per-section customization</h3><p>Return to Structure to change a section’s width or storage type.</p></header>
-            <button type="button" data-open-structure>Customize sections in Structure</button>
-          </section>
-        ` : ""}
+        <section class="storage-control-group storage-fronts-group" data-applicability="fronts" aria-labelledby="${this.id}-storage-fronts-heading">
+          <header><h3 id="${this.id}-storage-fronts-heading">Front profiles</h3><p>Door and drawer fronts use their own compatible millwork profiles.</p></header>
+          ${this.renderDoorGroup()}
+        </section>
+        <section class="storage-control-group storage-section-link" aria-labelledby="${this.id}-storage-sections-heading">
+          <header><h3 id="${this.id}-storage-sections-heading">Per-section customization</h3><p>Use Sections &amp; Layout to change one section’s width or storage type.</p></header>
+          <button type="button" data-open-structure>Open Sections &amp; Layout</button>
+        </section>
       </section>
     `;
   }
@@ -1104,8 +1346,8 @@ class BookcaseConfigurator {
             <p id="${this.id}-merge-right-reason" class="sr-only">${escapeHtml(mergeRightReason)}</p>
           </details>
           <div class="section-history-actions" aria-label="Section edit history">
-            <button type="button" data-section-undo ${this.sectionUndoStack.length ? "" : `disabled aria-describedby="${this.id}-undo-reason"`}>Undo</button>
-            <button type="button" data-section-redo ${this.sectionRedoStack.length ? "" : `disabled aria-describedby="${this.id}-redo-reason"`}>Redo</button>
+            <button type="button" data-section-undo ${this.designHistory.undo.length ? "" : `disabled aria-describedby="${this.id}-undo-reason"`}>Undo</button>
+            <button type="button" data-section-redo ${this.designHistory.redo.length ? "" : `disabled aria-describedby="${this.id}-redo-reason"`}>Redo</button>
             <button type="button" data-section-reset>Reset to Preset</button>
           </div>
           <p id="${this.id}-undo-reason" class="sr-only">No section edit is available to undo.</p>
@@ -1115,7 +1357,7 @@ class BookcaseConfigurator {
     `;
   }
 
-  renderDoorGroup() {
+  renderDoorGroup(scope = "all") {
     const descriptions = {
       shaker: "Classic framed profile",
       flat: "Clean slab front",
@@ -1133,33 +1375,19 @@ class BookcaseConfigurator {
     `).join("");
     return `
       <div class="front-profile-groups" data-front-profile-groups>
-        <fieldset class="choice-field front-profile-group" data-applicability="doors">
+        ${scope === "drawers" ? "" : `<fieldset class="choice-field front-profile-group" data-applicability="doors">
           <legend>Door front profile</legend>
           <div class="door-style-grid">${renderProfiles("doorStyle", doorStyleOptions, "door")}</div>
           <div class="generated-front-count">
             <span>Generated door count</span>
             <output data-generated-door-count aria-live="polite"></output>
           </div>
-        </fieldset>
-        <fieldset class="choice-field front-profile-group" data-applicability="drawers">
+        </fieldset>`}
+        ${scope === "doors" ? "" : `<fieldset class="choice-field front-profile-group" data-applicability="drawers">
           <legend>Drawer front profile</legend>
           <div class="door-style-grid">${renderProfiles("drawerFrontStyle", drawerFrontStyleOptions, "drawer")}</div>
           <p class="control-helper">Drawer fronts support Shaker, Flat Panel, and Slim Shaker profiles.</p>
-        </fieldset>
-      </div>
-    `;
-  }
-
-  renderConstructionExperience() {
-    return this.renderStructureGroup();
-  }
-
-  renderAppearanceExperience() {
-    return `
-      <div class="appearance-sections" aria-label="Appearance options">
-        ${this.renderFinishGroup()}
-        ${this.renderHardwareGroup()}
-        ${this.renderLightingGroup()}
+        </fieldset>`}
       </div>
     `;
   }
@@ -1179,6 +1407,61 @@ class BookcaseConfigurator {
     `;
   }
 
+  renderHardwareScheduleReview() {
+    const schedule = Array.isArray(this.bom?.hardware?.schedule) ? this.bom.hardware.schedule : [];
+    if (!schedule.length) return "";
+    const catalogVersion = this.bom?.hardware?.catalogVersion || schedule[0]?.catalogVersion || "catalog snapshot";
+    const cards = schedule.map((item) => {
+      const productCode = item.manufacturerProductNumber || item.sku || "Manufacturer number not listed";
+      const dimensions = [
+        Number.isFinite(item.centerToCenterMm) && item.centerToCenterMm > 0 ? `${formatHardwareMillimeters(item.centerToCenterMm)} c.c.` : null,
+        Number.isFinite(item.overallLengthMm) && item.overallLengthMm > 0 ? `${formatHardwareMillimeters(item.overallLengthMm)} overall` : null,
+        Number.isFinite(item.projectionMm) && item.projectionMm > 0 ? `${formatHardwareMillimeters(item.projectionMm)} projection` : null
+      ].filter(Boolean);
+      const locations = (item.locations || []).map((location) => {
+        const label = location.sectionId || location.hostId || "front";
+        return `${label}${location.quantity > 1 ? ` (${location.quantity})` : ""}`;
+      });
+      const links = [...new Map(
+        (item.links || [])
+          .filter((link) => isSafeExternalUrl(link?.url))
+          .map((link) => [link.url, link])
+      ).values()];
+      const warnings = [...new Set(item.warnings || [])];
+      return `
+        <article class="review-hardware-card">
+          <header>
+            <div><span>${escapeHtml(item.brand || "Verified catalog item")}</span><h4>${escapeHtml(item.family || item.variantId)}</h4></div>
+            <strong aria-label="Quantity ${Number(item.quantity) || 0}">×${Number(item.quantity) || 0}</strong>
+          </header>
+          <dl>
+            <div><dt>Exact variant</dt><dd>${escapeHtml(item.variantId)}</dd></div>
+            <div><dt>Manufacturer no.</dt><dd>${escapeHtml(productCode)}</dd></div>
+            <div><dt>Size</dt><dd>${escapeHtml([item.size, ...dimensions].filter(Boolean).join(" · ") || "Not specified")}</dd></div>
+            <div><dt>Finish</dt><dd>${escapeHtml([item.finish, item.finishCode].filter(Boolean).join(" · ") || "Not specified")}</dd></div>
+            <div><dt>Placement</dt><dd>${escapeHtml(formatHardwarePlacement(item.placement))}</dd></div>
+            <div><dt>Location</dt><dd>${escapeHtml(locations.join(", ") || "Generated front locations")}</dd></div>
+            <div><dt>Model</dt><dd>${escapeHtml(formatHardwareTechnicalLabel(item.modelAccuracy || "neutral proxy"))}</dd></div>
+            <div><dt>Pricing</dt><dd>${escapeHtml(formatHardwarePricingPosture(item.pricing))}</dd></div>
+          </dl>
+          ${warnings.length ? `<aside><strong>Review</strong><ul>${warnings.map((warning) => `<li>${escapeHtml(warning)}</li>`).join("")}</ul></aside>` : ""}
+          ${links.length ? `<nav aria-label="Official product and specification sources">${links.map((link) => `<a href="${escapeHtml(link.url)}" target="_blank" rel="noreferrer noopener">${escapeHtml(link.type?.includes("spec") ? "Official specification" : link.title || "Official product source")}</a>`).join("")}</nav>` : ""}
+        </article>
+      `;
+    }).join("");
+    return `
+      <section class="review-hardware-schedule" aria-labelledby="${this.id}-hardware-schedule-title">
+        <header class="review-hardware-schedule__header">
+          <div><span>Generated accepted components</span><h3 id="${this.id}-hardware-schedule-title">Hardware schedule</h3></div>
+          <button type="button" data-edit-group="hardware">Edit</button>
+        </header>
+        <p>Exact catalog selections and quantities from the accepted model. Reference/list prices are estimates; final hardware pricing is confirmed in the JQ quote.</p>
+        <div class="review-hardware-schedule__grid">${cards}</div>
+        <small>Catalog ${escapeHtml(catalogVersion)}. Product facts and source links are preserved with the saved design.</small>
+      </section>
+    `;
+  }
+
   renderReviewContent({ includeActions = true } = {}) {
     const groups = createReviewGroups(this.state, this.layout, this.basePresetId);
     const corrections = this.layout?.corrections || [];
@@ -1192,11 +1475,12 @@ class BookcaseConfigurator {
         <div class="review-summary-grid">
           ${groups.map((group) => `
             <section class="review-summary-group">
-              <header><h3>${escapeHtml(group.title)}</h3><button type="button" data-edit-step="${escapeHtml(group.step)}">Edit</button></header>
+              <header><h3>${escapeHtml(group.title)}</h3><button type="button" data-edit-group="${escapeHtml(group.inspectorGroupId)}">Edit</button></header>
               <dl>${group.items.map((item) => `<div><dt>${escapeHtml(item.label)}</dt><dd>${escapeHtml(item.value)}</dd></div>`).join("")}</dl>
             </section>
           `).join("")}
         </div>
+        ${this.renderHardwareScheduleReview()}
         ${corrections.length ? `<aside class="review-assumptions"><strong>Adjusted for buildability</strong><ul>${corrections.map((item) => `<li>${escapeHtml(item.message || item)}</li>`).join("")}</ul></aside>` : ""}
         ${engineeringWarnings.length ? `<aside class="review-assumptions"><strong>Engineering review</strong><ul>${engineeringWarnings.map((item) => `<li>${escapeHtml(item.message)}</li>`).join("")}</ul></aside>` : ""}
         ${this.state.finish === "custom_bm" ? `<aside class="review-paint-disclaimer" aria-label="Digital paint preview notice">${escapeHtml(BENJAMIN_MOORE_COLOR_DATA_NOTICE)}</aside>` : ""}
@@ -1272,19 +1556,6 @@ class BookcaseConfigurator {
     return "";
   }
 
-  renderDimensionsGroup() {
-    return `
-      <section class="control-section control-section-dimensions">
-        <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.dimensions}</span>Dimensions</h2>
-        ${this.renderRangeControl("width", "Width", 24, 144, 1, "in")}
-        ${this.renderRangeControl("height", "Height", 72, 120, 1, "in")}
-        ${this.renderRangeControl("depth", "Depth", 10, 24, 1, "in")}
-        ${this.renderRangeControl("shelves", "Shelves per section", 2, 8, 1, "")}
-        ${this.renderRangeControl("shelfThickness", "Shelf thickness", 0.75, 2, 0.25, "in")}
-      </section>
-    `;
-  }
-
   renderSpaceGroup() {
     return `
       <section class="control-section control-section-dimensions">
@@ -1299,7 +1570,7 @@ class BookcaseConfigurator {
 
   renderStructureStartGroup() {
     return `
-      <section class="control-section control-section-guided-structure" data-structure-editor>
+      <section class="control-section control-section-sections" data-structure-editor>
         <div class="structure-count-control">
           ${this.renderStepperControl("sections", "Vertical sections", 1, 6)}
           <p class="control-helper section-limit-helper" data-section-limit></p>
@@ -1331,8 +1602,7 @@ class BookcaseConfigurator {
 
     return `
       <section class="control-section control-section-structure">
-        <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.structure}</span>Construction</h2>
-        ${this.renderRangeControl("shelfThickness", "Shelf thickness", 0.75, 2, 0.25, "in")}
+        <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.structure}</span>Base &amp; Crown</h2>
         <fieldset class="structure-field">
           <legend>Base Style</legend>
           <div class="style-choice-grid base-choice-grid">${baseChoices}</div>
@@ -1420,6 +1690,7 @@ class BookcaseConfigurator {
         <section class="control-section control-section-hardware" data-applicability="hardware">
           <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.hardware}</span>Hardware</h2>
           <div class="hardware-selection">
+            <p class="control-scope-note">Standard type and finish apply to all visible hardware. Use the expanded library for an exact front, section, or matching-front scope.</p>
             <fieldset class="hardware-type-field">
               <legend>Type</legend>
               <div class="hardware-type-grid">${types}</div>
@@ -1428,12 +1699,14 @@ class BookcaseConfigurator {
               <legend>Finish</legend>
               <div class="hardware-finish-grid">${finishes}</div>
             </fieldset>
+            <button class="additional-colors-button hardware-library-button" type="button" data-open-hardware-library>Open expanded hardware library</button>
           </div>
         </section>
     `;
   }
 
   renderLightingGroup() {
+    const generatedLightCount = getApplicability(this.state, this.layout).generatedLightCount;
     const lighting = lightingOptions.map((option) => `
         <div class="lighting-card" data-lighting="${option.value}">
           <input id="${this.id}-lighting-${option.value}" data-field="lighting" name="${this.id}-lighting" type="radio" value="${option.value}">
@@ -1452,6 +1725,7 @@ class BookcaseConfigurator {
     return `
         <section class="control-section control-section-lighting">
           <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.lighting}</span>Lighting</h2>
+          <p class="control-scope-note">Applies to all ${generatedLightCount} compatible ${generatedLightCount === 1 ? "location" : "locations"} in the accepted design.</p>
           <fieldset class="lighting-field">
             <legend class="sr-only">Lighting package</legend>
             <div class="lighting-grid">${lighting}</div>
@@ -1504,10 +1778,21 @@ class BookcaseConfigurator {
       price: this.host.querySelector("[data-price]"),
       status: this.host.querySelector("[data-builder-status]"),
       controlsScroll: this.host.querySelector("[data-controls-scroll]"),
-      stepRail: this.host.querySelector("[data-step-rail]"),
-      guidedPanel: this.host.querySelector('[data-mode-panel="guided"]'),
-      allPanel: this.host.querySelector('[data-mode-panel="all"]'),
-      modeDescription: this.host.querySelector("[data-mode-description]"),
+      inspectorContent: this.host.querySelector("[data-inspector-content]"),
+      stageRail: this.host.querySelector("[data-workspace-stages]"),
+      modelWorkspace: this.host.querySelector("[data-model-workspace]"),
+      sectionOrganizerContent: this.host.querySelector("[data-section-organizer-content]"),
+      totalWidthContent: this.host.querySelector("[data-total-width-content]"),
+      contextEditor: this.host.querySelector("[data-contextual-editor]"),
+      contextContent: this.host.querySelector("[data-context-content]"),
+      contextTitle: this.host.querySelector("[data-context-title]"),
+      contextSummary: this.host.querySelector("[data-context-summary]"),
+      contextEyebrow: this.host.querySelector("[data-context-eyebrow]"),
+      contextLeader: this.host.querySelector("[data-context-leader]"),
+      contextLeaderLine: this.host.querySelector("[data-context-leader-line]"),
+      contextAnchorDot: this.host.querySelector("[data-context-anchor-dot]"),
+      hoverLabel: this.host.querySelector("[data-model-hover-label]"),
+      selectionLive: this.host.querySelector("[data-selection-live]"),
       reviewDialog: this.host.querySelector("[data-review-dialog]"),
       reviewDialogContent: this.host.querySelector("[data-review-dialog-content]"),
       arDialog: this.host.querySelector("[data-ar-dialog]")
@@ -1658,16 +1943,21 @@ class BookcaseConfigurator {
     this.drafts = {};
     this.designIntent = STUDIO_DESIGN_INTENTS.newDesign;
     this.resetNewDesignPresentation();
-    this.sectionUndoStack = [];
-    this.sectionRedoStack = [];
     this.render();
     this.cacheElements();
     this.viewer = this.createViewer(this.layout);
     if (this.arEnabled) this.initializeCabinetAr();
     document.body.dataset.studioState = "accepted";
-    this.renderActiveControls({ previousMode: CONFIGURATOR_MODES.guided, resetScroll: true });
+    this.renderInspector({ resetScroll: true });
     this.syncInterface();
-    this.focusCameraForCurrentContext({ duration: SMART_CAMERA_DURATION });
+    this.initializeUnifiedModelInteraction();
+    this.activateSectionDesigner({ render: false, announce: false, focusCamera: false });
+    this.selectSection(this.selectedSectionIndex, { openProperties: true, render: true });
+    this.viewer.setInteractionTool?.(this.activeTool);
+    this.viewer.setDimensionsVisible?.(this.showDimensions);
+    this.viewer.setWallVisible?.(this.showWall);
+    this.setView("front");
+    this.directHardwareEditorPromise = null;
     this.emitStudioEvent("studio_design_accepted", {
       source: this.initialSource,
       ideaId: options.ideaId || null,
@@ -1679,7 +1969,7 @@ class BookcaseConfigurator {
 
   initializeCabinetAr() {
     if (this.arControllerPromise) return this.arControllerPromise;
-    this.arControllerPromise = import("./cabinet-ar-ui.js?v=configurator-construction-20260714b")
+    this.arControllerPromise = import("./cabinet-ar-ui.js?v=reference-layout-20260715g")
       .then(({ CabinetArController }) => {
         if (!this.elements.arDialog) return null;
         this.arController = new CabinetArController({
@@ -1695,8 +1985,206 @@ class BookcaseConfigurator {
     return this.arControllerPromise;
   }
 
+  initializeDirectHardwareEditor() {
+    if (!this.directHardwareEditingEnabled || !this.hasAcceptedDesign) return Promise.resolve(null);
+    if (this.directHardwareEditorPromise) return this.directHardwareEditorPromise;
+    document.body.dataset.directHardwareEditing = "loading";
+    this.directHardwareEditorPromise = import("./direct-hardware-editor.js?v=direct-hardware-20260714a")
+      .then(async ({ DirectHardwareEditor }) => {
+        if (!this.hasAcceptedDesign || !this.elements?.viewer) return null;
+        this.directHardwareEditor?.destroy?.();
+        this.directHardwareEditor = new DirectHardwareEditor({
+          host: this.host,
+          viewer: this.viewer,
+          getState: () => this.state,
+          getLayout: () => this.layout,
+          getPricing: () => this.pricing,
+          evaluateCandidate: (state) => evaluateBookcaseCandidate(state),
+          commitState: (state, metadata = {}) => {
+            this.viewer.restorePreview?.(this.state, this.layout);
+            const committed = this.update(state, {
+              sourceField: "hardwareSelections",
+              silent: true,
+              directHardware: metadata
+            });
+            if (committed) {
+              this.showStatus(metadata.message || "Hardware selection applied to the accepted design.");
+            }
+            return committed;
+          },
+          emitEvent: (name, detail = {}) => this.emitStudioEvent(name, detail),
+          announce: (message, persistent = false) => this.showStatus(message, persistent),
+          ownsViewerSelection: false,
+          showHelper: false,
+          onClose: (reason) => this.handleDirectHardwareEditorClose(reason)
+        });
+        const ready = await this.directHardwareEditor.init();
+        if (!ready) {
+          document.body.dataset.directHardwareEditing = "fallback";
+          return this.directHardwareEditor;
+        }
+        this.directHardwareEditor.setAvailable(true);
+        document.body.dataset.directHardwareEditing = "ready";
+        return this.directHardwareEditor;
+      })
+      .catch((error) => {
+        document.body.dataset.directHardwareEditing = "fallback";
+        this.emitStudioEvent("direct_hardware_fallback", { reason: error?.message || "module-load" });
+        this.showStatus("The expanded hardware library is unavailable. The standard hardware controls remain available.", true);
+        return null;
+      });
+    return this.directHardwareEditorPromise;
+  }
+
+  async openExpandedHardwareEditor() {
+    const editor = await this.initializeDirectHardwareEditor();
+    if (!editor) return false;
+    const componentId = [
+      this.selection?.componentId,
+      this.selection?.hostId,
+      this.selection?.highlightTarget?.componentId
+    ].find((id) => this.layout.components.some((component) => component.id === id && ["handle", "door", "drawer_front"].includes(component.role)))
+      || this.layout.components.find((component) => component.role === "handle")?.id
+      || this.layout.components.find((component) => ["door", "drawer_front"].includes(component.role))?.id;
+    if (!componentId || !editor.openForComponent(componentId)) {
+      this.showStatus("Add a door or drawer before opening the expanded hardware library.", true);
+      return false;
+    }
+    this.directHardwareOverlayOpen = true;
+    this.elements?.shell?.classList.add("is-direct-hardware-open");
+    this.contextEditorOpen = false;
+    this.elements?.shell?.classList.remove("is-context-open");
+    if (this.elements?.contextEditor) this.elements.contextEditor.hidden = true;
+    if (this.elements?.contextLeader) this.elements.contextLeader.hidden = true;
+    this.syncDiagnosticsAttributes();
+    return true;
+  }
+
+  handleDirectHardwareEditorClose(reason) {
+    this.directHardwareOverlayOpen = false;
+    this.elements?.shell?.classList.remove("is-direct-hardware-open");
+    if (!this.hasAcceptedDesign || reason === "destroy" || !this.selection) return;
+    this.contextEditorOpen = true;
+    this.renderContextEditor();
+    this.syncInterface();
+  }
+
+  initializeUnifiedModelInteraction() {
+    if (!this.hasAcceptedDesign || !this.viewer?.setDirectEditing) return;
+    this.viewer.setDirectEditing({
+      enabled: true,
+      onHover: (payload) => this.handleModelHover(payload),
+      onSelect: (payload) => this.handleModelSelection(payload),
+      onAnchorChange: (anchor) => this.updateContextAnchor(anchor)
+    });
+  }
+
+  resolveModelSelection(payload) {
+    if (!payload) return null;
+    const componentId = typeof payload === "string" ? payload : payload.componentId;
+    if (!componentId) return null;
+    const resolved = resolveSelectionContext(this.layout, componentId, payload.source || "canvas");
+    if (!resolved) return null;
+    return {
+      ...resolved,
+      anchorClientX: Number.isFinite(payload.anchorClientX) ? payload.anchorClientX : null,
+      anchorClientY: Number.isFinite(payload.anchorClientY) ? payload.anchorClientY : null,
+      projectedAnchor: payload.anchor || null,
+      source: payload.source || resolved.source || "canvas"
+    };
+  }
+
+  handleModelHover(payload) {
+    this.hoverSelection = this.resolveModelSelection(payload);
+    const label = this.elements?.hoverLabel;
+    if (!label) return;
+    if (!this.hoverSelection || this.contextEditorOpen) {
+      label.hidden = true;
+      return;
+    }
+    const anchor = payload?.anchor || this.viewer.getComponentScreenAnchor?.(this.hoverSelection.componentId);
+    if (!anchor?.visible) {
+      label.hidden = true;
+      return;
+    }
+    label.textContent = this.hoverSelection.title;
+    label.hidden = false;
+    const viewerRect = this.elements.viewer.getBoundingClientRect();
+    const modelRect = this.elements.viewer.closest(".configurator-model")?.getBoundingClientRect() || viewerRect;
+    label.style.left = `${anchor.x + viewerRect.left - modelRect.left}px`;
+    label.style.top = `${anchor.y + viewerRect.top - modelRect.top}px`;
+  }
+
+  handleModelSelection(payload) {
+    if (!payload) {
+      if (this.directHardwareOverlayOpen) this.directHardwareEditor?.close?.("blank-canvas");
+      this.closeContextEditor({ clearViewer: false, announce: false });
+      return false;
+    }
+    if (this.directHardwareOverlayOpen) {
+      const componentId = typeof payload === "string" ? payload : payload.componentId;
+      if (this.directHardwareEditor?.openForComponent?.(componentId)) return true;
+      this.directHardwareEditor?.close?.("selection-changed");
+    }
+    const selection = this.resolveModelSelection(payload);
+    if (!selection) return false;
+    this.contextInvoker = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.selection = selection;
+    this.contextEditorOpen = true;
+    this.activeInspectorGroup = normalizeInspectorGroup(selection.inspectorGroupId);
+    const workspaceRoute = resolveWorkspaceSelection(selection, this.layout);
+    this.activeStageId = workspaceRoute?.stageId || selection.stageId || "layout";
+    this.activeInspectorTabId = workspaceRoute?.inspectorTabId || selection.inspectorTabId || "general";
+    this.inspectorGroupCollapsed = false;
+    if (Number.isInteger(selection.sectionIndex)) this.selectedSectionIndex = selection.sectionIndex;
+    this.viewer.setSelectedComponent?.(selection.highlightTarget?.componentId || selection.componentId);
+    this.renderInspector({ focusGroup: this.activeInspectorGroup });
+    this.syncInterface();
+    const announcement = `${selection.title} selected.`;
+    if (this.elements.selectionLive) this.elements.selectionLive.textContent = announcement;
+    if (selection.source === "keyboard") {
+      window.requestAnimationFrame(() => this.host.querySelector("[data-close-selection]")?.focus({ preventScroll: true }));
+    }
+    return true;
+  }
+
+  renderContextEditor() {
+    // Context now renders in the fixed properties inspector. This compatibility
+    // hook remains for existing update paths and intentionally creates no overlay.
+  }
+
+  getSelectionSummary(selection) {
+    const sectionLabel = Number.isInteger(selection.sectionIndex) ? `Section ${selection.sectionIndex + 1}` : "";
+    if (selection.kind === "shelf") return `${sectionLabel} · Shelf quantity applies to all open sections.`;
+    if (selection.kind === "hardware") return `${sectionLabel} · Standard hardware applies to all visible hardware.`;
+    if (selection.kind === "divider") return "Resize the adjacent sections while preserving the overall width.";
+    if (sectionLabel) return sectionLabel;
+    return "Edits use the same accepted design transaction as the inspector.";
+  }
+
+  updateContextAnchor(anchor = null) {
+    void anchor;
+  }
+
+  closeContextEditor(options = {}) {
+    if (!this.contextEditorOpen && !this.selection) return;
+    this.contextEditorOpen = false;
+    this.selection = null;
+    this.contextAnchor = null;
+    this.elements?.shell?.classList.remove("is-context-open");
+    if (this.elements?.contextEditor) this.elements.contextEditor.hidden = true;
+    if (this.elements?.contextLeader) this.elements.contextLeader.hidden = true;
+    if (this.elements?.hoverLabel) this.elements.hoverLabel.hidden = true;
+    if (options.clearViewer !== false) this.viewer.clearDirectSelection?.();
+    this.renderInspector();
+    this.syncInterface();
+    if (options.restoreFocus && this.contextInvoker?.isConnected) this.contextInvoker.focus({ preventScroll: true });
+    if (options.announce !== false && this.elements?.selectionLive) this.elements.selectionLive.textContent = "Model selection cleared.";
+  }
+
   bindEvents() {
-    this.host.addEventListener("submit", (event) => event.preventDefault());
+    const signal = this.eventAbortController.signal;
+    this.host.addEventListener("submit", (event) => event.preventDefault(), { signal });
     this.host.addEventListener("pointerdown", (event) => {
       if (!this.hasAcceptedDesign && event.target.closest?.("[data-studio-intro-preview], [data-studio-preview-index]")) {
         this.stopStudioPreviewMotion(true);
@@ -1711,19 +2199,19 @@ class BookcaseConfigurator {
       if (!range || !this.host.contains(range)) return;
       this.focusCameraForField(range.dataset.field);
       this.beginRangeDrag(event, range);
-    });
+    }, { signal });
     this.host.addEventListener("pointermove", (event) => {
       this.updateSectionDividerDrag(event);
       this.updateRangeDrag(event);
-    });
+    }, { signal });
     this.host.addEventListener("pointerup", (event) => {
       this.endSectionDividerDrag(event);
       this.endRangeDrag(event);
-    });
+    }, { signal });
     this.host.addEventListener("pointercancel", (event) => {
       this.cancelSectionDividerDrag(event);
       this.endRangeDrag(event);
-    });
+    }, { signal });
 
     this.host.addEventListener("pointerover", (event) => {
       if (event.pointerType === "touch") return;
@@ -1733,18 +2221,18 @@ class BookcaseConfigurator {
       if (!input?.matches?.("input[data-field]") || !this.host.contains(input)) return;
       this.focusCameraForField(input.dataset.field);
       this.scheduleOptionPreview(label, input);
-    });
+    }, { signal });
 
     this.host.addEventListener("pointerout", (event) => {
       const label = event.target.closest?.("label");
       if (!label || !this.host.contains(label) || label.contains(event.relatedTarget)) return;
       this.endOptionPreview(label);
-    });
+    }, { signal });
 
     this.host.addEventListener("focusin", (event) => {
       const field = event.target.closest?.("[data-field], [data-validation-field]");
       if (field && this.host.contains(field)) this.focusCameraForField(field.dataset.field || field.dataset.validationField);
-    });
+    }, { signal });
 
     this.host.addEventListener("input", (event) => {
       const sectionWidth = event.target.closest?.("[data-section-width]");
@@ -1766,7 +2254,7 @@ class BookcaseConfigurator {
       if (!field || !this.host.contains(field)) return;
       if (field.type === "radio" || field.type === "checkbox" || field.tagName === "SELECT") return;
       this.handleFieldInput(field);
-    });
+    }, { signal });
 
     this.host.addEventListener("change", (event) => {
       const sectionWidth = event.target.closest?.("[data-section-width]");
@@ -1809,9 +2297,44 @@ class BookcaseConfigurator {
       if (!field || !this.host.contains(field)) return;
       if (field.type !== "radio" && field.type !== "checkbox" && field.tagName !== "SELECT") return;
       this.handleFieldInput(field);
-    });
+    }, { signal });
 
     this.host.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        const openMenu = this.host.querySelector(".workspace-section-menu[open]");
+        if (openMenu) {
+          event.preventDefault();
+          openMenu.removeAttribute("open");
+          openMenu.querySelector("summary")?.focus({ preventScroll: true });
+          return;
+        }
+      }
+      const isTextEditing = event.target.matches?.("input:not([type=radio]):not([type=checkbox]), textarea, [contenteditable=true]");
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && !isTextEditing) {
+        const key = event.key.toLowerCase();
+        if (key === "z" || key === "y") {
+          event.preventDefault();
+          if (key === "y" || (key === "z" && event.shiftKey)) this.redoDesignChange();
+          else this.undoDesignChange();
+          return;
+        }
+      }
+      if (event.key === "Escape" && this.contextEditorOpen) {
+        event.preventDefault();
+        this.closeContextEditor({ restoreFocus: true });
+        return;
+      }
+      const inspectorTab = event.target.closest?.("[data-inspector-tab]");
+      if (inspectorTab && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+        const tabs = [...this.host.querySelectorAll("[data-inspector-tab]")];
+        const current = tabs.indexOf(inspectorTab);
+        const nextIndex = event.key === "Home" ? 0
+          : event.key === "End" ? tabs.length - 1
+            : (current + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+        event.preventDefault();
+        tabs[nextIndex]?.click();
+        return;
+      }
       const divider = event.target.closest?.("[data-section-divider]");
       if (divider && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
         event.preventDefault();
@@ -1844,7 +2367,7 @@ class BookcaseConfigurator {
               : event.key === "ArrowUp" ? -columns
                 : 0;
         const next = event.key === "Home" ? 0 : event.key === "End" ? count - 1 : clamp(current + offset, 0, count - 1);
-        this.selectSection(next, { focus: true });
+        this.selectSection(next, { openProperties: true, focus: true, ensureFramed: true });
         return;
       }
       const profileRadio = event.target.closest?.('input[type="radio"][data-field]');
@@ -1855,11 +2378,6 @@ class BookcaseConfigurator {
         }
         return;
       }
-      const modeButton = event.target.closest?.("[data-configurator-mode]");
-      if (modeButton) {
-        this.handleModeSelectorKeydown(event, modeButton);
-        return;
-      }
       const colorQuery = event.target.closest?.("[data-bm-query]");
       if (!colorQuery) return;
       if (event.key === "Escape") this.closeBenjaminMooreResults();
@@ -1867,19 +2385,40 @@ class BookcaseConfigurator {
         event.preventDefault();
         this.applyBenjaminMooreQuery(colorQuery.value);
       }
-    });
+    }, { signal });
 
-    this.host.addEventListener("click", (event) => this.handleDelegatedClick(event));
+    this.host.addEventListener("click", (event) => this.handleDelegatedClick(event), { signal });
+
+    document.addEventListener("click", (event) => {
+      const activeSectionMenu = event.target.closest?.(".workspace-section-menu");
+      if (activeSectionMenu && this.host.contains(activeSectionMenu)) return;
+      this.host.querySelectorAll(".workspace-section-menu[open]").forEach((menu) => menu.removeAttribute("open"));
+    }, { signal });
 
     this.elements.reviewDialog?.addEventListener("click", (event) => {
       if (event.target === this.elements.reviewDialog) this.closeReviewDialog();
-    });
-    this.elements.reviewDialog?.addEventListener("close", () => this.restoreReviewFocus());
-    this.elements.form?.addEventListener("submit", (event) => event.preventDefault());
+    }, { signal });
+    this.elements.reviewDialog?.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      this.closeReviewDialog();
+    }, { signal });
+    this.elements.reviewDialog?.addEventListener("close", () => this.restoreReviewFocus(), { signal });
+    this.elements.form?.addEventListener("submit", (event) => event.preventDefault(), { signal });
+    document.addEventListener("fullscreenchange", () => {
+      this.syncWorkspaceToolbar();
+      window.requestAnimationFrame(() => this.viewer.resize?.());
+    }, { signal });
+    window.addEventListener("pagehide", (event) => {
+      if (!event.persisted) this.destroy();
+    }, { signal });
   }
 
   handleDelegatedClick(event) {
     const target = event.target;
+    const activeSectionMenu = target.closest?.(".workspace-section-menu");
+    this.host.querySelectorAll(".workspace-section-menu[open]").forEach((menu) => {
+      if (menu !== activeSectionMenu) menu.removeAttribute("open");
+    });
     if (!this.hasAcceptedDesign) {
       const route = target.closest?.("[data-studio-route]");
       if (route) {
@@ -1936,6 +2475,54 @@ class BookcaseConfigurator {
       }
       return;
     }
+    const stageButton = target.closest?.("[data-workspace-stage], [data-workspace-stage-link]");
+    if (stageButton) {
+      this.activateWorkspaceStage(stageButton.dataset.workspaceStage || stageButton.dataset.workspaceStageLink);
+      return;
+    }
+    const inspectorTab = target.closest?.("[data-inspector-tab]");
+    if (inspectorTab) {
+      this.activeInspectorTabId = inspectorTab.dataset.inspectorTab;
+      this.renderInspector();
+      this.syncInterface();
+      window.requestAnimationFrame(() => this.host.querySelector(`[data-inspector-tab="${this.activeInspectorTabId}"]`)?.focus({ preventScroll: true }));
+      return;
+    }
+    if (target.closest?.("[data-close-selection]")) {
+      this.closeContextEditor({ restoreFocus: true });
+      return;
+    }
+    if (target.closest?.("[data-history-undo]")) {
+      this.undoDesignChange();
+      return;
+    }
+    if (target.closest?.("[data-history-redo]")) {
+      this.redoDesignChange();
+      return;
+    }
+    if (target.closest?.("[data-toggle-dimensions]")) {
+      this.showDimensions = !this.showDimensions;
+      this.viewer.setDimensionsVisible?.(this.showDimensions);
+      this.syncWorkspaceToolbar();
+      return;
+    }
+    if (target.closest?.("[data-toggle-wall]")) {
+      this.showWall = !this.showWall;
+      this.viewer.setWallVisible?.(this.showWall);
+      this.syncWorkspaceToolbar();
+      return;
+    }
+    const modelTool = target.closest?.("[data-model-tool]");
+    if (modelTool) {
+      this.activeTool = modelTool.dataset.modelTool;
+      this.viewer.setInteractionTool?.(this.activeTool);
+      this.syncWorkspaceToolbar();
+      return;
+    }
+    if (target.closest?.("[data-model-fullscreen]")) {
+      this.toggleModelFullscreen();
+      return;
+    }
     const profileRadio = target.closest?.('input[type="radio"][data-field]');
     if (profileRadio && PROFILE_FOCUS_FIELDS.has(profileRadio.dataset.field)) {
       const fieldName = profileRadio.dataset.field;
@@ -1944,49 +2531,21 @@ class BookcaseConfigurator {
       }
       return;
     }
-    const modeButton = target.closest?.("[data-configurator-mode]");
-    if (modeButton) {
-      this.switchMode(modeButton.dataset.configuratorMode);
+    if (target.closest?.("[data-open-hardware-library]")) {
+      this.openExpandedHardwareEditor();
       return;
     }
-    const guidedStep = target.closest?.("[data-guided-step]");
-    if (guidedStep) {
-      if (this.mode === CONFIGURATOR_MODES.guided) this.goToGuidedStep(guidedStep.dataset.guidedStep);
-      else this.switchMode(CONFIGURATOR_MODES.guided, { guidedStep: guidedStep.dataset.guidedStep });
-      return;
-    }
-    if (target.closest?.("[data-guided-back]")) {
-      this.goToAdjacentGuidedStep(-1);
-      return;
-    }
-    if (target.closest?.("[data-guided-continue]")) {
-      this.goToAdjacentGuidedStep(1);
+    if (target.closest?.("[data-close-context]")) {
+      this.closeContextEditor({ restoreFocus: true });
       return;
     }
     const categoryTrigger = target.closest?.("[data-category-trigger]");
     if (categoryTrigger) {
-      const categoryId = categoryTrigger.dataset.categoryTrigger;
-      const opening = categoryId === "section_designer" && categoryTrigger.getAttribute("aria-expanded") !== "true";
-      if (categoryId !== "section_designer" && this.sectionDesignerActive) {
-        this.deactivateSectionDesigner({ render: false, announce: false });
-      }
-      this.toggleCategory(categoryTrigger.dataset.categoryTrigger);
-      if (categoryId === "section_designer") {
-        if (opening) this.activateSectionDesigner();
-        else this.deactivateSectionDesigner();
-      }
-      return;
-    }
-    if (target.closest?.("[data-section-designer-open]")) {
-      this.activateSectionDesigner();
-      return;
-    }
-    if (target.closest?.("[data-section-designer-close]")) {
-      this.deactivateSectionDesigner();
+      this.toggleInspectorGroup(categoryTrigger.dataset.categoryTrigger);
       return;
     }
     if (target.closest?.("[data-open-structure]")) {
-      this.goToGuidedStep("layout", { skipValidation: true });
+      this.focusInspectorGroup("sections_layout");
       return;
     }
     const sectionActionsSummary = target.closest?.(".section-actions-disclosure > summary");
@@ -1996,7 +2555,12 @@ class BookcaseConfigurator {
     }
     const sectionSelect = target.closest?.("[data-section-select]");
     if (sectionSelect) {
-      this.selectSection(Number(sectionSelect.dataset.sectionSelect));
+      this.selectSection(Number(sectionSelect.dataset.sectionSelect), { openProperties: true, focus: true, ensureFramed: true });
+      return;
+    }
+    const overlaySectionSelect = target.closest?.("[data-overlay-section-select]");
+    if (overlaySectionSelect) {
+      this.selectSection(Number(overlaySectionSelect.dataset.overlaySectionSelect), { openProperties: true });
       return;
     }
     const widthStep = target.closest?.("[data-section-width-step]");
@@ -2008,6 +2572,25 @@ class BookcaseConfigurator {
     }
     if (target.closest?.("[data-section-split]")) {
       this.commitSectionOperation(splitSection(this.state, this.layout, this.selectedSectionIndex), "Section split accepted.");
+      return;
+    }
+    if (target.closest?.("[data-section-add]")) {
+      const operation = addSection(this.state, this.layout, this.selectedSectionIndex);
+      this.commitSectionOperation(operation, "Section added.", { selectedIndex: operation.affectedSections?.at(-1) });
+      return;
+    }
+    const duplicate = target.closest?.("[data-section-duplicate]");
+    if (duplicate) {
+      const index = duplicate.dataset.sectionDuplicate === "" ? this.selectedSectionIndex : Number(duplicate.dataset.sectionDuplicate);
+      const operation = duplicateSection(this.state, this.layout, index);
+      this.commitSectionOperation(operation, `Section ${index + 1} duplicated.`, { selectedIndex: operation.affectedSections?.at(-1) });
+      return;
+    }
+    const deleteButton = target.closest?.("[data-section-delete]");
+    if (deleteButton) {
+      const index = deleteButton.dataset.sectionDelete === "" ? this.selectedSectionIndex : Number(deleteButton.dataset.sectionDelete);
+      const operation = deleteSection(this.state, this.layout, index);
+      this.commitSectionOperation(operation, `Section ${index + 1} deleted.`, { selectedIndex: operation.affectedSections?.[0] });
       return;
     }
     const merge = target.closest?.("[data-section-merge]");
@@ -2085,11 +2668,10 @@ class BookcaseConfigurator {
       this.closeReviewDialog();
       return;
     }
-    const editButton = target.closest?.("[data-edit-step]");
+    const editButton = target.closest?.("[data-edit-group]");
     if (editButton) {
       this.closeReviewDialog();
-      this.switchMode(CONFIGURATOR_MODES.guided, { guidedStep: editButton.dataset.editStep });
-      this.focusGuidedHeading();
+      this.focusInspectorGroup(editButton.dataset.editGroup);
       return;
     }
     const colorSearchToggle = target.closest?.("[data-toggle-color-search]");
@@ -2140,99 +2722,121 @@ class BookcaseConfigurator {
     }
   }
 
-  handleModeSelectorKeydown(event, button) {
-    const buttons = [...this.host.querySelectorAll("[data-configurator-mode]")];
-    const index = buttons.indexOf(button);
-    let nextIndex = index;
-    if (event.key === "ArrowRight") nextIndex = (index + 1) % buttons.length;
-    else if (event.key === "ArrowLeft") nextIndex = (index - 1 + buttons.length) % buttons.length;
-    else if (event.key === "Home") nextIndex = 0;
-    else if (event.key === "End") nextIndex = buttons.length - 1;
-    else return;
-    event.preventDefault();
-    buttons[nextIndex]?.focus();
-    this.switchMode(buttons[nextIndex]?.dataset.configuratorMode);
-  }
-
-  switchMode(nextMode, options = {}) {
-    const normalizedMode = normalizeConfiguratorMode(nextMode);
-    const previousMode = this.mode;
-    const shouldOpenSharedReview = previousMode === CONFIGURATOR_MODES.guided
-      && normalizedMode === CONFIGURATOR_MODES.all
-      && this.guidedStep === "review"
-      && !options.category;
-    if (normalizedMode === CONFIGURATOR_MODES.all) {
-      this.expandedCategory = normalizeAllCategory(options.category || (this.sectionDesignerActive ? "section_designer" : categoryForGuidedStep(options.guidedStep || this.guidedStep)));
-      this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.allCategory, this.expandedCategory);
-    } else {
-      const requestedStep = normalizeGuidedStep(options.guidedStep || (this.sectionDesignerActive ? "layout" : guidedStepForCategory(this.expandedCategory)));
-      const requestedIndex = getGuidedStepIndex(requestedStep);
-      this.guidedStep = GUIDED_STEPS[Math.min(requestedIndex, this.furthestGuidedStepIndex)].id;
-      this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.guidedStep, this.guidedStep);
-    }
-    this.mode = normalizedMode;
-    this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.mode, this.mode);
-    this.renderActiveControls({ previousMode });
+  activateWorkspaceStage(stageId, options = {}) {
+    if (!WORKSPACE_STAGES.some((stage) => stage.id === stageId)) return false;
+    this.activeStageId = stageId;
+    this.activeInspectorGroup = STAGE_CONTROL_GROUPS[stageId]?.[0] || "overall_size";
+    this.activeInspectorTabId = "general";
+    this.selection = null;
+    this.contextEditorOpen = false;
+    this.viewer.clearDirectSelection?.();
+    this.renderInspector({ resetScroll: true });
     this.syncInterface();
-    this.focusCameraForCurrentContext();
-    if (shouldOpenSharedReview) this.openReviewDialog();
-    this.showStatus(this.mode === CONFIGURATOR_MODES.guided
-      ? "Guided Setup is active. Your design and preview are unchanged."
-      : "All Controls is active. Your design and preview are unchanged.");
+    if (options.focus !== false) {
+      window.requestAnimationFrame(() => this.host.querySelector(`[data-workspace-stage="${stageId}"]`)?.focus({ preventScroll: true }));
+    }
+    return true;
   }
 
-  goToAdjacentGuidedStep(direction) {
-    const currentIndex = getGuidedStepIndex(this.guidedStep);
-    if (direction > 0 && !this.validateAndFocusStep(this.guidedStep)) return;
-    const nextIndex = clamp(currentIndex + direction, 0, GUIDED_STEPS.length - 1);
-    this.goToGuidedStep(GUIDED_STEPS[nextIndex].id, {
-      skipValidation: true,
-      unlock: direction > 0
+  snapshotDesignState() {
+    if (typeof structuredClone === "function") return structuredClone(this.state);
+    return JSON.parse(JSON.stringify(this.state));
+  }
+
+  recordDesignHistory(snapshot) {
+    this.designHistory.undo.push(snapshot);
+    if (this.designHistory.undo.length > this.designHistory.limit) this.designHistory.undo.shift();
+    this.designHistory.redo = [];
+  }
+
+  undoDesignChange() {
+    const snapshot = this.designHistory.undo.pop();
+    if (!snapshot) return false;
+    const current = this.snapshotDesignState();
+    if (!this.update(snapshot, { sourceField: "history", recordHistory: false, historyReplay: true, silent: true })) {
+      this.designHistory.undo.push(snapshot);
+      return false;
+    }
+    this.designHistory.redo.push(current);
+    if (this.designHistory.redo.length > this.designHistory.limit) this.designHistory.redo.shift();
+    this.syncWorkspaceToolbar();
+    this.syncDiagnosticsAttributes();
+    this.showStatus("Design change undone.");
+    return true;
+  }
+
+  redoDesignChange() {
+    const snapshot = this.designHistory.redo.pop();
+    if (!snapshot) return false;
+    const current = this.snapshotDesignState();
+    if (!this.update(snapshot, { sourceField: "history", recordHistory: false, historyReplay: true, silent: true })) {
+      this.designHistory.redo.push(snapshot);
+      return false;
+    }
+    this.designHistory.undo.push(current);
+    if (this.designHistory.undo.length > this.designHistory.limit) this.designHistory.undo.shift();
+    this.syncWorkspaceToolbar();
+    this.syncDiagnosticsAttributes();
+    this.showStatus("Design change redone.");
+    return true;
+  }
+
+  syncWorkspaceToolbar() {
+    const undo = this.host.querySelector("[data-history-undo]");
+    const redo = this.host.querySelector("[data-history-redo]");
+    if (undo) undo.disabled = this.designHistory.undo.length === 0;
+    if (redo) redo.disabled = this.designHistory.redo.length === 0;
+    this.host.querySelectorAll("[data-toggle-dimensions]").forEach((button) => button.setAttribute("aria-pressed", String(this.showDimensions)));
+    this.host.querySelectorAll("[data-toggle-wall]").forEach((button) => button.setAttribute("aria-pressed", String(this.showWall)));
+    this.host.querySelectorAll("[data-model-tool]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.modelTool === this.activeTool)));
+    const isFullscreen = Boolean(document.fullscreenElement === this.elements?.modelWorkspace || this.elements?.modelWorkspace?.classList.contains("is-pseudo-fullscreen"));
+    this.fullscreen = isFullscreen;
+    this.host.querySelectorAll("[data-model-fullscreen]").forEach((button) => {
+      button.setAttribute("aria-pressed", String(isFullscreen));
+      button.setAttribute("aria-label", isFullscreen ? "Exit model fullscreen" : "Enter model fullscreen");
     });
   }
 
-  goToGuidedStep(stepId, options = {}) {
-    const nextStep = normalizeGuidedStep(stepId);
-    const currentIndex = getGuidedStepIndex(this.guidedStep);
-    const nextIndex = getGuidedStepIndex(nextStep);
-    if (nextIndex === currentIndex) return;
-    if (nextIndex > this.furthestGuidedStepIndex && !options.unlock) {
-      this.showStatus(`Use Continue to complete ${GUIDED_STEPS[currentIndex].shortLabel} before moving forward.`, true);
-      this.focusGuidedHeading();
-      return;
+  async toggleModelFullscreen() {
+    const workspace = this.elements?.modelWorkspace;
+    if (!workspace) return;
+    try {
+      if (document.fullscreenElement === workspace) await document.exitFullscreen();
+      else if (workspace.requestFullscreen) await workspace.requestFullscreen();
+      else workspace.classList.toggle("is-pseudo-fullscreen");
+    } catch {
+      workspace.classList.toggle("is-pseudo-fullscreen");
     }
-    if (!options.skipValidation && nextIndex > currentIndex && !this.validateAndFocusStep(this.guidedStep)) return;
-    if (options.unlock) this.furthestGuidedStepIndex = Math.max(this.furthestGuidedStepIndex, nextIndex);
-    if (this.sectionDesignerActive && nextStep !== "layout") this.deactivateSectionDesigner({ render: false, announce: false });
-    this.guidedStep = nextStep;
-    this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.guidedStep, this.guidedStep);
-    if (nextStep === "layout") {
-      this.activateSectionDesigner({ announce: false });
-      this.focusGuidedHeading();
-      return;
-    }
-    this.renderActiveControls({ previousMode: this.mode, resetScroll: true });
-    this.syncInterface();
-    this.focusCameraForCurrentContext();
-    this.focusGuidedHeading();
+    this.syncWorkspaceToolbar();
+    window.requestAnimationFrame(() => this.viewer.resize?.());
   }
 
-  focusGuidedHeading() {
+  focusInspectorGroup(groupId, options = {}) {
+    const normalized = normalizeInspectorGroup(groupId);
+    this.activeInspectorGroup = normalized;
+    this.activeStageId = WORKSPACE_STAGES.find((stage) => STAGE_CONTROL_GROUPS[stage.id]?.includes(normalized))?.id || this.activeStageId;
+    this.activeInspectorTabId = "general";
+    if (options.preserveSelection !== true) {
+      this.selection = null;
+      this.contextEditorOpen = false;
+      this.viewer.clearDirectSelection?.();
+    }
+    this.inspectorGroupCollapsed = false;
+    this.renderInspector();
+    this.syncInterface();
+    this.focusCameraForCurrentContext();
     window.requestAnimationFrame(() => {
-      this.host.querySelector("[data-guided-heading]")?.focus({ preventScroll: true });
+      const category = this.host.querySelector(`[data-inspector-group="${normalized}"]`);
+      const destination = category || this.elements?.controlsScroll;
+      destination?.scrollIntoView?.({ block: "nearest", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      if (options.focus !== false) (category?.querySelector("[data-category-trigger]") || destination)?.focus?.({ preventScroll: true });
     });
   }
 
   focusCameraForCurrentContext(options = {}) {
     if (!this.viewer?.focus) return;
-    if (this.sectionDesignerActive) {
-      this.setView("front");
-      return;
-    }
     this.cancelQueuedProfileFocus();
-    const profile = this.mode === CONFIGURATOR_MODES.guided
-      ? CAMERA_PROFILE_BY_GUIDED_STEP[this.guidedStep] || "overview"
-      : CAMERA_PROFILE_BY_CATEGORY[this.expandedCategory] || "overview";
+    const profile = CAMERA_PROFILE_BY_CATEGORY[this.activeInspectorGroup] || "overview";
     this.viewer.focus(profile, options);
     this.activeView = profile === "overview" ? "three-quarter" : "custom";
     this.syncViewButtons();
@@ -2300,12 +2904,12 @@ class BookcaseConfigurator {
     this.syncDiagnosticsAttributes();
   }
 
-  toggleCategory(categoryId) {
-    const normalized = normalizeAllCategory(categoryId);
+  toggleInspectorGroup(groupId) {
+    const normalized = normalizeInspectorGroup(groupId);
     const currentPanel = this.host.querySelector('[data-category-panel="' + normalized + '"]');
-    const wasOpen = normalized === this.expandedCategory && currentPanel?.hidden === false;
-    this.expandedCategory = normalized;
-    this.savePreference(CONFIGURATOR_PREFERENCE_KEYS.allCategory, normalized);
+    const wasOpen = normalized === this.activeInspectorGroup && currentPanel?.hidden === false;
+    this.activeInspectorGroup = normalized;
+    this.inspectorGroupCollapsed = wasOpen;
     this.host.querySelectorAll("[data-category]").forEach((category) => {
       const open = !wasOpen && category.dataset.category === normalized;
       const trigger = category.querySelector("[data-category-trigger]");
@@ -2322,11 +2926,6 @@ class BookcaseConfigurator {
   }
 
   activateSectionDesigner(options = {}) {
-    if (!this.sectionDesignerActive) {
-      const viewState = this.viewer.getViewState?.() || null;
-      this.sectionDesignerCameraState = viewState ? { ...viewState, activeView: this.activeView } : null;
-      this.sectionDesignerCameraChanged = false;
-    }
     this.sectionDesignerActive = true;
     this.selectedSectionIndex = clamp(
       this.selectedSectionIndex,
@@ -2338,13 +2937,13 @@ class BookcaseConfigurator {
       active: true,
       selectedIndex: this.selectedSectionIndex,
       layout: this.layout,
-      onSelect: (index) => this.selectSection(index)
+      onSelect: (index) => this.selectSection(index, { render: false })
     });
-    this.setView("front");
+    if (options.focusCamera === true) this.setView("front");
     if (options.render !== false) {
-      this.renderActiveControls({ previousMode: this.mode });
+      this.renderInspector();
       this.syncInterface();
-      window.requestAnimationFrame(() => this.host.querySelector(`[data-section-select="${this.selectedSectionIndex}"]`)?.focus({ preventScroll: true }));
+      if (options.focus !== false) window.requestAnimationFrame(() => this.host.querySelector(`[data-section-select="${this.selectedSectionIndex}"]`)?.focus({ preventScroll: true }));
     }
     if (options.announce !== false) {
       this.showStatus("Section Designer is active. Clear widths are dimensions inside the cabinet panels.");
@@ -2363,7 +2962,7 @@ class BookcaseConfigurator {
     }
     this.sectionDesignerCameraState = null;
     if (options.render !== false) {
-      this.renderActiveControls({ previousMode: this.mode });
+      this.renderInspector();
       this.syncInterface();
     }
     if (options.announce !== false) {
@@ -2375,9 +2974,36 @@ class BookcaseConfigurator {
     const count = getSectionDesignerState(this.state, this.layout).sections.length;
     this.selectedSectionIndex = clamp(Number(index) || 0, 0, Math.max(0, count - 1));
     this.sectionWidthDraft = "";
+    if (options.openProperties) {
+      const component = this.layout.components.find((item) => (
+        item.role === "section" && Number(item.metadata?.index) === this.selectedSectionIndex
+      ));
+      const resolved = component
+        ? resolveSelectionContext(this.layout, { componentId: component.id, source: "organizer" }, "organizer")
+        : null;
+      this.selection = resolved || {
+        componentId: component?.id || `section-${this.selectedSectionIndex + 1}`,
+        title: `Section ${this.selectedSectionIndex + 1}`,
+        summary: formatSectionType(getSectionDesignerState(this.state, this.layout).sections[this.selectedSectionIndex]?.type || "open"),
+        editorId: "section",
+        inspectorGroupId: "sections_layout",
+        sectionIndex: this.selectedSectionIndex
+      };
+      this.contextEditorOpen = true;
+      this.activeStageId = "layout";
+      this.activeInspectorGroup = "sections_layout";
+      this.activeInspectorTabId = "general";
+    }
     this.viewer.setSectionSelection?.(this.selectedSectionIndex);
-    this.renderActiveControls({ previousMode: this.mode });
-    this.syncInterface();
+    if (this.selection) this.viewer.setSelectedComponent?.(this.selection.highlightTarget?.componentId || this.selection.componentId);
+    if (options.ensureFramed) {
+      window.requestAnimationFrame(() => this.viewer.ensureModelComfortablyFramed?.());
+    }
+    if (options.render !== false) {
+      this.renderInspector();
+      if (this.contextEditorOpen) this.renderContextEditor();
+      this.syncInterface();
+    }
     if (options.focus) {
       window.requestAnimationFrame(() => this.host.querySelector(`[data-section-select="${this.selectedSectionIndex}"]`)?.focus({ preventScroll: true }));
     }
@@ -2426,16 +3052,12 @@ class BookcaseConfigurator {
       this.showSectionDesignerError(operation?.error || { message: "That section change is not buildable." });
       return false;
     }
-    const previous = createSectionHistorySnapshot(this.state);
     const applied = this.update(operation.config, { sourceField: "layoutMetadata", refreshSectionDesigner: false });
     if (!applied) return false;
-    this.sectionUndoStack.push(previous);
-    if (this.sectionUndoStack.length > 30) this.sectionUndoStack.shift();
-    this.sectionRedoStack = [];
     const requestedSelection = Number.isInteger(options.selectedIndex)
       ? options.selectedIndex
       : this.selectedSectionIndex;
-    this.selectedSectionIndex = clamp(requestedSelection, 0, Math.max(0, this.state.sections - 1));
+    this.selectSection(requestedSelection, { openProperties: true, render: false, ensureFramed: true });
     this.sectionWidthDraft = "";
     this.refreshSectionDesignerPresentation();
     this.showStatus(successMessage);
@@ -2443,35 +3065,11 @@ class BookcaseConfigurator {
   }
 
   undoSectionChange() {
-    const previous = this.sectionUndoStack.pop();
-    if (!previous) return;
-    const current = createSectionHistorySnapshot(this.state);
-    const restored = applySectionHistorySnapshot(this.state, previous);
-    if (!this.update(restored, { sourceField: "layoutMetadata", refreshSectionDesigner: false })) {
-      this.sectionUndoStack.push(previous);
-      return;
-    }
-    this.sectionRedoStack.push(current);
-    if (this.sectionRedoStack.length > 30) this.sectionRedoStack.shift();
-    this.selectedSectionIndex = clamp(this.selectedSectionIndex, 0, Math.max(0, this.state.sections - 1));
-    this.refreshSectionDesignerPresentation();
-    this.showStatus("Section change undone.");
+    return this.undoDesignChange();
   }
 
   redoSectionChange() {
-    const next = this.sectionRedoStack.pop();
-    if (!next) return;
-    const current = createSectionHistorySnapshot(this.state);
-    const restored = applySectionHistorySnapshot(this.state, next);
-    if (!this.update(restored, { sourceField: "layoutMetadata", refreshSectionDesigner: false })) {
-      this.sectionRedoStack.push(next);
-      return;
-    }
-    this.sectionUndoStack.push(current);
-    if (this.sectionUndoStack.length > 30) this.sectionUndoStack.shift();
-    this.selectedSectionIndex = clamp(this.selectedSectionIndex, 0, Math.max(0, this.state.sections - 1));
-    this.refreshSectionDesignerPresentation();
-    this.showStatus("Section change redone.");
+    return this.redoDesignChange();
   }
 
   refreshSectionDesignerPresentation() {
@@ -2480,19 +3078,21 @@ class BookcaseConfigurator {
         active: true,
         selectedIndex: this.selectedSectionIndex,
         layout: this.layout,
-        onSelect: (index) => this.selectSection(index)
+        onSelect: (index) => this.selectSection(index, { render: false })
       });
     }
-    this.renderActiveControls({ previousMode: this.mode });
+    this.renderInspector();
     this.syncInterface();
   }
 
   showSectionDesignerError(error) {
     const message = error?.message || "That section change is not buildable.";
-    const host = this.host.querySelector("[data-section-width-error]");
-    if (host) host.textContent = message;
-    const input = this.host.querySelector("[data-section-width]");
-    if (input) input.setAttribute("aria-invalid", "true");
+    this.host.querySelectorAll("[data-section-width-error]").forEach((host) => {
+      host.textContent = message;
+    });
+    this.host.querySelectorAll("[data-section-width]").forEach((input) => {
+      input.setAttribute("aria-invalid", "true");
+    });
     this.showStatus(message, true);
   }
 
@@ -2501,9 +3101,22 @@ class BookcaseConfigurator {
     const overlay = handle.closest("[data-section-overlay]");
     const rect = overlay?.getBoundingClientRect();
     if (!rect?.width) return;
+    const dividerIndex = Number(handle.dataset.sectionDivider);
+    const descriptor = this.layout.components.find((component) => (
+      component.role === "divider" && Number(component.metadata?.boundaryIndex) === dividerIndex + 1
+    )) || this.layout.components.find((component) => component.id === `divider-${String(dividerIndex + 1).padStart(2, "0")}`);
+    if (descriptor && this.selection?.componentId !== descriptor.id) {
+      this.handleModelSelection({
+        componentId: descriptor.id,
+        source: "canvas",
+        anchorClientX: event.clientX,
+        anchorClientY: event.clientY,
+        anchor: this.viewer.getComponentScreenAnchor?.(descriptor.id)
+      });
+    }
     this.activeSectionDividerDrag = {
       pointerId: event.pointerId,
-      dividerIndex: Number(handle.dataset.sectionDivider),
+      dividerIndex,
       startX: event.clientX,
       delta: 0,
       pixelWidth: rect.width,
@@ -2558,8 +3171,12 @@ class BookcaseConfigurator {
   }
 
   restoreReviewFocus() {
-    if (this.reviewInvoker?.isConnected) this.reviewInvoker.focus();
+    const invoker = this.reviewInvoker;
     this.reviewInvoker = null;
+    if (!invoker?.isConnected) return;
+    window.requestAnimationFrame(() => {
+      if (invoker.isConnected && !this.elements.reviewDialog?.open) invoker.focus({ preventScroll: true });
+    });
   }
 
   applyRecommendedChoice(kind) {
@@ -2603,6 +3220,9 @@ class BookcaseConfigurator {
   returnToStudioWelcome() {
     this.closeReviewDialog();
     this.stopStudioPreviewMotion();
+    this.directHardwareEditor?.destroy?.();
+    this.directHardwareEditor = null;
+    this.directHardwareEditorPromise = null;
     this.viewer?.destroy?.();
     this.arController?.destroy?.();
     this.arController = null;
@@ -2617,6 +3237,11 @@ class BookcaseConfigurator {
     this.pricing = null;
     this.price = null;
     this.basePresetId = defaultBookcaseConfig.layoutPreset;
+    this.activeInspectorGroup = normalizeInspectorGroup("overall_size");
+    this.inspectorGroupCollapsed = false;
+    this.selection = null;
+    this.hoverSelection = null;
+    this.contextEditorOpen = false;
     this.entryView = STUDIO_ENTRY_VIEWS.welcome;
     this.inspirationFilter = "all";
     this.inspirationExpanded = false;
@@ -2631,8 +3256,6 @@ class BookcaseConfigurator {
     this.saveActionCount = 0;
     this.quoteActionCount = 0;
     this.sectionDesignerActive = false;
-    this.sectionUndoStack = [];
-    this.sectionRedoStack = [];
     this.render();
     this.cacheElements();
     this.viewer = this.createStudioIntroViewer();
@@ -2649,17 +3272,6 @@ class BookcaseConfigurator {
     this.host.querySelectorAll("[data-reset-design]").forEach((button) => {
       button.textContent = "Start over";
     });
-  }
-
-  validateAndFocusStep(stepId) {
-    const result = validateGuidedStep(stepId, this.state, this.layout, this.drafts);
-    this.syncValidationMessages(result);
-    if (result.valid) return true;
-    const issue = result.issues[0];
-    this.showStatus(issue.message, true);
-    const field = this.host.querySelector('[data-field="' + issue.field + '"], [data-validation-field="' + issue.field + '"]');
-    (field || this.host.querySelector("[data-guided-errors]"))?.focus?.();
-    return false;
   }
 
   handleSaveAction() {
@@ -2690,22 +3302,24 @@ class BookcaseConfigurator {
 
   ensureConfigurationActionable() {
     if (!hasBlockingConfigurationIssue(this.state, this.layout, this.drafts)) return true;
-    const issues = validateGuidedStep("review", this.state, this.layout, this.drafts).issues;
+    const issues = validateUnifiedConfiguration(this.state, this.layout, this.drafts).issues;
     const issue = issues[0] || { field: "configuration", message: "Review the highlighted configuration issue first." };
-    const targetStep = guidedStepForField(issue.field);
-    if (this.mode === CONFIGURATOR_MODES.guided) this.goToGuidedStep(targetStep, { skipValidation: true });
-    else {
-      this.expandedCategory = categoryForField(issue.field);
-      this.renderActiveControls({ previousMode: this.mode });
-      this.syncInterface();
-    }
+    this.focusInspectorGroup(issue.inspectorGroupId || inspectorGroupForField(issue.field), { focus: false });
+    window.requestAnimationFrame(() => {
+      this.host.querySelector('[data-field="' + issue.field + '"], [data-validation-field="' + issue.field + '"]')?.focus?.({ preventScroll: true });
+    });
     this.showStatus(issue.message, true);
     return false;
   }
 
   beginRangeDrag(event, range) {
     if (event.button != null && event.button !== 0) return;
-    this.activeRangeDrag = { range, pointerId: event.pointerId };
+    this.activeRangeDrag = {
+      range,
+      pointerId: event.pointerId,
+      startSnapshot: this.snapshotDesignState(),
+      changed: false
+    };
     range.focus({ preventScroll: true });
     range.setPointerCapture?.(event.pointerId);
     this.applyRangePointerValue(event, range);
@@ -2720,10 +3334,15 @@ class BookcaseConfigurator {
 
   endRangeDrag(event) {
     if (!this.activeRangeDrag) return;
-    const { range, pointerId } = this.activeRangeDrag;
+    const { range, pointerId, startSnapshot, changed } = this.activeRangeDrag;
     if (!event || event.pointerId === pointerId) {
       range.releasePointerCapture?.(pointerId);
       this.activeRangeDrag = null;
+      if (changed) {
+        this.recordDesignHistory(startSnapshot);
+        this.syncWorkspaceToolbar();
+        this.syncDiagnosticsAttributes();
+      }
     }
   }
 
@@ -2736,9 +3355,14 @@ class BookcaseConfigurator {
     const rawValue = min + ratio * (max - min);
     const steppedValue = min + Math.round((rawValue - min) / step) * step;
     const value = clamp(steppedValue, min, max);
+    const previousValue = Number(this.state[range.dataset.field]);
     range.value = String(value);
     delete this.drafts[range.dataset.field];
-    this.update({ ...this.state, [range.dataset.field]: value }, { sourceField: range.dataset.field });
+    const applied = this.update(
+      { ...this.state, [range.dataset.field]: value },
+      { sourceField: range.dataset.field, recordHistory: this.activeRangeDrag ? false : true }
+    );
+    if (applied && this.activeRangeDrag && Math.abs(previousValue - value) > 1e-9) this.activeRangeDrag.changed = true;
   }
 
   setView(view) {
@@ -2764,8 +3388,6 @@ class BookcaseConfigurator {
     const applied = this.update(transition.config, { sourceField: "layoutPreset" });
     if (!applied) return;
     this.basePresetId = transition.preset.id;
-    this.sectionUndoStack = [];
-    this.sectionRedoStack = [];
     this.syncInterface();
     if (this.sectionDesignerActive) this.refreshSectionDesignerPresentation();
     this.showStatus(`${transition.preset.name} preset applied.${transition.dimensionsPreserved ? " Your measured dimensions were kept." : ""} Layout-specific structure was reconciled automatically.`);
@@ -2907,7 +3529,22 @@ class BookcaseConfigurator {
       finish: getHardwareFinish(this.state.hardware)
     };
     const variant = resolveHardwareVariant({ ...currentSelection, ...selection }, this.state.hardware);
-    return this.update({ ...this.state, hardware: variant.value }, { sourceField: "hardware" });
+    const nextDefaultSelections = createLegacyHardwareSelections(variant.value);
+    const existingSelections = this.state.hardwareSelections && typeof this.state.hardwareSelections === "object"
+      ? this.state.hardwareSelections
+      : {};
+    return this.update({
+      ...this.state,
+      hardware: variant.value,
+      hardwareSelections: {
+        ...nextDefaultSelections,
+        byHostId: { ...(existingSelections.byHostId || {}) },
+        migrationWarnings: [
+          ...(existingSelections.migrationWarnings || []),
+          ...(nextDefaultSelections.migrationWarnings || [])
+        ]
+      }
+    }, { sourceField: "hardware" });
   }
 
   handleFieldInput(target) {
@@ -2934,7 +3571,8 @@ class BookcaseConfigurator {
     } else {
       value = target.value;
     }
-    const next = { ...this.state, [fieldName]: value };
+    let next = { ...this.state, [fieldName]: value };
+    let storageFallbackMessage = "";
     if (fieldName === "lowerCabinets" || fieldName === "lowerStorage") {
       const storageTransition = applyGlobalStorageSelection(
         this.state,
@@ -2942,6 +3580,20 @@ class BookcaseConfigurator {
         { [fieldName]: value }
       );
       Object.assign(next, storageTransition.config);
+      if (
+        fieldName === "lowerCabinets"
+        && value === true
+        && next.lowerStorage === "drawers"
+        && !evaluateBookcaseCandidate(next).accepted
+      ) {
+        const doorFallback = applyGlobalStorageSelection(
+          this.state,
+          this.layout,
+          { lowerCabinets: true, lowerStorage: "doors" }
+        );
+        next = { ...next, ...doorFallback.config };
+        storageFallbackMessage = "Lower doors were applied because drawers do not fit every current section width.";
+      }
     }
     if (fieldName === "sections") {
       const reconciliation = reconcileSectionCustomization(this.state, value, this.layout.rules);
@@ -2953,7 +3605,8 @@ class BookcaseConfigurator {
       Object.assign(next, reconciliation.config);
     }
     if (fieldName === "customPaintColor" && String(value).trim()) next.finish = "custom_bm";
-    this.update(next, { sourceField: fieldName });
+    const updated = this.update(next, { sourceField: fieldName });
+    if (updated && storageFallbackMessage) this.showStatus(storageFallbackMessage);
     if (PROFILE_FOCUS_FIELDS.has(fieldName)) this.requestProfileCameraFocus(fieldName, { force: true });
     else this.focusCameraForField(fieldName);
   }
@@ -3030,10 +3683,17 @@ class BookcaseConfigurator {
     const rendered = this.viewer.update(state, evaluation.layout);
     if (rendered === false) {
       this.syncInterface();
-      const renderMessage = this.viewer.lastRenderAudit?.issues?.[0]?.message ||
+      const renderMessage = this.viewer.lastRejectedRenderAudit?.issues?.[0]?.message ||
         "The 3D renderer rejected this configuration and kept the last verified model.";
       this.showStatus(renderMessage, true);
       return false;
+    }
+
+    if (options.recordHistory !== false) {
+      const previousSnapshot = typeof structuredClone === "function"
+        ? structuredClone(previousState)
+        : JSON.parse(JSON.stringify(previousState));
+      this.recordDesignHistory(previousSnapshot);
     }
 
     this.acceptedEvaluation = committedEvaluation;
@@ -3045,19 +3705,33 @@ class BookcaseConfigurator {
     this.updateCount += 1;
     this.priceCalculationCount += 1;
     this.arController?.handleConfigurationChanged();
-    if (changedFields.some((field) => ["finish", "customPaintColor", "customPaintCode", "customPaintHex", "paintSelection", "hardware"].includes(field))) {
-      this.renderActiveControls({ previousMode: this.mode });
+    if (this.selection) {
+      this.selection = reconcileSelectionContext(this.selection, this.layout);
+      if (!this.selection) {
+        this.contextEditorOpen = false;
+        this.elements?.shell?.classList.remove("is-context-open");
+        if (this.elements?.contextEditor) this.elements.contextEditor.hidden = true;
+        if (this.elements?.contextLeader) this.elements.contextLeader.hidden = true;
+      } else {
+        this.activeInspectorGroup = this.selection.inspectorGroupId;
+        if (Number.isInteger(this.selection.sectionIndex)) this.selectedSectionIndex = this.selection.sectionIndex;
+        this.viewer.setSelectedComponent?.(this.selection.highlightTarget?.componentId || this.selection.componentId);
+      }
     }
+    this.renderInspector();
+    if (this.contextEditorOpen && this.selection) this.renderContextEditor();
     this.syncInterface();
+    this.directHardwareEditor?.sync?.({
+      source: options.directHardware ? "direct_commit" : "external",
+      changedFields
+    });
     if (this.sectionDesignerActive && options.refreshSectionDesigner !== false) {
       this.viewer.setSectionDesigner?.({
         active: true,
         selectedIndex: this.selectedSectionIndex,
         layout: this.layout,
-        onSelect: (index) => this.selectSection(index)
+        onSelect: (index) => this.selectSection(index, { render: false })
       });
-      this.renderActiveControls({ previousMode: this.mode });
-      this.syncInterface();
     }
     if (focusedHardwareInput && changedFields.includes("hardware")) {
       window.requestAnimationFrame(() => {
@@ -3183,22 +3857,8 @@ class BookcaseConfigurator {
     if (!this.hasAcceptedDesign || !this.elements?.shell) return;
     document.body.dataset.studioState = "accepted";
     this.elements.shell.dataset.diagnosticAcceptedDesign = "true";
-    this.elements.shell.dataset.interfaceMode = this.mode;
-    this.elements.shell.classList.toggle("is-guided-mode", this.mode === CONFIGURATOR_MODES.guided);
-    this.elements.shell.classList.toggle("is-all-controls-mode", this.mode === CONFIGURATOR_MODES.all);
-    this.elements.shell.classList.toggle("is-review-context", this.mode === CONFIGURATOR_MODES.all || this.guidedStep === "review");
-    this.syncStepRail();
-    this.host.querySelectorAll("[data-configurator-mode]").forEach((button) => {
-      const active = button.dataset.configuratorMode === this.mode;
-      button.setAttribute("aria-selected", String(active));
-      button.tabIndex = active ? 0 : -1;
-      button.classList.toggle("is-active", active);
-    });
-    if (this.elements.modeDescription) {
-      this.elements.modeDescription.textContent = this.mode === CONFIGURATOR_MODES.guided
-        ? "Build your bookcase one step at a time."
-        : "View and edit all available settings.";
-    }
+    this.elements.shell.dataset.interface = "unified";
+    this.elements.shell.classList.toggle("is-context-open", this.contextEditorOpen);
     this.syncReviewContent();
     this.syncControls();
     this.renderDoorOptions();
@@ -3208,28 +3868,8 @@ class BookcaseConfigurator {
     this.syncCategorySummaries();
     this.syncValidationMessages();
     this.syncActionAvailability();
+    this.syncWorkspaceToolbar();
     this.syncDiagnosticsAttributes();
-  }
-
-  syncStepRail() {
-    const stepIndex = getGuidedStepIndex(this.guidedStep);
-    this.host.querySelectorAll("[data-step-rail-item]").forEach((item, index) => {
-      const button = item.querySelector("button[data-guided-step]");
-      const marker = button?.querySelector("span");
-      const complete = index < this.furthestGuidedStepIndex && index !== stepIndex;
-      const current = index === stepIndex;
-      const locked = index > this.furthestGuidedStepIndex;
-      item.classList.toggle("is-complete", complete);
-      item.classList.toggle("is-current", current);
-      item.classList.toggle("is-locked", locked);
-      if (button) {
-        button.toggleAttribute("aria-current", current);
-        if (current) button.setAttribute("aria-current", "step");
-        button.disabled = locked;
-        button.setAttribute("aria-disabled", String(locked));
-      }
-      if (marker) marker.innerHTML = complete ? builderIcons.check : String(index + 1);
-    });
   }
 
   syncDiagnosticsAttributes() {
@@ -3241,9 +3881,14 @@ class BookcaseConfigurator {
     }
     const viewer = this.viewer?.getDiagnostics?.() || {};
     const view = this.viewer?.getViewState?.() || {};
-    shell.dataset.diagnosticMode = this.mode;
-    shell.dataset.diagnosticGuidedStep = this.guidedStep;
-    shell.dataset.diagnosticCategory = this.expandedCategory;
+    shell.dataset.diagnosticInterface = "unified";
+    shell.dataset.diagnosticInspectorGroup = this.activeInspectorGroup;
+    shell.dataset.diagnosticWorkspaceStage = this.activeStageId;
+    shell.dataset.diagnosticInspectorTab = this.activeInspectorTabId;
+    shell.dataset.diagnosticHistoryUndo = String(this.designHistory.undo.length);
+    shell.dataset.diagnosticHistoryRedo = String(this.designHistory.redo.length);
+    shell.dataset.diagnosticSelectionKind = this.selection?.kind || "";
+    shell.dataset.diagnosticSelectionEditor = this.selection?.editorId || "";
     shell.dataset.diagnosticPhysicalUpdates = String(this.updateCount);
     shell.dataset.diagnosticPriceCalculations = String(this.priceCalculationCount);
     shell.dataset.diagnosticSaveActions = String(this.saveActionCount);
@@ -3254,6 +3899,9 @@ class BookcaseConfigurator {
     shell.dataset.diagnosticViewerPartialUpdates = String(viewer.partialUpdateCount ?? 0);
     shell.dataset.diagnosticViewerPreviews = String(viewer.previewCount ?? 0);
     shell.dataset.diagnosticViewerPreviewActive = String(Boolean(viewer.previewActive));
+    shell.dataset.diagnosticDirectEditing = String(Boolean(viewer.directEditing?.enabled));
+    shell.dataset.diagnosticDirectSelected = String(viewer.directEditing?.selectedComponentId || "");
+    shell.dataset.diagnosticDirectHitProxies = String(viewer.directEditing?.hitProxyCount || 0);
     shell.dataset.diagnosticCameraFocus = String(viewer.activeFocus ?? "overview");
     shell.dataset.diagnosticCameraTransition = String(Boolean(viewer.cameraTransitionActive));
     shell.dataset.diagnosticCameraSequence = String(viewer.cameraTransitionSequence ?? 0);
@@ -3302,7 +3950,7 @@ class BookcaseConfigurator {
 
   syncCategorySummaries() {
     this.host.querySelectorAll("[data-category-summary]").forEach((element) => {
-      element.textContent = getCategorySummary(element.dataset.categorySummary, this.state, this.layout, this.basePresetId);
+      element.textContent = getInspectorGroupSummary(element.dataset.categorySummary, this.state, this.layout, this.basePresetId);
     });
   }
 
@@ -3310,16 +3958,10 @@ class BookcaseConfigurator {
     if (this.elements.reviewDialogContent) {
       this.elements.reviewDialogContent.innerHTML = this.renderReviewContent({ includeActions: true });
     }
-    if (this.mode === CONFIGURATOR_MODES.guided && this.guidedStep === "review") {
-      const guidedContent = this.elements.guidedPanel?.querySelector('[data-guided-step-content="review"]');
-      if (guidedContent) guidedContent.innerHTML = this.renderGuidedStepContent("review");
-    }
   }
 
   syncValidationMessages(result = null) {
-    const validation = result || (this.mode === CONFIGURATOR_MODES.guided
-      ? validateGuidedStep(this.guidedStep, this.state, this.layout, this.drafts)
-      : validateGuidedStep("review", this.state, this.layout, this.drafts));
+    const validation = result || validateUnifiedConfiguration(this.state, this.layout, this.drafts);
     this.host.querySelectorAll("[data-field], [data-validation-field]").forEach((field) => {
       field.removeAttribute("aria-invalid");
       field.removeAttribute("aria-describedby");
@@ -3328,38 +3970,25 @@ class BookcaseConfigurator {
       element.textContent = "";
     });
     validation.issues.forEach((issue) => {
-      const errorId = this.id + "-error-" + issue.field;
-      this.host.querySelectorAll('[data-field="' + issue.field + '"], [data-validation-field="' + issue.field + '"]').forEach((field) => {
-        field.setAttribute("aria-invalid", "true");
-        field.setAttribute("aria-describedby", errorId);
-      });
-      const error = this.host.querySelector('[data-field-error="' + issue.field + '"]');
-      if (error) {
-        error.id = errorId;
+      const errors = [...this.host.querySelectorAll('[data-field-error="' + issue.field + '"]')];
+      errors.forEach((error, index) => {
+        error.id = `${this.id}-error-${issue.field}-${index + 1}`;
         error.textContent = issue.message;
-      }
+      });
+      this.host.querySelectorAll('[data-field="' + issue.field + '"], [data-validation-field="' + issue.field + '"]').forEach((field, index) => {
+        field.setAttribute("aria-invalid", "true");
+        const error = errors[Math.min(index, Math.max(0, errors.length - 1))];
+        if (error?.id) field.setAttribute("aria-describedby", error.id);
+      });
     });
-    const errorHost = this.host.querySelector("[data-guided-errors]");
-    if (errorHost) {
-      errorHost.innerHTML = validation.issues.length
-        ? `<p>${validation.issues.map((issue) => escapeHtml(issue.message)).join(" ")}</p>`
-        : "";
-    }
-    const invalidFields = new Set(validation.issues.map((issue) => issue.field));
+    const invalidGroups = new Set(validation.issues.map((issue) => issue.inspectorGroupId || inspectorGroupForField(issue.field)));
     this.host.querySelectorAll("[data-category]").forEach((category) => {
-      const registryFields = {
-        dimensions: ["width", "height", "depth", "shelves", "shelfThickness"],
-        storage: ["sections", "lowerCabinets", "lowerStorage", "drawerCount", "doorStyle", "doorCount"],
-        construction: ["baseStyle", "crownStyle"],
-        doors: ["doorStyle", "doorCount"],
-        finish: ["finish", "customPaintColor", "customPaintCode", "customPaintHex"]
-      }[category.dataset.category] || [];
-      category.classList.toggle("needs-attention", registryFields.some((field) => invalidFields.has(field)));
+      category.classList.toggle("needs-attention", invalidGroups.has(category.dataset.category));
     });
   }
 
   syncActionAvailability() {
-    const validation = validateGuidedStep("review", this.state, this.layout, this.drafts);
+    const validation = validateUnifiedConfiguration(this.state, this.layout, this.drafts);
     const blocking = !validation.valid;
     const now = Date.now();
     const saveLocked = !shouldRunAction(this.actionStartedAt.save, now);
@@ -3418,9 +4047,14 @@ class BookcaseConfigurator {
     return {
       acceptedDesign: true,
       initialSource: this.initialSource,
-      mode: this.mode,
-      guidedStep: this.guidedStep,
-      expandedCategory: this.expandedCategory,
+      interface: "unified",
+      activeInspectorGroup: this.activeInspectorGroup,
+      activeWorkspaceStage: this.activeStageId,
+      activeInspectorTab: this.activeInspectorTabId,
+      history: { undo: this.designHistory.undo.length, redo: this.designHistory.redo.length },
+      display: { dimensions: this.showDimensions, wall: this.showWall, tool: this.activeTool, fullscreen: this.fullscreen },
+      selection: this.selection ? { ...this.selection } : null,
+      contextEditorOpen: this.contextEditorOpen,
       state: { ...this.state },
       price: this.price,
       pricing: {
@@ -3462,8 +4096,8 @@ class BookcaseConfigurator {
     this.setOptionalText("[data-summary-sections]", this.state.sections);
     this.setOptionalText("[data-summary-shelves]", this.state.shelves);
     this.setOptionalText("[data-summary-finish]", this.getFinishLabel());
-    const hardwareSummary = getCategorySummary("hardware", this.state, this.layout, this.basePresetId);
-    const lightingSummary = getCategorySummary("lighting", this.state, this.layout, this.basePresetId);
+    const hardwareSummary = getInspectorGroupSummary("hardware", this.state, this.layout, this.basePresetId);
+    const lightingSummary = getInspectorGroupSummary("lighting", this.state, this.layout, this.basePresetId);
     this.setOptionalText("[data-summary-hardware]", `${hardwareSummary} / ${lightingSummary}`);
     this.setOptionalText("[data-summary-installation]", optionLabels.installation[this.state.installation].replace(" Installation", ""));
   }
@@ -3511,6 +4145,20 @@ class BookcaseConfigurator {
         this.elements.status.classList.remove("is-visible");
       }, 3200);
     }
+  }
+
+  destroy() {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.eventAbortController?.abort();
+    this.stopStudioPreviewMotion(true);
+    window.clearTimeout(this.statusTimer);
+    window.clearTimeout(this.colorSearchTimer);
+    window.clearTimeout(this.resetConfirmationTimer);
+    this.directHardwareEditor?.destroy?.();
+    this.viewer?.destroy?.();
+    this.arController?.destroy?.();
+    if (this.host.__bookcaseConfigurator === this) delete this.host.__bookcaseConfigurator;
   }
 
 }
@@ -3566,6 +4214,22 @@ class BookcaseViewer3D {
     this.root.appendChild(this.sectionOverlay);
     this.sectionRaycaster = new THREE.Raycaster();
     this.sectionPointer = new THREE.Vector2();
+    this.directEditRaycaster = new THREE.Raycaster();
+    this.directEditRaycaster.layers.set(DIRECT_EDIT_LAYER);
+    this.directEditPointer = new THREE.Vector2();
+    this.directEdit = {
+      enabled: false,
+      hoveredComponentId: null,
+      selectedComponentId: null,
+      onHover: null,
+      onSelect: null,
+      onAnchorChange: null
+    };
+    this.lastRejectedRenderAudit = null;
+    this.directHighlightGroup = new THREE.Group();
+    this.directHighlightGroup.name = "direct-edit-highlight-layer";
+    this.directHighlightGroup.userData.nonPhysicalHelper = true;
+    this.scene.add(this.directHighlightGroup);
     this.sectionDesigner = {
       active: false,
       selectedIndex: 0,
@@ -3596,6 +4260,13 @@ class BookcaseViewer3D {
     this.reducedMotionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)") || null;
     this.environmentLights = [];
     this.environmentLightScale = 1;
+    this.activeTool = "select";
+    this.dimensionsVisible = true;
+    this.wallVisible = true;
+    this.roomEnvironment = new THREE.Group();
+    this.roomEnvironment.name = "nonphysical-room-environment";
+    this.roomEnvironment.userData.nonPhysicalHelper = true;
+    this.scene.add(this.roomEnvironment);
     this.highlightState = null;
     this.drag = null;
     this.model = new THREE.Group();
@@ -3613,11 +4284,12 @@ class BookcaseViewer3D {
   }
 
   setupEnvironment() {
-    this.scene.fog = new THREE.FogExp2(0x302b26, 0.006);
-    const hemisphere = new THREE.HemisphereLight(0xf7f1e8, 0x2b2824, 1.7);
+    this.scene.fog = new THREE.FogExp2(0xf3f0eb, 0.004);
+    this.renderer.setClearColor(0xf5f2ee, 1);
+    const hemisphere = new THREE.HemisphereLight(0xfffcf7, 0xc7b9a8, 1.55);
     this.scene.add(hemisphere);
 
-    const key = new THREE.DirectionalLight(0xf7ecdf, 3.15);
+    const key = new THREE.DirectionalLight(0xf7ecdf, 2.45);
     key.position.set(4.2, 8.6, 6.4);
     key.castShadow = true;
     key.shadow.mapSize.set(1536, 1536);
@@ -3629,19 +4301,19 @@ class BookcaseViewer3D {
     key.shadow.camera.bottom = -9;
     this.scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0xeee6db, 0.92);
+    const fill = new THREE.DirectionalLight(0xfff8ef, 0.72);
     fill.position.set(-6, 4.6, 5.4);
     this.scene.add(fill);
 
-    const rim = new THREE.DirectionalLight(0xdccfc0, 0.58);
+    const rim = new THREE.DirectionalLight(0xe9ddcf, 0.46);
     rim.position.set(-4.8, 5.8, -4.6);
     this.scene.add(rim);
 
-    const leftGlow = new THREE.PointLight(0xe8dccb, 0.22, 18);
+    const leftGlow = new THREE.PointLight(0xe8dccb, 0.12, 18);
     leftGlow.position.set(-7.2, 4.2, 2.7);
     this.scene.add(leftGlow);
 
-    const rightGlow = new THREE.PointLight(0xe8dccb, 0.2, 18);
+    const rightGlow = new THREE.PointLight(0xe8dccb, 0.11, 18);
     rightGlow.position.set(7.2, 4.0, 2.8);
     this.scene.add(rightGlow);
     this.environmentLights = [hemisphere, key, fill, rim, leftGlow, rightGlow];
@@ -3662,6 +4334,39 @@ class BookcaseViewer3D {
     contact.rotation.x = -Math.PI / 2;
     contact.position.set(0, -0.025, 0.12);
     this.scene.add(contact);
+
+    const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xf1efeb, roughness: 0.94, metalness: 0 });
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(22, 12), wallMaterial);
+    wall.name = "nonphysical-room-wall";
+    wall.userData.nonPhysicalHelper = true;
+    wall.position.set(0, 5.55, -0.9);
+    wall.receiveShadow = true;
+    this.roomWall = wall;
+    this.roomEnvironment.add(wall);
+
+    const baseboardMaterial = new THREE.MeshStandardMaterial({ color: 0xf8f7f4, roughness: 0.72 });
+    const baseboard = new THREE.Mesh(new THREE.BoxGeometry(22, 0.18, 0.12), baseboardMaterial);
+    baseboard.name = "nonphysical-room-baseboard";
+    baseboard.userData.nonPhysicalHelper = true;
+    baseboard.position.set(0, 0.1, -0.82);
+    baseboard.castShadow = true;
+    baseboard.receiveShadow = true;
+    this.roomBaseboard = baseboard;
+    this.roomEnvironment.add(baseboard);
+
+    const floorTexture = createRoomFloorTexture();
+    floorTexture.wrapS = THREE.RepeatWrapping;
+    floorTexture.wrapT = THREE.RepeatWrapping;
+    floorTexture.repeat.set(7, 4);
+    const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture, color: 0xe0d1bd, roughness: 0.88, metalness: 0 });
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(22, 12), floorMaterial);
+    floor.name = "nonphysical-room-floor";
+    floor.userData.nonPhysicalHelper = true;
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.set(0, -0.055, 3.8);
+    floor.receiveShadow = true;
+    this.roomFloor = floor;
+    this.roomEnvironment.add(floor);
 
   }
 
@@ -3713,29 +4418,45 @@ class BookcaseViewer3D {
     this.root.addEventListener("pointerdown", (event) => {
       if (event.target.closest?.("[data-section-overlay]")) return;
       this.cancelCameraTransition();
-      this.drag = { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false };
+      this.drag = { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false, tool: this.activeTool };
       this.root.setPointerCapture(event.pointerId);
       this.root.classList.add("is-dragging");
     }, { signal });
 
     this.root.addEventListener("pointermove", (event) => {
-      if (!this.drag) return;
+      if (!this.drag) {
+        this.updateDirectEditHover(event);
+        return;
+      }
       const dx = event.clientX - this.drag.x;
       const dy = event.clientY - this.drag.y;
       const moved = this.drag.moved || Math.hypot(event.clientX - this.drag.startX, event.clientY - this.drag.startY) > 5;
       this.drag = { ...this.drag, x: event.clientX, y: event.clientY, moved };
-      this.theta -= dx * 0.007;
-      this.phi = clamp(this.phi + dy * 0.004, -0.12, 0.72);
-      this.onCameraInteraction("rotate");
+      if (this.drag.tool === "pan") {
+        const scale = Math.max(0.002, this.radius * 0.0017);
+        const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0);
+        const up = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1);
+        this.target.addScaledVector(right, -dx * scale).addScaledVector(up, dy * scale);
+        this.target.x = clamp(this.target.x, -8, 8);
+        this.target.y = clamp(this.target.y, -1, 12);
+        this.onCameraInteraction("pan");
+      } else {
+        this.theta -= dx * 0.007;
+        this.phi = clamp(this.phi + dy * 0.004, -0.12, 0.72);
+        this.onCameraInteraction("rotate");
+      }
       this.updateCamera();
     }, { signal });
 
     this.root.addEventListener("pointerup", (event) => {
-      const selectSection = this.sectionDesigner.active && this.drag && !this.drag.moved;
+      const isClick = Boolean(this.drag && !this.drag.moved);
+      const selectDirectComponent = this.activeTool === "select" && this.directEdit.enabled && isClick;
+      const selectSection = this.sectionDesigner.active && !selectDirectComponent && isClick;
       this.drag = null;
       if (this.root.hasPointerCapture(event.pointerId)) this.root.releasePointerCapture(event.pointerId);
       this.root.classList.remove("is-dragging");
-      if (selectSection) this.selectSectionFromPointer(event);
+      if (selectDirectComponent) this.selectDirectComponentFromPointer(event);
+      else if (selectSection) this.selectSectionFromPointer(event);
     }, { signal });
 
     this.root.addEventListener("pointercancel", () => {
@@ -3743,9 +4464,12 @@ class BookcaseViewer3D {
       this.root.classList.remove("is-dragging");
     }, { signal });
 
+    this.root.addEventListener("pointerleave", () => {
+      if (!this.drag) this.setDirectHoveredComponent(null);
+    }, { signal });
+
     this.root.addEventListener("wheel", (event) => {
       if (event.ctrlKey || event.metaKey) return;
-      if (window.matchMedia("(max-width: 1280px)").matches) return;
       event.preventDefault();
       this.cancelCameraTransition();
       const limits = this.getZoomLimits();
@@ -3757,9 +4481,30 @@ class BookcaseViewer3D {
     this.root.addEventListener("keydown", (event) => {
       if (event.ctrlKey || event.metaKey) return;
       if (event.target !== this.root && event.target.closest?.("[data-section-overlay], button, input, select, textarea, [contenteditable='true']")) return;
+      if ((event.key === "Enter" || event.key === " ") && this.directEdit.enabled) {
+        const componentId = this.directEdit.hoveredComponentId || this.directEdit.selectedComponentId;
+        if (componentId) {
+          event.preventDefault();
+          this.selectDirectComponent(componentId, { source: "keyboard" });
+          return;
+        }
+      }
       this.cancelCameraTransition();
       const limits = this.getZoomLimits();
-      if (event.key === "ArrowLeft") this.theta -= 0.12;
+      if (event.key === "0") {
+        event.preventDefault();
+        this.setView("reset");
+        this.onCameraInteraction("reset");
+        return;
+      }
+      if (this.activeTool === "pan" && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+        const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0);
+        const up = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1);
+        if (event.key === "ArrowLeft") this.target.addScaledVector(right, -0.25);
+        if (event.key === "ArrowRight") this.target.addScaledVector(right, 0.25);
+        if (event.key === "ArrowUp") this.target.addScaledVector(up, 0.25);
+        if (event.key === "ArrowDown") this.target.addScaledVector(up, -0.25);
+      } else if (event.key === "ArrowLeft") this.theta -= 0.12;
       else if (event.key === "ArrowRight") this.theta += 0.12;
       else if (event.key === "ArrowUp") this.phi = clamp(this.phi + 0.08, -0.12, 0.72);
       else if (event.key === "ArrowDown") this.phi = clamp(this.phi - 0.08, -0.12, 0.72);
@@ -3772,10 +4517,284 @@ class BookcaseViewer3D {
     }, { signal });
   }
 
+  setInteractionTool(tool) {
+    this.activeTool = tool === "pan" ? "pan" : "select";
+    this.root.dataset.interactionTool = this.activeTool;
+    this.root.classList.toggle("is-pan-tool", this.activeTool === "pan");
+    this.root.style.cursor = this.activeTool === "pan" ? "grab" : "";
+    if (this.activeTool === "pan") this.setDirectHoveredComponent(null);
+  }
+
+  setDimensionsVisible(visible) {
+    this.dimensionsVisible = visible !== false;
+    this.root.dataset.dimensionsVisible = String(this.dimensionsVisible);
+    if (this.sectionOverlay) this.sectionOverlay.hidden = !this.dimensionsVisible || !this.sectionDesigner.active;
+    this.requestRender();
+  }
+
+  setWallVisible(visible) {
+    this.wallVisible = visible !== false;
+    this.root.dataset.wallVisible = String(this.wallVisible);
+    if (this.roomWall) this.roomWall.visible = this.wallVisible;
+    if (this.roomBaseboard) this.roomBaseboard.visible = this.wallVisible;
+    if (this.roomFloor) this.roomFloor.visible = this.wallVisible;
+    this.requestRender();
+  }
+
+  setDirectEditing(options = {}) {
+    this.directEdit.enabled = options.enabled !== false;
+    this.directEdit.onHover = typeof options.onHover === "function" ? options.onHover : null;
+    this.directEdit.onSelect = typeof options.onSelect === "function" ? options.onSelect : null;
+    this.directEdit.onAnchorChange = typeof options.onAnchorChange === "function" ? options.onAnchorChange : null;
+    this.root.dataset.directEditing = String(this.directEdit.enabled);
+    this.root.setAttribute(
+      "aria-label",
+      this.directEdit.enabled
+        ? "Built-in bookcase preview. Drag to rotate. Point to a section, front, shelf, handle, light, divider, base, crown, or body panel to edit it."
+        : "Built-in bookcase preview. Use arrow keys to rotate and plus or minus to zoom."
+    );
+    if (!this.directEdit.enabled) this.clearDirectSelection();
+    else this.notifyDirectAnchor();
+  }
+
+  getDirectComponent(componentId) {
+    return this.lastLayout?.components?.find((component) => component.id === componentId) || null;
+  }
+
+  getDirectSelectionPayload(componentId, source = "canvas", pointer = null) {
+    const component = this.getDirectComponent(componentId);
+    if (!component || !DIRECT_EDITABLE_ROLES.has(component.role)) return null;
+    const pointerClientX = Number(pointer?.clientX);
+    const pointerClientY = Number(pointer?.clientY);
+    return Object.freeze({
+      componentId: component.id,
+      role: component.role,
+      hostId: component.hostId || component.id,
+      sectionId: component.metadata?.sectionId || getDescriptorSectionId(this.lastLayout, component),
+      editableKind: DIRECT_EDIT_KIND_BY_ROLE[component.role] || null,
+      semanticLabel: formatDirectComponentLabel(component),
+      anchor: this.getComponentScreenAnchor(component.id),
+      anchorClientX: Number.isFinite(pointerClientX) ? pointerClientX : null,
+      anchorClientY: Number.isFinite(pointerClientY) ? pointerClientY : null,
+      source
+    });
+  }
+
+  resolveDirectHit(event) {
+    if (!this.directEdit.enabled || !this.model?.children?.length) return null;
+    const rect = this.root.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    this.directEditPointer.set(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
+    this.directEditRaycaster.setFromCamera(this.directEditPointer, this.camera);
+    const intersections = this.directEditRaycaster
+      .intersectObject(this.model, true)
+      .filter((intersection) => (
+        !intersection.object?.userData?.nonPhysicalHelper
+        || intersection.object.userData.directEditHitProxy === true
+      ));
+    return resolveDirectEditIntersection(intersections, {
+      root: this.model,
+      getComponent: (componentId) => this.getDirectComponent(componentId),
+      isEditable: (component) => DIRECT_EDITABLE_ROLES.has(component.role),
+      isFallback: (component) => ["section", "back_panel", "assembly"].includes(component?.role)
+    });
+  }
+
+  updateDirectEditHover(event) {
+    if (!this.directEdit.enabled || event.pointerType === "touch") return;
+    const component = this.resolveDirectHit(event);
+    this.setDirectHoveredComponent(component?.id || null);
+  }
+
+  setDirectHoveredComponent(componentId) {
+    const nextId = componentId && this.getDirectComponent(componentId) ? componentId : null;
+    if (this.directEdit.hoveredComponentId === nextId) return;
+    this.directEdit.hoveredComponentId = nextId;
+    this.root.classList.toggle("has-direct-hover", Boolean(nextId));
+    this.root.style.cursor = nextId ? "pointer" : "";
+    this.refreshDirectHighlight();
+    this.directEdit.onHover?.(nextId ? this.getDirectSelectionPayload(nextId, "hover") : null);
+  }
+
+  selectDirectComponentFromPointer(event) {
+    const component = this.resolveDirectHit(event);
+    if (!component) {
+      this.clearDirectSelection({ notifySelect: true });
+      return false;
+    }
+    if (component.role === "section" && this.sectionDesigner.active) {
+      const sectionIndex = Number(component.metadata?.index);
+      if (Number.isInteger(sectionIndex)) {
+        this.setSectionSelection(sectionIndex);
+        this.sectionDesigner.onSelect?.(sectionIndex);
+      }
+    }
+    return this.selectDirectComponent(component.id, {
+      source: event.pointerType === "touch" ? "touch" : "canvas",
+      pointer: { clientX: event.clientX, clientY: event.clientY }
+    });
+  }
+
+  selectDirectComponent(componentId, options = {}) {
+    const payload = this.getDirectSelectionPayload(componentId, options.source || "api", options.pointer);
+    if (!payload) return false;
+    this.directEdit.selectedComponentId = componentId;
+    this.root.classList.add("has-direct-selection");
+    this.refreshDirectHighlight();
+    this.notifyDirectAnchor();
+    this.directEdit.onSelect?.(payload);
+    return true;
+  }
+
+  setSelectedComponent(componentId) {
+    if (!componentId) {
+      this.clearDirectSelection();
+      return false;
+    }
+    const component = this.getDirectComponent(componentId);
+    if (!component || !DIRECT_EDITABLE_ROLES.has(component.role)) return false;
+    this.directEdit.selectedComponentId = component.id;
+    this.root.classList.add("has-direct-selection");
+    this.refreshDirectHighlight();
+    this.notifyDirectAnchor();
+    return true;
+  }
+
+  clearDirectSelection(options = {}) {
+    this.directEdit.hoveredComponentId = null;
+    this.directEdit.selectedComponentId = null;
+    this.root.classList.remove("has-direct-hover", "has-direct-selection");
+    this.root.style.cursor = "";
+    this.refreshDirectHighlight();
+    this.directEdit.onHover?.(null);
+    this.directEdit.onAnchorChange?.(null);
+    if (options.notifySelect) this.directEdit.onSelect?.(null);
+  }
+
+  clearDirectHighlightGroup() {
+    while (this.directHighlightGroup.children.length) {
+      const child = this.directHighlightGroup.children.pop();
+      disposeObject(child);
+    }
+  }
+
+  refreshDirectHighlight() {
+    if (!this.directHighlightGroup) return;
+    this.clearDirectHighlightGroup();
+    const selectedId = this.directEdit.selectedComponentId;
+    const hoveredId = this.directEdit.hoveredComponentId;
+    const componentId = selectedId || hoveredId;
+    const component = componentId ? this.getDirectComponent(componentId) : null;
+    if (!component || !this.lastLayout) {
+      this.requestRender();
+      return;
+    }
+    const box = descriptorBoundsToSceneBox(component.bounds, this.lastLayout.config.depth);
+    const helper = new THREE.Box3Helper(box, selectedId ? 0xc8954d : 0xd6aa69);
+    helper.material.transparent = true;
+    helper.material.opacity = selectedId ? 0.96 : 0.68;
+    helper.material.depthTest = false;
+    helper.renderOrder = 100;
+    helper.userData.nonPhysicalHelper = true;
+    this.directHighlightGroup.add(helper);
+
+    if (selectedId) {
+      const anchor = getDescriptorSelectionAnchor(component);
+      const sceneAnchor = descriptorPointToSceneVector(anchor, this.lastLayout.config.depth);
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(0.045, 0.072, 28),
+        new THREE.MeshBasicMaterial({
+          color: 0xc8954d,
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.95,
+          depthTest: false
+        })
+      );
+      ring.position.copy(sceneAnchor);
+      ring.quaternion.copy(this.camera.quaternion);
+      ring.renderOrder = 101;
+      ring.userData.nonPhysicalHelper = true;
+      this.directHighlightGroup.add(ring);
+    }
+    this.requestRender();
+  }
+
+  getComponentScreenAnchor(componentId) {
+    const component = this.getDirectComponent(componentId);
+    if (!component || !this.lastLayout) return null;
+    const rect = this.root.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    const anchor = descriptorPointToSceneVector(
+      getDescriptorSelectionAnchor(component),
+      this.lastLayout.config.depth
+    );
+    this.camera.updateMatrixWorld();
+    const projected = anchor.clone().project(this.camera);
+    return Object.freeze({
+      componentId,
+      x: (projected.x + 1) * rect.width / 2,
+      y: (1 - projected.y) * rect.height / 2,
+      visible: projected.z >= -1 && projected.z <= 1,
+      viewportWidth: rect.width,
+      viewportHeight: rect.height
+    });
+  }
+
+  getMeasurementProjection(options = {}) {
+    const root = this.getDirectComponent("bookcase")
+      || this.lastLayout?.components?.find((component) => component.role === "assembly");
+    if (!root || !this.lastLayout) return null;
+    const rect = this.root.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    const project = (point) => {
+      const vector = descriptorPointToSceneVector(point, this.lastLayout.config.depth);
+      this.camera.updateMatrixWorld();
+      vector.project(this.camera);
+      return {
+        x: (vector.x + 1) * rect.width / 2,
+        y: (1 - vector.y) * rect.height / 2,
+        visible: vector.z >= -1 && vector.z <= 1
+      };
+    };
+    const humanHeightIn = clamp(Number(options.humanHeightIn) || 72, 36, 96);
+    const frontZ = Number(this.lastLayout.metrics?.referencePlanes?.finishedFrontPlaneZ ?? root.bounds.min.z);
+    const dimensionX = root.bounds.min.x - Math.max(2, this.lastLayout.config.width * 0.025);
+    const humanX = root.bounds.max.x + Math.max(8, this.lastLayout.config.width * 0.08);
+    return Object.freeze({
+      overall: Object.freeze({
+        widthIn: this.lastLayout.config.width,
+        heightIn: this.lastLayout.config.height,
+        depthIn: this.lastLayout.config.depth
+      }),
+      heightLine: Object.freeze({
+        start: project({ x: dimensionX, y: root.bounds.min.y, z: frontZ }),
+        end: project({ x: dimensionX, y: root.bounds.max.y, z: frontZ })
+      }),
+      human: Object.freeze({
+        heightIn: humanHeightIn,
+        floor: project({ x: humanX, y: 0, z: frontZ }),
+        head: project({ x: humanX, y: humanHeightIn, z: frontZ })
+      }),
+      viewportWidth: rect.width,
+      viewportHeight: rect.height
+    });
+  }
+
+  notifyDirectAnchor() {
+    if (!this.directEdit.enabled || !this.directEdit.selectedComponentId) return;
+    this.directEdit.onAnchorChange?.(
+      this.getComponentScreenAnchor(this.directEdit.selectedComponentId)
+    );
+  }
+
   setView(view) {
     let theta = -0.14;
     let phi = 0.12;
-    if (view === "front") {
+    if (view === "front" || view === "reset") {
       theta = 0;
       phi = 0.08;
     } else if (view === "side") {
@@ -3802,6 +4821,37 @@ class BookcaseViewer3D {
       environmentScale: 1,
       exposure: 1.08
     }, { duration: SMART_CAMERA_DURATION });
+  }
+
+  ensureModelComfortablyFramed() {
+    if (!this.model?.children?.length) return false;
+    this.camera.updateMatrixWorld(true);
+    const bounds = new THREE.Box3().setFromObject(this.model);
+    if (bounds.isEmpty()) return false;
+    const rootRect = this.root.getBoundingClientRect();
+    if (!rootRect.width || !rootRect.height) return false;
+    const corners = [];
+    for (const x of [bounds.min.x, bounds.max.x]) {
+      for (const y of [bounds.min.y, bounds.max.y]) {
+        for (const z of [bounds.min.z, bounds.max.z]) corners.push(new THREE.Vector3(x, y, z).project(this.camera));
+      }
+    }
+    const envelope = corners.reduce((result, point) => ({
+      left: Math.min(result.left, (point.x + 1) * rootRect.width / 2),
+      right: Math.max(result.right, (point.x + 1) * rootRect.width / 2),
+      top: Math.min(result.top, (1 - point.y) * rootRect.height / 2),
+      bottom: Math.max(result.bottom, (1 - point.y) * rootRect.height / 2)
+    }), { left: Infinity, right: -Infinity, top: Infinity, bottom: -Infinity });
+    const horizontalPadding = Math.max(24, rootRect.width * 0.045);
+    const topPadding = Math.max(18, rootRect.height * 0.035);
+    const bottomPadding = Math.max(66, rootRect.height * 0.12);
+    const correctionNeeded = envelope.left < horizontalPadding
+      || envelope.right > rootRect.width - horizontalPadding
+      || envelope.top < topPadding
+      || envelope.bottom > rootRect.height - bottomPadding;
+    if (!correctionNeeded) return false;
+    this.setView("reset");
+    return true;
   }
 
   zoom(direction) {
@@ -3834,51 +4884,74 @@ class BookcaseViewer3D {
     const height = Math.max(1, rootRect.height);
     const insets = { top: 0, right: 0, bottom: 0, left: 0 };
     const container = this.root.closest(".configurator-model");
-    if (!container) return { width, height, insets };
+    if (container) {
+      const overlays = container.querySelectorAll([
+        ".configurator-experience-toolbar",
+        ".workspace-model-toolbar",
+        ".preview-heading > div",
+        ".preview-control-dock",
+        ":scope > .cabinet-ar-launch"
+      ].join(","));
+      overlays.forEach((overlay) => {
+        const style = window.getComputedStyle(overlay);
+        if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return;
+        const rect = overlay.getBoundingClientRect();
+        const intersection = {
+          left: Math.max(rootRect.left, rect.left),
+          right: Math.min(rootRect.right, rect.right),
+          top: Math.max(rootRect.top, rect.top),
+          bottom: Math.min(rootRect.bottom, rect.bottom)
+        };
+        const overlapWidth = intersection.right - intersection.left;
+        const overlapHeight = intersection.bottom - intersection.top;
+        if (overlapWidth <= 0 || overlapHeight <= 0) return;
 
-    const overlays = container.querySelectorAll([
-      ".configurator-experience-toolbar",
-      ".preview-heading > div",
-      ".preview-control-dock",
-      ":scope > .cabinet-ar-launch"
-    ].join(","));
-    overlays.forEach((overlay) => {
-      const style = window.getComputedStyle(overlay);
-      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return;
-      const rect = overlay.getBoundingClientRect();
-      const intersection = {
-        left: Math.max(rootRect.left, rect.left),
-        right: Math.min(rootRect.right, rect.right),
-        top: Math.max(rootRect.top, rect.top),
-        bottom: Math.min(rootRect.bottom, rect.bottom)
-      };
-      const overlapWidth = intersection.right - intersection.left;
-      const overlapHeight = intersection.bottom - intersection.top;
-      if (overlapWidth <= 0 || overlapHeight <= 0) return;
+        const edgeTolerance = Math.max(18, Math.min(width, height) * 0.04);
+        const touchesTop = intersection.top <= rootRect.top + edgeTolerance;
+        const touchesRight = intersection.right >= rootRect.right - edgeTolerance;
+        const touchesBottom = intersection.bottom >= rootRect.bottom - edgeTolerance;
+        const touchesLeft = intersection.left <= rootRect.left + edgeTolerance;
+        const horizontalOverlay = overlapWidth >= width * 0.32;
+        const verticalOverlay = overlapHeight >= height * 0.16;
+        const gap = Math.max(8, Math.min(width, height) * 0.018);
 
-      const edgeTolerance = Math.max(18, Math.min(width, height) * 0.04);
-      const touchesTop = intersection.top <= rootRect.top + edgeTolerance;
-      const touchesRight = intersection.right >= rootRect.right - edgeTolerance;
-      const touchesBottom = intersection.bottom >= rootRect.bottom - edgeTolerance;
-      const touchesLeft = intersection.left <= rootRect.left + edgeTolerance;
-      const horizontalOverlay = overlapWidth >= width * 0.32;
-      const verticalOverlay = overlapHeight >= height * 0.16;
-      const gap = Math.max(8, Math.min(width, height) * 0.018);
-
-      if (touchesTop && overlapWidth >= Math.min(120, width * 0.16)) {
-        insets.top = Math.max(insets.top, intersection.bottom - rootRect.top + gap);
-      }
-      if (touchesBottom && horizontalOverlay) {
-        insets.bottom = Math.max(insets.bottom, rootRect.bottom - intersection.top + gap);
-      }
-      if (touchesRight && verticalOverlay && !horizontalOverlay) {
-        insets.right = Math.max(insets.right, rootRect.right - intersection.left + gap);
-      }
-      if (touchesLeft && verticalOverlay && !horizontalOverlay) {
-        insets.left = Math.max(insets.left, intersection.right - rootRect.left + gap);
-      }
+        if (touchesTop && overlapWidth >= Math.min(120, width * 0.16)) {
+          insets.top = Math.max(insets.top, intersection.bottom - rootRect.top + gap);
+        }
+        if (touchesBottom && horizontalOverlay) {
+          insets.bottom = Math.max(insets.bottom, rootRect.bottom - intersection.top + gap);
+        }
+        if (touchesRight && verticalOverlay && !horizontalOverlay) {
+          insets.right = Math.max(insets.right, rootRect.right - intersection.left + gap);
+        }
+        if (touchesLeft && verticalOverlay && !horizontalOverlay) {
+          insets.left = Math.max(insets.left, intersection.right - rootRect.left + gap);
+        }
+      });
+    }
+    const localBounds = Object.freeze({
+      left: insets.left,
+      top: insets.top,
+      right: Math.max(insets.left, width - insets.right),
+      bottom: Math.max(insets.top, height - insets.bottom),
+      width: Math.max(0, width - insets.left - insets.right),
+      height: Math.max(0, height - insets.top - insets.bottom)
     });
-    return { width, height, insets };
+    const clientBounds = Object.freeze({
+      left: rootRect.left + localBounds.left,
+      top: rootRect.top + localBounds.top,
+      right: rootRect.left + localBounds.right,
+      bottom: rootRect.top + localBounds.bottom,
+      width: localBounds.width,
+      height: localBounds.height
+    });
+    return Object.freeze({
+      width,
+      height,
+      insets: Object.freeze({ ...insets }),
+      localBounds,
+      clientBounds
+    });
   }
 
   focus(profileKey = "overview", options = {}) {
@@ -4276,7 +5349,7 @@ class BookcaseViewer3D {
     this.sectionDesigner.selectedIndex = Number(index) || 0;
     this.sectionInteractionLayer.children.forEach((mesh) => {
       const selected = mesh.userData.sectionIndex === this.sectionDesigner.selectedIndex;
-      mesh.material.opacity = selected ? 0.15 : 0.012;
+      mesh.material.opacity = selected ? 0.08 : 0.008;
       mesh.material.color.setHex(selected ? 0xb88a52 : 0xd8c4a8);
     });
     this.updateSectionOverlaySelection();
@@ -4297,7 +5370,7 @@ class BookcaseViewer3D {
       const material = new THREE.MeshBasicMaterial({
         color: section.metadata.index === this.sectionDesigner.selectedIndex ? 0xb88a52 : 0xd8c4a8,
         transparent: true,
-        opacity: section.metadata.index === this.sectionDesigner.selectedIndex ? 0.15 : 0.012,
+        opacity: section.metadata.index === this.sectionDesigner.selectedIndex ? 0.08 : 0.008,
         depthWrite: false,
         side: THREE.DoubleSide
       });
@@ -4339,11 +5412,11 @@ class BookcaseViewer3D {
     const signature = sections.map((section) => section.id).join("|");
     if (signature !== this.sectionDesigner.overlaySignature) {
       const labels = sections.map((section, index) => `
-        <span class="section-dimension" data-overlay-section="${index}" aria-hidden="true">
+        <span class="section-dimension" data-overlay-section="${index}">
           <i class="dimension-line" aria-hidden="true"></i>
           <i class="dimension-tick is-start" aria-hidden="true"></i>
           <i class="dimension-tick is-end" aria-hidden="true"></i>
-          <span class="dimension-label"><strong data-section-dimension-value></strong><small>clear</small></span>
+          <button type="button" class="dimension-label" data-overlay-section-select="${index}" aria-label="Select Section ${index + 1}"><strong data-section-dimension-value></strong><small>clear</small></button>
         </span>
       `).join("");
       const handles = sections.slice(0, -1).map((section, index) => `
@@ -4360,6 +5433,16 @@ class BookcaseViewer3D {
           <i class="dimension-tick is-end" aria-hidden="true"></i>
           <span class="dimension-label"><strong data-overall-dimension-value></strong><small>overall</small></span>
         </div>
+        <div class="overall-height-dimension" aria-hidden="true">
+          <i class="dimension-line" aria-hidden="true"></i>
+          <i class="dimension-tick is-start" aria-hidden="true"></i>
+          <i class="dimension-tick is-end" aria-hidden="true"></i>
+          <span class="dimension-label"><strong data-overall-height-value></strong><small>height</small></span>
+        </div>
+        <div class="overall-depth-dimension" aria-hidden="true">
+          <i class="dimension-line" aria-hidden="true"></i>
+          <span class="dimension-label"><strong data-overall-depth-value></strong><small>depth</small></span>
+        </div>
         <div class="section-divider-layer">${handles}</div>
       `;
       this.sectionDesigner.overlaySignature = signature;
@@ -4373,7 +5456,11 @@ class BookcaseViewer3D {
     });
     const overallValue = this.sectionOverlay.querySelector("[data-overall-dimension-value]");
     if (overallValue) overallValue.textContent = `${formatSectionWidth(layout.metrics.overallWidth)} in`;
-    this.sectionOverlay.hidden = false;
+    const overallHeightValue = this.sectionOverlay.querySelector("[data-overall-height-value]");
+    if (overallHeightValue) overallHeightValue.textContent = `${formatSectionWidth(layout.config.height)} in`;
+    const overallDepthValue = this.sectionOverlay.querySelector("[data-overall-depth-value]");
+    if (overallDepthValue) overallDepthValue.textContent = `${formatSectionWidth(layout.config.depth)} in`;
+    this.sectionOverlay.hidden = !this.dimensionsVisible;
     this.updateSectionOverlaySelection();
     this.updateSectionOverlayProjection();
   }
@@ -4446,16 +5533,17 @@ class BookcaseViewer3D {
     const topY = Number(root.bounds.max.y) || Number(layout.config.height) || 0;
     const outsideLeftPoint = this.projectLayoutPoint(layout, root.bounds.min.x, baseY, frontZ, rootRect);
     const outsideRightPoint = this.projectLayoutPoint(layout, root.bounds.max.x, baseY, frontZ, rootRect);
+    const outsideTopLeftPoint = this.projectLayoutPoint(layout, root.bounds.min.x, topY, frontZ, rootRect);
+    const outsideTopRightPoint = this.projectLayoutPoint(layout, root.bounds.max.x, topY, frontZ, rootRect);
     const outsideLeft = Math.min(outsideLeftPoint.x, outsideRightPoint.x);
     const outsideRight = Math.max(outsideLeftPoint.x, outsideRightPoint.x);
     const projectedWidth = Math.max(1, outsideRight - outsideLeft);
     const safeViewport = this.getSafeViewport();
     const desiredSectionY = Math.max(outsideLeftPoint.y, outsideRightPoint.y) + 20;
-    const desiredOverallY = desiredSectionY + 44;
-    const maximumOverallY = rootRect.height - Math.max(16, safeViewport.insets.bottom || 0) - 16;
-    const verticalShift = Math.min(0, maximumOverallY - desiredOverallY);
+    const overallY = Math.max(18, Math.min(outsideTopLeftPoint.y, outsideTopRightPoint.y) - 38);
+    const maximumSectionY = rootRect.height - Math.max(24, safeViewport.insets.bottom || 0) - 34;
+    const verticalShift = Math.min(0, maximumSectionY - desiredSectionY);
     const sectionY = desiredSectionY + verticalShift;
-    const overallY = desiredOverallY + verticalShift;
     const frontality = Math.abs(Math.cos(this.theta));
     const enoughProjectedWidth = projectedWidth >= Math.max(150, rootRect.width * 0.24);
     const hasMeasurementRoom = sectionY >= Math.max(outsideLeftPoint.y, outsideRightPoint.y) + 8;
@@ -4493,14 +5581,20 @@ class BookcaseViewer3D {
       projectedSegments.push(segment);
     });
 
-    const labelsOverlap = projectedSegments.some((segment, index) => {
+    const measureLabelOverlap = () => projectedSegments.some((segment, index) => {
       const next = projectedSegments[index + 1];
       if (!next) return false;
       const currentLabel = segment.querySelector(".dimension-label")?.getBoundingClientRect();
       const nextLabel = next.querySelector(".dimension-label")?.getBoundingClientRect();
       return Boolean(currentLabel && nextLabel && currentLabel.right > nextLabel.left + 0.5);
     });
-    this.sectionOverlay.classList.toggle("has-label-collisions", labelsOverlap);
+    this.sectionOverlay.classList.remove("has-label-collisions", "has-unresolved-label-collisions");
+    void this.sectionOverlay.offsetWidth;
+    const needsLabelCompaction = measureLabelOverlap();
+    this.sectionOverlay.classList.toggle("has-label-collisions", needsLabelCompaction);
+    if (needsLabelCompaction) void this.sectionOverlay.offsetWidth;
+    const labelsOverlap = measureLabelOverlap();
+    this.sectionOverlay.classList.toggle("has-unresolved-label-collisions", labelsOverlap);
     this.sectionOverlay.dataset.labelCollision = String(labelsOverlap);
 
     const overall = this.sectionOverlay.querySelector(".overall-dimension");
@@ -4632,8 +5726,11 @@ class BookcaseViewer3D {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
-    if (this.model?.children?.length) this.frameModel(true, this.activeFocusKey !== "overview");
-    else this.updateSectionOverlayProjection();
+    if (this.model?.children?.length) {
+      this.frameModel(true, this.activeFocusKey !== "overview");
+      if (this.activeFocusKey === "overview") this.ensureModelComfortablyFramed();
+    } else this.updateSectionOverlayProjection();
+    this.notifyDirectAnchor();
   }
 
   update(nextState, precomputedLayout = null, changedFields = null) {
@@ -4646,8 +5743,10 @@ class BookcaseViewer3D {
     const candidateState = normalizeBookcaseConfig(nextState);
     const changes = Array.isArray(changedFields) ? changedFields : getChangedConfigFields(previousState, candidateState);
 
-    if (this.model?.children?.length && this.applyPartialUpdate(previousState, candidateState, changes)) {
+    if (this.model?.children?.length && this.applyPartialUpdate(previousState, candidateState, changes, precomputedLayout)) {
       this.state = candidateState;
+      this.lastRejectedRenderAudit = null;
+      this.root.dataset.renderCandidateValid = "true";
       this.updateCount += 1;
       this.partialUpdateCount += 1;
       if (externalUpdate) this.resetSectionPreviewTransaction();
@@ -4664,8 +5763,12 @@ class BookcaseViewer3D {
       this.updateModelFrameMetrics();
       this.restoreCameraState(cameraSnapshot, { preserveFrameMetrics: true });
       this.refreshComponentHighlight();
+      this.refreshDirectHighlight();
+      this.notifyDirectAnchor();
     } else {
       this.frameModel(true, hadModel);
+      this.refreshDirectHighlight();
+      this.notifyDirectAnchor();
     }
     if (externalUpdate) this.resetSectionPreviewTransaction();
     return true;
@@ -4683,7 +5786,9 @@ class BookcaseViewer3D {
   preview(nextState, precomputedLayout, sourceField) {
     this.previewActive = true;
     this.previewCount += 1;
-    this.update(nextState, precomputedLayout, [sourceField]);
+    const applied = this.update(nextState, precomputedLayout, [sourceField]);
+    if (applied === false) this.previewActive = false;
+    return applied;
   }
 
   restorePreview(canonicalState, canonicalLayout) {
@@ -4693,7 +5798,7 @@ class BookcaseViewer3D {
     this.update(canonicalState, canonicalLayout, changedFields);
   }
 
-  applyPartialUpdate(previousState, nextState, changedFields) {
+  applyPartialUpdate(previousState, nextState, changedFields, precomputedLayout = null) {
     const changed = new Set(changedFields);
     const nonVisualFields = new Set(["layoutPreset", "doorCount", "installation", "delivery"]);
     if (changed.size > 0 && [...changed].every((field) => nonVisualFields.has(field))) {
@@ -4718,6 +5823,13 @@ class BookcaseViewer3D {
       this.applyHardwareMaterial(nextState.hardware);
       this.refreshComponentHighlight();
       return true;
+    }
+    if (
+      changed.size > 0
+      && [...changed].every((field) => ["hardware", "hardwareSelections"].includes(field))
+      && precomputedLayout?.validation?.valid
+    ) {
+      return this.applyHardwareDescriptorLayout(precomputedLayout, nextState);
     }
     return false;
   }
@@ -4751,6 +5863,213 @@ class BookcaseViewer3D {
     this.requestRender();
   }
 
+  applyHardwareDescriptorLayout(nextLayout, nextState) {
+    const componentGroups = this.model.userData?.componentGroups;
+    const materials = this.model.userData?.materials;
+    if (!(componentGroups instanceof Map) || !materials) return false;
+    const previousLayout = this.lastLayout;
+    const currentHandles = (this.lastLayout?.components || []).filter((component) => component.role === "handle");
+    const nextHandles = (nextLayout.components || []).filter((component) => component.role === "handle");
+    const currentIds = currentHandles.map((component) => component.id).sort();
+    const nextIds = nextHandles.map((component) => component.id).sort();
+
+    const replacements = new Map();
+    const replacementRecords = [];
+    const depth = inchesToUnits(nextLayout.config.depth);
+    for (const component of nextHandles) {
+      const replacement = new THREE.Group();
+      replacement.name = component.id;
+      replacement.userData = {
+        componentId: component.id,
+        role: component.role,
+        parentId: component.parentId,
+        hostId: component.hostId,
+        sectionId: getDescriptorSectionId(nextLayout, component),
+        editableKind: "hardware",
+        selectionAnchor: getDescriptorSelectionAnchor(component),
+        bounds: component.bounds,
+        edgeLine: materials.edgeLine
+      };
+      renderLayoutComponent(replacement, this.model, component, nextState, materials, depth);
+      replacement.updateMatrixWorld(true);
+      const record = collectOwnedMeshRecord(replacement, component.id);
+      if (!record) {
+        disposeDirectReplacement(replacement);
+        replacements.forEach(disposeDirectReplacement);
+        return false;
+      }
+      addDirectEditHitProxy(replacement, component, nextLayout.config.depth);
+      replacements.set(component.id, replacement);
+      replacementRecords.push(record);
+    }
+
+    const changedHandleIds = new Set([...currentIds, ...nextIds]);
+    const retainedRecords = (this.model.userData.renderRecords || [])
+      .filter((record) => !changedHandleIds.has(record.componentId));
+    const candidateRecords = [...retainedRecords, ...replacementRecords];
+    const audit = validateRenderedManifest(nextLayout, candidateRecords);
+    if (!audit.valid) {
+      this.lastRejectedRenderAudit = audit;
+      this.root.dataset.renderCandidateValid = "false";
+      replacements.forEach(disposeDirectReplacement);
+      return false;
+    }
+
+    this.clearComponentHighlight();
+    const nextHandleIds = new Set(nextIds);
+    for (const component of currentHandles) {
+      if (nextHandleIds.has(component.id)) continue;
+      const target = componentGroups.get(component.id);
+      target?.parent?.remove?.(target);
+      disposeDirectReplacement(target);
+      componentGroups.delete(component.id);
+    }
+    for (const component of nextHandles) {
+      const target = componentGroups.get(component.id);
+      const replacement = replacements.get(component.id);
+      if (target) {
+        disposeDirectReplacement(target);
+        while (replacement.children.length) target.add(replacement.children[0]);
+        target.userData = { ...target.userData, ...replacement.userData };
+      } else {
+        const parent = componentGroups.get(component.parentId) || this.model;
+        parent.add(replacement);
+        componentGroups.set(component.id, replacement);
+      }
+    }
+    this.lastLayout = nextLayout;
+    this.model.userData.layout = nextLayout;
+    this.model.userData.renderRecords = candidateRecords;
+    this.model.userData.renderAudit = audit;
+    this.lastRenderAudit = audit;
+    this.lastRejectedRenderAudit = null;
+    this.root.dataset.renderCandidateValid = "true";
+    this.model.updateMatrixWorld(true);
+    this.reconcileDirectSelection(previousLayout, nextLayout, {
+      notify: !this.previewActive && !this.applyingSectionPreview
+    });
+    this.refreshComponentHighlight();
+    this.refreshDirectHighlight();
+    this.notifyDirectAnchor();
+    this.requestRender();
+    return true;
+  }
+
+  resolveDirectSelectionForLayout(componentId, previousLayout, nextLayout) {
+    if (!componentId || !Array.isArray(nextLayout?.components)) return null;
+    const nextComponents = nextLayout.components;
+    const nextIndex = new Map(nextComponents.map((component) => [component.id, component]));
+    const exact = nextIndex.get(componentId);
+    if (exact && DIRECT_EDITABLE_ROLES.has(exact.role)) return exact.id;
+
+    const previous = previousLayout?.components?.find((component) => component.id === componentId);
+    if (!previous) return null;
+    const editable = nextComponents.filter((component) => DIRECT_EDITABLE_ROLES.has(component.role));
+    const previousSectionId = previous.metadata?.sectionId
+      || getDescriptorSectionId(previousLayout, previous);
+
+    if (previous.role === "divider") {
+      const boundaryIndex = Number(previous.metadata?.boundaryIndex);
+      const divider = editable.find((component) => (
+        component.role === "divider"
+        && Number(component.metadata?.boundaryIndex) === boundaryIndex
+      ));
+      if (divider) return divider.id;
+    }
+
+    if (previous.role === "side_panel") {
+      const sidePanel = editable.find((component) => (
+        component.role === "side_panel"
+        && component.metadata?.side === previous.metadata?.side
+      ));
+      if (sidePanel) return sidePanel.id;
+    }
+
+    if (["base", "trim"].includes(previous.role)) {
+      return editable.find((component) => component.role === previous.role)?.id
+        || editable.find((component) => component.role === "base")?.id
+        || null;
+    }
+    if (["crown", "top_panel"].includes(previous.role)) {
+      return editable.find((component) => component.role === previous.role)?.id
+        || editable.find((component) => component.role === "crown")?.id
+        || editable.find((component) => component.role === "top_panel")?.id
+        || null;
+    }
+
+    if (previous.role === "light" && previousSectionId) {
+      const sameSectionLight = editable.find((component) => (
+        component.role === "light"
+        && (component.metadata?.sectionId || getDescriptorSectionId(nextLayout, component)) === previousSectionId
+      ));
+      if (sameSectionLight) return sameSectionLight.id;
+    }
+
+    if (["section", "divider"].includes(previous.role)) return null;
+
+    if (previous.hostId) {
+      const sameHostedRole = editable.find((component) => (
+        component.role === previous.role && component.hostId === previous.hostId
+      ));
+      if (sameHostedRole) return sameHostedRole.id;
+      const host = nextIndex.get(previous.hostId);
+      if (host && DIRECT_EDITABLE_ROLES.has(host.role)) return host.id;
+    }
+
+    if (previousSectionId) {
+      const sameSectionRole = editable.find((component) => (
+        component.role === previous.role
+        && (component.metadata?.sectionId || getDescriptorSectionId(nextLayout, component)) === previousSectionId
+      ));
+      if (sameSectionRole && ["light", "handle"].includes(previous.role)) return sameSectionRole.id;
+      const section = nextIndex.get(previousSectionId);
+      if (section && DIRECT_EDITABLE_ROLES.has(section.role)) return section.id;
+    }
+
+    if (previous.role === "assembly") {
+      return editable.find((component) => component.role === "assembly")?.id || null;
+    }
+    return null;
+  }
+
+  reconcileDirectSelection(previousLayout, nextLayout, options = {}) {
+    const previousSelectedId = this.directEdit.selectedComponentId;
+    const nextSelectedId = this.resolveDirectSelectionForLayout(
+      previousSelectedId,
+      previousLayout,
+      nextLayout
+    );
+    const previousHoveredId = this.directEdit.hoveredComponentId;
+    const nextHoveredId = previousHoveredId
+      && nextLayout?.components?.some((component) => (
+        component.id === previousHoveredId && DIRECT_EDITABLE_ROLES.has(component.role)
+      ))
+      ? previousHoveredId
+      : null;
+
+    this.directEdit.selectedComponentId = nextSelectedId;
+    this.directEdit.hoveredComponentId = nextHoveredId;
+    this.root.classList.toggle("has-direct-selection", Boolean(nextSelectedId));
+    this.root.classList.toggle("has-direct-hover", Boolean(nextHoveredId));
+    this.root.style.cursor = nextHoveredId ? "pointer" : "";
+
+    if (previousHoveredId && !nextHoveredId) this.directEdit.onHover?.(null);
+    if (previousSelectedId && previousSelectedId !== nextSelectedId && options.notify !== false) {
+      queueMicrotask(() => {
+        if (
+          this.destroyed
+          || this.lastLayout !== nextLayout
+          || this.directEdit.selectedComponentId !== nextSelectedId
+        ) return;
+        this.directEdit.onSelect?.(
+          nextSelectedId ? this.getDirectSelectionPayload(nextSelectedId, "api") : null
+        );
+        if (!nextSelectedId) this.directEdit.onAnchorChange?.(null);
+      });
+    }
+    return nextSelectedId;
+  }
+
   applyLightingWarmth(warmth) {
     const materials = this.model.userData.materials;
     const color = getLightingTemperatureColor(warmth);
@@ -4777,8 +6096,8 @@ class BookcaseViewer3D {
     const widthDistance = size.x / (2 * Math.tan(horizontalFov / 2));
     const depthAllowance = size.z * 0.58;
     const compactAspect = (this.camera.aspect || 1) < 0.85;
-    this.baseRadius = Math.max(heightDistance, widthDistance) * (compactAspect ? 1.28 : 1.21) + depthAllowance;
-    this.overviewTarget.set(center.x, center.y + size.y * (compactAspect ? 0.01 : -0.025), center.z);
+    this.baseRadius = Math.max(heightDistance, widthDistance) * (compactAspect ? 1.34 : 1.32) + depthAllowance;
+    this.overviewTarget.set(center.x, center.y + size.y * (compactAspect ? 0.01 : 0.015), center.z);
     this.focusTargetCache.clear();
   }
 
@@ -4801,15 +6120,17 @@ class BookcaseViewer3D {
 
   rebuildModel(nextState, precomputedLayout = null) {
     this.clearComponentHighlight();
+    const previousLayout = this.lastLayout;
     const nextModel = buildBookcaseModel(nextState, precomputedLayout);
-    this.lastLayout = nextModel.userData.layout;
-    this.lastRenderAudit = nextModel.userData.renderAudit;
-    const layoutValid = Boolean(this.lastLayout?.validation?.valid);
-    const renderValid = Boolean(this.lastRenderAudit?.valid);
+    const candidateLayout = nextModel.userData.layout;
+    const candidateRenderAudit = nextModel.userData.renderAudit;
+    const layoutValid = Boolean(candidateLayout?.validation?.valid);
+    const renderValid = Boolean(candidateRenderAudit?.valid);
     if (!layoutValid || !renderValid) {
-      this.root.dataset.renderValid = "false";
-      if (this.lastRenderAudit?.issues?.length) {
-        console.error("JQ Bookcases render contract rejected a model", this.lastRenderAudit.issues);
+      this.lastRejectedRenderAudit = candidateRenderAudit;
+      this.root.dataset.renderCandidateValid = "false";
+      if (candidateRenderAudit?.issues?.length) {
+        console.error("JQ Bookcases render contract rejected a model", candidateRenderAudit.issues);
       }
       disposeMaterialSet(nextModel.userData?.materials);
       disposeObject(nextModel);
@@ -4820,11 +6141,18 @@ class BookcaseViewer3D {
     disposeObject(this.model);
     this.model = nextModel;
     this.scene.add(this.model);
+    this.lastLayout = candidateLayout;
+    this.lastRenderAudit = candidateRenderAudit;
+    this.lastRejectedRenderAudit = null;
+    this.reconcileDirectSelection(previousLayout, candidateLayout, {
+      notify: !this.previewActive && !this.applyingSectionPreview
+    });
     this.updateConstructionInspector(this.lastLayout);
     if (this.sectionDesigner.active) this.refreshSectionInteractionLayer(this.lastLayout);
     this.rebuildCount += 1;
     this.focusTargetCache.clear();
     this.root.dataset.renderValid = "true";
+    this.root.dataset.renderCandidateValid = "true";
     this.root.dataset.renderComponents = String(this.lastRenderAudit.renderedCount || 0);
     this.root.dataset.renderExpected = String(this.lastRenderAudit.expectedCount || 0);
     return true;
@@ -4968,6 +6296,10 @@ class BookcaseViewer3D {
     );
     this.camera.lookAt(this.target);
     this.updateSectionOverlayProjection();
+    if (this.directEdit.selectedComponentId) {
+      this.refreshDirectHighlight();
+      this.notifyDirectAnchor();
+    }
     this.requestRender();
   }
 
@@ -5016,6 +6348,10 @@ class BookcaseViewer3D {
   }
 
   getDiagnostics() {
+    let directHitProxyCount = 0;
+    this.model?.traverse?.((object) => {
+      if (object.userData?.directEditHitProxy) directHitProxyCount += 1;
+    });
     return {
       instanceId: this.instanceId,
       updateCount: this.updateCount,
@@ -5032,6 +6368,15 @@ class BookcaseViewer3D {
       controlsEnabled: !this.destroyed,
       reducedMotion: Boolean(this.reducedMotionQuery?.matches),
       canvasConnected: Boolean(this.renderer.domElement?.isConnected),
+      interactionTool: this.activeTool,
+      dimensionsVisible: this.dimensionsVisible,
+      wallVisible: this.wallVisible,
+      directEditing: {
+        enabled: this.directEdit.enabled,
+        hoveredComponentId: this.directEdit.hoveredComponentId,
+        selectedComponentId: this.directEdit.selectedComponentId,
+        hitProxyCount: directHitProxyCount
+      },
       constructionDebug: this.constructionDebugEnabled ? {
         ...this.constructionDebugState,
         profile: this.lastLayout?.config?.constructionProfile,
@@ -5039,6 +6384,7 @@ class BookcaseViewer3D {
         validationIssues: this.lastLayout?.validation?.issues || []
       } : null,
       renderAudit: this.lastRenderAudit,
+      rejectedRenderAudit: this.lastRejectedRenderAudit,
       webgl: {
         geometries: this.renderer.info.memory.geometries || 0,
         textures: this.renderer.info.memory.textures || 0,
@@ -5072,6 +6418,116 @@ class BookcaseViewer3D {
   }
 }
 
+function getDescriptorSectionId(layout, component, index = null) {
+  if (!layout?.components || !component) return null;
+  const componentIndex = index || new Map(layout.components.map((item) => [item.id, item]));
+  let current = component;
+  const visited = new Set();
+  while (current && !visited.has(current.id)) {
+    visited.add(current.id);
+    if (current.role === "section") return current.id;
+    const nextId = current.parentId || current.hostId;
+    current = nextId ? componentIndex.get(nextId) : null;
+  }
+  return null;
+}
+
+function getDescriptorSelectionAnchor(component) {
+  const semantic = component?.metadata?.selectionAnchor
+    || component?.metadata?.mountingCenter
+    || component?.metadata?.mountingCenters?.[0];
+  if (semantic && [semantic.x, semantic.y, semantic.z].every(Number.isFinite)) {
+    return { x: semantic.x, y: semantic.y, z: semantic.z };
+  }
+  const bounds = component?.bounds;
+  if (!bounds) return { x: 0, y: 0, z: 0 };
+  return {
+    x: (bounds.min.x + bounds.max.x) / 2,
+    y: (bounds.min.y + bounds.max.y) / 2,
+    z: bounds.min.z
+  };
+}
+
+function descriptorPointToSceneVector(point, bookcaseDepth) {
+  return new THREE.Vector3(
+    inchesToUnits(point.x),
+    inchesToUnits(point.y),
+    inchesToUnits(bookcaseDepth) / 2 - inchesToUnits(point.z)
+  );
+}
+
+function descriptorBoundsToSceneBox(value, bookcaseDepth) {
+  const depth = inchesToUnits(bookcaseDepth);
+  return new THREE.Box3(
+    new THREE.Vector3(
+      inchesToUnits(value.min.x),
+      inchesToUnits(value.min.y),
+      depth / 2 - inchesToUnits(value.max.z)
+    ),
+    new THREE.Vector3(
+      inchesToUnits(value.max.x),
+      inchesToUnits(value.max.y),
+      depth / 2 - inchesToUnits(value.min.z)
+    )
+  );
+}
+
+function addDirectEditHitProxy(group, component, bookcaseDepth) {
+  if (component.role === "assembly") return;
+  if (!["handle", "section", "divider", "light"].includes(component.role)) {
+    group.traverse((object) => {
+      if (object.isMesh && !object.userData?.nonPhysicalHelper) object.layers.enable(DIRECT_EDIT_LAYER);
+    });
+    return;
+  }
+  const box = descriptorBoundsToSceneBox(component.bounds, bookcaseDepth);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  if (component.role === "handle") {
+    size.x = Math.max(size.x, 0.28);
+    size.y = Math.max(size.y, 0.28);
+    size.z = Math.max(size.z, 0.24);
+  } else if (component.role === "divider") {
+    size.x = Math.max(size.x, 0.16);
+    size.z = Math.max(size.z, 0.12);
+  } else if (component.role === "light") {
+    size.x = Math.max(size.x, 0.12);
+    size.y = Math.max(size.y, 0.12);
+    size.z = Math.max(size.z, 0.12);
+  }
+  const proxyMaterial = new THREE.MeshBasicMaterial({
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    colorWrite: false
+  });
+  proxyMaterial.userData.directHitProxyMaterial = true;
+  const proxy = new THREE.Mesh(
+    new THREE.BoxGeometry(size.x, size.y, size.z),
+    proxyMaterial
+  );
+  proxy.name = `${component.id}-direct-edit-hit-proxy`;
+  proxy.position.copy(center);
+  proxy.layers.set(DIRECT_EDIT_LAYER);
+  proxy.userData = {
+    nonPhysicalHelper: true,
+    directEditHitProxy: true,
+    componentId: component.id,
+    role: component.role,
+    hostId: component.hostId,
+    sectionId: component.metadata?.sectionId || null,
+    editableKind: DIRECT_EDIT_KIND_BY_ROLE[component.role] || null
+  };
+  group.add(proxy);
+}
+
+function formatDirectComponentLabel(component) {
+  const role = String(component?.role || "component").replace(/_/g, " ");
+  const sectionId = component?.metadata?.sectionId || "";
+  const ordinal = sectionId.match(/(\d+)$/)?.[1];
+  return `${role.replace(/\b\w/g, (letter) => letter.toUpperCase())}${ordinal ? ` in section ${Number(ordinal)}` : ""}`;
+}
+
 function buildBookcaseModel(state, precomputedLayout = null) {
   const config = normalizeBookcaseConfig(state);
   const layout = precomputedLayout || generateBookcaseLayout(config);
@@ -5092,8 +6548,10 @@ function buildBookcaseModel(state, precomputedLayout = null) {
 
   const depth = inchesToUnits(layout.config.depth);
   const logicalRoles = new Set(["assembly", "section", "section_group", "opening"]);
+  const descriptorIndex = new Map(layout.components.map((component) => [component.id, component]));
   const componentGroups = new Map();
   componentGroups.set("bookcase", group);
+  group.userData.componentGroups = componentGroups;
 
   layout.components.forEach((component) => {
     if (component.role === "assembly") {
@@ -5107,6 +6565,9 @@ function buildBookcaseModel(state, precomputedLayout = null) {
       role: component.role,
       parentId: component.parentId,
       hostId: component.hostId,
+      sectionId: getDescriptorSectionId(layout, component, descriptorIndex),
+      editableKind: DIRECT_EDIT_KIND_BY_ROLE[component.role] || null,
+      selectionAnchor: getDescriptorSelectionAnchor(component),
       bounds: component.bounds,
       edgeLine: materials.edgeLine
     };
@@ -5131,6 +6592,12 @@ function buildBookcaseModel(state, precomputedLayout = null) {
     const renderRecords = collectRenderedComponentRecords(layout, componentGroups);
     group.userData.renderRecords = renderRecords;
     group.userData.renderAudit = validateRenderedManifest(layout, renderRecords);
+    layout.components.forEach((component) => {
+      if (!DIRECT_EDITABLE_ROLES.has(component.role)) return;
+      const componentGroup = componentGroups.get(component.id);
+      if (componentGroup) addDirectEditHitProxy(componentGroup, component, layout.config.depth);
+    });
+    group.updateMatrixWorld(true);
   } else {
     group.userData.renderAudit = {
       valid: false,
@@ -5246,37 +6713,122 @@ function resolveRenderedFrontSemantics(component, descriptorCenterZ, descriptorD
 }
 
 function renderDescriptorHandle(group, component, config, materials, size, position) {
-  const hardwareType = component.metadata?.hardware || config.hardware;
-  if (hardwareType === "push_latch") return;
+  const hardwareToken = component.metadata?.hardware || config.hardware;
+  if (hardwareToken === "push_latch") return;
   const orientation = component.metadata?.orientation || (size[0] > size[1] ? "horizontal" : "vertical");
-  const isPull = getHardwareShape(hardwareType) === "pull";
+  const category = component.metadata?.category
+    || component.metadata?.hardwareCategory
+    || component.metadata?.variantSnapshot?.category
+    || component.metadata?.snapshot?.category
+    || null;
+  const hardwareType = component.metadata?.hardwareType || getHardwareShape(hardwareToken);
+  const isPull = hardwareType === "pull" || Boolean(category && !["round_knob", "t_bar_knob", "cabinet_latch"].includes(category));
+  const material = getDescriptorHardwareMaterial(materials, component, hardwareToken);
+  const sceneMountCenters = descriptorMountCentersToScene(
+    component.metadata?.mountingCenters || [],
+    component.position,
+    position
+  );
+
+  if (["edge_pull", "tab_pull"].includes(category)) {
+    const edge = new THREE.Mesh(
+      new THREE.BoxGeometry(size[0] * 0.94, size[1] * 0.82, size[2] * 0.72),
+      material
+    );
+    edge.position.set(position[0], position[1], position[2] + size[2] * 0.08);
+    edge.castShadow = true;
+    group.add(edge);
+    return;
+  }
+
+  if (category === "cup_pull") {
+    const recipe = createCupPullProxyParts(size, position, orientation, sceneMountCenters);
+    const geometry = new THREE.TorusGeometry(1, 0.28, 12, 28, Math.PI);
+    geometry.computeBoundingBox();
+    const geometryBox = geometry.boundingBox;
+    const geometrySize = new THREE.Vector3();
+    const geometryCenter = new THREE.Vector3();
+    geometryBox.getSize(geometrySize);
+    geometryBox.getCenter(geometryCenter);
+    geometry.translate(-geometryCenter.x, -geometryCenter.y, -geometryCenter.z);
+    const targetX = recipe.horizontal ? recipe.targetSize[0] : recipe.targetSize[1];
+    const targetY = recipe.horizontal ? recipe.targetSize[1] : recipe.targetSize[0];
+    geometry.scale(
+      targetX / geometrySize.x,
+      targetY / geometrySize.y,
+      recipe.targetSize[2] / geometrySize.z
+    );
+    const cup = new THREE.Mesh(geometry, material);
+    if (!recipe.horizontal) cup.rotation.z = Math.PI / 2;
+    cup.position.set(...recipe.shellPosition);
+    cup.castShadow = true;
+    group.add(cup);
+    for (const mountRecipe of recipe.mounts) {
+      const mount = new THREE.Mesh(
+        new THREE.CylinderGeometry(mountRecipe.radius, mountRecipe.radius, mountRecipe.length, 14),
+        material
+      );
+      mount.rotation.x = Math.PI / 2;
+      mount.position.set(...mountRecipe.position);
+      mount.castShadow = true;
+      group.add(mount);
+    }
+    return;
+  }
+
+  if (category === "cabinet_latch") {
+    const latchParts = createCabinetLatchProxyParts(size, position, component.metadata?.placement?.mirrored);
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(...latchParts.body.size),
+      material
+    );
+    body.position.set(...latchParts.body.position);
+    body.castShadow = true;
+    group.add(body);
+    const catchPiece = new THREE.Mesh(
+      new THREE.BoxGeometry(...latchParts.catch.size),
+      material
+    );
+    catchPiece.position.set(...latchParts.catch.position);
+    catchPiece.castShadow = true;
+    group.add(catchPiece);
+    return;
+  }
+
+  if (category === "t_bar_knob") {
+    const horizontal = orientation !== "vertical";
+    const length = horizontal ? size[0] : size[1];
+    const radius = Math.max(0.003, Math.min(horizontal ? size[1] : size[0], size[2]) * 0.32);
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length * 0.94, 18), material);
+    if (horizontal) bar.rotation.z = Math.PI / 2;
+    bar.position.set(position[0], position[1], position[2] + size[2] * 0.14);
+    bar.castShadow = true;
+    group.add(bar);
+    const stem = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.54, radius * 0.54, size[2] * 0.56, 14), material);
+    stem.rotation.x = Math.PI / 2;
+    stem.position.set(position[0], position[1], position[2] - size[2] * 0.08);
+    stem.castShadow = true;
+    group.add(stem);
+    return;
+  }
 
   if (isPull) {
-    const horizontal = orientation === "horizontal";
-    const length = horizontal ? size[0] : size[1];
-    const crossA = horizontal ? size[1] : size[0];
-    const radius = Math.max(0.003, crossA / 2);
-    const mountZ = position[2] - size[2] / 2;
-    const barZ = position[2] + size[2] / 2 - radius;
-    const pull = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length, 18), materials.hardware);
-    if (horizontal) pull.rotation.z = Math.PI / 2;
-    pull.position.set(position[0], position[1], barZ);
+    const recipe = createLinearPullProxyParts(size, position, orientation, sceneMountCenters);
+    const pull = new THREE.Mesh(
+      new THREE.CylinderGeometry(recipe.bar.radius, recipe.bar.radius, recipe.bar.length, 18),
+      material
+    );
+    if (recipe.horizontal) pull.rotation.z = Math.PI / 2;
+    pull.position.set(...recipe.bar.position);
     pull.castShadow = true;
     group.add(pull);
-    const standoffLength = Math.max(0.003, barZ - mountZ);
-    const standoffRadius = Math.max(0.002, radius * 0.46);
-    const along = Math.max(0, length / 2 - radius * 1.5);
-    for (const direction of [-1, 1]) {
+    for (const standoffRecipe of recipe.standoffs) {
       const standoff = new THREE.Mesh(
-        new THREE.CylinderGeometry(standoffRadius, standoffRadius, standoffLength, 14),
-        materials.hardware
+        new THREE.CylinderGeometry(standoffRecipe.radius, standoffRecipe.radius, standoffRecipe.length, 14),
+        material
       );
       standoff.rotation.x = Math.PI / 2;
-      standoff.position.set(
-        position[0] + (horizontal ? along * direction : 0),
-        position[1] + (horizontal ? 0 : along * direction),
-        mountZ + standoffLength / 2
-      );
+      standoff.position.set(...standoffRecipe.position);
       standoff.castShadow = true;
       group.add(standoff);
     }
@@ -5284,11 +6836,44 @@ function renderDescriptorHandle(group, component, config, materials, size, posit
   }
 
   const radius = Math.max(0.004, Math.min(size[0], size[1]) / 2);
-  const knob = new THREE.Mesh(new THREE.SphereGeometry(radius, 20, 16), materials.hardware);
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(radius, 20, 16), material);
   knob.scale.z = size[2] / (radius * 2);
   knob.position.set(...position);
   knob.castShadow = true;
   group.add(knob);
+}
+
+function getDescriptorHardwareMaterial(materials, component, fallbackHardware) {
+  const metadata = component?.metadata || {};
+  const snapshot = metadata.variantSnapshot || metadata.snapshot || metadata.hardwareSnapshot || {};
+  const swatch = metadata.finishSwatch
+    || snapshot.finishSwatch
+    || snapshot.canonicalFinishSwatch
+    || snapshot.canonicalFinish?.swatch
+    || snapshot.proxySpec?.finish?.swatch
+    || snapshot.finish?.swatch
+    || null;
+  const color = /^#[0-9a-f]{6}$/i.test(String(swatch || ""))
+    ? Number.parseInt(String(swatch).slice(1), 16)
+    : null;
+  if (color == null) return materials.hardware;
+  if (!(materials.hardwareVariantCache instanceof Map)) materials.hardwareVariantCache = new Map();
+  const finishName = String(
+    metadata.finishName
+    || snapshot.finishName
+    || snapshot.finish?.manufacturerName
+    || ""
+  ).toLowerCase();
+  const key = `${color}:${finishName}`;
+  if (materials.hardwareVariantCache.has(key)) return materials.hardwareVariantCache.get(key);
+  const appearance = getHardwareAppearance(fallbackHardware);
+  const material = new THREE.MeshStandardMaterial({
+    color,
+    roughness: /polished|chrome/.test(finishName) ? 0.22 : /black|bronze/.test(finishName) ? 0.48 : appearance.roughness,
+    metalness: /black/.test(finishName) ? 0.5 : 0.86
+  });
+  materials.hardwareVariantCache.set(key, material);
+  return material;
 }
 
 function renderDescriptorLight(group, rootGroup, component, materials, size, position) {
@@ -5342,6 +6927,7 @@ function collectOwnedMeshRecord(componentGroup, componentId) {
 
   const visit = (object) => {
     if (object !== componentGroup && object.userData?.componentId) return;
+    if (object.userData?.nonPhysicalHelper) return;
     if (object.isMesh && object.geometry) {
       if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
       const meshBounds = object.geometry.boundingBox.clone().applyMatrix4(object.matrixWorld);
@@ -5361,6 +6947,33 @@ function collectOwnedMeshRecord(componentGroup, componentId) {
       max: { x: bounds.max.x, y: bounds.max.y, z: bounds.max.z }
     }
   };
+}
+
+function createRoomFloorTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 192;
+  canvas.height = 192;
+  const context = canvas.getContext("2d");
+  context.fillStyle = "#ddd0bd";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.strokeStyle = "rgba(113, 87, 61, 0.22)";
+  context.lineWidth = 1;
+  for (let y = -48; y < canvas.height + 48; y += 24) {
+    for (let x = -48; x < canvas.width + 48; x += 48) {
+      context.beginPath();
+      context.moveTo(x, y);
+      context.lineTo(x + 48, y + 24);
+      context.stroke();
+      context.beginPath();
+      context.moveTo(x + 48, y);
+      context.lineTo(x, y + 24);
+      context.stroke();
+    }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
 }
 
 function createContactShadowTexture() {
@@ -5526,6 +7139,19 @@ function disposeObject(object) {
   materials.forEach((material) => material.dispose?.());
 }
 
+function disposeDirectReplacement(group) {
+  if (!group?.traverse) return;
+  group.traverse((child) => {
+    if (child === group) return;
+    child.geometry?.dispose?.();
+    const childMaterials = Array.isArray(child.material) ? child.material : child.material ? [child.material] : [];
+    childMaterials.forEach((material) => {
+      if (material?.userData?.directHitProxyMaterial) material.dispose?.();
+    });
+  });
+  group.clear?.();
+}
+
 function disposeMaterialSet(materialSet) {
   if (!materialSet || typeof materialSet !== "object") return;
   const textures = new Set();
@@ -5583,6 +7209,49 @@ function formatSectionType(type) {
     desk: "Desk Feature",
     feature: "Fireplace Feature"
   }[type] || "Generated Section";
+}
+
+function formatHardwareMillimeters(value) {
+  return `${Number(Number(value).toFixed(1))} mm`;
+}
+
+function formatHardwareTechnicalLabel(value) {
+  const label = String(value || "").replaceAll("_", " ").trim();
+  return label ? `${label.charAt(0).toUpperCase()}${label.slice(1)}` : "Not specified";
+}
+
+function formatHardwarePlacement(placement) {
+  if (!placement || typeof placement !== "object" || !Object.keys(placement).length) return "JQ recommended placement";
+  const parts = [
+    placement.orientation,
+    placement.horizontalAnchor,
+    placement.verticalAnchor,
+    Number.isFinite(placement.edgeOffsetMm) ? `${formatHardwareMillimeters(placement.edgeOffsetMm)} edge offset` : null,
+    Number.isFinite(placement.crossAxisOffsetMm) ? `${formatHardwareMillimeters(placement.crossAxisOffsetMm)} cross-axis offset` : null,
+    placement.quantityPerFront ? `${placement.quantityPerFront} per front` : null,
+    placement.mirrored ? "mirrored" : null
+  ].filter(Boolean).map(formatHardwareTechnicalLabel);
+  return parts.join(" · ") || "JQ recommended placement";
+}
+
+function formatHardwarePricingPosture(pricing) {
+  if (!pricing || typeof pricing !== "object") return "Price confirmed with quote";
+  if (pricing.mode === "reference_unit" && Number.isFinite(pricing.amount)) {
+    const symbol = pricing.currency === "CAD" ? "CA$" : "$";
+    const checked = pricing.checkedAt ? ` · checked ${pricing.checkedAt}` : "";
+    return `${symbol}${Number(pricing.amount).toFixed(2)} reference/list per unit${checked}`;
+  }
+  if (pricing.mode === "band" && pricing.priceBand) return `${pricing.priceBand} price band · confirmed with quote`;
+  return "Price confirmed with quote";
+}
+
+function isSafeExternalUrl(value) {
+  try {
+    const url = new URL(String(value));
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch (error) {
+    return false;
+  }
 }
 
 const MAX_VIEWER_RENDER_PIXELS = 10_000_000;

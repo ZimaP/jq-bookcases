@@ -2,20 +2,21 @@ import {
   CONSTRUCTION_PROFILE_IDS,
   migrateLegacyConstructionConfig,
   normalizeBookcaseConfig
-} from "./bookcase-config.js?v=configurator-construction-20260714b";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=configurator-construction-20260714b";
+} from "./bookcase-config.js?v=direct-hardware-20260714a";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=direct-hardware-20260714a";
 import {
   createLayoutFingerprint,
   createLegacyLayoutFingerprint
-} from "./bookcase-bom.js?v=configurator-construction-20260714b";
+} from "./bookcase-bom.js?v=direct-hardware-20260714a";
 import {
   PRICING_VERSION,
   calculateBookcasePriceBreakdown
-} from "./bookcase-pricing.js?v=configurator-construction-20260714b";
+} from "./bookcase-pricing.js?v=direct-hardware-20260714a";
+import { HARDWARE_CATALOG_VERSION } from "./hardware-catalog.js?v=direct-hardware-20260714a";
 
-export const ENGINE_VERSION = "2026.07-jq-construction-v1";
-export const DESIGN_SCHEMA_VERSION = 4;
-export const DESIGN_SELECTION_FINGERPRINT_VERSION = 1;
+export const ENGINE_VERSION = "2026.07-direct-hardware-v2";
+export const DESIGN_SCHEMA_VERSION = 5;
+export const DESIGN_SELECTION_FINGERPRINT_VERSION = 2;
 
 /**
  * Evaluate a customer change without mutating the currently accepted design.
@@ -77,7 +78,10 @@ export function evaluateBookcaseCandidate(input = {}, options = {}) {
     pricing,
     corrections: requestedLayout.corrections || [],
     errors: [],
-    warnings: layout.validation?.warnings || []
+    warnings: [
+      ...(layout.validation?.warnings || []),
+      ...normalizeMigrationWarnings(pricing.state.hardwareSelections?.migrationWarnings)
+    ]
   };
 }
 
@@ -99,6 +103,7 @@ export function createDesignSelectionFingerprint(config = {}) {
   const source = stableStringify({
     fingerprintVersion: DESIGN_SELECTION_FINGERPRINT_VERSION,
     finish,
+    hardwareSelections: state.hardwareSelections,
     installation: state.installation,
     delivery: state.delivery
   });
@@ -125,20 +130,34 @@ export function createAcceptedDesignSnapshot(evaluation, options = {}) {
     evaluation.pricing.pricingVersion,
     selectionFingerprint
   );
+  const hardwareSchedule = cloneArtifact(evaluation.bom.hardware?.schedule || []);
 
   return {
     schemaVersion: DESIGN_SCHEMA_VERSION,
     engineVersion: evaluation.engineVersion,
     pricingVersion: evaluation.pricing.pricingVersion,
+    catalogVersion: evaluation.state.hardwareSelections?.catalogVersion || HARDWARE_CATALOG_VERSION,
     id,
     canonicalConfig: evaluation.state,
     layoutFingerprint: evaluation.layoutFingerprint,
     selectionFingerprint,
     bom: evaluation.bom,
+    hardwareSchedule,
+    hardwareSnapshots: hardwareSchedule.map((entry) => ({
+      variantId: entry.variantId,
+      factualSnapshot: cloneArtifact(entry.factualSnapshot)
+    })),
+    reviewWarnings: evaluation.warnings || [],
     priceBreakdown: serializePriceBreakdown(evaluation.pricing),
     total: evaluation.pricing.total,
     savedAt
   };
+}
+
+function cloneArtifact(value) {
+  if (Array.isArray(value)) return value.map(cloneArtifact);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneArtifact(item)]));
 }
 
 export function createAcceptedDesignId(
@@ -173,8 +192,21 @@ export function restoreAcceptedDesignSnapshot(payload) {
     };
   }
 
+  const payloadSchemaVersion = Number(payload?.schemaVersion) || 0;
+  if (payloadSchemaVersion > DESIGN_SCHEMA_VERSION) {
+    return {
+      accepted: false,
+      compatible: false,
+      errors: [{
+        code: "UNSUPPORTED_SAVED_SCHEMA",
+        severity: "error",
+        message: `Saved design schema ${payloadSchemaVersion} is newer than supported schema ${DESIGN_SCHEMA_VERSION}.`
+      }]
+    };
+  }
   const savedConfigMigration = {
     migrated: !Object.prototype.hasOwnProperty.call(sourceConfig, "constructionProfile"),
+    hardwareMigrated: !Object.prototype.hasOwnProperty.call(sourceConfig, "hardwareSelections"),
     config: migrateLegacyConstructionConfig(sourceConfig)
   };
   const evaluation = evaluateBookcaseCandidate(savedConfigMigration.config);
@@ -185,12 +217,19 @@ export function restoreAcceptedDesignSnapshot(payload) {
   const expectedFingerprint = typeof payload.layoutFingerprint === "string"
     ? payload.layoutFingerprint
     : null;
-  const selectionFingerprint = createDesignSelectionFingerprint(evaluation.state);
+  const selectionFingerprint = payloadSchemaVersion >= DESIGN_SCHEMA_VERSION
+    ? createDesignSelectionFingerprint(evaluation.state)
+    : createLegacyDesignSelectionFingerprint(evaluation.state);
   const expectedSelectionFingerprint = typeof payload.selectionFingerprint === "string"
     ? payload.selectionFingerprint
     : null;
-  const savedArtifactIssue = getSchemaFourSavedArtifactIssue(payload, evaluation, expectedFingerprint, {
-    migrated: savedConfigMigration.migrated,
+  const savedArtifactIssue = payloadSchemaVersion >= DESIGN_SCHEMA_VERSION
+    ? getSchemaFiveSavedArtifactIssue(payload, evaluation, expectedFingerprint, {
+      selectionFingerprint,
+      expectedSelectionFingerprint
+    })
+    : getSchemaFourSavedArtifactIssue(payload, evaluation, expectedFingerprint, {
+    migrated: savedConfigMigration.migrated || savedConfigMigration.hardwareMigrated,
     selectionFingerprint,
     expectedSelectionFingerprint
   });
@@ -226,7 +265,7 @@ export function restoreAcceptedDesignSnapshot(payload) {
       ? legacyLayoutFingerprint
       : null;
   const verifiedLegacyConstructionSnapshot = !matchedLayoutFingerprint
-    && savedConfigMigration.migrated
+    && (savedConfigMigration.migrated || savedConfigMigration.hardwareMigrated)
     && verifyLegacySchemaFourSnapshot({
       payload,
       evaluation,
@@ -251,7 +290,9 @@ export function restoreAcceptedDesignSnapshot(payload) {
   const regeneratedId = createAcceptedDesignId(
     matchedLayoutFingerprint || evaluation.layoutFingerprint,
     evaluation.pricing.total,
-    evaluation.pricing.pricingVersion,
+    payloadSchemaVersion >= DESIGN_SCHEMA_VERSION
+      ? evaluation.pricing.pricingVersion
+      : payload.pricingVersion || evaluation.pricing.pricingVersion,
     selectionFingerprint
   );
   if (
@@ -276,15 +317,133 @@ export function restoreAcceptedDesignSnapshot(payload) {
     ...evaluation,
     compatible: true,
     selectionFingerprint,
-    ...(savedConfigMigration.migrated ? {
+    ...(savedConfigMigration.migrated || savedConfigMigration.hardwareMigrated ? {
       migration: {
-        constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay,
-        preservedLegacyDoorArrangements: true,
+        ...(savedConfigMigration.migrated ? {
+          constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay,
+          preservedLegacyDoorArrangements: true
+        } : {}),
+        ...(savedConfigMigration.hardwareMigrated ? {
+          hardwareSelectionsSchemaVersion: 1,
+          preservedLegacyHardwareProjection: true,
+          hardwareWarnings: evaluation.state.hardwareSelections?.migrationWarnings || []
+        } : {}),
         verifiedPriorLayoutFingerprint: verifiedLegacyConstructionSnapshot
       }
     } : {}),
     errors: []
   };
+}
+
+/**
+ * Schema 5 snapshots are verified against every regenerated canonical
+ * artifact. Serialized geometry is never trusted; factual hardware snapshots
+ * are retained only as an auditable/restorable schedule.
+ */
+function getSchemaFiveSavedArtifactIssue(
+  payload,
+  evaluation,
+  expectedFingerprint,
+  { selectionFingerprint, expectedSelectionFingerprint }
+) {
+  if (Number(payload?.schemaVersion) < DESIGN_SCHEMA_VERSION) return null;
+  if (!expectedFingerprint || payload?.bom?.layoutFingerprint !== expectedFingerprint) {
+    return {
+      code: "LAYOUT_FINGERPRINT_MISMATCH",
+      severity: "error",
+      message: "The saved layout fingerprint and serialized BOM do not identify the same accepted geometry."
+    };
+  }
+  if (!expectedSelectionFingerprint) {
+    return {
+      code: "SAVED_SELECTION_FINGERPRINT_MISSING",
+      severity: "error",
+      message: "The saved design is missing its required selection fingerprint."
+    };
+  }
+  if (expectedSelectionFingerprint !== selectionFingerprint) {
+    return {
+      code: "SELECTION_FINGERPRINT_MISMATCH",
+      severity: "error",
+      message: "The saved finish, fulfillment, or per-host hardware selections no longer match the regenerated design."
+    };
+  }
+  const catalogVersion = evaluation.state.hardwareSelections?.catalogVersion || HARDWARE_CATALOG_VERSION;
+  if (payload?.catalogVersion !== catalogVersion) {
+    return {
+      code: "HARDWARE_CATALOG_VERSION_MISMATCH",
+      severity: "error",
+      message: "The saved hardware catalog version does not match its canonical selection snapshots."
+    };
+  }
+  if (
+    payload?.pricingVersion !== evaluation.pricing.pricingVersion
+    || Number(payload?.total) !== evaluation.pricing.total
+    || stableStringify(payload?.priceBreakdown) !== stableStringify(serializePriceBreakdown(evaluation.pricing))
+  ) {
+    return {
+      code: "SAVED_PRICING_MISMATCH",
+      severity: "error",
+      message: "The saved price artifacts do not match the regenerated accepted design."
+    };
+  }
+  if (stableStringify(payload?.bom) !== stableStringify(evaluation.bom)) {
+    return {
+      code: "SAVED_BOM_MISMATCH",
+      severity: "error",
+      message: "The saved BOM and exact hardware schedule do not match the regenerated accepted design."
+    };
+  }
+  const schedule = evaluation.bom.hardware?.schedule || [];
+  if (!Array.isArray(payload?.hardwareSchedule)
+    || stableStringify(payload.hardwareSchedule) !== stableStringify(schedule)) {
+    return {
+      code: "SAVED_HARDWARE_SCHEDULE_MISMATCH",
+      severity: "error",
+      message: "The saved denormalized hardware schedule does not match the regenerated design."
+    };
+  }
+  const expectedSnapshots = schedule.map((entry) => ({
+    variantId: entry.variantId,
+    factualSnapshot: entry.factualSnapshot
+  }));
+  if (!Array.isArray(payload?.hardwareSnapshots)
+    || stableStringify(payload.hardwareSnapshots) !== stableStringify(expectedSnapshots)) {
+    return {
+      code: "SAVED_HARDWARE_SNAPSHOT_MISMATCH",
+      severity: "error",
+      message: "The saved hardware factual snapshots do not match the accepted schedule."
+    };
+  }
+  if (!Array.isArray(payload?.reviewWarnings)
+    || stableStringify(payload.reviewWarnings) !== stableStringify(evaluation.warnings || [])) {
+    return {
+      code: "SAVED_REVIEW_WARNINGS_MISMATCH",
+      severity: "error",
+      message: "The saved review warnings do not match the regenerated accepted design."
+    };
+  }
+  if (typeof payload?.id !== "string") {
+    return {
+      code: "SAVED_DESIGN_ID_MISSING",
+      severity: "error",
+      message: "The saved design is missing its required deterministic ID."
+    };
+  }
+  const expectedId = createAcceptedDesignId(
+    expectedFingerprint,
+    evaluation.pricing.total,
+    evaluation.pricing.pricingVersion,
+    expectedSelectionFingerprint
+  );
+  if (payload.id !== expectedId) {
+    return {
+      code: "DESIGN_ID_MISMATCH",
+      severity: "error",
+      message: "The saved design ID does not match its serialized accepted artifacts."
+    };
+  }
+  return null;
 }
 
 /**
@@ -308,11 +467,10 @@ function verifyLegacySchemaFourSnapshot({
     return false;
   }
   if (payload?.bom?.layoutFingerprint !== expectedFingerprint) return false;
-  if (payload?.pricingVersion !== evaluation.pricing.pricingVersion) return false;
   if (payload?.priceBreakdown?.pricingVersion !== payload.pricingVersion) return false;
   if (Number(payload?.total) !== evaluation.pricing.total) return false;
   if (Number(payload?.priceBreakdown?.total) !== Number(payload?.total)) return false;
-  if (stableStringify(payload.priceBreakdown) !== stableStringify(serializePriceBreakdown(evaluation.pricing))) return false;
+  if (!legacyPriceBreakdownsMatch(payload.priceBreakdown, serializePriceBreakdown(evaluation.pricing))) return false;
   if (stableStringify(getLegacyBomCompatibilitySignature(payload.bom))
     !== stableStringify(getLegacyBomCompatibilitySignature(evaluation.bom))) return false;
   if (typeof payload?.id !== "string") return false;
@@ -341,11 +499,10 @@ function getSchemaFourSavedArtifactIssue(
       message: "The saved layout fingerprint and serialized BOM do not identify the same accepted geometry."
     };
   }
-  const pricingMatches = payload?.pricingVersion === evaluation.pricing.pricingVersion
-    && Number(payload?.total) === evaluation.pricing.total
+  const pricingMatches = Number(payload?.total) === evaluation.pricing.total
     && payload?.priceBreakdown?.pricingVersion === payload.pricingVersion
     && Number(payload?.priceBreakdown?.total) === Number(payload.total)
-    && stableStringify(payload.priceBreakdown) === stableStringify(serializePriceBreakdown(evaluation.pricing));
+    && legacyPriceBreakdownsMatch(payload.priceBreakdown, serializePriceBreakdown(evaluation.pricing));
   if (!pricingMatches) {
     return {
       code: "SAVED_PRICING_MISMATCH",
@@ -432,7 +589,10 @@ function getLegacyBomCompatibilitySignature(bom = {}) {
       totalFrontAreaSqIn: bom.drawers?.totalFrontAreaSqIn,
       byStyle: bom.drawers?.byStyle || {}
     },
-    hardware: bom.hardware,
+    hardware: {
+      handleCount: bom.hardware?.handleCount,
+      byType: bom.hardware?.byType || {}
+    },
     lighting: bom.lighting,
     openings: {
       ...bom.openings,
@@ -448,6 +608,53 @@ function isEarlySchemaFourSnapshot(payload, expectedSelectionFingerprint) {
 function createEarlySchemaFourDesignId(layoutFingerprint, total, pricingVersion = PRICING_VERSION) {
   const source = `${layoutFingerprint}|${pricingVersion}|${Number(total) || 0}`;
   return `JQ-${hashString(source).toString(36).toUpperCase().padStart(7, "0").slice(-7)}`;
+}
+
+function createLegacyDesignSelectionFingerprint(config = {}) {
+  const state = normalizeBookcaseConfig(config);
+  const finish = state.finish === "custom_bm"
+    ? {
+        finish: state.finish,
+        customPaintColor: state.customPaintColor,
+        customPaintCode: state.customPaintCode,
+        customPaintHex: state.customPaintHex
+      }
+    : { finish: state.finish };
+  const source = stableStringify({
+    fingerprintVersion: 1,
+    finish,
+    installation: state.installation,
+    delivery: state.delivery
+  });
+  return `jq-selection-v1-${hashString(source)
+    .toString(36)
+    .toUpperCase()
+    .padStart(7, "0")
+    .slice(-7)}`;
+}
+
+function legacyPriceBreakdownsMatch(saved, regenerated) {
+  if (!saved || !regenerated) return false;
+  const normalize = (value) => {
+    const result = { ...value };
+    delete result.pricingVersion;
+    delete result.hardwarePricing;
+    return result;
+  };
+  return stableStringify(normalize(saved)) === stableStringify(normalize(regenerated));
+}
+
+function normalizeMigrationWarnings(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((warning) => ({
+    code: typeof warning === "object" && warning?.code ? warning.code : "LEGACY_HARDWARE_REVIEW",
+    severity: "warning",
+    componentId: null,
+    relatedId: null,
+    message: typeof warning === "object" && warning?.message
+      ? warning.message
+      : String(warning)
+  }));
 }
 
 function rejection({ requestedState, candidateState, requestedLayout, corrections, errors }) {
@@ -477,6 +684,7 @@ function serializePriceBreakdown(pricing) {
     subtotal: pricing.subtotal,
     minimumApplied: pricing.minimumApplied,
     roundingIncrement: pricing.roundingIncrement,
+    hardwarePricing: pricing.hardwarePricing,
     total: pricing.total
   };
 }

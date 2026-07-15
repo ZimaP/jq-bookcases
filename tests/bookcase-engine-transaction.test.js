@@ -369,17 +369,23 @@ test("schema-4 saves without drawer profile metadata verify through the legacy f
   const canonicalConfig = clone(snapshot.canonicalConfig);
   delete canonicalConfig.drawerFrontStyle;
   const legacyFingerprint = createLegacyLayoutFingerprint(evaluation.layout);
+  const legacySelectionFingerprint = restoreAcceptedDesignSnapshot({
+    schemaVersion: 3,
+    config: canonicalConfig
+  }).selectionFingerprint;
   const legacyId = createAcceptedDesignId(
     legacyFingerprint,
     snapshot.total,
     snapshot.pricingVersion,
-    snapshot.selectionFingerprint
+    legacySelectionFingerprint
   );
 
   const restored = restoreAcceptedDesignSnapshot({
     ...snapshot,
+    schemaVersion: 4,
     canonicalConfig,
     layoutFingerprint: legacyFingerprint,
+    selectionFingerprint: legacySelectionFingerprint,
     bom: { ...snapshot.bom, layoutFingerprint: legacyFingerprint },
     id: legacyId
   });
@@ -474,6 +480,8 @@ test("pre-profile schema-4 snapshots pass only with a complete verified legacy i
   const priorFingerprint = "jq-layout-v1-0123456789abcdef";
   const legacySnapshot = {
     ...snapshot,
+    schemaVersion: 4,
+    selectionFingerprint: restoredSource.selectionFingerprint,
     canonicalConfig: sourceConfig,
     layoutFingerprint: priorFingerprint,
     bom: {
@@ -485,7 +493,7 @@ test("pre-profile schema-4 snapshots pass only with a complete verified legacy i
       priorFingerprint,
       snapshot.total,
       snapshot.pricingVersion,
-      snapshot.selectionFingerprint
+      restoredSource.selectionFingerprint
     )
   };
 

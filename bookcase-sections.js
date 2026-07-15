@@ -5,11 +5,12 @@ import {
   layoutPresets,
   normalizeBookcaseConfig,
   normalizeSectionTypeValue
-} from "./bookcase-config.js?v=configurator-construction-20260714b";
+} from "./bookcase-config.js?v=direct-hardware-20260714a";
 import {
   CONSTRUCTION_RULES,
+  generateBookcaseLayout,
   resolveDoorArrangement
-} from "./bookcase-layout.js?v=configurator-construction-20260714b";
+} from "./bookcase-layout.js?v=direct-hardware-20260714a";
 
 const PRECISION = 1e6;
 const RATIO_PRECISION = 1e12;
@@ -166,6 +167,192 @@ export function splitSection(config, layout, sectionIndex, rules = CONSTRUCTION_
     widths,
     [index, index + 1]
   );
+}
+
+/**
+ * Add one neutral open section. The selected section is preferred when it can
+ * be split; otherwise the widest eligible section is used deterministically.
+ */
+export function addSection(config, layout, sectionIndex = null, rules = CONSTRUCTION_RULES) {
+  const designer = getSectionDesignerState(config, layout);
+  const requestedIndex = normalizeOptionalSectionIndex(sectionIndex);
+  if (requestedIndex.invalid || (requestedIndex.value !== null && !designer.sections[requestedIndex.value])) {
+    return rejectedConfig("INVALID_SECTION", "Choose a valid section to add beside.", config);
+  }
+  if (designer.sections.some((section) => section.locked)) {
+    return rejectedConfig(
+      "LOCKED_SECTION",
+      "Change to a non-feature layout before adding sections.",
+      config
+    );
+  }
+  if (designer.sections.length >= getMaximumCount(rules)) {
+    return rejectedConfig(
+      "MAX_SECTION_COUNT",
+      `A bookcase can contain at most ${getMaximumCount(rules)} sections.`,
+      config
+    );
+  }
+
+  const eligible = designer.sections.filter((section) => canSplitWidth(section.width, rules));
+  const preferred = requestedIndex.value === null
+    ? null
+    : eligible.find((section) => section.index === requestedIndex.value) || null;
+  const source = preferred || eligible.reduce(
+    (widest, section) => !widest || section.width > widest.width + EPSILON ? section : widest,
+    null
+  );
+  if (!source) {
+    return rejectedConfig(
+      "SECTION_TOO_NARROW_TO_SPLIT",
+      splitWidthFailureMessage(rules),
+      config
+    );
+  }
+  return createOrganizerSplit(config, layout, designer, source.index, false, rules);
+}
+
+/** Split the selected section and copy its compatible section-owned context. */
+export function duplicateSection(config, layout, sectionIndex, rules = CONSTRUCTION_RULES) {
+  const designer = getSectionDesignerState(config, layout);
+  const requestedIndex = normalizeOptionalSectionIndex(sectionIndex);
+  const index = requestedIndex.value;
+  const section = !requestedIndex.invalid && index !== null ? designer.sections[index] : null;
+  if (!section) return rejectedConfig("INVALID_SECTION", "Choose a section to duplicate.", config);
+  if (designer.sections.some((item) => item.locked)) {
+    return rejectedConfig(
+      "LOCKED_SECTION",
+      "Change to a non-feature layout before duplicating sections.",
+      config
+    );
+  }
+  if (designer.sections.length >= getMaximumCount(rules)) {
+    return rejectedConfig(
+      "MAX_SECTION_COUNT",
+      `A bookcase can contain at most ${getMaximumCount(rules)} sections.`,
+      config
+    );
+  }
+  if (!canSplitWidth(section.width, rules)) {
+    return rejectedConfig(
+      "SECTION_TOO_NARROW_TO_SPLIT",
+      splitWidthFailureMessage(rules),
+      config
+    );
+  }
+  return createOrganizerSplit(config, layout, designer, index, true, rules);
+}
+
+/**
+ * Delete one section by absorbing its clear width and divider into a suitable
+ * unlocked neighbor. Auto prefers the same type, then the narrower result,
+ * then the left neighbor so repeated calls are deterministic.
+ */
+export function deleteSection(
+  config,
+  layout,
+  sectionIndex,
+  direction = "auto",
+  rules = CONSTRUCTION_RULES
+) {
+  const designer = getSectionDesignerState(config, layout);
+  const requestedIndex = normalizeOptionalSectionIndex(sectionIndex);
+  const index = requestedIndex.value;
+  const section = !requestedIndex.invalid && index !== null ? designer.sections[index] : null;
+  if (!section) return rejectedConfig("INVALID_SECTION", "Choose a section to delete.", config);
+  if (!["auto", "left", "right"].includes(direction)) {
+    return rejectedConfig(
+      "INVALID_DELETE_DIRECTION",
+      "Choose Auto, Left, or Right for the section receiving the available width.",
+      config
+    );
+  }
+  if (designer.sections.some((item) => item.locked)) {
+    return rejectedConfig(
+      "LOCKED_SECTION",
+      "Change to a non-feature layout before deleting sections.",
+      config
+    );
+  }
+  if (designer.sections.length <= getMinimumCount(rules)) {
+    return rejectedConfig(
+      "MIN_SECTION_COUNT",
+      `A bookcase must contain at least ${getMinimumCount(rules)} section${getMinimumCount(rules) === 1 ? "" : "s"}.`,
+      config
+    );
+  }
+
+  const requestedNeighbors = direction === "left"
+    ? [index - 1]
+    : direction === "right"
+      ? [index + 1]
+      : [index - 1, index + 1];
+  const availableNeighbors = requestedNeighbors.filter((neighborIndex) => designer.sections[neighborIndex]);
+  if (!availableNeighbors.length) {
+    return rejectedConfig(
+      "NO_DELETE_NEIGHBOR",
+      "Choose a section with an adjacent section to receive its width.",
+      config
+    );
+  }
+
+  const state = normalizeBookcaseConfig(config);
+  const candidates = availableNeighbors.flatMap((neighborIndex) => {
+    const neighbor = designer.sections[neighborIndex];
+    if (neighbor.locked) return [];
+    const mergedWidth = round(section.width + neighbor.width + getPanel(rules));
+    const resolvedDoorLayout = resolveCompatibleDoorLayout({
+      state,
+      type: neighbor.type,
+      width: mergedWidth,
+      doorLayout: neighbor.doorLayout,
+      sectionIndex: neighborIndex > index ? index : neighborIndex,
+      sectionCount: designer.sections.length - 1,
+      rules
+    });
+    if (!resolvedDoorLayout.valid) return [];
+    return [{
+      neighborIndex,
+      mergedWidth,
+      doorLayout: resolvedDoorLayout.layout,
+      sameType: neighbor.type === section.type
+    }];
+  });
+  if (!candidates.length) {
+    return rejectedConfig(
+      "NO_SUITABLE_DELETE_NEIGHBOR",
+      "No adjacent section can receive this width while remaining buildable.",
+      config
+    );
+  }
+  candidates.sort((left, right) => (
+    Number(right.sameType) - Number(left.sameType)
+    || left.mergedWidth - right.mergedWidth
+    || left.neighborIndex - right.neighborIndex
+  ));
+  const chosen = candidates[0];
+  const widths = designer.widths.slice();
+  widths[chosen.neighborIndex] = chosen.mergedWidth;
+  widths.splice(index, 1);
+  const types = designer.sections.map((item) => item.type);
+  types.splice(index, 1);
+  const doorLayouts = designer.sections.map((item) => cloneDoorLayout(item.doorLayout));
+  doorLayouts.splice(index, 1);
+  const survivorIndex = chosen.neighborIndex > index ? chosen.neighborIndex - 1 : chosen.neighborIndex;
+  doorLayouts[survivorIndex] = cloneDoorLayout(chosen.doorLayout);
+  const indexMap = new Map();
+  for (let oldIndex = 0; oldIndex < designer.sections.length; oldIndex += 1) {
+    indexMap.set(oldIndex, oldIndex === index ? [] : [oldIndex > index ? oldIndex - 1 : oldIndex]);
+  }
+  const customized = applyCustomization(state, widths, types, doorLayouts);
+  const nextConfig = reconcileSectionHardwareSelections(config, layout, customized, indexMap);
+  return {
+    ...acceptedConfig(nextConfig, widths, [survivorIndex]),
+    operation: "delete",
+    deletedSectionIndex: index,
+    selectedSectionIndex: survivorIndex,
+    mergeDirection: chosen.neighborIndex < index ? "left" : "right"
+  };
 }
 
 /**
@@ -535,6 +722,195 @@ function resolveSectionDoorLayouts(config, types) {
   });
 }
 
+function createOrganizerSplit(config, layout, designer, index, duplicate, rules) {
+  const section = designer.sections[index];
+  const panel = getPanel(rules);
+  const available = round(section.width - panel);
+  const left = round(available / 2);
+  const right = round(available - left);
+  const state = normalizeBookcaseConfig(config);
+  const nextCount = designer.sections.length + 1;
+  const leftDoorLayout = resolveCompatibleDoorLayout({
+    state,
+    type: section.type,
+    width: left,
+    doorLayout: section.doorLayout,
+    sectionIndex: index,
+    sectionCount: nextCount,
+    rules
+  });
+  const rightType = duplicate ? section.type : "open";
+  const rightDoorLayout = resolveCompatibleDoorLayout({
+    state,
+    type: rightType,
+    width: right,
+    doorLayout: duplicate ? section.doorLayout : null,
+    sectionIndex: index + 1,
+    sectionCount: nextCount,
+    rules
+  });
+  if (!leftDoorLayout.valid || !rightDoorLayout.valid) {
+    return rejectedConfig(
+      "NO_BUILDABLE_DOOR_ARRANGEMENT",
+      "The split would not leave a supported door arrangement for both resulting sections.",
+      config
+    );
+  }
+
+  const widths = designer.widths.slice();
+  widths.splice(index, 1, left, right);
+  const types = designer.sections.map((item) => item.type);
+  types.splice(index, 1, section.type, rightType);
+  const doorLayouts = designer.sections.map((item) => cloneDoorLayout(item.doorLayout));
+  doorLayouts.splice(index, 1, cloneDoorLayout(leftDoorLayout.layout), cloneDoorLayout(rightDoorLayout.layout));
+  const indexMap = new Map();
+  for (let oldIndex = 0; oldIndex < designer.sections.length; oldIndex += 1) {
+    if (oldIndex < index) indexMap.set(oldIndex, [oldIndex]);
+    else if (oldIndex > index) indexMap.set(oldIndex, [oldIndex + 1]);
+    else indexMap.set(oldIndex, duplicate ? [oldIndex, oldIndex + 1] : [oldIndex]);
+  }
+  const customized = applyCustomization(state, widths, types, doorLayouts);
+  const nextConfig = reconcileSectionHardwareSelections(config, layout, customized, indexMap);
+  return {
+    ...acceptedConfig(nextConfig, widths, [index, index + 1]),
+    operation: duplicate ? "duplicate" : "add",
+    sourceSectionIndex: index,
+    insertedSectionIndex: index + 1,
+    selectedSectionIndex: index + 1
+  };
+}
+
+function resolveCompatibleDoorLayout({ state, type, width, doorLayout, sectionIndex, sectionCount, rules }) {
+  if (!isDoorSectionType(type)) return { valid: true, layout: null };
+  const constructionRules = { ...CONSTRUCTION_RULES, ...(rules || {}) };
+  const requested = DOOR_ARRANGEMENTS.includes(doorLayout?.arrangement)
+    ? doorLayout.arrangement
+    : "auto";
+  const resolution = resolveDoorArrangement({
+    opening: { size: { x: width } },
+    requested,
+    constructionProfile: state.constructionProfile,
+    openingKind: type === "tall_doors" ? "tall_storage" : "lower_cabinet",
+    sectionIndex,
+    sectionCount,
+    rules: constructionRules
+  });
+  if (resolution.valid) return { valid: true, layout: { arrangement: requested } };
+  const automatic = resolveDoorArrangement({
+    opening: { size: { x: width } },
+    requested: "auto",
+    constructionProfile: state.constructionProfile,
+    openingKind: type === "tall_doors" ? "tall_storage" : "lower_cabinet",
+    sectionIndex,
+    sectionCount,
+    rules: constructionRules
+  });
+  return automatic.valid
+    ? { valid: true, layout: { arrangement: "auto" } }
+    : { valid: false, layout: null };
+}
+
+function reconcileSectionHardwareSelections(previousConfig, previousLayout, nextConfig, indexMap) {
+  const previous = normalizeBookcaseConfig(previousConfig);
+  const sourceSelections = previous.hardwareSelections;
+  const sourceEntries = Object.entries(sourceSelections?.byHostId || {});
+  if (!sourceEntries.length) return nextConfig;
+
+  const acceptedPreviousLayout = previousLayout?.components
+    ? previousLayout
+    : generateBookcaseLayout(previous);
+  const sourceFrontIds = new Set(
+    (acceptedPreviousLayout.components || [])
+      .filter((component) => component.role === "door" || component.role === "drawer_front")
+      .map((component) => component.id)
+  );
+  const remapped = {};
+  for (const [hostId, selection] of sourceEntries) {
+    const parsed = parseSectionHostId(hostId);
+    if (!parsed) {
+      remapped[hostId] = structuredClone(selection);
+      continue;
+    }
+    if (!sourceFrontIds.has(hostId)) continue;
+    for (const nextIndex of indexMap.get(parsed.index) || []) {
+      remapped[formatSectionPrefix(nextIndex) + parsed.suffix] = structuredClone(selection);
+    }
+  }
+
+  const provisional = normalizeBookcaseConfig({
+    ...nextConfig,
+    hardwareSelections: {
+      ...nextConfig.hardwareSelections,
+      byHostId: remapped
+    }
+  });
+  const candidateLayout = generateBookcaseLayout(provisional);
+  const candidateFrontIds = new Set(
+    candidateLayout.components
+      .filter((component) => component.role === "door" || component.role === "drawer_front")
+      .map((component) => component.id)
+  );
+  const compatibilityByHost = new Map();
+  for (const handle of candidateLayout.components.filter((component) => component.role === "handle")) {
+    const compatible = handle.metadata?.compatibilityLevel !== "not_compatible";
+    compatibilityByHost.set(handle.hostId, (compatibilityByHost.get(handle.hostId) ?? true) && compatible);
+  }
+  const componentById = new Map(candidateLayout.components.map((component) => [component.id, component]));
+  const invalidHardwareHosts = new Set();
+  for (const issue of candidateLayout.validation?.errors || []) {
+    const component = componentById.get(issue.componentId);
+    if (component?.role === "handle" && component.hostId) invalidHardwareHosts.add(component.hostId);
+    if (candidateFrontIds.has(issue.relatedId)) invalidHardwareHosts.add(issue.relatedId);
+  }
+  const filtered = {};
+  for (const [hostId, selection] of Object.entries(remapped)) {
+    const parsed = parseSectionHostId(hostId);
+    if (!parsed || (
+      candidateFrontIds.has(hostId)
+      && compatibilityByHost.get(hostId) !== false
+      && !invalidHardwareHosts.has(hostId)
+    )) {
+      filtered[hostId] = structuredClone(selection);
+    }
+  }
+  return normalizeBookcaseConfig({
+    ...provisional,
+    hardwareSelections: {
+      ...provisional.hardwareSelections,
+      byHostId: filtered
+    }
+  });
+}
+
+function parseSectionHostId(hostId) {
+  const match = /^section-(\d+)(-.+)$/.exec(String(hostId || ""));
+  if (!match) return null;
+  const ordinal = Number(match[1]);
+  return Number.isInteger(ordinal) && ordinal > 0
+    ? { index: ordinal - 1, suffix: match[2] }
+    : null;
+}
+
+function formatSectionPrefix(index) {
+  return `section-${String(index + 1).padStart(2, "0")}`;
+}
+
+function normalizeOptionalSectionIndex(value) {
+  if (value === null || value === undefined || value === "") return { invalid: false, value: null };
+  const index = Number(value);
+  return Number.isInteger(index) && index >= 0
+    ? { invalid: false, value: index }
+    : { invalid: true, value: null };
+}
+
+function canSplitWidth(width, rules) {
+  return Number(width) + EPSILON >= getMinimum(rules) * 2 + getPanel(rules);
+}
+
+function splitWidthFailureMessage(rules) {
+  return `Splitting requires room for two ${formatWidth(getMinimum(rules))} in clear sections plus the divider.`;
+}
+
 function applyCustomization(config, widths, types, doorLayouts = null) {
   const state = normalizeBookcaseConfig(config);
   const lowerStorageTypes = types.filter((type) => type === "lower_doors" || type === "drawers");
@@ -628,6 +1004,16 @@ function getMinimum(rules) {
 
 function getPanel(rules) {
   return Number(rules?.panelThickness) || CONSTRUCTION_RULES.panelThickness;
+}
+
+function getMaximumCount(rules) {
+  const maximum = Number(rules?.maxSections);
+  return Number.isInteger(maximum) && maximum > 0 ? maximum : CONSTRUCTION_RULES.maxSections;
+}
+
+function getMinimumCount(rules) {
+  const minimum = Number(rules?.minSections);
+  return Number.isInteger(minimum) && minimum > 0 ? minimum : CONSTRUCTION_RULES.minSections;
 }
 
 function round(value) {

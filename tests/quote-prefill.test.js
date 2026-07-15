@@ -7,6 +7,11 @@ import {
   normalizeBookcaseConfig
 } from "../bookcase-config.js";
 import { createQuotePrefill, resolveStoredLayout } from "../quote-prefill.js";
+import {
+  LEGACY_HARDWARE_VARIANT_IDS,
+  LEGACY_VARIANT_SNAPSHOTS,
+  createLegacyHardwareSelections
+} from "../hardware-catalog.js";
 
 const preset = (id) => layoutPresets.find((item) => item.id === id);
 
@@ -187,18 +192,47 @@ test("quote prefill separates physical front profiles and canonical hardware met
     drawer: { id: "slim_shaker", label: "Slim Shaker", count: 3 }
   });
   assert.deepEqual(prefill.hardwareSelection, {
-    id: "polished_nickel_pull",
-    label: "Polished Nickel Pull",
-    type: "pull",
-    typeLabel: "Pull",
-    finish: "polished_nickel",
+    id: LEGACY_HARDWARE_VARIANT_IDS.polished_nickel_pull,
+    label: "Atlas Homewares · Oskar Pull · 6 5/16 in c.c. · Polished Nickel · MPN A104-PN",
+    type: "d_handle_pull",
+    typeLabel: "D-Handle Pull",
+    finish: "atlas-pn",
     finishLabel: "Polished Nickel",
-    count: 5
+    count: 5,
+    exact: true
   });
   assert.equal(prefill.fields.doorFrontProfile, "Glass Frame");
   assert.equal(prefill.fields.drawerFrontProfile, "Slim Shaker");
-  assert.equal(prefill.fields.hardwareType, "Pull");
+  assert.equal(prefill.fields.hardwareType, "D-Handle Pull");
   assert.equal(prefill.fields.hardwareFinish, "Polished Nickel");
+});
+
+test("quote summary and hidden fields derive mixed identity from the exact schedule", () => {
+  const hardwareSelections = createLegacyHardwareSelections("brass_knob");
+  hardwareSelections.byHostId["section-01-lower-opening-door"] = {
+    variantId: LEGACY_HARDWARE_VARIANT_IDS.matte_black_pull,
+    snapshot: structuredClone(LEGACY_VARIANT_SNAPSHOTS.matte_black_pull),
+    placement: {
+      orientation: "vertical",
+      horizontalAnchor: "right",
+      verticalAnchor: "middle",
+      quantityPerFront: 1
+    }
+  };
+  const prefill = createQuotePrefill({ ...defaultBookcaseConfig, hardwareSelections });
+
+  assert.equal(prefill.hardwareSelection.label, "Mixed exact hardware (2 variants)");
+  assert.equal(prefill.hardwareSelection.count, 4);
+  assert.equal(prefill.fields.hardwareType, "Mixed");
+  assert.equal(prefill.fields.hardwareFinish, "Mixed");
+  assert.equal(prefill.fields.hardwareVariant, "Mixed exact hardware (2 variants)");
+  assert.deepEqual(
+    new Set(JSON.parse(prefill.fields.hardwareSchedule).map((entry) => entry.variantId)),
+    new Set([
+      LEGACY_HARDWARE_VARIANT_IDS.brass_knob,
+      LEGACY_HARDWARE_VARIANT_IDS.matte_black_pull
+    ])
+  );
 });
 
 test("quote prefill reports every generated style in a mixed door assembly", () => {
@@ -259,4 +293,22 @@ test("quote prefill price and options use the same valid generated pricing conte
   assert.equal(prefill.price, 14700);
   assert.equal(prefill.billableQuantities.puckLightLocations, 4);
   assert.deepEqual(prefill.options, ["lighting", "crown", "hardware", "shelves"]);
+});
+
+test("quote handoff preserves the exact hardware schedule, catalog version, and official sources", () => {
+  const prefill = createQuotePrefill(defaultBookcaseConfig);
+
+  assert.equal(prefill.hardwareCatalogVersion, "2026.07.14-mvp.1");
+  assert.ok(prefill.hardwareSchedule.length > 0);
+  assert.equal(prefill.hardwareSchedule.reduce((sum, entry) => sum + entry.quantity, 0), prefill.billableQuantities.hardwareUnits);
+  const handedOffSchedule = JSON.parse(prefill.fields.hardwareSchedule);
+  assert.equal(handedOffSchedule[0].brand, "Armac Martin");
+  assert.equal(handedOffSchedule[0].family, "Queslett Cabinet Knob");
+  assert.ok(handedOffSchedule[0].variantId);
+  assert.ok(handedOffSchedule[0].placement);
+  assert.ok(handedOffSchedule[0].modelAccuracy);
+  assert.ok(handedOffSchedule[0].verifiedAt);
+  assert.equal(prefill.fields.hardwareCatalogVersion, prefill.hardwareCatalogVersion);
+  assert.match(prefill.fields.hardwareSourceLinks, /^https:\/\//);
+  assert.ok(prefill.hardwareSchedule.every((entry) => entry.links.some((link) => /^https:\/\//.test(link.url))));
 });

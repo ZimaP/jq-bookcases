@@ -1,0 +1,5504 @@
+{
+  "schemaVersion": "1.0.0",
+  "catalogVersion": "2026.07.14-mvp.1",
+  "title": "JQ Bookcases Curated Decorative Cabinet Hardware Catalog",
+  "generatedAt": "2026-07-14T00:00:00-04:00",
+  "researchDate": "2026-07-14",
+  "regions": [
+    "US",
+    "CA"
+  ],
+  "runtimePolicy": {
+    "networkAccess": "none_required",
+    "sourcePolicy": "Curated and version-controlled; no live scraping or retailer API dependency.",
+    "imagePolicy": "No manufacturer photos, logos, CAD, textures, or marketing copy are bundled without recorded permission.",
+    "pricePolicy": "Reference/list price or quote-only; never represented as a live guaranteed retail price."
+  },
+  "canonicalFinishes": [
+    {
+      "id": "satin-brass",
+      "label": "Satin Brass",
+      "group": "brass_gold",
+      "swatch": "#B38A4A"
+    },
+    {
+      "id": "aged-brass",
+      "label": "Aged Brass",
+      "group": "brass_gold",
+      "swatch": "#9B7846"
+    },
+    {
+      "id": "unlacquered-brass",
+      "label": "Unlacquered Brass",
+      "group": "brass_gold",
+      "swatch": "#B68D47"
+    },
+    {
+      "id": "warm-brass",
+      "label": "Warm Brass",
+      "group": "brass_gold",
+      "swatch": "#B88742"
+    },
+    {
+      "id": "champagne-bronze",
+      "label": "Champagne Bronze",
+      "group": "brass_gold",
+      "swatch": "#9A7A50"
+    },
+    {
+      "id": "honey-bronze",
+      "label": "Honey Bronze",
+      "group": "brass_gold",
+      "swatch": "#9B6F3C"
+    },
+    {
+      "id": "oil-rubbed-bronze",
+      "label": "Oil Rubbed Bronze",
+      "group": "bronze_copper",
+      "swatch": "#4B362D"
+    },
+    {
+      "id": "smoked-bronze",
+      "label": "Smoked Bronze",
+      "group": "bronze_copper",
+      "swatch": "#5B463D"
+    },
+    {
+      "id": "matte-black",
+      "label": "Matte Black",
+      "group": "black",
+      "swatch": "#211F1C"
+    },
+    {
+      "id": "satin-nickel",
+      "label": "Satin Nickel",
+      "group": "nickel_chrome",
+      "swatch": "#B7B7B0"
+    },
+    {
+      "id": "polished-nickel",
+      "label": "Polished Nickel",
+      "group": "nickel_chrome",
+      "swatch": "#D4D2CA"
+    },
+    {
+      "id": "polished-chrome",
+      "label": "Polished Chrome",
+      "group": "nickel_chrome",
+      "swatch": "#D6D9D9"
+    },
+    {
+      "id": "stainless-steel",
+      "label": "Stainless Steel",
+      "group": "nickel_chrome",
+      "swatch": "#BFC3C2"
+    },
+    {
+      "id": "metallic-blue",
+      "label": "Metallic Blue",
+      "group": "color",
+      "swatch": "#476A7D"
+    },
+    {
+      "id": "metallic-gray",
+      "label": "Metallic Gray",
+      "group": "gray",
+      "swatch": "#777978"
+    },
+    {
+      "id": "matte-satin-gold",
+      "label": "Matte Satin Gold",
+      "group": "brass_gold",
+      "swatch": "#B49658"
+    },
+    {
+      "id": "brass",
+      "label": "Brass",
+      "group": "brass_gold",
+      "swatch": "#B58A43"
+    }
+  ],
+  "brands": [
+    {
+      "id": "emtek",
+      "name": "Emtek",
+      "marketPosition": "mid-premium to premium",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "officialUrl": "https://www.emtek.com/",
+      "logoUsage": "not_included_permission_required"
+    },
+    {
+      "id": "richelieu",
+      "name": "Richelieu Hardware",
+      "marketPosition": "professional broad-line / mid-premium",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "officialUrl": "https://www.richelieu.com/",
+      "logoUsage": "not_included_permission_required"
+    },
+    {
+      "id": "armac-martin",
+      "name": "Armac Martin",
+      "marketPosition": "luxury",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "officialUrl": "https://www.armacmartin.com/",
+      "logoUsage": "not_included_permission_required"
+    },
+    {
+      "id": "buster-punch",
+      "name": "Buster + Punch",
+      "marketPosition": "design-focused premium",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "officialUrl": "https://www.busterandpunch.com/us/",
+      "logoUsage": "not_included_permission_required"
+    },
+    {
+      "id": "top-knobs",
+      "name": "Top Knobs",
+      "marketPosition": "professional / mid-premium",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "officialUrl": "https://www.topknobs.com/",
+      "logoUsage": "not_included_permission_required"
+    },
+    {
+      "id": "atlas-homewares",
+      "name": "Atlas Homewares",
+      "marketPosition": "professional / mid-premium",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "officialUrl": "https://www.atlashomewares.com/",
+      "logoUsage": "not_included_permission_required"
+    }
+  ],
+  "collections": [
+    {
+      "id": "emtek-select",
+      "brandId": "emtek",
+      "name": "SELECT",
+      "styles": [
+        "contemporary",
+        "minimal"
+      ]
+    },
+    {
+      "id": "emtek-traditional",
+      "brandId": "emtek",
+      "name": "Traditional Cabinet Hardware",
+      "styles": [
+        "traditional",
+        "transitional"
+      ]
+    },
+    {
+      "id": "richelieu-9898",
+      "brandId": "richelieu",
+      "name": "9898",
+      "styles": [
+        "modern",
+        "minimal"
+      ]
+    },
+    {
+      "id": "richelieu-atipica",
+      "brandId": "richelieu",
+      "name": "Atipica",
+      "styles": [
+        "eclectic",
+        "contemporary"
+      ]
+    },
+    {
+      "id": "armac-queslett",
+      "brandId": "armac-martin",
+      "name": "Queslett",
+      "styles": [
+        "traditional",
+        "transitional",
+        "luxury"
+      ]
+    },
+    {
+      "id": "bp-cross",
+      "brandId": "buster-punch",
+      "name": "Cross",
+      "styles": [
+        "industrial",
+        "contemporary",
+        "tactile"
+      ]
+    },
+    {
+      "id": "bp-linear",
+      "brandId": "buster-punch",
+      "name": "Linear",
+      "styles": [
+        "contemporary",
+        "tactile"
+      ]
+    },
+    {
+      "id": "topknobs-barrington",
+      "brandId": "top-knobs",
+      "name": "Barrington",
+      "styles": [
+        "transitional",
+        "traditional"
+      ]
+    },
+    {
+      "id": "topknobs-mercer",
+      "brandId": "top-knobs",
+      "name": "Mercer",
+      "styles": [
+        "modern",
+        "transitional"
+      ]
+    },
+    {
+      "id": "atlas-oskar",
+      "brandId": "atlas-homewares",
+      "name": "Oskar",
+      "styles": [
+        "transitional",
+        "contemporary"
+      ]
+    }
+  ],
+  "families": [
+    {
+      "id": "emtek-select-rectangular-smooth",
+      "brandId": "emtek",
+      "collectionId": "emtek-select",
+      "name": "SELECT Rectangular Bar Smooth Cabinet Pull",
+      "category": "bar_pull",
+      "styles": [
+        "contemporary",
+        "minimal"
+      ],
+      "material": "metal; manufacturer page does not state base metal in the captured product facts",
+      "description": "A broad-size contemporary family useful as the normalized long-pull baseline and for appliance-scale visual language.",
+      "sizeVariants": [
+        {
+          "id": "emtek-select-5in",
+          "label": "5 in c.c.",
+          "manufacturerSizeCode": "84154",
+          "dimensionsMm": {
+            "centerToCenter": 127.0,
+            "overallLength": 184.15,
+            "projection": 34.925,
+            "width": 12.7
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "included"
+          }
+        },
+        {
+          "id": "emtek-select-8in",
+          "label": "8 in c.c.",
+          "manufacturerSizeCode": "84156",
+          "dimensionsMm": {
+            "centerToCenter": 203.2,
+            "overallLength": 260.35,
+            "projection": 34.925,
+            "width": 12.7
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "included"
+          }
+        },
+        {
+          "id": "emtek-select-12in",
+          "label": "12 in c.c.",
+          "manufacturerSizeCode": "84158",
+          "dimensionsMm": {
+            "centerToCenter": 304.8,
+            "overallLength": 361.95,
+            "projection": 34.925,
+            "width": 12.7
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "included"
+          }
+        }
+      ],
+      "finishVariants": [
+        {
+          "id": "emtek-us4",
+          "manufacturerName": "Satin Brass",
+          "manufacturerCode": "US4",
+          "canonicalFinishId": "satin-brass",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "emtek-us15",
+          "manufacturerName": "Satin Nickel",
+          "manufacturerCode": "US15",
+          "canonicalFinishId": "satin-nickel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "emtek-us19",
+          "manufacturerName": "Flat Black",
+          "manufacturerCode": "US19",
+          "canonicalFinishId": "matte-black",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "emtek-us10b",
+          "manufacturerName": "Oil Rubbed Bronze",
+          "manufacturerCode": "US10B",
+          "canonicalFinishId": "oil-rubbed-bronze",
+          "isLivingFinish": true,
+          "digitalSwatchIsApproximate": true
+        }
+      ],
+      "compatiblePlacements": [
+        "door",
+        "drawer_front"
+      ],
+      "recommendedApplications": [
+        "slab fronts",
+        "slim shaker",
+        "wide drawers",
+        "tall doors"
+      ],
+      "sourceIds": [
+        "src-emtek-select-page",
+        "src-emtek-select-spec"
+      ],
+      "priceTier": "mid-premium",
+      "reasonForInclusion": "Extensive size/finish matrix, dealer channel, and a strong bridge between ordinary cabinet pulls and elongated architectural pulls.",
+      "verificationCaveat": "The official smooth product page links a specification PDF whose file name contains 'Knurled'; re-check the smooth-bar dimension table before releasing production geometry.",
+      "status": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "imageUsage": {
+        "status": "permission_required",
+        "productionRule": "Do not hotlink or copy manufacturer photography. Use a locally generated neutral render unless written permission is recorded."
+      },
+      "asset": {
+        "strategy": "C",
+        "accuracy": "dimensionally_accurate_parametric_proxy",
+        "exactGeometryLicensed": false,
+        "cadAvailability": "not_verified",
+        "productionRule": "Use verified dimensions; if a required dimension is absent, downgrade to a neutral placeholder and exclude from the accurate-3D filter."
+      }
+    },
+    {
+      "id": "emtek-cabinet-latch-2270",
+      "brandId": "emtek",
+      "collectionId": "emtek-traditional",
+      "name": "Cabinet Latch",
+      "category": "cabinet_latch",
+      "styles": [
+        "traditional",
+        "transitional",
+        "vintage"
+      ],
+      "material": "solid brass",
+      "description": "Surface-mounted decorative latch for paired cabinet doors; a credible custom-millwork alternative to ordinary knobs and pulls.",
+      "sizeVariants": [
+        {
+          "id": "emtek-latch-standard",
+          "label": "2 1/4 in × 2 in",
+          "manufacturerSizeCode": "2270",
+          "dimensionsMm": {
+            "overallLength": 57.15,
+            "width": 50.8,
+            "projection": null,
+            "centerToCenter": null
+          },
+          "mounting": {
+            "holeCount": null,
+            "screw": "included",
+            "mountType": "surface"
+          }
+        }
+      ],
+      "finishVariants": [
+        {
+          "id": "emtek-latch-us4",
+          "manufacturerName": "Satin Brass",
+          "manufacturerCode": "US4",
+          "canonicalFinishId": "satin-brass",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "emtek-latch-us14",
+          "manufacturerName": "Polished Nickel",
+          "manufacturerCode": "US14",
+          "canonicalFinishId": "polished-nickel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "emtek-latch-us19",
+          "manufacturerName": "Flat Black",
+          "manufacturerCode": "US19",
+          "canonicalFinishId": "matte-black",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "emtek-latch-us3nl",
+          "manufacturerName": "Unlacquered Brass",
+          "manufacturerCode": "US3NL",
+          "canonicalFinishId": "unlacquered-brass",
+          "isLivingFinish": true,
+          "digitalSwatchIsApproximate": true
+        }
+      ],
+      "compatiblePlacements": [
+        "paired_door"
+      ],
+      "recommendedApplications": [
+        "library doors",
+        "display cabinets",
+        "traditional built-ins"
+      ],
+      "compatibilityRestrictions": [
+        "Not for drawer fronts.",
+        "Requires a compatible strike/catch relationship and paired-door geometry."
+      ],
+      "sourceIds": [
+        "src-emtek-latch-page"
+      ],
+      "priceTier": "premium",
+      "reasonForInclusion": "Represents the documented return of cabinet catches/latches and expands the taxonomy beyond knobs and pulls.",
+      "asset": {
+        "strategy": "D",
+        "accuracy": "neutral_placeholder_until_full_projection_and_mounting_geometry_are_verified",
+        "exactGeometryLicensed": false,
+        "cadAvailability": "not_verified",
+        "productionRule": "Display real metadata but do not claim exact 3D geometry until the full installation envelope is verified."
+      },
+      "status": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "imageUsage": {
+        "status": "permission_required",
+        "productionRule": "Do not hotlink or copy manufacturer photography. Use a locally generated neutral render unless written permission is recorded."
+      }
+    },
+    {
+      "id": "richelieu-edge-pull-9898",
+      "brandId": "richelieu",
+      "collectionId": "richelieu-9898",
+      "name": "Modern Aluminum Edge Pull 9898",
+      "category": "edge_pull",
+      "styles": [
+        "modern",
+        "minimal"
+      ],
+      "material": "aluminum",
+      "description": "A widely distributed professional edge pull with a large size and finish matrix.",
+      "sizeVariants": [
+        {
+          "id": "r9898-80",
+          "label": "80 mm c.c.",
+          "manufacturerSizeCode": "80",
+          "dimensionsMm": {
+            "centerToCenter": 80,
+            "overallLength": 100,
+            "width": 18.256,
+            "projection": null
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "wood screw included"
+          }
+        },
+        {
+          "id": "r9898-128",
+          "label": "128 mm c.c.",
+          "manufacturerSizeCode": "128",
+          "dimensionsMm": {
+            "centerToCenter": 128,
+            "overallLength": 148,
+            "width": 18.256,
+            "projection": null
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "wood screw included"
+          }
+        },
+        {
+          "id": "r9898-192",
+          "label": "192 mm c.c.",
+          "manufacturerSizeCode": "192",
+          "dimensionsMm": {
+            "centerToCenter": 192,
+            "overallLength": 212,
+            "width": 18.256,
+            "projection": null
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "wood screw included"
+          }
+        }
+      ],
+      "finishVariants": [
+        {
+          "id": "r9898-990",
+          "manufacturerName": "Brushed Black",
+          "manufacturerCode": "990",
+          "canonicalFinishId": "matte-black",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "r9898-chbrz",
+          "manufacturerName": "Brushed Champagne Bronze",
+          "manufacturerCode": "CHBRZ",
+          "canonicalFinishId": "champagne-bronze",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "r9898-166",
+          "manufacturerName": "Satin Gold",
+          "manufacturerCode": "166",
+          "canonicalFinishId": "matte-satin-gold",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "r9898-170",
+          "manufacturerName": "Stainless Steel",
+          "manufacturerCode": "170",
+          "canonicalFinishId": "stainless-steel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        }
+      ],
+      "compatiblePlacements": [
+        "door_top_edge",
+        "door_side_edge",
+        "drawer_top_edge"
+      ],
+      "recommendedApplications": [
+        "slab fronts",
+        "closets",
+        "media cabinetry",
+        "minimal built-ins"
+      ],
+      "sourceIds": [
+        "src-richelieu-9898-page"
+      ],
+      "priceTier": "practical_to_mid-premium",
+      "reasonForInclusion": "Covers an enduring minimal/edge-pull category, North American trade distribution, and real metric mounting sizes.",
+      "asset": {
+        "strategy": "C",
+        "accuracy": "partial_parametric_proxy",
+        "exactGeometryLicensed": false,
+        "cadAvailability": "not_verified",
+        "productionRule": "Use verified c.c., length, and width. Mark projection/detail as simplified until the full profile drawing is licensed or verified."
+      },
+      "status": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "imageUsage": {
+        "status": "permission_required",
+        "productionRule": "Do not hotlink or copy manufacturer photography. Use a locally generated neutral render unless written permission is recorded."
+      }
+    },
+    {
+      "id": "richelieu-modern-pull-1030",
+      "brandId": "richelieu",
+      "collectionId": "richelieu-atipica",
+      "name": "Modern Metal Pull 1030",
+      "category": "sculptural_pull",
+      "styles": [
+        "eclectic",
+        "contemporary"
+      ],
+      "material": "zamak",
+      "description": "A colorful, sculptural 2026 catalog addition available in compact and standard c.c. sizes.",
+      "sizeVariants": [
+        {
+          "id": "r1030-32",
+          "label": "32 mm c.c.",
+          "manufacturerSizeCode": "32",
+          "dimensionsMm": {
+            "centerToCenter": 32,
+            "overallLength": 70,
+            "diameter": 11.112,
+            "projection": 29.369,
+            "height": 26.194
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "M4 included"
+          }
+        },
+        {
+          "id": "r1030-128",
+          "label": "128 mm c.c.",
+          "manufacturerSizeCode": "128",
+          "dimensionsMm": {
+            "centerToCenter": 128,
+            "overallLength": 180,
+            "diameter": 11.112,
+            "projection": 29.369,
+            "height": 26.194
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "M4 included"
+          }
+        }
+      ],
+      "finishVariants": [
+        {
+          "id": "r1030-900",
+          "manufacturerName": "Matte Black",
+          "manufacturerCode": "900",
+          "canonicalFinishId": "matte-black",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "r1030-72",
+          "manufacturerName": "Metallic Blue",
+          "manufacturerCode": "72",
+          "canonicalFinishId": "metallic-blue",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "r1030-101",
+          "manufacturerName": "Metallic Gray",
+          "manufacturerCode": "101",
+          "canonicalFinishId": "metallic-gray",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "r1030-168",
+          "manufacturerName": "Matte Satin Gold",
+          "manufacturerCode": "168",
+          "canonicalFinishId": "matte-satin-gold",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        }
+      ],
+      "compatiblePlacements": [
+        "door",
+        "drawer_front"
+      ],
+      "recommendedApplications": [
+        "statement built-ins",
+        "children's rooms",
+        "color-forward cabinetry",
+        "accent doors"
+      ],
+      "sourceIds": [
+        "src-richelieu-1030-page"
+      ],
+      "priceTier": "mid-premium",
+      "reasonForInclusion": "Adds a controlled dose of current color/sculptural trend without making the entire catalog trend-dependent.",
+      "status": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "imageUsage": {
+        "status": "permission_required",
+        "productionRule": "Do not hotlink or copy manufacturer photography. Use a locally generated neutral render unless written permission is recorded."
+      },
+      "asset": {
+        "strategy": "C",
+        "accuracy": "dimensionally_accurate_parametric_proxy",
+        "exactGeometryLicensed": false,
+        "cadAvailability": "not_verified",
+        "productionRule": "Use verified dimensions; if a required dimension is absent, downgrade to a neutral placeholder and exclude from the accurate-3D filter."
+      }
+    },
+    {
+      "id": "armac-queslett-cup",
+      "brandId": "armac-martin",
+      "collectionId": "armac-queslett",
+      "name": "Queslett Cup Pull",
+      "category": "cup_pull",
+      "styles": [
+        "traditional",
+        "transitional",
+        "luxury"
+      ],
+      "material": "solid brass",
+      "description": "A substantial solid-brass cup pull in multiple architectural lengths and hand-applied finishes.",
+      "sizeVariants": [
+        {
+          "id": "armac-q96",
+          "label": "96 mm c.c.",
+          "manufacturerSizeCode": "Q96",
+          "dimensionsMm": {
+            "centerToCenter": 96,
+            "overallLength": 108,
+            "projection": 22,
+            "width": 40
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "fixings included"
+          }
+        },
+        {
+          "id": "armac-q120",
+          "label": "120 mm c.c.",
+          "manufacturerSizeCode": "Q120",
+          "dimensionsMm": {
+            "centerToCenter": 120,
+            "overallLength": 160,
+            "projection": 22,
+            "width": 40
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "fixings included"
+          }
+        },
+        {
+          "id": "armac-q203",
+          "label": "203 mm c.c.",
+          "manufacturerSizeCode": "Q203",
+          "dimensionsMm": {
+            "centerToCenter": 203,
+            "overallLength": 229,
+            "projection": 22,
+            "width": 40
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "fixings included"
+          }
+        }
+      ],
+      "finishVariants": [
+        {
+          "id": "armac-bel",
+          "manufacturerName": "Aged Brass",
+          "manufacturerCode": "BEL",
+          "canonicalFinishId": "aged-brass",
+          "isLivingFinish": true,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "armac-pnp",
+          "manufacturerName": "Polished Nickel Plate",
+          "manufacturerCode": "PNP",
+          "canonicalFinishId": "polished-nickel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "armac-pbul",
+          "manufacturerName": "Polished Brass Unlacquered",
+          "manufacturerCode": "PBUL",
+          "canonicalFinishId": "unlacquered-brass",
+          "isLivingFinish": true,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "armac-mbl",
+          "manufacturerName": "Matt Black Lacquered",
+          "manufacturerCode": "MBL",
+          "canonicalFinishId": "matte-black",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        }
+      ],
+      "compatiblePlacements": [
+        "drawer_front",
+        "door_horizontal"
+      ],
+      "recommendedApplications": [
+        "library drawers",
+        "traditional lower cabinets",
+        "transitional built-ins"
+      ],
+      "sourceIds": [
+        "src-armac-queslett-cup-page",
+        "src-armac-queslett-cup-tearsheet"
+      ],
+      "priceTier": "luxury",
+      "reasonForInclusion": "Provides a genuine luxury cup-pull family with real dimensions, finish depth, and scale beyond ubiquitous farmhouse bin pulls.",
+      "asset": {
+        "strategy": "B",
+        "accuracy": "dimensionally_accurate_neutral_custom_model",
+        "exactGeometryLicensed": false,
+        "cadAvailability": "not_verified",
+        "productionRule": "Model the verified envelope and mounting spacing, but keep ornamental details neutral unless written permission covers an exact likeness."
+      },
+      "status": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "imageUsage": {
+        "status": "permission_required",
+        "productionRule": "Do not hotlink or copy manufacturer photography. Use a locally generated neutral render unless written permission is recorded."
+      }
+    },
+    {
+      "id": "armac-queslett-knob",
+      "brandId": "armac-martin",
+      "collectionId": "armac-queslett",
+      "name": "Queslett Cabinet Knob",
+      "category": "round_knob",
+      "styles": [
+        "traditional",
+        "transitional",
+        "luxury"
+      ],
+      "material": "solid brass",
+      "description": "A matching luxury knob family that enables coordinated knob-and-cup schedules.",
+      "sizeVariants": [
+        {
+          "id": "armac-qk28",
+          "label": "28 mm",
+          "manufacturerSizeCode": "28",
+          "dimensionsMm": {
+            "diameter": 28,
+            "projection": 26,
+            "baseDiameter": 12,
+            "centerToCenter": 0
+          },
+          "mounting": {
+            "holeCount": 1
+          }
+        },
+        {
+          "id": "armac-qk34",
+          "label": "34 mm",
+          "manufacturerSizeCode": "34",
+          "dimensionsMm": {
+            "diameter": 34,
+            "projection": 32,
+            "baseDiameter": 12,
+            "centerToCenter": 0
+          },
+          "mounting": {
+            "holeCount": 1
+          }
+        },
+        {
+          "id": "armac-qk40",
+          "label": "40 mm",
+          "manufacturerSizeCode": "40",
+          "dimensionsMm": {
+            "diameter": 40,
+            "projection": 35,
+            "baseDiameter": 16,
+            "centerToCenter": 0
+          },
+          "mounting": {
+            "holeCount": 1
+          }
+        }
+      ],
+      "finishVariants": [
+        {
+          "id": "armac-bel",
+          "manufacturerName": "Aged Brass",
+          "manufacturerCode": "BEL",
+          "canonicalFinishId": "aged-brass",
+          "isLivingFinish": true,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "armac-pnp",
+          "manufacturerName": "Polished Nickel Plate",
+          "manufacturerCode": "PNP",
+          "canonicalFinishId": "polished-nickel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "armac-pbul",
+          "manufacturerName": "Polished Brass Unlacquered",
+          "manufacturerCode": "PBUL",
+          "canonicalFinishId": "unlacquered-brass",
+          "isLivingFinish": true,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "armac-mbl",
+          "manufacturerName": "Matt Black Lacquered",
+          "manufacturerCode": "MBL",
+          "canonicalFinishId": "matte-black",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        }
+      ],
+      "compatiblePlacements": [
+        "door",
+        "drawer_front"
+      ],
+      "recommendedApplications": [
+        "paired doors",
+        "small drawers",
+        "mixed knob-and-pull schedules"
+      ],
+      "sourceIds": [
+        "src-armac-queslett-knob-page"
+      ],
+      "priceTier": "luxury",
+      "reasonForInclusion": "Enables a coherent family-based mixed-hardware experience rather than unrelated product cards.",
+      "status": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "imageUsage": {
+        "status": "permission_required",
+        "productionRule": "Do not hotlink or copy manufacturer photography. Use a locally generated neutral render unless written permission is recorded."
+      },
+      "asset": {
+        "strategy": "C",
+        "accuracy": "dimensionally_accurate_parametric_proxy",
+        "exactGeometryLicensed": false,
+        "cadAvailability": "not_verified",
+        "productionRule": "Use verified dimensions; if a required dimension is absent, downgrade to a neutral placeholder and exclude from the accurate-3D filter."
+      }
+    },
+    {
+      "id": "buster-punch-pull-bar-cross",
+      "brandId": "buster-punch",
+      "collectionId": "bp-cross",
+      "name": "Pull Bar / Cross",
+      "category": "knurled_bar_pull",
+      "styles": [
+        "industrial",
+        "contemporary",
+        "tactile"
+      ],
+      "material": "solid metal; finish-specific construction per manufacturer",
+      "description": "A high-recognition tactile pull with cross-knurl detailing and three substantial sizes.",
+      "sizeVariants": [
+        {
+          "id": "bp-cross-small",
+          "label": "Small",
+          "manufacturerSizeCode": "SMALL",
+          "dimensionsMm": {
+            "centerToCenter": 125,
+            "overallLength": 160,
+            "projection": 47,
+            "diameter": 20
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "rear M5",
+            "maxDoorThickness": 20
+          }
+        },
+        {
+          "id": "bp-cross-medium",
+          "label": "Medium",
+          "manufacturerSizeCode": "MEDIUM",
+          "dimensionsMm": {
+            "centerToCenter": 225,
+            "overallLength": 260,
+            "projection": 47,
+            "diameter": 20
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "rear M5",
+            "maxDoorThickness": 20
+          }
+        },
+        {
+          "id": "bp-cross-large",
+          "label": "Large",
+          "manufacturerSizeCode": "LARGE",
+          "dimensionsMm": {
+            "centerToCenter": 325,
+            "overallLength": 360,
+            "projection": 47,
+            "diameter": 20
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "rear M5",
+            "maxDoorThickness": 20
+          }
+        }
+      ],
+      "finishVariants": [
+        {
+          "id": "bp-cross-black",
+          "manufacturerName": "Black",
+          "manufacturerCode": "BLACK",
+          "canonicalFinishId": "matte-black",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "bp-cross-brass",
+          "manufacturerName": "Brass",
+          "manufacturerCode": "BRASS",
+          "canonicalFinishId": "brass",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "bp-cross-smoked",
+          "manufacturerName": "Smoked Bronze",
+          "manufacturerCode": "SMOKED_BRONZE",
+          "canonicalFinishId": "smoked-bronze",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "bp-cross-steel",
+          "manufacturerName": "Steel",
+          "manufacturerCode": "STEEL",
+          "canonicalFinishId": "stainless-steel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        }
+      ],
+      "compatiblePlacements": [
+        "door",
+        "drawer_front"
+      ],
+      "recommendedApplications": [
+        "slab fronts",
+        "dark millwork",
+        "home offices",
+        "statement drawers"
+      ],
+      "sourceIds": [
+        "src-bp-cross-page",
+        "src-bp-cross-spec"
+      ],
+      "priceTier": "premium",
+      "reasonForInclusion": "Directly represents the durable tactile/knurled hardware trend with complete technical dimensions.",
+      "asset": {
+        "strategy": "C",
+        "accuracy": "dimensionally_accurate_simplified_proxy",
+        "exactGeometryLicensed": false,
+        "cadAvailability": "not_verified",
+        "productionRule": "Use a simplified grip texture by default. Exact cross-knurl geometry or branded imagery requires permission."
+      },
+      "status": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "imageUsage": {
+        "status": "permission_required",
+        "productionRule": "Do not hotlink or copy manufacturer photography. Use a locally generated neutral render unless written permission is recorded."
+      }
+    },
+    {
+      "id": "buster-punch-pull-bar-linear",
+      "brandId": "buster-punch",
+      "collectionId": "bp-linear",
+      "name": "Pull Bar / Linear",
+      "category": "textured_bar_pull",
+      "styles": [
+        "contemporary",
+        "tactile"
+      ],
+      "material": "solid metal; finish-specific construction per manufacturer",
+      "description": "A slimmer tactile bar pull with linear detailing and three c.c. sizes.",
+      "sizeVariants": [
+        {
+          "id": "bp-linear-small",
+          "label": "Small",
+          "manufacturerSizeCode": "SMALL",
+          "dimensionsMm": {
+            "centerToCenter": 125,
+            "overallLength": 150,
+            "projection": 36,
+            "diameter": 15
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "rear M5",
+            "maxDoorThickness": 20
+          }
+        },
+        {
+          "id": "bp-linear-medium",
+          "label": "Medium",
+          "manufacturerSizeCode": "MEDIUM",
+          "dimensionsMm": {
+            "centerToCenter": 225,
+            "overallLength": 250,
+            "projection": 36,
+            "diameter": 15
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "rear M5",
+            "maxDoorThickness": 20
+          }
+        },
+        {
+          "id": "bp-linear-large",
+          "label": "Large",
+          "manufacturerSizeCode": "LARGE",
+          "dimensionsMm": {
+            "centerToCenter": 325,
+            "overallLength": 350,
+            "projection": 36,
+            "diameter": 15
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "rear M5",
+            "maxDoorThickness": 20
+          }
+        }
+      ],
+      "finishVariants": [
+        {
+          "id": "bp-linear-black",
+          "manufacturerName": "Black",
+          "manufacturerCode": "BLACK",
+          "canonicalFinishId": "matte-black",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "bp-linear-brass",
+          "manufacturerName": "Brass",
+          "manufacturerCode": "BRASS",
+          "canonicalFinishId": "brass",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "bp-linear-steel",
+          "manufacturerName": "Steel",
+          "manufacturerCode": "STEEL",
+          "canonicalFinishId": "stainless-steel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        }
+      ],
+      "compatiblePlacements": [
+        "door",
+        "drawer_front"
+      ],
+      "recommendedApplications": [
+        "slab fronts",
+        "minimal built-ins",
+        "home offices",
+        "closets"
+      ],
+      "sourceIds": [
+        "src-bp-linear-page",
+        "src-bp-linear-spec"
+      ],
+      "priceTier": "premium",
+      "reasonForInclusion": "Balances the heavier Cross family with a slimmer elongated profile suited to premium minimal millwork.",
+      "status": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "imageUsage": {
+        "status": "permission_required",
+        "productionRule": "Do not hotlink or copy manufacturer photography. Use a locally generated neutral render unless written permission is recorded."
+      },
+      "asset": {
+        "strategy": "C",
+        "accuracy": "dimensionally_accurate_parametric_proxy",
+        "exactGeometryLicensed": false,
+        "cadAvailability": "not_verified",
+        "productionRule": "Use verified dimensions; if a required dimension is absent, downgrade to a neutral placeholder and exclude from the accurate-3D filter."
+      }
+    },
+    {
+      "id": "buster-punch-tbar-cross",
+      "brandId": "buster-punch",
+      "collectionId": "bp-cross",
+      "name": "T-Bar / Cross",
+      "category": "t_bar_knob",
+      "styles": [
+        "industrial",
+        "contemporary",
+        "tactile"
+      ],
+      "material": "solid metal; finish-specific construction per manufacturer",
+      "description": "A tactile T-bar that coordinates with the Cross pull family.",
+      "sizeVariants": [
+        {
+          "id": "bp-tbar-standard",
+          "label": "95 mm T-bar",
+          "manufacturerSizeCode": "STANDARD",
+          "dimensionsMm": {
+            "overallLength": 95,
+            "projection": 24,
+            "diameter": 15,
+            "baseDiameter": 28,
+            "stemDiameter": 14,
+            "centerToCenter": 0
+          },
+          "mounting": {
+            "holeCount": 1,
+            "screw": "rear M5",
+            "maxDoorThickness": 20
+          }
+        }
+      ],
+      "finishVariants": [
+        {
+          "id": "bp-tbar-black",
+          "manufacturerName": "Black",
+          "manufacturerCode": "BLACK",
+          "canonicalFinishId": "matte-black",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "bp-tbar-brass",
+          "manufacturerName": "Brass",
+          "manufacturerCode": "BRASS",
+          "canonicalFinishId": "brass",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "bp-tbar-smoked",
+          "manufacturerName": "Smoked Bronze",
+          "manufacturerCode": "SMOKED_BRONZE",
+          "canonicalFinishId": "smoked-bronze",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "bp-tbar-steel",
+          "manufacturerName": "Steel",
+          "manufacturerCode": "STEEL",
+          "canonicalFinishId": "stainless-steel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        }
+      ],
+      "compatiblePlacements": [
+        "door",
+        "drawer_front"
+      ],
+      "recommendedApplications": [
+        "paired doors",
+        "small drawers",
+        "mixed family schedules"
+      ],
+      "sourceIds": [
+        "src-bp-tbar-page",
+        "src-bp-tbar-spec"
+      ],
+      "priceTier": "premium",
+      "reasonForInclusion": "Adds a contemporary knob alternative and demonstrates matching-family relationships.",
+      "status": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "imageUsage": {
+        "status": "permission_required",
+        "productionRule": "Do not hotlink or copy manufacturer photography. Use a locally generated neutral render unless written permission is recorded."
+      },
+      "asset": {
+        "strategy": "C",
+        "accuracy": "dimensionally_accurate_parametric_proxy",
+        "exactGeometryLicensed": false,
+        "cadAvailability": "not_verified",
+        "productionRule": "Use verified dimensions; if a required dimension is absent, downgrade to a neutral placeholder and exclude from the accurate-3D filter."
+      }
+    },
+    {
+      "id": "topknobs-channing-cup",
+      "brandId": "top-knobs",
+      "collectionId": "topknobs-barrington",
+      "name": "Channing Cup Pull",
+      "category": "cup_pull",
+      "styles": [
+        "transitional",
+        "traditional"
+      ],
+      "material": "zinc alloy",
+      "description": "A practical, stocked cup-pull family with four mounting sizes and a broad professional finish matrix.",
+      "sizeVariants": [
+        {
+          "id": "tk-channing-2-75",
+          "label": "2 3/4 in c.c.",
+          "manufacturerSizeCode": "TK772",
+          "dimensionsMm": {
+            "centerToCenter": 69.85,
+            "overallLength": 107.95,
+            "width": 25.4,
+            "projection": 25.4
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "M4 included"
+          }
+        },
+        {
+          "id": "tk-channing-3-75",
+          "label": "3 3/4 in c.c.",
+          "manufacturerSizeCode": "TK773",
+          "dimensionsMm": {
+            "centerToCenter": 95.25,
+            "overallLength": 133.35,
+            "width": 25.4,
+            "projection": 25.4
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "M4 included"
+          }
+        },
+        {
+          "id": "tk-channing-5",
+          "label": "5 in c.c.",
+          "manufacturerSizeCode": "TK774",
+          "dimensionsMm": {
+            "centerToCenter": 127.0,
+            "overallLength": 165.1,
+            "width": 25.4,
+            "projection": 25.4
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "M4 included"
+          }
+        }
+      ],
+      "finishVariants": [
+        {
+          "id": "tk-blk",
+          "manufacturerName": "Flat Black",
+          "manufacturerCode": "BLK",
+          "canonicalFinishId": "matte-black",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "tk-bsn",
+          "manufacturerName": "Brushed Satin Nickel",
+          "manufacturerCode": "BSN",
+          "canonicalFinishId": "satin-nickel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "tk-hb",
+          "manufacturerName": "Honey Bronze",
+          "manufacturerCode": "HB",
+          "canonicalFinishId": "honey-bronze",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "tk-pn",
+          "manufacturerName": "Polished Nickel",
+          "manufacturerCode": "PN",
+          "canonicalFinishId": "polished-nickel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        }
+      ],
+      "compatiblePlacements": [
+        "drawer_front",
+        "door_horizontal"
+      ],
+      "recommendedApplications": [
+        "lower drawers",
+        "traditional built-ins",
+        "transitional libraries"
+      ],
+      "sourceIds": [
+        "src-topknobs-channing-page",
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "priceTier": "practical",
+      "reasonForInclusion": "Gives the MVP a reliable, affordable cup-pull staple alongside the luxury Queslett family.",
+      "status": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "imageUsage": {
+        "status": "permission_required",
+        "productionRule": "Do not hotlink or copy manufacturer photography. Use a locally generated neutral render unless written permission is recorded."
+      },
+      "asset": {
+        "strategy": "C",
+        "accuracy": "dimensionally_accurate_parametric_proxy",
+        "exactGeometryLicensed": false,
+        "cadAvailability": "not_verified",
+        "productionRule": "Use verified dimensions; if a required dimension is absent, downgrade to a neutral placeholder and exclude from the accurate-3D filter."
+      }
+    },
+    {
+      "id": "topknobs-europa-tab",
+      "brandId": "top-knobs",
+      "collectionId": "topknobs-mercer",
+      "name": "Europa Tab Pull",
+      "category": "tab_pull",
+      "styles": [
+        "modern",
+        "transitional",
+        "minimal"
+      ],
+      "material": "zinc alloy",
+      "description": "A practical tab pull in compact through 5-inch mounting sizes.",
+      "sizeVariants": [
+        {
+          "id": "tk-europa-0-625",
+          "label": "5/8 in c.c.",
+          "manufacturerSizeCode": "TK500",
+          "dimensionsMm": {
+            "centerToCenter": 15.875,
+            "overallLength": 31.75,
+            "width": 1.587,
+            "projection": 41.275
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "wood screws"
+          }
+        },
+        {
+          "id": "tk-europa-2",
+          "label": "2 in c.c.",
+          "manufacturerSizeCode": "TK501",
+          "dimensionsMm": {
+            "centerToCenter": 50.8,
+            "overallLength": 76.2,
+            "width": 1.587,
+            "projection": 41.275
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "wood screws"
+          }
+        },
+        {
+          "id": "tk-europa-3",
+          "label": "3 in c.c.",
+          "manufacturerSizeCode": "TK502",
+          "dimensionsMm": {
+            "centerToCenter": 76.2,
+            "overallLength": 101.6,
+            "width": 1.587,
+            "projection": 41.275
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "wood screws"
+          }
+        },
+        {
+          "id": "tk-europa-5",
+          "label": "5 in c.c.",
+          "manufacturerSizeCode": "TK503",
+          "dimensionsMm": {
+            "centerToCenter": 127.0,
+            "overallLength": 152.4,
+            "width": 1.587,
+            "projection": 41.275
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "wood screws"
+          }
+        }
+      ],
+      "finishVariants": [
+        {
+          "id": "tk-blk",
+          "manufacturerName": "Flat Black",
+          "manufacturerCode": "BLK",
+          "canonicalFinishId": "matte-black",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "tk-bsn",
+          "manufacturerName": "Brushed Satin Nickel",
+          "manufacturerCode": "BSN",
+          "canonicalFinishId": "satin-nickel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "tk-hb",
+          "manufacturerName": "Honey Bronze",
+          "manufacturerCode": "HB",
+          "canonicalFinishId": "honey-bronze",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "tk-pn",
+          "manufacturerName": "Polished Nickel",
+          "manufacturerCode": "PN",
+          "canonicalFinishId": "polished-nickel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        }
+      ],
+      "compatiblePlacements": [
+        "door_edge",
+        "drawer_top_edge"
+      ],
+      "recommendedApplications": [
+        "slab fronts",
+        "closets",
+        "small doors",
+        "media cabinetry"
+      ],
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "priceTier": "practical",
+      "reasonForInclusion": "A low-risk professional choice for the minimal/tab-pull category with fully documented dimensions and prices.",
+      "status": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "imageUsage": {
+        "status": "permission_required",
+        "productionRule": "Do not hotlink or copy manufacturer photography. Use a locally generated neutral render unless written permission is recorded."
+      },
+      "asset": {
+        "strategy": "C",
+        "accuracy": "dimensionally_accurate_parametric_proxy",
+        "exactGeometryLicensed": false,
+        "cadAvailability": "not_verified",
+        "productionRule": "Use verified dimensions; if a required dimension is absent, downgrade to a neutral placeholder and exclude from the accurate-3D filter."
+      }
+    },
+    {
+      "id": "atlas-oskar-pull",
+      "brandId": "atlas-homewares",
+      "collectionId": "atlas-oskar",
+      "name": "Oskar Pull",
+      "category": "d_handle_pull",
+      "styles": [
+        "transitional",
+        "contemporary"
+      ],
+      "material": "zinc alloy",
+      "description": "A clean curved pull in a broad graduated size family and six manufacturer finishes.",
+      "sizeVariants": [
+        {
+          "id": "atlas-oskar-5-0625",
+          "label": "5 1/16 in c.c.",
+          "manufacturerSizeCode": "A103",
+          "dimensionsMm": {
+            "centerToCenter": 128.588,
+            "overallLength": 149.225,
+            "width": 9.525,
+            "projection": 31.75,
+            "baseDiameter": 22.225
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "M4"
+          }
+        },
+        {
+          "id": "atlas-oskar-6-3125",
+          "label": "6 5/16 in c.c.",
+          "manufacturerSizeCode": "A104",
+          "dimensionsMm": {
+            "centerToCenter": 160.337,
+            "overallLength": 180.975,
+            "width": 9.525,
+            "projection": 31.75,
+            "baseDiameter": 22.225
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "M4"
+          }
+        },
+        {
+          "id": "atlas-oskar-7-5625",
+          "label": "7 9/16 in c.c.",
+          "manufacturerSizeCode": "A105",
+          "dimensionsMm": {
+            "centerToCenter": 192.087,
+            "overallLength": 212.725,
+            "width": 9.525,
+            "projection": 31.75,
+            "baseDiameter": 22.225
+          },
+          "mounting": {
+            "holeCount": 2,
+            "screw": "M4"
+          }
+        }
+      ],
+      "finishVariants": [
+        {
+          "id": "atlas-bl",
+          "manufacturerName": "Matte Black",
+          "manufacturerCode": "BL",
+          "canonicalFinishId": "matte-black",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "atlas-brn",
+          "manufacturerName": "Brushed Nickel",
+          "manufacturerCode": "BRN",
+          "canonicalFinishId": "satin-nickel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "atlas-pn",
+          "manufacturerName": "Polished Nickel",
+          "manufacturerCode": "PN",
+          "canonicalFinishId": "polished-nickel",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        },
+        {
+          "id": "atlas-wb",
+          "manufacturerName": "Warm Brass",
+          "manufacturerCode": "WB",
+          "canonicalFinishId": "warm-brass",
+          "isLivingFinish": false,
+          "digitalSwatchIsApproximate": true
+        }
+      ],
+      "compatiblePlacements": [
+        "door",
+        "drawer_front"
+      ],
+      "recommendedApplications": [
+        "shaker fronts",
+        "slim shaker",
+        "transitional built-ins",
+        "home offices"
+      ],
+      "sourceIds": [
+        "src-atlas-oskar-page",
+        "src-atlas-2026-price-list"
+      ],
+      "priceTier": "practical_to_mid-premium",
+      "reasonForInclusion": "A durable, moderately priced curved pull that prevents the MVP from over-indexing on straight bars and luxury pieces.",
+      "imageUsage": {
+        "status": "permission_required",
+        "productionRule": "The official 2026 price-list policy requests prior approval for Atlas trademark and image use. Use custom neutral renders unless permission is documented."
+      },
+      "status": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "regions": [
+        "US",
+        "CA"
+      ],
+      "asset": {
+        "strategy": "C",
+        "accuracy": "dimensionally_accurate_parametric_proxy",
+        "exactGeometryLicensed": false,
+        "cadAvailability": "not_verified",
+        "productionRule": "Use verified dimensions; if a required dimension is absent, downgrade to a neutral placeholder and exclude from the accurate-3D filter."
+      }
+    }
+  ],
+  "exactVariants": [
+    {
+      "id": "emtek-select-rectangular-smooth__emtek-select-5in__emtek-us4",
+      "familyId": "emtek-select-rectangular-smooth",
+      "sizeVariantId": "emtek-select-5in",
+      "finishVariantId": "emtek-us4",
+      "manufacturerProductNumber": "84154",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-select-page",
+        "src-emtek-select-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-select-rectangular-smooth__emtek-select-5in__emtek-us15",
+      "familyId": "emtek-select-rectangular-smooth",
+      "sizeVariantId": "emtek-select-5in",
+      "finishVariantId": "emtek-us15",
+      "manufacturerProductNumber": "84154",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-select-page",
+        "src-emtek-select-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-select-rectangular-smooth__emtek-select-5in__emtek-us19",
+      "familyId": "emtek-select-rectangular-smooth",
+      "sizeVariantId": "emtek-select-5in",
+      "finishVariantId": "emtek-us19",
+      "manufacturerProductNumber": "84154",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-select-page",
+        "src-emtek-select-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-select-rectangular-smooth__emtek-select-5in__emtek-us10b",
+      "familyId": "emtek-select-rectangular-smooth",
+      "sizeVariantId": "emtek-select-5in",
+      "finishVariantId": "emtek-us10b",
+      "manufacturerProductNumber": "84154",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-select-page",
+        "src-emtek-select-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-select-rectangular-smooth__emtek-select-8in__emtek-us4",
+      "familyId": "emtek-select-rectangular-smooth",
+      "sizeVariantId": "emtek-select-8in",
+      "finishVariantId": "emtek-us4",
+      "manufacturerProductNumber": "84156",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-select-page",
+        "src-emtek-select-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-select-rectangular-smooth__emtek-select-8in__emtek-us15",
+      "familyId": "emtek-select-rectangular-smooth",
+      "sizeVariantId": "emtek-select-8in",
+      "finishVariantId": "emtek-us15",
+      "manufacturerProductNumber": "84156",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-select-page",
+        "src-emtek-select-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-select-rectangular-smooth__emtek-select-8in__emtek-us19",
+      "familyId": "emtek-select-rectangular-smooth",
+      "sizeVariantId": "emtek-select-8in",
+      "finishVariantId": "emtek-us19",
+      "manufacturerProductNumber": "84156",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-select-page",
+        "src-emtek-select-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-select-rectangular-smooth__emtek-select-8in__emtek-us10b",
+      "familyId": "emtek-select-rectangular-smooth",
+      "sizeVariantId": "emtek-select-8in",
+      "finishVariantId": "emtek-us10b",
+      "manufacturerProductNumber": "84156",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-select-page",
+        "src-emtek-select-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-select-rectangular-smooth__emtek-select-12in__emtek-us4",
+      "familyId": "emtek-select-rectangular-smooth",
+      "sizeVariantId": "emtek-select-12in",
+      "finishVariantId": "emtek-us4",
+      "manufacturerProductNumber": "84158",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-select-page",
+        "src-emtek-select-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-select-rectangular-smooth__emtek-select-12in__emtek-us15",
+      "familyId": "emtek-select-rectangular-smooth",
+      "sizeVariantId": "emtek-select-12in",
+      "finishVariantId": "emtek-us15",
+      "manufacturerProductNumber": "84158",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-select-page",
+        "src-emtek-select-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-select-rectangular-smooth__emtek-select-12in__emtek-us19",
+      "familyId": "emtek-select-rectangular-smooth",
+      "sizeVariantId": "emtek-select-12in",
+      "finishVariantId": "emtek-us19",
+      "manufacturerProductNumber": "84158",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-select-page",
+        "src-emtek-select-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-select-rectangular-smooth__emtek-select-12in__emtek-us10b",
+      "familyId": "emtek-select-rectangular-smooth",
+      "sizeVariantId": "emtek-select-12in",
+      "finishVariantId": "emtek-us10b",
+      "manufacturerProductNumber": "84158",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-select-page",
+        "src-emtek-select-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-cabinet-latch-2270__emtek-latch-standard__emtek-latch-us4",
+      "familyId": "emtek-cabinet-latch-2270",
+      "sizeVariantId": "emtek-latch-standard",
+      "finishVariantId": "emtek-latch-us4",
+      "manufacturerProductNumber": "2270",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-latch-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-cabinet-latch-2270__emtek-latch-standard__emtek-latch-us14",
+      "familyId": "emtek-cabinet-latch-2270",
+      "sizeVariantId": "emtek-latch-standard",
+      "finishVariantId": "emtek-latch-us14",
+      "manufacturerProductNumber": "2270",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-latch-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-cabinet-latch-2270__emtek-latch-standard__emtek-latch-us19",
+      "familyId": "emtek-cabinet-latch-2270",
+      "sizeVariantId": "emtek-latch-standard",
+      "finishVariantId": "emtek-latch-us19",
+      "manufacturerProductNumber": "2270",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-latch-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "emtek-cabinet-latch-2270__emtek-latch-standard__emtek-latch-us3nl",
+      "familyId": "emtek-cabinet-latch-2270",
+      "sizeVariantId": "emtek-latch-standard",
+      "finishVariantId": "emtek-latch-us3nl",
+      "manufacturerProductNumber": "2270",
+      "sku": null,
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-emtek-latch-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-edge-pull-9898__r9898-80__r9898-990",
+      "familyId": "richelieu-edge-pull-9898",
+      "sizeVariantId": "r9898-80",
+      "finishVariantId": "r9898-990",
+      "manufacturerProductNumber": "BP989880990",
+      "sku": "BP989880990",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-9898-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-edge-pull-9898__r9898-80__r9898-chbrz",
+      "familyId": "richelieu-edge-pull-9898",
+      "sizeVariantId": "r9898-80",
+      "finishVariantId": "r9898-chbrz",
+      "manufacturerProductNumber": "BP989880CHBRZ",
+      "sku": "BP989880CHBRZ",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-9898-page"
+      ],
+      "note": "CHBRZ is a matte finish and should be matched within the BP9898/BP9696 series per the manufacturer note."
+    },
+    {
+      "id": "richelieu-edge-pull-9898__r9898-80__r9898-166",
+      "familyId": "richelieu-edge-pull-9898",
+      "sizeVariantId": "r9898-80",
+      "finishVariantId": "r9898-166",
+      "manufacturerProductNumber": "BP989880166",
+      "sku": "BP989880166",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-9898-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-edge-pull-9898__r9898-80__r9898-170",
+      "familyId": "richelieu-edge-pull-9898",
+      "sizeVariantId": "r9898-80",
+      "finishVariantId": "r9898-170",
+      "manufacturerProductNumber": "BP989880170",
+      "sku": "BP989880170",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-9898-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-edge-pull-9898__r9898-128__r9898-990",
+      "familyId": "richelieu-edge-pull-9898",
+      "sizeVariantId": "r9898-128",
+      "finishVariantId": "r9898-990",
+      "manufacturerProductNumber": "BP9898128990",
+      "sku": "BP9898128990",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-9898-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-edge-pull-9898__r9898-128__r9898-chbrz",
+      "familyId": "richelieu-edge-pull-9898",
+      "sizeVariantId": "r9898-128",
+      "finishVariantId": "r9898-chbrz",
+      "manufacturerProductNumber": "BP9898128CHBRZ",
+      "sku": "BP9898128CHBRZ",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-9898-page"
+      ],
+      "note": "CHBRZ is a matte finish and should be matched within the BP9898/BP9696 series per the manufacturer note."
+    },
+    {
+      "id": "richelieu-edge-pull-9898__r9898-128__r9898-166",
+      "familyId": "richelieu-edge-pull-9898",
+      "sizeVariantId": "r9898-128",
+      "finishVariantId": "r9898-166",
+      "manufacturerProductNumber": "BP9898128166",
+      "sku": "BP9898128166",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-9898-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-edge-pull-9898__r9898-128__r9898-170",
+      "familyId": "richelieu-edge-pull-9898",
+      "sizeVariantId": "r9898-128",
+      "finishVariantId": "r9898-170",
+      "manufacturerProductNumber": "BP9898128170",
+      "sku": "BP9898128170",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-9898-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-edge-pull-9898__r9898-192__r9898-990",
+      "familyId": "richelieu-edge-pull-9898",
+      "sizeVariantId": "r9898-192",
+      "finishVariantId": "r9898-990",
+      "manufacturerProductNumber": "BP9898192990",
+      "sku": "BP9898192990",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-9898-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-edge-pull-9898__r9898-192__r9898-chbrz",
+      "familyId": "richelieu-edge-pull-9898",
+      "sizeVariantId": "r9898-192",
+      "finishVariantId": "r9898-chbrz",
+      "manufacturerProductNumber": "BP9898192CHBRZ",
+      "sku": "BP9898192CHBRZ",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-9898-page"
+      ],
+      "note": "CHBRZ is a matte finish and should be matched within the BP9898/BP9696 series per the manufacturer note."
+    },
+    {
+      "id": "richelieu-edge-pull-9898__r9898-192__r9898-166",
+      "familyId": "richelieu-edge-pull-9898",
+      "sizeVariantId": "r9898-192",
+      "finishVariantId": "r9898-166",
+      "manufacturerProductNumber": "BP9898192166",
+      "sku": "BP9898192166",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-9898-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-edge-pull-9898__r9898-192__r9898-170",
+      "familyId": "richelieu-edge-pull-9898",
+      "sizeVariantId": "r9898-192",
+      "finishVariantId": "r9898-170",
+      "manufacturerProductNumber": "BP9898192170",
+      "sku": "BP9898192170",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-9898-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-modern-pull-1030__r1030-32__r1030-900",
+      "familyId": "richelieu-modern-pull-1030",
+      "sizeVariantId": "r1030-32",
+      "finishVariantId": "r1030-900",
+      "manufacturerProductNumber": "103032900",
+      "sku": "103032900",
+      "pricing": {
+        "mode": "band",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": "USD 50–100 suggested-price band",
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-1030-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-modern-pull-1030__r1030-32__r1030-72",
+      "familyId": "richelieu-modern-pull-1030",
+      "sizeVariantId": "r1030-32",
+      "finishVariantId": "r1030-72",
+      "manufacturerProductNumber": "10303272",
+      "sku": "10303272",
+      "pricing": {
+        "mode": "band",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": "USD 50–100 suggested-price band",
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-1030-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-modern-pull-1030__r1030-32__r1030-101",
+      "familyId": "richelieu-modern-pull-1030",
+      "sizeVariantId": "r1030-32",
+      "finishVariantId": "r1030-101",
+      "manufacturerProductNumber": "103032101",
+      "sku": "103032101",
+      "pricing": {
+        "mode": "band",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": "USD 50–100 suggested-price band",
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-1030-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-modern-pull-1030__r1030-32__r1030-168",
+      "familyId": "richelieu-modern-pull-1030",
+      "sizeVariantId": "r1030-32",
+      "finishVariantId": "r1030-168",
+      "manufacturerProductNumber": "103032168",
+      "sku": "103032168",
+      "pricing": {
+        "mode": "band",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": "USD 50–100 suggested-price band",
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-1030-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-modern-pull-1030__r1030-128__r1030-900",
+      "familyId": "richelieu-modern-pull-1030",
+      "sizeVariantId": "r1030-128",
+      "finishVariantId": "r1030-900",
+      "manufacturerProductNumber": "1030128900",
+      "sku": "1030128900",
+      "pricing": {
+        "mode": "band",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": "USD 50–100 suggested-price band",
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-1030-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-modern-pull-1030__r1030-128__r1030-72",
+      "familyId": "richelieu-modern-pull-1030",
+      "sizeVariantId": "r1030-128",
+      "finishVariantId": "r1030-72",
+      "manufacturerProductNumber": "103012872",
+      "sku": "103012872",
+      "pricing": {
+        "mode": "band",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": "USD 50–100 suggested-price band",
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-1030-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-modern-pull-1030__r1030-128__r1030-101",
+      "familyId": "richelieu-modern-pull-1030",
+      "sizeVariantId": "r1030-128",
+      "finishVariantId": "r1030-101",
+      "manufacturerProductNumber": "1030128101",
+      "sku": "1030128101",
+      "pricing": {
+        "mode": "band",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": "USD 50–100 suggested-price band",
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-1030-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "richelieu-modern-pull-1030__r1030-128__r1030-168",
+      "familyId": "richelieu-modern-pull-1030",
+      "sizeVariantId": "r1030-128",
+      "finishVariantId": "r1030-168",
+      "manufacturerProductNumber": "1030128168",
+      "sku": "1030128168",
+      "pricing": {
+        "mode": "band",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": "USD 50–100 suggested-price band",
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-richelieu-1030-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "armac-queslett-cup__armac-q96__armac-bel",
+      "familyId": "armac-queslett-cup",
+      "sizeVariantId": "armac-q96",
+      "finishVariantId": "armac-bel",
+      "manufacturerProductNumber": "Q96/BEL",
+      "sku": "Q96/BEL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 77.3,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-cup-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-cup-page",
+        "src-armac-queslett-cup-tearsheet"
+      ],
+      "note": "Manufacturer page states standard finishes are typically 2–4 weeks and made-to-order finishes 3–4 weeks; confirm per exact variant."
+    },
+    {
+      "id": "armac-queslett-cup__armac-q96__armac-pnp",
+      "familyId": "armac-queslett-cup",
+      "sizeVariantId": "armac-q96",
+      "finishVariantId": "armac-pnp",
+      "manufacturerProductNumber": "Q96/PNP",
+      "sku": "Q96/PNP",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 85.0,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-cup-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-cup-page",
+        "src-armac-queslett-cup-tearsheet"
+      ],
+      "note": "Manufacturer page states standard finishes are typically 2–4 weeks and made-to-order finishes 3–4 weeks; confirm per exact variant."
+    },
+    {
+      "id": "armac-queslett-cup__armac-q96__armac-pbul",
+      "familyId": "armac-queslett-cup",
+      "sizeVariantId": "armac-q96",
+      "finishVariantId": "armac-pbul",
+      "manufacturerProductNumber": "Q96/PBUL",
+      "sku": "Q96/PBUL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 77.3,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-cup-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-cup-page",
+        "src-armac-queslett-cup-tearsheet"
+      ],
+      "note": "Manufacturer page states standard finishes are typically 2–4 weeks and made-to-order finishes 3–4 weeks; confirm per exact variant."
+    },
+    {
+      "id": "armac-queslett-cup__armac-q96__armac-mbl",
+      "familyId": "armac-queslett-cup",
+      "sizeVariantId": "armac-q96",
+      "finishVariantId": "armac-mbl",
+      "manufacturerProductNumber": "Q96/MBL",
+      "sku": "Q96/MBL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 96.7,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-cup-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-cup-page",
+        "src-armac-queslett-cup-tearsheet"
+      ],
+      "note": "Manufacturer page states standard finishes are typically 2–4 weeks and made-to-order finishes 3–4 weeks; confirm per exact variant."
+    },
+    {
+      "id": "armac-queslett-cup__armac-q120__armac-bel",
+      "familyId": "armac-queslett-cup",
+      "sizeVariantId": "armac-q120",
+      "finishVariantId": "armac-bel",
+      "manufacturerProductNumber": "Q120/BEL",
+      "sku": "Q120/BEL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 106.3,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-cup-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-cup-page",
+        "src-armac-queslett-cup-tearsheet"
+      ],
+      "note": "Manufacturer page states standard finishes are typically 2–4 weeks and made-to-order finishes 3–4 weeks; confirm per exact variant."
+    },
+    {
+      "id": "armac-queslett-cup__armac-q120__armac-pnp",
+      "familyId": "armac-queslett-cup",
+      "sizeVariantId": "armac-q120",
+      "finishVariantId": "armac-pnp",
+      "manufacturerProductNumber": "Q120/PNP",
+      "sku": "Q120/PNP",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 117.0,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-cup-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-cup-page",
+        "src-armac-queslett-cup-tearsheet"
+      ],
+      "note": "Manufacturer page states standard finishes are typically 2–4 weeks and made-to-order finishes 3–4 weeks; confirm per exact variant."
+    },
+    {
+      "id": "armac-queslett-cup__armac-q120__armac-pbul",
+      "familyId": "armac-queslett-cup",
+      "sizeVariantId": "armac-q120",
+      "finishVariantId": "armac-pbul",
+      "manufacturerProductNumber": "Q120/PBUL",
+      "sku": "Q120/PBUL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 106.3,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-cup-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-cup-page",
+        "src-armac-queslett-cup-tearsheet"
+      ],
+      "note": "Manufacturer page states standard finishes are typically 2–4 weeks and made-to-order finishes 3–4 weeks; confirm per exact variant."
+    },
+    {
+      "id": "armac-queslett-cup__armac-q120__armac-mbl",
+      "familyId": "armac-queslett-cup",
+      "sizeVariantId": "armac-q120",
+      "finishVariantId": "armac-mbl",
+      "manufacturerProductNumber": "Q120/MBL",
+      "sku": "Q120/MBL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 133.0,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-cup-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-cup-page",
+        "src-armac-queslett-cup-tearsheet"
+      ],
+      "note": "Manufacturer page states standard finishes are typically 2–4 weeks and made-to-order finishes 3–4 weeks; confirm per exact variant."
+    },
+    {
+      "id": "armac-queslett-cup__armac-q203__armac-bel",
+      "familyId": "armac-queslett-cup",
+      "sizeVariantId": "armac-q203",
+      "finishVariantId": "armac-bel",
+      "manufacturerProductNumber": "Q203/BEL",
+      "sku": "Q203/BEL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 161.8,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-cup-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-cup-page",
+        "src-armac-queslett-cup-tearsheet"
+      ],
+      "note": "Manufacturer page states standard finishes are typically 2–4 weeks and made-to-order finishes 3–4 weeks; confirm per exact variant."
+    },
+    {
+      "id": "armac-queslett-cup__armac-q203__armac-pnp",
+      "familyId": "armac-queslett-cup",
+      "sizeVariantId": "armac-q203",
+      "finishVariantId": "armac-pnp",
+      "manufacturerProductNumber": "Q203/PNP",
+      "sku": "Q203/PNP",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 178.2,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-cup-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-cup-page",
+        "src-armac-queslett-cup-tearsheet"
+      ],
+      "note": "Manufacturer page states standard finishes are typically 2–4 weeks and made-to-order finishes 3–4 weeks; confirm per exact variant."
+    },
+    {
+      "id": "armac-queslett-cup__armac-q203__armac-pbul",
+      "familyId": "armac-queslett-cup",
+      "sizeVariantId": "armac-q203",
+      "finishVariantId": "armac-pbul",
+      "manufacturerProductNumber": "Q203/PBUL",
+      "sku": "Q203/PBUL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 161.8,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-cup-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-cup-page",
+        "src-armac-queslett-cup-tearsheet"
+      ],
+      "note": "Manufacturer page states standard finishes are typically 2–4 weeks and made-to-order finishes 3–4 weeks; confirm per exact variant."
+    },
+    {
+      "id": "armac-queslett-cup__armac-q203__armac-mbl",
+      "familyId": "armac-queslett-cup",
+      "sizeVariantId": "armac-q203",
+      "finishVariantId": "armac-mbl",
+      "manufacturerProductNumber": "Q203/MBL",
+      "sku": "Q203/MBL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 202.2,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-cup-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-cup-page",
+        "src-armac-queslett-cup-tearsheet"
+      ],
+      "note": "Manufacturer page states standard finishes are typically 2–4 weeks and made-to-order finishes 3–4 weeks; confirm per exact variant."
+    },
+    {
+      "id": "armac-queslett-knob__armac-qk28__armac-bel",
+      "familyId": "armac-queslett-knob",
+      "sizeVariantId": "armac-qk28",
+      "finishVariantId": "armac-bel",
+      "manufacturerProductNumber": "QK/KNOBONLY/28/BEL",
+      "sku": "QK/KNOBONLY/28/BEL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 67.7,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-knob-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-knob-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "armac-queslett-knob__armac-qk28__armac-pnp",
+      "familyId": "armac-queslett-knob",
+      "sizeVariantId": "armac-qk28",
+      "finishVariantId": "armac-pnp",
+      "manufacturerProductNumber": "QK/KNOBONLY/28/PNP",
+      "sku": "QK/KNOBONLY/28/PNP",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 74.5,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-knob-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-knob-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "armac-queslett-knob__armac-qk28__armac-pbul",
+      "familyId": "armac-queslett-knob",
+      "sizeVariantId": "armac-qk28",
+      "finishVariantId": "armac-pbul",
+      "manufacturerProductNumber": "QK/KNOBONLY/28/PBUL",
+      "sku": "QK/KNOBONLY/28/PBUL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 67.7,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-knob-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-knob-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "armac-queslett-knob__armac-qk28__armac-mbl",
+      "familyId": "armac-queslett-knob",
+      "sizeVariantId": "armac-qk28",
+      "finishVariantId": "armac-mbl",
+      "manufacturerProductNumber": "QK/KNOBONLY/28/MBL",
+      "sku": "QK/KNOBONLY/28/MBL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 84.8,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-knob-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-knob-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "armac-queslett-knob__armac-qk34__armac-bel",
+      "familyId": "armac-queslett-knob",
+      "sizeVariantId": "armac-qk34",
+      "finishVariantId": "armac-bel",
+      "manufacturerProductNumber": "QK/KNOBONLY/34/BEL",
+      "sku": "QK/KNOBONLY/34/BEL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 72.3,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-knob-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-knob-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "armac-queslett-knob__armac-qk34__armac-pnp",
+      "familyId": "armac-queslett-knob",
+      "sizeVariantId": "armac-qk34",
+      "finishVariantId": "armac-pnp",
+      "manufacturerProductNumber": "QK/KNOBONLY/34/PNP",
+      "sku": "QK/KNOBONLY/34/PNP",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 79.6,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-knob-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-knob-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "armac-queslett-knob__armac-qk34__armac-pbul",
+      "familyId": "armac-queslett-knob",
+      "sizeVariantId": "armac-qk34",
+      "finishVariantId": "armac-pbul",
+      "manufacturerProductNumber": "QK/KNOBONLY/34/PBUL",
+      "sku": "QK/KNOBONLY/34/PBUL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 72.3,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-knob-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-knob-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "armac-queslett-knob__armac-qk34__armac-mbl",
+      "familyId": "armac-queslett-knob",
+      "sizeVariantId": "armac-qk34",
+      "finishVariantId": "armac-mbl",
+      "manufacturerProductNumber": "QK/KNOBONLY/34/MBL",
+      "sku": "QK/KNOBONLY/34/MBL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 90.6,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-knob-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-knob-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "armac-queslett-knob__armac-qk40__armac-bel",
+      "familyId": "armac-queslett-knob",
+      "sizeVariantId": "armac-qk40",
+      "finishVariantId": "armac-bel",
+      "manufacturerProductNumber": "QK/KNOBONLY/40/BEL",
+      "sku": "QK/KNOBONLY/40/BEL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 84.6,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-knob-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-knob-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "armac-queslett-knob__armac-qk40__armac-pnp",
+      "familyId": "armac-queslett-knob",
+      "sizeVariantId": "armac-qk40",
+      "finishVariantId": "armac-pnp",
+      "manufacturerProductNumber": "QK/KNOBONLY/40/PNP",
+      "sku": "QK/KNOBONLY/40/PNP",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 93.2,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-knob-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-knob-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "armac-queslett-knob__armac-qk40__armac-pbul",
+      "familyId": "armac-queslett-knob",
+      "sizeVariantId": "armac-qk40",
+      "finishVariantId": "armac-pbul",
+      "manufacturerProductNumber": "QK/KNOBONLY/40/PBUL",
+      "sku": "QK/KNOBONLY/40/PBUL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 84.6,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-knob-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-knob-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "armac-queslett-knob__armac-qk40__armac-mbl",
+      "familyId": "armac-queslett-knob",
+      "sizeVariantId": "armac-qk40",
+      "finishVariantId": "armac-mbl",
+      "manufacturerProductNumber": "QK/KNOBONLY/40/MBL",
+      "sku": "QK/KNOBONLY/40/MBL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 105.9,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-armac-queslett-knob-page",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-armac-queslett-knob-page"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-cross__bp-cross-small__bp-cross-black",
+      "familyId": "buster-punch-pull-bar-cross",
+      "sizeVariantId": "bp-cross-small",
+      "finishVariantId": "bp-cross-black",
+      "manufacturerProductNumber": "UPB-023963",
+      "sku": "UPB-023963",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-cross-page",
+        "src-bp-cross-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-cross__bp-cross-small__bp-cross-brass",
+      "familyId": "buster-punch-pull-bar-cross",
+      "sizeVariantId": "bp-cross-small",
+      "finishVariantId": "bp-cross-brass",
+      "manufacturerProductNumber": "UPB-054572",
+      "sku": "UPB-054572",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-cross-page",
+        "src-bp-cross-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-cross__bp-cross-small__bp-cross-smoked",
+      "familyId": "buster-punch-pull-bar-cross",
+      "sizeVariantId": "bp-cross-small",
+      "finishVariantId": "bp-cross-smoked",
+      "manufacturerProductNumber": "UPB-454017",
+      "sku": "UPB-454017",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-cross-page",
+        "src-bp-cross-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-cross__bp-cross-small__bp-cross-steel",
+      "familyId": "buster-punch-pull-bar-cross",
+      "sizeVariantId": "bp-cross-small",
+      "finishVariantId": "bp-cross-steel",
+      "manufacturerProductNumber": "UPB-074564",
+      "sku": "UPB-074564",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-cross-page",
+        "src-bp-cross-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-cross__bp-cross-medium__bp-cross-black",
+      "familyId": "buster-punch-pull-bar-cross",
+      "sizeVariantId": "bp-cross-medium",
+      "finishVariantId": "bp-cross-black",
+      "manufacturerProductNumber": "UPB-024569",
+      "sku": "UPB-024569",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-cross-page",
+        "src-bp-cross-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-cross__bp-cross-medium__bp-cross-brass",
+      "familyId": "buster-punch-pull-bar-cross",
+      "sizeVariantId": "bp-cross-medium",
+      "finishVariantId": "bp-cross-brass",
+      "manufacturerProductNumber": "UPB-054575",
+      "sku": "UPB-054575",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-cross-page",
+        "src-bp-cross-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-cross__bp-cross-medium__bp-cross-smoked",
+      "familyId": "buster-punch-pull-bar-cross",
+      "sizeVariantId": "bp-cross-medium",
+      "finishVariantId": "bp-cross-smoked",
+      "manufacturerProductNumber": "UPB-094568",
+      "sku": "UPB-094568",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-cross-page",
+        "src-bp-cross-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-cross__bp-cross-medium__bp-cross-steel",
+      "familyId": "buster-punch-pull-bar-cross",
+      "sizeVariantId": "bp-cross-medium",
+      "finishVariantId": "bp-cross-steel",
+      "manufacturerProductNumber": "UPB-073964",
+      "sku": "UPB-073964",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-cross-page",
+        "src-bp-cross-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-cross__bp-cross-large__bp-cross-black",
+      "familyId": "buster-punch-pull-bar-cross",
+      "sizeVariantId": "bp-cross-large",
+      "finishVariantId": "bp-cross-black",
+      "manufacturerProductNumber": "UPB-023961",
+      "sku": "UPB-023961",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-cross-page",
+        "src-bp-cross-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-cross__bp-cross-large__bp-cross-brass",
+      "familyId": "buster-punch-pull-bar-cross",
+      "sizeVariantId": "bp-cross-large",
+      "finishVariantId": "bp-cross-brass",
+      "manufacturerProductNumber": "UPB-054576",
+      "sku": "UPB-054576",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-cross-page",
+        "src-bp-cross-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-cross__bp-cross-large__bp-cross-smoked",
+      "familyId": "buster-punch-pull-bar-cross",
+      "sizeVariantId": "bp-cross-large",
+      "finishVariantId": "bp-cross-smoked",
+      "manufacturerProductNumber": "UPB-454593",
+      "sku": "UPB-454593",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-cross-page",
+        "src-bp-cross-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-linear__bp-linear-small__bp-linear-black",
+      "familyId": "buster-punch-pull-bar-linear",
+      "sizeVariantId": "bp-linear-small",
+      "finishVariantId": "bp-linear-black",
+      "manufacturerProductNumber": "UPB-024570",
+      "sku": "UPB-024570",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-linear-page",
+        "src-bp-linear-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-linear__bp-linear-small__bp-linear-brass",
+      "familyId": "buster-punch-pull-bar-linear",
+      "sizeVariantId": "bp-linear-small",
+      "finishVariantId": "bp-linear-brass",
+      "manufacturerProductNumber": "UPB-054566",
+      "sku": "UPB-054566",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-linear-page",
+        "src-bp-linear-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-linear__bp-linear-small__bp-linear-steel",
+      "familyId": "buster-punch-pull-bar-linear",
+      "sizeVariantId": "bp-linear-small",
+      "finishVariantId": "bp-linear-steel",
+      "manufacturerProductNumber": "UPB-074560",
+      "sku": "UPB-074560",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-linear-page",
+        "src-bp-linear-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-linear__bp-linear-medium__bp-linear-black",
+      "familyId": "buster-punch-pull-bar-linear",
+      "sizeVariantId": "bp-linear-medium",
+      "finishVariantId": "bp-linear-black",
+      "manufacturerProductNumber": "UPB-023969",
+      "sku": "UPB-023969",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-linear-page",
+        "src-bp-linear-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-linear__bp-linear-medium__bp-linear-brass",
+      "familyId": "buster-punch-pull-bar-linear",
+      "sizeVariantId": "bp-linear-medium",
+      "finishVariantId": "bp-linear-brass",
+      "manufacturerProductNumber": "UPB-054574",
+      "sku": "UPB-054574",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-linear-page",
+        "src-bp-linear-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-linear__bp-linear-medium__bp-linear-steel",
+      "familyId": "buster-punch-pull-bar-linear",
+      "sizeVariantId": "bp-linear-medium",
+      "finishVariantId": "bp-linear-steel",
+      "manufacturerProductNumber": "UPB-073967",
+      "sku": "UPB-073967",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-linear-page",
+        "src-bp-linear-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-linear__bp-linear-large__bp-linear-black",
+      "familyId": "buster-punch-pull-bar-linear",
+      "sizeVariantId": "bp-linear-large",
+      "finishVariantId": "bp-linear-black",
+      "manufacturerProductNumber": "UPB-023971",
+      "sku": "UPB-023971",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-linear-page",
+        "src-bp-linear-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-linear__bp-linear-large__bp-linear-brass",
+      "familyId": "buster-punch-pull-bar-linear",
+      "sizeVariantId": "bp-linear-large",
+      "finishVariantId": "bp-linear-brass",
+      "manufacturerProductNumber": "UPB-053966",
+      "sku": "UPB-053966",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-linear-page",
+        "src-bp-linear-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-pull-bar-linear__bp-linear-large__bp-linear-steel",
+      "familyId": "buster-punch-pull-bar-linear",
+      "sizeVariantId": "bp-linear-large",
+      "finishVariantId": "bp-linear-steel",
+      "manufacturerProductNumber": "UPB-074019",
+      "sku": "UPB-074019",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-linear-page",
+        "src-bp-linear-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-tbar-cross__bp-tbar-standard__bp-tbar-black",
+      "familyId": "buster-punch-tbar-cross",
+      "sizeVariantId": "bp-tbar-standard",
+      "finishVariantId": "bp-tbar-black",
+      "manufacturerProductNumber": "UTB-023975",
+      "sku": "UTB-023975",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-tbar-page",
+        "src-bp-tbar-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-tbar-cross__bp-tbar-standard__bp-tbar-brass",
+      "familyId": "buster-punch-tbar-cross",
+      "sizeVariantId": "bp-tbar-standard",
+      "finishVariantId": "bp-tbar-brass",
+      "manufacturerProductNumber": "UTB-054561",
+      "sku": "UTB-054561",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-tbar-page",
+        "src-bp-tbar-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-tbar-cross__bp-tbar-standard__bp-tbar-smoked",
+      "familyId": "buster-punch-tbar-cross",
+      "sizeVariantId": "bp-tbar-standard",
+      "finishVariantId": "bp-tbar-smoked",
+      "manufacturerProductNumber": "UTB-094588",
+      "sku": "UTB-094588",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-tbar-page",
+        "src-bp-tbar-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "buster-punch-tbar-cross__bp-tbar-standard__bp-tbar-steel",
+      "familyId": "buster-punch-tbar-cross",
+      "sizeVariantId": "bp-tbar-standard",
+      "finishVariantId": "bp-tbar-steel",
+      "manufacturerProductNumber": "UTB-074567",
+      "sku": "UTB-074567",
+      "pricing": {
+        "mode": "quote_only",
+        "currency": "USD",
+        "amount": null,
+        "priceBand": null,
+        "checkedAt": null,
+        "sourceId": null,
+        "note": "Price confirmed with quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-bp-tbar-page",
+        "src-bp-tbar-spec"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-channing-cup__tk-channing-2-75__tk-blk",
+      "familyId": "topknobs-channing-cup",
+      "sizeVariantId": "tk-channing-2-75",
+      "finishVariantId": "tk-blk",
+      "manufacturerProductNumber": "TK772BLK",
+      "sku": "TK772BLK",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 12.55,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-channing-page",
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-channing-cup__tk-channing-2-75__tk-bsn",
+      "familyId": "topknobs-channing-cup",
+      "sizeVariantId": "tk-channing-2-75",
+      "finishVariantId": "tk-bsn",
+      "manufacturerProductNumber": "TK772BSN",
+      "sku": "TK772BSN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 12.55,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-channing-page",
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-channing-cup__tk-channing-2-75__tk-hb",
+      "familyId": "topknobs-channing-cup",
+      "sizeVariantId": "tk-channing-2-75",
+      "finishVariantId": "tk-hb",
+      "manufacturerProductNumber": "TK772HB",
+      "sku": "TK772HB",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 12.55,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-channing-page",
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-channing-cup__tk-channing-2-75__tk-pn",
+      "familyId": "topknobs-channing-cup",
+      "sizeVariantId": "tk-channing-2-75",
+      "finishVariantId": "tk-pn",
+      "manufacturerProductNumber": "TK772PN",
+      "sku": "TK772PN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 12.55,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-channing-page",
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-channing-cup__tk-channing-3-75__tk-blk",
+      "familyId": "topknobs-channing-cup",
+      "sizeVariantId": "tk-channing-3-75",
+      "finishVariantId": "tk-blk",
+      "manufacturerProductNumber": "TK773BLK",
+      "sku": "TK773BLK",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 14.55,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-channing-page",
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-channing-cup__tk-channing-3-75__tk-bsn",
+      "familyId": "topknobs-channing-cup",
+      "sizeVariantId": "tk-channing-3-75",
+      "finishVariantId": "tk-bsn",
+      "manufacturerProductNumber": "TK773BSN",
+      "sku": "TK773BSN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 14.55,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-channing-page",
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-channing-cup__tk-channing-3-75__tk-hb",
+      "familyId": "topknobs-channing-cup",
+      "sizeVariantId": "tk-channing-3-75",
+      "finishVariantId": "tk-hb",
+      "manufacturerProductNumber": "TK773HB",
+      "sku": "TK773HB",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 14.55,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-channing-page",
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-channing-cup__tk-channing-3-75__tk-pn",
+      "familyId": "topknobs-channing-cup",
+      "sizeVariantId": "tk-channing-3-75",
+      "finishVariantId": "tk-pn",
+      "manufacturerProductNumber": "TK773PN",
+      "sku": "TK773PN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 14.55,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-channing-page",
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-channing-cup__tk-channing-5__tk-blk",
+      "familyId": "topknobs-channing-cup",
+      "sizeVariantId": "tk-channing-5",
+      "finishVariantId": "tk-blk",
+      "manufacturerProductNumber": "TK774BLK",
+      "sku": "TK774BLK",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 17.5,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-channing-page",
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-channing-cup__tk-channing-5__tk-bsn",
+      "familyId": "topknobs-channing-cup",
+      "sizeVariantId": "tk-channing-5",
+      "finishVariantId": "tk-bsn",
+      "manufacturerProductNumber": "TK774BSN",
+      "sku": "TK774BSN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 17.5,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-channing-page",
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-channing-cup__tk-channing-5__tk-hb",
+      "familyId": "topknobs-channing-cup",
+      "sizeVariantId": "tk-channing-5",
+      "finishVariantId": "tk-hb",
+      "manufacturerProductNumber": "TK774HB",
+      "sku": "TK774HB",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 17.5,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-channing-page",
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-channing-cup__tk-channing-5__tk-pn",
+      "familyId": "topknobs-channing-cup",
+      "sizeVariantId": "tk-channing-5",
+      "finishVariantId": "tk-pn",
+      "manufacturerProductNumber": "TK774PN",
+      "sku": "TK774PN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 17.5,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-channing-page",
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-0-625__tk-blk",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-0-625",
+      "finishVariantId": "tk-blk",
+      "manufacturerProductNumber": "TK500BLK",
+      "sku": "TK500BLK",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 7.5,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-0-625__tk-bsn",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-0-625",
+      "finishVariantId": "tk-bsn",
+      "manufacturerProductNumber": "TK500BSN",
+      "sku": "TK500BSN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 7.5,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-0-625__tk-hb",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-0-625",
+      "finishVariantId": "tk-hb",
+      "manufacturerProductNumber": "TK500HB",
+      "sku": "TK500HB",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 7.5,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-0-625__tk-pn",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-0-625",
+      "finishVariantId": "tk-pn",
+      "manufacturerProductNumber": "TK500PN",
+      "sku": "TK500PN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 7.5,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-2__tk-blk",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-2",
+      "finishVariantId": "tk-blk",
+      "manufacturerProductNumber": "TK501BLK",
+      "sku": "TK501BLK",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 12.35,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-2__tk-bsn",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-2",
+      "finishVariantId": "tk-bsn",
+      "manufacturerProductNumber": "TK501BSN",
+      "sku": "TK501BSN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 12.35,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-2__tk-hb",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-2",
+      "finishVariantId": "tk-hb",
+      "manufacturerProductNumber": "TK501HB",
+      "sku": "TK501HB",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 12.35,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-2__tk-pn",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-2",
+      "finishVariantId": "tk-pn",
+      "manufacturerProductNumber": "TK501PN",
+      "sku": "TK501PN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 12.35,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-3__tk-blk",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-3",
+      "finishVariantId": "tk-blk",
+      "manufacturerProductNumber": "TK502BLK",
+      "sku": "TK502BLK",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 15.75,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-3__tk-bsn",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-3",
+      "finishVariantId": "tk-bsn",
+      "manufacturerProductNumber": "TK502BSN",
+      "sku": "TK502BSN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 15.75,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-3__tk-hb",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-3",
+      "finishVariantId": "tk-hb",
+      "manufacturerProductNumber": "TK502HB",
+      "sku": "TK502HB",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 15.75,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-3__tk-pn",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-3",
+      "finishVariantId": "tk-pn",
+      "manufacturerProductNumber": "TK502PN",
+      "sku": "TK502PN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 15.75,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-5__tk-blk",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-5",
+      "finishVariantId": "tk-blk",
+      "manufacturerProductNumber": "TK503BLK",
+      "sku": "TK503BLK",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 20.35,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-5__tk-bsn",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-5",
+      "finishVariantId": "tk-bsn",
+      "manufacturerProductNumber": "TK503BSN",
+      "sku": "TK503BSN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 20.35,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-5__tk-hb",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-5",
+      "finishVariantId": "tk-hb",
+      "manufacturerProductNumber": "TK503HB",
+      "sku": "TK503HB",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 20.35,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "topknobs-europa-tab__tk-europa-5__tk-pn",
+      "familyId": "topknobs-europa-tab",
+      "sizeVariantId": "tk-europa-5",
+      "finishVariantId": "tk-pn",
+      "manufacturerProductNumber": "TK503PN",
+      "sku": "TK503PN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 20.35,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-topknobs-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-topknobs-2026-catalog",
+        "src-topknobs-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "atlas-oskar-pull__atlas-oskar-5-0625__atlas-bl",
+      "familyId": "atlas-oskar-pull",
+      "sizeVariantId": "atlas-oskar-5-0625",
+      "finishVariantId": "atlas-bl",
+      "manufacturerProductNumber": "A103-BL",
+      "sku": "A103-BL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 16.85,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-atlas-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-atlas-oskar-page",
+        "src-atlas-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "atlas-oskar-pull__atlas-oskar-5-0625__atlas-brn",
+      "familyId": "atlas-oskar-pull",
+      "sizeVariantId": "atlas-oskar-5-0625",
+      "finishVariantId": "atlas-brn",
+      "manufacturerProductNumber": "A103-BRN",
+      "sku": "A103-BRN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 16.85,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-atlas-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-atlas-oskar-page",
+        "src-atlas-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "atlas-oskar-pull__atlas-oskar-5-0625__atlas-pn",
+      "familyId": "atlas-oskar-pull",
+      "sizeVariantId": "atlas-oskar-5-0625",
+      "finishVariantId": "atlas-pn",
+      "manufacturerProductNumber": "A103-PN",
+      "sku": "A103-PN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 16.85,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-atlas-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-atlas-oskar-page",
+        "src-atlas-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "atlas-oskar-pull__atlas-oskar-5-0625__atlas-wb",
+      "familyId": "atlas-oskar-pull",
+      "sizeVariantId": "atlas-oskar-5-0625",
+      "finishVariantId": "atlas-wb",
+      "manufacturerProductNumber": "A103-WB",
+      "sku": "A103-WB",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 16.85,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-atlas-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-atlas-oskar-page",
+        "src-atlas-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "atlas-oskar-pull__atlas-oskar-6-3125__atlas-bl",
+      "familyId": "atlas-oskar-pull",
+      "sizeVariantId": "atlas-oskar-6-3125",
+      "finishVariantId": "atlas-bl",
+      "manufacturerProductNumber": "A104-BL",
+      "sku": "A104-BL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 19.8,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-atlas-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-atlas-oskar-page",
+        "src-atlas-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "atlas-oskar-pull__atlas-oskar-6-3125__atlas-brn",
+      "familyId": "atlas-oskar-pull",
+      "sizeVariantId": "atlas-oskar-6-3125",
+      "finishVariantId": "atlas-brn",
+      "manufacturerProductNumber": "A104-BRN",
+      "sku": "A104-BRN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 19.8,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-atlas-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-atlas-oskar-page",
+        "src-atlas-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "atlas-oskar-pull__atlas-oskar-6-3125__atlas-pn",
+      "familyId": "atlas-oskar-pull",
+      "sizeVariantId": "atlas-oskar-6-3125",
+      "finishVariantId": "atlas-pn",
+      "manufacturerProductNumber": "A104-PN",
+      "sku": "A104-PN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 19.8,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-atlas-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-atlas-oskar-page",
+        "src-atlas-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "atlas-oskar-pull__atlas-oskar-6-3125__atlas-wb",
+      "familyId": "atlas-oskar-pull",
+      "sizeVariantId": "atlas-oskar-6-3125",
+      "finishVariantId": "atlas-wb",
+      "manufacturerProductNumber": "A104-WB",
+      "sku": "A104-WB",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 19.8,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-atlas-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-atlas-oskar-page",
+        "src-atlas-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "atlas-oskar-pull__atlas-oskar-7-5625__atlas-bl",
+      "familyId": "atlas-oskar-pull",
+      "sizeVariantId": "atlas-oskar-7-5625",
+      "finishVariantId": "atlas-bl",
+      "manufacturerProductNumber": "A105-BL",
+      "sku": "A105-BL",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 23.65,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-atlas-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-atlas-oskar-page",
+        "src-atlas-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "atlas-oskar-pull__atlas-oskar-7-5625__atlas-brn",
+      "familyId": "atlas-oskar-pull",
+      "sizeVariantId": "atlas-oskar-7-5625",
+      "finishVariantId": "atlas-brn",
+      "manufacturerProductNumber": "A105-BRN",
+      "sku": "A105-BRN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 23.65,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-atlas-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-atlas-oskar-page",
+        "src-atlas-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "atlas-oskar-pull__atlas-oskar-7-5625__atlas-pn",
+      "familyId": "atlas-oskar-pull",
+      "sizeVariantId": "atlas-oskar-7-5625",
+      "finishVariantId": "atlas-pn",
+      "manufacturerProductNumber": "A105-PN",
+      "sku": "A105-PN",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 23.65,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-atlas-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-atlas-oskar-page",
+        "src-atlas-2026-price-list"
+      ],
+      "note": null
+    },
+    {
+      "id": "atlas-oskar-pull__atlas-oskar-7-5625__atlas-wb",
+      "familyId": "atlas-oskar-pull",
+      "sizeVariantId": "atlas-oskar-7-5625",
+      "finishVariantId": "atlas-wb",
+      "manufacturerProductNumber": "A105-WB",
+      "sku": "A105-WB",
+      "pricing": {
+        "mode": "reference_unit",
+        "currency": "USD",
+        "amount": 23.65,
+        "priceBand": null,
+        "checkedAt": "2026-07-14",
+        "sourceId": "src-atlas-2026-price-list",
+        "note": "Reference/list price only; final hardware price is confirmed in the JQ quote."
+      },
+      "availability": {
+        "status": "active_or_orderable",
+        "checkedAt": "2026-07-14",
+        "leadTimeNote": null
+      },
+      "productStatus": "active",
+      "lastVerifiedAt": "2026-07-14",
+      "sourceIds": [
+        "src-atlas-oskar-page",
+        "src-atlas-2026-price-list"
+      ],
+      "note": null
+    }
+  ],
+  "sources": [
+    {
+      "id": "src-emtek-select-page",
+      "publisher": "Emtek",
+      "title": "SELECT Rectangular Bar Smooth Cabinet Pull",
+      "type": "official_product_page",
+      "url": "https://www.emtek.com/all-products/cabinet-hardware/cabinet-pulls/emtek-select-cabinet-bar-pull-smooth/",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-emtek-select-spec",
+      "publisher": "Emtek",
+      "title": "Emtek SELECT Cabinet Bar Pull specifications",
+      "type": "official_specification_pdf",
+      "url": "https://www.emtek.com/media/salsify/documents/mg/mgrhyvwaps-2024-02-22T144206Z-EMTEKSELECTCabinetBarPullKnurled_EM_specs.pdf",
+      "accessedAt": "2026-07-14",
+      "note": "This is the specification link published on the official smooth-bar product page. Re-verify the smooth-bar table before production release because the file name contains 'Knurled'."
+    },
+    {
+      "id": "src-emtek-latch-page",
+      "publisher": "Emtek",
+      "title": "Cabinet Latch",
+      "type": "official_product_page",
+      "url": "https://www.emtek.com/all-products/cabinet-hardware/cabinet-latches/cabinet-latch/",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-richelieu-9898-page",
+      "publisher": "Richelieu Hardware",
+      "title": "Modern Aluminum Edge Pull - 9898",
+      "type": "official_product_page",
+      "url": "https://www.richelieu.com/us/en/category/decorative-hardware/cabinet-hardware-pulls-and-knobs/pulls/modern-aluminum-edge-pull-9898/1011060",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-richelieu-1030-page",
+      "publisher": "Richelieu Hardware",
+      "title": "Modern Metal Pull - 1030",
+      "type": "official_product_page",
+      "url": "https://www.richelieu.com/us/en/category/decorative-hardware/cabinet-hardware-pulls-and-knobs/pulls/modern-metal-pull-1030/2302901/sku-10303272",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-armac-queslett-cup-page",
+      "publisher": "Armac Martin",
+      "title": "Queslett Cup Pull",
+      "type": "official_product_page",
+      "url": "https://www.armacmartin.com/products/queslett-cup-pull",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-armac-queslett-cup-tearsheet",
+      "publisher": "Armac Martin",
+      "title": "Queslett Cup Pull tear sheet",
+      "type": "official_specification_pdf",
+      "url": "https://cdn.shopify.com/s/files/1/0262/5644/2947/files/Queslett_Cup_Pull_Tear_Sheet.pdf",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-armac-queslett-knob-page",
+      "publisher": "Armac Martin",
+      "title": "Queslett Cabinet Knob",
+      "type": "official_product_page",
+      "url": "https://www.armacmartin.com/products/queslett-cabinet-knob",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-bp-cross-page",
+      "publisher": "Buster + Punch",
+      "title": "Pull Bar / Cross",
+      "type": "official_product_page",
+      "url": "https://www.busterandpunch.com/us/shop/cabinet-hardware/pull-bars/pull-bar-cross/",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-bp-cross-spec",
+      "publisher": "Buster + Punch",
+      "title": "Pull Bar / Cross technical specification",
+      "type": "official_specification_pdf",
+      "url": "https://cdn.shopify.com/s/files/1/0785/6093/5737/files/pull-bar-cross-tech-spec.pdf",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-bp-linear-page",
+      "publisher": "Buster + Punch",
+      "title": "Pull Bar / Linear",
+      "type": "official_product_page",
+      "url": "https://www.busterandpunch.com/us/shop/cabinet-hardware/pull-bars/pull-bar-linear/",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-bp-linear-spec",
+      "publisher": "Buster + Punch",
+      "title": "Pull Bar / Linear technical specification",
+      "type": "official_specification_pdf",
+      "url": "https://cdn.shopify.com/s/files/1/0785/6093/5737/files/pull-bar-linear-tech-spec.pdf",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-bp-tbar-page",
+      "publisher": "Buster + Punch",
+      "title": "T-Bar / Cross",
+      "type": "official_product_page",
+      "url": "https://www.busterandpunch.com/us/shop/cabinet-hardware/t-bars/t-bar-cross/",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-bp-tbar-spec",
+      "publisher": "Buster + Punch",
+      "title": "T-Bar / Cross technical specification",
+      "type": "official_specification_pdf",
+      "url": "https://cdn.shopify.com/s/files/1/0785/6093/5737/files/t-bar-cross-tech-spec.pdf",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-topknobs-channing-page",
+      "publisher": "Top Knobs",
+      "title": "Channing Cup Pull",
+      "type": "official_product_page",
+      "url": "https://www.topknobs.com/collections/channing-cup-pull.html",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-topknobs-2026-catalog",
+      "publisher": "Top Knobs",
+      "title": "Top Knobs 2026 Catalog",
+      "type": "official_catalog_pdf",
+      "url": "https://www.topknobs.com/media/documents/TK_2026_Catalog.pdf",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-topknobs-2026-price-list",
+      "publisher": "Top Knobs",
+      "title": "Top Knobs 2026 Price List",
+      "type": "official_price_list_pdf",
+      "url": "https://www.topknobs.com/media/documents/2026_TK_Price_List.pdf",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-atlas-oskar-page",
+      "publisher": "Atlas Homewares",
+      "title": "Oskar Pull",
+      "type": "official_product_page",
+      "url": "https://www.atlashomewares.com/oskar-pull.html",
+      "accessedAt": "2026-07-14"
+    },
+    {
+      "id": "src-atlas-2026-price-list",
+      "publisher": "Atlas Homewares",
+      "title": "Atlas 2026 Price List",
+      "type": "official_price_list_pdf",
+      "url": "https://www.atlashomewares.com/media/documents/2026_Atlas_Price_List.pdf",
+      "accessedAt": "2026-07-14",
+      "effectiveDate": "2026-06-01"
+    }
+  ],
+  "statistics": {
+    "brandCount": 6,
+    "familyCount": 12,
+    "exactVariantCount": 124,
+    "categories": [
+      "bar_pull",
+      "cabinet_latch",
+      "cup_pull",
+      "d_handle_pull",
+      "edge_pull",
+      "knurled_bar_pull",
+      "round_knob",
+      "sculptural_pull",
+      "t_bar_knob",
+      "tab_pull",
+      "textured_bar_pull"
+    ]
+  }
+}

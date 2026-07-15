@@ -48,9 +48,15 @@ test("the 3D viewer renders on demand, animates camera moves, and returns to idl
   expect(idle.renderScheduled).toBe(false);
   expect(idle.cameraTransitionActive).toBe(false);
 
-  await page.locator('[data-view="front"]').click();
-  await expect.poll(async () => (await readViewerDiagnostics(page))?.cameraTransitionActive).toBe(true);
+  // Move off the default reset pose first so the visible reset control has a
+  // real camera transition to schedule.
+  await viewer.focus();
+  await viewer.press("ArrowRight");
+  await waitForViewerIdle(page, { stableFor: 200 });
   const transitionStart = await readViewerDiagnostics(page);
+  await page.locator("[data-reset-view]").click();
+  await expect.poll(async () => (await readViewerDiagnostics(page))?.cameraTransitionSequence || 0)
+    .toBeGreaterThan(transitionStart.cameraTransitionSequence);
   await expect.poll(async () => (await readViewerDiagnostics(page))?.renderCount || 0).toBeGreaterThan(transitionStart.renderCount);
   await expect.poll(async () => (await readViewerDiagnostics(page))?.cameraTransitionActive, { timeout: 3_000 }).toBe(false);
 
@@ -58,21 +64,31 @@ test("the 3D viewer renders on demand, animates camera moves, and returns to idl
   expect(settled.renderScheduled).toBe(false);
   expect(settled.cameraTransitionActive).toBe(false);
 
-  // Structure is a strict Guided step with an inline designer. Advancing out
-  // restores its captured camera/light state and must return the viewer idle.
-  await expect(page.locator('[data-guided-step="layout"]')).toBeDisabled();
-  await page.locator("[data-guided-continue]").click();
-  await expect(page.locator('[data-guided-step-content="layout"]')).toBeVisible();
-  await expect(page.locator('[data-guided-step="layout"]')).toHaveAttribute("aria-current", "step");
-  await expect(page.locator("[data-section-designer]")).toBeVisible();
-  await expect(page.locator("[data-section-designer-open], [data-section-designer-close]")).toHaveCount(0);
-  await expect.poll(async () => (await readViewerDiagnostics(page))?.renderCount || 0).toBeGreaterThan(settled.renderCount);
+  // The section controls stay available in the seven-stage workspace. Moving
+  // between stages only changes presentation state and must not create a
+  // physical transaction or replace the persistent viewer.
+  const beforeInspector = await page.locator("[data-bookcase-builder]").evaluate((host) => ({
+    updateCount: host.__bookcaseConfigurator.updateCount,
+    viewerInstance: host.__bookcaseConfigurator.viewer.getDiagnostics().instanceId
+  }));
+  await page.locator('[data-workspace-stage="layout"]').click();
+  await expect(page.locator('[data-workspace-stage="layout"]')).toHaveAttribute("aria-current", "step");
+  await expect(page.locator('[data-properties-inspector] [data-active-stage-panel="layout"]')).toBeVisible();
+  await expect(page.locator("[data-properties-inspector] [data-section-general]")).toBeVisible();
   const structureIdle = await waitForViewerIdle(page);
-  await page.locator("[data-guided-continue]").click();
-  await expect(page.locator('[data-guided-step-content="storage"]')).toBeVisible();
-  await expect(page.locator("[data-section-designer]")).toHaveCount(0);
-  await expect.poll(async () => (await readViewerDiagnostics(page))?.renderCount || 0).toBeGreaterThan(structureIdle.renderCount);
+  expect(structureIdle.renderCount).toBeGreaterThanOrEqual(settled.renderCount);
+  await page.locator('[data-workspace-stage="storage"]').click();
+  await expect(page.locator('[data-workspace-stage="storage"]')).toHaveAttribute("aria-current", "step");
+  await expect(page.locator('[data-properties-inspector] [data-active-stage-panel="storage"]')).toBeVisible();
+  await expect(page.locator('[data-properties-inspector] [data-field="shelves"]')).toBeVisible();
+  await expect(page.locator("[data-section-organizer]")).toBeVisible();
+  await expect(page.locator("[data-section-overlay]")).toBeVisible();
   await waitForViewerIdle(page);
+  const afterInspector = await page.locator("[data-bookcase-builder]").evaluate((host) => ({
+    updateCount: host.__bookcaseConfigurator.updateCount,
+    viewerInstance: host.__bookcaseConfigurator.viewer.getDiagnostics().instanceId
+  }));
+  expect(afterInspector).toEqual(beforeInspector);
 
   expect(runtimeErrors).toEqual([]);
 });

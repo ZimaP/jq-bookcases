@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -9,6 +10,10 @@ import {
   normalizeBookcaseConfig
 } from "../bookcase-config.js";
 import { generateBookcaseLayout } from "../bookcase-layout.js";
+import {
+  createHardwareCatalogIndex,
+  createHardwareVariantSnapshot
+} from "../hardware-catalog.js";
 import {
   CABINET_AR_MODEL_CACHE_LIMIT,
   clearArModelCache,
@@ -26,6 +31,7 @@ import {
   stableStringify
 } from "../cabinet-ar.js";
 import {
+  createArHandleGeometryParts,
   generateCabinetGlbArrayBuffer,
   generateProceduralCabinetModel,
   getArDescriptorEnvelope
@@ -43,6 +49,10 @@ function parseGlbJson(glb) {
   const jsonLength = view.getUint32(12, true);
   return JSON.parse(new TextDecoder().decode(new Uint8Array(glb, 20, jsonLength)).trim());
 }
+
+const hardwareCatalogIndex = createHardwareCatalogIndex(JSON.parse(
+  readFileSync(new URL("../data/hardware/jq-hardware-catalog.seed.json", import.meta.url), "utf8")
+));
 
 test("inch-to-meter conversion is exact and rejects invalid dimensions", () => {
   assert.equal(inchesToMeters(1), 0.0254);
@@ -87,6 +97,9 @@ test("configuration normalization maps exact dimensions, shelves, units, finish,
     ar.configurationId
   );
   assert.deepEqual(ar.layoutMetadata.sectionDoorLayouts, config.layoutMetadata.sectionDoorLayouts);
+  assert.deepEqual(ar.hardwareSelections, config.hardwareSelections);
+  assert.equal(ar.hardwareSchedule.length, layout.components.filter((component) => component.role === "handle").length);
+  assert.ok(ar.hardwareSchedule.every((entry) => entry.variantId && entry.category && entry.finishSwatch));
   assert.equal(ar.shelves.length, layout.components.filter((component) => component.role === "shelf").length);
   assert.ok(ar.shelves.every((shelf) => shelf.positionMeters > 0));
   assert.equal(config.width, 72);
@@ -127,14 +140,64 @@ test("compact share links preserve the exact normalized configuration", () => {
     customPaintHex: "#34495a"
   });
   const token = encodeCabinetConfiguration(config);
-  const payload = JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
+  const uncompressedToken = encodeCabinetConfiguration(config, { compress: false });
+  const payload = JSON.parse(Buffer.from(uncompressedToken, "base64url").toString("utf8"));
   assert.ok(token.length < 1600);
-  assert.equal(payload[1].at(-2), config.drawerFrontStyle);
-  assert.equal(payload[1].at(-1), config.constructionProfile);
+  assert.equal(payload[1].at(-3), config.drawerFrontStyle);
+  assert.equal(payload[1].at(-2), config.constructionProfile);
+  assert.equal(payload[1].at(-1).marker, "jq-hardware-selections-1");
   assert.deepEqual(decodeCabinetConfiguration(token), config);
   const url = createCabinetArShareUrl(config, "https://example.com/configurator.html?preset=media-wall");
   assert.equal(new URL(url).searchParams.has("preset"), false);
   assert.deepEqual(readCabinetArShareConfiguration(url), config);
+});
+
+test("AR share and QR handoff preserve exact per-host hardware snapshots and placement", () => {
+  const variantId = "buster-punch-tbar-cross__bp-tbar-standard__bp-tbar-black";
+  const snapshot = createHardwareVariantSnapshot(hardwareCatalogIndex, variantId);
+  const hardwareSelections = structuredClone(defaultBookcaseConfig.hardwareSelections);
+  hardwareSelections.byHostId["section-01-door-left"] = {
+    variantId,
+    snapshot,
+    placement: {
+      orientation: "horizontal",
+      horizontalAnchor: "custom",
+      verticalAnchor: "custom",
+      edgeOffsetMm: 71.25,
+      crossAxisOffsetMm: -18.5,
+      mirrored: true,
+      quantityPerFront: 2
+    }
+  };
+  const config = normalizeBookcaseConfig({ ...defaultBookcaseConfig, hardwareSelections });
+  const token = encodeCabinetConfiguration(config);
+  const shareUrl = createCabinetArShareUrl(config, "https://jq.test/c");
+
+  assert.match(token, /^z1_/);
+  assert.ok(shareUrl.length < 2953, `Expected a QR byte-mode-safe URL, received ${shareUrl.length} bytes.`);
+  assert.deepEqual(decodeCabinetConfiguration(token), config);
+  assert.deepEqual(readCabinetArShareConfiguration(shareUrl)?.hardwareSelections, config.hardwareSelections);
+  assert.deepEqual(
+    readCabinetArShareConfiguration(shareUrl).hardwareSelections.byHostId["section-01-door-left"].snapshot,
+    snapshot
+  );
+
+  const futureSnapshot = structuredClone(snapshot);
+  futureSnapshot["~0"] = { auditedFact: "Preserved — even when it cannot use the canonical snapshot delta." };
+  const futureConfig = normalizeBookcaseConfig({
+    ...config,
+    hardwareSelections: {
+      ...config.hardwareSelections,
+      byHostId: {
+        ...config.hardwareSelections.byHostId,
+        "section-01-door-left": {
+          ...config.hardwareSelections.byHostId["section-01-door-left"],
+          snapshot: futureSnapshot
+        }
+      }
+    }
+  });
+  assert.deepEqual(decodeCabinetConfiguration(encodeCabinetConfiguration(futureConfig)), futureConfig);
 });
 
 test("schema-v1 share tokens created before construction profiles restore legacy overlay meaning", () => {
@@ -148,9 +211,9 @@ test("schema-v1 share tokens created before construction profiles restore legacy
     installation: "no_installation",
     delivery: "priority"
   });
-  const token = encodeCabinetConfiguration(normalized);
+  const token = encodeCabinetConfiguration(normalized, { compress: false });
   const payload = JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
-  payload[1].pop();
+  payload[1].splice(-2);
   const legacyToken = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
   const decoded = decodeCabinetConfiguration(legacyToken);
 
@@ -175,10 +238,9 @@ test("schema-v1 share tokens created before drawer profiles retain every origina
     installation: "no_installation",
     delivery: "priority"
   });
-  const token = encodeCabinetConfiguration(normalized);
+  const token = encodeCabinetConfiguration(normalized, { compress: false });
   const payload = JSON.parse(Buffer.from(token, "base64url").toString("utf8"));
-  payload[1].pop();
-  payload[1].pop();
+  payload[1].splice(-3);
   const legacyToken = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
   const decoded = decodeCabinetConfiguration(legacyToken);
 
@@ -414,6 +476,89 @@ test("procedural GLB is valid GLB 2.0 metadata with meter dimensions", () => {
   assert.ok(json.meshes[0].primitives.length >= 1);
 });
 
+test("procedural AR keeps mixed exact hardware categories and finishes in distinct GLB materials", () => {
+  const { layout, ar } = createArConfiguration();
+  const exactLayout = structuredClone(layout);
+  const handles = exactLayout.components.filter((component) => component.role === "handle").slice(0, 3);
+  const variants = [
+    {
+      id: "buster-punch-tbar-cross__bp-tbar-standard__bp-tbar-black",
+      category: "t_bar_knob",
+      hardwareType: "knob",
+      orientation: "horizontal"
+    },
+    {
+      id: "armac-queslett-cup__armac-q96__armac-bel",
+      category: "cup_pull",
+      hardwareType: "pull",
+      orientation: "horizontal"
+    },
+    {
+      id: "richelieu-edge-pull-9898__r9898-80__r9898-chbrz",
+      category: "edge_pull",
+      hardwareType: "pull",
+      orientation: "vertical"
+    }
+  ];
+  variants.forEach((variant, index) => {
+    const snapshot = createHardwareVariantSnapshot(hardwareCatalogIndex, variant.id);
+    assert.ok(snapshot, `Missing test snapshot ${variant.id}`);
+    Object.assign(handles[index].metadata, {
+      variantId: variant.id,
+      category: variant.category,
+      hardwareType: variant.hardwareType,
+      orientation: variant.orientation,
+      hardwareSnapshot: snapshot,
+      variantSnapshot: snapshot,
+      finishSwatch: snapshot.canonicalFinishSwatch,
+      proxyMode: "catalog_exact",
+      modelAccuracy: snapshot.modelAccuracy
+    });
+  });
+
+  const json = parseGlbJson(generateCabinetGlbArrayBuffer(ar, exactLayout));
+  const expectedVariantIds = new Set(variants.map((variant) => variant.id));
+  const hardwareMaterials = json.materials.filter((material) => expectedVariantIds.has(material.extras?.variantId));
+  assert.equal(hardwareMaterials.length, 3);
+  assert.deepEqual(
+    hardwareMaterials.map((material) => material.extras.category).sort(),
+    ["cup_pull", "edge_pull", "t_bar_knob"]
+  );
+  assert.deepEqual(
+    hardwareMaterials.map((material) => material.extras.canonicalFinishId).sort(),
+    ["aged-brass", "champagne-bronze", "matte-black"]
+  );
+  assert.deepEqual(
+    json.extras.hardwareSchedule.filter((entry) => expectedVariantIds.has(entry.variantId)).map((entry) => entry.variantId).sort(),
+    variants.map((variant) => variant.id).sort()
+  );
+  assert.ok(json.extras.hardwareSchedule
+    .filter((entry) => expectedVariantIds.has(entry.variantId))
+    .every((entry) => entry.materialName.includes(entry.category)));
+});
+
+test("procedural AR emits category-aware t-bar, cup, and edge proxy parts", () => {
+  const base = {
+    role: "handle",
+    metadata: {
+      visualDimensions: { x: 3.5, y: 0.75, z: 0.9 },
+      projection: 0.9,
+      orientation: "horizontal",
+      attachment: { componentFace: "max" }
+    }
+  };
+  const center = [0, 0, 0];
+  const size = [0.1, 0.04, 0.025];
+  const parts = (category, hardwareType) => createArHandleGeometryParts({
+    ...base,
+    metadata: { ...base.metadata, category, hardwareType }
+  }, center, size);
+
+  assert.deepEqual(parts("t_bar_knob", "knob").map((part) => part.kind), ["t_bar_grip", "t_bar_stem"]);
+  assert.deepEqual(parts("cup_pull", "pull").map((part) => part.kind), ["cup_shell"]);
+  assert.deepEqual(parts("edge_pull", "pull").map((part) => part.kind), ["edge_tab"]);
+});
+
 test("procedural AR derives its exact envelope from bounds instead of rounded convenience fields", () => {
   const component = {
     bounds: {
@@ -559,6 +704,8 @@ test("AR UI contracts include fixed scale, floor placement, fallbacks, and analy
   const source = await import("node:fs/promises").then((fs) => fs.readFile(new URL("../cabinet-ar-ui.js", import.meta.url), "utf8"));
   assert.match(source, /ar-placement=\"floor\"/);
   assert.match(source, /ar-scale=\"fixed\"/);
+  assert.match(source, /errorCorrectionLevel: \"L\"/);
+  assert.match(source, /width: 320/);
   assert.match(source, /camera-controls/);
   assert.match(source, /AR isn’t available in this browser/);
   assert.match(source, /data-ar-launch/);

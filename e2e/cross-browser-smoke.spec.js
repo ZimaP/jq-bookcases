@@ -47,8 +47,13 @@ test("a physical dimension edit rebuilds one valid model and survives reload", a
   await page.goto("/configurator.html?preset=lower-cabinets", { waitUntil: "networkidle" });
   const viewer = page.locator("[data-3d-viewer]");
   await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
-  await page.locator('[data-guided-step="dimensions"]').click();
-  const width = page.locator('input[type="number"][data-field="width"]');
+  const spaceStage = page.locator('[data-workspace-stage="space"]');
+  await spaceStage.click();
+  await expect(spaceStage).toHaveAttribute("aria-current", "step");
+  const inspector = page.locator("[data-properties-inspector]");
+  await expect(inspector).toBeVisible();
+  await expect(inspector.locator('[data-active-stage-panel="space"]')).toBeVisible();
+  const width = inspector.locator('input[type="number"][data-field="width"]');
   await width.fill("120");
   await width.press("Enter");
   await expect(width).toHaveValue("120");

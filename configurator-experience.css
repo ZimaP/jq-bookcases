@@ -1,10 +1,9 @@
-/* Guided Setup / All Controls presentation layer.
- * The preview canvas is deliberately outside both mode panels so switching
- * presentation never remounts the Three.js renderer. */
+/* Unified inspector and direct-model editing presentation layer.
+ * The inspector, contextual editor, and preview share one persistent renderer. */
 
 body[data-page="configurator"] .configurator-experience {
   grid-template-columns: clamp(360px, 29vw, 420px) minmax(0, 1fr);
-  grid-template-rows: 78px minmax(0, 1fr) 104px;
+  grid-template-rows: minmax(0, 1fr) 104px;
   background:
     radial-gradient(circle at 74% 32%, rgba(225, 207, 180, 0.12), transparent 34rem),
     linear-gradient(135deg, #4d463f 0%, #635a50 50%, #403933 100%);
@@ -1616,91 +1615,7 @@ body[data-page="configurator"] .section-divider-handle.is-invalid span {
   }
 }
 
-body[data-page="configurator"] .configurator-experience-toolbar {
-  position: relative;
-  z-index: 12;
-  display: grid;
-  min-width: 0;
-  grid-column: 1 / -1;
-  grid-row: 1;
-  grid-template-columns: minmax(250px, 1fr) auto;
-  gap: 24px;
-  align-items: center;
-  border-bottom: 1px solid rgba(240, 226, 207, 0.13);
-  background: linear-gradient(180deg, rgba(36, 31, 27, 0.62), rgba(42, 36, 31, 0.36));
-  padding: 10px clamp(18px, 2.3vw, 34px);
-  backdrop-filter: blur(15px) saturate(94%);
-}
 
-body[data-page="configurator"] .configurator-experience-heading {
-  display: grid;
-  min-width: 0;
-  gap: 4px;
-}
-
-body[data-page="configurator"] .configurator-experience-heading .section-kicker {
-  color: var(--cfg-gold-bright);
-  font-size: 10px;
-}
-
-body[data-page="configurator"] .configurator-experience-heading strong {
-  overflow: hidden;
-  color: rgba(247, 243, 237, 0.86);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-body[data-page="configurator"] .configurator-mode-selector {
-  display: grid;
-  width: min(390px, 40vw);
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px;
-  border: 1px solid rgba(237, 219, 194, 0.22);
-  border-radius: 10px;
-  background: rgba(23, 20, 17, 0.28);
-  padding: 4px;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.025);
-}
-
-body[data-page="configurator"] .configurator-mode-selector button {
-  display: grid;
-  min-height: 50px;
-  gap: 2px;
-  place-content: center;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  background: transparent;
-  padding: 6px 16px;
-  color: rgba(247, 243, 237, 0.7);
-  text-align: center;
-  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
-}
-
-body[data-page="configurator"] .configurator-mode-selector button span {
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.1;
-}
-
-body[data-page="configurator"] .configurator-mode-selector button small {
-  color: inherit;
-  font-size: 10px;
-  line-height: 1.1;
-  opacity: 0.78;
-}
-
-body[data-page="configurator"] .configurator-mode-selector button.is-active {
-  border-color: rgba(221, 171, 106, 0.62);
-  background: linear-gradient(180deg, rgba(181, 132, 76, 0.35), rgba(111, 76, 43, 0.26));
-  color: #fff6e9;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.06), 0 5px 14px rgba(15, 11, 8, 0.14);
-}
-
-body[data-page="configurator"] .configurator-mode-selector button:focus-visible,
-body[data-page="configurator"] .guided-progress button:focus-visible,
 body[data-page="configurator"] .configurator-category > h3 > button:focus-visible,
 body[data-page="configurator"] .layout-card:focus-visible,
 body[data-page="configurator"] .door-style-card input:focus-visible + .door-style-card-content {
@@ -1723,10 +1638,6 @@ body[data-page="configurator"] .configurator-control-experience {
   margin: 10px 8px 10px 16px;
   padding: 0;
   scrollbar-gutter: stable;
-}
-
-body[data-page="configurator"] .configurator-control-experience > [role="tabpanel"] {
-  min-height: 100%;
 }
 
 body[data-page="configurator"] .configurator-model {
@@ -1812,154 +1723,12 @@ body[data-page="configurator"] .configurator-model .view-controls button {
   font-size: 12px;
 }
 
-/* Guided setup --------------------------------------------------------- */
 
-body[data-page="configurator"] .guided-experience,
-body[data-page="configurator"] .all-controls-experience {
-  min-height: 100%;
-  padding: 20px 20px 22px;
-}
-
-body[data-page="configurator"] .guided-progress-heading {
-  display: none;
-}
-
-body[data-page="configurator"] .guided-progress {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 4px;
-  margin: 0 0 22px;
-  padding: 0;
-  list-style: none;
-}
-
-body[data-page="configurator"] .guided-progress li {
-  position: relative;
-  min-width: 0;
-}
-
-body[data-page="configurator"] .guided-progress li::after {
-  position: absolute;
-  z-index: 0;
-  top: 14px;
-  right: -5px;
-  width: 6px;
-  height: 1px;
-  background: rgba(238, 222, 201, 0.2);
-  content: "";
-}
-
-body[data-page="configurator"] .guided-progress li:last-child::after {
-  display: none;
-}
-
-body[data-page="configurator"] .guided-progress button {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  width: 100%;
-  min-height: 44px;
-  min-width: 0;
-  gap: 4px;
-  justify-items: center;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  color: rgba(247, 243, 237, 0.54);
-}
-
-body[data-page="configurator"] .guided-progress button > span {
-  display: grid;
-  width: 29px;
-  height: 29px;
-  place-items: center;
-  border: 1px solid rgba(238, 222, 201, 0.22);
-  border-radius: 50%;
-  background: rgba(20, 17, 14, 0.2);
-  font-size: 10px;
-}
-
-body[data-page="configurator"] .guided-progress button small {
-  max-width: 100%;
-  overflow: hidden;
-  font-size: 10px;
-  line-height: 1.1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-body[data-page="configurator"] .guided-progress .is-current button,
-body[data-page="configurator"] .guided-progress .is-complete button {
-  color: #f3c98f;
-}
-
-body[data-page="configurator"] .guided-progress .is-current button > span {
-  border-color: rgba(225, 176, 110, 0.84);
-  background: rgba(178, 126, 69, 0.32);
-  box-shadow: 0 0 0 3px rgba(211, 160, 94, 0.08);
-}
-
-body[data-page="configurator"] .guided-progress .is-complete button > span {
-  border-color: rgba(210, 166, 107, 0.5);
-  background: rgba(115, 82, 47, 0.28);
-}
-
-body[data-page="configurator"] .guided-step-heading {
-  margin-bottom: 20px;
-}
-
-body[data-page="configurator"] .guided-step-heading .section-kicker,
-body[data-page="configurator"] .all-controls-heading .section-kicker {
-  color: var(--cfg-gold-bright);
-  font-size: 10px;
-}
-
-body[data-page="configurator"] .guided-step-heading h2,
-body[data-page="configurator"] .all-controls-heading h2 {
-  margin: 7px 0 7px;
-  color: #fff8ef;
-  font-family: var(--serif);
-  font-size: clamp(24px, 2vw, 30px);
-  font-weight: 400;
-  letter-spacing: -0.012em;
-  line-height: 1.08;
-}
-
-body[data-page="configurator"] .guided-step-heading p,
-body[data-page="configurator"] .all-controls-heading p {
-  margin: 0;
-  color: rgba(247, 243, 237, 0.68);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-body[data-page="configurator"] .guided-step-content {
-  min-height: 250px;
-}
-
-body[data-page="configurator"] .guided-step-content > .control-section,
 body[data-page="configurator"] .configurator-category-panel > .control-section {
   padding: 0 0 8px;
 }
 
-body[data-page="configurator"] .guided-navigation {
-  position: sticky;
-  z-index: 8;
-  bottom: 0;
-  display: grid;
-  grid-template-columns: minmax(92px, 0.7fr) minmax(140px, 1.3fr);
-  gap: 10px;
-  border-top: 1px solid rgba(239, 224, 204, 0.12);
-  background: linear-gradient(180deg, rgba(64, 55, 47, 0.92), rgba(52, 45, 39, 0.98));
-  margin: 22px -20px -22px;
-  padding: 14px 20px;
-  backdrop-filter: blur(12px);
-}
 
-body[data-page="configurator"] .guided-navigation button,
-body[data-page="configurator"] .guided-inline-actions button,
-body[data-page="configurator"] .all-controls-secondary-actions button,
-body[data-page="configurator"] .all-controls-heading > button,
 body[data-page="configurator"] .additional-colors-button {
   min-height: 44px;
   border: 1px solid rgba(234, 216, 192, 0.25);
@@ -1970,7 +1739,7 @@ body[data-page="configurator"] .additional-colors-button {
   font-size: 12px;
 }
 
-body[data-page="configurator"] .guided-navigation .is-primary,
+
 body[data-page="configurator"] .review-actions .is-primary {
   border-color: rgba(226, 178, 115, 0.62);
   background: linear-gradient(180deg, #bd8c55, #92663a);
@@ -1984,46 +1753,6 @@ body[data-page="configurator"] .review-paint-disclaimer {
   color: rgba(250, 246, 240, 0.74);
   font-size: 12px;
   line-height: 1.45;
-}
-
-body[data-page="configurator"] .guided-inline-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-}
-
-body[data-page="configurator"] .guided-inline-actions button {
-  min-height: 44px;
-  padding: 7px 11px;
-  color: #e8bc80;
-}
-
-body[data-page="configurator"] .guided-tip {
-  display: grid;
-  gap: 4px;
-  border-left: 2px solid rgba(212, 165, 102, 0.58);
-  background: rgba(236, 219, 195, 0.035);
-  margin-top: 14px;
-  padding: 10px 12px;
-  color: rgba(247, 243, 237, 0.68);
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-body[data-page="configurator"] .guided-tip strong {
-  color: rgba(255, 248, 238, 0.9);
-  font-size: 11px;
-}
-
-body[data-page="configurator"] .guided-step-errors {
-  color: #f2c4ae;
-  font-size: 11px;
-  line-height: 1.4;
-}
-
-body[data-page="configurator"] .guided-step-errors p {
-  margin: 12px 0 0;
 }
 
 /* Layout and reusable choices ----------------------------------------- */
@@ -2372,28 +2101,6 @@ body[data-page="configurator"] .door-style-copy small {
   line-height: 1.3;
 }
 
-/* All Controls accordions --------------------------------------------- */
-
-body[data-page="configurator"] .all-controls-heading {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: end;
-  margin-bottom: 16px;
-}
-
-body[data-page="configurator"] .all-controls-heading > div {
-  min-width: 0;
-}
-
-body[data-page="configurator"] .all-controls-heading h2 {
-  font-size: 24px;
-}
-
-body[data-page="configurator"] .all-controls-heading > button {
-  white-space: nowrap;
-}
-
 body[data-page="configurator"] .configurator-accordion {
   display: grid;
   gap: 7px;
@@ -2479,16 +2186,6 @@ body[data-page="configurator"] .configurator-category-panel .layout-card {
 
 body[data-page="configurator"] .configurator-category-panel .layout-card .preset-mini {
   height: 94px;
-}
-
-body[data-page="configurator"] .all-controls-secondary-actions {
-  margin-top: 14px;
-  text-align: right;
-}
-
-body[data-page="configurator"] .all-controls-secondary-actions button {
-  min-height: 44px;
-  color: rgba(247, 243, 237, 0.62);
 }
 
 /* Review --------------------------------------------------------------- */
@@ -2712,27 +2409,6 @@ body[data-page="configurator"] button:disabled {
   transform: none !important;
 }
 
-body[data-page="configurator"] .guided-review-service {
-  margin-top: 18px;
-  border-top: 1px solid rgba(235, 218, 195, 0.15);
-  padding-top: 16px;
-}
-
-body[data-page="configurator"] .guided-review-service > h3 {
-  margin: 0 0 5px;
-  color: #fff6e9;
-  font-family: var(--serif);
-  font-size: 20px;
-  font-weight: 400;
-}
-
-body[data-page="configurator"] .guided-review-service > p {
-  margin: 0;
-  color: rgba(247, 243, 237, 0.66);
-  font-size: 11px;
-  line-height: 1.45;
-}
-
 body[data-page="configurator"] .bm-search button,
 body[data-page="configurator"] .warmth-choice label {
   min-height: 44px;
@@ -2746,11 +2422,6 @@ body[data-page="configurator"] .warmth-choice label {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 78px clamp(500px, 61svh, 620px) auto auto;
     overflow: visible;
-  }
-
-  body[data-page="configurator"] .configurator-experience-toolbar {
-    grid-column: 1;
-    grid-row: 1;
   }
 
   body[data-page="configurator"] .configurator-model {
@@ -2790,11 +2461,6 @@ body[data-page="configurator"] .warmth-choice label {
     grid-row: 1;
   }
 
-  body[data-page="configurator"] .guided-navigation {
-    position: sticky;
-    bottom: 0;
-  }
-
   body[data-page="configurator"] .layout-card-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -2810,9 +2476,6 @@ body[data-page="configurator"] .warmth-choice label {
 }
 
 @media (max-width: 900px) {
-  body[data-page="configurator"] .configurator-mode-selector {
-    width: min(360px, 48vw);
-  }
 
   body[data-page="configurator"] .layout-card-grid,
   body[data-page="configurator"] .configurator-category-panel .layout-card-grid {
@@ -2849,33 +2512,6 @@ body[data-page="configurator"] .warmth-choice label {
     grid-template-rows: auto 380px auto auto;
   }
 
-  body[data-page="configurator"] .configurator-experience-toolbar {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 9px;
-    padding: 11px 14px 12px;
-  }
-
-  body[data-page="configurator"] .configurator-experience-heading {
-    text-align: center;
-  }
-
-  body[data-page="configurator"] .configurator-experience-heading .section-kicker {
-    display: none;
-  }
-
-  body[data-page="configurator"] .configurator-experience-heading strong {
-    font-size: 11px;
-    white-space: normal;
-  }
-
-  body[data-page="configurator"] .configurator-mode-selector {
-    width: 100%;
-  }
-
-  body[data-page="configurator"] .configurator-mode-selector button {
-    min-height: 48px;
-  }
-
   body[data-page="configurator"] .configurator-model {
     height: 380px;
   }
@@ -2898,48 +2534,6 @@ body[data-page="configurator"] .warmth-choice label {
   body[data-page="configurator"] .configurator-control-experience {
     width: calc(100% - 20px);
     margin: 0 10px 12px;
-  }
-
-  body[data-page="configurator"] .guided-experience,
-  body[data-page="configurator"] .all-controls-experience {
-    padding: 17px 14px 20px;
-  }
-
-  body[data-page="configurator"] .guided-progress-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 11px;
-    color: rgba(247, 243, 237, 0.6);
-    font-size: 10px;
-  }
-
-  body[data-page="configurator"] .guided-progress-heading strong {
-    color: #efc28a;
-    font-size: 10px;
-  }
-
-  body[data-page="configurator"] .guided-progress {
-    margin-bottom: 16px;
-  }
-
-  body[data-page="configurator"] .guided-progress button small {
-    display: none;
-  }
-
-  body[data-page="configurator"] .guided-progress li::after {
-    width: calc(100% - 25px);
-    right: calc(-50% + 12px);
-  }
-
-  body[data-page="configurator"] .guided-step-heading h2 {
-    font-size: 28px;
-  }
-
-  body[data-page="configurator"] .guided-navigation {
-    margin: 20px -14px -20px;
-    padding: 12px 14px;
   }
 
   body[data-page="configurator"] .layout-card-grid,
@@ -2969,14 +2563,6 @@ body[data-page="configurator"] .warmth-choice label {
   body[data-page="configurator"] .lighting-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     overflow: visible;
-  }
-
-  body[data-page="configurator"] .all-controls-heading {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  body[data-page="configurator"] .all-controls-heading > button {
-    width: 100%;
   }
 
   body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
@@ -3047,10 +2633,6 @@ body[data-page="configurator"] .warmth-choice label {
     height: 350px;
   }
 
-  body[data-page="configurator"] .configurator-mode-selector button {
-    padding-inline: 8px;
-  }
-
   body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
     grid-template-columns: 118px minmax(0, 1fr);
   }
@@ -3060,126 +2642,19 @@ body[data-page="configurator"] .warmth-choice label {
   }
 }
 
-/* Five-zone architectural layout -------------------------------------
- * The rail, working panel, preview, view dock, and estimate bar mirror the
- * reference's information architecture while remaining in the JQ palette. */
+/* Unified inspector architecture --------------------------------------
+ * The persistent inspector, model workspace, and shared estimate bar use the
+ * same JQ palette without a parallel navigation surface. */
 
 @media (min-width: 1280px) {
   body[data-page="configurator"] .configurator-experience {
-    grid-template-columns: 88px clamp(330px, 23vw, 368px) minmax(0, 1fr);
+    grid-template-columns: clamp(380px, 26vw, 410px) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) 92px;
   }
 }
 
-body[data-page="configurator"] .configurator-step-rail {
-  position: relative;
-  z-index: 14;
-  display: block;
-  min-width: 0;
-  grid-column: 1;
-  grid-row: 1;
-  overflow: hidden;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  background: var(--jq-header);
-  color: rgba(255, 253, 249, 0.7);
-}
-
-body[data-page="configurator"] .configurator-step-rail ol {
-  display: grid;
-  height: 100%;
-  min-height: 0;
-  grid-template-rows: repeat(6, minmax(76px, 1fr));
-  align-content: center;
-  margin: 0;
-  padding: 14px 0;
-  list-style: none;
-}
-
-body[data-page="configurator"] .configurator-step-rail li {
-  position: relative;
-  display: grid;
-  min-height: 0;
-  place-items: center;
-}
-
-body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  width: 1px;
-  height: 16px;
-  background: rgba(255, 255, 255, 0.14);
-  content: "";
-}
-
-body[data-page="configurator"] .configurator-step-rail button {
-  display: grid;
-  width: 100%;
-  min-height: 72px;
-  grid-template-rows: 40px auto;
-  gap: 8px;
-  place-items: center;
-  border: 0;
-  background: transparent;
-  padding: 8px 4px;
-  color: inherit;
-}
-
-body[data-page="configurator"] .configurator-step-rail button > span {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 1px solid rgba(255, 253, 249, 0.3);
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.02);
-  color: #fffdf9;
-  font-size: 12px;
-  font-weight: 650;
-  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
-}
-
-body[data-page="configurator"] .configurator-step-rail button small {
-  color: inherit;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  line-height: 1.2;
-  text-transform: uppercase;
-}
-
-body[data-page="configurator"] .configurator-step-rail button:hover {
-  color: #fffdf9;
-}
-
-body[data-page="configurator"] .configurator-step-rail button:hover > span {
-  border-color: var(--jq-accent);
-}
-
-body[data-page="configurator"] .configurator-step-rail .is-current {
-  color: #e6bb82;
-}
-
-body[data-page="configurator"] .configurator-step-rail .is-current button > span {
-  border-color: #d5a565;
-  background: rgba(183, 131, 69, 0.17);
-  color: #f5d7ad;
-  box-shadow: 0 0 0 4px rgba(183, 131, 69, 0.09);
-}
-
-body[data-page="configurator"] .configurator-step-rail .is-complete button > span {
-  border-color: var(--jq-success);
-  background: var(--jq-success);
-  color: #fff;
-}
-
-body[data-page="configurator"] .configurator-step-rail .is-complete svg {
-  width: 16px;
-  height: 16px;
-}
-
 body[data-page="configurator"] .configurator-control-experience {
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 1;
   border-right: 1px solid var(--jq-border);
 }
@@ -3213,44 +2688,9 @@ body[data-page="configurator"] .configurator-panel-intro strong {
   line-height: 1.4;
 }
 
-body[data-page="configurator"] .guided-experience,
-body[data-page="configurator"] .all-controls-experience {
-  padding-top: 24px;
-}
-
-body[data-page="configurator"] .guided-progress-heading {
-  display: flex;
-  margin-bottom: 16px;
-}
-
 body[data-page="configurator"] .configurator-model {
-  grid-column: 3;
+  grid-column: 2;
   grid-row: 1;
-}
-
-body[data-page="configurator"] .configurator-experience-toolbar {
-  position: absolute;
-  z-index: 12;
-  top: 16px;
-  left: 50%;
-  display: block;
-  width: 270px;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  transform: translateX(-50%);
-  backdrop-filter: none;
-}
-
-body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector {
-  border-color: rgba(88, 75, 59, 0.2);
-  background: rgba(236, 230, 220, 0.82);
-  box-shadow: 0 8px 24px rgba(70, 53, 34, 0.08);
-  backdrop-filter: blur(14px);
-}
-
-body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector button {
-  min-height: 42px;
 }
 
 body[data-page="configurator"] .preview-heading {
@@ -3487,8 +2927,7 @@ body[data-page="configurator"] .configurator-experience .configurator-actions {
 
 body[data-page="configurator"] .configurator-review-button,
 body[data-page="configurator"] .configurator-save-button,
-body[data-page="configurator"] .configurator-quote-button,
-body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+body[data-page="configurator"] .configurator-quote-button{
   display: inline-flex;
   min-width: 116px;
   height: 48px;
@@ -3503,29 +2942,17 @@ body[data-page="configurator"] .configurator-save-button {
   color: #e3b97f;
 }
 
-body[data-page="configurator"] .configurator-quote-button,
-body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+body[data-page="configurator"] .configurator-quote-button{
   min-width: 132px;
   border-color: var(--jq-accent);
   background: var(--jq-accent);
   color: #fff;
 }
 
-body[data-page="configurator"] :is(
-  .configurator-step-rail button,
-  .configurator-mode-selector button,
-  .preview-control-dock button,
-  .cabinet-ar-launch-button,
-  .configurator-actions button
-):focus-visible {
-  outline: 3px solid rgba(213, 165, 101, 0.62);
-  outline-offset: 3px;
-}
-
 @media (max-width: 1279px) {
   body[data-page="configurator"] .configurator-experience {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: clamp(430px, 58svh, 620px) 84px auto 84px;
+    grid-template-rows: clamp(430px, 58svh, 620px) auto 84px;
   }
 
   body[data-page="configurator"] .configurator-model {
@@ -3533,44 +2960,10 @@ body[data-page="configurator"] :is(
     grid-row: 1;
   }
 
-  body[data-page="configurator"] .configurator-step-rail {
-    grid-column: 1;
-    grid-row: 2;
-    border-right: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  body[data-page="configurator"] .configurator-step-rail ol {
-    height: 84px;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    grid-template-rows: minmax(0, 1fr);
-    padding: 6px 12px;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
-    top: 27px;
-    right: -8px;
-    bottom: auto;
-    left: auto;
-    width: 16px;
-    height: 1px;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail button {
-    min-height: 68px;
-    grid-template-rows: 34px auto;
-    gap: 5px;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail button > span {
-    width: 34px;
-    height: 34px;
-  }
-
   body[data-page="configurator"] .configurator-control-experience {
     width: calc(100% - 32px);
     grid-column: 1;
-    grid-row: 3;
+    grid-row: 2;
     margin: 0 16px;
   }
 
@@ -3578,7 +2971,7 @@ body[data-page="configurator"] :is(
   body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
     position: sticky;
     grid-column: 1;
-    grid-row: 4;
+    grid-row: 3;
     grid-template-columns: minmax(220px, max-content) minmax(0, 1fr) auto;
   }
 }
@@ -3600,48 +2993,21 @@ body[data-page="configurator"] :is(
 
 @media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
   body[data-page="configurator"] .configurator-experience {
-    grid-template-columns: 72px clamp(320px, 34vw, 352px) minmax(0, 1fr);
+    grid-template-columns: clamp(360px, 34vw, 400px) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) 84px;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail {
-    grid-column: 1;
-    grid-row: 1;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
-    border-bottom: 0;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail ol {
-    height: 100%;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: repeat(6, minmax(66px, 1fr));
-    padding: 8px 0;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
-    top: auto;
-    right: auto;
-    bottom: -6px;
-    left: 50%;
-    width: 1px;
-    height: 12px;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail button {
-    min-height: 62px;
   }
 
   body[data-page="configurator"] .configurator-control-experience {
     width: 100%;
     height: 100%;
-    grid-column: 2;
+    grid-column: 1;
     grid-row: 1;
     border-radius: 0;
     margin: 0;
   }
 
   body[data-page="configurator"] .configurator-model {
-    grid-column: 3;
+    grid-column: 2;
     grid-row: 1;
   }
 
@@ -3658,29 +3024,7 @@ body[data-page="configurator"] :is(
 
 @media (max-width: 767px) {
   body[data-page="configurator"] .configurator-experience {
-    grid-template-rows: clamp(350px, 50svh, 420px) 74px auto 68px;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail ol {
-    height: 74px;
-    padding: 5px 4px;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail button {
-    min-height: 62px;
-    grid-template-rows: 32px auto;
-    padding-inline: 1px;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail button > span {
-    width: 32px;
-    height: 32px;
-    font-size: 10px;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail button small {
-    font-size: 8px;
-    letter-spacing: 0;
+    grid-template-rows: clamp(350px, 50svh, 420px) auto 68px;
   }
 
   body[data-page="configurator"] .configurator-control-experience {
@@ -3691,15 +3035,6 @@ body[data-page="configurator"] :is(
   body[data-page="configurator"] .configurator-panel-intro {
     min-height: 72px;
     padding: 14px;
-  }
-
-  body[data-page="configurator"] .configurator-experience-toolbar {
-    top: 10px;
-    width: 238px;
-  }
-
-  body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector button {
-    min-height: 40px;
   }
 
   body[data-page="configurator"] .preview-heading {
@@ -3774,8 +3109,7 @@ body[data-page="configurator"] :is(
 
   body[data-page="configurator"] .configurator-review-button,
   body[data-page="configurator"] .configurator-save-button,
-  body[data-page="configurator"] .configurator-quote-button,
-  body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+  body[data-page="configurator"] .configurator-quote-button{
     display: inline-flex;
     min-width: 0;
     height: 46px;
@@ -3801,21 +3135,13 @@ body[data-page="configurator"] :is(
     width: 46px;
   }
 
-  body[data-page="configurator"] .configurator-quote-button,
-  body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+  body[data-page="configurator"] .configurator-quote-button{
     width: 104px;
     min-width: 104px;
   }
 }
 
-/* Structure, storage, and decomposed hardware controls ------------------ */
 
-body[data-page="configurator"] .configurator-step-rail button:disabled {
-  cursor: not-allowed;
-  opacity: 0.52;
-}
-
-body[data-page="configurator"] .control-section-guided-structure,
 body[data-page="configurator"] .section-designer.is-inline {
   display: grid;
   gap: 20px;
@@ -4243,43 +3569,6 @@ body[data-page="configurator"] :is(.hardware-type-choice, .hardware-finish-choic
 /* Final precision overrides. */
 
 @media (min-width: 1280px) {
-  body[data-page="configurator"] .configurator-step-rail ol {
-    height: auto;
-    grid-template-rows: repeat(6, 116px);
-    align-content: start;
-    padding: 28px 0;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail li {
-    height: 116px;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
-    top: 82px;
-    bottom: auto;
-    height: 34px;
-    background: rgba(255, 255, 255, 0.17);
-  }
-}
-
-body[data-page="configurator"] .guided-progress-heading {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 12px;
-  align-items: baseline;
-  margin-bottom: 20px;
-}
-
-body[data-page="configurator"] .guided-progress-heading > span {
-  white-space: nowrap;
-}
-
-body[data-page="configurator"] .guided-progress-heading > strong {
-  min-width: 0;
-  overflow: hidden;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 body[data-page="configurator"] .control-section-storage {
@@ -4370,14 +3659,6 @@ body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet
 }
 
 @media (max-width: 767px) {
-  body[data-page="configurator"] .guided-progress-heading {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
-  }
-
-  body[data-page="configurator"] .guided-progress-heading > strong {
-    text-align: left;
-  }
 
   body[data-page="configurator"] .configurator-panel .control-section-storage > .stepper-control,
   body[data-page="configurator"] .configurator-panel .control-section-storage > .toggle-row,
@@ -4389,43 +3670,6 @@ body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet
 /* Precision pass: optical alignment and compact rhythm. */
 
 @media (min-width: 1280px) {
-  body[data-page="configurator"] .configurator-step-rail ol {
-    height: auto;
-    grid-template-rows: repeat(6, 116px);
-    align-content: start;
-    padding: 28px 0;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail li {
-    height: 116px;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail li:not(:last-child)::after {
-    top: 82px;
-    bottom: auto;
-    height: 34px;
-    background: rgba(255, 255, 255, 0.17);
-  }
-}
-
-body[data-page="configurator"] .guided-progress-heading {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  gap: 12px;
-  align-items: baseline;
-  margin-bottom: 20px;
-}
-
-body[data-page="configurator"] .guided-progress-heading > span {
-  white-space: nowrap;
-}
-
-body[data-page="configurator"] .guided-progress-heading > strong {
-  min-width: 0;
-  overflow: hidden;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 body[data-page="configurator"] .control-section-storage {
@@ -4534,14 +3778,6 @@ body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet
 }
 
 @media (max-width: 767px) {
-  body[data-page="configurator"] .guided-progress-heading {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
-  }
-
-  body[data-page="configurator"] .guided-progress-heading > strong {
-    text-align: left;
-  }
 
   body[data-page="configurator"] .control-section-storage > .stepper-control,
   body[data-page="configurator"] .control-section-storage > .toggle-row,
@@ -4556,20 +3792,11 @@ body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet
     grid-template-rows: 350px 70px auto 68px;
   }
 
-  body[data-page="configurator"] .configurator-step-rail ol {
-    height: 70px;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail button small {
-    display: block;
-  }
-
   body[data-page="configurator"] .configurator-review-button {
     width: 58px;
   }
 
-  body[data-page="configurator"] .configurator-quote-button,
-  body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+  body[data-page="configurator"] .configurator-quote-button{
     width: 96px;
     min-width: 96px;
     padding-inline: 6px;
@@ -4946,10 +4173,10 @@ body[data-page="configurator"] .cabinet-ar-notice.is-error {
   }
 }
 
-/* Premium showroom workspace -----------------------------------------
- * This final, configurator-scoped layer intentionally overrides the older
- * dark studio presentation without changing state, pricing, viewer, or AR
- * contracts. Shared site pages are unaffected. */
+/* Unified configurator workspace ---------------------------------------
+ * This is the authoritative accepted-design shell. It deliberately follows
+ * the studio-entry rules so starting and resuming a design never remounts the
+ * renderer or introduces a second control surface. */
 
 body[data-page="configurator"] .configurator-experience {
   --jq-header: #211d18;
@@ -4964,24 +4191,23 @@ body[data-page="configurator"] .configurator-experience {
   --jq-accent-hover: #9d6c35;
   --jq-success: #66704f;
   --jq-danger: #a65345;
-  --jq-shadow: 0 18px 44px rgba(62, 49, 34, 0.1);
-  --jq-s1: 4px;
-  --jq-s2: 8px;
-  --jq-s3: 12px;
-  --jq-s4: 16px;
-  --jq-s5: 24px;
-  --jq-s6: 32px;
-  --jq-s7: 40px;
-  --jq-s8: 48px;
+  --jq-shadow: 0 18px 44px rgba(62, 49, 34, 0.12);
   display: grid;
   width: 100%;
   height: 100%;
   min-height: 0;
-  grid-template-columns: clamp(370px, 27vw, 404px) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) 76px;
+  grid-template-columns: clamp(380px, 26vw, 410px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) 92px;
   overflow: hidden;
   background: var(--jq-workspace);
   color: var(--jq-text);
+}
+
+body[data-page="configurator"] .configurator-experience,
+body[data-page="configurator"] .configurator-experience *,
+body[data-page="configurator"] .configurator-experience *::before,
+body[data-page="configurator"] .configurator-experience *::after {
+  box-sizing: border-box;
 }
 
 body[data-page="configurator"] [data-site-header],
@@ -4993,15 +4219,8 @@ body[data-page="configurator"] .navbar {
 
 body[data-page="configurator"] .site-header {
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  /* The header sits outside .configurator-experience, where --jq-header is
-     scoped. Keep its surface explicit so the sticky tablet header cannot
-     become transparent over the configurator content. */
   background: #211d18;
   box-shadow: 0 8px 24px rgba(28, 22, 17, 0.13);
-}
-
-body[data-page="configurator"] .navbar {
-  grid-template-columns: 280px minmax(0, 1fr) 304px;
 }
 
 body[data-page="configurator"] main {
@@ -5029,6 +4248,7 @@ body[data-page="configurator"] .configurator-control-experience {
   display: block;
   width: 100%;
   height: 100%;
+  min-width: 0;
   min-height: 0;
   grid-column: 1;
   grid-row: 1;
@@ -5042,708 +4262,155 @@ body[data-page="configurator"] .configurator-control-experience {
   margin: 0;
   padding: 0;
   color: var(--jq-text);
-  box-shadow: 12px 0 34px rgba(64, 49, 32, 0.06);
+  box-shadow: 12px 0 34px rgba(64, 49, 32, 0.07);
   scrollbar-color: #c7bba9 transparent;
   scrollbar-gutter: stable;
 }
 
-body[data-page="configurator"] .configurator-experience-toolbar {
+body[data-page="configurator"] .configurator-inspector-heading {
   position: sticky;
-  z-index: 12;
+  z-index: 13;
   top: 0;
   display: grid;
-  width: 100%;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--jq-s3);
-  border: 0;
+  min-height: 112px;
+  align-content: center;
+  gap: 5px;
   border-bottom: 1px solid var(--jq-border);
   background: rgba(255, 253, 249, 0.96);
   padding: 18px 20px 16px;
   backdrop-filter: blur(14px);
 }
 
-body[data-page="configurator"] .configurator-experience-heading {
-  display: flex;
-  min-width: 0;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--jq-s3);
-}
-
-body[data-page="configurator"] .configurator-experience-heading .section-kicker {
+body[data-page="configurator"] .configurator-inspector-heading .section-kicker,
+body[data-page="configurator"] .configurator-context-heading .section-kicker {
   color: var(--jq-accent-hover);
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10px;
+  font-weight: 750;
   letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
-body[data-page="configurator"] .configurator-experience-heading strong {
+body[data-page="configurator"] .configurator-inspector-heading strong {
+  color: var(--jq-text);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+body[data-page="configurator"] .configurator-inspector-heading p {
+  max-width: 42ch;
+  margin: 0;
+  color: var(--jq-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+body[data-page="configurator"] .unified-inspector {
+  min-width: 0;
+  padding: 14px 16px 24px;
+}
+
+body[data-page="configurator"] .unified-inspector .configurator-accordion {
+  display: grid;
+  gap: 8px;
+}
+
+body[data-page="configurator"] .unified-inspector .configurator-category {
+  overflow: clip;
+  border: 1px solid var(--jq-border);
+  border-radius: 10px;
+  background: var(--jq-surface);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+body[data-page="configurator"] .unified-inspector .configurator-category.is-selection-linked {
+  border-color: var(--jq-accent);
+  box-shadow: 0 0 0 2px rgba(183, 131, 69, 0.15);
+}
+
+body[data-page="configurator"] .unified-inspector .configurator-category > h3 {
+  margin: 0;
+}
+
+body[data-page="configurator"] .unified-inspector .configurator-category > h3 > button {
+  display: flex;
+  width: 100%;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 0;
+  background: transparent;
+  padding: 11px 13px;
+  color: var(--jq-text);
+  text-align: left;
+}
+
+body[data-page="configurator"] .unified-inspector .configurator-category.is-selection-linked > h3 > button {
+  background: #fbf3e8;
+}
+
+body[data-page="configurator"] .unified-inspector .configurator-category > h3 > button > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+body[data-page="configurator"] .unified-inspector .configurator-category > h3 > button small {
   overflow: hidden;
   color: var(--jq-text-muted);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-body[data-page="configurator"] .configurator-mode-selector {
+body[data-page="configurator"] .unified-inspector .configurator-category > h3 > button i {
   display: grid;
-  width: 100%;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--jq-s1);
-  border: 1px solid var(--jq-border);
-  border-radius: 10px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border-radius: 999px;
   background: var(--jq-surface-secondary);
-  padding: var(--jq-s1);
-  box-shadow: none;
-}
-
-body[data-page="configurator"] .configurator-mode-selector button {
-  min-height: 48px;
-  border: 1px solid transparent;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--jq-text-muted);
-}
-
-body[data-page="configurator"] .configurator-mode-selector button span {
-  font-size: 13px;
-  font-weight: 700;
-}
-
-body[data-page="configurator"] .configurator-mode-selector button small {
-  font-size: 10px;
-}
-
-body[data-page="configurator"] .configurator-mode-selector button.is-active {
-  border-color: #cbb79d;
-  background: var(--jq-surface);
-  color: var(--jq-text);
-  box-shadow: 0 3px 10px rgba(66, 51, 34, 0.08);
-}
-
-body[data-page="configurator"] .guided-experience,
-body[data-page="configurator"] .all-controls-experience {
-  min-height: 100%;
-  padding: 22px 20px 26px;
-}
-
-body[data-page="configurator"] .guided-progress {
-  gap: 2px;
-  margin-bottom: 22px;
-}
-
-body[data-page="configurator"] .guided-progress li::after {
-  top: 15px;
-  background: var(--jq-border);
-}
-
-body[data-page="configurator"] .guided-progress button {
-  min-height: 46px;
-  color: #908980;
-}
-
-body[data-page="configurator"] .guided-progress button > span {
-  width: 30px;
-  height: 30px;
-  border-color: var(--jq-border);
-  background: var(--jq-surface);
-  color: var(--jq-text-muted);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-body[data-page="configurator"] .guided-progress button small {
-  color: inherit;
-  font-size: 10px;
-  font-weight: 600;
-}
-
-body[data-page="configurator"] .guided-progress .is-current button,
-body[data-page="configurator"] .guided-progress .is-complete button {
   color: var(--jq-accent-hover);
 }
 
-body[data-page="configurator"] .guided-progress .is-current button > span {
-  border-color: var(--jq-accent);
-  background: #f5eadc;
-  color: var(--jq-accent-hover);
-  box-shadow: 0 0 0 3px rgba(183, 131, 69, 0.1);
-}
-
-body[data-page="configurator"] .guided-progress .is-complete button > span {
-  border-color: var(--jq-success);
-  background: var(--jq-success);
-  color: #fff;
-}
-
-body[data-page="configurator"] .guided-progress .is-complete button > span svg {
+body[data-page="configurator"] .unified-inspector .configurator-category > h3 > button i svg {
   width: 14px;
   height: 14px;
 }
 
-body[data-page="configurator"] .guided-step-heading {
-  margin-bottom: 22px;
-}
-
-body[data-page="configurator"] .guided-step-heading:focus {
-  outline: none;
-}
-
-body[data-page="configurator"] .guided-step-heading .section-kicker,
-body[data-page="configurator"] .all-controls-heading .section-kicker {
-  color: var(--jq-accent-hover);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-}
-
-body[data-page="configurator"] .guided-step-heading h2,
-body[data-page="configurator"] .all-controls-heading h2 {
-  max-width: 14ch;
-  margin: 6px 0 8px;
-  color: var(--jq-text);
-  font-size: clamp(27px, 2.1vw, 32px);
-  line-height: 1.06;
-  text-wrap: balance;
-}
-
-body[data-page="configurator"] .guided-step-heading p,
-body[data-page="configurator"] .all-controls-heading p {
-  color: var(--jq-text-muted);
-  font-size: 13px;
-  line-height: 1.55;
-}
-
-body[data-page="configurator"] .guided-step-content {
-  min-height: 240px;
-}
-
-body[data-page="configurator"] .guided-navigation {
-  z-index: 11;
-  bottom: -26px;
-  gap: 10px;
+body[data-page="configurator"] .unified-inspector .configurator-category-panel {
+  min-width: 0;
   border-top: 1px solid var(--jq-border);
-  background: rgba(255, 253, 249, 0.96);
-  margin: 24px -20px -26px;
-  padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
-  backdrop-filter: blur(14px);
+  padding: 14px;
 }
 
-body[data-page="configurator"] .guided-navigation button,
-body[data-page="configurator"] .guided-inline-actions button,
-body[data-page="configurator"] .all-controls-secondary-actions button,
-body[data-page="configurator"] .all-controls-heading > button,
-body[data-page="configurator"] .additional-colors-button {
+body[data-page="configurator"] .unified-inspector .configurator-category-panel[hidden] {
+  display: none;
+}
+
+body[data-page="configurator"] .unified-inspector-secondary-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  border-top: 1px solid var(--jq-border);
+  padding-top: 14px;
+}
+
+body[data-page="configurator"] .unified-inspector-secondary-actions button {
   min-height: 44px;
   border: 1px solid var(--jq-border);
   border-radius: 8px;
   background: var(--jq-surface);
-  color: var(--jq-text);
-  font-size: 13px;
-  font-weight: 650;
-}
-
-body[data-page="configurator"] .guided-navigation .is-primary,
-body[data-page="configurator"] .review-actions .is-primary {
-  border-color: var(--jq-accent);
-  background: var(--jq-accent);
-  color: #fff;
-  box-shadow: 0 7px 16px rgba(126, 83, 34, 0.16);
-}
-
-body[data-page="configurator"] .guided-navigation .is-primary:hover,
-body[data-page="configurator"] .review-actions .is-primary:hover {
-  border-color: var(--jq-accent-hover);
-  background: var(--jq-accent-hover);
-}
-
-body[data-page="configurator"] .guided-tip,
-body[data-page="configurator"] .review-assumptions,
-body[data-page="configurator"] .review-paint-disclaimer {
-  border: 0;
-  border-left: 3px solid #b8aa90;
-  border-radius: 0 8px 8px 0;
-  background: #f2eee7;
-  color: var(--jq-text-muted);
-}
-
-body[data-page="configurator"] .guided-tip strong,
-body[data-page="configurator"] .review-assumptions strong {
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .guided-step-errors,
-body[data-page="configurator"] .inline-validation-message {
+  padding: 0 14px;
   color: var(--jq-danger);
-}
-
-body[data-page="configurator"] .layout-card-grid {
-  gap: 12px;
-}
-
-body[data-page="configurator"] .additional-layouts {
-  margin-top: 12px;
-  border-top: 1px solid var(--jq-border);
-  padding-top: 4px;
-}
-
-body[data-page="configurator"] .additional-layouts > summary {
-  display: flex;
-  min-height: 46px;
-  align-items: center;
-  color: var(--jq-accent-hover);
-  cursor: pointer;
   font-size: 12px;
-  font-weight: 700;
-}
-
-body[data-page="configurator"] .additional-layouts > .layout-card-grid {
-  padding-top: 8px;
-}
-
-body[data-page="configurator"] .layout-card {
-  min-height: 178px;
-  border-color: var(--jq-border);
-  border-radius: 12px;
-  background: var(--jq-surface);
-  color: var(--jq-text);
-  box-shadow: 0 4px 14px rgba(64, 49, 32, 0.035);
-}
-
-body[data-page="configurator"] .layout-card:hover {
-  border-color: #bdab91;
-  background: #fffaf3;
-  box-shadow: 0 8px 20px rgba(64, 49, 32, 0.07);
-}
-
-body[data-page="configurator"] .layout-card.is-active {
-  border-color: var(--jq-accent);
-  background: #fbf3e8;
-  color: var(--jq-text);
-  box-shadow: 0 0 0 1px var(--jq-accent), 0 7px 20px rgba(118, 78, 31, 0.09);
-}
-
-body[data-page="configurator"] .layout-card-copy strong {
-  font-size: 13px;
-}
-
-body[data-page="configurator"] .layout-card-copy small {
-  color: var(--jq-text-muted);
-  font-size: 11px;
-}
-
-body[data-page="configurator"] .recommended-badge {
-  border: 0;
-  background: var(--jq-header-secondary);
-  color: #fff7ed;
-}
-
-body[data-page="configurator"] .layout-card-check {
-  background: var(--jq-accent);
-}
-
-body[data-page="configurator"] .preset-mini {
-  background: #eee8df;
-  color: #736b60;
-}
-
-body[data-page="configurator"] .preset-mini .mini-part {
-  stroke: currentColor;
-}
-
-body[data-page="configurator"] .choice-field legend,
-body[data-page="configurator"] .structure-field > legend,
-body[data-page="configurator"] .warmth-field > legend,
-body[data-page="configurator"] .finish-field > legend {
-  color: var(--jq-text);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-body[data-page="configurator"] .segmented-options label > span,
-body[data-page="configurator"] .option-card > span,
-body[data-page="configurator"] .door-style-card-content,
-body[data-page="configurator"] .style-choice,
-body[data-page="configurator"] .lighting-card,
-body[data-page="configurator"] .hardware-choice,
-body[data-page="configurator"] .warmth-choice label,
-body[data-page="configurator"] .thickness-grid > * > label {
-  border-color: var(--jq-border);
-  background: var(--jq-surface);
-  color: var(--jq-text);
-  box-shadow: none;
-}
-
-body[data-page="configurator"] .style-choice :is(.style-diagram, .jq-diagram),
-body[data-page="configurator"] .lighting-card .lighting-card-icon,
-body[data-page="configurator"] .hardware-choice .hardware-choice-icon {
-  color: var(--jq-accent-hover);
-}
-
-body[data-page="configurator"] :is(
-  .style-choice:has(input:checked),
-  .lighting-card:has(input:checked),
-  .hardware-choice:has(input:checked)
-) :is(.style-diagram, .jq-diagram, .lighting-card-icon, .hardware-choice-icon) {
-  color: var(--jq-accent-hover);
-}
-
-body[data-page="configurator"] .segmented-options input:checked + span,
-body[data-page="configurator"] .option-card input:checked + span,
-body[data-page="configurator"] .door-style-card input:checked + .door-style-card-content,
-body[data-page="configurator"] .style-choice:has(input:checked),
-body[data-page="configurator"] .lighting-card:has(input:checked),
-body[data-page="configurator"] .hardware-choice:has(input:checked),
-body[data-page="configurator"] .warmth-choice:has(input:checked),
-body[data-page="configurator"] .thickness-grid > *:has(input:checked) label {
-  border-color: var(--jq-accent);
-  background: #f8efe3;
-  color: var(--jq-text);
-  box-shadow: 0 0 0 1px rgba(183, 131, 69, 0.25);
-}
-
-body[data-page="configurator"] .option-card strong,
-body[data-page="configurator"] .option-card small,
-body[data-page="configurator"] .door-style-copy strong,
-body[data-page="configurator"] .door-style-copy small,
-body[data-page="configurator"] .control-helper {
-  color: var(--jq-text-muted);
-}
-
-body[data-page="configurator"] .section-limit-helper {
-  margin: -4px 0 10px;
-  color: var(--jq-text-muted);
-  font-size: 10px;
-  line-height: 1.35;
-}
-
-body[data-page="configurator"] .generated-front-count {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 4px 12px;
-  align-items: center;
-  margin-top: 12px;
-  border-top: 1px solid var(--jq-border);
-  padding-top: 12px;
-}
-
-body[data-page="configurator"] .generated-front-count > span {
-  color: var(--jq-text);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-body[data-page="configurator"] .generated-front-count > output {
-  border: 1px solid var(--jq-border);
-  border-radius: 999px;
-  background: var(--jq-surface-secondary);
-  padding: 6px 10px;
-  color: var(--jq-text);
-  font-size: 11px;
-  font-weight: 750;
-}
-
-body[data-page="configurator"] .generated-front-count > .control-helper {
-  grid-column: 1 / -1;
-  margin: 0;
-}
-
-body[data-page="configurator"] .option-card strong,
-body[data-page="configurator"] .door-style-copy strong {
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .configurator-panel .control-section {
-  border-bottom-color: var(--jq-border);
-}
-
-body[data-page="configurator"] .configurator-panel .control-section h2,
-body[data-page="configurator"] .appearance-sections > .control-section > h2,
-body[data-page="configurator"] .guided-review-service > h3 {
-  color: var(--jq-text);
-  font-family: var(--sans);
-  font-size: 14px;
-  font-weight: 750;
-  letter-spacing: 0.02em;
-  text-transform: none;
-}
-
-body[data-page="configurator"] .control-heading-icon,
-body[data-page="configurator"] .appearance-sections .control-heading-icon {
-  color: var(--jq-accent);
-}
-
-body[data-page="configurator"] .configurator-panel .range-control {
-  min-height: 76px;
-  grid-template-columns: minmax(72px, 0.45fr) minmax(0, 1fr) 76px;
-  border-bottom: 1px solid #e9e3da;
-}
-
-body[data-page="configurator"] .configurator-panel .range-label > label {
-  color: var(--jq-text);
-  font-size: 13px;
   font-weight: 650;
-}
-
-body[data-page="configurator"] .configurator-panel .range-value {
-  width: 72px;
-  height: 44px;
-  border-color: var(--jq-border);
-  background: var(--jq-surface);
-  color: var(--jq-text);
-  font-size: 12px;
-}
-
-body[data-page="configurator"] .configurator-panel .range-value input {
-  width: 42px;
-  color: var(--jq-text);
-  font-size: 15px;
-  font-weight: 700;
-}
-
-body[data-page="configurator"] .configurator-panel input[type="range"]::-webkit-slider-runnable-track {
-  background: #d2c5b4;
-}
-
-body[data-page="configurator"] .configurator-panel input[type="range"]::-webkit-slider-thumb {
-  width: 18px;
-  height: 18px;
-  background: var(--jq-accent);
-  margin-top: -8px;
-  box-shadow: 0 0 0 4px #fffaf3;
-}
-
-body[data-page="configurator"] .configurator-panel .stepper-control,
-body[data-page="configurator"] .configurator-panel .toggle-row {
-  min-height: 58px;
-  color: var(--jq-text);
-  font-size: 13px;
-  font-weight: 650;
-}
-
-body[data-page="configurator"] .configurator-panel .stepper {
-  border: 1px solid var(--jq-border);
-  background: var(--jq-surface);
-  box-shadow: none;
-}
-
-body[data-page="configurator"] .configurator-panel .stepper button {
-  border-color: var(--jq-border);
-  background: #f4efe8;
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .configurator-panel .stepper input {
-  color: var(--jq-text);
-  font-weight: 750;
-}
-
-body[data-page="configurator"] .configurator-panel .switch > span {
-  border-color: #b9b0a4;
-  background: #d9d2c9;
-}
-
-body[data-page="configurator"] .configurator-panel .switch input:checked + span {
-  border-color: var(--jq-accent);
-  background: var(--jq-accent);
-}
-
-body[data-page="configurator"] .build-disclosures {
-  display: grid;
-  gap: 12px;
-}
-
-body[data-page="configurator"] .build-disclosure {
-  overflow: clip;
-  border: 1px solid var(--jq-border);
-  border-radius: 12px;
-  background: var(--jq-surface);
-}
-
-body[data-page="configurator"] .build-disclosure > summary {
-  display: flex;
-  min-height: 66px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 14px;
-  color: var(--jq-text);
-  cursor: pointer;
-  list-style: none;
-}
-
-body[data-page="configurator"] .build-disclosure > summary::-webkit-details-marker {
-  display: none;
-}
-
-body[data-page="configurator"] .build-disclosure > summary span {
-  display: grid;
-  gap: 3px;
-}
-
-body[data-page="configurator"] .build-disclosure > summary strong {
-  font-size: 14px;
-}
-
-body[data-page="configurator"] .build-disclosure > summary small {
-  color: var(--jq-text-muted);
-  font-size: 11px;
-}
-
-body[data-page="configurator"] .build-disclosure > summary i {
-  width: 10px;
-  height: 10px;
-  flex: 0 0 auto;
-  border-right: 2px solid var(--jq-accent);
-  border-bottom: 2px solid var(--jq-accent);
-  transform: rotate(45deg);
-  transition: transform 150ms ease;
-}
-
-body[data-page="configurator"] .build-disclosure[open] > summary i {
-  transform: rotate(225deg);
-}
-
-body[data-page="configurator"] .build-disclosure-content {
-  border-top: 1px solid var(--jq-border);
-  padding: 0 14px 6px;
-}
-
-body[data-page="configurator"] .build-disclosure-content .control-section > h2 {
-  display: none;
-}
-
-body[data-page="configurator"] .finish-choice label,
-body[data-page="configurator"] .hardware-choice label,
-body[data-page="configurator"] .lighting-card label {
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .finish-choice label > span:last-child,
-body[data-page="configurator"] .finish-choice label small {
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .finish-choice label small {
-  color: var(--jq-text-muted);
-}
-
-body[data-page="configurator"] .finish-choice-dot {
-  border-color: #aaa096;
-  box-shadow: 0 0 0 3px var(--jq-surface);
-}
-
-body[data-page="configurator"] .finish-choice input:checked + label .finish-choice-dot {
-  outline: 2px solid var(--jq-accent);
-  outline-offset: 3px;
-}
-
-body[data-page="configurator"] .bm-search,
-body[data-page="configurator"] .bm-selected-color {
-  border-color: var(--jq-border);
-  background: #f5f0e9;
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .bm-search-heading strong,
-body[data-page="configurator"] .bm-selected-color strong,
-body[data-page="configurator"] .bm-search label {
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .bm-search-heading span,
-body[data-page="configurator"] .bm-selected-color small,
-body[data-page="configurator"] .bm-search-help,
-body[data-page="configurator"] .bm-search-status,
-body[data-page="configurator"] .bm-preview-disclaimer {
-  color: var(--jq-text-muted);
-}
-
-body[data-page="configurator"] .bm-search-input input {
-  border-color: var(--jq-border);
-  background: var(--jq-surface);
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .bm-search-input button,
-body[data-page="configurator"] .additional-colors-button {
-  border-color: var(--jq-border);
-  background: var(--jq-surface);
-  color: var(--jq-accent-hover);
-}
-
-body[data-page="configurator"] .appearance-sections {
-  gap: 24px;
-}
-
-body[data-page="configurator"] .appearance-sections > .control-section {
-  border-top-color: var(--jq-border);
-}
-
-body[data-page="configurator"] .all-controls-heading {
-  align-items: end;
-}
-
-body[data-page="configurator"] .configurator-accordion {
-  gap: 8px;
-}
-
-body[data-page="configurator"] .configurator-category {
-  border-color: var(--jq-border);
-  border-radius: 10px;
-  background: var(--jq-surface);
-}
-
-body[data-page="configurator"] .configurator-category > h3 > button {
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .configurator-category > h3 > button small {
-  color: var(--jq-text-muted);
-}
-
-body[data-page="configurator"] .configurator-category-panel {
-  border-top-color: var(--jq-border);
-}
-
-body[data-page="configurator"] .review-summary-grid {
-  gap: 10px;
-}
-
-body[data-page="configurator"] .review-summary-group {
-  border-color: var(--jq-border);
-  background: var(--jq-surface);
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .review-summary-group h3,
-body[data-page="configurator"] .review-summary-group dd,
-body[data-page="configurator"] .review-estimate strong {
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .review-summary-group dt,
-body[data-page="configurator"] .review-estimate span,
-body[data-page="configurator"] .review-estimate p,
-body[data-page="configurator"] .guided-review-service > p {
-  color: var(--jq-text-muted);
-}
-
-body[data-page="configurator"] .review-summary-group header button {
-  color: var(--jq-accent-hover);
-}
-
-body[data-page="configurator"] .review-estimate {
-  border-color: #cdb99c;
-  background: #f5eadc;
-}
-
-body[data-page="configurator"] .review-actions button {
-  border-color: var(--jq-border);
-  background: var(--jq-surface);
-  color: var(--jq-text);
 }
 
 body[data-page="configurator"] .configurator-model {
@@ -5751,954 +4418,244 @@ body[data-page="configurator"] .configurator-model {
   z-index: 1;
   width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
   grid-column: 2;
   grid-row: 1;
   overflow: hidden;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.16), transparent 35%),
+    radial-gradient(ellipse at 52% 42%, rgba(255, 255, 255, 0.72), transparent 48%),
     linear-gradient(180deg, #ebe5dc 0 68%, #d8d0c4 68% 69%, #cfc6b8 69% 100%);
 }
 
-body[data-page="configurator"] .configurator-model::before {
+body[data-page="configurator"] .configurator-model .viewer-stage {
   position: absolute;
+  z-index: 1;
   inset: 0;
-  background:
-    radial-gradient(ellipse at 52% 42%, rgba(255,255,255,0.74), rgba(255,255,255,0) 48%),
-    linear-gradient(90deg, rgba(126,105,78,0.06), transparent 18%, transparent 82%, rgba(126,105,78,0.05));
-  content: "";
-  pointer-events: none;
-}
-
-body[data-page="configurator"] .configurator-model::after {
-  right: 17%;
-  bottom: 40px;
-  left: 17%;
-  height: 34px;
-  background: rgba(63, 50, 36, 0.13);
-  filter: blur(22px);
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
 }
 
 body[data-page="configurator"] .configurator-model .preview-heading {
-  top: 18px;
-  right: 22px;
-  left: 22px;
-}
-
-body[data-page="configurator"] .preview-heading > div:first-child {
-  border: 1px solid rgba(117, 101, 82, 0.16);
-  border-radius: 8px;
-  background: rgba(255, 253, 249, 0.76);
-  padding: 8px 10px;
-  box-shadow: 0 5px 16px rgba(73, 57, 38, 0.05);
-  backdrop-filter: blur(10px);
-}
-
-body[data-page="configurator"] .preview-heading span {
-  color: var(--jq-text);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-}
-
-body[data-page="configurator"] .preview-heading small {
-  color: var(--jq-text-muted);
-  font-size: 10px;
-}
-
-body[data-page="configurator"] .preview-price-pill {
-  display: none;
-}
-
-body[data-page="configurator"] .preview-control-dock {
   position: absolute;
-  z-index: 6;
-  top: 50%;
-  right: 18px;
-  display: grid;
-  width: 76px;
-  max-height: calc(100% - 36px);
-  align-content: center;
-  gap: 8px;
-  transform: translateY(-50%);
-}
-
-body[data-page="configurator"] .preview-tools,
-body[data-page="configurator"] .configurator-model .view-controls {
-  position: static;
-  display: grid;
-  width: 76px;
-  height: auto;
-  min-height: 0;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 2px;
-  border: 1px solid rgba(104, 88, 68, 0.22);
-  border-radius: 12px;
-  background: rgba(255, 253, 249, 0.88);
-  padding: 5px;
-  box-shadow: 0 12px 28px rgba(71, 54, 33, 0.11);
-  backdrop-filter: blur(14px);
-  transform: none;
-}
-
-body[data-page="configurator"] .preview-tools button,
-body[data-page="configurator"] .configurator-model .view-controls button {
-  display: grid;
-  width: 64px;
-  height: 54px;
-  min-height: 54px;
-  grid-template-rows: 24px auto;
-  gap: 2px;
-  place-items: center;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  padding: 5px 3px;
-  color: var(--jq-text-muted);
-  font-size: 17px;
-  line-height: 1;
-}
-
-body[data-page="configurator"] .preview-tools button small,
-body[data-page="configurator"] .configurator-model .view-controls button small {
-  color: inherit;
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-body[data-page="configurator"] .preview-tools button:hover,
-body[data-page="configurator"] .configurator-model .view-controls button:hover {
-  background: #f3eee7;
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .configurator-model .view-controls button.is-active {
-  border-color: #d2b995;
-  background: #f3e6d5;
-  color: var(--jq-accent-hover);
-  box-shadow: none;
-}
-
-body[data-page="configurator"] .configurator-model .view-icon {
-  color: currentColor;
-}
-
-body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch {
-  position: static;
-  display: grid;
-  width: 76px;
-  justify-items: stretch;
-  gap: 4px;
-  pointer-events: auto;
-}
-
-body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
-  display: grid;
-  width: 76px;
-  min-height: 70px;
-  grid-template-rows: 22px auto;
-  gap: 4px;
-  place-items: center;
-  border: 1px solid var(--jq-accent);
-  border-radius: 12px;
-  background: var(--jq-accent);
-  padding: 9px 5px;
-  color: #fff;
-  box-shadow: 0 10px 24px rgba(112, 73, 28, 0.2);
-  font-size: 9px;
-  line-height: 1.15;
-  text-align: center;
-  white-space: normal;
-}
-
-body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button [data-ar-label] {
-  display: block;
-  max-width: 62px;
-}
-
-body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-help {
-  display: none;
-}
-
-body[data-page="configurator"] .configurator-estimate-bar,
-body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
-  position: relative;
-  z-index: 15;
-  display: grid;
-  width: 100%;
-  height: 76px;
-  min-height: 76px;
-  grid-column: 1 / -1;
-  grid-row: 2;
-  grid-template-columns: minmax(220px, 0.72fr) minmax(280px, 1fr) auto;
-  align-items: center;
-  border: 0;
-  border-top: 1px solid var(--jq-border);
-  background: rgba(255, 253, 249, 0.98);
-  color: var(--jq-text);
-  box-shadow: 0 -8px 28px rgba(72, 56, 37, 0.07);
-}
-
-body[data-page="configurator"] .configurator-experience .configurator-price-block {
-  display: grid;
-  gap: 1px;
-  padding: 0 24px 0 30px;
-}
-
-body[data-page="configurator"] .configurator-price-block::before {
-  display: none;
-}
-
-body[data-page="configurator"] .configurator-experience .price-kicker {
-  margin: 0;
-  color: var(--jq-text-muted);
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.08em;
-}
-
-body[data-page="configurator"] .configurator-experience .configurator-price-block strong {
-  color: var(--jq-text);
-  font-size: 26px;
-  font-weight: 600;
-}
-
-body[data-page="configurator"] .configurator-experience .configurator-quote-note {
-  max-width: 440px;
-  border-left: 1px solid var(--jq-border);
-  margin: 12px 0;
-  padding: 0 22px;
-  color: var(--jq-text-muted);
-  font-size: 11px;
-}
-
-body[data-page="configurator"] .configurator-experience .configurator-actions {
-  display: flex;
-  grid-template-columns: none;
-  gap: 8px;
-  padding-right: 18px;
-}
-
-body[data-page="configurator"] .configurator-review-button,
-body[data-page="configurator"] .configurator-save-button,
-body[data-page="configurator"] .configurator-quote-button {
-  width: auto;
-  min-width: 124px;
-  height: 46px;
-  min-height: 46px;
-  border: 1px solid var(--jq-border);
-  border-radius: 8px;
-  background: var(--jq-surface);
-  color: var(--jq-text);
-  box-shadow: none;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-body[data-page="configurator"] .configurator-save-button {
-  color: var(--jq-accent-hover);
-}
-
-body[data-page="configurator"] .configurator-quote-button {
-  display: none;
-  border-color: var(--jq-accent);
-  background: var(--jq-accent);
-  color: #fff;
-}
-
-body[data-page="configurator"] .configurator-experience.is-all-controls-mode .configurator-quote-button {
-  display: inline-flex;
-}
-
-body[data-page="configurator"] .configurator-review-dialog {
-  border-color: var(--jq-border);
-  background: var(--jq-workspace);
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .configurator-review-dialog-heading h2 {
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] .configurator-review-dialog-heading > button {
-  border-color: var(--jq-border);
-  background: var(--jq-surface);
-  color: var(--jq-text);
-}
-
-body[data-page="configurator"] button:disabled {
-  opacity: 0.42;
-}
-
-body[data-page="configurator"] [aria-invalid="true"] {
-  border-color: var(--jq-danger) !important;
-  box-shadow: 0 0 0 3px rgba(166, 83, 69, 0.1);
-}
-
-body[data-page="configurator"] :is(
-  .configurator-mode-selector button,
-  .guided-progress button,
-  .layout-card,
-  .guided-navigation button,
-  .preview-control-dock button,
-  .configurator-actions button,
-  .build-disclosure > summary,
-  .configurator-category > h3 > button
-):focus-visible {
-  outline: 3px solid rgba(157, 108, 53, 0.5);
-  outline-offset: 2px;
-}
-
-@media (max-width: 1279px) {
-  body[data-page="configurator"] {
-    overflow-x: hidden;
-    overflow-y: auto;
-    background: var(--jq-workspace);
-  }
-
-  body[data-page="configurator"] main,
-  body[data-page="configurator"] .builder-hero,
-  body[data-page="configurator"] .builder-page,
-  body[data-page="configurator"] .builder-hero > .container,
-  body[data-page="configurator"] [data-bookcase-builder] {
-    height: auto;
-    min-height: calc(100svh - 76px);
-    overflow: visible;
-  }
-
-  body[data-page="configurator"] .configurator-experience {
-    height: auto;
-    min-height: calc(100svh - 76px);
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: clamp(430px, 58svh, 620px) auto 72px;
-    overflow: visible;
-  }
-
-  body[data-page="configurator"] .configurator-model {
-    height: 100%;
-    min-height: 430px;
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  body[data-page="configurator"] .configurator-control-experience {
-    width: calc(100% - 32px);
-    height: auto;
-    max-height: none;
-    grid-column: 1;
-    grid-row: 2;
-    overflow: visible;
-    border: 1px solid var(--jq-border);
-    border-radius: 18px 18px 0 0;
-    margin: -18px 16px 0;
-    box-shadow: 0 -16px 38px rgba(65, 50, 33, 0.1);
-  }
-
-  body[data-page="configurator"] .configurator-experience-toolbar {
-    border-radius: 18px 18px 0 0;
-  }
-
-  body[data-page="configurator"] .configurator-control-experience > [role="tabpanel"] {
-    min-height: 0;
-  }
-
-  body[data-page="configurator"] .guided-navigation {
-    position: static;
-  }
-
-  body[data-page="configurator"] .guided-experience,
-  body[data-page="configurator"] .all-controls-experience {
-    max-width: 860px;
-    margin-inline: auto;
-  }
-
-  body[data-page="configurator"] .layout-card-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  body[data-page="configurator"] .configurator-estimate-bar,
-  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
-    position: sticky;
-    bottom: 0;
-    height: 72px;
-    min-height: 72px;
-    grid-column: 1;
-    grid-row: 3;
-    grid-template-columns: minmax(190px, max-content) minmax(0, 1fr) auto;
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  body[data-page="configurator"] .preview-control-dock {
-    top: auto;
-    right: 14px;
-    bottom: 18px;
-    left: 14px;
-    display: flex;
-    width: auto;
-    max-width: none;
-    align-items: end;
-    justify-content: center;
-    gap: 8px;
-    transform: none;
-  }
-
-  body[data-page="configurator"] .preview-tools,
-  body[data-page="configurator"] .configurator-model .view-controls {
-    display: flex;
-    width: auto;
-    min-width: 0;
-  }
-
-  body[data-page="configurator"] .preview-tools button,
-  body[data-page="configurator"] .configurator-model .view-controls button {
-    width: 56px;
-    min-width: 56px;
-    height: 54px;
-  }
-
-  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch,
-  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
-    width: 148px;
-  }
-
-  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
-    min-height: 66px;
-    grid-template-columns: 22px minmax(0, 1fr);
-    grid-template-rows: auto;
-    padding: 8px 10px;
-    font-size: 11px;
-  }
-
-  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button [data-ar-label] {
-    max-width: none;
-  }
-
-  body[data-page="configurator"] .preview-price-pill {
-    display: grid;
-    min-width: 112px;
-    gap: 1px;
-    border: 1px solid rgba(117, 101, 82, 0.16);
-    border-radius: 9px;
-    background: rgba(255, 253, 249, 0.84);
-    padding: 7px 10px;
-    color: var(--jq-text);
-    box-shadow: 0 5px 16px rgba(73, 57, 38, 0.05);
-    text-align: right;
-    backdrop-filter: blur(10px);
-  }
-
-  body[data-page="configurator"] .preview-price-pill small {
-    color: var(--jq-text-muted);
-    font-size: 8px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  body[data-page="configurator"] .preview-price-pill strong {
-    color: var(--jq-text);
-    font-size: 15px;
-    line-height: 1.1;
-  }
-}
-
-@media (max-width: 900px) {
-  body[data-page="configurator"] .configurator-experience-heading {
-    display: none;
-  }
-
-  body[data-page="configurator"] .configurator-experience-toolbar {
-    padding: 12px 14px;
-  }
-
-  body[data-page="configurator"] .configurator-experience .configurator-quote-note {
-    display: none;
-  }
-
-  body[data-page="configurator"] .configurator-estimate-bar,
-  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
-    grid-template-columns: minmax(172px, max-content) minmax(0, 1fr);
-  }
-
-  body[data-page="configurator"] .configurator-experience .configurator-actions {
-    grid-column: 2;
-    justify-content: end;
-  }
-
-  body[data-page="configurator"] .configurator-review-button {
-    display: none;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
-  body[data-page="configurator"] {
-    overflow: hidden;
-  }
-
-  body[data-page="configurator"] main,
-  body[data-page="configurator"] .builder-hero,
-  body[data-page="configurator"] .builder-page,
-  body[data-page="configurator"] .builder-hero > .container,
-  body[data-page="configurator"] [data-bookcase-builder] {
-    height: calc(100vh - 76px);
-    height: calc(100dvh - 76px);
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  body[data-page="configurator"] .configurator-experience {
-    height: 100%;
-    min-height: 0;
-    grid-template-columns: clamp(340px, 38vw, 380px) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) 72px;
-    overflow: hidden;
-  }
-
-  body[data-page="configurator"] .configurator-model {
-    min-height: 0;
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  body[data-page="configurator"] .configurator-control-experience {
-    width: calc(100% - 20px);
-    height: calc(100% - 20px);
-    grid-column: 1;
-    grid-row: 1;
-    overflow-x: hidden;
-    overflow-y: auto;
-    border: 1px solid var(--jq-border);
-    border-radius: 14px;
-    margin: 10px;
-    box-shadow: var(--jq-shadow);
-  }
-
-  body[data-page="configurator"] .configurator-experience-toolbar {
-    border-radius: 14px 14px 0 0;
-  }
-
-  body[data-page="configurator"] .guided-experience,
-  body[data-page="configurator"] .all-controls-experience {
-    padding: 18px 16px 22px;
-  }
-
-  body[data-page="configurator"] .guided-navigation {
-    position: sticky;
-    bottom: -22px;
-    margin: 20px -16px -22px;
-    padding-inline: 16px;
-  }
-
-  body[data-page="configurator"] .configurator-estimate-bar,
-  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
-    position: static;
-    grid-column: 1 / -1;
-    grid-row: 2;
-  }
-
-  body[data-page="configurator"] .preview-control-dock {
-    top: 50%;
-    right: 12px;
-    bottom: auto;
-    left: auto;
-    display: grid;
-    width: 68px;
-    transform: translateY(-50%);
-  }
-
-  body[data-page="configurator"] .preview-tools,
-  body[data-page="configurator"] .configurator-model .view-controls {
-    display: grid;
-    width: 68px;
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  body[data-page="configurator"] .preview-tools button,
-  body[data-page="configurator"] .configurator-model .view-controls button {
-    width: 56px;
-    min-width: 56px;
-    height: 48px;
-    min-height: 48px;
-  }
-
-  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch,
-  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
-    width: 68px;
-  }
-
-  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
-    min-height: 66px;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 20px auto;
-    padding: 7px 4px;
-    font-size: 8px;
-  }
-}
-
-@media (max-width: 767px) {
-  body[data-page="configurator"] main,
-  body[data-page="configurator"] .builder-hero,
-  body[data-page="configurator"] .builder-page,
-  body[data-page="configurator"] .builder-hero > .container,
-  body[data-page="configurator"] [data-bookcase-builder] {
-    min-height: calc(100svh - 68px);
-  }
-
-  body[data-page="configurator"] .configurator-experience {
-    min-height: calc(100svh - 68px);
-    grid-template-rows: clamp(360px, 50svh, 430px) auto 66px;
-  }
-
-  body[data-page="configurator"] .configurator-model {
-    min-height: 360px;
-  }
-
-  body[data-page="configurator"] .preview-heading small {
-    display: none;
-  }
-
-  body[data-page="configurator"] .configurator-control-experience {
-    width: 100%;
-    border-right: 0;
-    border-left: 0;
-    border-bottom: 0;
-    margin: -18px 0 0;
-  }
-
-  body[data-page="configurator"] .guided-experience,
-  body[data-page="configurator"] .all-controls-experience {
-    padding: 18px 14px 22px;
-  }
-
-  body[data-page="configurator"] .guided-progress-heading {
-    color: var(--jq-text-muted);
-  }
-
-  body[data-page="configurator"] .guided-progress-heading strong {
-    color: var(--jq-accent-hover);
-  }
-
-  body[data-page="configurator"] .guided-step-heading h2 {
-    max-width: 16ch;
-    font-size: 28px;
-  }
-
-  body[data-page="configurator"] .guided-navigation {
-    margin: 20px -14px -22px;
-    padding-inline: 14px;
-  }
-
-  body[data-page="configurator"] .layout-card-grid,
-  body[data-page="configurator"] .configurator-category-panel .layout-card-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  body[data-page="configurator"] .layout-card,
-  body[data-page="configurator"] .configurator-category-panel .layout-card {
-    min-height: 134px;
-    grid-template-columns: 112px minmax(0, 1fr);
-    grid-template-rows: auto;
-    align-items: center;
-  }
-
-  body[data-page="configurator"] .finish-choice-grid,
-  body[data-page="configurator"] .hardware-choice-grid,
-  body[data-page="configurator"] .lighting-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  body[data-page="configurator"] .preview-control-dock {
-    right: 8px;
-    bottom: 10px;
-    left: 8px;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 6px;
-  }
-
-  body[data-page="configurator"] .preview-tools {
-    display: none;
-  }
-
-  body[data-page="configurator"] .configurator-model .view-controls {
-    display: grid;
-    width: 100%;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  body[data-page="configurator"] .configurator-model .view-controls button {
-    width: auto;
-    min-width: 44px;
-    height: 52px;
-  }
-
-  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch,
-  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
-    width: 126px;
-  }
-
-  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
-    min-height: 64px;
-    font-size: 10px;
-  }
-
-  body[data-page="configurator"] .configurator-estimate-bar,
-  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
-    position: static;
-    height: 66px;
-    min-height: 66px;
-    grid-template-columns: 135px minmax(0, 1fr);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  body[data-page="configurator"] .configurator-experience .configurator-price-block {
-    padding: 0 8px 0 14px;
-  }
-
-  body[data-page="configurator"] .configurator-experience .price-kicker {
-    font-size: 8px;
-  }
-
-  body[data-page="configurator"] .configurator-experience .configurator-price-block strong {
-    font-size: 21px;
-  }
-
-  body[data-page="configurator"] .configurator-experience .configurator-actions {
-    gap: 6px;
-    padding-right: 8px;
-  }
-
-  body[data-page="configurator"] .configurator-save-button,
-  body[data-page="configurator"] .configurator-quote-button {
-    min-width: 48px;
-    height: 48px;
-    min-height: 48px;
-    padding: 0 10px;
-  }
-
-  body[data-page="configurator"] .configurator-save-button span {
-    display: none;
-  }
-
-  body[data-page="configurator"] .configurator-quote-button {
-    min-width: 116px;
-    font-size: 11px;
-  }
-
-  body[data-page="configurator"] .review-actions {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  body[data-page="configurator"] .guided-navigation {
-    position: sticky;
-    bottom: 0;
-  }
-}
-
-@media (max-width: 390px) {
-  body[data-page="configurator"] .configurator-experience {
-    grid-template-rows: 350px auto 66px;
-  }
-
-  body[data-page="configurator"] .configurator-model {
-    min-height: 350px;
-  }
-
-  body[data-page="configurator"] .guided-progress button small {
-    display: none;
-  }
-
-  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch,
-  body[data-page="configurator"] .preview-control-dock .cabinet-ar-launch-button {
-    width: 116px;
-  }
-}
-
-/* Final cascade placement for the five-zone shell. Keep this after the
- * showroom compatibility layer so legacy grid declarations cannot win. */
-
-@media (min-width: 1280px) {
-  body[data-page="configurator"] .configurator-experience {
-    grid-template-columns: 88px clamp(330px, 23vw, 368px) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) 92px;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  body[data-page="configurator"] .configurator-control-experience {
-    width: 100%;
-    height: 100%;
-    grid-column: 2;
-    grid-row: 1;
-    margin: 0;
-  }
-
-  body[data-page="configurator"] .configurator-model {
-    grid-column: 3;
-    grid-row: 1;
-  }
-}
-
-body[data-page="configurator"] .configurator-panel-intro {
-  position: sticky;
-  z-index: 13;
-  top: 0;
-  display: grid;
-  min-height: 82px;
-  align-content: center;
-  gap: 6px;
-  border-bottom: 1px solid var(--jq-border);
-  background: rgba(255, 253, 249, 0.96);
-  padding: 16px 20px;
-  backdrop-filter: blur(14px);
-}
-
-body[data-page="configurator"] .configurator-panel-intro .section-kicker {
-  color: var(--jq-accent-hover);
-  font-size: 10px;
-  font-weight: 750;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-body[data-page="configurator"] .configurator-panel-intro strong {
-  color: var(--jq-text-muted);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-body[data-page="configurator"] .configurator-experience-toolbar {
-  position: absolute;
-  z-index: 12;
-  top: 16px;
-  left: 50%;
-  display: block;
-  width: 270px;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  transform: translateX(-50%);
-  backdrop-filter: none;
-}
-
-body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector {
-  border-color: rgba(88, 75, 59, 0.2);
-  background: rgba(236, 230, 220, 0.82);
-  box-shadow: 0 8px 24px rgba(70, 53, 34, 0.08);
-  backdrop-filter: blur(14px);
-}
-
-body[data-page="configurator"] .configurator-experience-toolbar .configurator-mode-selector button {
-  min-height: 42px;
-}
-
-body[data-page="configurator"] .preview-heading {
+  z-index: 10;
   top: 16px;
   right: 20px;
   left: 20px;
-  align-items: start;
+  display: flex;
+  justify-content: flex-start;
   pointer-events: none;
 }
 
-body[data-page="configurator"] .preview-price-pill {
-  display: grid;
-  min-width: 112px;
-  gap: 1px;
-  border: 1px solid rgba(117, 101, 82, 0.14);
-  border-radius: 9px;
+body[data-page="configurator"] .configurator-model .preview-heading > div:first-child {
+  border: 1px solid rgba(117, 101, 82, 0.16);
+  border-radius: 8px;
   background: rgba(255, 253, 249, 0.82);
   padding: 8px 10px;
   color: var(--jq-text);
-  text-align: right;
+  box-shadow: 0 5px 16px rgba(73, 57, 38, 0.06);
   backdrop-filter: blur(10px);
 }
 
-body[data-page="configurator"] .preview-price-pill small {
+body[data-page="configurator"] .configurator-model .preview-heading span {
+  color: var(--jq-text);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+}
+
+body[data-page="configurator"] .configurator-model .preview-heading small {
   color: var(--jq-text-muted);
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 10px;
+}
+
+body[data-page="configurator"] .configurator-hover-label {
+  position: absolute;
+  z-index: 17;
+  max-width: min(220px, calc(100% - 32px));
+  transform: translate(-50%, calc(-100% - 12px));
+  border: 1px solid rgba(255, 247, 237, 0.32);
+  border-radius: 999px;
+  background: rgba(35, 29, 24, 0.92);
+  padding: 6px 10px;
+  color: #fffaf2;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 5px 14px rgba(35, 29, 24, 0.2);
+}
+
+body[data-page="configurator"] .configurator-context-leader {
+  position: absolute;
+  z-index: 16;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .configurator-context-leader line {
+  stroke: #b78345;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+body[data-page="configurator"] .configurator-context-leader circle {
+  fill: #fffaf2;
+  stroke: #b78345;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+body[data-page="configurator"] .configurator-context-editor {
+  position: absolute;
+  z-index: 18;
+  top: 88px;
+  left: 24px;
+  display: flex;
+  width: clamp(320px, 29vw, 410px);
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 32px);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(113, 92, 67, 0.24);
+  border-radius: 14px;
+  background: rgba(255, 253, 249, 0.98);
+  color: var(--jq-text);
+  box-shadow: 0 22px 54px rgba(51, 39, 26, 0.2);
+  backdrop-filter: blur(18px);
+}
+
+body[data-page="configurator"] .configurator-context-editor[hidden],
+body[data-page="configurator"] [data-contextual-editor][hidden],
+body[data-page="configurator"] .configurator-hover-label[hidden],
+body[data-page="configurator"] .configurator-context-leader[hidden] {
+  display: none;
+}
+
+body[data-page="configurator"] .configurator-experience.is-context-open .configurator-hover-label {
+  display: none;
+}
+
+body[data-page="configurator"] .configurator-experience.is-context-open .preview-heading {
+  opacity: 0.72;
+}
+
+body[data-page="configurator"] .configurator-context-heading {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 12px;
+  align-items: start;
+  border-bottom: 1px solid var(--jq-border);
+  padding: 16px 16px 14px;
+}
+
+body[data-page="configurator"] .configurator-context-heading > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+body[data-page="configurator"] .configurator-context-heading h2 {
+  margin: 0;
+  color: var(--jq-text);
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+body[data-page="configurator"] .configurator-context-heading p {
+  margin: 0;
+  color: var(--jq-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+body[data-page="configurator"] .configurator-context-heading > button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  place-items: center;
+  border: 1px solid var(--jq-border);
+  border-radius: 9px;
+  background: var(--jq-surface);
+  color: var(--jq-text);
+}
+
+body[data-page="configurator"] .configurator-context-heading > button svg {
+  width: 18px;
+  height: 18px;
+}
+
+body[data-page="configurator"] .configurator-context-body {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 16px 18px;
+  scrollbar-gutter: stable;
+}
+
+body[data-page="configurator"] .configurator-context-group {
+  min-width: 0;
+}
+
+body[data-page="configurator"] .configurator-context-group + .configurator-context-group {
+  margin-top: 18px;
+  border-top: 1px solid var(--jq-border);
+  padding-top: 18px;
+}
+
+body[data-page="configurator"] .configurator-context-group > h3 {
+  margin: 0 0 10px;
+  color: var(--jq-text);
+  font-size: 12px;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-body[data-page="configurator"] .preview-price-pill strong {
-  color: var(--jq-text);
-  font-size: 15px;
+body[data-page="configurator"] .configurator-context-editor .control-section {
+  min-width: 0;
+  border-color: var(--jq-border);
+  padding-inline: 0;
 }
 
-body[data-page="configurator"] .preview-control-dock {
-  right: 16px;
-  width: 72px;
-}
-
-body[data-page="configurator"] .preview-tools,
-body[data-page="configurator"] .configurator-model .view-controls {
-  width: 72px;
-}
-
-body[data-page="configurator"] .preview-tools button,
-body[data-page="configurator"] .configurator-model .view-controls button {
-  width: 60px;
-  min-width: 60px;
-  height: 56px;
-  min-height: 56px;
-}
-
-body[data-page="configurator"] .configurator-model > .cabinet-ar-launch {
-  position: absolute;
-  z-index: 11;
-  right: 16px;
-  bottom: 20px;
-  display: grid;
-  width: 204px;
-  gap: 10px;
-  border: 1px solid rgba(105, 85, 60, 0.2);
-  border-radius: 14px;
-  background: rgba(255, 253, 249, 0.92);
-  padding: 16px;
-  color: var(--jq-text);
-  box-shadow: 0 16px 38px rgba(66, 50, 32, 0.13);
-  backdrop-filter: blur(16px);
-}
-
-body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-button {
-  display: inline-flex;
-  width: 100%;
-  min-height: 44px;
-  grid-template-columns: none;
-  grid-template-rows: none;
-  gap: 8px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--jq-accent);
-  border-radius: 8px;
-  background: var(--jq-accent);
-  padding: 0 12px;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-help {
-  display: block;
-  color: var(--jq-text-muted);
-  font-size: 9px;
-  line-height: 1.35;
-  text-align: center;
+body[data-page="configurator"] .configurator-context-editor :is(
+  button,
+  input,
+  select,
+  summary,
+  label
+):focus-visible,
+body[data-page="configurator"] .unified-inspector :is(
+  button,
+  input,
+  select,
+  summary,
+  label
+):focus-visible {
+  outline: 3px solid rgba(107, 67, 28, 0.52);
+  outline-offset: 2px;
 }
 
 body[data-page="configurator"] .configurator-estimate-bar,
 body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
   position: relative;
+  z-index: 24;
+  width: 100%;
   height: 92px;
   min-height: 92px;
   grid-column: 1 / -1;
   grid-row: 2;
-  grid-template-columns: minmax(240px, 0.72fr) minmax(440px, 1.45fr) auto;
-  border-top-color: rgba(255, 255, 255, 0.09);
+  grid-template-columns: minmax(240px, 0.72fr) minmax(420px, 1.4fr) auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
   background: var(--jq-header);
   color: #fffdf9;
 }
@@ -6747,20 +4704,20 @@ body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item {
   gap: 10px;
   align-items: center;
   border-left: 1px solid rgba(255, 255, 255, 0.09);
-  padding: 0 16px;
+  padding: 0 14px;
 }
 
-body[data-page="configurator"] .configurator-estimate-bar .studio-trust-icon,
-body[data-page="configurator"] .configurator-estimate-bar .studio-trust-icon svg {
-  width: 24px;
-  height: 24px;
-  color: #d2a66b !important;
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item strong,
+body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item strong {
   color: rgba(255, 253, 249, 0.9);
   font-size: 10px;
-  font-weight: 650;
 }
 
 body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item small {
@@ -6769,20 +4726,27 @@ body[data-page="configurator"] .configurator-estimate-bar .studio-trust-item sma
 }
 
 body[data-page="configurator"] .configurator-experience .configurator-actions {
+  display: flex;
   gap: 8px;
+  align-items: center;
   padding: 0 16px;
 }
 
-body[data-page="configurator"] .configurator-review-button,
-body[data-page="configurator"] .configurator-save-button,
-body[data-page="configurator"] .configurator-quote-button,
-body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+body[data-page="configurator"] :is(
+  .configurator-review-button,
+  .configurator-save-button,
+  .configurator-quote-button
+) {
   display: inline-flex;
   min-width: 116px;
   height: 48px;
   min-height: 48px;
-  border-color: rgba(255, 253, 249, 0.24);
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 253, 249, 0.24);
+  border-radius: 8px;
   background: transparent;
+  padding: 0 13px;
   color: #fffdf9;
 }
 
@@ -6791,46 +4755,14 @@ body[data-page="configurator"] .configurator-save-button {
   color: #e3b97f;
 }
 
-body[data-page="configurator"] .configurator-quote-button,
-body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
+body[data-page="configurator"] .configurator-quote-button {
   min-width: 132px;
   border-color: var(--jq-accent);
   background: var(--jq-accent);
   color: #fff;
 }
 
-@media (max-width: 1279px) {
-  body[data-page="configurator"] .configurator-experience {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: clamp(430px, 58svh, 620px) 84px auto 84px;
-  }
-
-  body[data-page="configurator"] .configurator-model {
-    grid-column: 1;
-    grid-row: 1;
-  }
-
-  body[data-page="configurator"] .configurator-step-rail {
-    grid-column: 1;
-    grid-row: 2;
-  }
-
-  body[data-page="configurator"] .configurator-control-experience {
-    width: calc(100% - 32px);
-    grid-column: 1;
-    grid-row: 3;
-    margin: 0 16px;
-  }
-
-  body[data-page="configurator"] .configurator-estimate-bar,
-  body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
-    position: sticky;
-    grid-column: 1;
-    grid-row: 4;
-  }
-}
-
-@media (max-width: 1100px) {
+@media (max-width: 1180px) {
   body[data-page="configurator"] .configurator-estimate-bar .studio-trust-row {
     display: none;
   }
@@ -6841,158 +4773,2761 @@ body[data-page="configurator"] .configurator-experience.is-guided-mode .configur
   }
 }
 
-@media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
-  /* A later desktop refinement fixes the dock width at 72px. Re-establish
-     the intended tablet row so its two button groups cannot flex-shrink and
-     stack their 60px controls on top of one another. */
-  body[data-page="configurator"] .preview-control-dock {
-    top: auto;
-    right: 14px;
-    bottom: 18px;
-    left: 14px;
-    display: flex;
-    width: auto;
-    align-items: end;
-    justify-content: center;
-    gap: 8px;
-    transform: none;
-  }
-
-  body[data-page="configurator"] .preview-tools,
-  body[data-page="configurator"] .configurator-model .view-controls {
-    display: flex;
-    width: max-content;
+/* Tablet: the preview leads and the same inspector becomes the next drawer. */
+@media (max-width: 900px) {
+  html,
+  body[data-page="configurator"] {
     min-width: 0;
-    flex: 0 0 auto;
+    overflow-x: hidden;
   }
-}
 
-@media (min-width: 768px) and (max-width: 1279px) and (orientation: landscape) {
+  body[data-page="configurator"] main,
+  body[data-page="configurator"] .builder-hero,
+  body[data-page="configurator"] .builder-page,
+  body[data-page="configurator"] .builder-hero > .container,
+  body[data-page="configurator"] [data-bookcase-builder] {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
   body[data-page="configurator"] .configurator-experience {
-    grid-template-columns: 72px clamp(320px, 34vw, 352px) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) 84px;
+    height: auto;
+    min-height: calc(100dvh - 76px);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: clamp(420px, 56svh, 620px) auto 84px;
+    overflow: visible;
   }
 
-  body[data-page="configurator"] .configurator-step-rail {
+  body[data-page="configurator"] .configurator-model {
+    height: 100%;
+    min-height: 420px;
     grid-column: 1;
     grid-row: 1;
   }
 
   body[data-page="configurator"] .configurator-control-experience {
-    width: 100%;
-    height: 100%;
-    grid-column: 2;
-    grid-row: 1;
-    border-radius: 0;
-    margin: 0;
+    width: calc(100% - 32px);
+    height: auto;
+    max-height: none;
+    grid-column: 1;
+    grid-row: 2;
+    overflow: visible;
+    border: 1px solid var(--jq-border);
+    border-radius: 14px;
+    margin: -14px 16px 16px;
+    box-shadow: var(--jq-shadow);
   }
 
-  body[data-page="configurator"] .configurator-model {
-    grid-column: 3;
-    grid-row: 1;
+  body[data-page="configurator"] .configurator-inspector-heading {
+    border-radius: 14px 14px 0 0;
   }
 
   body[data-page="configurator"] .configurator-estimate-bar,
   body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    position: sticky;
+    bottom: 0;
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  body[data-page="configurator"] .configurator-context-editor {
+    width: clamp(320px, 44vw, 380px);
   }
 }
 
+/* Phone: the model remains selectable; a selection opens one bottom sheet. */
 @media (max-width: 767px) {
+  body[data-page="configurator"] {
+    --mobile-configurator-header-height: 52px;
+  }
+
+  body[data-page="configurator"] [data-site-header],
+  body[data-page="configurator"] .site-header,
+  body[data-page="configurator"] .navbar {
+    height: var(--mobile-configurator-header-height);
+    min-height: var(--mobile-configurator-header-height);
+  }
+
   body[data-page="configurator"] .configurator-experience {
-    grid-template-rows: clamp(350px, 50svh, 420px) 74px auto 68px;
+    width: 100%;
+    min-height: calc(100dvh - var(--mobile-configurator-header-height));
+    grid-template-rows: clamp(350px, 52svh, 430px) auto 72px;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    min-height: 350px;
+  }
+
+  body[data-page="configurator"] .configurator-model .preview-heading {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+  }
+
+  body[data-page="configurator"] .configurator-model .preview-heading small {
+    display: none;
   }
 
   body[data-page="configurator"] .configurator-control-experience {
     width: 100%;
-    margin: 0;
+    border-right: 0;
+    border-left: 0;
+    border-radius: 14px 14px 0 0;
+    margin: -14px 0 0;
   }
 
-  body[data-page="configurator"] .configurator-experience-toolbar {
-    top: 10px;
-    width: 238px;
+  body[data-page="configurator"] .configurator-inspector-heading {
+    min-height: 100px;
+    padding: 14px;
   }
 
-  body[data-page="configurator"] .preview-heading {
-    top: 62px;
-    right: 10px;
-    left: 10px;
-    justify-content: end;
+  body[data-page="configurator"] .unified-inspector {
+    padding: 12px 10px 20px;
   }
 
-  body[data-page="configurator"] .preview-heading > div:first-child {
-    display: none;
+  body[data-page="configurator"] .unified-inspector .configurator-category > h3 > button {
+    min-height: 56px;
   }
 
-  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch {
-    right: 10px;
-    bottom: 70px;
-    width: 154px;
-    gap: 0;
-    border: 0;
-    background: transparent;
-    padding: 0;
-    box-shadow: none;
-    backdrop-filter: none;
+  body[data-page="configurator"] .unified-inspector :is(
+    button,
+    select,
+    summary,
+    input:not([type="radio"]):not([type="checkbox"])
+  ),
+  body[data-page="configurator"] .configurator-context-editor :is(
+    button,
+    select,
+    summary,
+    input:not([type="radio"]):not([type="checkbox"])
+  ) {
+    min-height: 44px;
   }
 
-  body[data-page="configurator"] .cabinet-ar-launch-heading,
-  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch p,
-  body[data-page="configurator"] .configurator-model > .cabinet-ar-launch .cabinet-ar-launch-help {
+  body[data-page="configurator"] .configurator-context-editor {
+    position: fixed;
+    z-index: 40;
+    inset: auto 0 0 !important;
+    width: 100%;
+    max-width: 100%;
+    max-height: min(72dvh, 620px);
+    border-width: 1px 0 0;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -20px 60px rgba(37, 28, 19, 0.28);
+    animation: configurator-context-sheet-in 180ms ease-out;
+  }
+
+  body[data-page="configurator"] .configurator-context-heading {
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    background: rgba(255, 253, 249, 0.98);
+    padding: 14px;
+  }
+
+  body[data-page="configurator"] .configurator-context-body {
+    width: 100%;
+    max-width: 100%;
+    padding: 12px 14px 20px;
+  }
+
+  body[data-page="configurator"] .configurator-context-leader,
+  body[data-page="configurator"] .configurator-hover-label {
     display: none;
   }
 
   body[data-page="configurator"] .configurator-estimate-bar,
   body[data-page="configurator"] .configurator-experience > .configurator-estimate-bar {
     position: static;
-    height: 68px;
-    min-height: 68px;
-    grid-template-columns: 112px minmax(0, 1fr);
+    height: 72px;
+    min-height: 72px;
+    grid-template-columns: clamp(108px, 31vw, 126px) minmax(0, 1fr);
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   body[data-page="configurator"] .configurator-experience .configurator-price-block {
+    min-width: 0;
     padding: 0 6px 0 12px;
   }
 
-  body[data-page="configurator"] .configurator-experience .configurator-quote-note {
+  body[data-page="configurator"] .configurator-experience .price-kicker {
+    font-size: 7px;
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-price-block strong {
+    font-size: clamp(20px, 5.8vw, 23px);
+  }
+
+  body[data-page="configurator"] .configurator-experience .configurator-quote-note,
+  body[data-page="configurator"] .configurator-estimate-bar .studio-trust-row {
     display: none;
   }
 
   body[data-page="configurator"] .configurator-experience .configurator-actions {
-    gap: 5px;
-    padding: 0 6px;
-  }
-
-  body[data-page="configurator"] .configurator-review-button,
-  body[data-page="configurator"] .configurator-save-button,
-  body[data-page="configurator"] .configurator-quote-button,
-  body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
-    display: inline-flex;
+    display: grid;
     min-width: 0;
-    height: 46px;
+    grid-template-columns: 0.7fr 0.75fr 1.25fr;
+    gap: 5px;
+    padding: 0 7px 0 2px;
+  }
+
+  body[data-page="configurator"] :is(
+    .configurator-review-button,
+    .configurator-save-button,
+    .configurator-quote-button
+  ) {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 48px;
+    min-height: 48px;
+    padding: 4px;
+    font-size: 9px;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  body[data-page="configurator"] .configurator-save-button span {
+    display: inline;
+    font-size: 8px;
+  }
+}
+
+@keyframes configurator-context-sheet-in {
+  from { transform: translateY(22px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Short landscape devices use the same bottom-sheet contract. */
+@media (min-width: 768px) and (max-width: 950px) and (orientation: landscape) and (max-height: 500px) {
+  body[data-page="configurator"] .configurator-experience {
+    grid-template-rows: 260px auto 68px;
+  }
+
+  body[data-page="configurator"] .configurator-model {
+    height: 260px;
+    min-height: 260px;
+  }
+
+  body[data-page="configurator"] .configurator-context-editor {
+    position: fixed;
+    z-index: 40;
+    inset: auto 0 0 !important;
+    width: 100%;
+    max-width: 100%;
+    max-height: 76dvh;
+    border-width: 1px 0 0;
+    border-radius: 18px 18px 0 0;
+  }
+
+  body[data-page="configurator"] .configurator-context-leader,
+  body[data-page="configurator"] .configurator-hover-label {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-page="configurator"] .configurator-context-editor,
+  body[data-page="configurator"] .unified-inspector .configurator-category {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Reference CAD workspace -------------------------------------------------
+ * The accepted-design surface is deliberately scoped so the studio entry,
+ * review dialog, AR dialog, and the reusable configuration controls retain
+ * their independent presentation contracts. */
+
+body[data-page="configurator"] .site-header,
+body[data-page="configurator"] .site-header.is-scrolled {
+  border-bottom: 1px solid #dfddd7;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 4px 18px rgba(45, 41, 35, 0.06);
+  backdrop-filter: blur(14px) saturate(108%);
+}
+
+body[data-page="configurator"] .site-header :is(.brand, .brand-main, .nav-link, .header-save-button) {
+  color: #242522;
+}
+
+body[data-page="configurator"] .site-header .brand-mark {
+  border-color: #26231f;
+  background: #26231f;
+  box-shadow: none;
+  color: #fff;
+}
+
+body[data-page="configurator"] .site-header .brand-sub {
+  border-top-color: #a8783f;
+  color: #5e5d58;
+}
+
+body[data-page="configurator"] .site-header .header-save-button [data-icon],
+body[data-page="configurator"] .site-header .header-save-button svg {
+  color: #242522;
+  opacity: 0.82;
+}
+
+body[data-page="configurator"] .reference-workspace {
+  --workspace-rail-width: 247px;
+  --workspace-properties-width: 329px;
+  --workspace-organizer-height: 164px;
+  --workspace-footer-height: 88px;
+  --workspace-bg: #f7f5f1;
+  --workspace-surface: #fff;
+  --workspace-surface-muted: #f8f8f6;
+  --workspace-line: #d9d8d3;
+  --workspace-line-strong: #c7c5bd;
+  --workspace-ink: #242522;
+  --workspace-muted: #74766f;
+  --workspace-soft-ink: #555851;
+  --workspace-accent: #b97f3c;
+  --workspace-accent-dark: #8f5e28;
+  --workspace-accent-soft: #f7ead8;
+  --workspace-danger: #a94a3c;
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  grid-template-columns: var(--workspace-rail-width) minmax(0, 1fr) var(--workspace-properties-width);
+  grid-template-rows: minmax(0, 1fr) var(--workspace-organizer-height) var(--workspace-footer-height);
+  overflow: hidden;
+  contain: none;
+  background: var(--workspace-bg);
+  color: var(--workspace-ink);
+  font-family: var(--sans);
+}
+
+body[data-page="configurator"] .reference-workspace :is(button, input, select, summary) {
+  font: inherit;
+}
+
+body[data-page="configurator"] .reference-workspace :is(button, summary) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Seven directly reachable, non-gating stages. */
+body[data-page="configurator"] .reference-workspace .workspace-stage-rail {
+  position: relative;
+  z-index: 8;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  grid-column: 1;
+  grid-row: 1 / 3;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  border-right: 1px solid var(--workspace-line);
+  background: var(--workspace-surface);
+  padding: 12px 10px 14px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-list {
+  display: grid;
+  flex: 0 1 674px;
+  min-height: 0;
+  grid-template-rows: repeat(7, minmax(64px, 1fr));
+  gap: 4px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 64px;
+  grid-template-columns: 40px minmax(0, 1fr) 24px;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  padding: 10px 10px 10px 12px;
+  color: var(--workspace-soft-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: -11px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: transparent;
+  content: "";
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage:hover {
+  border-color: #e4dfd6;
+  background: #faf8f4;
+  color: var(--workspace-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage.is-active {
+  border-color: #e9d6bc;
+  background: var(--workspace-accent-soft);
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage.is-active::before {
+  background: var(--workspace-accent);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #676961;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage.is-active .workspace-stage-icon {
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-icon svg {
+  width: 25px;
+  height: 25px;
+  stroke-width: 1.55;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-copy strong,
+body[data-page="configurator"] .reference-workspace .workspace-stage-copy small {
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-copy strong {
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-copy small {
+  color: var(--workspace-muted);
+  display: -webkit-box;
+  font-size: 10px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-state {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  justify-self: end;
+  border: 1px solid #d7d6d0;
+  border-radius: 50%;
+  color: #898b84;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-state svg {
+  width: 12px;
+  height: 12px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage.is-active .workspace-stage-state,
+body[data-page="configurator"] .reference-workspace .workspace-stage.is-complete .workspace-stage-state {
+  border-color: var(--workspace-accent);
+  background: var(--workspace-accent);
+  color: #fff;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-ar-card {
+  display: grid;
+  min-height: 62px;
+  grid-template-columns: 36px minmax(0, 1fr) 18px;
+  gap: 9px;
+  align-items: center;
+  margin-top: 0;
+  margin-bottom: auto;
+  border: 1px solid #ded9d1;
+  border-radius: 10px;
+  background: #fff;
+  padding: 9px 10px;
+  color: var(--workspace-ink);
+  text-align: left;
+  box-shadow: 0 5px 16px rgba(57, 49, 39, 0.06);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-ar-mark {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--workspace-accent-dark);
+  border-radius: 8px;
+  background: var(--workspace-accent-dark);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-ar-card > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-ar-card strong,
+body[data-page="configurator"] .reference-workspace .workspace-ar-card small {
+  display: block;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-ar-card strong {
+  font-size: 11px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-ar-card small {
+  color: var(--workspace-muted);
+  font-size: 9px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-ar-card > i {
+  display: grid;
+  place-items: center;
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-ar-card > i svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Persistent model and global tools. */
+body[data-page="configurator"] .reference-workspace .workspace-model {
+  position: relative;
+  display: grid;
+  width: auto;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  grid-column: 2;
+  grid-row: 1;
+  grid-template-rows: 70px minmax(0, 1fr);
+  align-self: stretch;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: #f7f5f1;
+  box-shadow: none;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-model-toolbar {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  min-width: 0;
+  min-height: 70px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 0;
+  background: #f8f6f2;
+  padding: 14px 28px;
+  scrollbar-width: thin;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-toolbar-group {
+  display: flex;
+  min-width: max-content;
+  align-items: center;
+  gap: 4px;
+  min-height: 42px;
+  border: 1px solid #e2ded7;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 3px 5px;
+  box-shadow: 0 3px 12px rgba(63, 54, 43, 0.05);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-toolbar-group + .workspace-toolbar-group {
+  border-left: 1px solid #e2ded7;
+  padding-left: 5px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-toolbar-group > span {
+  margin-right: 2px;
+  color: var(--workspace-muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-toolbar-group button {
+  display: inline-flex;
+  min-width: 36px;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0 9px;
+  color: #50534d;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-toolbar-group button:hover:not(:disabled) {
+  border-color: var(--workspace-line);
+  background: #f7f6f3;
+  color: var(--workspace-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-toolbar-group button[aria-pressed="true"] {
+  border-color: #d9b98f;
+  background: var(--workspace-accent-soft);
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-display-tools [data-toggle-dimensions][aria-pressed="true"] {
+  border-color: var(--workspace-accent-dark);
+  background: var(--workspace-accent-dark);
+  color: #fff;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-toolbar-group button:disabled {
+  color: #b6b7b2;
+  cursor: not-allowed;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-toolbar-group button svg {
+  width: 15px;
+  height: 15px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-toolbar-group button b {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-history-tools .is-redo {
+  margin-left: -4px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-viewer-room {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: radial-gradient(circle at 50% 30%, #fff 0%, #f8f6f2 62%, #efebe4 100%);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-viewer-room::after {
+  position: absolute;
+  z-index: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 18%;
+  border-top: 1px solid rgba(108, 103, 93, 0.13);
+  background: linear-gradient(180deg, rgba(211, 206, 196, 0.5), rgba(230, 226, 218, 0.74));
+  content: "";
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-viewer-room:has(> .viewer-stage[data-wall-visible="false"]) {
+  background: #faf9f6;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-viewer-room:has(> .viewer-stage[data-wall-visible="false"])::after {
+  opacity: 0;
+}
+
+@media (min-width: 1201px) {
+  body[data-page="configurator"] .reference-workspace .workspace-model {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-model-toolbar {
+    position: absolute;
+    top: 22px;
+    right: 28px;
+    left: 28px;
+    width: auto;
+    min-height: 42px;
+    height: 42px;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-viewer-room {
+    grid-row: 1;
+  }
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-viewer-room > .viewer-stage {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body[data-page="configurator"] .reference-workspace .configurator-hover-label {
+  z-index: 8;
+}
+
+/* Fixed, stage- and selection-aware Properties inspector. */
+body[data-page="configurator"] .reference-workspace .workspace-properties {
+  position: relative;
+  z-index: 7;
+  min-width: 0;
+  min-height: 0;
+  grid-column: 3;
+  grid-row: 1;
+  width: auto;
+  height: calc(100% - 22px);
+  max-height: 678px;
+  align-self: start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 22px 20px 0 0;
+  border: 1px solid var(--workspace-line);
+  border-radius: 12px;
+  background: var(--workspace-surface);
+  color: var(--workspace-ink);
+  scrollbar-gutter: stable;
+  box-shadow: 0 12px 30px rgba(60, 50, 38, 0.08);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-content {
+  min-width: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-heading {
+  position: sticky;
+  z-index: 5;
+  top: 0;
+  display: flex;
+  min-height: 64px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--workspace-line);
+  background: rgba(255, 255, 255, 0.97);
+  padding: 12px 15px 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-heading > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-heading h2 {
+  overflow: hidden;
+  margin: 0;
+  color: var(--workspace-ink);
+  font-family: var(--sans);
+  font-size: 17px;
+  font-weight: 680;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-heading p {
+  margin: 0;
+  color: var(--workspace-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-heading > button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border: 1px solid var(--workspace-line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--workspace-muted);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-inspector-tabs {
+  position: sticky;
+  z-index: 4;
+  top: 64px;
+  display: grid;
+  min-width: 0;
+  grid-auto-columns: minmax(54px, 1fr);
+  grid-auto-flow: column;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid var(--workspace-line);
+  background: rgba(255, 255, 255, 0.98);
+  scrollbar-width: thin;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-inspector-tabs button {
+  position: relative;
+  display: grid;
+  min-width: 54px;
+  min-height: 68px;
+  place-items: center;
+  align-content: center;
+  gap: 4px;
+  border: 0;
+  border-right: 1px solid #ecebe7;
+  background: transparent;
+  padding: 6px 4px;
+  color: var(--workspace-muted);
+  cursor: pointer;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-inspector-tabs button::after {
+  position: absolute;
+  right: 7px;
+  bottom: 0;
+  left: 7px;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+  background: transparent;
+  content: "";
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-inspector-tabs button[aria-selected="true"] {
+  background: #fffaf4;
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-inspector-tabs button[aria-selected="true"]::after {
+  background: var(--workspace-accent);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-inspector-tabs button span {
+  display: grid;
+  place-items: center;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-inspector-tabs button svg {
+  width: 19px;
+  height: 19px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-inspector-tabs button small {
+  max-width: 62px;
+  overflow: hidden;
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel {
+  display: grid;
+  min-width: 0;
+  gap: 13px;
+  padding: 14px 14px 20px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel :is(h3, legend) {
+  color: var(--workspace-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel :is(.control-section, .choice-field, fieldset) {
+  min-width: 0;
+  border-color: var(--workspace-line);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .control-section {
+  border-top: 1px solid var(--workspace-line);
+  padding: 14px 0 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .control-section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel :is(.control-section h3, .choice-field legend, fieldset > legend) {
+  margin-bottom: 8px;
+  color: var(--workspace-soft-ink);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel :is(.control-helper, .workspace-property-note, .workspace-front-properties header p) {
+  color: var(--workspace-muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .inline-validation-message {
+  color: #a33f33;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .segmented-options {
+  gap: 5px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .segmented-options label > span,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .option-card > span {
+  border-color: var(--workspace-line);
+  background: #fff;
+  color: var(--workspace-soft-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .segmented-options input:checked + span,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .option-card input:checked + span {
+  border-color: #cf9c60;
+  background: var(--workspace-accent-soft);
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .option-card :is(strong, small),
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .layout-card-copy :is(strong, small) {
+  color: inherit;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel :is(input[type="number"], select) {
+  min-height: 40px;
+  border: 1px solid var(--workspace-line);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--workspace-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel input[type="range"] {
+  accent-color: var(--workspace-accent);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .range-value {
+  border-color: var(--workspace-line);
+  background: #fff;
+  color: var(--workspace-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .layout-card {
+  min-height: 148px;
+  border-color: var(--workspace-line);
+  background: #fff;
+  color: var(--workspace-soft-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .layout-card.is-active {
+  border-color: #c99556;
+  background: var(--workspace-accent-soft);
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-general,
+body[data-page="configurator"] .reference-workspace .workspace-front-properties,
+body[data-page="configurator"] .reference-workspace .workspace-preview-stage {
+  display: grid;
+  min-width: 0;
+  gap: 13px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-types {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-type-card {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 82px;
+  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 2px 8px;
+  align-content: center;
+  border: 1px solid var(--workspace-line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 8px 9px;
+  color: var(--workspace-soft-ink);
+  cursor: pointer;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-type-card:has(input:checked) {
+  border-color: #c99556;
+  background: var(--workspace-accent-soft);
+  color: var(--workspace-accent-dark);
+  box-shadow: inset 0 0 0 1px rgba(185, 127, 60, 0.14);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-type-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-type-card > :is(strong, small) {
+  display: block;
+  min-width: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-type-card > span {
+  grid-row: 1 / 3;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-type-card > strong {
+  align-self: end;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-type-card > small {
+  align-self: start;
+  overflow: hidden;
+  color: var(--workspace-muted);
+  font-size: 8px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-type-card .workspace-section-thumbnail {
+  width: 38px;
+  height: 58px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-type-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  width: 17px;
+  height: 17px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--workspace-accent-dark);
+  color: #fff;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-type-check svg {
+  width: 10px;
+  height: 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-property-note {
+  margin: -6px 0 0;
+  border-left: 2px solid #d6aa76;
+  background: #fbf5ec;
+  padding: 8px 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-property-block {
+  border-top: 1px solid var(--workspace-line);
+  padding-top: 14px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-property-block.section-width-editor {
+  margin: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 13px 0 0;
+  box-shadow: none;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-property-block h3 {
+  margin: 0 0 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-global-dimensions {
+  display: grid;
+  min-width: 0;
+  gap: 9px;
+  border-top: 1px solid var(--workspace-line);
+  padding-top: 14px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-global-dimensions > h3,
+body[data-page="configurator"] .reference-workspace .workspace-global-dimensions > p {
+  margin: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-global-dimensions > h3 {
+  color: var(--workspace-ink);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-global-dimensions > p {
+  margin-top: -7px;
+  color: var(--workspace-muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-number-stepper {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px 24px;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--workspace-line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-number-stepper button {
+  display: grid;
+  min-width: 40px;
+  min-height: 42px;
+  place-items: center;
+  border: 0;
+  background: #f8f8f6;
+  color: var(--workspace-soft-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-number-stepper button:first-child {
+  border-right: 1px solid var(--workspace-line);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-number-stepper button:nth-of-type(2) {
+  border-left: 1px solid var(--workspace-line);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-number-stepper input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  text-align: center;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-number-stepper > span {
+  color: var(--workspace-muted);
+  font-size: 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-dimension-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--workspace-line);
+  border-radius: 8px;
+  background: var(--workspace-surface-muted);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-dimension-summary > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 4px;
+  align-items: baseline;
+  padding: 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-dimension-summary > div + div {
+  border-left: 1px solid var(--workspace-line);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-dimension-summary span,
+body[data-page="configurator"] .reference-workspace .workspace-dimension-summary small {
+  color: var(--workspace-muted);
+  font-size: 9px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-dimension-summary strong {
+  color: var(--workspace-ink);
+  font-size: 13px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-actions button,
+body[data-page="configurator"] .reference-workspace .workspace-related-stage,
+body[data-page="configurator"] .reference-workspace .workspace-review-launch {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--workspace-line-strong);
+  border-radius: 7px;
+  background: #fff;
+  padding: 8px 10px;
+  color: var(--workspace-soft-ink);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-actions button:disabled {
+  border-style: dashed;
+  background: #faf9f7;
+  color: #a2a29c;
+  opacity: 1;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-action-reason {
+  margin: -6px 0 0;
+  border-radius: 6px;
+  background: #f8f5f0;
+  padding: 7px 9px;
+  color: var(--workspace-muted);
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-action-reason strong {
+  color: var(--workspace-soft-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-actions button svg,
+body[data-page="configurator"] .reference-workspace .workspace-related-stage svg {
+  width: 14px;
+  height: 14px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-actions .is-destructive {
+  border-color: #e4c7c2;
+  color: var(--workspace-danger);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-related-stage,
+body[data-page="configurator"] .reference-workspace .workspace-review-launch {
+  width: 100%;
+  border-color: #c48e4d;
+  background: var(--workspace-accent);
+  color: #fff;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-reset-link {
+  min-height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--workspace-muted);
+  font-size: 10px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-foundation-ideas,
+body[data-page="configurator"] .reference-workspace .workspace-construction-details,
+body[data-page="configurator"] .reference-workspace .layout-ideas {
+  border-top: 1px solid var(--workspace-line);
+  padding-top: 13px;
+}
+
+body[data-page="configurator"] .reference-workspace :is(.workspace-foundation-ideas, .workspace-construction-details, .layout-ideas) > summary {
+  min-height: 40px;
+  color: var(--workspace-accent-dark);
+  font-size: 10px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-construction-details[open] > summary {
+  margin-bottom: 11px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-front-properties > header h3 {
+  margin: 0 0 3px;
+  font-size: 13px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-front-properties > header p {
+  margin: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-readonly-property {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--workspace-line);
+  border-radius: 8px;
+  background: var(--workspace-surface-muted);
+  padding: 12px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-readonly-property > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-readonly-property h3,
+body[data-page="configurator"] .reference-workspace .workspace-readonly-property p {
+  margin: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-readonly-property h3 {
+  font-size: 11px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-readonly-property p {
+  margin-top: 3px;
+  color: var(--workspace-muted);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-readonly-property > strong {
+  color: #3f7e57;
+  font-size: 9px;
+}
+
+/* Persistent section organizer and exact-width status. */
+body[data-page="configurator"] .reference-workspace .workspace-section-organizer {
+  position: relative;
+  z-index: 6;
+  min-width: 0;
+  min-height: 0;
+  grid-column: 2;
+  grid-row: 2;
+  overflow: hidden;
+  margin: 0 22px 12px 46px;
+  border: 1px solid var(--workspace-line);
+  border-radius: 12px;
+  background: var(--workspace-surface);
+  box-shadow: 0 10px 26px rgba(62, 51, 38, 0.07);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-organizer > div {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-columns: 146px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-organizer-summary {
+  display: grid;
+  align-items: center;
+  border-right: 1px solid #ecebe7;
+  border-bottom: 0;
+  padding: 14px 18px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-organizer-summary > div {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-organizer-summary strong {
+  color: var(--workspace-accent-dark);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-organizer-summary small {
+  color: var(--workspace-muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-cards {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  align-items: stretch;
+  gap: 10px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 14px 12px;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-add-section,
+body[data-page="configurator"] .reference-workspace .workspace-section-card {
+  scroll-snap-align: start;
+  border: 1px solid var(--workspace-line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-add-section {
+  flex: 0 0 88px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card {
+  flex: 0 0 146px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-add-section {
+  display: grid;
+  min-height: 104px;
+  place-items: center;
+  align-content: center;
+  gap: 3px;
+  border-style: dashed;
+  color: var(--workspace-muted);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-add-section:hover:not(:disabled) {
+  border-color: #c48e4d;
+  background: #fffaf4;
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-add-section span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-add-section span svg {
+  width: 12px;
+  height: 12px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-add-section strong {
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.15;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-add-section:disabled {
+  opacity: 0.48;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card {
+  position: relative;
+  display: block;
+  min-height: 104px;
+  overflow: visible;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card.is-selected {
+  border-color: #c48e4d;
+  background: var(--workspace-accent-soft);
+  box-shadow: inset 0 0 0 1px rgba(185, 127, 60, 0.12);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card-main {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  border: 0;
+  border-radius: 8px 0 0 8px;
+  background: transparent;
+  width: 100%;
+  height: 100%;
+  padding: 8px 32px 8px 8px;
+  color: var(--workspace-soft-ink);
+  text-align: left;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card-main > span:not(.workspace-section-thumbnail) {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card-main strong,
+body[data-page="configurator"] .reference-workspace .workspace-section-card-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card-main strong {
+  font-size: 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card-main small {
+  color: var(--workspace-muted);
+  font-size: 9px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-selected-check {
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--workspace-accent);
+  color: #fff;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-selected-check svg {
+  width: 10px;
+  height: 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-thumbnail {
+  position: relative;
+  display: block;
+  width: 44px;
+  height: 72px;
+  overflow: hidden;
+  border: 2px solid #aaa69c;
+  background: #f4f1eb;
+  box-shadow: inset 0 0 0 2px #fff;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card.is-selected .workspace-section-thumbnail,
+body[data-page="configurator"] .reference-workspace .workspace-section-type-card:has(input:checked) .workspace-section-thumbnail {
+  border-color: var(--workspace-accent);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-thumbnail-shelves {
+  position: absolute;
+  inset: 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-thumbnail-shelves i {
+  display: block;
+  height: 2px;
+  background: #aea99f;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-thumbnail-fronts {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  left: 3px;
+  display: grid;
+  height: 22px;
+  gap: 1px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-thumbnail-fronts i {
+  display: block;
+  min-height: 4px;
+  border: 1px solid #b1a99e;
+  background: #e7e1d7;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-thumbnail-fronts .is-door {
+  height: 22px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-thumbnail-tall-door {
+  position: absolute;
+  inset: 4px;
+  border: 1px solid #aaa69c;
+  background: #e8e2d7;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-menu {
+  position: absolute;
+  z-index: 3;
+  top: 4px;
+  right: 3px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-menu > summary {
+  display: grid;
+  width: 30px;
+  height: 32px;
+  min-height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  color: var(--workspace-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-menu > summary svg {
+  width: 16px;
+  height: 16px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-menu > div {
+  position: absolute;
+  z-index: 12;
+  right: 2px;
+  bottom: calc(100% + 4px);
+  display: grid;
+  width: 96px;
+  overflow: hidden;
+  border: 1px solid var(--workspace-line);
+  border-radius: 7px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(36, 37, 34, 0.16);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-menu > div button {
+  min-height: 36px;
+  border: 0;
+  border-bottom: 1px solid #ecebe7;
+  background: #fff;
+  color: var(--workspace-soft-ink);
+  font-size: 9px;
+  text-align: left;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-menu > div button:last-child {
+  border-bottom: 0;
+  color: var(--workspace-danger);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-total-width {
+  position: relative;
+  z-index: 6;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  grid-column: 3;
+  grid-row: 2;
+  place-items: start;
+  border: 0;
+  background: transparent;
+  padding: 32px 0 12px;
+  text-align: center;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-total-width > div {
+  display: grid;
+  width: 176px;
+  min-height: 120px;
+  place-content: center;
+  gap: 1px;
+  border: 1px solid var(--workspace-line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 14px;
+  box-shadow: 0 8px 20px rgba(60, 50, 38, 0.06);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-total-width span {
+  color: var(--workspace-muted);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-total-width strong {
+  color: var(--workspace-ink);
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1.05;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-total-width strong small {
+  color: var(--workspace-muted);
+  font-size: 11px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-total-width p {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: 3px 0 0;
+  color: var(--workspace-muted);
+  font-size: 9px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-total-width p i {
+  display: grid;
+  width: 15px;
+  height: 15px;
+  place-items: center;
+  border-radius: 50%;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-total-width p i svg {
+  width: 10px;
+  height: 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-total-width p .is-valid {
+  background: #e1f0e6;
+  color: #39744e;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-total-width p .is-invalid {
+  background: #f7dfdc;
+  color: #9b4035;
+}
+
+/* Light, site-like estimate footer. */
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar {
+  position: relative;
+  z-index: 20;
+  display: grid;
+  width: 100%;
+  height: var(--workspace-footer-height);
+  min-height: var(--workspace-footer-height);
+  grid-column: 1 / -1;
+  grid-row: 3;
+  grid-template-columns: 315px minmax(390px, 1fr) auto;
+  border-top: 1px solid var(--workspace-line-strong);
+  background: #fbfbfa;
+  color: var(--workspace-ink);
+  box-shadow: 0 -5px 18px rgba(51, 49, 43, 0.05);
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-price-block {
+  display: grid;
+  gap: 0;
+  align-content: center;
+  border-right: 1px solid var(--workspace-line);
+  padding: 0 36px;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-price-block::before {
+  display: none;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .price-kicker {
+  margin: 0;
+  color: var(--workspace-muted);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-price-block strong {
+  color: var(--workspace-ink);
+  font-size: 23px;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-quote-note {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  max-width: 250px;
+  color: var(--workspace-muted);
+  font-size: 8px;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .studio-trust-row {
+  display: grid;
+  min-width: 0;
+  height: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .studio-trust-item {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  border-left: 0;
+  padding: 0 12px;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .studio-trust-item + .studio-trust-item {
+  border-left: 1px solid var(--workspace-line);
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .studio-trust-icon,
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .studio-trust-icon svg {
+  color: var(--workspace-accent);
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .studio-trust-item strong {
+  color: var(--workspace-ink);
+  font-size: 9px;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .studio-trust-item small {
+  color: var(--workspace-muted);
+  font-size: 8px;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-actions button {
+  display: inline-flex;
+  min-width: 124px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 7px;
+  padding: 0 14px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-save-button {
+  border: 1px solid var(--workspace-line-strong);
+  background: #fff;
+  color: var(--workspace-ink);
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-save-button svg {
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-quote-button {
+  border: 1px solid #a86e2e;
+  background: linear-gradient(180deg, #c58d4b, #ac7332);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(128, 82, 30, 0.14);
+}
+
+/* The accepted workspace has one fixed Properties surface. Legacy floating
+ * quick editors, docks, and duplicated AR launchers must not compete with it. */
+body[data-page="configurator"] .reference-workspace :is(
+  .configurator-control-experience,
+  .configurator-context-editor,
+  .configurator-context-leader,
+  .preview-control-dock,
+  .preview-heading,
+  .configurator-model > .cabinet-ar-launch,
+  .direct-hardware-edit__helper,
+  .direct-hardware-edit__loading,
+  .direct-hardware-edit__fallback,
+  .direct-hardware-edit__hover-label,
+  .direct-hardware-edit__leader,
+  .direct-hardware-edit__quick-card,
+  .direct-hardware-edit__components,
+  .direct-hardware-edit__scale-reference,
+  .direct-hardware-edit__measurement
+) {
+  display: none !important;
+}
+
+body[data-page="configurator"] .reference-workspace :is(
+  button,
+  input,
+  select,
+  summary,
+  [tabindex]
+):focus-visible {
+  outline: 3px solid rgba(143, 94, 40, 0.42);
+  outline-offset: 2px;
+}
+
+/* Canonical control components inherit their physical behavior from the
+ * registry; inside Properties they adopt the light reference palette. */
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .control-section > h2,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .control-section > header > h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 11px;
+  color: var(--workspace-ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .control-heading-icon,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .control-heading-icon svg {
+  display: block;
+  width: 17px;
+  height: 17px;
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .control-section > header > p,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .storage-control-group > header > p,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .control-scope-note {
+  margin: -5px 0 10px;
+  color: var(--workspace-muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .range-control {
+  display: grid;
+  min-width: 0;
+  gap: 7px;
+  border-top: 1px solid #ecebe7;
+  padding: 11px 0 4px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .range-control:first-of-type {
+  border-top: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .range-label {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .range-label > label,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .stepper-control > span,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .toggle-row > label:first-child {
+  color: var(--workspace-soft-ink);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .range-value {
+  display: grid;
+  width: 70px;
+  min-height: 36px;
+  grid-template-columns: minmax(0, 1fr) 20px;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--workspace-line);
+  border-radius: 6px;
+  background: #fff;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .range-value input {
+  width: 100%;
+  min-width: 0;
+  min-height: 34px;
+  border: 0;
+  padding: 0 3px 0 7px;
+  text-align: right;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .range-value span {
+  color: var(--workspace-muted);
+  font-size: 9px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .range-bounds {
+  display: flex;
+  justify-content: space-between;
+  color: var(--workspace-muted);
+  font-size: 8px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .stepper-control {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .stepper {
+  display: grid;
+  grid-template-columns: 38px 48px 38px;
+  overflow: hidden;
+  border: 1px solid var(--workspace-line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .stepper button {
+  display: grid;
+  min-width: 38px;
+  min-height: 40px;
+  place-items: center;
+  border: 0;
+  background: #f8f8f6;
+  color: var(--workspace-soft-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .stepper button:first-child {
+  border-right: 1px solid var(--workspace-line);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .stepper button:last-child {
+  border-left: 1px solid var(--workspace-line);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .stepper input {
+  width: 48px;
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0 2px;
+  text-align: center;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .stepper svg {
+  width: 13px;
+  height: 13px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .storage-control-group {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid var(--workspace-line);
+  padding-top: 15px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .storage-control-group:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .storage-control-group > header h3 {
+  margin: 0 0 4px;
+  color: var(--workspace-ink);
+  font-size: 12px;
+  font-weight: 680;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .storage-control-group > header > p {
+  margin: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .toggle-row,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .drawer-quantity-card {
+  border: 1px solid var(--workspace-line);
+  border-radius: 8px;
+  background: var(--workspace-surface-muted);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .toggle-row {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .drawer-quantity-card {
+  padding: 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .switch {
+  position: relative;
+  display: block;
+  width: 42px;
+  height: 24px;
+  flex: 0 0 42px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .switch input {
+  position: absolute;
+  opacity: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .switch > span {
+  position: absolute;
+  inset: 0;
+  border: 1px solid #c7c7c1;
+  border-radius: 999px;
+  background: #dddcd7;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .switch > span::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(36, 37, 34, 0.24);
+  content: "";
+  transition: transform 140ms ease;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .switch input:checked + span {
+  border-color: var(--workspace-accent);
+  background: var(--workspace-accent);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .switch input:checked + span::after {
+  transform: translateX(18px);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel :is(
+  .style-choice > label,
+  .finish-choice > label,
+  .door-style-card-content,
+  .lighting-card > label,
+  .warmth-choice > label,
+  .service-option-card > span,
+  .hardware-type-choice > span,
+  .hardware-finish-choice > span
+) {
+  border-color: var(--workspace-line);
+  background: #fff;
+  color: var(--workspace-soft-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel :is(
+  .style-choice > input:checked + label,
+  .finish-choice > input:checked + label,
+  .door-style-card > input:checked + .door-style-card-content,
+  .lighting-card > input:checked + label,
+  .warmth-choice > input:checked + label,
+  .service-option-card > input:checked + span,
+  .hardware-type-choice > input:checked + span,
+  .hardware-finish-choice > input:checked + span
+) {
+  border-color: #c99556;
+  background: var(--workspace-accent-soft);
+  color: var(--workspace-accent-dark);
+  box-shadow: inset 0 0 0 1px rgba(185, 127, 60, 0.12);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .style-choice-grid,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .finish-choice-grid,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .lighting-grid,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .warmth-grid,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .door-style-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .door-style-card-content {
+  min-height: 76px;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 7px;
+  padding: 7px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .door-style-illustration {
+  width: 38px;
+  height: 48px;
+  color: #8b877e;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .door-style-copy small,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .warmth-choice small {
+  color: var(--workspace-muted);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .generated-front-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 6px;
+  background: var(--workspace-surface-muted);
+  padding: 7px 9px;
+  color: var(--workspace-muted);
+  font-size: 9px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .storage-section-link > button,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .additional-colors-button {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #c99556;
+  border-radius: 7px;
+  background: #fffaf4;
+  padding: 8px 10px;
+  color: var(--workspace-accent-dark);
+  font-size: 10px;
+  font-weight: 680;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .bm-search {
+  display: grid;
+  gap: 9px;
+  border: 1px solid var(--workspace-line);
+  border-radius: 8px;
+  background: var(--workspace-surface-muted);
+  padding: 11px;
+  color: var(--workspace-soft-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .bm-search[hidden],
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel [hidden] {
+  display: none !important;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .bm-search-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .bm-search-input input {
+  min-width: 0;
+  border-radius: 6px 0 0 6px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .bm-search-input button {
+  display: grid;
+  min-height: 40px;
+  place-items: center;
+  border: 1px solid var(--workspace-line);
+  border-left: 0;
+  border-radius: 0 6px 6px 0;
+  background: #fff;
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel :is(
+  .bm-search-help,
+  .bm-search-status,
+  .bm-preview-disclaimer,
+  .bm-official-link
+) {
+  color: var(--workspace-muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel .bm-selected-color {
+  border-color: #c99556;
+  background: var(--workspace-accent-soft);
+  color: var(--workspace-ink);
+}
+
+/* Tablet: stages become a compact horizontal navigator and Properties
+ * becomes a contained sheet beneath the persistent model. */
+@media (max-width: 1200px) {
+  html {
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  body[data-page="configurator"][data-studio-state="accepted"] {
+    min-width: 0;
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body[data-page="configurator"][data-studio-state="accepted"] main,
+  body[data-page="configurator"][data-studio-state="accepted"] .builder-hero,
+  body[data-page="configurator"][data-studio-state="accepted"] .builder-page,
+  body[data-page="configurator"][data-studio-state="accepted"] .builder-hero > .container,
+  body[data-page="configurator"][data-studio-state="accepted"] [data-bookcase-builder] {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .reference-workspace {
+    --workspace-footer-height: 76px;
+    height: auto;
+    min-height: calc(100dvh - var(--header-height, 72px));
+    grid-template-columns: minmax(0, 1fr) 196px;
+    grid-template-rows: auto clamp(420px, 56dvh, 610px) 126px auto var(--workspace-footer-height);
+    overflow: visible;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage-rail {
+    position: sticky;
+    top: var(--header-height, 72px);
+    display: grid;
+    grid-column: 1 / -1;
+    grid-row: 1;
+    grid-template-columns: minmax(0, 1fr) 176px;
+    gap: 8px;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid var(--workspace-line);
+    padding: 7px 9px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage-list {
+    display: flex;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 5px;
+    scroll-snap-type: x proximity;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage {
+    flex: 0 0 122px;
+    min-height: 50px;
+    grid-template-columns: 28px minmax(0, 1fr) 18px;
+    gap: 6px;
+    scroll-snap-align: start;
+    padding: 5px 6px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage-state {
+    width: 18px;
+    height: 18px;
+    font-size: 8px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-ar-card {
+    min-height: 50px;
+    grid-template-columns: 30px minmax(0, 1fr) 14px;
+    margin: 0;
+    padding: 6px 8px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-ar-mark {
+    width: 28px;
+    height: 28px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-model {
+    height: auto;
+    min-height: 0;
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-section-organizer {
+    grid-column: 1;
+    grid-row: 3;
+    margin: 0 8px 8px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-total-width {
+    grid-column: 2;
+    grid-row: 3;
+    padding: 3px 10px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties {
+    position: relative;
+    width: auto;
+    height: auto;
+    max-height: min(62dvh, 620px);
+    align-self: stretch;
+    grid-column: 1 / -1;
+    grid-row: 4;
+    overflow-y: auto;
+    margin: 0;
+    border-top: 1px solid var(--workspace-line-strong);
+    border-left: 0;
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -10px 28px rgba(44, 43, 39, 0.09);
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties::before {
+    position: sticky;
+    z-index: 7;
+    top: 7px;
+    display: block;
+    width: 38px;
+    height: 4px;
+    margin: 7px auto -4px;
+    border-radius: 999px;
+    background: #c9c8c3;
+    content: "";
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-heading {
+    padding-top: 17px;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar {
+    position: sticky;
+    bottom: 0;
+    grid-column: 1 / -1;
+    grid-row: 5;
+  }
+}
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] .reference-workspace {
+    --workspace-footer-height: 70px;
+    min-height: calc(100dvh - var(--mobile-header-height, 52px));
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto clamp(330px, 48dvh, 410px) 118px auto var(--workspace-footer-height);
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage-rail {
+    top: var(--mobile-header-height, 52px);
+    height: 58px;
+    min-height: 58px;
+    grid-template-columns: minmax(0, 1fr) 50px;
+    grid-template-rows: 48px;
+    align-items: stretch;
+    padding: 5px 6px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage-list {
+    height: 48px;
+    align-items: stretch;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage {
+    flex-basis: 88px;
+    min-height: 48px;
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage-state,
+  body[data-page="configurator"] .reference-workspace .workspace-stage-copy small {
+    display: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage-copy strong {
+    font-size: 9px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage-icon {
+    width: 26px;
+    height: 26px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage-icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-ar-card {
+    display: grid;
+    width: 50px;
+    min-height: 48px;
+    height: 48px;
+    grid-template-columns: 1fr;
+    place-items: center;
+    padding: 5px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-ar-card > span:not(.workspace-ar-mark),
+  body[data-page="configurator"] .reference-workspace .workspace-ar-card > i {
+    display: none !important;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-ar-mark {
+    width: 30px;
+    height: 30px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-model {
+    grid-template-rows: 48px minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-model-toolbar {
+    height: 48px;
+    min-height: 48px;
+    justify-content: flex-start;
+    gap: 8px;
+    padding-block: 3px;
+    padding-inline: 7px;
+  }
+
+  body[data-page="configurator"] .reference-workspace :is(
+    .workspace-stage-list,
+    .workspace-model-toolbar,
+    .workspace-section-cards,
+    .workspace-inspector-tabs
+  ) {
+    scrollbar-width: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace :is(
+    .workspace-stage-list,
+    .workspace-model-toolbar,
+    .workspace-section-cards,
+    .workspace-inspector-tabs
+  )::-webkit-scrollbar {
+    display: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-toolbar-group + .workspace-toolbar-group {
+    padding-left: 8px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-toolbar-group button {
+    min-width: 38px;
+    min-height: 38px;
+    padding-inline: 7px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-toolbar-group button b,
+  body[data-page="configurator"] .reference-workspace .workspace-display-tools > span {
+    display: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties {
+    position: sticky;
+    bottom: var(--workspace-footer-height);
+    height: min(64dvh, 520px);
+    max-height: 64dvh;
+    grid-row: 4;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-heading {
+    min-height: 80px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-inspector-tabs {
+    top: 80px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel {
+    padding: 14px 12px 24px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel :is(button, summary, input, select),
+  body[data-page="configurator"] .reference-workspace .workspace-section-menu > summary {
+    min-height: 44px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-section-organizer {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    margin: 0 6px 6px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-section-organizer > div {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 30px minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-organizer-summary {
+    border-right: 0;
+    border-bottom: 1px solid #ecebe7;
+    padding: 4px 126px 4px 10px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-organizer-summary > div {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-section-cards {
+    padding: 7px 8px 8px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-add-section {
+    flex-basis: 88px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-section-card {
+    flex-basis: 144px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-total-width {
+    z-index: 9;
+    width: 118px;
+    height: 30px;
+    justify-self: end;
+    align-self: start;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    padding: 0 12px 0 0;
+    pointer-events: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-total-width > div {
+    display: flex;
+    width: 106px;
+    min-height: 30px;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 4px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-total-width span {
+    font-size: 7px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-total-width strong {
+    font-size: 18px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-total-width p {
+    display: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar {
+    position: fixed;
+    z-index: 35;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    grid-row: 5;
+    grid-template-columns: minmax(112px, 1fr) auto;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-price-block {
+    padding: 0 10px;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-price-block strong {
+    font-size: 19px;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar :is(.configurator-quote-note, .studio-trust-row) {
+    display: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-actions {
+    gap: 6px;
+    padding: 0 7px;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-actions button {
+    min-width: 48px;
     min-height: 46px;
-    padding: 0 8px;
-    font-size: 9px;
+    padding: 0 10px;
   }
 
-  body[data-page="configurator"] .configurator-review-button {
-    width: 66px;
-    font-size: 0;
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-save-button span {
+    display: none;
   }
 
-  body[data-page="configurator"] .configurator-review-button::after {
-    content: "Review";
-    font-size: 9px;
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-quote-button {
+    min-width: 108px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 950px) and (orientation: landscape) and (max-height: 500px) {
+  body[data-page="configurator"] [data-site-header],
+  body[data-page="configurator"] .site-header,
+  body[data-page="configurator"] .navbar {
+    height: 52px;
+    min-height: 52px;
   }
 
-  body[data-page="configurator"] .configurator-save-button {
-    width: 46px;
+  body[data-page="configurator"] .reference-workspace {
+    --workspace-footer-height: 64px;
+    grid-template-rows: 50px 280px 106px auto var(--workspace-footer-height);
   }
 
-  body[data-page="configurator"] .configurator-quote-button,
-  body[data-page="configurator"] .configurator-experience.is-guided-mode .configurator-quote-button {
-    width: 104px;
-    min-width: 104px;
+  body[data-page="configurator"] .reference-workspace .workspace-stage-rail {
+    top: 52px;
+    height: 50px;
+    min-height: 50px;
+    grid-template-columns: minmax(0, 1fr) 50px;
+    grid-template-rows: 42px;
+    padding: 4px 6px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage-list {
+    height: 42px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage {
+    flex-basis: 102px;
+    min-height: 42px;
+    grid-template-columns: 25px minmax(0, 1fr);
+    padding: 4px 6px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-stage-copy small,
+  body[data-page="configurator"] .reference-workspace .workspace-stage-state {
+    display: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-ar-card {
+    display: grid;
+    width: 50px;
+    min-height: 42px;
+    height: 42px;
+    grid-template-columns: 1fr;
+    place-items: center;
+    padding: 4px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-ar-card > span:not(.workspace-ar-mark),
+  body[data-page="configurator"] .reference-workspace .workspace-ar-card > i {
+    display: none !important;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-ar-mark {
+    width: 30px;
+    height: 30px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-model {
+    min-height: 280px;
+    grid-template-rows: 44px minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-model-toolbar {
+    height: 44px;
+    min-height: 44px;
+    gap: 8px;
+    padding: 1px 12px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-toolbar-group {
+    min-height: 38px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-toolbar-group button {
+    min-height: 32px;
+    padding-inline: 7px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties {
+    max-height: 76dvh;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar {
+    grid-row: 5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-page="configurator"] .reference-workspace *,
+  body[data-page="configurator"] .reference-workspace *::before,
+  body[data-page="configurator"] .reference-workspace *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

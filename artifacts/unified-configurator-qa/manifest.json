@@ -1,0 +1,490 @@
+{
+  "generatedAt": "2026-07-15T02:07:55.923Z",
+  "baseUrl": "http://127.0.0.1:5173",
+  "runtimeErrors": [],
+  "captures": [
+    {
+      "name": "desktop-1440-no-selection",
+      "file": "artifacts/unified-configurator-qa/desktop-1440-no-selection.png",
+      "viewport": "1440x900",
+      "state": "no-selection",
+      "audit": {
+        "interface": "unified",
+        "selection": null,
+        "contextEditorOpen": false,
+        "canvasCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 1,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-1440-section-selected",
+      "file": "artifacts/unified-configurator-qa/desktop-1440-section-selected.png",
+      "viewport": "1440x900",
+      "state": "section-selected",
+      "audit": {
+        "interface": "unified",
+        "selection": {
+          "kind": "section",
+          "editorId": "section",
+          "componentId": "section-02",
+          "role": "section",
+          "hostId": "bookcase",
+          "frontId": null,
+          "sectionId": "section-02",
+          "sectionIndex": 1,
+          "adjacentSectionIds": [],
+          "title": "Section 2",
+          "inspectorGroupId": "sections_layout",
+          "controlGroupIds": [
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_width",
+            "section_type",
+            "door_arrangement",
+            "section_actions"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "section-bounds",
+            "componentId": "section-02"
+          },
+          "anchorComponentId": "section-02",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "keyboard",
+          "projectedAnchor": null
+        },
+        "contextEditorOpen": true,
+        "canvasCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 1,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-1440-door-selected",
+      "file": "artifacts/unified-configurator-qa/desktop-1440-door-selected.png",
+      "viewport": "1440x900",
+      "state": "door-selected",
+      "audit": {
+        "interface": "unified",
+        "selection": {
+          "kind": "front",
+          "editorId": "door",
+          "componentId": "section-01-lower-opening-door",
+          "role": "door",
+          "hostId": "section-01-lower-opening",
+          "frontId": "section-01-lower-opening-door",
+          "sectionId": "section-01",
+          "sectionIndex": 0,
+          "adjacentSectionIds": [],
+          "title": "Door · Section 1",
+          "inspectorGroupId": "storage_fronts",
+          "controlGroupIds": [
+            "storage_fronts",
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_type",
+            "doorStyle",
+            "door_arrangement",
+            "section_width",
+            "hardware_shortcut"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "component-bounds",
+            "componentId": "section-01-lower-opening-door"
+          },
+          "anchorComponentId": "section-01-lower-opening-door",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "keyboard",
+          "projectedAnchor": null
+        },
+        "contextEditorOpen": true,
+        "canvasCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 1,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-1440-shelf-selected",
+      "file": "artifacts/unified-configurator-qa/desktop-1440-shelf-selected.png",
+      "viewport": "1440x900",
+      "state": "shelf-selected",
+      "audit": {
+        "interface": "unified",
+        "selection": {
+          "kind": "shelf",
+          "editorId": "shelves",
+          "componentId": "section-01-shelf-01",
+          "role": "shelf",
+          "hostId": "section-01",
+          "frontId": null,
+          "sectionId": "section-01",
+          "sectionIndex": 0,
+          "adjacentSectionIds": [],
+          "title": "Shelf · Section 1",
+          "inspectorGroupId": "shelves",
+          "controlGroupIds": [
+            "shelves"
+          ],
+          "controlIds": [
+            "shelves",
+            "shelfThickness"
+          ],
+          "scope": "global",
+          "highlightTarget": {
+            "strategy": "component-bounds",
+            "componentId": "section-01-shelf-01"
+          },
+          "anchorComponentId": "section-01-shelf-01",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "keyboard",
+          "projectedAnchor": null
+        },
+        "contextEditorOpen": true,
+        "canvasCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 1,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-1440-handle-selected",
+      "file": "artifacts/unified-configurator-qa/desktop-1440-handle-selected.png",
+      "viewport": "1440x900",
+      "state": "handle-selected",
+      "audit": {
+        "interface": "unified",
+        "selection": {
+          "kind": "hardware",
+          "editorId": "hardware",
+          "componentId": "section-01-lower-opening-door-handle",
+          "role": "handle",
+          "hostId": "section-01-lower-opening-door",
+          "frontId": "section-01-lower-opening-door",
+          "sectionId": "section-01",
+          "sectionIndex": 0,
+          "adjacentSectionIds": [],
+          "title": "Queslett Cabinet Knob · Section 1",
+          "inspectorGroupId": "hardware",
+          "controlGroupIds": [
+            "hardware"
+          ],
+          "controlIds": [
+            "hardware",
+            "hardwareSelections"
+          ],
+          "scope": "host",
+          "highlightTarget": {
+            "strategy": "component-bounds",
+            "componentId": "section-01-lower-opening-door-handle"
+          },
+          "anchorComponentId": "section-01-lower-opening-door-handle",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "keyboard",
+          "projectedAnchor": null
+        },
+        "contextEditorOpen": true,
+        "canvasCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 1,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-1440-divider-drag-preview",
+      "file": "artifacts/unified-configurator-qa/desktop-1440-divider-drag-preview.png",
+      "viewport": "1440x900",
+      "state": "divider-drag-preview",
+      "audit": {
+        "interface": "unified",
+        "selection": {
+          "kind": "divider",
+          "editorId": "divider",
+          "componentId": "divider-01",
+          "role": "divider",
+          "hostId": "bookcase",
+          "frontId": null,
+          "sectionId": null,
+          "sectionIndex": 0,
+          "adjacentSectionIds": [
+            "section-01",
+            "section-02"
+          ],
+          "title": "Divider 1",
+          "inspectorGroupId": "sections_layout",
+          "controlGroupIds": [
+            "sections_layout"
+          ],
+          "controlIds": [
+            "divider_position",
+            "section_width"
+          ],
+          "scope": "adjacent-pair",
+          "highlightTarget": {
+            "strategy": "component-bounds",
+            "componentId": "divider-01"
+          },
+          "anchorComponentId": "divider-01",
+          "anchorClientX": 772.4375,
+          "anchorClientY": 433.34375,
+          "source": "canvas",
+          "projectedAnchor": null
+        },
+        "contextEditorOpen": true,
+        "canvasCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 7,
+        "previewActive": true,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-1440-base-selected",
+      "file": "artifacts/unified-configurator-qa/desktop-1440-base-selected.png",
+      "viewport": "1440x900",
+      "state": "base-selected",
+      "audit": {
+        "interface": "unified",
+        "selection": {
+          "kind": "base",
+          "editorId": "base",
+          "componentId": "base",
+          "role": "base",
+          "hostId": "bookcase",
+          "frontId": null,
+          "sectionId": null,
+          "sectionIndex": null,
+          "adjacentSectionIds": [],
+          "title": "Base",
+          "inspectorGroupId": "base_crown",
+          "controlGroupIds": [
+            "base_crown"
+          ],
+          "controlIds": [
+            "baseStyle"
+          ],
+          "scope": "global",
+          "highlightTarget": {
+            "strategy": "component-bounds",
+            "componentId": "base"
+          },
+          "anchorComponentId": "base",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "keyboard",
+          "projectedAnchor": null
+        },
+        "contextEditorOpen": true,
+        "canvasCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 1,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-wide-2560-no-selection",
+      "file": "artifacts/unified-configurator-qa/desktop-wide-2560-no-selection.png",
+      "viewport": "2560x1440",
+      "state": "no-selection",
+      "audit": {
+        "interface": "unified",
+        "selection": null,
+        "contextEditorOpen": false,
+        "canvasCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 1,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "tablet-portrait-820-section-selected",
+      "file": "artifacts/unified-configurator-qa/tablet-portrait-820-section-selected.png",
+      "viewport": "820x1180",
+      "state": "section-selected",
+      "audit": {
+        "interface": "unified",
+        "selection": {
+          "kind": "section",
+          "editorId": "section",
+          "componentId": "section-01",
+          "role": "section",
+          "hostId": "bookcase",
+          "frontId": null,
+          "sectionId": "section-01",
+          "sectionIndex": 0,
+          "adjacentSectionIds": [],
+          "title": "Section 1",
+          "inspectorGroupId": "sections_layout",
+          "controlGroupIds": [
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_width",
+            "section_type",
+            "door_arrangement",
+            "section_actions"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "section-bounds",
+            "componentId": "section-01"
+          },
+          "anchorComponentId": "section-01",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "keyboard",
+          "projectedAnchor": null
+        },
+        "contextEditorOpen": true,
+        "canvasCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 1,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "tablet-landscape-1180-door-selected",
+      "file": "artifacts/unified-configurator-qa/tablet-landscape-1180-door-selected.png",
+      "viewport": "1180x820",
+      "state": "door-selected",
+      "audit": {
+        "interface": "unified",
+        "selection": {
+          "kind": "front",
+          "editorId": "door",
+          "componentId": "section-01-lower-opening-door",
+          "role": "door",
+          "hostId": "section-01-lower-opening",
+          "frontId": "section-01-lower-opening-door",
+          "sectionId": "section-01",
+          "sectionIndex": 0,
+          "adjacentSectionIds": [],
+          "title": "Door · Section 1",
+          "inspectorGroupId": "storage_fronts",
+          "controlGroupIds": [
+            "storage_fronts",
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_type",
+            "doorStyle",
+            "door_arrangement",
+            "section_width",
+            "hardware_shortcut"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "component-bounds",
+            "componentId": "section-01-lower-opening-door"
+          },
+          "anchorComponentId": "section-01-lower-opening-door",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "keyboard",
+          "projectedAnchor": null
+        },
+        "contextEditorOpen": true,
+        "canvasCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 1,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "mobile-390-door-bottom-sheet",
+      "file": "artifacts/unified-configurator-qa/mobile-390-door-bottom-sheet.png",
+      "viewport": "390x844",
+      "state": "door-selected-bottom-sheet",
+      "audit": {
+        "interface": "unified",
+        "selection": {
+          "kind": "front",
+          "editorId": "door",
+          "componentId": "section-01-lower-opening-door",
+          "role": "door",
+          "hostId": "section-01-lower-opening",
+          "frontId": "section-01-lower-opening-door",
+          "sectionId": "section-01",
+          "sectionIndex": 0,
+          "adjacentSectionIds": [],
+          "title": "Door · Section 1",
+          "inspectorGroupId": "storage_fronts",
+          "controlGroupIds": [
+            "storage_fronts",
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_type",
+            "doorStyle",
+            "door_arrangement",
+            "section_width",
+            "hardware_shortcut"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "component-bounds",
+            "componentId": "section-01-lower-opening-door"
+          },
+          "anchorComponentId": "section-01-lower-opening-door",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "keyboard",
+          "projectedAnchor": null
+        },
+        "contextEditorOpen": true,
+        "canvasCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 1,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "short-landscape-844-no-selection",
+      "file": "artifacts/unified-configurator-qa/short-landscape-844-no-selection.png",
+      "viewport": "844x390",
+      "state": "no-selection",
+      "audit": {
+        "interface": "unified",
+        "selection": null,
+        "contextEditorOpen": false,
+        "canvasCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 1,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    }
+  ]
+}
