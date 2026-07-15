@@ -27,10 +27,11 @@ profile rail widths, or light positions. Those are layout responsibilities.
 
 The accepted-design experience is one static ES-module application with one
 `BookcaseConfigurator`, one `BookcaseViewer3D`, one canvas, and one accepted
-engine transaction. A persistent inspector exposes the complete control set.
-The model is also selectable: hover may identify a generated component and a
-selection opens a contextual editor anchored to that component. The contextual
-editor is another view of the same controls, not another configurator.
+engine transaction. Its reference workspace is a bright, CAD-like composition:
+a fixed seven-stage rail, one persistent model and global toolbar, one fixed
+stage/selection-aware Properties inspector, a persistent section organizer,
+an exact total-width card, and a light estimate/action footer. There is no
+second floating editor, model dock, or alternate configurator.
 
 `BookcaseConfigurator.state` is the only normalized physical configuration. It
 contains the schema-backed layout, dimensions, storage, construction, finish,
@@ -38,104 +39,134 @@ hardware, lighting, delivery, and installation values. The following are
 presentation state and never enter a design fingerprint, saved record, BOM, or
 price:
 
-- the expanded inspector group and its scroll position;
-- the selected and hovered component descriptors;
-- whether the contextual editor is open and its projected screen anchor;
-- the selected section and incomplete numeric input drafts;
-- section disclosure state, bounded undo/redo history, and focus return target;
+- active stage, selected Properties tab, and Properties/organizer scroll;
+- selected and hovered component descriptors and selected section;
+- incomplete numeric input drafts and open organizer action menus;
+- Select/Pan tool, Dimensions/Wall display helpers, and fullscreen state;
+- bounded global undo/redo history and focus-return target; and
 - review-dialog, camera-focus, and action-lock presentation state.
 
-`configurator-experience.js` owns the pure surface contract: the nine inspector
-groups, physical-control registry, component-role-to-editor mapping,
-applicability, validation, summaries, preset reconciliation, saved-record
-creation, quote URLs, and guarded action rules. `configurator-3d.js` renders
-those definitions and owns the browser event and selection pipeline.
-`configurator-experience.css` owns the inspector, model workspace, responsive
-drawer, popover, and bottom-sheet presentation. `configurator-precision.css`
-owns compact contextual-control geometry, projected dimensions, enlarged
-divider targets, focus treatments, and high-resolution refinements.
+`configurator-experience.js` owns the pure surface contract: seven stage
+definitions, their projection over the nine canonical physical-control groups,
+selected-section tab applicability, component-role routing, the physical-
+control registry, validation, organizer summaries, global history semantics,
+preset reconciliation, saved-record creation, quote URLs, and guarded actions.
+`configurator-3d.js` renders those definitions and owns the browser event,
+selection, display-tool, fullscreen, and viewer integration pipelines.
+`configurator-experience.css` owns the reference-workspace grid, light shell,
+stage rail, toolbar, Properties, organizer, total-width card, footer, and
+responsive reflow. `configurator-precision.css` locks geometry, target sizes,
+singleton-canvas behavior, projected dimensions, divider targets, focus, and
+fullscreen refinements.
 
 The accepted-design shell is mounted once in this DOM order:
 
-    persistent unified inspector
-    persistent model workspace and canvas
-    hover label, projected leader, and contextual editor
-    shared estimate, Review Design, Save Design, and Request a Quote actions
+    seven-stage navigation rail and View in Your Room card
+    model toolbar, persistent viewer/canvas, and hover/helper layer
+    fixed contextual Properties inspector
+    persistent section organizer
+    exact total-width status card
+    estimate footer with Save Design and Request a Quote
     shared review/AR dialogs, status region, and selection announcement
 
-The inspector and contextual body may rerender, but the model subtree never
-does. Opening a category, selecting a component, closing the editor, or moving
-between desktop and mobile therefore cannot create a second canvas, renderer,
-scene, camera, render loop, price pipeline, or configuration store.
+The rail, Properties body, organizer, and width card may rerender; the model
+subtree never does. Changing a stage or tab, selecting a component or section,
+opening an organizer menu, toggling a display helper, or moving between desktop
+and mobile therefore cannot create a second canvas, renderer, scene, camera,
+render loop, price pipeline, or configuration store.
 
-### Unified controls and synchronization
+### Seven-stage projection and Properties routing
 
-The inspector groups are, in order: Overall Size, Sections & Layout, Shelves,
-Storage & Fronts, Base & Crown, Finish, Hardware, Lighting, and Project
-Service. Every physical field has one registry owner. Both the inspector and
-contextual editor call the same commit path: a valid change is normalized once,
-validated once, priced once, and sent once to the viewer. Committing the
-already-accepted value is a no-op. Incomplete numeric strings stay in a shared
-draft map and cannot replace accepted state.
+The customer stages are non-linear and always directly reachable. They project
+the existing nine canonical groups without changing field ownership:
 
-The contextual editor is resolved from accepted component descriptors rather
-than mesh names or screen coordinates:
+| Stage | Canonical control groups |
+| --- | --- |
+| Space | Overall Size |
+| Layout | Sections & Layout; Base & Crown |
+| Storage | Shelves; Storage & Fronts |
+| Finish | Finish |
+| Hardware | Hardware |
+| Lighting | Lighting |
+| Preview | Project Service, Review, and accepted estimate context |
 
-| Selected descriptor role | Context | Linked inspector group |
+Every physical field still has one registry owner. Stage controls and
+selection-specific Properties controls call the same commit path: a valid
+change is normalized once, validated once, priced once, added to history once,
+and sent once to the viewer. Recommitting the accepted value is a no-op.
+Incomplete numeric strings stay in the shared draft map and cannot replace
+accepted state.
+
+Selecting an accepted section exposes General, Shelves, conditional Doors or
+Drawers, Back, and Lighting Properties tabs. General is always present; Doors
+and Drawers follow the selected section type; Back is descriptor information;
+and the other tabs route to their canonical owners when applicable. Model
+selection is resolved from accepted component descriptors rather than mesh
+names or screen coordinates:
+
+| Selected descriptor role | Properties context | Stage / tab route |
 | --- | --- | --- |
-| section/opening/divider | section width, type, arrangement, adjacent resize | Sections & Layout |
-| shelf/fixed shelf | shelf quantity and thickness | Shelves |
-| door/drawer front | section/front settings and hardware route | Storage & Fronts |
-| handle | compatible type, size, finish, and placement | Hardware |
-| base/trim | base style | Base & Crown |
-| crown/top panel | crown style | Base & Crown |
-| light | lighting package and warmth | Lighting |
-| assembly/side/back/bottom | overall dimensions and finish | Overall Size |
+| section/opening/divider | type, exact width, adjacent resize | Layout / General |
+| shelf/fixed shelf | shelf quantity and thickness | Storage / Shelves |
+| door | section door profile and arrangement | Storage / Doors |
+| drawer front | section drawer profile | Storage / Drawers |
+| handle | accepted hardware and owning-front context | Hardware / owning Doors or Drawers tab |
+| base/trim | accepted base style | Layout / General |
+| crown/top panel | accepted crown style | Layout / General |
+| light | lighting package and warmth | Lighting / Lighting |
+| assembly/side/bottom | overall bookcase context | Space / General |
+| back panel | fitted-back information | Space / Back |
 
 A single selection descriptor carries the physical component ID, semantic
-kind, section/host context, highlight target, inspector group, control groups,
-and projected anchor. Hover is transient and never changes state. Pointer or
-keyboard selection updates the highlight, expands the linked inspector group,
-renders the contextual controls, and announces the result. Escape or the close
+kind, section/host context, selected stage/tab, and highlight target. Hover is
+transient and never changes physical state. Pointer or keyboard selection
+updates one highlight, synchronizes the organizer, routes to the matching
+stage/tab, rerenders Properties, and announces the result. Escape or the close
 button clears the same selection and restores focus when an invoker exists.
 
-Desktop keeps a 380–410 px inspector beside the remaining model space. The
-context editor is a 320–410 px card clamped to the viewer's safe rectangle; its
-leader and anchor dot are nonphysical SVG helpers. At 900 px and below the
-model leads a single stacked inspector drawer. At 767 px and below the context
-editor becomes one fixed, scrollable bottom sheet with 44 px minimum targets,
-no horizontal overflow, and no leader. Reduced-motion preferences remove sheet
-and selection transitions. Layout changes never remount or duplicate the
-canvas.
+Desktop uses a fixed 230 px stage rail and approximately 310 px Properties
+column around the remaining model. The organizer and width card sit directly
+above the footer. At 1100 px and below the stage rail becomes a horizontally
+scrollable compact navigator, the organizer remains horizontally contained,
+and Properties becomes a bounded sheet below the model. At 767 px and below
+the model toolbar, stages, organizer, width card, and footer remain reachable
+without horizontal page overflow; coarse-pointer targets are at least 44 px.
+Short landscape uses the same contained sheet with a reduced but usable model.
+Reduced-motion preferences remove ornamental transitions. Reflow and
+fullscreen resize the existing viewer and never remount or duplicate canvas.
 
 ### New-design and resume intent
 
 Studio entry remains presentation-only until the customer accepts My Space, a
 foundation idea, a valid share, or an explicit preset. Acceptance creates one
-physical transaction and opens the unified inspector at the most relevant
-group. A verified schema-2/3/4 browser-local snapshot restores the accepted
-configuration and sanitized inspector context. `?start=welcome` keeps the
-customer in the studio without deleting that snapshot, while `?start=resume`
-requests restoration. Temporary start parameters are removed after
-initialization; valid shares and explicit presets retain source priority.
+physical transaction and opens Layout with General Properties, Select active,
+Dimensions and Wall visible, fullscreen off, no selection, and empty global
+history. A verified schema-2/3/4 browser-local snapshot restores only the
+accepted physical configuration; stage, tab, tool, display, fullscreen,
+selection, scroll, and history state reset to those presentation defaults.
+`?start=welcome` keeps the customer in the studio without deleting that
+snapshot, while `?start=resume` requests restoration. Temporary start
+parameters are removed after initialization; valid shares and explicit presets
+retain source priority.
 
 Historical local preferences for retired presentation surfaces are ignored.
 They are not migrated into product data and cannot alter the chosen preset,
-accepted configuration, saved identity, or initial inspector group.
+accepted configuration, saved identity, or initial stage/tab.
 
 Customized saved designs retain structural preset ancestry by matching the
 normalized `layoutType`. This preserves the selected foundation card, summary,
 and quote-form layout after reload without adding a presentation field to the
 saved-design schema.
 
-### Inline section editor and projected geometry
+### Section organizer, global history, and projected geometry
 
-Section editing is a view over the accepted physical state. The Sections &
-Layout group exposes the complete editor, and selecting a section or divider
-opens the relevant subset beside the model. The editor's local-only state is
-the selected section, numeric width draft, advanced-action disclosure, bounded
-30-entry undo/redo history, and camera snapshot. None affects design identity,
-BOM, or price.
+Section editing is a view over accepted physical state. A persistent organizer
+shows `Sections (N)`, exact total width, Add Section, and one horizontally
+scrollable card per section with descriptor-derived thumbnail, section number,
+exact clear width, selected state, and Duplicate/Delete menu. Selecting a card
+or model section synchronizes Layout / General Properties. The exact numeric
+field and steppers remain the non-drag alternative. Organizer scroll, selection,
+menu state, and numeric drafts do not affect design identity, BOM, or price.
 
 `bookcase-sections.js` owns pure, non-mutating operations that resize adjacent
 sections while preserving total clear width, split and merge with the 0.75 in
@@ -145,12 +176,13 @@ minimum-width or protected-feature violations. Successful operations flow
 through `evaluateBookcaseCandidate()`; rejected drafts leave every accepted
 artifact unchanged.
 
-The overview remains a wrapping grid without nested horizontal scrolling.
-Exact width, section type, generated component summary, warnings, history, and
-disabled-action explanations remain available without drag. Explicit global
-section-count selection begins with equal clear widths and a deterministic
-remainder, while saved/preset `layoutMetadata.sectionRatios` remain authoritative
-during ordinary restore and dimension regeneration.
+Add and Duplicate split a buildable source section; Delete absorbs its clear
+width and divider allowance into a deterministic neighbor. Each successful
+operation preserves exact overall width and creates one accepted transaction.
+Impossible operations are disabled; engine validation remains authoritative.
+Explicit global section-count selection begins with equal clear widths and a
+deterministic remainder, while saved/preset `layoutMetadata.sectionRatios`
+remain authoritative during ordinary restore and dimension regeneration.
 
 Explicit `layoutMetadata.sectionTypes` become the physical source of truth
 after per-section editing. Global storage choices therefore pass through
@@ -158,13 +190,22 @@ after per-section editing. Global storage choices therefore pass through
 sections support `auto`, `single_hinge_left`, `single_hinge_right`, or `pair`;
 the layout engine, not the UI, owns buildability and rejection reasons.
 
-Projected selection boxes, divider guides, dimension labels, hover labels, and
-leaders live in a `nonPhysicalHelper` layer outside the descriptor-backed
-model. They cannot enter render audit, BOM, price, save, quote, or AR. Projected
-dimensions use accepted descriptor bounds and fade in oblique views rather
-than implying false screen-space measurements. Narrow projections use compact
-labels and collision checks while exact numeric values remain available in the
-inspector and context sheet.
+The visible Undo and Redo controls operate on one bounded 50-entry accepted-
+configuration history. A successful physical transaction contributes one
+entry; no-op, rejected, preview, stage/tab/selection, tool, display, and
+fullscreen changes contribute none. A new accepted edit clears redo. Keyboard
+shortcuts use the same authority, and replay runs through the normal engine and
+viewer commit without serializing history into saved designs.
+
+Projected selection boxes, divider guides, dimension labels, and hover labels
+live in a `nonPhysicalHelper` layer outside the descriptor-backed model. They
+cannot enter render audit, BOM, price, save, quote, or AR. The global
+Dimensions and Wall buttons show or hide nonphysical helpers only. Select and
+Pan are mutually exclusive interaction tools; native or fallback fullscreen
+changes presentation and requests viewer resize. Projected dimensions use
+accepted descriptor bounds and fade in oblique views rather than implying
+false screen-space measurements. Narrow projections use compact labels and
+collision checks while exact numeric values remain available in Properties.
 
 Divider handles remain available on desktop, tablet, and mobile with enlarged
 targets and a numeric alternative. Pointer previews update the overlay and a
@@ -175,7 +216,8 @@ overlay descendants do not rotate the camera.
 ### Renderer update lifecycle
 
 The viewer is created once after the persistent shell mounts. Ordinary
-inspector navigation and selection never initialize or destroy it. Physical
+stage, tab, selection, organizer, and global-tool navigation never initialize
+or destroy it. Physical
 changes use the smallest safe path:
 
 - finish and lighting warmth update existing materials/lights in place;
@@ -875,15 +917,19 @@ round-trip validation, and stable rejection issues. The release QA document
 owns the required browser views, viewports, and screenshot evidence; model
 tests alone never imply visual completion.
 
-Inspector, selection, and shell contracts are additionally covered by:
+Workspace, selection, and shell contracts are additionally covered by:
 
     node --test tests/configurator-experience.test.js tests/configurator-contract.test.js
 
-Those tests cover the unified control registry, semantic selection mappings,
-draft validation, applicability, preset reconciliation, summaries, payload
-parity, duplicate action locks, one-viewer markup, shared handlers,
-accessibility wiring, responsive popover/bottom-sheet contracts, diagnostics,
-and rejection of retired presentation-preference paths.
+Those tests cover the canonical control registry, seven-stage projection,
+selected-section tab applicability, semantic selection routes, organizer
+summaries, 50-entry history semantics, draft validation, preset reconciliation,
+payload parity, duplicate action locks, one-viewer markup, shared handlers,
+diagnostics, and rejection of retired presentation-preference paths. Browser
+release evidence must separately verify the reference grid, stage and toolbar
+reachability, Properties and organizer containment, fullscreen resize,
+coarse-pointer targets, and singleton canvas at desktop, tablet, phone, and
+short-landscape viewports.
 
 ## Current limitations
 

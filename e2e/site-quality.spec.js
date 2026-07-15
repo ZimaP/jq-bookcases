@@ -276,7 +276,7 @@ test("configurator chrome stays separated at tablet and short-landscape breakpoi
         Math.max(0, Math.min(first.right, second.right) - Math.max(first.left, second.left))
         * Math.max(0, Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top))
       );
-      const visibleButtons = [...document.querySelectorAll(".preview-control-dock button")]
+      const visibleButtons = [...document.querySelectorAll(".workspace-model-toolbar button")]
         .filter((button) => button.getClientRects().length && getComputedStyle(button).visibility !== "hidden")
         .map(rect);
       const overlappingPairs = [];
@@ -287,11 +287,16 @@ test("configurator chrome stays separated at tablet and short-landscape breakpoi
       }
       const background = getComputedStyle(document.querySelector(".site-header")).backgroundColor;
       const alpha = Number(background.match(/[\d.]+/g)?.[3] ?? 1);
+      const model = rect(document.querySelector(".configurator-model"));
+      const inspector = rect(document.querySelector("[data-properties-inspector]"));
       return {
         alpha,
-        model: rect(document.querySelector(".configurator-model")),
-        inspector: rect(document.querySelector("[data-unified-inspector]")),
-        groups: [...document.querySelectorAll("[data-unified-inspector] [data-category-trigger]")].map(rect),
+        model,
+        inspector,
+        modelInspectorOverlap: overlapArea(model, inspector),
+        propertyControls: [...document.querySelectorAll("[data-properties-inspector] .workspace-properties-panel button, [data-properties-inspector] .workspace-properties-panel input, [data-properties-inspector] .workspace-properties-panel select, [data-properties-inspector] .workspace-properties-panel summary")]
+          .filter((control) => control.getClientRects().length && getComputedStyle(control).visibility !== "hidden")
+          .map(rect),
         visibleButtons,
         overlappingPairs,
         horizontalOverflow: document.documentElement.scrollWidth - innerWidth,
@@ -302,6 +307,7 @@ test("configurator chrome stays separated at tablet and short-landscape breakpoi
     expect(layout.alpha, `${viewport.mode} header opacity`).toBeGreaterThanOrEqual(0.95);
     expect(layout.horizontalOverflow, `${viewport.mode} horizontal overflow`).toBeLessThanOrEqual(1);
     expect(layout.overlappingPairs, `${viewport.mode} overlapping viewer controls`).toEqual([]);
+    expect(layout.modelInspectorOverlap, `${viewport.mode} model and Properties inspector overlap`).toBeLessThanOrEqual(1);
 
     if (viewport.mode === "short-landscape") {
       expect(layout.pageScrolls).toBe(true);
@@ -311,9 +317,9 @@ test("configurator chrome stays separated at tablet and short-landscape breakpoi
         expect(button.top).toBeGreaterThanOrEqual(layout.model.top);
         expect(button.bottom).toBeLessThanOrEqual(layout.model.bottom);
       }
-      for (const group of layout.groups) {
-        expect(group.left).toBeGreaterThanOrEqual(layout.inspector.left);
-        expect(group.right).toBeLessThanOrEqual(layout.inspector.right + 1);
+      for (const control of layout.propertyControls) {
+        expect(control.left).toBeGreaterThanOrEqual(layout.inspector.left);
+        expect(control.right).toBeLessThanOrEqual(layout.inspector.right + 1);
       }
     }
   }
@@ -334,8 +340,13 @@ test("corrupted saved configuration and malformed query data recover to the stud
 test("selected option illustrations retain visible foreground contrast", async ({ page }) => {
   await page.goto("/configurator.html?preset=lower-cabinets", { waitUntil: "networkidle" });
   await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
-  await page.locator('[data-category-trigger="base_crown"]').click();
-  await expect(page.locator('[data-category-panel="base_crown"]')).toBeVisible();
+  const layoutStage = page.locator('[data-workspace-stage="layout"]');
+  await layoutStage.click();
+  await expect(layoutStage).toHaveAttribute("aria-current", "step");
+  const properties = page.locator("[data-properties-inspector]");
+  await expect(properties).toBeVisible();
+  await expect(properties.locator('[data-active-stage-panel="layout"]')).toBeVisible();
+  await expect(properties.locator(".workspace-construction-details[open]")).toBeVisible();
 
   const findings = await page.evaluate(() => {
     const parse = (value) => {
@@ -354,7 +365,8 @@ test("selected option illustrations retain visible foreground contrast", async (
       return (values[0] + 0.05) / (values[1] + 0.05);
     };
 
-    const selectedOptions = new Set(document.querySelectorAll([
+    const propertiesPanel = document.querySelector("[data-properties-inspector]");
+    const selectedOptions = new Set(propertiesPanel.querySelectorAll([
       ".style-choice:has(input:checked)",
       ".lighting-card:has(input:checked)",
       "input:checked + .option-card",

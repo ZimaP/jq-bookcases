@@ -1,5 +1,5 @@
 import * as THREE from "./assets/vendor/three.module.js";
-import { diagramSvg, iconSvg } from "./icon-system.js?v=direct-hardware-20260714a";
+import { diagramSvg, iconSvg } from "./icon-system.js?v=jq-icons-20260715g";
 import {
   baseStyleOptions,
   crownStyleOptions,
@@ -25,10 +25,11 @@ import {
 import { generateBookcaseLayout } from "./bookcase-layout.js?v=direct-hardware-20260714a";
 import { formatPrice } from "./bookcase-pricing.js?v=direct-hardware-20260714a";
 import {
-  applySectionHistorySnapshot,
+  addSection,
   applySectionWidths,
   applyGlobalStorageSelection,
-  createSectionHistorySnapshot,
+  deleteSection,
+  duplicateSection,
   equalizeSectionWidths,
   getSectionDesignerState,
   mergeSection,
@@ -39,7 +40,7 @@ import {
   setSectionDoorArrangement,
   setSectionType,
   splitSection
-} from "./bookcase-sections.js?v=direct-hardware-20260714a";
+} from "./bookcase-sections.js?v=reference-layout-20260715g";
 import {
   PROFILE_CAMERA_DURATION,
   calculateProfileCameraPose,
@@ -54,7 +55,11 @@ import {
   getBenjaminMooreColorCatalogProvider
 } from "./benjamin-moore-colors.js?v=direct-hardware-20260714a";
 import {
+  INSPECTOR_TAB_DEFINITIONS,
+  STAGE_CONTROL_GROUPS,
   UNIFIED_CONTROL_GROUPS,
+  WORKSPACE_STAGES,
+  createSectionOrganizerSummary,
   createQuoteUrl,
   createReviewGroups,
   createPresetTransition,
@@ -68,10 +73,11 @@ import {
   inspectorGroupForField,
   normalizeInspectorGroup,
   reconcileSelectionContext,
+  resolveWorkspaceSelection,
   resolveSelectionContext,
   shouldRunAction,
   validateUnifiedConfiguration
-} from "./configurator-experience.js?v=direct-hardware-20260714a";
+} from "./configurator-experience.js?v=reference-layout-20260715i";
 import {
   createAcceptedDesignSnapshot,
   evaluateBookcaseCandidate,
@@ -111,11 +117,18 @@ import {
 const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "shelfThickness", "lightingWarmth", "drawerCount"]);
 const builderIcons = Object.freeze({
   dimensions: iconSvg("dimensions"),
-  layout: iconSvg("layout"),
+  space: iconSvg("space-frame"),
+  layout: iconSvg("sections"),
+  storage: iconSvg("storage"),
   structure: iconSvg("material-layers"),
-  lighting: iconSvg("lighting"),
+  lighting: iconSvg("light-bulb"),
   finish: iconSvg("paint-finish"),
-  hardware: iconSvg("hardware"),
+  hardware: iconSvg("handle-pull"),
+  preview: iconSvg("preview-eye"),
+  shelves: iconSvg("shelves"),
+  doors: iconSvg("doors"),
+  drawers: iconSvg("drawers"),
+  backPanel: iconSvg("back-panel"),
   save: iconSvg("save"),
   search: iconSvg("search"),
   orbit: iconSvg("camera-orbit"),
@@ -131,6 +144,16 @@ const builderIcons = Object.freeze({
   zoomIn: iconSvg("zoom-in"),
   zoomOut: iconSvg("zoom-out"),
   reset: iconSvg("reset"),
+  undo: iconSvg("undo"),
+  redo: iconSvg("redo"),
+  information: iconSvg("information"),
+  chevronRight: iconSvg("chevron-right"),
+  copy: iconSvg("copy"),
+  delete: iconSvg("trash"),
+  pan: iconSvg("pan"),
+  select: iconSvg("select"),
+  fullscreen: iconSvg("fullscreen"),
+  more: iconSvg("more-horizontal"),
   premiumMaterials: iconSvg("material-layers"),
   craftsmanship: iconSvg("craftsmanship"),
   customFit: iconSvg("dimensions"),
@@ -308,6 +331,8 @@ class BookcaseConfigurator {
   constructor(host, index) {
     this.host = host;
     this.id = `jq-builder-${index + 1}`;
+    this.eventAbortController = new AbortController();
+    this.destroyed = false;
     this.arEnabled = this.host.getAttribute("data-enable-cabinet-ar") === "true";
     const directHardwareFlag = new URLSearchParams(window.location.search).get("directHardwareEditing");
     this.directHardwareEditingEnabled = this.host.getAttribute("data-direct-hardware-editing") !== "false"
@@ -328,6 +353,13 @@ class BookcaseConfigurator {
     this.pricing = this.hasAcceptedDesign ? initialEvaluation.pricing : null;
     this.basePresetId = this.hasAcceptedDesign ? inferBasePresetId(this.state) : defaultBookcaseConfig.layoutPreset;
     this.activeInspectorGroup = normalizeInspectorGroup("overall_size");
+    this.activeStageId = "layout";
+    this.activeInspectorTabId = "general";
+    this.activeTool = "select";
+    this.showDimensions = true;
+    this.showWall = true;
+    this.fullscreen = false;
+    this.designHistory = { undo: [], redo: [], limit: 50 };
     this.inspectorGroupCollapsed = false;
     this.selection = null;
     this.hoverSelection = null;
@@ -368,9 +400,7 @@ class BookcaseConfigurator {
     this.sectionDesignerCameraState = null;
     this.sectionDesignerCameraChanged = false;
     this.activeSectionDividerDrag = null;
-    this.sectionUndoStack = [];
-    this.sectionRedoStack = [];
-    this.activeView = "three-quarter";
+    this.activeView = "front";
     this.arController = null;
     this.arControllerPromise = null;
     this.activeRangeDrag = null;
@@ -392,7 +422,11 @@ class BookcaseConfigurator {
       this.syncInterface();
       this.initializeUnifiedModelInteraction();
       this.activateSectionDesigner({ render: false, announce: false, focusCamera: false });
-      this.focusCameraForCurrentContext({ duration: SMART_CAMERA_DURATION });
+      this.selectSection(this.selectedSectionIndex, { openProperties: true, render: true });
+      this.viewer.setInteractionTool?.(this.activeTool);
+      this.viewer.setDimensionsVisible?.(this.showDimensions);
+      this.viewer.setWallVisible?.(this.showWall);
+      this.setView("front");
       this.verifyRestoredPaintSelection();
       this.emitStudioEvent("studio_entry_bypassed", { source: this.initialSource });
     } else {
@@ -416,6 +450,13 @@ class BookcaseConfigurator {
   resetNewDesignPresentation() {
     this.designIntent = STUDIO_DESIGN_INTENTS.newDesign;
     this.activeInspectorGroup = normalizeInspectorGroup("overall_size");
+    this.activeStageId = "layout";
+    this.activeInspectorTabId = "general";
+    this.activeTool = "select";
+    this.showDimensions = true;
+    this.showWall = true;
+    this.fullscreen = false;
+    this.designHistory = { undo: [], redo: [], limit: 50 };
     this.inspectorGroupCollapsed = false;
     this.selection = null;
     this.hoverSelection = null;
@@ -483,6 +524,10 @@ class BookcaseConfigurator {
       setDirectEditing: () => {},
       setSelectedComponent: () => false,
       clearDirectSelection: () => {},
+      setInteractionTool: () => {},
+      setDimensionsVisible: () => {},
+      setWallVisible: () => {},
+      resize: () => {},
       getComponentScreenAnchor: () => null,
       getSafeViewport: () => Object.freeze({ width: 0, height: 0, insets: Object.freeze({ top: 0, right: 0, bottom: 0, left: 0 }) }),
       getMeasurementProjection: () => null,
@@ -532,6 +577,10 @@ class BookcaseConfigurator {
       setDirectEditing: () => {},
       setSelectedComponent: () => false,
       clearDirectSelection: () => {},
+      setInteractionTool: () => {},
+      setDimensionsVisible: () => {},
+      setWallVisible: () => {},
+      resize: () => {},
       getComponentScreenAnchor: () => null,
       getSafeViewport: () => {
         const bounds = this.elements.viewer.getBoundingClientRect();
@@ -555,68 +604,82 @@ class BookcaseConfigurator {
     this.renderFullPageConfigurator();
   }
 
+  renderWorkspaceStageRail() {
+    return WORKSPACE_STAGES.map((stage, index) => {
+      const active = stage.id === this.activeStageId;
+      const complete = stage.id === "space"
+        && !validateUnifiedConfiguration(this.state, this.layout, this.drafts).issues.some((issue) => issue.inspectorGroupId === "overall_size");
+      const icon = builderIcons[stage.icon || stage.id] || builderIcons.layout;
+      return `
+        <button type="button" class="workspace-stage${active ? " is-active" : ""}${complete ? " is-complete" : ""}" data-workspace-stage="${escapeHtml(stage.id)}" ${active ? 'aria-current="step"' : ""}>
+          <span class="workspace-stage-icon" aria-hidden="true">${icon}</span>
+          <span class="workspace-stage-copy"><strong>${escapeHtml(stage.label)}</strong><small>${escapeHtml(stage.subtitle)}</small></span>
+          <span class="workspace-stage-state" aria-hidden="true">${complete ? builderIcons.check : index + 1}</span>
+        </button>
+      `;
+    }).join("");
+  }
+
   renderFullPageConfigurator() {
     if (!this.hasAcceptedDesign) {
       this.renderStudioEntryShell();
       return;
     }
     this.host.innerHTML = `
-      <form class="builder-shell configurator-shell configurator-experience" data-builder-form data-unified-configurator novalidate>
+      <form class="builder-shell configurator-shell configurator-experience reference-workspace" data-builder-form data-unified-configurator data-configurator-workspace novalidate>
         <h1 id="${this.id}-viewer-title" class="sr-only">3D Bookcase Configurator</h1>
-
-        <aside class="builder-panel configurator-panel configurator-control-experience" aria-label="Bookcase inspector" data-controls-scroll data-unified-inspector tabindex="-1">
-          <header class="configurator-panel-intro configurator-inspector-heading">
-            <span class="section-kicker">Design your bookcase</span>
-            <strong>Every setting, in one inspector.</strong>
-            <p>Select a component in the model to open its matching controls here and beside the model.</p>
-          </header>
-          <div class="unified-inspector" data-inspector-content></div>
-        </aside>
-
-        <section class="studio-model configurator-model" aria-labelledby="${this.id}-viewer-title">
-          <div class="preview-heading">
-            <div><span>Live model</span><small>Select a component to edit · Drag blank space to rotate</small></div>
-          </div>
-          <div class="viewer-stage" data-3d-viewer tabindex="0" role="application" aria-roledescription="interactive 3D configurator" aria-label="Built-in bookcase model. Select a component to edit it, drag blank space to rotate, use arrow keys to orbit, and plus or minus to zoom."></div>
-          <div class="configurator-hover-label" data-model-hover-label hidden></div>
-          <svg class="configurator-context-leader" data-context-leader aria-hidden="true" focusable="false" hidden>
-            <line data-context-leader-line x1="0" y1="0" x2="0" y2="0"></line>
-            <circle data-context-anchor-dot cx="0" cy="0" r="4"></circle>
-          </svg>
-          <section class="configurator-context-editor" data-contextual-editor role="dialog" aria-modal="false" aria-labelledby="${this.id}-context-title" hidden>
-            <header class="configurator-context-heading">
-              <div><span class="section-kicker" data-context-eyebrow>Selected component</span><h2 id="${this.id}-context-title" data-context-title>Component</h2><p data-context-summary></p></div>
-              <button type="button" data-close-context aria-label="Close contextual editor">${builderIcons.close}</button>
-            </header>
-            <div class="configurator-context-body" data-context-content></div>
-          </section>
-          <div class="preview-control-dock" aria-label="Preview controls">
-            <div class="preview-tools" role="group" aria-label="Preview zoom and reset controls">
-              <button type="button" data-viewer-zoom="in" aria-label="Zoom in" title="Zoom in"><span class="view-icon" aria-hidden="true">${builderIcons.zoomIn}</span><small>Zoom in</small></button>
-              <button type="button" data-viewer-zoom="out" aria-label="Zoom out" title="Zoom out"><span class="view-icon" aria-hidden="true">${builderIcons.zoomOut}</span><small>Zoom out</small></button>
-              <button type="button" data-reset-view aria-label="Rotate to default view" title="Rotate to default view"><span class="view-icon" aria-hidden="true">${builderIcons.reset}</span><small>Rotate</small></button>
-            </div>
-            <div class="view-controls" role="group" aria-label="3D view controls">
-              <button type="button" data-view="three-dimensional" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.orbit}</span><small>3D</small></button>
-              <button type="button" data-view="front" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.front}</span><small>Front</small></button>
-              <button type="button" data-view="three-quarter" aria-pressed="true"><span class="view-icon" aria-hidden="true">${builderIcons.threeQuarter}</span><small>3/4</small></button>
-              <button type="button" data-view="side" aria-pressed="false"><span class="view-icon" aria-hidden="true">${builderIcons.side}</span><small>Side</small></button>
-            </div>
-          </div>
+        <nav class="workspace-stage-rail" data-workspace-stages aria-label="Configurator stages">
+          <div class="workspace-stage-list">${this.renderWorkspaceStageRail()}</div>
           ${this.arEnabled ? `
-            <div class="cabinet-ar-launch">
-              <button class="cabinet-ar-launch-button" type="button" data-open-ar aria-label="AR View in Your Room">
-                <span class="view-icon" aria-hidden="true">${builderIcons.augmentedReality}</span><span data-ar-label>AR View in Your Room</span>
-              </button>
-            </div>
+            <button class="workspace-ar-card" type="button" data-open-ar aria-label="View this design in your room">
+              <span class="workspace-ar-mark" aria-hidden="true">AR</span>
+              <span><strong>View in your room</strong><small>See it in your space</small></span>
+              <i aria-hidden="true">${builderIcons.chevronRight}</i>
+            </button>
           ` : ""}
+        </nav>
+
+        <section class="studio-model configurator-model workspace-model" data-model-workspace aria-labelledby="${this.id}-viewer-title">
+          <header class="workspace-model-toolbar" data-model-toolbar>
+            <div class="workspace-toolbar-group workspace-history-tools" role="group" aria-label="Design history">
+              <button type="button" data-history-undo aria-label="Undo design change" aria-keyshortcuts="Control+Z Meta+Z" disabled><span aria-hidden="true">${builderIcons.undo}</span><b>Undo</b></button>
+              <button type="button" class="is-redo" data-history-redo aria-label="Redo design change" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled><span aria-hidden="true">${builderIcons.redo}</span><b>Redo</b></button>
+            </div>
+            <div class="workspace-toolbar-group workspace-display-tools" role="group" aria-label="Model display">
+              <span>Show:</span>
+              <button type="button" data-toggle-dimensions aria-pressed="true">Dimensions</button>
+              <button type="button" data-toggle-wall aria-pressed="true">Wall</button>
+            </div>
+            <div class="workspace-toolbar-group workspace-model-tools" role="group" aria-label="Model interaction tool">
+              <button type="button" data-model-tool="pan" aria-pressed="false" aria-label="Pan model" title="Pan model"><span aria-hidden="true">${builderIcons.pan}</span></button>
+              <button type="button" data-model-tool="select" aria-pressed="true" aria-label="Select model component" title="Select model component"><span aria-hidden="true">${builderIcons.select}</span></button>
+              <button type="button" data-reset-view aria-label="Reset model view" title="Reset model view"><span aria-hidden="true">${builderIcons.reset}</span></button>
+              <button type="button" data-model-fullscreen aria-pressed="false" aria-label="Enter model fullscreen" title="Fullscreen model"><span aria-hidden="true">${builderIcons.fullscreen}</span></button>
+            </div>
+          </header>
+          <div class="workspace-viewer-room" data-viewer-room>
+            <div class="viewer-stage" data-3d-viewer tabindex="0" role="application" aria-roledescription="interactive 3D configurator" aria-label="Built-in bookcase model. Select a component to edit, or choose the hand tool to pan. Use plus or minus to zoom."></div>
+            <div class="configurator-hover-label" data-model-hover-label hidden></div>
+          </div>
         </section>
 
-        <section class="configurator-estimate-bar" aria-label="Estimate and next steps">
+        <aside class="workspace-properties" data-properties-inspector data-controls-scroll aria-label="Selected object properties" tabindex="-1">
+          <div class="workspace-properties-content" data-inspector-content></div>
+        </aside>
+
+        <section class="workspace-section-organizer" data-section-organizer aria-label="Bookcase sections">
+          <div data-section-organizer-content></div>
+        </section>
+
+        <aside class="workspace-total-width" data-total-width-card aria-label="Total width status">
+          <div data-total-width-content></div>
+        </aside>
+
+        <footer class="configurator-estimate-bar workspace-estimate-bar" data-estimate-bar aria-label="Estimate and next steps">
           <div class="configurator-price-block">
-            <span class="price-kicker">Estimated project price</span>
+            <span class="price-kicker">Estimated price</span>
             <strong data-price>${formatPrice(this.pricing.total)}</strong>
-            <p id="${this.id}-action-hint" class="configurator-quote-note" data-action-hint aria-live="polite">Final pricing is confirmed after measurements and project details are verified.</p>
+            <p id="${this.id}-action-hint" class="configurator-quote-note" data-action-hint aria-live="polite">Pricing is estimated and subject to final measurements.</p>
           </div>
           <div class="studio-trust-row" aria-label="JQ Bookcases value commitments">
             <div class="studio-trust-item"><span class="studio-trust-icon" aria-hidden="true">${builderIcons.premiumMaterials}</span><span><strong>Premium Materials</strong><small>Furniture-grade construction</small></span></div>
@@ -624,11 +687,10 @@ class BookcaseConfigurator {
             <div class="studio-trust-item"><span class="studio-trust-icon" aria-hidden="true">${builderIcons.customFit}</span><span><strong>Custom Fit</strong><small>Made for your exact space</small></span></div>
           </div>
           <div class="configurator-actions">
-            <button class="configurator-review-button" type="button" data-review-design>Review Design</button>
             <button class="configurator-save-button" type="button" data-save-design aria-label="Save Design">${builderIcons.save}<span>Save Design</span></button>
             <button class="configurator-quote-button" type="button" data-open-order="measurement">Request a Quote</button>
           </div>
-        </section>
+        </footer>
 
         <dialog class="configurator-review-dialog" data-review-dialog aria-labelledby="${this.id}-review-dialog-title">
           <div class="configurator-review-dialog-shell">
@@ -816,44 +878,257 @@ class BookcaseConfigurator {
     if (!this.elements?.inspectorContent) return;
     this.clearResetConfirmation();
     const scrollTop = this.elements.controlsScroll?.scrollTop || 0;
-    this.elements.inspectorContent.innerHTML = this.renderUnifiedInspector();
+    this.elements.inspectorContent.innerHTML = this.renderWorkspaceProperties();
+    if (this.elements.sectionOrganizerContent) {
+      this.elements.sectionOrganizerContent.innerHTML = this.renderSectionOrganizer();
+    }
+    if (this.elements.totalWidthContent) {
+      this.elements.totalWidthContent.innerHTML = this.renderTotalWidthCard();
+    }
+    const stageList = this.elements.stageRail?.querySelector(".workspace-stage-list");
+    if (stageList) stageList.innerHTML = this.renderWorkspaceStageRail();
     window.requestAnimationFrame(() => {
       if (!this.elements.controlsScroll) return;
       this.elements.controlsScroll.scrollTop = options.resetScroll ? 0 : scrollTop;
-      if (options.focusGroup && window.matchMedia("(min-width: 901px)").matches) {
-        this.host.querySelector(`[data-inspector-group="${normalizeInspectorGroup(options.focusGroup)}"]`)
-          ?.scrollIntoView?.({ block: "nearest", behavior: "auto" });
-      }
     });
   }
 
-  renderUnifiedInspector() {
+  renderWorkspaceProperties() {
+    const stage = WORKSPACE_STAGES.find((item) => item.id === this.activeStageId) || WORKSPACE_STAGES[0];
+    const selectedSection = this.getSelectedSectionState();
+    const title = this.selection
+      ? this.selection.title
+      : stage.label;
+    const subtitle = this.selection
+      ? (selectedSection ? formatSectionType(selectedSection.type) : this.selection.summary || stage.subtitle)
+      : stage.subtitle;
+    const tabs = this.getWorkspaceInspectorTabs(selectedSection);
+    const activeTab = tabs.find((tab) => tab.id === this.activeInspectorTabId)?.id || tabs[0]?.id || null;
+    if (activeTab) this.activeInspectorTabId = activeTab;
     return `
-      <div class="configurator-accordion" data-configurator-accordion>
-        ${UNIFIED_CONTROL_GROUPS.map((group) => this.renderInspectorGroup(group)).join("")}
-      </div>
-      <div class="unified-inspector-secondary-actions">
-        <button type="button" data-reset-design>Start over</button>
+      <header class="workspace-properties-heading">
+        <div><h2>${escapeHtml(title)}</h2><p>${escapeHtml(subtitle)}</p></div>
+        ${this.selection ? `<button type="button" data-close-selection aria-label="Clear model selection">${builderIcons.close}</button>` : ""}
+      </header>
+      ${tabs.length ? `
+        <div class="workspace-inspector-tabs" role="tablist" aria-label="Section properties">
+          ${tabs.map((tab) => `
+            <button id="${this.id}-tab-${tab.id}" type="button" role="tab" data-inspector-tab="${tab.id}" aria-selected="${tab.id === activeTab}" aria-controls="${this.id}-tabpanel-${tab.id}" tabindex="${tab.id === activeTab ? 0 : -1}">
+              <span aria-hidden="true">${builderIcons[tab.icon] || builderIcons.layout}</span><small>${escapeHtml(tab.label)}</small>
+            </button>
+          `).join("")}
+        </div>
+      ` : ""}
+      <div id="${this.id}-tabpanel-${activeTab || stage.id}" class="workspace-properties-panel" role="tabpanel" ${activeTab ? `aria-labelledby="${this.id}-tab-${activeTab}"` : ""} data-active-stage-panel="${escapeHtml(stage.id)}">
+        ${this.renderWorkspacePropertiesContent(activeTab, selectedSection)}
       </div>
     `;
   }
 
-  renderInspectorGroup(group) {
-    const expanded = group.id === this.activeInspectorGroup && !this.inspectorGroupCollapsed;
-    const panelId = `${this.id}-group-${group.id}`;
-    const linked = this.selection?.inspectorGroupId === group.id;
+  getSelectedSectionState() {
+    const sections = getSectionDesignerState(this.state, this.layout).sections;
+    const index = this.selection
+      ? (Number.isInteger(this.selection.sectionIndex) ? this.selection.sectionIndex : -1)
+      : this.selectedSectionIndex;
+    return sections[index] || null;
+  }
+
+  getWorkspaceInspectorTabs(selectedSection) {
+    if (!this.selection || !selectedSection || !["section", "divider", "door", "drawer", "shelves"].includes(this.selection.editorId)) return [];
+    const definitions = INSPECTOR_TAB_DEFINITIONS;
+    const ids = ["general", "shelves"];
+    if (["lower_doors", "tall_doors"].includes(selectedSection.type)) ids.push("doors");
+    if (selectedSection.type === "drawers") ids.push("drawers");
+    ids.push("back", "lighting");
+    return ids.map((id) => definitions[id]).filter(Boolean);
+  }
+
+  renderWorkspacePropertiesContent(activeTab, selectedSection) {
+    if (this.selection) {
+      const editorId = this.selection.editorId;
+      if (selectedSection && ["section", "divider", "door", "drawer", "shelves"].includes(editorId)) {
+        if (activeTab === "shelves") return this.renderShelvesGroup();
+        if (activeTab === "doors" || activeTab === "drawers") return this.renderSelectedSectionFronts(activeTab);
+        if (activeTab === "back") return this.renderBackPanelSummary();
+        if (activeTab === "lighting") return this.renderLightingGroup();
+        return this.renderSectionGeneralInspector({ includeFoundation: this.activeStageId === "layout" });
+      }
+      if (editorId === "hardware") return this.renderHardwareGroup();
+      if (editorId === "lighting") return this.renderLightingGroup();
+      if (editorId === "back") return this.renderBackPanelSummary();
+      if (editorId === "base" || editorId === "crown") return this.renderStructureGroup();
+      if (editorId === "body") return `${this.renderSpaceGroup()}${this.renderFinishGroup()}`;
+    }
+    if (this.activeStageId === "layout") return this.renderSectionGeneralInspector({ includeFoundation: true });
+    if (this.activeStageId === "storage") return `${this.renderShelvesGroup()}${this.renderStorageFrontsGroup()}`;
+    if (this.activeStageId === "preview") return `
+      <section class="workspace-preview-stage">
+        <button class="workspace-review-launch" type="button" data-review-design>Review Design</button>
+        ${this.renderServiceGroup()}
+        <button class="workspace-reset-link" type="button" data-reset-design>Start over</button>
+      </section>`;
+    const groups = STAGE_CONTROL_GROUPS[this.activeStageId] || [];
+    return groups.map((groupId) => this.renderControlGroup(groupId, "properties")).join("");
+  }
+
+  renderSectionGeneralInspector({ includeFoundation = false } = {}) {
+    const designer = getSectionDesignerState(this.state, this.layout);
+    this.selectedSectionIndex = clamp(this.selectedSectionIndex, 0, Math.max(0, designer.sections.length - 1));
+    const selected = designer.sections[this.selectedSectionIndex];
+    if (!selected) return "";
+    const typeOptions = [
+      ["open", "Open Shelves", "Full-height adjustable"],
+      ["lower_doors", "Lower Doors", "Closed storage"],
+      ["drawers", "Lower Drawers", `${this.state.drawerCount} fitted drawers`],
+      ["tall_doors", "Tall Doors", "Full-height storage"]
+    ];
+    const widthValue = this.sectionWidthDraft || formatSectionWidth(selected.width);
+    const duplicateAvailability = duplicateSection(this.state, this.layout, selected.index);
+    const deleteAvailability = deleteSection(this.state, this.layout, selected.index);
     return `
-      <section class="configurator-category${linked ? " is-selection-linked" : ""}" data-category="${group.id}" data-inspector-group="${group.id}">
-        <h3>
-          <button id="${panelId}-trigger" type="button" data-category-trigger="${group.id}" aria-expanded="${expanded}" aria-controls="${panelId}">
-            <span>${escapeHtml(group.label)}<small data-category-summary="${escapeHtml(group.id)}">${escapeHtml(getInspectorGroupSummary(group.id, this.state, this.layout, this.basePresetId))}</small></span>
-            <i aria-hidden="true">${expanded ? builderIcons.minus : builderIcons.plus}</i>
-          </button>
-        </h3>
-        <div id="${panelId}" class="configurator-category-panel" data-category-panel="${group.id}" role="region" aria-labelledby="${panelId}-trigger" ${expanded ? "" : "hidden"}>
-          ${this.renderControlGroup(group.id, "inspector")}
+      <section class="workspace-section-general" data-section-general>
+        <fieldset class="workspace-section-types" ${selected.locked ? "disabled" : ""}>
+          <legend>Section type</legend>
+          <div class="workspace-section-type-grid">
+            ${typeOptions.map(([type, label, description]) => `
+              <label class="workspace-section-type-card">
+                <input type="radio" name="${this.id}-section-type" data-section-type="${type}" ${selected.type === type ? "checked" : ""}>
+                <span aria-hidden="true">${this.renderSectionThumbnail({ ...selected, type })}</span>
+                <strong>${escapeHtml(label)}</strong><small>${escapeHtml(description)}</small>
+                ${selected.type === type ? `<i class="workspace-type-check" aria-hidden="true">${builderIcons.check}</i>` : ""}
+              </label>
+            `).join("")}
+          </div>
+        </fieldset>
+        ${selected.locked ? `<p class="workspace-property-note">This preset feature is structurally locked. Choose another foundation to change its type.</p>` : ""}
+        <section class="workspace-property-block section-width-editor" aria-labelledby="${this.id}-section-width-label">
+          <h3 id="${this.id}-section-width-label">Width (clear)</h3>
+          <div class="section-width-input workspace-number-stepper">
+            <button type="button" data-section-width-step="-0.5" aria-label="Decrease Section ${selected.index + 1} clear width">${builderIcons.minus}</button>
+            <input id="${this.id}-section-width" data-section-width type="number" min="${designer.minimumClearWidth}" step="0.25" inputmode="decimal" value="${escapeHtml(widthValue)}" aria-describedby="${this.id}-section-width-help ${this.id}-section-width-error">
+            <button type="button" data-section-width-step="0.5" aria-label="Increase Section ${selected.index + 1} clear width">${builderIcons.plus}</button>
+            <span>in</span>
+          </div>
+          <p id="${this.id}-section-width-help" class="control-helper">Overall width stays ${formatSectionWidth(this.state.width)} in. Drag a model divider or use these controls.</p>
+          <p id="${this.id}-section-width-error" class="inline-validation-message" data-section-width-error aria-live="polite"></p>
+        </section>
+        <section class="workspace-global-dimensions" aria-label="Overall dimensions">
+          <h3>Overall dimensions</h3>
+          <p>Height and depth apply to the entire bookcase.</p>
+          ${this.renderStepperControl("height", "Bookcase height (in)", 72, 120)}
+          ${this.renderStepperControl("depth", "Bookcase depth (in)", 10, 24)}
+        </section>
+        <div class="workspace-section-actions">
+          <button type="button" data-section-duplicate ${duplicateAvailability.accepted ? "" : `disabled aria-describedby="${this.id}-duplicate-reason"`}>${builderIcons.copy}<span>Duplicate Section</span></button>
+          <button type="button" class="is-destructive" data-section-delete ${deleteAvailability.accepted ? "" : `disabled aria-describedby="${this.id}-delete-reason"`}>${builderIcons.delete}<span>Delete Section</span></button>
         </div>
+        ${duplicateAvailability.accepted ? "" : `<p id="${this.id}-duplicate-reason" class="workspace-action-reason"><strong>Duplicate unavailable:</strong> ${escapeHtml(duplicateAvailability.error?.message || "This section cannot be duplicated.")}</p>`}
+        ${deleteAvailability.accepted ? "" : `<p id="${this.id}-delete-reason" class="workspace-action-reason"><strong>Delete unavailable:</strong> ${escapeHtml(deleteAvailability.error?.message || "This section cannot be deleted.")}</p>`}
+        ${includeFoundation ? `
+          <details class="workspace-foundation-ideas"><summary>Change foundation idea</summary>${this.renderLayoutCards("inspector")}</details>
+          <details class="workspace-construction-details" open><summary>Base &amp; crown</summary>${this.renderStructureGroup()}</details>
+        ` : ""}
       </section>
+    `;
+  }
+
+  renderSelectedSectionFronts(activeTab) {
+    const selected = this.getSelectedSectionState();
+    if (!selected) return "";
+    const isDoors = activeTab === "doors";
+    const arrangement = selected.doorLayout?.arrangement || "auto";
+    const generatedDoor = this.layout.components.find((component) => (
+      component.role === "door" && component.id.startsWith(`${selected.id}-`)
+    ));
+    const arrangementAvailability = generatedDoor?.metadata?.arrangementAvailability || {};
+    return `
+      <section class="workspace-front-properties" aria-label="${isDoors ? "Door" : "Drawer"} properties">
+        <header><h3>${isDoors ? "Door profile" : "Drawer profile"}</h3><p>Applied to the accepted fronts generated for Section ${selected.index + 1}.</p></header>
+        ${this.renderDoorGroup(isDoors ? "doors" : "drawers")}
+        ${isDoors ? `
+          <fieldset class="section-door-arrangement-field">
+            <legend>Door arrangement</legend>
+            <div class="segmented-options section-door-arrangement-options">
+              ${[["auto", "Auto"], ["single_hinge_left", "Left"], ["single_hinge_right", "Right"], ["pair", "Pair"]].map(([value, label]) => `
+                <label title="${escapeHtml(arrangementAvailability[value]?.reason || "")}"><input type="radio" name="${this.id}-section-door-arrangement" data-section-door-arrangement="${value}" value="${value}" ${arrangement === value ? "checked" : ""} ${arrangementAvailability[value]?.enabled === false ? "disabled" : ""}><span>${label}</span></label>
+              `).join("")}
+            </div>
+          </fieldset>
+        ` : ""}
+        <button class="workspace-related-stage" type="button" data-workspace-stage-link="hardware">Choose handles &amp; knobs ${builderIcons.chevronRight}</button>
+      </section>
+    `;
+  }
+
+  renderBackPanelSummary() {
+    return `
+      <section class="workspace-readonly-property">
+        <span aria-hidden="true">${builderIcons.backPanel}</span>
+        <div><h3>Standard fitted back</h3><p>A continuous furniture-grade back is included behind every section and follows the selected finish. Custom back options are not yet available.</p></div>
+        <strong>Included</strong>
+      </section>
+    `;
+  }
+
+  renderSectionThumbnail(section, semanticThumbnail = null) {
+    const sectionType = section.type || semanticThumbnail?.sectionType || "open";
+    const shelfCount = semanticThumbnail
+      ? semanticThumbnail.shelfCount
+      : sectionType === "tall_doors" ? 0 : Math.min(5, Math.max(2, Number(this.state.shelves) || 4));
+    const drawerFrontCount = semanticThumbnail?.drawerFrontCount
+      ?? (sectionType === "drawers" ? Math.min(4, Math.max(2, Number(this.state.drawerCount) || 3)) : 0);
+    const doorLeafCount = semanticThumbnail?.doorLeafCount
+      ?? (["lower_doors", "tall_doors"].includes(sectionType) ? 1 : 0);
+    const lowerFronts = drawerFrontCount
+      ? Array.from({ length: drawerFrontCount }, () => "<i></i>").join("")
+      : sectionType === "lower_doors" && doorLeafCount ? Array.from({ length: doorLeafCount }, () => "<i class=\"is-door\"></i>").join("") : "";
+    return `
+      <span class="workspace-section-thumbnail is-${escapeHtml(sectionType)}">
+        <span class="workspace-thumbnail-shelves">${Array.from({ length: shelfCount }, () => "<i></i>").join("")}</span>
+        ${sectionType === "tall_doors" ? `<span class="workspace-thumbnail-tall-door is-${doorLeafCount > 1 ? "pair" : "single"}"></span>` : ""}
+        ${lowerFronts ? `<span class="workspace-thumbnail-fronts">${lowerFronts}</span>` : ""}
+      </span>
+    `;
+  }
+
+  renderSectionOrganizer() {
+    const organizer = createSectionOrganizerSummary(this.state, this.layout);
+    const addAvailability = addSection(this.state, this.layout, this.selectedSectionIndex);
+    return `
+      <header class="workspace-organizer-summary">
+        <div><strong>Sections (${organizer.sectionCount})</strong><small>${escapeHtml(organizer.totalClearWidthLabel)}</small></div>
+      </header>
+      <div class="workspace-section-cards" role="list" aria-label="Current sections">
+        <button class="workspace-add-section" type="button" data-section-add ${addAvailability.accepted ? "" : `disabled title="${escapeHtml(addAvailability.error?.message || "A section cannot be added.")}"`} role="listitem">
+          <span aria-hidden="true">${builderIcons.plus}</span><strong>Add<br>Section</strong>
+        </button>
+        ${organizer.items.map((section) => {
+          const duplicateAvailability = duplicateSection(this.state, this.layout, section.index);
+          const deleteAvailability = deleteSection(this.state, this.layout, section.index);
+          return `
+          <article class="workspace-section-card${section.index === this.selectedSectionIndex ? " is-selected" : ""}" role="listitem" data-section-card="${section.index}">
+            <button type="button" class="workspace-section-card-main" data-section-select="${section.index}" aria-pressed="${section.index === this.selectedSectionIndex}">
+              ${this.renderSectionThumbnail(section, section.thumbnail)}
+              <span><strong>${escapeHtml(section.title)}</strong><small>${escapeHtml(section.widthLabel.replace(" clear", ""))}</small></span>
+              ${section.index === this.selectedSectionIndex ? `<i class="workspace-selected-check" aria-hidden="true">${builderIcons.check}</i>` : ""}
+            </button>
+            <details class="workspace-section-menu">
+              <summary aria-label="Section ${section.index + 1} actions">${builderIcons.more}</summary>
+              <div><button type="button" data-section-duplicate="${section.index}" ${duplicateAvailability.accepted ? "" : `disabled title="${escapeHtml(duplicateAvailability.error?.message || "Unavailable")}"`}>Duplicate</button><button type="button" data-section-delete="${section.index}" ${deleteAvailability.accepted ? "" : `disabled title="${escapeHtml(deleteAvailability.error?.message || "Unavailable")}"`}>Delete</button></div>
+            </details>
+          </article>
+        `;}).join("")}
+      </div>
+    `;
+  }
+
+  renderTotalWidthCard() {
+    const dimensionValidation = validateUnifiedConfiguration(this.state, this.layout, this.drafts, { groupId: "overall_size" });
+    const accepted = dimensionValidation.valid !== false && this.layout?.validation?.valid !== false;
+    return `
+      <span>Total width</span>
+      <strong>${formatSectionWidth(this.state.width)} <small>in</small></strong>
+      <p>${accepted ? "Valid overall width" : "Review dimensions"}<i aria-hidden="true" class="${accepted ? "is-valid" : "is-invalid"}">${accepted ? builderIcons.check : builderIcons.information}</i></p>
     `;
   }
 
@@ -1071,8 +1346,8 @@ class BookcaseConfigurator {
             <p id="${this.id}-merge-right-reason" class="sr-only">${escapeHtml(mergeRightReason)}</p>
           </details>
           <div class="section-history-actions" aria-label="Section edit history">
-            <button type="button" data-section-undo ${this.sectionUndoStack.length ? "" : `disabled aria-describedby="${this.id}-undo-reason"`}>Undo</button>
-            <button type="button" data-section-redo ${this.sectionRedoStack.length ? "" : `disabled aria-describedby="${this.id}-redo-reason"`}>Redo</button>
+            <button type="button" data-section-undo ${this.designHistory.undo.length ? "" : `disabled aria-describedby="${this.id}-undo-reason"`}>Undo</button>
+            <button type="button" data-section-redo ${this.designHistory.redo.length ? "" : `disabled aria-describedby="${this.id}-redo-reason"`}>Redo</button>
             <button type="button" data-section-reset>Reset to Preset</button>
           </div>
           <p id="${this.id}-undo-reason" class="sr-only">No section edit is available to undo.</p>
@@ -1082,7 +1357,7 @@ class BookcaseConfigurator {
     `;
   }
 
-  renderDoorGroup() {
+  renderDoorGroup(scope = "all") {
     const descriptions = {
       shaker: "Classic framed profile",
       flat: "Clean slab front",
@@ -1100,19 +1375,19 @@ class BookcaseConfigurator {
     `).join("");
     return `
       <div class="front-profile-groups" data-front-profile-groups>
-        <fieldset class="choice-field front-profile-group" data-applicability="doors">
+        ${scope === "drawers" ? "" : `<fieldset class="choice-field front-profile-group" data-applicability="doors">
           <legend>Door front profile</legend>
           <div class="door-style-grid">${renderProfiles("doorStyle", doorStyleOptions, "door")}</div>
           <div class="generated-front-count">
             <span>Generated door count</span>
             <output data-generated-door-count aria-live="polite"></output>
           </div>
-        </fieldset>
-        <fieldset class="choice-field front-profile-group" data-applicability="drawers">
+        </fieldset>`}
+        ${scope === "doors" ? "" : `<fieldset class="choice-field front-profile-group" data-applicability="drawers">
           <legend>Drawer front profile</legend>
           <div class="door-style-grid">${renderProfiles("drawerFrontStyle", drawerFrontStyleOptions, "drawer")}</div>
           <p class="control-helper">Drawer fronts support Shaker, Flat Panel, and Slim Shaker profiles.</p>
-        </fieldset>
+        </fieldset>`}
       </div>
     `;
   }
@@ -1431,6 +1706,7 @@ class BookcaseConfigurator {
   }
 
   renderLightingGroup() {
+    const generatedLightCount = getApplicability(this.state, this.layout).generatedLightCount;
     const lighting = lightingOptions.map((option) => `
         <div class="lighting-card" data-lighting="${option.value}">
           <input id="${this.id}-lighting-${option.value}" data-field="lighting" name="${this.id}-lighting" type="radio" value="${option.value}">
@@ -1449,6 +1725,7 @@ class BookcaseConfigurator {
     return `
         <section class="control-section control-section-lighting">
           <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.lighting}</span>Lighting</h2>
+          <p class="control-scope-note">Applies to all ${generatedLightCount} compatible ${generatedLightCount === 1 ? "location" : "locations"} in the accepted design.</p>
           <fieldset class="lighting-field">
             <legend class="sr-only">Lighting package</legend>
             <div class="lighting-grid">${lighting}</div>
@@ -1502,6 +1779,10 @@ class BookcaseConfigurator {
       status: this.host.querySelector("[data-builder-status]"),
       controlsScroll: this.host.querySelector("[data-controls-scroll]"),
       inspectorContent: this.host.querySelector("[data-inspector-content]"),
+      stageRail: this.host.querySelector("[data-workspace-stages]"),
+      modelWorkspace: this.host.querySelector("[data-model-workspace]"),
+      sectionOrganizerContent: this.host.querySelector("[data-section-organizer-content]"),
+      totalWidthContent: this.host.querySelector("[data-total-width-content]"),
       contextEditor: this.host.querySelector("[data-contextual-editor]"),
       contextContent: this.host.querySelector("[data-context-content]"),
       contextTitle: this.host.querySelector("[data-context-title]"),
@@ -1662,8 +1943,6 @@ class BookcaseConfigurator {
     this.drafts = {};
     this.designIntent = STUDIO_DESIGN_INTENTS.newDesign;
     this.resetNewDesignPresentation();
-    this.sectionUndoStack = [];
-    this.sectionRedoStack = [];
     this.render();
     this.cacheElements();
     this.viewer = this.createViewer(this.layout);
@@ -1673,7 +1952,11 @@ class BookcaseConfigurator {
     this.syncInterface();
     this.initializeUnifiedModelInteraction();
     this.activateSectionDesigner({ render: false, announce: false, focusCamera: false });
-    this.focusCameraForCurrentContext({ duration: SMART_CAMERA_DURATION });
+    this.selectSection(this.selectedSectionIndex, { openProperties: true, render: true });
+    this.viewer.setInteractionTool?.(this.activeTool);
+    this.viewer.setDimensionsVisible?.(this.showDimensions);
+    this.viewer.setWallVisible?.(this.showWall);
+    this.setView("front");
     this.directHardwareEditorPromise = null;
     this.emitStudioEvent("studio_design_accepted", {
       source: this.initialSource,
@@ -1686,7 +1969,7 @@ class BookcaseConfigurator {
 
   initializeCabinetAr() {
     if (this.arControllerPromise) return this.arControllerPromise;
-    this.arControllerPromise = import("./cabinet-ar-ui.js?v=direct-hardware-20260714a")
+    this.arControllerPromise = import("./cabinet-ar-ui.js?v=reference-layout-20260715g")
       .then(({ CabinetArController }) => {
         if (!this.elements.arDialog) return null;
         this.arController = new CabinetArController({
@@ -1845,61 +2128,29 @@ class BookcaseConfigurator {
     }
     const selection = this.resolveModelSelection(payload);
     if (!selection) return false;
-    if (Number.isFinite(selection.anchorClientX) && Number.isFinite(selection.anchorClientY)) {
-      const viewerRect = this.elements.viewer.getBoundingClientRect();
-      selection.projectedAnchor = {
-        x: selection.anchorClientX - viewerRect.left,
-        y: selection.anchorClientY - viewerRect.top,
-        visible: true,
-        initialPointer: true
-      };
-    }
     this.contextInvoker = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.selection = selection;
     this.contextEditorOpen = true;
     this.activeInspectorGroup = normalizeInspectorGroup(selection.inspectorGroupId);
+    const workspaceRoute = resolveWorkspaceSelection(selection, this.layout);
+    this.activeStageId = workspaceRoute?.stageId || selection.stageId || "layout";
+    this.activeInspectorTabId = workspaceRoute?.inspectorTabId || selection.inspectorTabId || "general";
     this.inspectorGroupCollapsed = false;
     if (Number.isInteger(selection.sectionIndex)) this.selectedSectionIndex = selection.sectionIndex;
     this.viewer.setSelectedComponent?.(selection.highlightTarget?.componentId || selection.componentId);
     this.renderInspector({ focusGroup: this.activeInspectorGroup });
-    this.renderContextEditor();
-    selection.projectedAnchor = null;
     this.syncInterface();
     const announcement = `${selection.title} selected.`;
     if (this.elements.selectionLive) this.elements.selectionLive.textContent = announcement;
     if (selection.source === "keyboard") {
-      window.requestAnimationFrame(() => this.elements.contextEditor?.querySelector("[data-close-context]")?.focus({ preventScroll: true }));
+      window.requestAnimationFrame(() => this.host.querySelector("[data-close-selection]")?.focus({ preventScroll: true }));
     }
     return true;
   }
 
   renderContextEditor() {
-    const editor = this.elements?.contextEditor;
-    if (!editor || !this.selection || !this.contextEditorOpen) {
-      if (editor) editor.hidden = true;
-      return;
-    }
-    const groups = Array.isArray(this.selection.controlGroupIds) && this.selection.controlGroupIds.length
-      ? this.selection.controlGroupIds
-      : [this.selection.inspectorGroupId];
-    this.elements.contextTitle.textContent = this.selection.title;
-    this.elements.contextEyebrow.textContent = this.selection.eyebrow || "Selected component";
-    this.elements.contextSummary.textContent = this.selection.summary || this.getSelectionSummary(this.selection);
-    this.elements.contextContent.innerHTML = groups.map((groupId) => `
-      <section class="configurator-context-group" data-context-group="${escapeHtml(groupId)}">
-        ${groups.length > 1 ? `<h3>${escapeHtml(UNIFIED_CONTROL_GROUPS.find((group) => group.id === groupId)?.label || "Settings")}</h3>` : ""}
-        ${this.renderControlGroup(groupId, "context")}
-      </section>
-    `).join("");
-    editor.hidden = false;
-    this.elements.shell.classList.add("is-context-open");
-    this.syncControls();
-    this.renderDoorOptions();
-    this.syncApplicability();
-    this.syncValidationMessages();
-    const anchor = this.selection.projectedAnchor
-      || this.viewer.getComponentScreenAnchor?.(this.selection.anchorComponentId || this.selection.componentId);
-    window.requestAnimationFrame(() => this.updateContextAnchor(anchor));
+    // Context now renders in the fixed properties inspector. This compatibility
+    // hook remains for existing update paths and intentionally creates no overlay.
   }
 
   getSelectionSummary(selection) {
@@ -1912,54 +2163,7 @@ class BookcaseConfigurator {
   }
 
   updateContextAnchor(anchor = null) {
-    if (!this.contextEditorOpen || !this.elements?.contextEditor || this.elements.contextEditor.hidden) return;
-    const editor = this.elements.contextEditor;
-    const mobile = window.matchMedia("(max-width: 767px)").matches;
-    if (mobile) {
-      editor.style.removeProperty("left");
-      editor.style.removeProperty("top");
-      this.elements.contextLeader.hidden = true;
-      return;
-    }
-    const resolvedAnchor = anchor || this.viewer.getComponentScreenAnchor?.(this.selection?.anchorComponentId || this.selection?.componentId);
-    if (!resolvedAnchor?.visible) {
-      this.elements.contextLeader.hidden = true;
-      return;
-    }
-    this.contextAnchor = resolvedAnchor;
-    const model = this.elements.viewer.closest(".configurator-model");
-    const modelRect = model?.getBoundingClientRect();
-    const viewerRect = this.elements.viewer.getBoundingClientRect();
-    if (!modelRect) return;
-    const safe = this.viewer.getSafeViewport?.() || { width: viewerRect.width, height: viewerRect.height, insets: {} };
-    const cardRect = editor.getBoundingClientRect();
-    const margin = 16;
-    const gap = 24;
-    const anchorX = resolvedAnchor.x + viewerRect.left - modelRect.left;
-    const anchorY = resolvedAnchor.y + viewerRect.top - modelRect.top;
-    const minimumLeft = Math.max(margin, (safe.insets?.left || 0) + viewerRect.left - modelRect.left);
-    const maximumRight = Math.min(modelRect.width - margin, viewerRect.right - modelRect.left - (safe.insets?.right || 0));
-    const minimumTop = Math.max(margin, (safe.insets?.top || 0) + viewerRect.top - modelRect.top);
-    const maximumBottom = Math.min(modelRect.height - margin, viewerRect.bottom - modelRect.top - (safe.insets?.bottom || 0));
-    const roomRight = maximumRight - anchorX;
-    const roomLeft = anchorX - minimumLeft;
-    const useRight = roomRight >= cardRect.width + gap || roomRight >= roomLeft;
-    const proposedLeft = useRight ? anchorX + gap : anchorX - gap - cardRect.width;
-    const left = clamp(proposedLeft, minimumLeft, Math.max(minimumLeft, maximumRight - cardRect.width));
-    const top = clamp(anchorY - cardRect.height * 0.35, minimumTop, Math.max(minimumTop, maximumBottom - cardRect.height));
-    editor.style.left = `${left}px`;
-    editor.style.top = `${top}px`;
-    const endX = useRight ? left : left + cardRect.width;
-    const endY = clamp(anchorY, top + 20, top + cardRect.height - 20);
-    const leader = this.elements.contextLeader;
-    leader.hidden = false;
-    leader.setAttribute("viewBox", `0 0 ${Math.max(1, modelRect.width)} ${Math.max(1, modelRect.height)}`);
-    this.elements.contextLeaderLine.setAttribute("x1", String(anchorX));
-    this.elements.contextLeaderLine.setAttribute("y1", String(anchorY));
-    this.elements.contextLeaderLine.setAttribute("x2", String(endX));
-    this.elements.contextLeaderLine.setAttribute("y2", String(endY));
-    this.elements.contextAnchorDot.setAttribute("cx", String(anchorX));
-    this.elements.contextAnchorDot.setAttribute("cy", String(anchorY));
+    void anchor;
   }
 
   closeContextEditor(options = {}) {
@@ -1979,7 +2183,8 @@ class BookcaseConfigurator {
   }
 
   bindEvents() {
-    this.host.addEventListener("submit", (event) => event.preventDefault());
+    const signal = this.eventAbortController.signal;
+    this.host.addEventListener("submit", (event) => event.preventDefault(), { signal });
     this.host.addEventListener("pointerdown", (event) => {
       if (!this.hasAcceptedDesign && event.target.closest?.("[data-studio-intro-preview], [data-studio-preview-index]")) {
         this.stopStudioPreviewMotion(true);
@@ -1994,19 +2199,19 @@ class BookcaseConfigurator {
       if (!range || !this.host.contains(range)) return;
       this.focusCameraForField(range.dataset.field);
       this.beginRangeDrag(event, range);
-    });
+    }, { signal });
     this.host.addEventListener("pointermove", (event) => {
       this.updateSectionDividerDrag(event);
       this.updateRangeDrag(event);
-    });
+    }, { signal });
     this.host.addEventListener("pointerup", (event) => {
       this.endSectionDividerDrag(event);
       this.endRangeDrag(event);
-    });
+    }, { signal });
     this.host.addEventListener("pointercancel", (event) => {
       this.cancelSectionDividerDrag(event);
       this.endRangeDrag(event);
-    });
+    }, { signal });
 
     this.host.addEventListener("pointerover", (event) => {
       if (event.pointerType === "touch") return;
@@ -2016,18 +2221,18 @@ class BookcaseConfigurator {
       if (!input?.matches?.("input[data-field]") || !this.host.contains(input)) return;
       this.focusCameraForField(input.dataset.field);
       this.scheduleOptionPreview(label, input);
-    });
+    }, { signal });
 
     this.host.addEventListener("pointerout", (event) => {
       const label = event.target.closest?.("label");
       if (!label || !this.host.contains(label) || label.contains(event.relatedTarget)) return;
       this.endOptionPreview(label);
-    });
+    }, { signal });
 
     this.host.addEventListener("focusin", (event) => {
       const field = event.target.closest?.("[data-field], [data-validation-field]");
       if (field && this.host.contains(field)) this.focusCameraForField(field.dataset.field || field.dataset.validationField);
-    });
+    }, { signal });
 
     this.host.addEventListener("input", (event) => {
       const sectionWidth = event.target.closest?.("[data-section-width]");
@@ -2049,7 +2254,7 @@ class BookcaseConfigurator {
       if (!field || !this.host.contains(field)) return;
       if (field.type === "radio" || field.type === "checkbox" || field.tagName === "SELECT") return;
       this.handleFieldInput(field);
-    });
+    }, { signal });
 
     this.host.addEventListener("change", (event) => {
       const sectionWidth = event.target.closest?.("[data-section-width]");
@@ -2092,12 +2297,42 @@ class BookcaseConfigurator {
       if (!field || !this.host.contains(field)) return;
       if (field.type !== "radio" && field.type !== "checkbox" && field.tagName !== "SELECT") return;
       this.handleFieldInput(field);
-    });
+    }, { signal });
 
     this.host.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        const openMenu = this.host.querySelector(".workspace-section-menu[open]");
+        if (openMenu) {
+          event.preventDefault();
+          openMenu.removeAttribute("open");
+          openMenu.querySelector("summary")?.focus({ preventScroll: true });
+          return;
+        }
+      }
+      const isTextEditing = event.target.matches?.("input:not([type=radio]):not([type=checkbox]), textarea, [contenteditable=true]");
+      if ((event.metaKey || event.ctrlKey) && !event.altKey && !isTextEditing) {
+        const key = event.key.toLowerCase();
+        if (key === "z" || key === "y") {
+          event.preventDefault();
+          if (key === "y" || (key === "z" && event.shiftKey)) this.redoDesignChange();
+          else this.undoDesignChange();
+          return;
+        }
+      }
       if (event.key === "Escape" && this.contextEditorOpen) {
         event.preventDefault();
         this.closeContextEditor({ restoreFocus: true });
+        return;
+      }
+      const inspectorTab = event.target.closest?.("[data-inspector-tab]");
+      if (inspectorTab && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+        const tabs = [...this.host.querySelectorAll("[data-inspector-tab]")];
+        const current = tabs.indexOf(inspectorTab);
+        const nextIndex = event.key === "Home" ? 0
+          : event.key === "End" ? tabs.length - 1
+            : (current + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+        event.preventDefault();
+        tabs[nextIndex]?.click();
         return;
       }
       const divider = event.target.closest?.("[data-section-divider]");
@@ -2132,7 +2367,7 @@ class BookcaseConfigurator {
               : event.key === "ArrowUp" ? -columns
                 : 0;
         const next = event.key === "Home" ? 0 : event.key === "End" ? count - 1 : clamp(current + offset, 0, count - 1);
-        this.selectSection(next, { focus: true });
+        this.selectSection(next, { openProperties: true, focus: true, ensureFramed: true });
         return;
       }
       const profileRadio = event.target.closest?.('input[type="radio"][data-field]');
@@ -2150,19 +2385,36 @@ class BookcaseConfigurator {
         event.preventDefault();
         this.applyBenjaminMooreQuery(colorQuery.value);
       }
-    });
+    }, { signal });
 
-    this.host.addEventListener("click", (event) => this.handleDelegatedClick(event));
+    this.host.addEventListener("click", (event) => this.handleDelegatedClick(event), { signal });
+
+    document.addEventListener("click", (event) => {
+      const activeSectionMenu = event.target.closest?.(".workspace-section-menu");
+      if (activeSectionMenu && this.host.contains(activeSectionMenu)) return;
+      this.host.querySelectorAll(".workspace-section-menu[open]").forEach((menu) => menu.removeAttribute("open"));
+    }, { signal });
 
     this.elements.reviewDialog?.addEventListener("click", (event) => {
       if (event.target === this.elements.reviewDialog) this.closeReviewDialog();
-    });
-    this.elements.reviewDialog?.addEventListener("close", () => this.restoreReviewFocus());
-    this.elements.form?.addEventListener("submit", (event) => event.preventDefault());
+    }, { signal });
+    this.elements.reviewDialog?.addEventListener("close", () => this.restoreReviewFocus(), { signal });
+    this.elements.form?.addEventListener("submit", (event) => event.preventDefault(), { signal });
+    document.addEventListener("fullscreenchange", () => {
+      this.syncWorkspaceToolbar();
+      window.requestAnimationFrame(() => this.viewer.resize?.());
+    }, { signal });
+    window.addEventListener("pagehide", (event) => {
+      if (!event.persisted) this.destroy();
+    }, { signal });
   }
 
   handleDelegatedClick(event) {
     const target = event.target;
+    const activeSectionMenu = target.closest?.(".workspace-section-menu");
+    this.host.querySelectorAll(".workspace-section-menu[open]").forEach((menu) => {
+      if (menu !== activeSectionMenu) menu.removeAttribute("open");
+    });
     if (!this.hasAcceptedDesign) {
       const route = target.closest?.("[data-studio-route]");
       if (route) {
@@ -2219,6 +2471,54 @@ class BookcaseConfigurator {
       }
       return;
     }
+    const stageButton = target.closest?.("[data-workspace-stage], [data-workspace-stage-link]");
+    if (stageButton) {
+      this.activateWorkspaceStage(stageButton.dataset.workspaceStage || stageButton.dataset.workspaceStageLink);
+      return;
+    }
+    const inspectorTab = target.closest?.("[data-inspector-tab]");
+    if (inspectorTab) {
+      this.activeInspectorTabId = inspectorTab.dataset.inspectorTab;
+      this.renderInspector();
+      this.syncInterface();
+      window.requestAnimationFrame(() => this.host.querySelector(`[data-inspector-tab="${this.activeInspectorTabId}"]`)?.focus({ preventScroll: true }));
+      return;
+    }
+    if (target.closest?.("[data-close-selection]")) {
+      this.closeContextEditor({ restoreFocus: true });
+      return;
+    }
+    if (target.closest?.("[data-history-undo]")) {
+      this.undoDesignChange();
+      return;
+    }
+    if (target.closest?.("[data-history-redo]")) {
+      this.redoDesignChange();
+      return;
+    }
+    if (target.closest?.("[data-toggle-dimensions]")) {
+      this.showDimensions = !this.showDimensions;
+      this.viewer.setDimensionsVisible?.(this.showDimensions);
+      this.syncWorkspaceToolbar();
+      return;
+    }
+    if (target.closest?.("[data-toggle-wall]")) {
+      this.showWall = !this.showWall;
+      this.viewer.setWallVisible?.(this.showWall);
+      this.syncWorkspaceToolbar();
+      return;
+    }
+    const modelTool = target.closest?.("[data-model-tool]");
+    if (modelTool) {
+      this.activeTool = modelTool.dataset.modelTool;
+      this.viewer.setInteractionTool?.(this.activeTool);
+      this.syncWorkspaceToolbar();
+      return;
+    }
+    if (target.closest?.("[data-model-fullscreen]")) {
+      this.toggleModelFullscreen();
+      return;
+    }
     const profileRadio = target.closest?.('input[type="radio"][data-field]');
     if (profileRadio && PROFILE_FOCUS_FIELDS.has(profileRadio.dataset.field)) {
       const fieldName = profileRadio.dataset.field;
@@ -2251,7 +2551,12 @@ class BookcaseConfigurator {
     }
     const sectionSelect = target.closest?.("[data-section-select]");
     if (sectionSelect) {
-      this.selectSection(Number(sectionSelect.dataset.sectionSelect));
+      this.selectSection(Number(sectionSelect.dataset.sectionSelect), { openProperties: true, focus: true, ensureFramed: true });
+      return;
+    }
+    const overlaySectionSelect = target.closest?.("[data-overlay-section-select]");
+    if (overlaySectionSelect) {
+      this.selectSection(Number(overlaySectionSelect.dataset.overlaySectionSelect), { openProperties: true });
       return;
     }
     const widthStep = target.closest?.("[data-section-width-step]");
@@ -2263,6 +2568,25 @@ class BookcaseConfigurator {
     }
     if (target.closest?.("[data-section-split]")) {
       this.commitSectionOperation(splitSection(this.state, this.layout, this.selectedSectionIndex), "Section split accepted.");
+      return;
+    }
+    if (target.closest?.("[data-section-add]")) {
+      const operation = addSection(this.state, this.layout, this.selectedSectionIndex);
+      this.commitSectionOperation(operation, "Section added.", { selectedIndex: operation.affectedSections?.at(-1) });
+      return;
+    }
+    const duplicate = target.closest?.("[data-section-duplicate]");
+    if (duplicate) {
+      const index = duplicate.dataset.sectionDuplicate === "" ? this.selectedSectionIndex : Number(duplicate.dataset.sectionDuplicate);
+      const operation = duplicateSection(this.state, this.layout, index);
+      this.commitSectionOperation(operation, `Section ${index + 1} duplicated.`, { selectedIndex: operation.affectedSections?.at(-1) });
+      return;
+    }
+    const deleteButton = target.closest?.("[data-section-delete]");
+    if (deleteButton) {
+      const index = deleteButton.dataset.sectionDelete === "" ? this.selectedSectionIndex : Number(deleteButton.dataset.sectionDelete);
+      const operation = deleteSection(this.state, this.layout, index);
+      this.commitSectionOperation(operation, `Section ${index + 1} deleted.`, { selectedIndex: operation.affectedSections?.[0] });
       return;
     }
     const merge = target.closest?.("[data-section-merge]");
@@ -2394,17 +2718,114 @@ class BookcaseConfigurator {
     }
   }
 
+  activateWorkspaceStage(stageId, options = {}) {
+    if (!WORKSPACE_STAGES.some((stage) => stage.id === stageId)) return false;
+    this.activeStageId = stageId;
+    this.activeInspectorGroup = STAGE_CONTROL_GROUPS[stageId]?.[0] || "overall_size";
+    this.activeInspectorTabId = "general";
+    this.selection = null;
+    this.contextEditorOpen = false;
+    this.viewer.clearDirectSelection?.();
+    this.renderInspector({ resetScroll: true });
+    this.syncInterface();
+    if (options.focus !== false) {
+      window.requestAnimationFrame(() => this.host.querySelector(`[data-workspace-stage="${stageId}"]`)?.focus({ preventScroll: true }));
+    }
+    return true;
+  }
+
+  snapshotDesignState() {
+    if (typeof structuredClone === "function") return structuredClone(this.state);
+    return JSON.parse(JSON.stringify(this.state));
+  }
+
+  recordDesignHistory(snapshot) {
+    this.designHistory.undo.push(snapshot);
+    if (this.designHistory.undo.length > this.designHistory.limit) this.designHistory.undo.shift();
+    this.designHistory.redo = [];
+  }
+
+  undoDesignChange() {
+    const snapshot = this.designHistory.undo.pop();
+    if (!snapshot) return false;
+    const current = this.snapshotDesignState();
+    if (!this.update(snapshot, { sourceField: "history", recordHistory: false, historyReplay: true, silent: true })) {
+      this.designHistory.undo.push(snapshot);
+      return false;
+    }
+    this.designHistory.redo.push(current);
+    if (this.designHistory.redo.length > this.designHistory.limit) this.designHistory.redo.shift();
+    this.syncWorkspaceToolbar();
+    this.syncDiagnosticsAttributes();
+    this.showStatus("Design change undone.");
+    return true;
+  }
+
+  redoDesignChange() {
+    const snapshot = this.designHistory.redo.pop();
+    if (!snapshot) return false;
+    const current = this.snapshotDesignState();
+    if (!this.update(snapshot, { sourceField: "history", recordHistory: false, historyReplay: true, silent: true })) {
+      this.designHistory.redo.push(snapshot);
+      return false;
+    }
+    this.designHistory.undo.push(current);
+    if (this.designHistory.undo.length > this.designHistory.limit) this.designHistory.undo.shift();
+    this.syncWorkspaceToolbar();
+    this.syncDiagnosticsAttributes();
+    this.showStatus("Design change redone.");
+    return true;
+  }
+
+  syncWorkspaceToolbar() {
+    const undo = this.host.querySelector("[data-history-undo]");
+    const redo = this.host.querySelector("[data-history-redo]");
+    if (undo) undo.disabled = this.designHistory.undo.length === 0;
+    if (redo) redo.disabled = this.designHistory.redo.length === 0;
+    this.host.querySelectorAll("[data-toggle-dimensions]").forEach((button) => button.setAttribute("aria-pressed", String(this.showDimensions)));
+    this.host.querySelectorAll("[data-toggle-wall]").forEach((button) => button.setAttribute("aria-pressed", String(this.showWall)));
+    this.host.querySelectorAll("[data-model-tool]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.modelTool === this.activeTool)));
+    const isFullscreen = Boolean(document.fullscreenElement === this.elements?.modelWorkspace || this.elements?.modelWorkspace?.classList.contains("is-pseudo-fullscreen"));
+    this.fullscreen = isFullscreen;
+    this.host.querySelectorAll("[data-model-fullscreen]").forEach((button) => {
+      button.setAttribute("aria-pressed", String(isFullscreen));
+      button.setAttribute("aria-label", isFullscreen ? "Exit model fullscreen" : "Enter model fullscreen");
+    });
+  }
+
+  async toggleModelFullscreen() {
+    const workspace = this.elements?.modelWorkspace;
+    if (!workspace) return;
+    try {
+      if (document.fullscreenElement === workspace) await document.exitFullscreen();
+      else if (workspace.requestFullscreen) await workspace.requestFullscreen();
+      else workspace.classList.toggle("is-pseudo-fullscreen");
+    } catch {
+      workspace.classList.toggle("is-pseudo-fullscreen");
+    }
+    this.syncWorkspaceToolbar();
+    window.requestAnimationFrame(() => this.viewer.resize?.());
+  }
+
   focusInspectorGroup(groupId, options = {}) {
     const normalized = normalizeInspectorGroup(groupId);
     this.activeInspectorGroup = normalized;
+    this.activeStageId = WORKSPACE_STAGES.find((stage) => STAGE_CONTROL_GROUPS[stage.id]?.includes(normalized))?.id || this.activeStageId;
+    this.activeInspectorTabId = "general";
+    if (options.preserveSelection !== true) {
+      this.selection = null;
+      this.contextEditorOpen = false;
+      this.viewer.clearDirectSelection?.();
+    }
     this.inspectorGroupCollapsed = false;
     this.renderInspector();
     this.syncInterface();
     this.focusCameraForCurrentContext();
     window.requestAnimationFrame(() => {
       const category = this.host.querySelector(`[data-inspector-group="${normalized}"]`);
-      category?.scrollIntoView?.({ block: "nearest", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-      if (options.focus !== false) category?.querySelector("[data-category-trigger]")?.focus({ preventScroll: true });
+      const destination = category || this.elements?.controlsScroll;
+      destination?.scrollIntoView?.({ block: "nearest", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      if (options.focus !== false) (category?.querySelector("[data-category-trigger]") || destination)?.focus?.({ preventScroll: true });
     });
   }
 
@@ -2549,7 +2970,31 @@ class BookcaseConfigurator {
     const count = getSectionDesignerState(this.state, this.layout).sections.length;
     this.selectedSectionIndex = clamp(Number(index) || 0, 0, Math.max(0, count - 1));
     this.sectionWidthDraft = "";
+    if (options.openProperties) {
+      const component = this.layout.components.find((item) => (
+        item.role === "section" && Number(item.metadata?.index) === this.selectedSectionIndex
+      ));
+      const resolved = component
+        ? resolveSelectionContext(this.layout, { componentId: component.id, source: "organizer" }, "organizer")
+        : null;
+      this.selection = resolved || {
+        componentId: component?.id || `section-${this.selectedSectionIndex + 1}`,
+        title: `Section ${this.selectedSectionIndex + 1}`,
+        summary: formatSectionType(getSectionDesignerState(this.state, this.layout).sections[this.selectedSectionIndex]?.type || "open"),
+        editorId: "section",
+        inspectorGroupId: "sections_layout",
+        sectionIndex: this.selectedSectionIndex
+      };
+      this.contextEditorOpen = true;
+      this.activeStageId = "layout";
+      this.activeInspectorGroup = "sections_layout";
+      this.activeInspectorTabId = "general";
+    }
     this.viewer.setSectionSelection?.(this.selectedSectionIndex);
+    if (this.selection) this.viewer.setSelectedComponent?.(this.selection.highlightTarget?.componentId || this.selection.componentId);
+    if (options.ensureFramed) {
+      window.requestAnimationFrame(() => this.viewer.ensureModelComfortablyFramed?.());
+    }
     if (options.render !== false) {
       this.renderInspector();
       if (this.contextEditorOpen) this.renderContextEditor();
@@ -2603,16 +3048,12 @@ class BookcaseConfigurator {
       this.showSectionDesignerError(operation?.error || { message: "That section change is not buildable." });
       return false;
     }
-    const previous = createSectionHistorySnapshot(this.state);
     const applied = this.update(operation.config, { sourceField: "layoutMetadata", refreshSectionDesigner: false });
     if (!applied) return false;
-    this.sectionUndoStack.push(previous);
-    if (this.sectionUndoStack.length > 30) this.sectionUndoStack.shift();
-    this.sectionRedoStack = [];
     const requestedSelection = Number.isInteger(options.selectedIndex)
       ? options.selectedIndex
       : this.selectedSectionIndex;
-    this.selectedSectionIndex = clamp(requestedSelection, 0, Math.max(0, this.state.sections - 1));
+    this.selectSection(requestedSelection, { openProperties: true, render: false, ensureFramed: true });
     this.sectionWidthDraft = "";
     this.refreshSectionDesignerPresentation();
     this.showStatus(successMessage);
@@ -2620,35 +3061,11 @@ class BookcaseConfigurator {
   }
 
   undoSectionChange() {
-    const previous = this.sectionUndoStack.pop();
-    if (!previous) return;
-    const current = createSectionHistorySnapshot(this.state);
-    const restored = applySectionHistorySnapshot(this.state, previous);
-    if (!this.update(restored, { sourceField: "layoutMetadata", refreshSectionDesigner: false })) {
-      this.sectionUndoStack.push(previous);
-      return;
-    }
-    this.sectionRedoStack.push(current);
-    if (this.sectionRedoStack.length > 30) this.sectionRedoStack.shift();
-    this.selectedSectionIndex = clamp(this.selectedSectionIndex, 0, Math.max(0, this.state.sections - 1));
-    this.refreshSectionDesignerPresentation();
-    this.showStatus("Section change undone.");
+    return this.undoDesignChange();
   }
 
   redoSectionChange() {
-    const next = this.sectionRedoStack.pop();
-    if (!next) return;
-    const current = createSectionHistorySnapshot(this.state);
-    const restored = applySectionHistorySnapshot(this.state, next);
-    if (!this.update(restored, { sourceField: "layoutMetadata", refreshSectionDesigner: false })) {
-      this.sectionRedoStack.push(next);
-      return;
-    }
-    this.sectionUndoStack.push(current);
-    if (this.sectionUndoStack.length > 30) this.sectionUndoStack.shift();
-    this.selectedSectionIndex = clamp(this.selectedSectionIndex, 0, Math.max(0, this.state.sections - 1));
-    this.refreshSectionDesignerPresentation();
-    this.showStatus("Section change redone.");
+    return this.redoDesignChange();
   }
 
   refreshSectionDesignerPresentation() {
@@ -2831,8 +3248,6 @@ class BookcaseConfigurator {
     this.saveActionCount = 0;
     this.quoteActionCount = 0;
     this.sectionDesignerActive = false;
-    this.sectionUndoStack = [];
-    this.sectionRedoStack = [];
     this.render();
     this.cacheElements();
     this.viewer = this.createStudioIntroViewer();
@@ -2891,7 +3306,12 @@ class BookcaseConfigurator {
 
   beginRangeDrag(event, range) {
     if (event.button != null && event.button !== 0) return;
-    this.activeRangeDrag = { range, pointerId: event.pointerId };
+    this.activeRangeDrag = {
+      range,
+      pointerId: event.pointerId,
+      startSnapshot: this.snapshotDesignState(),
+      changed: false
+    };
     range.focus({ preventScroll: true });
     range.setPointerCapture?.(event.pointerId);
     this.applyRangePointerValue(event, range);
@@ -2906,10 +3326,15 @@ class BookcaseConfigurator {
 
   endRangeDrag(event) {
     if (!this.activeRangeDrag) return;
-    const { range, pointerId } = this.activeRangeDrag;
+    const { range, pointerId, startSnapshot, changed } = this.activeRangeDrag;
     if (!event || event.pointerId === pointerId) {
       range.releasePointerCapture?.(pointerId);
       this.activeRangeDrag = null;
+      if (changed) {
+        this.recordDesignHistory(startSnapshot);
+        this.syncWorkspaceToolbar();
+        this.syncDiagnosticsAttributes();
+      }
     }
   }
 
@@ -2922,9 +3347,14 @@ class BookcaseConfigurator {
     const rawValue = min + ratio * (max - min);
     const steppedValue = min + Math.round((rawValue - min) / step) * step;
     const value = clamp(steppedValue, min, max);
+    const previousValue = Number(this.state[range.dataset.field]);
     range.value = String(value);
     delete this.drafts[range.dataset.field];
-    this.update({ ...this.state, [range.dataset.field]: value }, { sourceField: range.dataset.field });
+    const applied = this.update(
+      { ...this.state, [range.dataset.field]: value },
+      { sourceField: range.dataset.field, recordHistory: this.activeRangeDrag ? false : true }
+    );
+    if (applied && this.activeRangeDrag && Math.abs(previousValue - value) > 1e-9) this.activeRangeDrag.changed = true;
   }
 
   setView(view) {
@@ -2950,8 +3380,6 @@ class BookcaseConfigurator {
     const applied = this.update(transition.config, { sourceField: "layoutPreset" });
     if (!applied) return;
     this.basePresetId = transition.preset.id;
-    this.sectionUndoStack = [];
-    this.sectionRedoStack = [];
     this.syncInterface();
     if (this.sectionDesignerActive) this.refreshSectionDesignerPresentation();
     this.showStatus(`${transition.preset.name} preset applied.${transition.dimensionsPreserved ? " Your measured dimensions were kept." : ""} Layout-specific structure was reconciled automatically.`);
@@ -3093,10 +3521,21 @@ class BookcaseConfigurator {
       finish: getHardwareFinish(this.state.hardware)
     };
     const variant = resolveHardwareVariant({ ...currentSelection, ...selection }, this.state.hardware);
+    const nextDefaultSelections = createLegacyHardwareSelections(variant.value);
+    const existingSelections = this.state.hardwareSelections && typeof this.state.hardwareSelections === "object"
+      ? this.state.hardwareSelections
+      : {};
     return this.update({
       ...this.state,
       hardware: variant.value,
-      hardwareSelections: createLegacyHardwareSelections(variant.value)
+      hardwareSelections: {
+        ...nextDefaultSelections,
+        byHostId: { ...(existingSelections.byHostId || {}) },
+        migrationWarnings: [
+          ...(existingSelections.migrationWarnings || []),
+          ...(nextDefaultSelections.migrationWarnings || [])
+        ]
+      }
     }, { sourceField: "hardware" });
   }
 
@@ -3124,7 +3563,8 @@ class BookcaseConfigurator {
     } else {
       value = target.value;
     }
-    const next = { ...this.state, [fieldName]: value };
+    let next = { ...this.state, [fieldName]: value };
+    let storageFallbackMessage = "";
     if (fieldName === "lowerCabinets" || fieldName === "lowerStorage") {
       const storageTransition = applyGlobalStorageSelection(
         this.state,
@@ -3132,6 +3572,20 @@ class BookcaseConfigurator {
         { [fieldName]: value }
       );
       Object.assign(next, storageTransition.config);
+      if (
+        fieldName === "lowerCabinets"
+        && value === true
+        && next.lowerStorage === "drawers"
+        && !evaluateBookcaseCandidate(next).accepted
+      ) {
+        const doorFallback = applyGlobalStorageSelection(
+          this.state,
+          this.layout,
+          { lowerCabinets: true, lowerStorage: "doors" }
+        );
+        next = { ...next, ...doorFallback.config };
+        storageFallbackMessage = "Lower doors were applied because drawers do not fit every current section width.";
+      }
     }
     if (fieldName === "sections") {
       const reconciliation = reconcileSectionCustomization(this.state, value, this.layout.rules);
@@ -3143,7 +3597,8 @@ class BookcaseConfigurator {
       Object.assign(next, reconciliation.config);
     }
     if (fieldName === "customPaintColor" && String(value).trim()) next.finish = "custom_bm";
-    this.update(next, { sourceField: fieldName });
+    const updated = this.update(next, { sourceField: fieldName });
+    if (updated && storageFallbackMessage) this.showStatus(storageFallbackMessage);
     if (PROFILE_FOCUS_FIELDS.has(fieldName)) this.requestProfileCameraFocus(fieldName, { force: true });
     else this.focusCameraForField(fieldName);
   }
@@ -3224,6 +3679,13 @@ class BookcaseConfigurator {
         "The 3D renderer rejected this configuration and kept the last verified model.";
       this.showStatus(renderMessage, true);
       return false;
+    }
+
+    if (options.recordHistory !== false) {
+      const previousSnapshot = typeof structuredClone === "function"
+        ? structuredClone(previousState)
+        : JSON.parse(JSON.stringify(previousState));
+      this.recordDesignHistory(previousSnapshot);
     }
 
     this.acceptedEvaluation = committedEvaluation;
@@ -3398,6 +3860,7 @@ class BookcaseConfigurator {
     this.syncCategorySummaries();
     this.syncValidationMessages();
     this.syncActionAvailability();
+    this.syncWorkspaceToolbar();
     this.syncDiagnosticsAttributes();
   }
 
@@ -3412,6 +3875,10 @@ class BookcaseConfigurator {
     const view = this.viewer?.getViewState?.() || {};
     shell.dataset.diagnosticInterface = "unified";
     shell.dataset.diagnosticInspectorGroup = this.activeInspectorGroup;
+    shell.dataset.diagnosticWorkspaceStage = this.activeStageId;
+    shell.dataset.diagnosticInspectorTab = this.activeInspectorTabId;
+    shell.dataset.diagnosticHistoryUndo = String(this.designHistory.undo.length);
+    shell.dataset.diagnosticHistoryRedo = String(this.designHistory.redo.length);
     shell.dataset.diagnosticSelectionKind = this.selection?.kind || "";
     shell.dataset.diagnosticSelectionEditor = this.selection?.editorId || "";
     shell.dataset.diagnosticPhysicalUpdates = String(this.updateCount);
@@ -3574,6 +4041,10 @@ class BookcaseConfigurator {
       initialSource: this.initialSource,
       interface: "unified",
       activeInspectorGroup: this.activeInspectorGroup,
+      activeWorkspaceStage: this.activeStageId,
+      activeInspectorTab: this.activeInspectorTabId,
+      history: { undo: this.designHistory.undo.length, redo: this.designHistory.redo.length },
+      display: { dimensions: this.showDimensions, wall: this.showWall, tool: this.activeTool, fullscreen: this.fullscreen },
       selection: this.selection ? { ...this.selection } : null,
       contextEditorOpen: this.contextEditorOpen,
       state: { ...this.state },
@@ -3666,6 +4137,20 @@ class BookcaseConfigurator {
         this.elements.status.classList.remove("is-visible");
       }, 3200);
     }
+  }
+
+  destroy() {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.eventAbortController?.abort();
+    this.stopStudioPreviewMotion(true);
+    window.clearTimeout(this.statusTimer);
+    window.clearTimeout(this.colorSearchTimer);
+    window.clearTimeout(this.resetConfirmationTimer);
+    this.directHardwareEditor?.destroy?.();
+    this.viewer?.destroy?.();
+    this.arController?.destroy?.();
+    if (this.host.__bookcaseConfigurator === this) delete this.host.__bookcaseConfigurator;
   }
 
 }
@@ -3767,6 +4252,13 @@ class BookcaseViewer3D {
     this.reducedMotionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)") || null;
     this.environmentLights = [];
     this.environmentLightScale = 1;
+    this.activeTool = "select";
+    this.dimensionsVisible = true;
+    this.wallVisible = true;
+    this.roomEnvironment = new THREE.Group();
+    this.roomEnvironment.name = "nonphysical-room-environment";
+    this.roomEnvironment.userData.nonPhysicalHelper = true;
+    this.scene.add(this.roomEnvironment);
     this.highlightState = null;
     this.drag = null;
     this.model = new THREE.Group();
@@ -3784,11 +4276,12 @@ class BookcaseViewer3D {
   }
 
   setupEnvironment() {
-    this.scene.fog = new THREE.FogExp2(0x302b26, 0.006);
-    const hemisphere = new THREE.HemisphereLight(0xf7f1e8, 0x2b2824, 1.7);
+    this.scene.fog = new THREE.FogExp2(0xf3f0eb, 0.004);
+    this.renderer.setClearColor(0xf5f2ee, 1);
+    const hemisphere = new THREE.HemisphereLight(0xfffcf7, 0xc7b9a8, 1.55);
     this.scene.add(hemisphere);
 
-    const key = new THREE.DirectionalLight(0xf7ecdf, 3.15);
+    const key = new THREE.DirectionalLight(0xf7ecdf, 2.45);
     key.position.set(4.2, 8.6, 6.4);
     key.castShadow = true;
     key.shadow.mapSize.set(1536, 1536);
@@ -3800,19 +4293,19 @@ class BookcaseViewer3D {
     key.shadow.camera.bottom = -9;
     this.scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0xeee6db, 0.92);
+    const fill = new THREE.DirectionalLight(0xfff8ef, 0.72);
     fill.position.set(-6, 4.6, 5.4);
     this.scene.add(fill);
 
-    const rim = new THREE.DirectionalLight(0xdccfc0, 0.58);
+    const rim = new THREE.DirectionalLight(0xe9ddcf, 0.46);
     rim.position.set(-4.8, 5.8, -4.6);
     this.scene.add(rim);
 
-    const leftGlow = new THREE.PointLight(0xe8dccb, 0.22, 18);
+    const leftGlow = new THREE.PointLight(0xe8dccb, 0.12, 18);
     leftGlow.position.set(-7.2, 4.2, 2.7);
     this.scene.add(leftGlow);
 
-    const rightGlow = new THREE.PointLight(0xe8dccb, 0.2, 18);
+    const rightGlow = new THREE.PointLight(0xe8dccb, 0.11, 18);
     rightGlow.position.set(7.2, 4.0, 2.8);
     this.scene.add(rightGlow);
     this.environmentLights = [hemisphere, key, fill, rim, leftGlow, rightGlow];
@@ -3833,6 +4326,39 @@ class BookcaseViewer3D {
     contact.rotation.x = -Math.PI / 2;
     contact.position.set(0, -0.025, 0.12);
     this.scene.add(contact);
+
+    const wallMaterial = new THREE.MeshStandardMaterial({ color: 0xf1efeb, roughness: 0.94, metalness: 0 });
+    const wall = new THREE.Mesh(new THREE.PlaneGeometry(22, 12), wallMaterial);
+    wall.name = "nonphysical-room-wall";
+    wall.userData.nonPhysicalHelper = true;
+    wall.position.set(0, 5.55, -0.9);
+    wall.receiveShadow = true;
+    this.roomWall = wall;
+    this.roomEnvironment.add(wall);
+
+    const baseboardMaterial = new THREE.MeshStandardMaterial({ color: 0xf8f7f4, roughness: 0.72 });
+    const baseboard = new THREE.Mesh(new THREE.BoxGeometry(22, 0.18, 0.12), baseboardMaterial);
+    baseboard.name = "nonphysical-room-baseboard";
+    baseboard.userData.nonPhysicalHelper = true;
+    baseboard.position.set(0, 0.1, -0.82);
+    baseboard.castShadow = true;
+    baseboard.receiveShadow = true;
+    this.roomBaseboard = baseboard;
+    this.roomEnvironment.add(baseboard);
+
+    const floorTexture = createRoomFloorTexture();
+    floorTexture.wrapS = THREE.RepeatWrapping;
+    floorTexture.wrapT = THREE.RepeatWrapping;
+    floorTexture.repeat.set(7, 4);
+    const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture, color: 0xe0d1bd, roughness: 0.88, metalness: 0 });
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(22, 12), floorMaterial);
+    floor.name = "nonphysical-room-floor";
+    floor.userData.nonPhysicalHelper = true;
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.set(0, -0.055, 3.8);
+    floor.receiveShadow = true;
+    this.roomFloor = floor;
+    this.roomEnvironment.add(floor);
 
   }
 
@@ -3884,7 +4410,7 @@ class BookcaseViewer3D {
     this.root.addEventListener("pointerdown", (event) => {
       if (event.target.closest?.("[data-section-overlay]")) return;
       this.cancelCameraTransition();
-      this.drag = { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false };
+      this.drag = { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false, tool: this.activeTool };
       this.root.setPointerCapture(event.pointerId);
       this.root.classList.add("is-dragging");
     }, { signal });
@@ -3898,15 +4424,25 @@ class BookcaseViewer3D {
       const dy = event.clientY - this.drag.y;
       const moved = this.drag.moved || Math.hypot(event.clientX - this.drag.startX, event.clientY - this.drag.startY) > 5;
       this.drag = { ...this.drag, x: event.clientX, y: event.clientY, moved };
-      this.theta -= dx * 0.007;
-      this.phi = clamp(this.phi + dy * 0.004, -0.12, 0.72);
-      this.onCameraInteraction("rotate");
+      if (this.drag.tool === "pan") {
+        const scale = Math.max(0.002, this.radius * 0.0017);
+        const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0);
+        const up = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1);
+        this.target.addScaledVector(right, -dx * scale).addScaledVector(up, dy * scale);
+        this.target.x = clamp(this.target.x, -8, 8);
+        this.target.y = clamp(this.target.y, -1, 12);
+        this.onCameraInteraction("pan");
+      } else {
+        this.theta -= dx * 0.007;
+        this.phi = clamp(this.phi + dy * 0.004, -0.12, 0.72);
+        this.onCameraInteraction("rotate");
+      }
       this.updateCamera();
     }, { signal });
 
     this.root.addEventListener("pointerup", (event) => {
       const isClick = Boolean(this.drag && !this.drag.moved);
-      const selectDirectComponent = this.directEdit.enabled && isClick;
+      const selectDirectComponent = this.activeTool === "select" && this.directEdit.enabled && isClick;
       const selectSection = this.sectionDesigner.active && !selectDirectComponent && isClick;
       this.drag = null;
       if (this.root.hasPointerCapture(event.pointerId)) this.root.releasePointerCapture(event.pointerId);
@@ -3926,7 +4462,6 @@ class BookcaseViewer3D {
 
     this.root.addEventListener("wheel", (event) => {
       if (event.ctrlKey || event.metaKey) return;
-      if (window.matchMedia("(max-width: 1280px)").matches) return;
       event.preventDefault();
       this.cancelCameraTransition();
       const limits = this.getZoomLimits();
@@ -3948,7 +4483,20 @@ class BookcaseViewer3D {
       }
       this.cancelCameraTransition();
       const limits = this.getZoomLimits();
-      if (event.key === "ArrowLeft") this.theta -= 0.12;
+      if (event.key === "0") {
+        event.preventDefault();
+        this.setView("reset");
+        this.onCameraInteraction("reset");
+        return;
+      }
+      if (this.activeTool === "pan" && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
+        const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0);
+        const up = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1);
+        if (event.key === "ArrowLeft") this.target.addScaledVector(right, -0.25);
+        if (event.key === "ArrowRight") this.target.addScaledVector(right, 0.25);
+        if (event.key === "ArrowUp") this.target.addScaledVector(up, 0.25);
+        if (event.key === "ArrowDown") this.target.addScaledVector(up, -0.25);
+      } else if (event.key === "ArrowLeft") this.theta -= 0.12;
       else if (event.key === "ArrowRight") this.theta += 0.12;
       else if (event.key === "ArrowUp") this.phi = clamp(this.phi + 0.08, -0.12, 0.72);
       else if (event.key === "ArrowDown") this.phi = clamp(this.phi - 0.08, -0.12, 0.72);
@@ -3959,6 +4507,30 @@ class BookcaseViewer3D {
       this.onCameraInteraction(event.key === "+" || event.key === "=" || event.key === "-" ? "zoom" : "rotate");
       this.updateCamera();
     }, { signal });
+  }
+
+  setInteractionTool(tool) {
+    this.activeTool = tool === "pan" ? "pan" : "select";
+    this.root.dataset.interactionTool = this.activeTool;
+    this.root.classList.toggle("is-pan-tool", this.activeTool === "pan");
+    this.root.style.cursor = this.activeTool === "pan" ? "grab" : "";
+    if (this.activeTool === "pan") this.setDirectHoveredComponent(null);
+  }
+
+  setDimensionsVisible(visible) {
+    this.dimensionsVisible = visible !== false;
+    this.root.dataset.dimensionsVisible = String(this.dimensionsVisible);
+    if (this.sectionOverlay) this.sectionOverlay.hidden = !this.dimensionsVisible || !this.sectionDesigner.active;
+    this.requestRender();
+  }
+
+  setWallVisible(visible) {
+    this.wallVisible = visible !== false;
+    this.root.dataset.wallVisible = String(this.wallVisible);
+    if (this.roomWall) this.roomWall.visible = this.wallVisible;
+    if (this.roomBaseboard) this.roomBaseboard.visible = this.wallVisible;
+    if (this.roomFloor) this.roomFloor.visible = this.wallVisible;
+    this.requestRender();
   }
 
   setDirectEditing(options = {}) {
@@ -4214,7 +4786,7 @@ class BookcaseViewer3D {
   setView(view) {
     let theta = -0.14;
     let phi = 0.12;
-    if (view === "front") {
+    if (view === "front" || view === "reset") {
       theta = 0;
       phi = 0.08;
     } else if (view === "side") {
@@ -4241,6 +4813,37 @@ class BookcaseViewer3D {
       environmentScale: 1,
       exposure: 1.08
     }, { duration: SMART_CAMERA_DURATION });
+  }
+
+  ensureModelComfortablyFramed() {
+    if (!this.model?.children?.length) return false;
+    this.camera.updateMatrixWorld(true);
+    const bounds = new THREE.Box3().setFromObject(this.model);
+    if (bounds.isEmpty()) return false;
+    const rootRect = this.root.getBoundingClientRect();
+    if (!rootRect.width || !rootRect.height) return false;
+    const corners = [];
+    for (const x of [bounds.min.x, bounds.max.x]) {
+      for (const y of [bounds.min.y, bounds.max.y]) {
+        for (const z of [bounds.min.z, bounds.max.z]) corners.push(new THREE.Vector3(x, y, z).project(this.camera));
+      }
+    }
+    const envelope = corners.reduce((result, point) => ({
+      left: Math.min(result.left, (point.x + 1) * rootRect.width / 2),
+      right: Math.max(result.right, (point.x + 1) * rootRect.width / 2),
+      top: Math.min(result.top, (1 - point.y) * rootRect.height / 2),
+      bottom: Math.max(result.bottom, (1 - point.y) * rootRect.height / 2)
+    }), { left: Infinity, right: -Infinity, top: Infinity, bottom: -Infinity });
+    const horizontalPadding = Math.max(24, rootRect.width * 0.045);
+    const topPadding = Math.max(18, rootRect.height * 0.035);
+    const bottomPadding = Math.max(66, rootRect.height * 0.12);
+    const correctionNeeded = envelope.left < horizontalPadding
+      || envelope.right > rootRect.width - horizontalPadding
+      || envelope.top < topPadding
+      || envelope.bottom > rootRect.height - bottomPadding;
+    if (!correctionNeeded) return false;
+    this.setView("reset");
+    return true;
   }
 
   zoom(direction) {
@@ -4276,6 +4879,7 @@ class BookcaseViewer3D {
     if (container) {
       const overlays = container.querySelectorAll([
         ".configurator-experience-toolbar",
+        ".workspace-model-toolbar",
         ".preview-heading > div",
         ".preview-control-dock",
         ":scope > .cabinet-ar-launch"
@@ -4737,7 +5341,7 @@ class BookcaseViewer3D {
     this.sectionDesigner.selectedIndex = Number(index) || 0;
     this.sectionInteractionLayer.children.forEach((mesh) => {
       const selected = mesh.userData.sectionIndex === this.sectionDesigner.selectedIndex;
-      mesh.material.opacity = selected ? 0.15 : 0.012;
+      mesh.material.opacity = selected ? 0.08 : 0.008;
       mesh.material.color.setHex(selected ? 0xb88a52 : 0xd8c4a8);
     });
     this.updateSectionOverlaySelection();
@@ -4758,7 +5362,7 @@ class BookcaseViewer3D {
       const material = new THREE.MeshBasicMaterial({
         color: section.metadata.index === this.sectionDesigner.selectedIndex ? 0xb88a52 : 0xd8c4a8,
         transparent: true,
-        opacity: section.metadata.index === this.sectionDesigner.selectedIndex ? 0.15 : 0.012,
+        opacity: section.metadata.index === this.sectionDesigner.selectedIndex ? 0.08 : 0.008,
         depthWrite: false,
         side: THREE.DoubleSide
       });
@@ -4800,11 +5404,11 @@ class BookcaseViewer3D {
     const signature = sections.map((section) => section.id).join("|");
     if (signature !== this.sectionDesigner.overlaySignature) {
       const labels = sections.map((section, index) => `
-        <span class="section-dimension" data-overlay-section="${index}" aria-hidden="true">
+        <span class="section-dimension" data-overlay-section="${index}">
           <i class="dimension-line" aria-hidden="true"></i>
           <i class="dimension-tick is-start" aria-hidden="true"></i>
           <i class="dimension-tick is-end" aria-hidden="true"></i>
-          <span class="dimension-label"><strong data-section-dimension-value></strong><small>clear</small></span>
+          <button type="button" class="dimension-label" data-overlay-section-select="${index}" aria-label="Select Section ${index + 1}"><strong data-section-dimension-value></strong><small>clear</small></button>
         </span>
       `).join("");
       const handles = sections.slice(0, -1).map((section, index) => `
@@ -4821,6 +5425,16 @@ class BookcaseViewer3D {
           <i class="dimension-tick is-end" aria-hidden="true"></i>
           <span class="dimension-label"><strong data-overall-dimension-value></strong><small>overall</small></span>
         </div>
+        <div class="overall-height-dimension" aria-hidden="true">
+          <i class="dimension-line" aria-hidden="true"></i>
+          <i class="dimension-tick is-start" aria-hidden="true"></i>
+          <i class="dimension-tick is-end" aria-hidden="true"></i>
+          <span class="dimension-label"><strong data-overall-height-value></strong><small>height</small></span>
+        </div>
+        <div class="overall-depth-dimension" aria-hidden="true">
+          <i class="dimension-line" aria-hidden="true"></i>
+          <span class="dimension-label"><strong data-overall-depth-value></strong><small>depth</small></span>
+        </div>
         <div class="section-divider-layer">${handles}</div>
       `;
       this.sectionDesigner.overlaySignature = signature;
@@ -4834,7 +5448,11 @@ class BookcaseViewer3D {
     });
     const overallValue = this.sectionOverlay.querySelector("[data-overall-dimension-value]");
     if (overallValue) overallValue.textContent = `${formatSectionWidth(layout.metrics.overallWidth)} in`;
-    this.sectionOverlay.hidden = false;
+    const overallHeightValue = this.sectionOverlay.querySelector("[data-overall-height-value]");
+    if (overallHeightValue) overallHeightValue.textContent = `${formatSectionWidth(layout.config.height)} in`;
+    const overallDepthValue = this.sectionOverlay.querySelector("[data-overall-depth-value]");
+    if (overallDepthValue) overallDepthValue.textContent = `${formatSectionWidth(layout.config.depth)} in`;
+    this.sectionOverlay.hidden = !this.dimensionsVisible;
     this.updateSectionOverlaySelection();
     this.updateSectionOverlayProjection();
   }
@@ -4907,16 +5525,17 @@ class BookcaseViewer3D {
     const topY = Number(root.bounds.max.y) || Number(layout.config.height) || 0;
     const outsideLeftPoint = this.projectLayoutPoint(layout, root.bounds.min.x, baseY, frontZ, rootRect);
     const outsideRightPoint = this.projectLayoutPoint(layout, root.bounds.max.x, baseY, frontZ, rootRect);
+    const outsideTopLeftPoint = this.projectLayoutPoint(layout, root.bounds.min.x, topY, frontZ, rootRect);
+    const outsideTopRightPoint = this.projectLayoutPoint(layout, root.bounds.max.x, topY, frontZ, rootRect);
     const outsideLeft = Math.min(outsideLeftPoint.x, outsideRightPoint.x);
     const outsideRight = Math.max(outsideLeftPoint.x, outsideRightPoint.x);
     const projectedWidth = Math.max(1, outsideRight - outsideLeft);
     const safeViewport = this.getSafeViewport();
     const desiredSectionY = Math.max(outsideLeftPoint.y, outsideRightPoint.y) + 20;
-    const desiredOverallY = desiredSectionY + 44;
-    const maximumOverallY = rootRect.height - Math.max(16, safeViewport.insets.bottom || 0) - 16;
-    const verticalShift = Math.min(0, maximumOverallY - desiredOverallY);
+    const overallY = Math.max(18, Math.min(outsideTopLeftPoint.y, outsideTopRightPoint.y) - 38);
+    const maximumSectionY = rootRect.height - Math.max(24, safeViewport.insets.bottom || 0) - 34;
+    const verticalShift = Math.min(0, maximumSectionY - desiredSectionY);
     const sectionY = desiredSectionY + verticalShift;
-    const overallY = desiredOverallY + verticalShift;
     const frontality = Math.abs(Math.cos(this.theta));
     const enoughProjectedWidth = projectedWidth >= Math.max(150, rootRect.width * 0.24);
     const hasMeasurementRoom = sectionY >= Math.max(outsideLeftPoint.y, outsideRightPoint.y) + 8;
@@ -4954,14 +5573,20 @@ class BookcaseViewer3D {
       projectedSegments.push(segment);
     });
 
-    const labelsOverlap = projectedSegments.some((segment, index) => {
+    const measureLabelOverlap = () => projectedSegments.some((segment, index) => {
       const next = projectedSegments[index + 1];
       if (!next) return false;
       const currentLabel = segment.querySelector(".dimension-label")?.getBoundingClientRect();
       const nextLabel = next.querySelector(".dimension-label")?.getBoundingClientRect();
       return Boolean(currentLabel && nextLabel && currentLabel.right > nextLabel.left + 0.5);
     });
-    this.sectionOverlay.classList.toggle("has-label-collisions", labelsOverlap);
+    this.sectionOverlay.classList.remove("has-label-collisions", "has-unresolved-label-collisions");
+    void this.sectionOverlay.offsetWidth;
+    const needsLabelCompaction = measureLabelOverlap();
+    this.sectionOverlay.classList.toggle("has-label-collisions", needsLabelCompaction);
+    if (needsLabelCompaction) void this.sectionOverlay.offsetWidth;
+    const labelsOverlap = measureLabelOverlap();
+    this.sectionOverlay.classList.toggle("has-unresolved-label-collisions", labelsOverlap);
     this.sectionOverlay.dataset.labelCollision = String(labelsOverlap);
 
     const overall = this.sectionOverlay.querySelector(".overall-dimension");
@@ -5093,8 +5718,10 @@ class BookcaseViewer3D {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
-    if (this.model?.children?.length) this.frameModel(true, this.activeFocusKey !== "overview");
-    else this.updateSectionOverlayProjection();
+    if (this.model?.children?.length) {
+      this.frameModel(true, this.activeFocusKey !== "overview");
+      if (this.activeFocusKey === "overview") this.ensureModelComfortablyFramed();
+    } else this.updateSectionOverlayProjection();
     this.notifyDirectAnchor();
   }
 
@@ -5461,8 +6088,8 @@ class BookcaseViewer3D {
     const widthDistance = size.x / (2 * Math.tan(horizontalFov / 2));
     const depthAllowance = size.z * 0.58;
     const compactAspect = (this.camera.aspect || 1) < 0.85;
-    this.baseRadius = Math.max(heightDistance, widthDistance) * (compactAspect ? 1.28 : 1.21) + depthAllowance;
-    this.overviewTarget.set(center.x, center.y + size.y * (compactAspect ? 0.01 : -0.025), center.z);
+    this.baseRadius = Math.max(heightDistance, widthDistance) * (compactAspect ? 1.34 : 1.32) + depthAllowance;
+    this.overviewTarget.set(center.x, center.y + size.y * (compactAspect ? 0.01 : 0.015), center.z);
     this.focusTargetCache.clear();
   }
 
@@ -5733,6 +6360,9 @@ class BookcaseViewer3D {
       controlsEnabled: !this.destroyed,
       reducedMotion: Boolean(this.reducedMotionQuery?.matches),
       canvasConnected: Boolean(this.renderer.domElement?.isConnected),
+      interactionTool: this.activeTool,
+      dimensionsVisible: this.dimensionsVisible,
+      wallVisible: this.wallVisible,
       directEditing: {
         enabled: this.directEdit.enabled,
         hoveredComponentId: this.directEdit.hoveredComponentId,
@@ -6309,6 +6939,33 @@ function collectOwnedMeshRecord(componentGroup, componentId) {
       max: { x: bounds.max.x, y: bounds.max.y, z: bounds.max.z }
     }
   };
+}
+
+function createRoomFloorTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 192;
+  canvas.height = 192;
+  const context = canvas.getContext("2d");
+  context.fillStyle = "#ddd0bd";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.strokeStyle = "rgba(113, 87, 61, 0.22)";
+  context.lineWidth = 1;
+  for (let y = -48; y < canvas.height + 48; y += 24) {
+    for (let x = -48; x < canvas.width + 48; x += 48) {
+      context.beginPath();
+      context.moveTo(x, y);
+      context.lineTo(x + 48, y + 24);
+      context.stroke();
+      context.beginPath();
+      context.moveTo(x + 48, y);
+      context.lineTo(x, y + 24);
+      context.stroke();
+    }
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
 }
 
 function createContactShadowTexture() {

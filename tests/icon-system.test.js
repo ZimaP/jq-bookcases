@@ -19,13 +19,13 @@ import {
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const requiredIcons = [
-  "layout", "dimensions", "width", "height", "depth", "sections", "doors", "shelves", "drawers", "cabinets", "back-panel", "side-panel", "storage", "base-cabinets",
+  "layout", "dimensions", "width", "space-frame", "height", "depth", "sections", "doors", "shelves", "drawers", "cabinets", "back-panel", "side-panel", "storage", "base-cabinets",
   "door-style", "crown-molding", "base-molding", "trim-molding", "hardware-knob", "handle-pull", "hardware", "glass-door", "paint-finish", "wood-finish", "material-layers", "panel-style", "accent-detail",
-  "lighting", "lighting-off", "led-strip", "puck-light", "adjustable-light", "dimmable", "light-scenes", "under-shelf-light", "toe-kick-light", "interior-light",
+  "lighting", "light-bulb", "lighting-off", "led-strip", "puck-light", "adjustable-light", "dimmable", "light-scenes", "under-shelf-light", "toe-kick-light", "interior-light",
   "pickup", "shop-pickup", "project-coordination", "standard-delivery", "priority-delivery", "white-glove-delivery", "no-installation", "diy-installation", "professional-installation", "measurement-visit", "schedule", "installation-complete",
   "warranty", "quality", "made-in-usa", "craftsmanship", "sustainability", "local-service", "support", "help-center", "quote", "pricing", "secure", "reviews", "guarantee",
   "living-room", "library", "home-office", "media-wall", "bedroom", "dining-room", "entryway", "kitchen", "closet", "bathroom", "fireplace-wall", "inspiration",
-  "search", "menu", "close", "chevron-down", "chevron-left", "chevron-right", "arrow-right", "check", "plus", "minus", "information", "save", "favorite", "reset", "undo", "zoom-in", "zoom-out", "camera-front", "camera-side", "camera-three-quarter", "camera-orbit", "augmented-reality", "share",
+  "search", "menu", "close", "chevron-down", "chevron-left", "chevron-right", "arrow-right", "check", "plus", "minus", "information", "save", "favorite", "reset", "undo", "redo", "copy", "trash", "pan", "select", "fullscreen", "preview-eye", "more-horizontal", "zoom-in", "zoom-out", "camera-front", "camera-side", "camera-three-quarter", "camera-orbit", "augmented-reality", "share",
   "instagram", "pinterest", "houzz"
 ];
 
@@ -161,6 +161,27 @@ test("physical options use drawings and finishes use swatches or labels", () => 
   assert.doesNotMatch(source, /hardwarePreviewIcons|hardwareFinishSwatches|class="hardware-choice-icon"/);
   assert.match(source, /finish-choice-dot/);
   assert.match(source, /lightingWarmthOptions\.map/);
+});
+
+test("workspace utility controls use the canonical line-icon renderer", () => {
+  const source = readFileSync(path.join(rootDir, "configurator-3d.js"), "utf8");
+  const builderIconBlock = source.slice(
+    source.indexOf("const builderIcons"),
+    source.indexOf("const deliveryOptionIcons")
+  );
+  for (const [key, name] of [
+    ["undo", "undo"],
+    ["redo", "redo"],
+    ["copy", "copy"],
+    ["delete", "trash"],
+    ["pan", "pan"],
+    ["select", "select"],
+    ["fullscreen", "fullscreen"],
+    ["reset", "reset"]
+  ]) {
+    assert.match(builderIconBlock, new RegExp(`${key}:\\s*iconSvg\\("${name}"\\)`));
+  }
+  assert.doesNotMatch(builderIconBlock, /<svg\b/);
 });
 
 test("every public source references a registered icon or product diagram", () => {

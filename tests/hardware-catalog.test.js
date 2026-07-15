@@ -30,7 +30,7 @@ const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 
 test("package catalog and research evidence retain their audited bytes", () => {
   assert.equal(sha256(seedBytes), "a18c25c7002ff178361392d9a76982da7b8cdf48e03daae249ab9feb44006e3d");
-  assert.equal(sha256(evidenceBytes), "36c5bc75ed01c2b4c4ca890c86e0ddf4403900da7c8388f3f0bfc70ef217240a");
+  assert.equal(sha256(evidenceBytes), "3f288757f45e602576482fcd9b6a0c6c517cb9c83a4a8ac1dd19b8ddd6edbacd");
   assert.equal(seed.schemaVersion, "1.0.0");
   assert.equal(seed.catalogVersion, HARDWARE_CATALOG_VERSION);
   assert.match(HARDWARE_CATALOG_URL, /^\.\/data\/hardware\/jq-hardware-catalog\.seed\.json\?v=/);

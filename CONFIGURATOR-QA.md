@@ -7,136 +7,164 @@ local-storage fixtures so resume preferences cannot accidentally influence it.
 Evidence status is explicit in this document. Sections labeled **Completed**
 record executed work and existing artifacts. Construction V1 was executed on
 2026-07-14 against the candidate branch; exact command results and evidence are
-recorded below. The unified-inspector matrix is a release requirement until a
+recorded below. The reference-workspace matrix is a release requirement until a
 new dated run records its exact results and artifacts; older evidence is not a
 substitute for that run.
 
-## Unified inspector and direct-selection regression matrix
+## Reference workspace and direct-selection regression matrix
 
 1. A new My Space design, inspiration idea, valid share, or explicit preset
-   enters one accepted-design shell with one inspector, one model workspace,
-   one canvas, and the shared estimate/actions row. Retired presentation
-   preferences cannot alter the physical start state.
+   enters one accepted shell with one seven-stage rail, one model workspace,
+   one fixed Properties panel, one section organizer, one total-width card, one
+   estimate footer, and exactly one canvas. Retired presentation preferences
+   cannot alter physical start state.
 2. A verified saved design loaded from the bare URL or `?start=resume` restores
-   its accepted configuration and sanitized inspector group. `?start=welcome`
-   keeps the studio presentation without deleting that record. Temporary
-   `start` parameters are consumed after initialization.
-3. Inspector groups appear exactly once and in this order: Overall Size,
-   Sections & Layout, Shelves, Storage & Fronts, Base & Crown, Finish,
-   Hardware, Lighting, and Project Service. Every collapsed group exposes a
-   current-value summary.
-4. Opening/collapsing an inspector group changes only presentation state. It
-   must not evaluate price, rebuild geometry, reset the camera, replace the
-   canvas, or change the accepted design fingerprint.
-5. Hover identifies a selectable generated component without selecting it or
-   changing state. Leaving the component or opening the context editor removes
-   the hover label.
+   only its accepted physical configuration. New and resumed designs both start
+   at Layout / General with Select active, Dimensions and Wall on, fullscreen
+   off, empty global history, and no semantic selection. `?start=welcome`
+   preserves the saved record while showing presentation entry.
+3. The rail exposes exactly seven directly reachable, non-gating stages in
+   this order: Space, Layout, Storage, Finish, Hardware, Lighting, Preview.
+   Their canonical projections are respectively Overall Size; Sections &
+   Layout + Base & Crown; Shelves + Storage & Fronts; Finish; Hardware;
+   Lighting; and Project Service/Review.
+4. Changing stage or selected-section tab is presentation-only. It must not
+   price, rebuild geometry, reset the camera, replace canvas, add history, or
+   change the accepted fingerprint.
+5. Hover identifies a selectable generated component without selecting or
+   changing physical state. Leaving it removes the transient label.
 6. Selecting a section, shelf, door, drawer front, handle, divider, base,
-   crown, light, or cabinet body creates exactly one semantic selection,
-   highlights the resolved accepted component, opens the matching contextual
-   editor, and expands the linked inspector group.
-7. The contextual editor and inspector render the same registered physical
-   controls and call the same commit function. Editing either surface updates
-   the other immediately with one normalization, validation, pricing, and
-   viewer update.
-8. Clicking model blank space, pressing Escape, or using the editor close
-   button clears the same selection and leader. Keyboard selection moves focus
-   into the editor; closing restores focus to a connected invoker.
-9. Selection, hover, active inspector group, editor position, focus, scroll,
-   and incomplete drafts never enter the save payload, quote URL, BOM, price,
-   layout fingerprint, or AR normalization.
-10. Incomplete or invalid numeric drafts retain their text and connected error
-    while model, BOM, price, Review, save identity, quote data, and AR stay on
-    the last accepted transaction.
-11. Review Edit actions expand and focus the owning inspector group. Review,
-    Save Design, Request a Quote, and AR continue to use their single shared
-    handlers and remain guarded against duplicate rapid actions.
-12. Desktop keeps a 380–410 px inspector and gives remaining width to the
-    model. A 320–410 px context card is clamped inside the usable model area;
-    its leader does not cover or capture input intended for the canvas.
-13. At 900 px and below, the model precedes one stacked inspector drawer with
-    no page-width overflow. At 767 px and below, a selection opens one fixed,
-    vertically scrollable bottom sheet with no horizontal overflow.
-14. Every interactive inspector, context, divider, dock, AR, and shared-action
-    target is at least 44 × 44 CSS px where required. Focus indicators remain
-    visible against both light and dark surfaces.
-15. The model remains orbitable/selectable whenever the context sheet is
-    closed. Context scrolling must not orbit the model or move a divider.
-    Divider interaction must not also rotate the camera.
-16. Reduced-motion mode removes sheet, highlight, and helper transitions
-    without hiding state changes. Every control retains accessible names,
-    expanded/pressed state, dialog naming, status announcements, and logical
-    keyboard order.
-17. Exactly one controller, viewer, renderer, scene, camera, canvas, render
-    loop, accepted state, and pricing pipeline survive category navigation,
-    selection changes, responsive resize, Review, save, quote, and AR entry.
+   crown, light, or cabinet body creates one semantic selection, highlights
+   accepted geometry, synchronizes the organizer, and routes the appropriate
+   stage and Properties tab.
+7. Selected-section tabs are General, Shelves, conditional Doors or Drawers,
+   Back, and Lighting. Doors and Drawers follow section type; Back is read-only;
+   hidden/inapplicable tabs do not leave stale controls or values.
+8. Model, organizer, stage, and Properties controls all call the same accepted
+   commit path. One valid physical edit causes one normalization, validation,
+   price calculation, history entry, and viewer update.
+9. Clicking model blank space, pressing Escape, or using Properties close
+   clears the same selection. Keyboard selection moves focus predictably and
+   close restores it when a connected invoker exists.
+10. Stage, tab, selection, hover, tool, display, fullscreen, focus, scroll,
+    organizer menu, history, and incomplete drafts never enter save, quote,
+    BOM, price, layout fingerprint, or AR normalization.
+11. Incomplete or invalid numeric drafts retain their text and connected error
+    while model, BOM, price, Review, saved identity, quote, and AR remain on the
+    last accepted transaction.
+12. Preview launches the shared Review dialog. Review Edit routes to the owning
+    stage/tab. Save Design, Request a Quote, and AR use their single shared
+    handlers and remain protected from duplicate rapid actions.
+13. Undo and Redo are a single bounded 50-entry accepted-configuration history.
+    The visible buttons and platform keyboard shortcuts share that authority;
+    replay uses the normal commit/viewer path; new edits clear redo; history is
+    never serialized.
+14. Rejected candidates, no-ops, drag previews, stage/tab/selection changes,
+    organizer scroll, Select/Pan, Dimensions/Wall, and fullscreen add no history
+    entry and invoke no price change.
+15. Dimensions and Wall are explicitly nonphysical display helpers. Their
+    pressed states match visibility and never affect descriptor audit, BOM,
+    price, identity, save, quote, or AR. Wall disappears when off.
+16. Select and Pan are mutually exclusive and expose correct pressed state.
+    Native fullscreen or fallback fullscreen resizes the existing viewer and
+    exit restores the shell without a second canvas or render loop.
+17. The persistent model remains the visual center. Properties/organizer
+    scrolling must not orbit the model or move a divider; divider interaction
+    must not also rotate the camera.
+18. Reduced-motion mode removes ornamental stage, sheet, highlight, and helper
+    transitions without hiding state. Accessible names, selected/pressed
+    states, dialog names, announcements, focus indicators, and logical keyboard
+    order remain available.
+19. Total width, section count/cards, estimate, Review, save payload, quote
+    prefill, and AR data synchronize after every accepted change.
+20. Exactly one controller, viewer, renderer, scene, camera, canvas, render
+    loop, accepted state, history authority, and pricing pipeline survive all
+    stage/tab navigation, section operations, responsive resize, fullscreen,
+    Review, Save, Quote, and AR entry.
 
-Required unified evidence belongs in `artifacts/configurator-unified-qa/` and
-must be captured at native viewport size from the actual application without
-post-processing. Do not overwrite older refinement or construction evidence.
+### Required responsive evidence
 
-- `unified-no-selection-desktop.png`
-- `unified-section-selection-desktop.png`
-- `unified-door-context-desktop.png`
-- `unified-shelf-context-desktop.png`
-- `unified-handle-context-desktop.png`
-- `unified-divider-drag-preview-desktop.png`
-- `unified-base-crown-context-desktop.png`
-- `unified-bottom-sheet-mobile.png`
+Capture native, unprocessed application screenshots in
+`artifacts/configurator-reference-workspace-qa/`. Do not overwrite older
+refinement or construction evidence. Verify these minimum viewports:
 
-## Sections & Layout acceptance matrix
+| Viewport | Required checks |
+| --- | --- |
+| 1440 × 900 (and, when available, 1920 × 1080) | fixed 230 px rail, centered model, ~310 px Properties, organizer/width row, light footer |
+| 1024 × 768 | compact horizontal stages, bounded Properties sheet, usable model, organizer and width status |
+| 768 × 1024 | tablet reflow, contained scrolling, all tools and actions reachable |
+| 390 × 844 | phone stage rail, toolbar, organizer, Properties, price, Save, and Quote reachable |
+| 360 × 800 | narrow-phone no-overflow and 44 px coarse-pointer targets |
+| 844 × 390 | short-landscape model remains usable and Properties/organizer are scroll-contained |
 
-1. The Sections & Layout group shows all section cards in a wrapping overview grid with
-   no nested horizontal scrolling.
-2. Each overview card shows section number, exact clear width, section type,
-   selected state, and locked state when applicable. Selection supports click,
-   Arrow Left/Right, Home, and End.
-3. An explicit global count selection always starts that count at equal clear
-   widths, even when the count is unchanged and stale ratios exist. At 96 in
-   overall width, three sections read exactly `31, 31, 31` in clear and the
-   overall overlay remains 96 in.
-4. A saved or preset asymmetric ratio remains unchanged on ordinary restore and
-   dimension regeneration until the customer explicitly selects a section
-   count.
-5. Exact-width steppers, numeric commit, keyboard divider resize, and pointer
-   drag change only the selected adjacent pair and preserve exact total clear
-   width. Overshoot clamps at the 15 in minimum instead of rejecting the whole
-   gesture.
-6. Pointer drag presents transient overlay/model feedback without recalculating
-   price and commits no more than one canonical accepted transaction on
-   release. The captured handle remains the same DOM node throughout the
-   gesture.
-7. Split and merge account for the 0.75 in divider and round-trip to the
-   original total and deterministic fingerprint. Equalize is global; split and
-   merge remain local.
-8. Split, merge, and equalize live under the Section actions disclosure.
-   Impossible or locked operations are disabled and have an associated reason.
-9. Undo and redo affect accepted section changes only and are not serialized.
-   Reset to Preset restores the preset's canonical structure.
-10. Media, desk, and fireplace feature zones show a locked state. Invalid width
+At every viewport assert no page-width overflow, clipped controls, or surface
+overlap; all seven stages and global tools are reachable; the model retains a
+usable area; Properties and organizer own their scrolling; total width,
+estimate, and actions stay reachable; and resize/fullscreen never duplicates
+the canvas. Required captures include:
+
+- `reference-desktop-shell.png`
+- `reference-desktop-selected-section-tabs.png`
+- `reference-desktop-storage.png`
+- `reference-desktop-history-display-toolbar.png`
+- `reference-tablet-1024x768.png`
+- `reference-tablet-768x1024.png`
+- `reference-phone-organizer-390x844.png`
+- `reference-phone-narrow-360x800.png`
+- `reference-landscape-844x390.png`
+
+## Layout stage and section-organizer acceptance matrix
+
+1. The organizer always shows `Sections (N)`, exact total width, Add Section,
+   and horizontally scroll-contained cards. Each card shows a descriptor-
+   derived thumbnail, section number, exact clear width, selection, and a
+   Duplicate/Delete menu.
+2. Model and organizer selection stay synchronized and route to Layout /
+   General Properties. Keyboard and pointer use retain visible focus and
+   pressed/selected state.
+3. Add and Duplicate split a deterministic buildable source section; Delete
+   absorbs the removed width and one 0.75 in divider allowance into a
+   deterministic neighbor. Total clear width plus dividers remains exact.
+4. Impossible max/min-count, minimum-width, or locked-feature operations are
+   disabled or rejected with an engine-owned reason, leaving all accepted
+   artifacts unchanged.
+5. Each successful Add, Duplicate, or Delete is one global history entry. Undo
+   and Redo restore section structure, total width, estimate, selection-safe
+   Properties, and viewer output through the normal transaction path.
+6. An explicit global count selection starts that count at equal clear widths,
+   even when the count is unchanged and stale ratios exist. At 96 in overall
+   width, three sections read exactly `31, 31, 31` in clear and overall remains
+   96 in.
+7. A saved or preset asymmetric ratio remains unchanged on ordinary restore and
+   dimension regeneration until the customer explicitly selects a count.
+8. Width steppers, numeric commit, keyboard divider resize, and pointer drag
+   change only the adjacent pair and preserve exact total width. Overshoot
+   clamps at the 15 in minimum.
+9. Pointer drag provides transient valid overlay/model feedback without price
+   or history and commits at most one accepted transaction on release. The
+   captured handle remains the same DOM node throughout the gesture.
+10. Media, desk, and fireplace feature zones show a locked state. Invalid
     drafts and edits to locked zones leave every accepted artifact unchanged.
-11. Selection volumes, guides, labels, and hit targets stay in the
-    `nonPhysicalHelper` layer and never enter physical render counts, BOM,
+11. Selection volumes, guides, labels, wall/environment, and hit targets stay
+    `nonPhysicalHelper` output and never enter physical render counts, BOM,
     pricing, design identity, or saved data.
-12. The overlay is projected from descriptor bounds through the active camera.
-    Clear-width labels occupy the first row below the cabinet; the overall
-    width occupies a separate lower row.
-13. Divider handles remain present on desktop, tablet, and mobile with a large
-    pointer target and keyboard support. The exact numeric field remains the
-    non-drag alternative.
-14. At sufficiently oblique side views, projected dimensions fade and direct
-    divider handles disable rather than displaying misleading measurements.
-15. A selected lower-door or tall-door section shows Door arrangement with
-    Auto, Single/hinge left, Single/hinge right, and Pair. The control is absent
-    for open, drawer, media, desk, and feature sections. Unsupported choices are
-    disabled with the engine-provided reason. Split, merge, type, and count
-    changes leave `sectionDoorLayouts` aligned and reset changed-width doors to
-    Auto without stale metadata.
+12. Projected clear-width labels and overall dimensions derive from accepted
+    descriptor bounds. At sufficiently oblique views they fade and divider
+    handles disable rather than implying false measurements.
+13. Divider handles remain available on desktop, tablet, and mobile with a
+    large pointer target and keyboard support. The exact numeric field remains
+    the non-drag alternative; organizer scrolling remains contained.
+14. A selected lower-door or tall-door section exposes Door arrangement in its
+    Doors tab: Auto, Single/hinge left, Single/hinge right, and Pair. The tab is
+    absent for open, drawer, media, desk, and feature sections.
+15. Split, merge, type, and count changes keep `sectionDoorLayouts` aligned and
+    reset changed-width doors to Auto without stale metadata. Unsupported
+    choices expose the engine-provided reason.
 
 ## Storage, profiles, and hardware matrix
 
 1. Storage groups controls into Shelving, Lower storage, Front profiles, and a
-   clear route back to Sections & Layout for per-section customization.
+   clear route to Layout / General and the organizer for per-section work.
 2. Door front profile and drawer front profile are independent controls.
    Shaker, Flat Panel, and Slim Shaker are available for both; Glass Frame is
    door-only and never appears as a drawer choice or drawer descriptor.
@@ -157,7 +185,7 @@ post-processing. Do not overwrite older refinement or construction evidence.
    construction-profile selector. A door-arrangement change immediately updates
    generated leaf/handle counts, estimate, Review, save payload, quote prefill,
    and AR data while preserving camera pose, selected view, selected section,
-   active inspector group, and semantic selection.
+   active stage/tab, Properties selection, and semantic highlight.
 9. Single hinge-left places hardware on the right latch edge; single hinge-right
    places it on the left. A pair has equal leaves, one exact meeting gap, and
    mirrored hardware. Glass hardware stays on the resolved frame, never the
@@ -467,7 +495,7 @@ does not replace any customer-view artifact.
   parts, penetrations, z-fighting, filled toe void, full-depth furniture feet,
   plinth overhang, hardware outside a face/on glass, invisible hardware, camera
   clipping, or unexpected camera reset.
-- Inspector controls, contextual controls, Review, saved schema-4 payload,
+- Stage and Properties controls, organizer operations, Review, saved schema-4 payload,
   quote prefill, AR normalization/model, generated billables, and displayed
   estimate all agree on profile, section arrangements, door leaves, drawer
   fronts, and visible hardware quantities.
@@ -499,7 +527,10 @@ an unrelated component.
 ## Required visual checks
 
 - Shelves are empty: no books, plants, vases, bowls, frames, or ornaments.
-- No visible floor, floor pattern, room wall, baseboard, or staged environment.
+- Wall/environment is an explicitly nonphysical display helper. It appears only
+  while the global Wall button is pressed, disappears when off, and never
+  enters descriptors, render audit, BOM, price, save, quote, or AR. Any floor
+  plane, grid, or baseboard used for orientation follows the same helper rule.
 - The selected finish is shared by frame, shelves, back, fronts, crown, base,
   and trim; only lighting and physical shadows change appearance.
 - No floating lights, handles, shelves, or fronts; no duplicate or flickering
@@ -515,9 +546,10 @@ an unrelated component.
 - Every door has an opposite hinge/latch pair. Hardware stays on the latch side
   and resolved solid material; no glass or recessed field is drilled.
 - The same accepted configuration restores the same geometry and price.
-- Inspector, contextual editor, Review Design, Save Design, local quote prefill,
-  and AR normalization agree on construction profile, per-section door
-  arrangements, and component-derived leaf/hardware quantities.
+- Stage/Properties controls, the organizer, Review Design, Save Design, local
+  quote prefill, and AR normalization agree on construction profile,
+  per-section door arrangements, and component-derived leaf/hardware
+  quantities.
 - Benjamin Moore search works by name and code, persists the selected catalog
   record, and returns a clear no-result state without inventing a color.
 - No new console errors, warnings, geometry-validation errors, or WebGL resource

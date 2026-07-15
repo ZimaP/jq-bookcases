@@ -48,8 +48,20 @@ async function selectRole(role, occurrence = 0) {
     return { id: component.id, role: component.role };
   }, { role, occurrence });
   if (!selected) throw new Error(`No ${role} descriptor was available for capture.`);
-  await page.locator("[data-contextual-editor]").waitFor({ state: "visible" });
+  await page.locator("[data-properties-inspector]").waitFor({ state: "visible" });
   return selected;
+}
+
+async function selectSection(index, type = null) {
+  await page.locator(`[data-section-select="${index}"]`).click();
+  if (type) {
+    await page.locator(`label:has([data-section-type="${type}"])`).click();
+    await page.locator(`[data-section-type="${type}"]`).waitFor({ state: "attached" });
+  }
+  await page.waitForFunction((selectedIndex) => (
+    document.querySelector(`[data-section-card="${selectedIndex}"]`)?.classList.contains("is-selected")
+  ), index);
+  await page.evaluate(() => document.querySelector("[data-bookcase-builder]")?.__bookcaseConfigurator?.clearStatus?.());
 }
 
 async function saveCapture(name, details = {}) {
@@ -61,9 +73,14 @@ async function saveCapture(name, details = {}) {
     const viewer = controller?.viewer?.getDiagnostics?.() || {};
     return {
       interface: controller?.getDiagnostics?.().interface || null,
+      activeWorkspaceStage: controller?.getDiagnostics?.().activeWorkspaceStage || null,
+      activeInspectorTab: controller?.getDiagnostics?.().activeInspectorTab || null,
       selection: controller?.getDiagnostics?.().selection || null,
-      contextEditorOpen: Boolean(controller?.contextEditorOpen),
+      history: controller?.getDiagnostics?.().history || null,
       canvasCount: document.querySelectorAll("[data-3d-viewer] canvas").length,
+      stageCount: document.querySelectorAll("[data-workspace-stage]").length,
+      propertiesCount: document.querySelectorAll("[data-properties-inspector]").length,
+      organizerCount: document.querySelectorAll("[data-section-organizer]").length,
       renderValid: document.querySelector("[data-3d-viewer]")?.dataset.renderValid || null,
       viewerInstance: viewer.instanceId || null,
       viewerRebuilds: viewer.rebuildCount || 0,
@@ -74,57 +91,57 @@ async function saveCapture(name, details = {}) {
   captures.push({ name, file: path.relative(process.cwd(), file), ...details, audit });
 }
 
-await openDesign({ preset: "classic-open", viewport: { width: 1440, height: 900 } });
-await saveCapture("desktop-1440-no-selection", { viewport: "1440x900", state: "no-selection" });
+await openDesign({ preset: "lower-cabinets", viewport: { width: 1536, height: 1024 } });
+await selectSection(2, "drawers");
+await saveCapture("desktop-1536-layout-selected", { viewport: "1536x1024", state: "section-3-lower-drawers-general" });
 
-await selectRole("section", 1);
-await saveCapture("desktop-1440-section-selected", { viewport: "1440x900", state: "section-selected" });
+await page.locator("[data-close-selection]").click();
+await saveCapture("desktop-1536-no-selection", { viewport: "1536x1024", state: "no-selection" });
 
-await openDesign({ preset: "lower-cabinets", viewport: { width: 1440, height: 900 } });
-await selectRole("door", 0);
-await saveCapture("desktop-1440-door-selected", { viewport: "1440x900", state: "door-selected" });
+await selectSection(2);
+await page.locator('[data-inspector-tab="shelves"]').click();
+await saveCapture("desktop-1536-shelves-tab", { viewport: "1536x1024", state: "section-3-shelves" });
 
-await openDesign({ preset: "classic-open", viewport: { width: 1440, height: 900 } });
-await selectRole("shelf", 0);
-await saveCapture("desktop-1440-shelf-selected", { viewport: "1440x900", state: "shelf-selected" });
-
-await openDesign({ preset: "lower-cabinets", viewport: { width: 1440, height: 900 } });
 await selectRole("handle", 0);
-await saveCapture("desktop-1440-handle-selected", { viewport: "1440x900", state: "handle-selected" });
+await saveCapture("desktop-1536-hardware-selected", { viewport: "1536x1024", state: "hardware-selected" });
 
-await openDesign({ preset: "classic-open", viewport: { width: 1440, height: 900 } });
-const divider = page.locator('[data-section-divider="0"]');
-await divider.waitFor({ state: "visible" });
-const dividerBox = await divider.boundingBox();
-if (!dividerBox) throw new Error("The first divider handle has no visible bounds.");
-await page.mouse.move(dividerBox.x + dividerBox.width / 2, dividerBox.y + dividerBox.height / 2);
-await page.mouse.down();
-await page.mouse.move(dividerBox.x + dividerBox.width / 2 + 42, dividerBox.y + dividerBox.height / 2, { steps: 6 });
-await page.waitForFunction(() => Boolean(document.querySelector("[data-bookcase-builder]")?.__bookcaseConfigurator?.viewer?.getDiagnostics?.().previewActive));
-await saveCapture("desktop-1440-divider-drag-preview", { viewport: "1440x900", state: "divider-drag-preview" });
-await page.mouse.up();
+await page.locator("[data-toggle-dimensions]").click();
+await saveCapture("desktop-1536-dimensions-off", { viewport: "1536x1024", state: "dimensions-off" });
 
-await openDesign({ preset: "classic-open", viewport: { width: 1440, height: 900 } });
-await selectRole("base", 0);
-await saveCapture("desktop-1440-base-selected", { viewport: "1440x900", state: "base-selected" });
+await page.locator("[data-toggle-wall]").click();
+await saveCapture("desktop-1536-wall-off", { viewport: "1536x1024", state: "wall-off" });
 
-await openDesign({ preset: "display-wall", viewport: { width: 2560, height: 1440 } });
-await saveCapture("desktop-wide-2560-no-selection", { viewport: "2560x1440", state: "no-selection" });
+await page.locator('[data-workspace-stage="space"]').click();
+await page.locator('[data-active-stage-panel="space"] input[type="number"][data-field="height"]').fill("97");
+await page.locator('[data-active-stage-panel="space"] input[type="number"][data-field="height"]').press("Enter");
+await saveCapture("desktop-1536-undo-available", { viewport: "1536x1024", state: "undo-available" });
 
-await openDesign({ preset: "classic-open", viewport: { width: 820, height: 1180 } });
-await selectRole("section", 0);
-await saveCapture("tablet-portrait-820-section-selected", { viewport: "820x1180", state: "section-selected" });
+await openDesign({ preset: "lower-cabinets", viewport: { width: 1440, height: 900 } });
+await selectSection(2, "drawers");
+await saveCapture("desktop-1440-layout-selected", { viewport: "1440x900", state: "section-3-lower-drawers" });
+
+await openDesign({ preset: "lower-cabinets", viewport: { width: 1280, height: 800 } });
+await selectSection(2, "drawers");
+await saveCapture("laptop-1280-layout-selected", { viewport: "1280x800", state: "section-3-lower-drawers" });
 
 await openDesign({ preset: "lower-cabinets", viewport: { width: 1180, height: 820 } });
-await selectRole("door", 0);
-await saveCapture("tablet-landscape-1180-door-selected", { viewport: "1180x820", state: "door-selected" });
+await selectSection(2, "drawers");
+await page.locator('[data-inspector-tab="drawers"]').click();
+await saveCapture("tablet-landscape-properties-drawer", { viewport: "1180x820", state: "drawer-properties" });
+
+await openDesign({ preset: "classic-open", viewport: { width: 820, height: 1180 } });
+await selectSection(1);
+await saveCapture("tablet-portrait-section-selected", { viewport: "820x1180", state: "section-selected" });
 
 await openDesign({ preset: "lower-cabinets", viewport: { width: 390, height: 844 } });
-await selectRole("door", 0);
-await saveCapture("mobile-390-door-bottom-sheet", { viewport: "390x844", state: "door-selected-bottom-sheet" });
+await selectSection(2, "drawers");
+await saveCapture("mobile-390-properties-bottom-sheet", { viewport: "390x844", state: "properties-bottom-sheet" });
+
+await page.locator("[data-section-organizer]").scrollIntoViewIfNeeded();
+await saveCapture("mobile-390-section-organizer", { viewport: "390x844", state: "section-organizer" });
 
 await openDesign({ preset: "classic-open", viewport: { width: 844, height: 390 } });
-await saveCapture("short-landscape-844-no-selection", { viewport: "844x390", state: "no-selection" });
+await saveCapture("short-landscape-toolbar", { viewport: "844x390", state: "toolbar" });
 
 await writeFile(path.join(outputDir, "manifest.json"), `${JSON.stringify({
   generatedAt: new Date().toISOString(),

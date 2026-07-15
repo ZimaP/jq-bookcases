@@ -56,15 +56,30 @@ async function readDesign(page) {
   });
 }
 
+const categoryStage = Object.freeze({
+  overall_size: "space",
+  sections_layout: "layout",
+  shelves: "storage",
+  storage_fronts: "storage",
+  base_crown: "layout",
+  finish: "finish",
+  hardware: "hardware",
+  lighting: "lighting",
+  project_service: "preview"
+});
+
 async function openCategory(page, category) {
-  const trigger = page.locator(`[data-category-trigger="${category}"]`);
-  if (await trigger.getAttribute("aria-expanded") !== "true") await trigger.click();
-  await expect(trigger).toHaveAttribute("aria-expanded", "true");
-  await expect(page.locator(`[data-category-panel="${category}"]`)).toBeVisible();
+  const stage = categoryStage[category];
+  if (!stage) throw new Error(`No workspace stage registered for ${category}`);
+  const trigger = page.locator(`[data-workspace-stage="${stage}"]`);
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-current", "step");
+  await expect(page.locator("[data-properties-inspector]")).toBeVisible();
 }
 
 function numberField(page, category, field) {
-  return page.locator(`[data-category-panel="${category}"] input[type="number"][data-field="${field}"]`);
+  void category;
+  return page.locator(`[data-properties-inspector] input[type="number"][data-field="${field}"]`);
 }
 
 async function setNumber(page, category, field, value) {
@@ -75,7 +90,7 @@ async function setNumber(page, category, field, value) {
 
 async function chooseRadio(page, category, field, value) {
   await openCategory(page, category);
-  const control = page.locator(`[data-category-panel="${category}"] input[data-field="${field}"][value="${value}"]`);
+  const control = page.locator(`[data-properties-inspector] input[data-field="${field}"][value="${value}"]`);
   const controlId = await control.getAttribute("id");
   const label = controlId
     ? page.locator(`label[for="${controlId}"]`)
@@ -87,10 +102,11 @@ async function chooseRadio(page, category, field, value) {
 
 async function chooseHardware(page, type, finish, canonicalVariant) {
   await openCategory(page, "hardware");
-  await page.locator(`.hardware-type-choice:has(input[value="${type}"])`).click();
-  await expect(page.locator(`[data-hardware-type][value="${type}"]`)).toBeChecked();
-  await page.locator(`.hardware-finish-choice:has(input[value="${finish}"])`).click();
-  await expect(page.locator(`[data-hardware-finish][value="${finish}"]`)).toBeChecked();
+  const inspector = page.locator("[data-properties-inspector]");
+  await inspector.locator(`.hardware-type-choice:has(input[value="${type}"])`).click();
+  await expect(inspector.locator(`[data-hardware-type][value="${type}"]`)).toBeChecked();
+  await inspector.locator(`.hardware-finish-choice:has(input[value="${finish}"])`).click();
+  await expect(inspector.locator(`[data-hardware-finish][value="${finish}"]`)).toBeChecked();
   await expect.poll(async () => (await readDesign(page)).state.hardware).toBe(canonicalVariant);
 }
 
@@ -166,54 +182,60 @@ test("section count and mixed storage changes stay synchronized with geometry, B
   expect(design.roles.drawer).toBe(20);
   expect(design.roles.handle).toBe(20);
 
+  await setNumber(page, "overall_size", "width", 132);
   await openCategory(page, "sections_layout");
-  await expect(page.locator("[data-builder-form]")).toHaveAttribute("data-diagnostic-inspector-group", "sections_layout");
-  const sections = page.locator('[data-stepper-control="sections"] input[data-field="sections"]');
-  await sections.fill("6");
+  await expect(page.locator("[data-builder-form]")).toHaveAttribute("data-diagnostic-workspace-stage", "layout");
+  const organizer = page.locator("[data-section-organizer]");
+  await organizer.locator("[data-section-add]").click();
+  await organizer.locator("[data-section-add]").click();
   await expect.poll(async () => (await readDesign(page)).state.sections).toBe(6);
   design = await readDesign(page);
   expect(design.bom.sections.count).toBe(6);
-  expect(design.bom.drawers.frontCount).toBe(30);
+  expect(design.bom.drawers.frontCount).toBe(20);
 
-  await sections.fill("3");
+  for (let count = 6; count > 3; count -= 1) {
+    const selectedDelete = page.locator("[data-properties-inspector] [data-section-delete]");
+    await expect(selectedDelete).toBeEnabled();
+    await selectedDelete.click();
+  }
   await expect.poll(async () => (await readDesign(page)).state.sections).toBe(3);
-  await expect(page.locator("[data-section-designer]")).toBeVisible();
-  await expect(page.locator("[data-section-select]")).toHaveCount(3);
+  await expect(organizer.locator("[data-section-card]")).toHaveCount(3);
 
-  const firstSection = page.locator('[data-section-select="0"]');
+  const firstSection = organizer.locator('[data-section-select="0"]');
   await firstSection.focus();
   await firstSection.press("End");
-  await expect(page.locator('[data-section-select="2"]')).toBeFocused();
-  await expect(page.locator('[data-section-select="2"]')).toHaveAttribute("aria-pressed", "true");
-  await page.locator('.section-type-card:has(input[data-section-type="open"])').click();
-  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["drawers", "drawers", "open"]);
+  await expect(organizer.locator('[data-section-select="2"]')).toBeFocused();
+  await expect(organizer.locator('[data-section-select="2"]')).toHaveAttribute("aria-pressed", "true");
+  await page.locator('[data-properties-inspector] .workspace-section-type-card:has(input[data-section-type="open"])').click();
+  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["drawers", "open", "open"]);
   design = await readDesign(page);
-  expect(design.bom.drawers.frontCount).toBe(10);
-  expect(design.roles.drawer).toBe(10);
+  expect(design.bom.drawers.frontCount).toBe(5);
+  expect(design.roles.drawer).toBe(5);
 
   const changedFingerprint = design.fingerprint;
-  await page.locator("[data-section-undo]").click();
-  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["drawers", "drawers", "drawers"]);
-  await page.locator("[data-section-redo]").click();
+  await page.locator("[data-history-undo]").click();
+  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["drawers", "open", "drawers"]);
+  await page.locator("[data-history-redo]").click();
   await expect.poll(async () => (await readDesign(page)).fingerprint).toBe(changedFingerprint);
   design = await readDesign(page);
-  expect(design.sectionTypes).toEqual(["drawers", "drawers", "open"]);
+  expect(design.sectionTypes).toEqual(["drawers", "open", "open"]);
 
   await chooseRadio(page, "storage_fronts", "lowerStorage", "doors");
-  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["lower_doors", "lower_doors", "open"]);
+  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["lower_doors", "open", "open"]);
   design = await readDesign(page);
   expect(design.state).toMatchObject({ lowerCabinets: true, lowerStorage: "doors" });
-  expect(design.roles.door).toBe(4);
+  expect(design.roles.door).toBe(1);
   expect(design.roles.drawer).toBe(0);
 
   await chooseRadio(page, "storage_fronts", "lowerStorage", "drawers");
-  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["drawers", "drawers", "open"]);
+  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["drawers", "open", "open"]);
   design = await readDesign(page);
   expect(design.roles.door).toBe(0);
-  expect(design.roles.drawer).toBe(10);
+  expect(design.roles.drawer).toBe(5);
 
-  const globalLowerCabinets = page.locator('[data-category-panel="storage_fronts"] input[data-field="lowerCabinets"]');
-  await globalLowerCabinets.uncheck();
+  const globalLowerCabinets = page.locator('[data-properties-inspector] input[data-field="lowerCabinets"]');
+  await globalLowerCabinets.focus();
+  await globalLowerCabinets.press("Space");
   await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["open", "open", "open"]);
   design = await readDesign(page);
   expect(design.state.lowerCabinets).toBe(false);
@@ -221,24 +243,30 @@ test("section count and mixed storage changes stay synchronized with geometry, B
   expect(design.roles.drawer).toBe(0);
 
   await expect(globalLowerCabinets).toBeVisible();
-  await globalLowerCabinets.check();
-  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["lower_doors", "lower_doors", "lower_doors"]);
+  await globalLowerCabinets.focus();
+  await globalLowerCabinets.press("Space");
+  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["open", "open", "open"]);
+  await expect(globalLowerCabinets).not.toBeChecked();
+  await expect(page.locator("[data-builder-status]")).toContainText(/supported maximum finished width/i);
+
+  await page.locator("[data-history-undo]").click();
+  await expect.poll(async () => (await readDesign(page)).sectionTypes).toEqual(["drawers", "open", "open"]);
   design = await readDesign(page);
-  expect(design.state).toMatchObject({ lowerCabinets: true, lowerStorage: "doors" });
-  expect(design.roles.door).toBe(6);
-  expect(design.roles.drawer).toBe(0);
+  expect(design.state).toMatchObject({ lowerCabinets: true, lowerStorage: "drawers" });
+  expect(design.roles.door).toBe(0);
+  expect(design.roles.drawer).toBe(5);
   expectVerifiedModel(design);
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
   expect(runtimeErrors).toEqual([]);
 });
 
-test("the unified inspector renders one usable Fronts radio set with one checked applicable profile", async ({ page }) => {
+test("the fixed Properties inspector renders one usable Fronts set with one checked applicable profile", async ({ page }) => {
   const runtimeErrors = monitorRuntime(page);
   await openConfigurator(page);
   await openCategory(page, "storage_fronts");
-  const inspector = page.locator("[data-unified-inspector]");
+  const inspector = page.locator("[data-properties-inspector]");
   await expect(inspector.locator("[data-front-profile-groups]")).toHaveCount(1);
-  const frontsPanel = page.locator('[data-category-panel="storage_fronts"]');
+  const frontsPanel = inspector;
   const doorProfiles = frontsPanel.locator('.front-profile-group[data-applicability="doors"]');
   const drawerProfiles = frontsPanel.locator('.front-profile-group[data-applicability="drawers"]');
   await expect(doorProfiles).toBeVisible();
@@ -278,8 +306,8 @@ test("construction, fronts, finish, hardware, lighting, and service selections p
   await chooseRadio(page, "project_service", "installation", "no_installation");
 
   await chooseRadio(page, "finish", "finish", "silver_satin");
-  await page.locator('[data-category-panel="finish"] [data-toggle-color-search]').click();
-  const colorSearch = page.locator('[data-category-panel="finish"] [data-bm-query]');
+  await page.locator('[data-properties-inspector] [data-toggle-color-search]').click();
+  const colorSearch = page.locator('[data-properties-inspector] [data-bm-query]');
   await colorSearch.fill("HC-154");
   await colorSearch.press("Enter");
   await expect.poll(async () => (await readDesign(page)).state.finish).toBe("custom_bm");
@@ -312,6 +340,7 @@ test("construction, fronts, finish, hardware, lighting, and service selections p
   expectVerifiedModel(design);
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
 
+  await openCategory(page, "project_service");
   const reviewInvoker = page.locator("[data-review-design]").first();
   await reviewInvoker.click();
   const review = page.locator("[data-review-dialog]");
@@ -355,21 +384,21 @@ test("construction, fronts, finish, hardware, lighting, and service selections p
   expect(runtimeErrors).toEqual([]);
 });
 
-test("mobile keyboard operation navigates inspector groups, manipulates the camera, reviews, saves, and restores without overflow", async ({ page }) => {
+test("mobile keyboard operation navigates workspace stages, manipulates the camera, reviews, saves, and restores without overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const runtimeErrors = monitorRuntime(page);
   const viewer = await openConfigurator(page, "classic-open");
 
-  const sectionsTrigger = page.locator('[data-category-trigger="sections_layout"]');
-  await sectionsTrigger.focus();
-  await sectionsTrigger.press("Enter");
-  await expect(sectionsTrigger).toHaveAttribute("aria-expanded", "true");
-  await expect(page.locator('[data-category-panel="sections_layout"]')).toBeVisible();
+  const layoutStage = page.locator('[data-workspace-stage="layout"]');
+  await layoutStage.focus();
+  await layoutStage.press("Enter");
+  await expect(layoutStage).toHaveAttribute("aria-current", "step");
+  await expect(page.locator("[data-section-organizer]")).toBeVisible();
 
-  const sizeTrigger = page.locator('[data-category-trigger="overall_size"]');
-  await sizeTrigger.focus();
-  await sizeTrigger.press("Enter");
-  await expect(sizeTrigger).toHaveAttribute("aria-expanded", "true");
+  const spaceStage = page.locator('[data-workspace-stage="space"]');
+  await spaceStage.focus();
+  await spaceStage.press("Enter");
+  await expect(spaceStage).toHaveAttribute("aria-current", "step");
   await numberField(page, "overall_size", "width").fill("120");
   await expect.poll(async () => (await readDesign(page)).state.width).toBe(120);
 
@@ -381,6 +410,10 @@ test("mobile keyboard operation navigates inspector groups, manipulates the came
   expect(afterCamera.theta).not.toBe(beforeCamera.theta);
   expect(afterCamera.radius).toBeLessThan(beforeCamera.radius);
 
+  const previewStage = page.locator('[data-workspace-stage="preview"]');
+  await previewStage.focus();
+  await previewStage.press("Enter");
+  await expect(previewStage).toHaveAttribute("aria-current", "step");
   const reviewInvoker = page.locator("[data-review-design]").first();
   await reviewInvoker.focus();
   await reviewInvoker.press("Enter");

@@ -11,8 +11,99 @@ import {
 } from "./bookcase-config.js?v=direct-hardware-20260714a";
 import { deriveBillableComponents } from "./bookcase-billable.js?v=direct-hardware-20260714a";
 import { deriveBookcaseBOM } from "./bookcase-bom.js?v=direct-hardware-20260714a";
-import { getSectionDesignerState } from "./bookcase-sections.js?v=direct-hardware-20260714a";
+import { getSectionDesignerState } from "./bookcase-sections.js?v=reference-layout-20260715g";
 
+/**
+ * Non-linear customer workspace navigation. These are organizational stages,
+ * not a guided workflow: every stage is always directly reachable.
+ */
+export const WORKSPACE_STAGES = Object.freeze([
+  Object.freeze({ id: "space", label: "Space", subtitle: "Set your room dimensions", icon: "space" }),
+  Object.freeze({ id: "layout", label: "Layout", subtitle: "Build your bookcase", icon: "layout" }),
+  Object.freeze({ id: "storage", label: "Storage", subtitle: "Add shelves, doors & drawers", icon: "storage" }),
+  Object.freeze({ id: "finish", label: "Finish", subtitle: "Choose materials & colors", icon: "finish" }),
+  Object.freeze({ id: "hardware", label: "Hardware", subtitle: "Select handles & knobs", icon: "hardware" }),
+  Object.freeze({ id: "lighting", label: "Lighting", subtitle: "Add lighting options", icon: "lighting" }),
+  Object.freeze({ id: "preview", label: "Preview", subtitle: "Review & export your design", icon: "preview" })
+]);
+
+/** Physical control groups projected into each directly reachable stage. */
+export const STAGE_CONTROL_GROUPS = Object.freeze({
+  space: Object.freeze(["overall_size"]),
+  layout: Object.freeze(["sections_layout", "base_crown"]),
+  storage: Object.freeze(["shelves", "storage_fronts"]),
+  finish: Object.freeze(["finish"]),
+  hardware: Object.freeze(["hardware"]),
+  lighting: Object.freeze(["lighting"]),
+  preview: Object.freeze(["project_service"])
+});
+
+const FRONT_SECTION_TYPES = Object.freeze(["lower_doors", "tall_doors"]);
+const DRAWER_SECTION_TYPES = Object.freeze(["drawers"]);
+const SHELF_SECTION_TYPES = Object.freeze(["open", "lower_doors", "drawers", "tall_doors"]);
+
+/** Tabs shown for a selected section. Back is descriptor information only. */
+export const INSPECTOR_TAB_DEFINITIONS = Object.freeze({
+  general: Object.freeze({
+    id: "general",
+    label: "General",
+    icon: "layout",
+    groups: Object.freeze(["sections_layout"]),
+    sectionTypes: null,
+    always: true,
+    readOnly: false
+  }),
+  shelves: Object.freeze({
+    id: "shelves",
+    label: "Shelves",
+    icon: "shelves",
+    groups: Object.freeze(["shelves"]),
+    sectionTypes: SHELF_SECTION_TYPES,
+    always: false,
+    readOnly: false
+  }),
+  doors: Object.freeze({
+    id: "doors",
+    label: "Doors",
+    icon: "doors",
+    groups: Object.freeze(["storage_fronts"]),
+    sectionTypes: FRONT_SECTION_TYPES,
+    always: false,
+    readOnly: false
+  }),
+  drawers: Object.freeze({
+    id: "drawers",
+    label: "Drawers",
+    icon: "drawers",
+    groups: Object.freeze(["storage_fronts"]),
+    sectionTypes: DRAWER_SECTION_TYPES,
+    always: false,
+    readOnly: false
+  }),
+  back: Object.freeze({
+    id: "back",
+    label: "Back",
+    icon: "backPanel",
+    groups: Object.freeze([]),
+    sectionTypes: null,
+    always: false,
+    readOnly: true
+  }),
+  lighting: Object.freeze({
+    id: "lighting",
+    label: "Lighting",
+    icon: "lighting",
+    groups: Object.freeze(["lighting"]),
+    sectionTypes: null,
+    always: false,
+    readOnly: false
+  })
+});
+
+/**
+ * Deprecated compatibility projection for the current controller and
+ * validation APIs. New presentation code must iterate WORKSPACE_STAGES.
+ */
 export const UNIFIED_CONTROL_GROUPS = Object.freeze([
   { id: "overall_size", label: "Overall Size" },
   { id: "sections_layout", label: "Sections & Layout" },
@@ -23,7 +114,7 @@ export const UNIFIED_CONTROL_GROUPS = Object.freeze([
   { id: "hardware", label: "Hardware" },
   { id: "lighting", label: "Lighting" },
   { id: "project_service", label: "Project Service" }
-]);
+].map((group) => Object.freeze(group)));
 
 export const PHYSICAL_CONFIG_FIELDS = Object.freeze([
   "layoutPreset", "layoutType", "width", "height", "depth", "sections", "shelves",
@@ -84,6 +175,8 @@ export const EDITABLE_NUMBER_LIMITS = Object.freeze({
 });
 
 const inspectorGroupIds = new Set(UNIFIED_CONTROL_GROUPS.map((group) => group.id));
+const workspaceStageIds = new Set(WORKSPACE_STAGES.map((stage) => stage.id));
+const inspectorTabIds = new Set(Object.keys(INSPECTOR_TAB_DEFINITIONS));
 
 export const CONTEXT_EDITOR_DEFINITIONS = Object.freeze({
   section: Object.freeze({
@@ -142,6 +235,13 @@ export const CONTEXT_EDITOR_DEFINITIONS = Object.freeze({
     inspectorGroupId: "lighting",
     controlIds: Object.freeze(["lighting", "lightingWarmth"])
   }),
+  back: Object.freeze({
+    id: "back",
+    kind: "back",
+    scope: "global",
+    inspectorGroupId: "sections_layout",
+    controlIds: Object.freeze([])
+  }),
   body: Object.freeze({
     id: "body",
     kind: "body",
@@ -174,10 +274,90 @@ export const COMPONENT_ROLE_TO_EDITOR = Object.freeze({
   light: "lighting",
   assembly: "body",
   side_panel: "body",
-  back_panel: "body",
+  back_panel: "back",
   bottom_panel: "body",
   divider: "divider"
 });
+
+export const COMPONENT_ROLE_TO_STAGE = Object.freeze({
+  section: "layout",
+  section_group: "layout",
+  opening: "layout",
+  divider: "layout",
+  shelf: "storage",
+  fixed_shelf: "storage",
+  door: "storage",
+  drawer_front: "storage",
+  handle: "hardware",
+  base: "layout",
+  trim: "layout",
+  crown: "layout",
+  top_panel: "layout",
+  light: "lighting",
+  assembly: "space",
+  side_panel: "space",
+  back_panel: "layout",
+  bottom_panel: "space"
+});
+
+export const COMPONENT_ROLE_TO_INSPECTOR = Object.freeze({
+  section: "general",
+  section_group: "general",
+  opening: "general",
+  divider: "general",
+  shelf: "shelves",
+  fixed_shelf: "shelves",
+  door: "doors",
+  drawer_front: "drawers",
+  handle: "general",
+  base: "general",
+  trim: "general",
+  crown: "general",
+  top_panel: "general",
+  light: "lighting",
+  assembly: "general",
+  side_panel: "general",
+  back_panel: "back",
+  bottom_panel: "general"
+});
+
+/** Compatibility name for callers that make the tab nature explicit. */
+export const COMPONENT_ROLE_TO_INSPECTOR_TAB = COMPONENT_ROLE_TO_INSPECTOR;
+
+export function normalizeWorkspaceStage(value) {
+  return workspaceStageIds.has(value) ? value : WORKSPACE_STAGES[0].id;
+}
+
+export function normalizeInspectorTab(value) {
+  return inspectorTabIds.has(value) ? value : INSPECTOR_TAB_DEFINITIONS.general.id;
+}
+
+export function workspaceStageForControlGroup(groupId) {
+  return WORKSPACE_STAGES.find((stage) => STAGE_CONTROL_GROUPS[stage.id].includes(groupId))?.id
+    || WORKSPACE_STAGES[0].id;
+}
+
+export function workspaceStageForField(field) {
+  return workspaceStageForControlGroup(inspectorGroupForField(field));
+}
+
+export function inspectorTabForField(field, config = null) {
+  if (["shelves", "shelfThickness"].includes(field)) return "shelves";
+  if (["drawerCount", "drawerFrontStyle"].includes(field)) return "drawers";
+  if (field === "doorStyle") return "doors";
+  if (["lighting", "lightingWarmth"].includes(field)) return "lighting";
+  if (["lowerCabinets", "lowerStorage"].includes(field)) {
+    return config && normalizeBookcaseConfig(config).lowerStorage === "drawers" ? "drawers" : "doors";
+  }
+  return "general";
+}
+
+export function getApplicableInspectorTabs(sectionOrType) {
+  const sectionType = typeof sectionOrType === "string" ? sectionOrType : sectionOrType?.type;
+  return Object.values(INSPECTOR_TAB_DEFINITIONS).filter((tab) => (
+    tab.always || tab.sectionTypes === null || tab.sectionTypes.includes(sectionType)
+  ));
+}
 
 export function normalizeInspectorGroup(value) {
   return inspectorGroupIds.has(value) ? value : UNIFIED_CONTROL_GROUPS[0].id;
@@ -255,11 +435,58 @@ function getSelectionTitle(editorId, component, sectionIndex) {
   if (editorId === "base") return "Base";
   if (editorId === "crown") return "Crown & Top";
   if (editorId === "lighting") return `Lighting${sectionSuffix}`;
+  if (editorId === "back") return "Fitted Back";
   if (editorId === "divider") {
     const boundaryIndex = Number(component.metadata?.boundaryIndex);
     return Number.isInteger(boundaryIndex) ? `Divider ${boundaryIndex}` : "Divider";
   }
   return "Overall Bookcase";
+}
+
+/**
+ * Project one semantic model selection into non-linear workspace navigation.
+ * A handle keeps its Hardware stage while its owning front selects Doors or
+ * Drawers in the section inspector.
+ */
+export function resolveWorkspaceSelection(selection, stateOrLayout = null) {
+  if (!selection) return null;
+  const candidate = typeof selection === "string" ? { role: selection } : selection;
+  const layout = stateOrLayout?.layout || (Array.isArray(stateOrLayout?.components) ? stateOrLayout : null);
+  const components = Array.isArray(layout?.components) ? layout.components : [];
+  const componentById = new Map(components.map((component) => [component.id, component]));
+  const role = candidate.role || componentById.get(candidate.componentId)?.role || null;
+  const component = componentById.get(candidate.componentId) || null;
+  const host = component?.hostId ? componentById.get(component.hostId) : null;
+  const front = candidate.frontId ? componentById.get(candidate.frontId) : null;
+
+  let stageId = COMPONENT_ROLE_TO_STAGE[role]
+    || (candidate.inspectorGroupId ? workspaceStageForControlGroup(candidate.inspectorGroupId) : null)
+    || WORKSPACE_STAGES[0].id;
+  let inspectorTabId = COMPONENT_ROLE_TO_INSPECTOR[role] || "general";
+
+  if (role === "handle") {
+    const hostRole = host?.role || front?.role;
+    if (hostRole === "drawer_front") inspectorTabId = "drawers";
+    else if (hostRole === "door") inspectorTabId = "doors";
+  }
+
+  const section = candidate.sectionId
+    ? componentById.get(candidate.sectionId)
+    : Number.isInteger(candidate.sectionIndex)
+      ? components.find((item) => item.role === "section" && Number(item.metadata?.index) === candidate.sectionIndex)
+      : getOwningSection(component, componentById);
+  const sectionType = section?.metadata?.type || candidate.sectionType || null;
+  const applicableTabs = getApplicableInspectorTabs(sectionType);
+  if (!applicableTabs.some((tab) => tab.id === inspectorTabId)) inspectorTabId = "general";
+
+  stageId = normalizeWorkspaceStage(stageId);
+  inspectorTabId = normalizeInspectorTab(inspectorTabId);
+  return Object.freeze({
+    stageId,
+    inspectorTabId,
+    stageControlGroupIds: STAGE_CONTROL_GROUPS[stageId],
+    inspectorTabGroupIds: INSPECTOR_TAB_DEFINITIONS[inspectorTabId].groups
+  });
 }
 
 /**
@@ -309,7 +536,7 @@ export function resolveSelectionContext(layout, hit, source = "canvas") {
     ? Number(hit.anchorClientY)
     : null;
 
-  return Object.freeze({
+  const context = {
     kind: editor.kind,
     editorId,
     componentId: component.id,
@@ -332,7 +559,8 @@ export function resolveSelectionContext(layout, hit, source = "canvas") {
     anchorClientX,
     anchorClientY,
     source: hitSource || null
-  });
+  };
+  return Object.freeze({ ...context, ...resolveWorkspaceSelection(context, layout) });
 }
 
 /** Re-resolve presentation-only selection after an accepted layout rebuild. */
@@ -584,6 +812,147 @@ export function createReviewGroups(config, layout, basePresetId = "") {
   return groups;
 }
 
+function countOwnedSectionComponents(section, components, componentById) {
+  const counts = {
+    adjustableShelves: 0,
+    fixedShelves: 0,
+    doors: 0,
+    drawerFronts: 0,
+    handles: 0,
+    lights: 0
+  };
+  for (const component of components) {
+    if (component.id === section.id) continue;
+    if (getOwningSection(component, componentById)?.id !== section.id) continue;
+    if (component.role === "shelf") counts.adjustableShelves += 1;
+    else if (component.role === "fixed_shelf") counts.fixedShelves += 1;
+    else if (component.role === "door") counts.doors += 1;
+    else if (component.role === "drawer_front") counts.drawerFronts += 1;
+    else if (component.role === "handle") counts.handles += 1;
+    else if (component.role === "light") counts.lights += 1;
+  }
+  return counts;
+}
+
+function normalizeGeneratedCount(value) {
+  const numeric = Number(value);
+  return Number.isInteger(numeric) && numeric > 0 ? numeric : 0;
+}
+
+/** Render-agnostic semantic data for an accessible section thumbnail. */
+export function createSectionOrganizerThumbnail(section, generated = {}) {
+  const sectionType = section?.type || "open";
+  const adjustableShelves = normalizeGeneratedCount(generated.adjustableShelves);
+  const fixedShelves = normalizeGeneratedCount(generated.fixedShelves);
+  const doors = normalizeGeneratedCount(generated.doors);
+  const drawerFronts = normalizeGeneratedCount(generated.drawerFronts);
+  const handles = normalizeGeneratedCount(generated.handles);
+  const lights = normalizeGeneratedCount(generated.lights);
+  const frontKind = drawerFronts > 0 || sectionType === "drawers"
+    ? "drawers"
+    : doors > 0 || FRONT_SECTION_TYPES.includes(sectionType)
+      ? "doors"
+      : "open";
+  const featureKind = ["media", "desk", "feature"].includes(sectionType) ? sectionType : null;
+  return Object.freeze({
+    sectionType,
+    frontKind,
+    featureKind,
+    shelfCount: adjustableShelves,
+    fixedShelfCount: fixedShelves,
+    doorLeafCount: doors,
+    drawerFrontCount: drawerFronts,
+    handleCount: handles,
+    lightCount: lights,
+    segments: Object.freeze([
+      ...Array.from({ length: adjustableShelves }, () => "shelf"),
+      ...Array.from({ length: fixedShelves }, () => "fixed_shelf"),
+      ...Array.from({ length: doors }, () => "door"),
+      ...Array.from({ length: drawerFronts }, () => "drawer_front")
+    ])
+  });
+}
+
+function getOrganizerWarnings(section, layout, componentById) {
+  const warnings = [];
+  for (const warning of layout?.validation?.warnings || []) {
+    const component = warning.componentId ? componentById.get(warning.componentId) : null;
+    if (component?.id === section.id || getOwningSection(component, componentById)?.id === section.id) warnings.push(warning);
+  }
+  for (const warning of section.warnings || []) {
+    if (!warnings.includes(warning)) warnings.push(warning);
+  }
+  return warnings;
+}
+
+function formatSectionTypeCount(type, count, drawerCount) {
+  const labels = {
+    open: ["open section", "open sections"],
+    lower_doors: ["lower-door section", "lower-door sections"],
+    drawers: [`${drawerCount}-drawer section`, `${drawerCount}-drawer sections`],
+    tall_doors: ["tall-door section", "tall-door sections"],
+    media: ["Media Feature", "Media Features"],
+    desk: ["Desk Feature", "Desk Features"],
+    feature: ["Fireplace Feature", "Fireplace Features"]
+  };
+  const [singular, plural] = labels[type] || ["generated section", "generated sections"];
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+/**
+ * Build the accepted section organizer model from descriptors. Counts follow
+ * parent/host ownership rather than component-id naming conventions.
+ */
+export function createSectionOrganizerSummary(config, layout) {
+  const state = normalizeBookcaseConfig(config);
+  const designer = getSectionDesignerState(state, layout);
+  const components = Array.isArray(layout?.components) ? layout.components : [];
+  const componentById = new Map(components.map((component) => [component.id, component]));
+  const typeCounts = designer.sections.reduce((counts, section) => ({
+    ...counts,
+    [section.type]: (counts[section.type] || 0) + 1
+  }), {});
+  const typeSummary = Object.entries(typeCounts).map(([type, count]) => formatSectionTypeCount(type, count, state.drawerCount));
+  const items = designer.sections.map((section) => {
+    const generated = countOwnedSectionComponents(section, components, componentById);
+    const warnings = getOrganizerWarnings(section, layout, componentById);
+    return Object.freeze({
+      id: section.id,
+      index: section.index,
+      title: `Section ${section.index + 1}`,
+      width: section.width,
+      widthLabel: `${formatSectionWidth(section.width)} in clear`,
+      type: section.type,
+      typeLabel: formatSectionType(section.type, state.drawerCount),
+      locked: section.locked,
+      lockReason: section.locked ? "Preset feature sections keep their required opening geometry." : null,
+      editable: section.editable,
+      doorArrangement: section.doorLayout?.arrangement || null,
+      generated: Object.freeze(generated),
+      warnings: Object.freeze([...warnings]),
+      thumbnail: createSectionOrganizerThumbnail(section, generated),
+      shelvesApplyToAllOpenSections: true
+    });
+  });
+  return Object.freeze({
+    summary: `${designer.sections.length} ${designer.sections.length === 1 ? "section" : "sections"}${typeSummary.length ? ` · ${typeSummary.join(" · ")}` : ""}`,
+    sectionCount: designer.sections.length,
+    totalClearWidth: designer.totalClearWidth,
+    totalClearWidthLabel: `${formatSectionWidth(designer.totalClearWidth)} in total clear width`,
+    minimumClearWidth: designer.minimumClearWidth,
+    typeCounts: Object.freeze(typeCounts),
+    items: Object.freeze(items)
+  });
+}
+
+export function getSectionOrganizerModel(config, layout) {
+  return createSectionOrganizerSummary(config, layout);
+}
+
+export function getSectionOrganizerSummary(config, layout) {
+  return createSectionOrganizerSummary(config, layout).summary;
+}
+
 function formatSectionWidth(value) {
   return Number(Number(value).toFixed(3)).toString();
 }
@@ -642,6 +1011,105 @@ export function getChangedConfigFields(previousConfig, nextConfig) {
 
 export function configsAreEqual(left, right) {
   return getChangedConfigFields(left, right).length === 0;
+}
+
+export const ACCEPTED_DESIGN_HISTORY_LIMIT = 50;
+
+function normalizeAcceptedDesignHistoryLimit(value) {
+  const numeric = Number(value);
+  if (!Number.isInteger(numeric) || numeric < 1) return ACCEPTED_DESIGN_HISTORY_LIMIT;
+  return Math.min(numeric, ACCEPTED_DESIGN_HISTORY_LIMIT);
+}
+
+function cloneAcceptedDesignSnapshot(value) {
+  if (value === null || value === undefined) return null;
+  return typeof structuredClone === "function"
+    ? structuredClone(value)
+    : JSON.parse(JSON.stringify(value));
+}
+
+function acceptedDesignSnapshotsEqual(left, right) {
+  if (left === right) return true;
+  if (left === null || right === null || left === undefined || right === undefined) return false;
+  const leftConfig = left?.state || left?.config;
+  const rightConfig = right?.state || right?.config;
+  if (leftConfig && rightConfig) return configsAreEqual(leftConfig, rightConfig);
+  try {
+    return JSON.stringify(left) === JSON.stringify(right);
+  } catch (error) {
+    return false;
+  }
+}
+
+function freezeAcceptedDesignHistory({ limit, past, present, future }) {
+  return Object.freeze({
+    limit: normalizeAcceptedDesignHistoryLimit(limit),
+    past: Object.freeze(past),
+    present,
+    future: Object.freeze(future)
+  });
+}
+
+/** Create bounded, presentation-only history for successful accepted designs. */
+export function createAcceptedDesignHistory(initialAcceptedDesign = null, options = {}) {
+  const limit = normalizeAcceptedDesignHistoryLimit(options.limit);
+  return freezeAcceptedDesignHistory({
+    limit,
+    past: [],
+    present: cloneAcceptedDesignSnapshot(initialAcceptedDesign),
+    future: []
+  });
+}
+
+/** Record one successful accepted transaction. Identical or rejected inputs are no-ops. */
+export function commitAcceptedDesignHistory(history, nextAcceptedDesign) {
+  const current = history || createAcceptedDesignHistory();
+  if (nextAcceptedDesign === null || nextAcceptedDesign === undefined || nextAcceptedDesign?.accepted === false) return current;
+  if (acceptedDesignSnapshotsEqual(current.present, nextAcceptedDesign)) return current;
+  if (current.present === null || current.present === undefined) {
+    return freezeAcceptedDesignHistory({
+      limit: current.limit,
+      past: [],
+      present: cloneAcceptedDesignSnapshot(nextAcceptedDesign),
+      future: []
+    });
+  }
+  return freezeAcceptedDesignHistory({
+    limit: current.limit,
+    past: [...current.past, cloneAcceptedDesignSnapshot(current.present)].slice(-current.limit),
+    present: cloneAcceptedDesignSnapshot(nextAcceptedDesign),
+    future: []
+  });
+}
+
+export function canUndoAcceptedDesignHistory(history) {
+  return Boolean(history?.past?.length);
+}
+
+export function canRedoAcceptedDesignHistory(history) {
+  return Boolean(history?.future?.length);
+}
+
+export function undoAcceptedDesignHistory(history) {
+  if (!canUndoAcceptedDesignHistory(history)) return history;
+  const previous = history.past[history.past.length - 1];
+  return freezeAcceptedDesignHistory({
+    limit: history.limit,
+    past: history.past.slice(0, -1),
+    present: cloneAcceptedDesignSnapshot(previous),
+    future: [cloneAcceptedDesignSnapshot(history.present), ...history.future].slice(0, history.limit)
+  });
+}
+
+export function redoAcceptedDesignHistory(history) {
+  if (!canRedoAcceptedDesignHistory(history)) return history;
+  const [next, ...remaining] = history.future;
+  return freezeAcceptedDesignHistory({
+    limit: history.limit,
+    past: [...history.past, cloneAcceptedDesignSnapshot(history.present)].slice(-history.limit),
+    present: cloneAcceptedDesignSnapshot(next),
+    future: remaining
+  });
 }
 
 export function createPresetTransition(config, currentBasePresetId, nextPresetId) {

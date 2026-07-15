@@ -1,0 +1,840 @@
+{
+  "generatedAt": "2026-07-15T15:50:11.371Z",
+  "baseUrl": "http://127.0.0.1:5173",
+  "runtimeErrors": [],
+  "captures": [
+    {
+      "name": "desktop-1536-layout-selected",
+      "file": "artifacts/reference-layout-redesign-qa/desktop-1536-layout-selected.png",
+      "viewport": "1536x1024",
+      "state": "section-3-lower-drawers-general",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "layout",
+        "activeInspectorTab": "general",
+        "selection": {
+          "kind": "section",
+          "editorId": "section",
+          "componentId": "section-03",
+          "role": "section",
+          "hostId": "bookcase",
+          "frontId": null,
+          "sectionId": "section-03",
+          "sectionIndex": 2,
+          "adjacentSectionIds": [],
+          "title": "Section 3",
+          "inspectorGroupId": "sections_layout",
+          "controlGroupIds": [
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_width",
+            "section_type",
+            "door_arrangement",
+            "section_actions"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "section-bounds",
+            "componentId": "section-03"
+          },
+          "anchorComponentId": "section-03",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "organizer",
+          "stageId": "layout",
+          "inspectorTabId": "general",
+          "stageControlGroupIds": [
+            "sections_layout",
+            "base_crown"
+          ],
+          "inspectorTabGroupIds": [
+            "sections_layout"
+          ]
+        },
+        "history": {
+          "undo": 1,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 2,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-1536-no-selection",
+      "file": "artifacts/reference-layout-redesign-qa/desktop-1536-no-selection.png",
+      "viewport": "1536x1024",
+      "state": "no-selection",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "layout",
+        "activeInspectorTab": "general",
+        "selection": null,
+        "history": {
+          "undo": 1,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 2,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-1536-shelves-tab",
+      "file": "artifacts/reference-layout-redesign-qa/desktop-1536-shelves-tab.png",
+      "viewport": "1536x1024",
+      "state": "section-3-shelves",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "layout",
+        "activeInspectorTab": "shelves",
+        "selection": {
+          "kind": "section",
+          "editorId": "section",
+          "componentId": "section-03",
+          "role": "section",
+          "hostId": "bookcase",
+          "frontId": null,
+          "sectionId": "section-03",
+          "sectionIndex": 2,
+          "adjacentSectionIds": [],
+          "title": "Section 3",
+          "inspectorGroupId": "sections_layout",
+          "controlGroupIds": [
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_width",
+            "section_type",
+            "door_arrangement",
+            "section_actions"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "section-bounds",
+            "componentId": "section-03"
+          },
+          "anchorComponentId": "section-03",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "organizer",
+          "stageId": "layout",
+          "inspectorTabId": "general",
+          "stageControlGroupIds": [
+            "sections_layout",
+            "base_crown"
+          ],
+          "inspectorTabGroupIds": [
+            "sections_layout"
+          ]
+        },
+        "history": {
+          "undo": 1,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 2,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-1536-hardware-selected",
+      "file": "artifacts/reference-layout-redesign-qa/desktop-1536-hardware-selected.png",
+      "viewport": "1536x1024",
+      "state": "hardware-selected",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "hardware",
+        "activeInspectorTab": "doors",
+        "selection": {
+          "kind": "hardware",
+          "editorId": "hardware",
+          "componentId": "section-01-lower-opening-door-handle",
+          "role": "handle",
+          "hostId": "section-01-lower-opening-door",
+          "frontId": "section-01-lower-opening-door",
+          "sectionId": "section-01",
+          "sectionIndex": 0,
+          "adjacentSectionIds": [],
+          "title": "Queslett Cabinet Knob · Section 1",
+          "inspectorGroupId": "hardware",
+          "controlGroupIds": [
+            "hardware"
+          ],
+          "controlIds": [
+            "hardware",
+            "hardwareSelections"
+          ],
+          "scope": "host",
+          "highlightTarget": {
+            "strategy": "component-bounds",
+            "componentId": "section-01-lower-opening-door-handle"
+          },
+          "anchorComponentId": "section-01-lower-opening-door-handle",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "keyboard",
+          "stageId": "hardware",
+          "inspectorTabId": "doors",
+          "stageControlGroupIds": [
+            "hardware"
+          ],
+          "inspectorTabGroupIds": [
+            "storage_fronts"
+          ],
+          "projectedAnchor": {
+            "componentId": "section-01-lower-opening-door-handle",
+            "x": 343.3330845206121,
+            "y": 438.1782050539431,
+            "visible": true,
+            "viewportWidth": 960,
+            "viewportHeight": 696
+          }
+        },
+        "history": {
+          "undo": 1,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 2,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-1536-dimensions-off",
+      "file": "artifacts/reference-layout-redesign-qa/desktop-1536-dimensions-off.png",
+      "viewport": "1536x1024",
+      "state": "dimensions-off",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "hardware",
+        "activeInspectorTab": "doors",
+        "selection": {
+          "kind": "hardware",
+          "editorId": "hardware",
+          "componentId": "section-01-lower-opening-door-handle",
+          "role": "handle",
+          "hostId": "section-01-lower-opening-door",
+          "frontId": "section-01-lower-opening-door",
+          "sectionId": "section-01",
+          "sectionIndex": 0,
+          "adjacentSectionIds": [],
+          "title": "Queslett Cabinet Knob · Section 1",
+          "inspectorGroupId": "hardware",
+          "controlGroupIds": [
+            "hardware"
+          ],
+          "controlIds": [
+            "hardware",
+            "hardwareSelections"
+          ],
+          "scope": "host",
+          "highlightTarget": {
+            "strategy": "component-bounds",
+            "componentId": "section-01-lower-opening-door-handle"
+          },
+          "anchorComponentId": "section-01-lower-opening-door-handle",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "keyboard",
+          "stageId": "hardware",
+          "inspectorTabId": "doors",
+          "stageControlGroupIds": [
+            "hardware"
+          ],
+          "inspectorTabGroupIds": [
+            "storage_fronts"
+          ],
+          "projectedAnchor": {
+            "componentId": "section-01-lower-opening-door-handle",
+            "x": 343.3330845206121,
+            "y": 438.1782050539431,
+            "visible": true,
+            "viewportWidth": 960,
+            "viewportHeight": 696
+          }
+        },
+        "history": {
+          "undo": 1,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 2,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-1536-wall-off",
+      "file": "artifacts/reference-layout-redesign-qa/desktop-1536-wall-off.png",
+      "viewport": "1536x1024",
+      "state": "wall-off",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "hardware",
+        "activeInspectorTab": "doors",
+        "selection": {
+          "kind": "hardware",
+          "editorId": "hardware",
+          "componentId": "section-01-lower-opening-door-handle",
+          "role": "handle",
+          "hostId": "section-01-lower-opening-door",
+          "frontId": "section-01-lower-opening-door",
+          "sectionId": "section-01",
+          "sectionIndex": 0,
+          "adjacentSectionIds": [],
+          "title": "Queslett Cabinet Knob · Section 1",
+          "inspectorGroupId": "hardware",
+          "controlGroupIds": [
+            "hardware"
+          ],
+          "controlIds": [
+            "hardware",
+            "hardwareSelections"
+          ],
+          "scope": "host",
+          "highlightTarget": {
+            "strategy": "component-bounds",
+            "componentId": "section-01-lower-opening-door-handle"
+          },
+          "anchorComponentId": "section-01-lower-opening-door-handle",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "keyboard",
+          "stageId": "hardware",
+          "inspectorTabId": "doors",
+          "stageControlGroupIds": [
+            "hardware"
+          ],
+          "inspectorTabGroupIds": [
+            "storage_fronts"
+          ],
+          "projectedAnchor": {
+            "componentId": "section-01-lower-opening-door-handle",
+            "x": 343.3330845206121,
+            "y": 438.1782050539431,
+            "visible": true,
+            "viewportWidth": 960,
+            "viewportHeight": 696
+          }
+        },
+        "history": {
+          "undo": 1,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 2,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-1536-undo-available",
+      "file": "artifacts/reference-layout-redesign-qa/desktop-1536-undo-available.png",
+      "viewport": "1536x1024",
+      "state": "undo-available",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "space",
+        "activeInspectorTab": "general",
+        "selection": null,
+        "history": {
+          "undo": 2,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 3,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "desktop-1440-layout-selected",
+      "file": "artifacts/reference-layout-redesign-qa/desktop-1440-layout-selected.png",
+      "viewport": "1440x900",
+      "state": "section-3-lower-drawers",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "layout",
+        "activeInspectorTab": "general",
+        "selection": {
+          "kind": "section",
+          "editorId": "section",
+          "componentId": "section-03",
+          "role": "section",
+          "hostId": "bookcase",
+          "frontId": null,
+          "sectionId": "section-03",
+          "sectionIndex": 2,
+          "adjacentSectionIds": [],
+          "title": "Section 3",
+          "inspectorGroupId": "sections_layout",
+          "controlGroupIds": [
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_width",
+            "section_type",
+            "door_arrangement",
+            "section_actions"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "section-bounds",
+            "componentId": "section-03"
+          },
+          "anchorComponentId": "section-03",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "organizer",
+          "stageId": "layout",
+          "inspectorTabId": "general",
+          "stageControlGroupIds": [
+            "sections_layout",
+            "base_crown"
+          ],
+          "inspectorTabGroupIds": [
+            "sections_layout"
+          ]
+        },
+        "history": {
+          "undo": 1,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 2,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "laptop-1280-layout-selected",
+      "file": "artifacts/reference-layout-redesign-qa/laptop-1280-layout-selected.png",
+      "viewport": "1280x800",
+      "state": "section-3-lower-drawers",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "layout",
+        "activeInspectorTab": "general",
+        "selection": {
+          "kind": "section",
+          "editorId": "section",
+          "componentId": "section-03",
+          "role": "section",
+          "hostId": "bookcase",
+          "frontId": null,
+          "sectionId": "section-03",
+          "sectionIndex": 2,
+          "adjacentSectionIds": [],
+          "title": "Section 3",
+          "inspectorGroupId": "sections_layout",
+          "controlGroupIds": [
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_width",
+            "section_type",
+            "door_arrangement",
+            "section_actions"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "section-bounds",
+            "componentId": "section-03"
+          },
+          "anchorComponentId": "section-03",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "organizer",
+          "stageId": "layout",
+          "inspectorTabId": "general",
+          "stageControlGroupIds": [
+            "sections_layout",
+            "base_crown"
+          ],
+          "inspectorTabGroupIds": [
+            "sections_layout"
+          ]
+        },
+        "history": {
+          "undo": 1,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 2,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "tablet-landscape-properties-drawer",
+      "file": "artifacts/reference-layout-redesign-qa/tablet-landscape-properties-drawer.png",
+      "viewport": "1180x820",
+      "state": "drawer-properties",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "layout",
+        "activeInspectorTab": "drawers",
+        "selection": {
+          "kind": "section",
+          "editorId": "section",
+          "componentId": "section-03",
+          "role": "section",
+          "hostId": "bookcase",
+          "frontId": null,
+          "sectionId": "section-03",
+          "sectionIndex": 2,
+          "adjacentSectionIds": [],
+          "title": "Section 3",
+          "inspectorGroupId": "sections_layout",
+          "controlGroupIds": [
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_width",
+            "section_type",
+            "door_arrangement",
+            "section_actions"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "section-bounds",
+            "componentId": "section-03"
+          },
+          "anchorComponentId": "section-03",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "organizer",
+          "stageId": "layout",
+          "inspectorTabId": "general",
+          "stageControlGroupIds": [
+            "sections_layout",
+            "base_crown"
+          ],
+          "inspectorTabGroupIds": [
+            "sections_layout"
+          ]
+        },
+        "history": {
+          "undo": 1,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 2,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "tablet-portrait-section-selected",
+      "file": "artifacts/reference-layout-redesign-qa/tablet-portrait-section-selected.png",
+      "viewport": "820x1180",
+      "state": "section-selected",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "layout",
+        "activeInspectorTab": "general",
+        "selection": {
+          "kind": "section",
+          "editorId": "section",
+          "componentId": "section-02",
+          "role": "section",
+          "hostId": "bookcase",
+          "frontId": null,
+          "sectionId": "section-02",
+          "sectionIndex": 1,
+          "adjacentSectionIds": [],
+          "title": "Section 2",
+          "inspectorGroupId": "sections_layout",
+          "controlGroupIds": [
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_width",
+            "section_type",
+            "door_arrangement",
+            "section_actions"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "section-bounds",
+            "componentId": "section-02"
+          },
+          "anchorComponentId": "section-02",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "organizer",
+          "stageId": "layout",
+          "inspectorTabId": "general",
+          "stageControlGroupIds": [
+            "sections_layout",
+            "base_crown"
+          ],
+          "inspectorTabGroupIds": [
+            "sections_layout"
+          ]
+        },
+        "history": {
+          "undo": 0,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 1,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "mobile-390-properties-bottom-sheet",
+      "file": "artifacts/reference-layout-redesign-qa/mobile-390-properties-bottom-sheet.png",
+      "viewport": "390x844",
+      "state": "properties-bottom-sheet",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "layout",
+        "activeInspectorTab": "general",
+        "selection": {
+          "kind": "section",
+          "editorId": "section",
+          "componentId": "section-03",
+          "role": "section",
+          "hostId": "bookcase",
+          "frontId": null,
+          "sectionId": "section-03",
+          "sectionIndex": 2,
+          "adjacentSectionIds": [],
+          "title": "Section 3",
+          "inspectorGroupId": "sections_layout",
+          "controlGroupIds": [
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_width",
+            "section_type",
+            "door_arrangement",
+            "section_actions"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "section-bounds",
+            "componentId": "section-03"
+          },
+          "anchorComponentId": "section-03",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "organizer",
+          "stageId": "layout",
+          "inspectorTabId": "general",
+          "stageControlGroupIds": [
+            "sections_layout",
+            "base_crown"
+          ],
+          "inspectorTabGroupIds": [
+            "sections_layout"
+          ]
+        },
+        "history": {
+          "undo": 1,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 2,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "mobile-390-section-organizer",
+      "file": "artifacts/reference-layout-redesign-qa/mobile-390-section-organizer.png",
+      "viewport": "390x844",
+      "state": "section-organizer",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "layout",
+        "activeInspectorTab": "general",
+        "selection": {
+          "kind": "section",
+          "editorId": "section",
+          "componentId": "section-03",
+          "role": "section",
+          "hostId": "bookcase",
+          "frontId": null,
+          "sectionId": "section-03",
+          "sectionIndex": 2,
+          "adjacentSectionIds": [],
+          "title": "Section 3",
+          "inspectorGroupId": "sections_layout",
+          "controlGroupIds": [
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_width",
+            "section_type",
+            "door_arrangement",
+            "section_actions"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "section-bounds",
+            "componentId": "section-03"
+          },
+          "anchorComponentId": "section-03",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "organizer",
+          "stageId": "layout",
+          "inspectorTabId": "general",
+          "stageControlGroupIds": [
+            "sections_layout",
+            "base_crown"
+          ],
+          "inspectorTabGroupIds": [
+            "sections_layout"
+          ]
+        },
+        "history": {
+          "undo": 1,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 2,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    },
+    {
+      "name": "short-landscape-toolbar",
+      "file": "artifacts/reference-layout-redesign-qa/short-landscape-toolbar.png",
+      "viewport": "844x390",
+      "state": "toolbar",
+      "audit": {
+        "interface": "unified",
+        "activeWorkspaceStage": "layout",
+        "activeInspectorTab": "general",
+        "selection": {
+          "kind": "section",
+          "editorId": "section",
+          "componentId": "section-01",
+          "role": "section",
+          "hostId": "bookcase",
+          "frontId": null,
+          "sectionId": "section-01",
+          "sectionIndex": 0,
+          "adjacentSectionIds": [],
+          "title": "Section 1",
+          "inspectorGroupId": "sections_layout",
+          "controlGroupIds": [
+            "sections_layout"
+          ],
+          "controlIds": [
+            "section_width",
+            "section_type",
+            "door_arrangement",
+            "section_actions"
+          ],
+          "scope": "section",
+          "highlightTarget": {
+            "strategy": "section-bounds",
+            "componentId": "section-01"
+          },
+          "anchorComponentId": "section-01",
+          "anchorClientX": null,
+          "anchorClientY": null,
+          "source": "organizer",
+          "stageId": "layout",
+          "inspectorTabId": "general",
+          "stageControlGroupIds": [
+            "sections_layout",
+            "base_crown"
+          ],
+          "inspectorTabGroupIds": [
+            "sections_layout"
+          ]
+        },
+        "history": {
+          "undo": 0,
+          "redo": 0
+        },
+        "canvasCount": 1,
+        "stageCount": 7,
+        "propertiesCount": 1,
+        "organizerCount": 1,
+        "renderValid": "true",
+        "viewerInstance": 1,
+        "viewerRebuilds": 1,
+        "previewActive": false,
+        "horizontalOverflow": 0
+      }
+    }
+  ]
+}

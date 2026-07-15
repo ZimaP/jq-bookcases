@@ -996,6 +996,77 @@ body[data-page="configurator"] .section-designer-overlay .overall-dimension .dim
   border-color: rgba(255, 210, 154, 0.52);
 }
 
+body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-height-dimension {
+  position: absolute;
+  top: clamp(72px, 17%, 144px);
+  bottom: clamp(112px, 22%, 188px);
+  left: -38px;
+  display: block;
+  width: 1px;
+  min-height: 120px;
+  color: #fffaf2;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+
+body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-height-dimension .dimension-line {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  height: auto;
+  background: #ffd29a;
+}
+
+body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-height-dimension .dimension-tick {
+  right: auto;
+  left: -5px;
+  width: 12px;
+  height: 2px;
+  background: #ffd29a;
+}
+
+body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-height-dimension .dimension-tick.is-start {
+  top: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-height-dimension .dimension-tick.is-end {
+  top: auto;
+  bottom: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-height-dimension .dimension-label {
+  top: 50%;
+  left: -18px;
+  transform: translate(-50%, -50%);
+  border-color: rgba(255, 210, 154, 0.52);
+}
+
+body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-depth-dimension {
+  position: absolute;
+  bottom: clamp(74px, 15%, 124px);
+  left: calc(100% + 8px);
+  display: block;
+  width: 56px;
+  height: 1px;
+  transform: rotate(34deg);
+  transform-origin: 0 50%;
+  color: #fffaf2;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+
+body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-depth-dimension .dimension-line {
+  background: #ffd29a;
+}
+
+body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-depth-dimension .dimension-label {
+  top: 9px;
+  left: 65%;
+  transform: translateX(-50%) rotate(-34deg);
+  border-color: rgba(255, 210, 154, 0.52);
+}
+
 body[data-page="configurator"] .section-designer-overlay .section-divider-handle {
   position: absolute;
   display: block;
@@ -1018,11 +1089,11 @@ body[data-page="configurator"] .section-designer-overlay .section-divider-handle
   top: 0;
   bottom: 0;
   left: 50%;
-  width: 3px;
+  width: 1px;
   transform: translateX(-50%);
   border-radius: 3px;
-  background: rgba(255, 210, 154, 0.92);
-  box-shadow: 0 0 0 1px rgba(44, 31, 22, 0.52), 0 0 8px rgba(255, 190, 112, 0.42);
+  background: rgba(185, 127, 60, 0.72);
+  box-shadow: none;
   transition: width 120ms ease, background 120ms ease, box-shadow 120ms ease;
 }
 
@@ -1030,29 +1101,29 @@ body[data-page="configurator"] .section-designer-overlay .section-divider-grip {
   position: absolute;
   bottom: 1px;
   left: 50%;
-  width: 18px;
-  height: 28px;
+  width: 16px;
+  height: 16px;
   transform: translateX(-50%);
-  border: 2px solid rgba(255, 243, 225, 0.96);
-  border-radius: 8px;
-  background: rgba(53, 39, 29, 0.96);
-  box-shadow: 0 2px 8px rgba(20, 15, 12, 0.52);
+  border: 2px solid rgba(255, 251, 245, 0.98);
+  border-radius: 50%;
+  background: #a66f35;
+  box-shadow: 0 1px 4px rgba(42, 31, 21, 0.24);
 }
 
 body[data-page="configurator"] .section-designer-overlay .section-divider-handle:hover .section-divider-guide,
 body[data-page="configurator"] .section-designer-overlay .section-divider-handle.is-selected .section-divider-guide,
 body[data-page="configurator"] .section-designer-overlay .section-divider-handle:focus-visible .section-divider-guide {
-  width: 5px;
-  background: #fff1df;
-  box-shadow: 0 0 0 2px rgba(71, 46, 27, 0.6), 0 0 14px rgba(255, 204, 140, 0.78);
+  width: 2px;
+  background: #b97f3c;
+  box-shadow: 0 0 0 1px rgba(255, 248, 238, 0.66);
 }
 
 body[data-page="configurator"] .section-designer-overlay .section-divider-handle:hover .section-divider-grip,
 body[data-page="configurator"] .section-designer-overlay .section-divider-handle.is-selected .section-divider-grip,
 body[data-page="configurator"] .section-designer-overlay .section-divider-handle:focus-visible .section-divider-grip {
-  border-color: #fff8ed;
-  background: #795332;
-  box-shadow: 0 0 0 3px rgba(255, 210, 154, 0.58), 0 3px 11px rgba(20, 15, 12, 0.6);
+  border-color: #fffaf3;
+  background: #8f5e28;
+  box-shadow: 0 0 0 3px rgba(185, 127, 60, 0.2), 0 2px 7px rgba(44, 32, 22, 0.28);
 }
 
 body[data-page="configurator"] .section-designer-overlay .section-divider-handle::after {
@@ -1077,7 +1148,9 @@ body[data-page="configurator"] .section-designer-overlay .section-divider-handle
 }
 
 body[data-page="configurator"] .section-designer-overlay.is-perspective-faded .section-dimension-track,
-body[data-page="configurator"] .section-designer-overlay.is-perspective-faded .overall-dimension {
+body[data-page="configurator"] .section-designer-overlay.is-perspective-faded .overall-dimension,
+body[data-page="configurator"] .reference-workspace .section-designer-overlay.is-perspective-faded .overall-height-dimension,
+body[data-page="configurator"] .reference-workspace .section-designer-overlay.is-perspective-faded .overall-depth-dimension {
   opacity: 0.24;
 }
 
@@ -1104,6 +1177,51 @@ body[data-page="configurator"] .section-designer-overlay .section-divider-handle
   body[data-page="configurator"] .section-designer-overlay .dimension-label strong {
     font-size: 11px;
   }
+
+  body[data-page="configurator"] .section-designer-overlay.has-label-collisions .section-dimension .dimension-label {
+    min-height: 16px;
+    gap: 0;
+    padding: 0;
+  }
+
+  body[data-page="configurator"] .section-designer-overlay.has-label-collisions .section-dimension .dimension-label strong {
+    font-size: 8px;
+    letter-spacing: -0.35px;
+  }
+
+  body[data-page="configurator"] .section-designer-overlay.has-label-collisions .section-dimension .dimension-label small {
+    display: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-height-dimension {
+    top: 62px;
+    bottom: 108px;
+    left: 4px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-height-dimension .dimension-label {
+    left: 6px;
+    transform: translateY(-50%);
+  }
+
+  body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-depth-dimension {
+    bottom: 72px;
+    right: 6px;
+    left: auto;
+    width: auto;
+    transform: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-depth-dimension .dimension-line {
+    display: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-depth-dimension .dimension-label {
+    position: relative;
+    top: 0;
+    left: 0;
+    transform: none;
+  }
 }
 
 @media (min-width: 2560px) {
@@ -1127,6 +1245,8 @@ body[data-page="configurator"] .section-designer-overlay .section-divider-handle
   body[data-page="configurator"] .section-designer-overlay,
   body[data-page="configurator"] .section-designer-overlay .section-dimension,
   body[data-page="configurator"] .section-designer-overlay .overall-dimension,
+  body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-height-dimension,
+  body[data-page="configurator"] .reference-workspace .section-designer-overlay .overall-depth-dimension,
   body[data-page="configurator"] .section-designer-overlay .section-divider-guide {
     transition: none;
   }
@@ -1425,5 +1545,245 @@ body[data-page="configurator"] .configurator-context-editor :is(
 @media (prefers-reduced-motion: reduce) {
   body[data-page="configurator"] .configurator-context-editor .switch > span::after {
     transition: none;
+  }
+}
+
+/* Reference workspace precision contract ---------------------------------
+ * Experience CSS owns the visual language. These rules lock the geometry,
+ * hit targets, and singleton-viewer behavior that must survive later-loaded
+ * component styles. */
+
+body[data-page="configurator"] .reference-workspace {
+  box-sizing: border-box;
+  contain: layout paint;
+}
+
+body[data-page="configurator"] .reference-workspace *,
+body[data-page="configurator"] .reference-workspace *::before,
+body[data-page="configurator"] .reference-workspace *::after {
+  box-sizing: border-box;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-stage-rail {
+  grid-column: 1;
+  grid-row: 1 / 3;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-model {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-properties {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-section-organizer {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-total-width {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-viewer-room,
+body[data-page="configurator"] .reference-workspace .workspace-viewer-room > .viewer-stage,
+body[data-page="configurator"] .reference-workspace .workspace-viewer-room > .viewer-stage > canvas {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-viewer-room > .viewer-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-viewer-room > .viewer-stage > canvas {
+  display: block;
+  touch-action: none;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-model:fullscreen,
+body[data-page="configurator"] .reference-workspace .workspace-model.is-pseudo-fullscreen {
+  position: fixed;
+  z-index: 9999;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  grid-template-rows: 48px minmax(0, 1fr);
+  background: #efede8;
+}
+
+body[data-page="configurator"] .reference-workspace:has(.workspace-model.is-pseudo-fullscreen) {
+  contain: none;
+  overflow: visible;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-model:fullscreen .workspace-viewer-room > .viewer-stage,
+body[data-page="configurator"] .reference-workspace .workspace-model.is-pseudo-fullscreen .workspace-viewer-room > .viewer-stage {
+  position: absolute;
+  inset: 0;
+}
+
+body[data-page="configurator"] .reference-workspace :is(
+  .workspace-stage,
+  .workspace-ar-card,
+  .workspace-toolbar-group button,
+  .workspace-inspector-tabs button,
+  .workspace-properties-heading > button,
+  .workspace-add-section,
+  .workspace-section-card-main,
+  .workspace-section-menu > summary,
+  .workspace-section-actions button,
+  .workspace-related-stage,
+  .workspace-review-launch,
+  .workspace-reset-link
+) {
+  touch-action: manipulation;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-menu[open] {
+  z-index: 30;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties,
+body[data-page="configurator"] .reference-workspace .workspace-section-cards,
+body[data-page="configurator"] .reference-workspace .workspace-stage-list,
+body[data-page="configurator"] .reference-workspace .workspace-model-toolbar,
+body[data-page="configurator"] .reference-workspace .workspace-inspector-tabs {
+  overscroll-behavior: contain;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel > :first-child {
+  margin-top: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel > :last-child {
+  margin-bottom: 0;
+}
+
+/* Suppress every legacy duplicated edit surface. The hardware catalog modal
+ * remains available; only its former on-canvas affordances are removed. */
+body[data-page="configurator"] .reference-workspace :is(
+  .configurator-control-experience,
+  .configurator-context-editor,
+  .configurator-context-leader,
+  .preview-control-dock,
+  .preview-heading,
+  .configurator-model > .cabinet-ar-launch,
+  .direct-hardware-edit__helper,
+  .direct-hardware-edit__loading,
+  .direct-hardware-edit__fallback,
+  .direct-hardware-edit__hover-label,
+  .direct-hardware-edit__leader,
+  .direct-hardware-edit__quick-card,
+  .direct-hardware-edit__components,
+  .direct-hardware-edit__scale-reference,
+  .direct-hardware-edit__measurement
+) {
+  display: none !important;
+}
+
+@media (hover: none), (pointer: coarse) {
+  body[data-page="configurator"] .reference-workspace :is(
+    .workspace-stage,
+    .workspace-ar-card,
+    .workspace-toolbar-group button,
+    .workspace-inspector-tabs button,
+    .workspace-properties-heading > button,
+    .workspace-section-menu > summary,
+    .workspace-section-actions button,
+    .workspace-related-stage,
+    .workspace-review-launch,
+    .workspace-reset-link,
+    .workspace-properties-panel button,
+    .workspace-properties-panel select,
+    .workspace-properties-panel input:not([type="range"])
+  ) {
+    min-height: 44px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-section-menu > summary {
+    width: 44px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-section-card {
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+}
+
+@media (max-width: 1200px) {
+  body[data-page="configurator"] .reference-workspace {
+    contain: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-stage-rail {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-model {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-section-organizer {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-total-width {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-properties {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar {
+    grid-column: 1 / -1;
+    grid-row: 5;
+  }
+}
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] .reference-workspace {
+    contain: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-section-organizer,
+  body[data-page="configurator"] .reference-workspace > .workspace-total-width {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar {
+    grid-row: 5;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-model-toolbar,
+  body[data-page="configurator"] .reference-workspace .workspace-section-cards,
+  body[data-page="configurator"] .reference-workspace .workspace-stage-list,
+  body[data-page="configurator"] .reference-workspace .workspace-inspector-tabs {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 950px) and (orientation: landscape) and (max-height: 500px) {
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar {
+    grid-row: 5;
   }
 }

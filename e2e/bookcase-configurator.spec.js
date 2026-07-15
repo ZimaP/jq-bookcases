@@ -59,24 +59,25 @@ async function openVerifiedConfigurator(page, presetId = "lower-cabinets") {
 }
 
 async function openPresetLibrary(page) {
-  const trigger = page.locator('[data-category-trigger="sections_layout"]');
-  if (await trigger.getAttribute("aria-expanded") !== "true") await trigger.click();
-  const ideas = page.locator('[data-category-panel="sections_layout"] .layout-ideas');
+  await page.locator('[data-workspace-stage="layout"]').click();
+  const ideas = page.locator("[data-properties-inspector] .workspace-foundation-ideas");
   if (await ideas.getAttribute("open") === null) await ideas.locator("summary").click();
   await expect(page.locator("[data-preset-id]").first()).toBeVisible();
 }
 
 async function openSectionDesigner(page) {
-  const trigger = page.locator('[data-category-trigger="sections_layout"]');
-  if (await trigger.getAttribute("aria-expanded") !== "true") await trigger.click();
-  await expect(page.locator('[data-category-panel="sections_layout"]')).toBeVisible();
-  await expect(page.locator("[data-section-designer]")).toBeVisible();
-  await expect(page.locator("[data-section-select]")).toHaveCount(4);
-  await page.locator(".section-actions-disclosure > summary").click();
+  await page.locator('[data-workspace-stage="layout"]').click();
+  await expect(page.locator('[data-workspace-stage="layout"]')).toHaveAttribute("aria-current", "step");
+  await expect(page.locator("[data-properties-inspector]")).toBeVisible();
+  await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(4);
+}
+
+function sectionButton(page, index) {
+  return page.locator(`[data-section-organizer] [data-section-select="${index}"]`);
 }
 
 async function setSectionWidth(page, index, width) {
-  await page.locator(`[data-section-select="${index}"]`).click();
+  await sectionButton(page, index).click();
   const input = page.locator("[data-section-width]");
   await input.fill(String(width));
   await input.press("Enter");
@@ -84,8 +85,16 @@ async function setSectionWidth(page, index, width) {
 }
 
 async function setSectionType(page, index, type) {
-  await page.locator(`[data-section-select="${index}"]`).click();
-  await page.locator(`[data-section-type="${type}"]`).check();
+  await sectionButton(page, index).click();
+  await page.locator(`[data-properties-inspector] .workspace-section-type-card:has([data-section-type="${type}"])`).click();
+}
+
+async function expectReferenceStages(page) {
+  const stages = page.locator("[data-workspace-stage]");
+  await expect(stages).toHaveCount(7);
+  expect(await stages.evaluateAll((items) => items.map((item) => item.dataset.workspaceStage))).toEqual([
+    "space", "layout", "storage", "finish", "hardware", "lighting", "preview"
+  ]);
 }
 
 async function readAcceptedDesign(page) {
@@ -130,9 +139,8 @@ test("new visitor sees an unnumbered presentation-only welcome with no commercia
 test("homepage design CTAs force the welcome while plain configurator links resume saved work", async ({ page }) => {
   const errors = monitorRuntime(page);
   await openVerifiedConfigurator(page, "display-wall");
-  const storageTrigger = page.locator('[data-category-trigger="storage_fronts"]');
-  await storageTrigger.click();
-  await expect(page.locator("[data-builder-form]")).toHaveAttribute("data-diagnostic-inspector-group", "storage_fronts");
+  await page.locator('[data-workspace-stage="storage"]').click();
+  await expect(page.locator("[data-builder-form]")).toHaveAttribute("data-diagnostic-workspace-stage", "storage");
   await page.locator("[data-save-design]").first().click();
   await expect.poll(() => page.evaluate(() => localStorage.getItem("jqBookcasesDesign"))).not.toBeNull();
 
@@ -196,8 +204,9 @@ test("custom-space route creates the first neutral accepted design exactly once"
   expect(accepted.diagnostics.state.lowerCabinets).toBe(false);
   expect(accepted.diagnostics.state.lighting).toBe("no_lighting");
   expect(accepted.diagnostics.interface).toBe("unified");
-  expect(accepted.diagnostics.activeInspectorGroup).toBe("overall_size");
-  await expect(page.locator("[data-unified-configurator] [data-category-trigger]")).toHaveCount(9);
+  expect(accepted.diagnostics.activeInspectorGroup).toBe("sections_layout");
+  expect(accepted.diagnostics.activeWorkspaceStage).toBe("layout");
+  await expectReferenceStages(page);
   expect(accepted.diagnostics.priceCalculationCount).toBe(1);
   expect(accepted.diagnostics.updateCount).toBe(0);
   expect(errors).toEqual([]);
@@ -217,8 +226,9 @@ test("idea route filters real configurations and accepts one editable idea", asy
   expect(accepted.diagnostics.state.layoutPreset).toBe("display-wall");
   expect(accepted.diagnostics.initialSource).toBe("idea");
   expect(accepted.diagnostics.interface).toBe("unified");
-  expect(accepted.diagnostics.activeInspectorGroup).toBe("overall_size");
-  await expect(page.locator("[data-unified-configurator] [data-category-trigger]")).toHaveCount(9);
+  expect(accepted.diagnostics.activeInspectorGroup).toBe("sections_layout");
+  expect(accepted.diagnostics.activeWorkspaceStage).toBe("layout");
+  await expectReferenceStages(page);
   expect(errors).toEqual([]);
 });
 
@@ -231,16 +241,88 @@ test("explicit preset bypass boots with a verified WebGL model and no runtime er
   expect(accepted.diagnostics.state.width).toBe(96);
   expect(accepted.diagnostics.state.sections).toBe(4);
   expect(accepted.diagnostics.interface).toBe("unified");
-  expect(accepted.diagnostics.activeInspectorGroup).toBe("overall_size");
-  await expect(page.locator("[data-unified-configurator] [data-category-trigger]")).toHaveCount(9);
+  expect(accepted.diagnostics.activeInspectorGroup).toBe("sections_layout");
+  expect(accepted.diagnostics.activeWorkspaceStage).toBe("layout");
+  await expectReferenceStages(page);
   await expect(viewer).toHaveAttribute("aria-label", /bookcase preview/i);
+  expect(errors).toEqual([]);
+});
+
+test("workspace display tools are presentation-only and global history spans dimensions and finish", async ({ page }) => {
+  const errors = monitorRuntime(page);
+  const viewer = await openVerifiedConfigurator(page);
+  const baseline = await readAcceptedDesign(page);
+  const baselinePrice = baseline.diagnostics.price;
+  const baselineUpdates = baseline.diagnostics.updateCount;
+
+  await page.locator("[data-toggle-dimensions]").click();
+  await expect(page.locator("[data-toggle-dimensions]")).toHaveAttribute("aria-pressed", "false");
+  await page.locator("[data-toggle-wall]").click();
+  await expect(page.locator("[data-toggle-wall]")).toHaveAttribute("aria-pressed", "false");
+  await page.locator('[data-model-tool="pan"]').click();
+  await expect(page.locator('[data-model-tool="pan"]')).toHaveAttribute("aria-pressed", "true");
+  await page.locator('[data-model-tool="select"]').click();
+  await expect(page.locator('[data-model-tool="select"]')).toHaveAttribute("aria-pressed", "true");
+  let current = await readAcceptedDesign(page);
+  expect(current.diagnostics.price).toBe(baselinePrice);
+  expect(current.diagnostics.updateCount).toBe(baselineUpdates);
+  await expect(viewer.locator("canvas")).toHaveCount(1);
+
+  await page.locator('[data-workspace-stage="space"]').click();
+  const width = page.locator('[data-properties-inspector] input[type="number"][data-field="width"]');
+  await width.fill("100");
+  await expect.poll(async () => (await readAcceptedDesign(page)).diagnostics.state.width).toBe(100);
+
+  await page.locator('[data-workspace-stage="finish"]').click();
+  const finish = page.locator('[data-properties-inspector] input[data-field="finish"][value="silver_satin"]');
+  await page.locator(`label[for="${await finish.getAttribute("id")}"]`).click();
+  await expect.poll(async () => (await readAcceptedDesign(page)).diagnostics.state.finish).toBe("silver_satin");
+
+  await page.locator("[data-history-undo]").click();
+  current = await readAcceptedDesign(page);
+  expect(current.diagnostics.state.finish).toBe("white_dove");
+  expect(current.diagnostics.state.width).toBe(100);
+  await page.locator("[data-history-undo]").click();
+  expect((await readAcceptedDesign(page)).diagnostics.state.width).toBe(96);
+  await page.locator("[data-history-redo]").click();
+  expect((await readAcceptedDesign(page)).diagnostics.state.width).toBe(100);
+  await page.locator("[data-history-redo]").click();
+  current = await readAcceptedDesign(page);
+  expect(current.diagnostics.state.finish).toBe("silver_satin");
+  expect(current.diagnostics.state.width).toBe(100);
+  await expect(viewer).toHaveAttribute("data-render-valid", "true");
+  expect(errors).toEqual([]);
+});
+
+test("direct model selection routes into the fixed stage-aware Properties inspector", async ({ page }) => {
+  const errors = monitorRuntime(page);
+  await openVerifiedConfigurator(page);
+  const selected = await page.locator("[data-bookcase-builder]").evaluate((host) => {
+    const controller = host.__bookcaseConfigurator;
+    const door = controller.layout.components.find((component) => component.role === "door");
+    if (!door) return null;
+    const accepted = controller.handleModelSelection({ componentId: door.id, source: "keyboard" });
+    return accepted ? door.id : null;
+  });
+  expect(selected).toBeTruthy();
+
+  await expect(page.locator("[data-properties-inspector]")).toBeVisible();
+  await expect(page.locator('[data-workspace-stage="storage"]')).toHaveAttribute("aria-current", "step");
+  await expect(page.locator('[data-inspector-tab="doors"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("[data-contextual-editor]")).toHaveCount(0);
+  const diagnostics = await page.locator("[data-bookcase-builder]").evaluate((host) => host.__bookcaseConfigurator.getDiagnostics());
+  expect(diagnostics.selection.componentId).toBe(selected);
+  expect(diagnostics.activeWorkspaceStage).toBe("storage");
+  expect(diagnostics.activeInspectorTab).toBe("doors");
+  expect(diagnostics.updateCount).toBe(0);
+  expect(diagnostics.priceCalculationCount).toBe(1);
   expect(errors).toEqual([]);
 });
 
 test("hardware type and finish stay canonical, compatible, selected, and camera-stable", async ({ page }) => {
   const errors = monitorRuntime(page);
   await openVerifiedConfigurator(page, "lower-cabinets");
-  await page.locator('[data-category-trigger="hardware"]').click();
+  await page.locator('[data-workspace-stage="hardware"]').click();
   await expect(page.locator("[data-hardware-type]")).toHaveCount(2);
   await expect(page.locator("[data-hardware-finish]")).toHaveCount(2);
   await expect.poll(() => page.locator("[data-bookcase-builder]").evaluate(
@@ -332,54 +414,68 @@ test("an invalid section draft preserves the accepted model, BOM, price, and sav
   expect(errors).toEqual([]);
 });
 
-test("Section Designer accepts the canonical mixed design with undo, redo, split, merge, save, and restore", async ({ page }) => {
+test("section organizer accepts a mixed design with validated add, duplicate, delete, global history, save, and restore", async ({ page }) => {
   const errors = monitorRuntime(page);
   const viewer = await openVerifiedConfigurator(page);
   await openSectionDesigner(page);
 
+  await page.locator('[data-workspace-stage="space"]').click();
+  await page.locator('[data-properties-inspector] input[type="number"][data-field="width"]').fill("132");
+  await expect.poll(async () => (await readAcceptedDesign(page)).diagnostics.state.width).toBe(132);
+  await openSectionDesigner(page);
+
   await setSectionWidth(page, 0, 18);
-  await setSectionWidth(page, 1, 30);
+  await setSectionWidth(page, 1, 42);
   await setSectionWidth(page, 2, 20);
   await setSectionType(page, 0, "open");
   await setSectionType(page, 1, "drawers");
   await setSectionType(page, 3, "tall_doors");
 
   let accepted = await readAcceptedDesign(page);
-  expect(accepted.widths).toEqual([18, 30, 20, 24.25]);
+  expect(accepted.widths).toEqual([18, 42, 20, 48.25]);
   expect(accepted.types).toEqual(["open", "drawers", "lower_doors", "tall_doors"]);
-  expect(accepted.doors).toBe(2);
+  expect(accepted.doors).toBe(3);
   expect(accepted.drawers).toBe(3);
   expect(accepted.diagnostics.canvasCount).toBe(1);
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
 
-  await page.locator('[data-section-select="1"]').click();
-  await setSectionWidth(page, 1, 31);
-  const beforeSplit = await readAcceptedDesign(page);
-  await page.locator("[data-section-split]").click();
-  await expect(page.locator("[data-section-select]")).toHaveCount(5);
-  await page.locator('[data-section-merge="right"]').click();
-  await expect(page.locator("[data-section-select]")).toHaveCount(4);
-  accepted = await readAcceptedDesign(page);
-  expect(accepted.widths).toEqual(beforeSplit.widths);
+  const overallWidth = accepted.diagnostics.state.width;
+  await page.locator("[data-section-organizer] [data-section-add]").click();
+  await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(5);
+  expect((await readAcceptedDesign(page)).diagnostics.state.width).toBe(overallWidth);
 
-  await page.locator("[data-section-undo]").click();
-  await expect(page.locator("[data-section-select]")).toHaveCount(5);
-  await page.locator("[data-section-redo]").click();
-  await expect(page.locator("[data-section-select]")).toHaveCount(4);
-  await setSectionWidth(page, 1, 30);
+  // Add Section intentionally creates a neutral, minimum-width bay. Duplicate
+  // the still-wide drawer bay so the split remains construction-valid.
+  await sectionButton(page, 1).click();
+  await expect(page.locator("[data-properties-inspector] [data-section-duplicate]")).toBeEnabled();
+  await page.locator("[data-properties-inspector] [data-section-duplicate]").click();
+  await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(6);
+  expect((await readAcceptedDesign(page)).diagnostics.state.width).toBe(overallWidth);
+
+  await page.locator("[data-properties-inspector] [data-section-delete]").click();
+  await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(5);
+  await page.locator("[data-history-undo]").click();
+  await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(6);
+  await page.locator("[data-history-redo]").click();
+  await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(5);
+  await page.locator("[data-properties-inspector] [data-section-delete]").click();
+  await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(4);
   accepted = await readAcceptedDesign(page);
-  expect(accepted.widths).toEqual([18, 30, 20, 24.25]);
+  expect(accepted.diagnostics.state.width).toBe(overallWidth);
+  expect(accepted.diagnostics.canvasCount).toBe(1);
+  const savedWidths = accepted.widths;
+  const savedTypes = accepted.types;
 
   await page.locator("[data-save-design]").first().click();
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("jqBookcasesDesign") || "null"));
-  expect(saved.canonicalConfig.layoutMetadata.sectionTypes).toEqual(["open", "drawers", "lower_doors", "tall_doors"]);
+  expect(saved.canonicalConfig.layoutMetadata.sectionTypes).toEqual(savedTypes);
   expect(saved.bom.layoutFingerprint).toBe(saved.layoutFingerprint);
 
   await page.goto("/configurator.html", { waitUntil: "networkidle" });
   await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true");
   const restored = await readAcceptedDesign(page);
-  expect(restored.widths).toEqual([18, 30, 20, 24.25]);
-  expect(restored.types).toEqual(["open", "drawers", "lower_doors", "tall_doors"]);
+  expect(restored.widths).toEqual(savedWidths);
+  expect(restored.types).toEqual(savedTypes);
   expect(restored.diagnostics.pricing.bom.layoutFingerprint).toBe(saved.layoutFingerprint);
   expect(errors).toEqual([]);
 });
@@ -630,7 +726,7 @@ test("navigation hover uses the shared underline position on every public page",
 
 test("Start over clears the accepted design and returns to both studio routes", async ({ page }) => {
   await openVerifiedConfigurator(page, "display-wall");
-  await openPresetLibrary(page);
+  await page.locator('[data-workspace-stage="preview"]').click();
   await page.getByRole("button", { name: "Start over", exact: true }).click();
   await page.getByRole("button", { name: "Confirm start over", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toBeVisible();
@@ -650,12 +746,13 @@ test("mobile viewport keeps controls usable and the accepted model valid", async
   await openPresetLibrary(page);
   await page.locator('[data-preset-id="classic-open"]').click();
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
-  await expect(page.locator('[data-preset-id="classic-open"]')).toHaveAttribute("aria-pressed", "true");
-  const structureTrigger = page.locator('[data-category-trigger="sections_layout"]');
-  if (await structureTrigger.getAttribute("aria-expanded") !== "true") await structureTrigger.click();
-  await expect(page.locator("[data-section-designer]")).toBeVisible();
+  await page.locator('[data-workspace-stage="layout"]').click();
+  await expect(page.locator('[data-workspace-stage="layout"]')).toHaveAttribute("aria-current", "step");
+  await expect(page.locator("[data-properties-inspector]")).toBeVisible();
   await expect(page.locator("[data-section-width]")).toBeVisible();
-  await expect(page.locator("[data-section-select]")).toHaveCount(4);
+  await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(4);
+  await expectReferenceStages(page);
+  expect(await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - window.innerWidth))).toBeLessThanOrEqual(1);
   await settleFrames(page);
   await page.screenshot({
     path: "test-results/preset-gallery/mobile-classic-open.png",

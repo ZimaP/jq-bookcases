@@ -11,7 +11,7 @@ import {
   normalizeCabinetArConfiguration
 } from "./cabinet-ar.js?v=direct-hardware-20260714a";
 import { generateProceduralCabinetModel } from "./cabinet-ar-model.js?v=direct-hardware-20260714a";
-import { iconSvg } from "./icon-system.js?v=direct-hardware-20260714a";
+import { iconSvg } from "./icon-system.js?v=jq-icons-20260715g";
 
 const closeIcon = iconSvg("close");
 const MODEL_VIEWER_DEFINITION_TIMEOUT_MS = 10000;

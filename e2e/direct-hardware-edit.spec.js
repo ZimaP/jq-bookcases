@@ -20,18 +20,25 @@ async function openDirectHardwareEditor(page) {
   await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
   await expect(viewer.locator("canvas")).toHaveCount(1);
 
-  await page.locator('[data-category-trigger="hardware"]').click();
-  await expect(page.locator('[data-category-panel="hardware"]')).toBeVisible();
-  await page.locator('[data-open-hardware-library]').first().click();
+  const hardwareStage = page.locator('[data-workspace-stage="hardware"]');
+  await hardwareStage.click();
+  await expect(hardwareStage).toHaveAttribute("aria-current", "step");
+  const properties = page.locator("[data-properties-inspector]");
+  await expect(properties).toBeVisible();
+  await expect(properties.locator('[data-active-stage-panel="hardware"]')).toBeVisible();
+  await properties.locator('[data-open-hardware-library]').click();
 
   const editor = page.locator("[data-direct-hardware-editor]");
   await expect(editor).toHaveAttribute("data-catalog-state", "ready", { timeout: 20_000 });
   await expect(editor).toHaveAttribute("data-enabled", "true");
   await expect(page.locator("body")).toHaveAttribute("data-direct-hardware-editing", "ready");
   await expect.poll(async () => builder.evaluate((host) => (
+    Boolean(host.__bookcaseConfigurator?.directHardwareEditor?.presentation?.selected)
+  ))).toBe(true);
+  await expect.poll(async () => builder.evaluate((host) => (
     Boolean(host.__bookcaseConfigurator?.viewer?.getDiagnostics?.().cameraTransitionActive)
   ))).toBe(false);
-  return { builder, viewer, editor };
+  return { builder, viewer, editor, properties };
 }
 
 async function selectVisibleHardwareFromTree(page) {
@@ -39,8 +46,23 @@ async function selectVisibleHardwareFromTree(page) {
     host.__bookcaseConfigurator?.directHardwareEditor?.presentation?.selected?.component?.id || null
   ));
   expect(componentId).toBeTruthy();
-  await expect(page.locator("[data-direct-quick-card]")).toBeVisible();
+  await expect(page.locator("[data-direct-quick-card]")).toBeHidden();
+  await expect(page.locator("[data-direct-quick-content]")).not.toBeEmpty();
   return componentId;
+}
+
+async function activateSuppressedQuickControl(locator) {
+  await locator.evaluate((control) => control.click());
+}
+
+async function openHardwareLibrary(page, builder) {
+  const opened = await builder.evaluate((host) => (
+    host.__bookcaseConfigurator?.directHardwareEditor?.openLibrary?.() || false
+  ));
+  expect(opened).toBe(true);
+  const library = page.locator("[data-hardware-library]");
+  await expect(library).toBeVisible();
+  return library;
 }
 
 async function readTransaction(page) {
@@ -144,7 +166,7 @@ test("direct hardware preview is transactional, Apply is exact and partial, and 
   const alternateFinish = quickCard.locator('.direct-hardware-edit__swatches [data-preview-variant]:not([aria-pressed="true"]):not([disabled])').first();
   const exactVariantId = await alternateFinish.getAttribute("data-preview-variant");
   expect(exactVariantId).toBeTruthy();
-  await alternateFinish.click();
+  await activateSuppressedQuickControl(alternateFinish);
   await expect.poll(async () => (await readTransaction(page)).draftVariantId).toBe(exactVariantId);
   await expect.poll(async () => (await readTransaction(page)).previewed).toBe(true);
   await expect(quickCard.locator(".direct-hardware-edit__accuracy")).toHaveText("Dimensionally accurate proxy");
@@ -163,7 +185,7 @@ test("direct hardware preview is transactional, Apply is exact and partial, and 
   expect(preview.canvasIdentity).toBe("persistent-direct-hardware-canvas");
   expectExactCamera(preview.view, before.view);
 
-  await quickCard.locator("[data-apply-hardware]").click();
+  await activateSuppressedQuickControl(quickCard.locator("[data-apply-hardware]"));
   await expect.poll(async () => (await readTransaction(page)).hostSelection?.variantId).toBe(exactVariantId);
   await expect(quickCard).toBeHidden();
 
@@ -194,10 +216,13 @@ test("direct hardware preview is transactional, Apply is exact and partial, and 
   expect(exactSchedule.locations.some((location) => location.hostId === before.selectedHostId)).toBe(true);
 
   // Reopen the same semantic target, then make an unrelated accepted edit after the hardware command.
-  const reopenLibrary = page.locator('[data-open-hardware-library]').first();
-  if (!(await reopenLibrary.isVisible())) await page.locator('[data-category-trigger="hardware"]').click();
+  const reopenLibrary = page.locator('[data-properties-inspector] [data-open-hardware-library]');
+  await expect(reopenLibrary).toBeVisible();
   await reopenLibrary.click();
-  await expect(quickCard).toBeVisible();
+  await expect.poll(async () => builder.evaluate((host) => (
+    Boolean(host.__bookcaseConfigurator?.directHardwareEditor?.presentation?.selected)
+  ))).toBe(true);
+  await expect(quickCard).toBeHidden();
   await builder.evaluate((host) => {
     const controller = host.__bookcaseConfigurator;
     controller.update({ ...controller.state, installation: "no_installation" }, { sourceField: "installation" });
@@ -205,13 +230,13 @@ test("direct hardware preview is transactional, Apply is exact and partial, and 
   await expect.poll(async () => (await readTransaction(page)).installation).toBe("no_installation");
   await expect(quickCard.locator("[data-history-undo]")).toBeEnabled();
 
-  await quickCard.locator("[data-history-undo]").click();
+  expect(await builder.evaluate((host) => host.__bookcaseConfigurator.directHardwareEditor.undo())).toBe(true);
   await expect.poll(async () => (await readTransaction(page)).hostSelection).toBeNull();
   const undone = await readTransaction(page);
   expect(undone.installation, "hardware undo must preserve a later unrelated edit").toBe("no_installation");
   expect(undone.history).toMatchObject({ undoCount: 0, redoCount: 1 });
 
-  await quickCard.locator("[data-history-redo]").click();
+  expect(await builder.evaluate((host) => host.__bookcaseConfigurator.directHardwareEditor.redo())).toBe(true);
   await expect.poll(async () => (await readTransaction(page)).hostSelection?.variantId).toBe(exactVariantId);
   const redone = await readTransaction(page);
   expect(redone.installation, "hardware redo must preserve a later unrelated edit").toBe("no_installation");
@@ -219,15 +244,15 @@ test("direct hardware preview is transactional, Apply is exact and partial, and 
 
   // Both the explicit Cancel action and Escape restore the committed hardware preview.
   const anotherFinish = quickCard.locator('.direct-hardware-edit__swatches [data-preview-variant]:not([aria-pressed="true"]):not([disabled])').first();
-  await anotherFinish.click();
+  await activateSuppressedQuickControl(anotherFinish);
   await expect.poll(async () => (await readTransaction(page)).previewed).toBe(true);
   const committedAfterRedo = (await readTransaction(page)).stateJson;
-  await quickCard.locator("[data-cancel-preview]").click();
+  await activateSuppressedQuickControl(quickCard.locator("[data-cancel-preview]"));
   await expect.poll(async () => (await readTransaction(page)).previewed).toBe(false);
   expect((await readTransaction(page)).stateJson).toBe(committedAfterRedo);
 
   const escapeFinish = quickCard.locator('.direct-hardware-edit__swatches [data-preview-variant]:not([aria-pressed="true"]):not([disabled])').first();
-  await escapeFinish.click();
+  await activateSuppressedQuickControl(escapeFinish);
   await expect.poll(async () => (await readTransaction(page)).previewed).toBe(true);
   await page.keyboard.press("Escape");
   await expect(quickCard).toBeHidden();
@@ -240,12 +265,9 @@ test("direct hardware preview is transactional, Apply is exact and partial, and 
 
 test("library filtering exposes gated facts, traps focus, and passes its WCAG A/AA audit", async ({ page }) => {
   const runtimeErrors = monitorRuntime(page);
-  await openDirectHardwareEditor(page);
+  const { builder } = await openDirectHardwareEditor(page);
   await selectVisibleHardwareFromTree(page);
-  await page.getByRole("button", { name: "View all hardware" }).click();
-
-  const library = page.locator("[data-hardware-library]");
-  await expect(library).toBeVisible();
+  const library = await openHardwareLibrary(page, builder);
   await expect(library).toBeFocused();
   await page.keyboard.press("Tab");
   const closeLibrary = page.getByRole("button", { name: "Close hardware library" });
@@ -299,39 +321,41 @@ test("library filtering exposes gated facts, traps focus, and passes its WCAG A/
   expect(runtimeErrors).toEqual([]);
 });
 
-test("phone layout uses bounded bottom sheets without horizontal overflow", async ({ page }) => {
+test("phone layout keeps the fixed Properties sheet and hardware library bounded without horizontal overflow", async ({ page }) => {
   const runtimeErrors = monitorRuntime(page);
   await page.setViewportSize({ width: 390, height: 844 });
-  await openDirectHardwareEditor(page);
+  const { builder, properties } = await openDirectHardwareEditor(page);
   await selectVisibleHardwareFromTree(page);
 
   const editor = page.locator("[data-direct-hardware-editor]");
   const quickCard = page.locator("[data-direct-quick-card]");
   await expect(editor).toHaveAttribute("data-anchor-mode", "sheet");
-  const quickGeometry = await quickCard.evaluate((card) => {
-    const rect = card.getBoundingClientRect();
-    const style = getComputedStyle(card);
+  await expect(quickCard).toBeHidden();
+  await properties.scrollIntoViewIfNeeded();
+  const propertiesGeometry = await properties.evaluate((panel) => {
+    const rect = panel.getBoundingClientRect();
+    const style = getComputedStyle(panel);
     return {
       left: rect.left,
       right: rect.right,
-      bottomGap: window.innerHeight - rect.bottom,
+      top: rect.top,
+      bottom: rect.bottom,
       width: rect.width,
       position: style.position,
       overflowY: style.overflowY,
       documentOverflow: document.documentElement.scrollWidth - window.innerWidth
     };
   });
-  expect(quickGeometry.position).toBe("fixed");
-  expect(quickGeometry.left).toBeGreaterThanOrEqual(-1);
-  expect(quickGeometry.right).toBeLessThanOrEqual(391);
-  expect(quickGeometry.bottomGap).toBeLessThanOrEqual(1);
-  expect(quickGeometry.width).toBeLessThanOrEqual(390);
-  expect(quickGeometry.overflowY).toBe("auto");
-  expect(quickGeometry.documentOverflow).toBeLessThanOrEqual(1);
+  expect(propertiesGeometry.position).toBe("sticky");
+  expect(propertiesGeometry.left).toBeGreaterThanOrEqual(-1);
+  expect(propertiesGeometry.right).toBeLessThanOrEqual(391);
+  expect(propertiesGeometry.top).toBeGreaterThanOrEqual(-1);
+  expect(propertiesGeometry.bottom).toBeLessThanOrEqual(845);
+  expect(propertiesGeometry.width).toBeLessThanOrEqual(390);
+  expect(propertiesGeometry.overflowY).toBe("auto");
+  expect(propertiesGeometry.documentOverflow).toBeLessThanOrEqual(1);
 
-  await quickCard.getByRole("button", { name: "View all hardware" }).click();
-  const library = page.locator("[data-hardware-library]");
-  await expect(library).toBeVisible();
+  const library = await openHardwareLibrary(page, builder);
   const libraryGeometry = await library.evaluate((dialog) => {
     const rect = dialog.getBoundingClientRect();
     return {

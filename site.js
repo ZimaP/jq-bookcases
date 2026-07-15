@@ -1,4 +1,4 @@
-import { mountIcons, setIcon } from "./icon-system.js?v=direct-hardware-20260714a";
+import { mountIcons, setIcon } from "./icon-system.js?v=jq-icons-20260715g";
 
 const navItems = [
   { label: "How It Works", href: "how-it-works.html", page: "how" },

@@ -9,28 +9,49 @@ import {
 import { generateBookcaseLayout } from "../bookcase-layout.js";
 import { buildPricingContext, calculateBookcasePrice } from "../bookcase-pricing.js";
 import {
+  ACCEPTED_DESIGN_HISTORY_LIMIT,
+  COMPONENT_ROLE_TO_INSPECTOR,
   COMPONENT_ROLE_TO_EDITOR,
+  COMPONENT_ROLE_TO_STAGE,
   CONTEXT_EDITOR_DEFINITIONS,
   CONTROL_REGISTRY,
+  INSPECTOR_TAB_DEFINITIONS,
   PHYSICAL_CONFIG_FIELDS,
+  STAGE_CONTROL_GROUPS,
   UNIFIED_CONTROL_GROUPS,
+  WORKSPACE_STAGES,
+  canRedoAcceptedDesignHistory,
+  canUndoAcceptedDesignHistory,
+  commitAcceptedDesignHistory,
   configsAreEqual,
+  createAcceptedDesignHistory,
   createPresetTransition,
   createQuoteUrl,
   createReviewGroups,
   createSavedDesignRecord,
+  createSectionOrganizerSummary,
+  createSectionOrganizerThumbnail,
   escapeHtml,
   getApplicability,
+  getApplicableInspectorTabs,
   getChangedConfigFields,
   getInspectorGroupSummary,
   hasBlockingConfigurationIssue,
   inferBasePresetId,
+  inspectorTabForField,
   inspectorGroupForField,
+  normalizeInspectorTab,
   normalizeInspectorGroup,
+  normalizeWorkspaceStage,
+  redoAcceptedDesignHistory,
   reconcileSelectionContext,
   resolveSelectionContext,
+  resolveWorkspaceSelection,
   shouldRunAction,
-  validateUnifiedConfiguration
+  undoAcceptedDesignHistory,
+  validateUnifiedConfiguration,
+  workspaceStageForControlGroup,
+  workspaceStageForField
 } from "../configurator-experience.js";
 
 const preset = (id) => layoutPresets.find((item) => item.id === id);
@@ -39,30 +60,42 @@ const componentByRole = (layout, role, predicate = () => true) => (
   layout.components.find((component) => component.role === role && predicate(component))
 );
 
-test("the unified inspector exposes exactly the nine target groups in customer order", () => {
-  assert.deepEqual(UNIFIED_CONTROL_GROUPS.map((group) => group.id), [
-    "overall_size",
-    "sections_layout",
-    "shelves",
-    "storage_fronts",
-    "base_crown",
+test("the customer workspace exposes exactly seven non-linear stages in reference order", () => {
+  assert.deepEqual(WORKSPACE_STAGES.map((stage) => stage.id), [
+    "space",
+    "layout",
+    "storage",
     "finish",
     "hardware",
     "lighting",
-    "project_service"
+    "preview"
   ]);
-  assert.deepEqual(UNIFIED_CONTROL_GROUPS.map((group) => group.label), [
-    "Overall Size",
-    "Sections & Layout",
-    "Shelves",
-    "Storage & Fronts",
-    "Base & Crown",
+  assert.deepEqual(WORKSPACE_STAGES.map((stage) => stage.label), [
+    "Space",
+    "Layout",
+    "Storage",
     "Finish",
     "Hardware",
     "Lighting",
-    "Project Service"
+    "Preview"
   ]);
-  assert.equal(new Set(UNIFIED_CONTROL_GROUPS.map((group) => group.id)).size, 9);
+  assert.equal(new Set(WORKSPACE_STAGES.map((stage) => stage.id)).size, 7);
+  assert.equal(WORKSPACE_STAGES.every((stage) => stage.subtitle && stage.icon), true);
+});
+
+test("workspace stages project every legacy physical group exactly once", () => {
+  assert.deepEqual(STAGE_CONTROL_GROUPS, {
+    space: ["overall_size"],
+    layout: ["sections_layout", "base_crown"],
+    storage: ["shelves", "storage_fronts"],
+    finish: ["finish"],
+    hardware: ["hardware"],
+    lighting: ["lighting"],
+    preview: ["project_service"]
+  });
+  const projected = Object.values(STAGE_CONTROL_GROUPS).flat();
+  assert.deepEqual(projected.sort(), UNIFIED_CONTROL_GROUPS.map((group) => group.id).sort());
+  assert.equal(new Set(projected).size, 9);
 });
 
 test("missing and invalid inspector groups safely fall back to Overall Size", () => {
@@ -70,6 +103,47 @@ test("missing and invalid inspector groups safely fall back to Overall Size", ()
     assert.equal(normalizeInspectorGroup(invalid), "overall_size");
   }
   assert.equal(normalizeInspectorGroup("lighting"), "lighting");
+});
+
+test("workspace and selected-section navigation normalize without progression state", () => {
+  for (const invalid of [null, "", "guided", "all", "overall_size"]) {
+    assert.equal(normalizeWorkspaceStage(invalid), "space");
+  }
+  assert.equal(normalizeWorkspaceStage("preview"), "preview");
+  assert.equal(normalizeInspectorTab("drawers"), "drawers");
+  assert.equal(normalizeInspectorTab("not-a-tab"), "general");
+});
+
+test("selected-section tabs express front applicability and read-only back data", () => {
+  assert.deepEqual(Object.keys(INSPECTOR_TAB_DEFINITIONS), [
+    "general", "shelves", "doors", "drawers", "back", "lighting"
+  ]);
+  assert.equal(INSPECTOR_TAB_DEFINITIONS.general.always, true);
+  assert.equal(INSPECTOR_TAB_DEFINITIONS.back.readOnly, true);
+  assert.deepEqual(INSPECTOR_TAB_DEFINITIONS.back.groups, []);
+
+  const openTabs = getApplicableInspectorTabs("open").map((tab) => tab.id);
+  assert.equal(openTabs.includes("general"), true);
+  assert.equal(openTabs.includes("doors"), false);
+  assert.equal(openTabs.includes("drawers"), false);
+  assert.equal(getApplicableInspectorTabs("lower_doors").some((tab) => tab.id === "doors"), true);
+  assert.equal(getApplicableInspectorTabs("tall_doors").some((tab) => tab.id === "doors"), true);
+  assert.equal(getApplicableInspectorTabs("drawers").some((tab) => tab.id === "drawers"), true);
+  assert.equal(getApplicableInspectorTabs("drawers").some((tab) => tab.id === "doors"), false);
+});
+
+test("fields route through physical groups into workspace stages and section tabs", () => {
+  assert.equal(workspaceStageForControlGroup("overall_size"), "space");
+  assert.equal(workspaceStageForControlGroup("base_crown"), "layout");
+  assert.equal(workspaceStageForField("shelfThickness"), "storage");
+  assert.equal(workspaceStageForField("hardwareSelections"), "hardware");
+  assert.equal(workspaceStageForField("delivery"), "preview");
+  assert.equal(inspectorTabForField("shelfThickness"), "shelves");
+  assert.equal(inspectorTabForField("doorStyle"), "doors");
+  assert.equal(inspectorTabForField("drawerFrontStyle"), "drawers");
+  assert.equal(inspectorTabForField("lightingWarmth"), "lighting");
+  assert.equal(inspectorTabForField("width"), "general");
+  assert.equal(normalizeWorkspaceStage("storage"), "storage");
 });
 
 test("customer-provided text is escaped before HTML template rendering", () => {
@@ -141,6 +215,20 @@ test("context editor definitions distinguish fronts, hardware, construction, lig
   assert.equal(CONTEXT_EDITOR_DEFINITIONS.shelves.scope, "global");
   assert.equal(CONTEXT_EDITOR_DEFINITIONS.divider.scope, "adjacent-pair");
   assert.equal(CONTEXT_EDITOR_DEFINITIONS.door.inspectorGroupId, "storage_fronts");
+  assert.deepEqual(CONTEXT_EDITOR_DEFINITIONS.back, {
+    id: "back",
+    kind: "back",
+    scope: "global",
+    inspectorGroupId: "sections_layout",
+    controlIds: []
+  });
+  assert.equal(COMPONENT_ROLE_TO_STAGE.section, "layout");
+  assert.equal(COMPONENT_ROLE_TO_STAGE.shelf, "storage");
+  assert.equal(COMPONENT_ROLE_TO_STAGE.handle, "hardware");
+  assert.equal(COMPONENT_ROLE_TO_STAGE.light, "lighting");
+  assert.equal(COMPONENT_ROLE_TO_INSPECTOR.door, "doors");
+  assert.equal(COMPONENT_ROLE_TO_INSPECTOR.drawer_front, "drawers");
+  assert.equal(COMPONENT_ROLE_TO_INSPECTOR.back_panel, "back");
 });
 
 test("descriptor selection resolves semantic editors and owning sections from accepted layout data", () => {
@@ -153,23 +241,28 @@ test("descriptor selection resolves semantic editors and owning sections from ac
   const crown = componentByRole(layout, "crown");
   const light = componentByRole(layout, "light", (component) => component.parentId === section.id);
   const side = componentByRole(layout, "side_panel");
+  const back = componentByRole(layout, "back_panel");
 
   const sectionContext = resolveSelectionContext(layout, { componentId: section.id, source: "canvas", anchorClientX: 120, anchorClientY: 240 });
   assert.deepEqual(
     [sectionContext.kind, sectionContext.sectionIndex, sectionContext.inspectorGroupId, sectionContext.highlightTarget.componentId],
     ["section", 0, "sections_layout", section.id]
   );
+  assert.deepEqual([sectionContext.stageId, sectionContext.inspectorTabId], ["layout", "general"]);
   assert.deepEqual([sectionContext.anchorClientX, sectionContext.anchorClientY, sectionContext.source], [120, 240, "canvas"]);
 
   const shelfContext = resolveSelectionContext(layout, shelf.id);
   assert.deepEqual([shelfContext.kind, shelfContext.sectionId, shelfContext.scope], ["shelf", section.id, "global"]);
+  assert.deepEqual([shelfContext.stageId, shelfContext.inspectorTabId], ["storage", "shelves"]);
   assert.match(shelfContext.title, /Shelf · Section 1/);
 
   const doorContext = resolveSelectionContext(layout, door.id);
   assert.deepEqual([doorContext.editorId, doorContext.frontId, doorContext.sectionId], ["door", door.id, section.id]);
+  assert.deepEqual([doorContext.stageId, doorContext.inspectorTabId], ["storage", "doors"]);
 
   const hardwareContext = resolveSelectionContext(layout, handle.id);
   assert.deepEqual([hardwareContext.editorId, hardwareContext.frontId, hardwareContext.sectionId], ["hardware", door.id, section.id]);
+  assert.deepEqual([hardwareContext.stageId, hardwareContext.inspectorTabId], ["hardware", "doors"]);
 
   assert.equal(resolveSelectionContext(layout, trim.id).editorId, "base");
   assert.equal(resolveSelectionContext(layout, crown.id).editorId, "crown");
@@ -178,8 +271,21 @@ test("descriptor selection resolves semantic editors and owning sections from ac
     ["lighting", section.id]
   );
   assert.deepEqual(
+    [resolveSelectionContext(layout, light.id).stageId, resolveSelectionContext(layout, light.id).inspectorTabId],
+    ["lighting", "lighting"]
+  );
+  assert.deepEqual(
     [resolveSelectionContext(layout, side.id).editorId, resolveSelectionContext(layout, side.id).inspectorGroupId],
     ["body", "overall_size"]
+  );
+  const backContext = resolveSelectionContext(layout, back.id);
+  assert.deepEqual(
+    [backContext.editorId, backContext.kind, backContext.title, backContext.stageId, backContext.inspectorTabId],
+    ["back", "back", "Fitted Back", "layout", "back"]
+  );
+  assert.deepEqual(
+    [backContext.inspectorGroupId, backContext.scope, backContext.controlIds],
+    ["sections_layout", "global", []]
   );
   assert.equal(resolveSelectionContext(layout, "not-an-accepted-component"), null);
 });
@@ -198,8 +304,19 @@ test("drawer, feature group, top-panel, and divider hits expose exact contextual
   const drawerContext = resolveSelectionContext(drawerLayout, drawer.id);
   assert.equal(drawerContext.editorId, "drawer");
   assert.equal(drawerContext.frontId, drawer.id);
+  assert.deepEqual([drawerContext.stageId, drawerContext.inspectorTabId], ["storage", "drawers"]);
   assert.equal(drawerContext.controlIds.includes("drawerFrontStyle"), true);
   assert.equal(drawerContext.controlIds.includes("doorStyle"), false);
+  const drawerHandle = componentByRole(drawerLayout, "handle", (component) => component.hostId === drawer.id);
+  assert.deepEqual(
+    resolveWorkspaceSelection(resolveSelectionContext(drawerLayout, drawerHandle.id), drawerLayout),
+    {
+      stageId: "hardware",
+      inspectorTabId: "drawers",
+      stageControlGroupIds: ["hardware"],
+      inspectorTabGroupIds: ["storage_fronts"]
+    }
+  );
 
   const featureLayout = layoutFor(preset("media-wall").config);
   const featureGroup = componentByRole(featureLayout, "section_group");
@@ -492,6 +609,95 @@ test("saved design records are presentation-independent schema 3 physical payloa
   for (const presentationKey of ["mode", "guidedStep", "allCategory", "activeInspectorGroup", "selection", "drafts"]) {
     assert.equal(presentationKey in saved.config, false);
   }
+});
+
+test("accepted-design history is bounded to fifty physical transactions", () => {
+  assert.equal(ACCEPTED_DESIGN_HISTORY_LIMIT, 50);
+  let history = createAcceptedDesignHistory({ revision: 0 });
+  for (let revision = 1; revision <= 60; revision += 1) {
+    history = commitAcceptedDesignHistory(history, { revision });
+  }
+  assert.equal(history.limit, 50);
+  assert.equal(history.past.length, 50);
+  assert.equal(history.present.revision, 60);
+  assert.equal(history.past[0].revision, 10);
+  assert.equal(canUndoAcceptedDesignHistory(history), true);
+  assert.equal(canRedoAcceptedDesignHistory(history), false);
+});
+
+test("accepted-design undo and redo are pure, no-op safely, and clear redo on a new commit", () => {
+  const initial = createAcceptedDesignHistory({ revision: 1 });
+  const second = commitAcceptedDesignHistory(initial, { revision: 2 });
+  const duplicate = commitAcceptedDesignHistory(second, { revision: 2 });
+  const rejected = commitAcceptedDesignHistory(second, { accepted: false, revision: 3 });
+  assert.equal(duplicate, second);
+  assert.equal(rejected, second);
+  assert.equal(undoAcceptedDesignHistory(initial), initial);
+  assert.equal(redoAcceptedDesignHistory(initial), initial);
+
+  const undone = undoAcceptedDesignHistory(second);
+  assert.equal(undone.present.revision, 1);
+  assert.deepEqual(undone.future.map((entry) => entry.revision), [2]);
+  assert.equal(canRedoAcceptedDesignHistory(undone), true);
+  const redone = redoAcceptedDesignHistory(undone);
+  assert.equal(redone.present.revision, 2);
+  assert.deepEqual(redone.future, []);
+
+  const branched = commitAcceptedDesignHistory(undone, { revision: 3 });
+  assert.equal(branched.present.revision, 3);
+  assert.deepEqual(branched.future, []);
+  assert.deepEqual(second.present, { revision: 2 }, "history inputs remain unchanged");
+});
+
+test("accepted-design history ignores presentation-only differences in the same physical state", () => {
+  const state = normalizeBookcaseConfig(defaultBookcaseConfig);
+  const history = createAcceptedDesignHistory({ state, selection: null });
+  const unchanged = commitAcceptedDesignHistory(history, {
+    state: { ...state },
+    selection: { componentId: "section-01" }
+  });
+  assert.equal(unchanged, history);
+});
+
+test("section organizer summaries and thumbnails derive exact accepted descriptor ownership", () => {
+  const state = normalizeBookcaseConfig(defaultBookcaseConfig);
+  const layout = layoutFor(state);
+  const organizer = createSectionOrganizerSummary(state, layout);
+  assert.equal(organizer.sectionCount, state.sections);
+  assert.equal(organizer.items.length, state.sections);
+  assert.match(organizer.summary, /4 sections/);
+  assert.equal(organizer.items.every((item) => item.widthLabel.endsWith(" in clear")), true);
+  assert.equal(organizer.items.every((item) => item.generated.adjustableShelves === state.shelves), true);
+  assert.equal(organizer.items.every((item) => item.generated.doors > 0), true);
+  assert.equal(organizer.items.every((item) => item.generated.handles > 0), true);
+  assert.equal(organizer.items.every((item) => item.thumbnail.frontKind === "doors"), true);
+  assert.equal(organizer.items.every((item) => item.shelvesApplyToAllOpenSections), true);
+});
+
+test("section thumbnail data is semantic and locked feature zones remain visible in summaries", () => {
+  const thumbnail = createSectionOrganizerThumbnail(
+    { type: "drawers" },
+    { adjustableShelves: 3, fixedShelves: 1, drawerFronts: 4, handles: 4, lights: 2 }
+  );
+  assert.deepEqual(thumbnail, {
+    sectionType: "drawers",
+    frontKind: "drawers",
+    featureKind: null,
+    shelfCount: 3,
+    fixedShelfCount: 1,
+    doorLeafCount: 0,
+    drawerFrontCount: 4,
+    handleCount: 4,
+    lightCount: 2,
+    segments: ["shelf", "shelf", "shelf", "fixed_shelf", "drawer_front", "drawer_front", "drawer_front", "drawer_front"]
+  });
+
+  const featureState = preset("media-wall").config;
+  const organizer = createSectionOrganizerSummary(featureState, layoutFor(featureState));
+  const feature = organizer.items.find((item) => item.type === "media");
+  assert.equal(feature.locked, true);
+  assert.equal(feature.thumbnail.featureKind, "media");
+  assert.match(organizer.summary, /Media Feature/);
 });
 
 test("quote URLs preserve the existing encoded design-id contract", () => {
