@@ -1,4 +1,4 @@
-import { mountIcons, setIcon } from "./icon-system.js?v=jq-icons-20260715g";
+import { mountIcons, setIcon } from "./icon-system.js?v=interface-polish-20260715a";
 
 const navItems = [
   { label: "How It Works", href: "how-it-works.html", page: "how" },
@@ -448,7 +448,7 @@ async function initQuoteForm() {
     /^JQ-[A-Z0-9-]{5,20}$/.test(storedDesign.id)
   ) {
     try {
-      const { restoreAcceptedDesignSnapshot } = await import("./bookcase-engine.js?v=direct-hardware-20260714a");
+      const { restoreAcceptedDesignSnapshot } = await import("./bookcase-engine.js?v=engine-polish-20260716a");
       const restored = restoreAcceptedDesignSnapshot(storedDesign);
       if (restored.accepted && restored.compatible) acceptedStoredDesign = { snapshot: storedDesign, restored };
     } catch (error) {
@@ -467,8 +467,8 @@ async function initQuoteForm() {
   if (activeStoredDesign && savedSummary) {
     try {
       const [{ createQuotePrefill }, { BENJAMIN_MOORE_COLOR_DATA_NOTICE }] = await Promise.all([
-        import("./quote-prefill.js?v=direct-hardware-20260714a"),
-        import("./benjamin-moore-colors.js?v=direct-hardware-20260714a")
+        import("./quote-prefill.js?v=engine-polish-20260716a"),
+        import("./benjamin-moore-colors.js?v=engine-polish-20260716a")
       ]);
       const activeDesignId = activeStoredDesign.snapshot.id;
       const config = activeStoredDesign.restored.state;

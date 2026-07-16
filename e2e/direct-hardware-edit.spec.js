@@ -22,7 +22,7 @@ async function openDirectHardwareEditor(page) {
 
   const hardwareStage = page.locator('[data-workspace-stage="hardware"]');
   await hardwareStage.click();
-  await expect(hardwareStage).toHaveAttribute("aria-current", "step");
+  await expect(hardwareStage).toHaveAttribute("aria-current", "location");
   const properties = page.locator("[data-properties-inspector]");
   await expect(properties).toBeVisible();
   await expect(properties.locator('[data-active-stage-panel="hardware"]')).toBeVisible();

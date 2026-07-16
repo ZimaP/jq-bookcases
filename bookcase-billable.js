@@ -8,6 +8,54 @@
 export function deriveBillableComponents(layout = {}) {
   const components = Array.isArray(layout?.components) ? layout.components : [];
   const componentById = new Map(components.map((component) => [component.id, component]));
+  const summary = summarizeBillableComponents(components, componentById);
+  const sections = components
+    .filter((component) => component.role === "section")
+    .sort((left, right) => Number(left.metadata?.index) - Number(right.metadata?.index));
+  const sectionByIdentity = createSectionIdentityMap(sections);
+  const sectionGroups = components.filter((component) => component.role === "section_group");
+  const ownedBySectionId = new Map(sections.map((section) => [section.id, []]));
+  const ownedBySectionGroupId = new Map(sectionGroups.map((group) => [group.id, []]));
+
+  for (const component of components) {
+    if (["section", "section_group"].includes(component.role)) continue;
+    const section = resolveOwningSection(component, componentById, sectionByIdentity);
+    if (section) ownedBySectionId.get(section.id)?.push(component);
+    const group = resolveOwningRole(component, componentById, "section_group");
+    if (group) ownedBySectionGroupId.get(group.id)?.push(component);
+  }
+
+  return {
+    ...summary,
+    bySectionId: Object.fromEntries(sections.map((section) => {
+      const sectionId = getStableSectionId(section);
+      return [sectionId, {
+        sectionId,
+        descriptorId: section.id,
+        index: Number(section.metadata?.index),
+        type: section.metadata?.type || "open",
+        ...summarizeBillableComponents(ownedBySectionId.get(section.id) || [], componentById)
+      }];
+    })),
+    bySectionGroupId: Object.fromEntries(sectionGroups.map((group) => {
+      const memberDescriptorIds = Array.isArray(group.metadata?.memberSectionIds)
+        ? group.metadata.memberSectionIds.map(String)
+        : [];
+      return [group.id, {
+        sectionGroupId: group.id,
+        kind: group.metadata?.kind || "unknown",
+        memberSectionIds: memberDescriptorIds.map((id) => {
+          const section = sectionByIdentity.get(id);
+          return section ? getStableSectionId(section) : id;
+        }),
+        memberDescriptorIds,
+        ...summarizeBillableComponents(ownedBySectionGroupId.get(group.id) || [], componentById)
+      }];
+    }))
+  };
+}
+
+function summarizeBillableComponents(components, componentById) {
   const doors = components.filter((component) => component.role === "door");
   const drawerFronts = components.filter((component) => component.role === "drawer_front");
   const handles = components.filter((component) => component.role === "handle");
@@ -34,6 +82,63 @@ export function deriveBillableComponents(layout = {}) {
     hardwareByType: countBy(handles, (handle) => handle.metadata?.hardware || "unknown"),
     lightsByType: countBy(lights, (light) => light.metadata?.lightType || "unknown")
   };
+}
+
+function createSectionIdentityMap(sections) {
+  const identities = new Map();
+  for (const section of sections) {
+    identities.set(section.id, section);
+    identities.set(getStableSectionId(section), section);
+  }
+  return identities;
+}
+
+function getStableSectionId(section) {
+  return String(
+    section?.metadata?.configId
+    || section?.metadata?.sectionConfigId
+    || section?.metadata?.stableId
+    || section?.id
+  );
+}
+
+function resolveOwningSection(component, componentById, sectionByIdentity) {
+  const pending = [component];
+  const visited = new Set();
+  while (pending.length) {
+    const current = pending.shift();
+    if (!current || visited.has(current.id)) continue;
+    visited.add(current.id);
+    if (current.role === "section") return current;
+    const explicitId = current.metadata?.configId
+      || current.metadata?.sectionConfigId
+      || current.metadata?.sectionId
+      || current.sectionId;
+    if (explicitId && sectionByIdentity.has(String(explicitId))) {
+      return sectionByIdentity.get(String(explicitId));
+    }
+    for (const relatedId of [current.parentId, current.hostId]) {
+      const related = componentById.get(relatedId);
+      if (related && !visited.has(related.id)) pending.push(related);
+    }
+  }
+  return null;
+}
+
+function resolveOwningRole(component, componentById, role) {
+  const pending = [component];
+  const visited = new Set();
+  while (pending.length) {
+    const current = pending.shift();
+    if (!current || visited.has(current.id)) continue;
+    visited.add(current.id);
+    if (current.role === role) return current;
+    for (const relatedId of [current.parentId, current.hostId]) {
+      const related = componentById.get(relatedId);
+      if (related && !visited.has(related.id)) pending.push(related);
+    }
+  }
+  return null;
 }
 
 function countBy(components, selector) {

@@ -21,7 +21,7 @@ async function openConfigurator(page) {
 async function openStage(page, stage) {
   const trigger = page.locator(`[data-workspace-stage="${stage}"]`);
   await trigger.click();
-  await expect(trigger).toHaveAttribute("aria-current", "step");
+  await expect(trigger).toHaveAttribute("aria-current", "location");
   const inspector = page.locator("[data-properties-inspector]");
   await expect(inspector).toBeVisible();
   await expect(inspector.locator(`[data-active-stage-panel="${stage}"]`)).toBeVisible();
@@ -161,8 +161,10 @@ test("selecting a front in the model opens its fixed properties inspector withou
   await expect(shell).toHaveAttribute("data-diagnostic-selection-kind", "front");
   await expect(shell).toHaveAttribute("data-diagnostic-selection-editor", /door|drawer/);
   await expect(shell).toHaveAttribute("data-diagnostic-direct-selected", target.componentId);
-  await expect(page.locator('[data-workspace-stage="storage"]')).toHaveAttribute("aria-current", "step");
-  await expect(inspector.locator('[data-inspector-tab="doors"], [data-inspector-tab="drawers"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-workspace-stage="storage"]')).toHaveAttribute("aria-current", "location");
+  await expect(inspector.locator("[data-inspector-tab]")).toHaveCount(0);
+  await expect(inspector.locator(".workspace-properties-panel")).toHaveCount(1);
+  await expect(inspector.locator("[data-storage-console]")).toBeVisible();
 
   const afterSelection = await host.evaluate((root) => {
     const controller = root.__bookcaseConfigurator;
@@ -182,7 +184,7 @@ test("selecting a front in the model opens its fixed properties inspector withou
 
   await inspector.locator("[data-close-selection]").click();
   await expect(inspector.locator("[data-close-selection]")).toHaveCount(0);
-  await expect(inspector.locator(".workspace-properties-heading h2")).toHaveText("Storage");
+  await expect(inspector.locator(".workspace-properties-heading h2")).toHaveText("Interior options");
   await expect(shell).toHaveAttribute("data-diagnostic-selection-kind", "");
   await expect(shell).toHaveAttribute("data-diagnostic-direct-selected", "");
   await expect(viewer.locator("canvas")).toHaveCount(1);

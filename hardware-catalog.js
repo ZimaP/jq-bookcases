@@ -8,7 +8,10 @@ const LEGACY_HARDWARE_TOKENS = Object.freeze([
   "brass_pull",
   "matte_black_knob",
   "matte_black_pull",
-  "polished_nickel_pull"
+  "polished_nickel_pull",
+  "polished_nickel_knob",
+  "unlacquered_brass_knob",
+  "satin_nickel_pull"
 ]);
 
 export const LEGACY_HARDWARE_VARIANT_IDS = deepFreeze({
@@ -16,7 +19,10 @@ export const LEGACY_HARDWARE_VARIANT_IDS = deepFreeze({
   matte_black_knob: "armac-queslett-knob__armac-qk34__armac-mbl",
   brass_pull: "atlas-oskar-pull__atlas-oskar-6-3125__atlas-wb",
   matte_black_pull: "atlas-oskar-pull__atlas-oskar-6-3125__atlas-bl",
-  polished_nickel_pull: "atlas-oskar-pull__atlas-oskar-6-3125__atlas-pn"
+  polished_nickel_pull: "atlas-oskar-pull__atlas-oskar-6-3125__atlas-pn",
+  polished_nickel_knob: "armac-queslett-knob__armac-qk34__armac-pnp",
+  unlacquered_brass_knob: "armac-queslett-knob__armac-qk34__armac-pbul",
+  satin_nickel_pull: "atlas-oskar-pull__atlas-oskar-6-3125__atlas-brn"
 });
 
 const LEGACY_ARMAC_SOURCE = Object.freeze({
@@ -256,6 +262,46 @@ export const LEGACY_VARIANT_SNAPSHOTS = deepFreeze({
     priceSourceId: LEGACY_ARMAC_SOURCE.id,
     sources: [LEGACY_ARMAC_SOURCE]
   }),
+  polished_nickel_knob: embeddedLegacySnapshot({
+    variantId: LEGACY_HARDWARE_VARIANT_IDS.polished_nickel_knob,
+    family: LEGACY_ARMAC_FAMILY,
+    brand: LEGACY_ARMAC_BRAND,
+    collection: LEGACY_ARMAC_COLLECTION,
+    size: LEGACY_ARMAC_SIZE,
+    finish: {
+      id: "armac-pnp",
+      manufacturerName: "Polished Nickel Plate",
+      manufacturerCode: "PNP",
+      canonicalFinishId: "polished-nickel",
+      isLivingFinish: false,
+      digitalSwatchIsApproximate: true
+    },
+    canonicalFinish: { id: "polished-nickel", label: "Polished Nickel", group: "nickel_chrome", swatch: "#D4D2CA" },
+    manufacturerProductNumber: "QK/KNOBONLY/34/PNP",
+    price: 79.6,
+    priceSourceId: LEGACY_ARMAC_SOURCE.id,
+    sources: [LEGACY_ARMAC_SOURCE]
+  }),
+  unlacquered_brass_knob: embeddedLegacySnapshot({
+    variantId: LEGACY_HARDWARE_VARIANT_IDS.unlacquered_brass_knob,
+    family: LEGACY_ARMAC_FAMILY,
+    brand: LEGACY_ARMAC_BRAND,
+    collection: LEGACY_ARMAC_COLLECTION,
+    size: LEGACY_ARMAC_SIZE,
+    finish: {
+      id: "armac-pbul",
+      manufacturerName: "Polished Brass Unlacquered",
+      manufacturerCode: "PBUL",
+      canonicalFinishId: "unlacquered-brass",
+      isLivingFinish: true,
+      digitalSwatchIsApproximate: true
+    },
+    canonicalFinish: { id: "unlacquered-brass", label: "Unlacquered Brass", group: "brass_gold", swatch: "#B68D47" },
+    manufacturerProductNumber: "QK/KNOBONLY/34/PBUL",
+    price: 72.3,
+    priceSourceId: LEGACY_ARMAC_SOURCE.id,
+    sources: [LEGACY_ARMAC_SOURCE]
+  }),
   brass_pull: embeddedLegacySnapshot({
     variantId: LEGACY_HARDWARE_VARIANT_IDS.brass_pull,
     family: LEGACY_ATLAS_FAMILY,
@@ -312,6 +358,26 @@ export const LEGACY_VARIANT_SNAPSHOTS = deepFreeze({
     },
     canonicalFinish: { id: "polished-nickel", label: "Polished Nickel", group: "nickel_chrome", swatch: "#D4D2CA" },
     manufacturerProductNumber: "A104-PN",
+    price: 19.8,
+    priceSourceId: "src-atlas-2026-price-list",
+    sources: LEGACY_ATLAS_SOURCES
+  }),
+  satin_nickel_pull: embeddedLegacySnapshot({
+    variantId: LEGACY_HARDWARE_VARIANT_IDS.satin_nickel_pull,
+    family: LEGACY_ATLAS_FAMILY,
+    brand: LEGACY_ATLAS_BRAND,
+    collection: LEGACY_ATLAS_COLLECTION,
+    size: LEGACY_ATLAS_SIZE,
+    finish: {
+      id: "atlas-brn",
+      manufacturerName: "Brushed Nickel",
+      manufacturerCode: "BRN",
+      canonicalFinishId: "satin-nickel",
+      isLivingFinish: false,
+      digitalSwatchIsApproximate: true
+    },
+    canonicalFinish: { id: "satin-nickel", label: "Satin Nickel", group: "nickel_chrome", swatch: "#B7B7B0" },
+    manufacturerProductNumber: "A104-BRN",
     price: 19.8,
     priceSourceId: "src-atlas-2026-price-list",
     sources: LEGACY_ATLAS_SOURCES

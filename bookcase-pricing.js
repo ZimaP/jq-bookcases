@@ -1,15 +1,16 @@
-import { normalizeBookcaseConfig } from "./bookcase-config.js?v=direct-hardware-20260714a";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=direct-hardware-20260714a";
-import { deriveBookcaseBOM } from "./bookcase-bom.js?v=direct-hardware-20260714a";
-import { deriveBillableComponents } from "./bookcase-billable.js?v=direct-hardware-20260714a";
+import { normalizeBookcaseConfig } from "./bookcase-config.js?v=engine-polish-20260716a";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=engine-polish-20260716a";
+import { deriveBookcaseBOM } from "./bookcase-bom.js?v=engine-polish-20260716a";
+import { deriveBillableComponents } from "./bookcase-billable.js?v=engine-polish-20260716a";
 
-export const PRICING_VERSION = "2026.07-hardware-catalog-v2";
+export const PRICING_VERSION = "2026.07-section-storage-v1";
 
 export const PRICING_RATES = Object.freeze({
   baseProject: 1900,
   envelopeAreaPerSqFt: 85,
   section: 250,
   adjustableShelf: 55,
+  drawerFrontPerFront: 55,
   shelfThicknessPremiumPerInchPerShelf: 112.5,
   lowerStoragePerLinearIn: 18,
   doorStylePerDoor: Object.freeze({
@@ -25,6 +26,9 @@ export const PRICING_RATES = Object.freeze({
     matte_black_knob: 15.625,
     matte_black_pull: 21.875,
     polished_nickel_pull: 28.125,
+    polished_nickel_knob: 18.75,
+    unlacquered_brass_knob: 18.75,
+    satin_nickel_pull: 28.125,
     unknown: 0
   }),
   hardwarePerUnit: Object.freeze({
@@ -33,6 +37,9 @@ export const PRICING_RATES = Object.freeze({
     matte_black_knob: 15.625,
     matte_black_pull: 21.875,
     polished_nickel_pull: 28.125,
+    polished_nickel_knob: 18.75,
+    unlacquered_brass_knob: 18.75,
+    satin_nickel_pull: 28.125,
     unknown: 0
   }),
   lightingPerFixture: Object.freeze({
@@ -140,6 +147,17 @@ export function calculateBookcasePriceBreakdown(config, precomputedLayout = null
     "linear in",
     PRICING_RATES.lowerStoragePerLinearIn
   );
+
+  if (bom.drawers.frontCount > 0) {
+    addLine(
+      lineItems,
+      "DRAWER_FRONTS",
+      "Generated drawer fronts",
+      bom.drawers.frontCount,
+      "front",
+      PRICING_RATES.drawerFrontPerFront
+    );
+  }
 
   for (const [style, count] of Object.entries(bom.doors.byStyle)) {
     addLine(
@@ -271,6 +289,7 @@ export function buildPricingContext(config, precomputedLayout = null) {
   const billableQuantities = deriveBillableComponents(breakdown.layout);
   const componentCharges = {
     doorStyle: summarizeLines(breakdown.lineItems, "DOOR_STYLE_"),
+    drawerFronts: summarizeLines(breakdown.lineItems, "DRAWER_FRONTS"),
     hardware: summarizeHardwareCharges(breakdown.lineItems, breakdown.hardwarePricing),
     lighting: summarizeLines(breakdown.lineItems, "LIGHTING_")
   };

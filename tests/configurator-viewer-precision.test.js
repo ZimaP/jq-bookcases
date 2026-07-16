@@ -92,6 +92,65 @@ test("non-envelope hardware rebuilds preserve the exact camera pose", () => {
   assert.match(preserveHelper, /\.every\(/, "All changes must be checked against the envelope field set.");
 });
 
+test("Preview fits the full model to the safe viewport and restores the prior camera on exit", () => {
+  const activation = between(
+    "  activateWorkspaceStage(stageId, options = {}) {",
+    "  snapshotDesignState() {"
+  );
+  const fit = between(
+    "  fitFullModel(options = {}) {",
+    "  focusSection(index, options = {}) {"
+  );
+  const resize = between(
+    "  resize() {",
+    "  update(nextState, precomputedLayout = null, changedFields = null) {"
+  );
+
+  assert.match(activation, /enteringPreview/);
+  assert.match(activation, /this\.previewCameraState = this\.viewer\.getViewState\?\.\(\)/);
+  assert.match(activation, /this\.viewer\.fitFullModel\?\.\(\{ duration: SMART_CAMERA_DURATION \}\)/);
+  assert.match(activation, /this\.viewer\.restoreCameraState\?\.\(restoreCameraState\)/);
+  assert.match(fit, /new THREE\.Box3\(\)\.setFromObject\(this\.model\)/);
+  assert.match(fit, /calculateBoundsCameraPose\(\{/);
+  assert.match(fit, /fitMargin: 1\.12/);
+  assert.match(fit, /this\.activeFocusKey = "preview"/);
+  assert.match(fit, /this\.clearComponentHighlight\(\)/);
+  assert.match(resize, /this\.activeFocusKey === "preview"[\s\S]*this\.fitFullModel\(\{ duration: 0 \}\)/);
+});
+
+test("changing sections targets that section once while preserving the manual camera angle", () => {
+  const selection = between(
+    "  selectSection(index, options = {}) {",
+    "  commitSelectedSectionStorage(patch, successMessage) {"
+  );
+  const focus = between(
+    "  focusSection(index, options = {}) {",
+    "  zoom(direction) {"
+  );
+  const framing = between(
+    "  frameModel(preserveZoom = true, transition = false) {",
+    "  rebuildModel(nextState, precomputedLayout = null) {"
+  );
+
+  assert.match(selection, /previousSectionIndex/);
+  assert.match(selection, /this\.selectedSectionIndex\s*!==\s*previousSectionIndex/);
+  assert.match(selection, /this\.viewer\.focusSection\?\./);
+  assert.match(selection, /this\.viewer\.activeFocusKey\s*!==\s*"section"/);
+  assert.match(focus, /focusVariant === this\.activeFocusVariant/);
+  assert.match(focus, /descriptorBoundsToSceneBox\(section\.bounds/);
+  assert.match(focus, /theta:\s*this\.theta/);
+  assert.match(focus, /phi:\s*this\.phi/);
+  assert.match(focus, /resolveCollisionSafeRadius/);
+  assert.match(focus, /calculateViewportAwareTarget/);
+  assert.match(framing, /this\.activeFocusKey === "section"/);
+  assert.match(framing, /this\.focusSection\(this\.sectionDesigner\.selectedIndex/);
+  assert.equal(
+    (viewerSource.match(/onSelect: \(index\) => this\.selectSection\(index, \{ render: false, ensureFramed: true \}\)/g) || []).length,
+    3,
+    "Every model-backed section selection hook must request section framing."
+  );
+});
+
 test("measurements project layout coordinates through the active THREE camera", () => {
   const projection = between(
     "  projectLayoutPoint(layout, x, y, z, rootRect) {",
@@ -162,6 +221,19 @@ test("hardware appearance resolves canonical finish metadata for partial and reb
   assert.doesNotMatch(appearance, /startsWith\(|endsWith\(/);
   assert.match(partialUpdate, /getHardwareAppearance\(hardware\)/);
   assert.match(materials, /getHardwareAppearance\(config\.hardware\)/);
+});
+
+test("cabinet surfaces use solid sprayed-paint materials without veneer maps", () => {
+  const materials = between(
+    "function createMaterials(baseColor, config) {",
+    "function getHardwareAppearance(hardware) {"
+  );
+
+  for (const key of ["case", "side", "back", "inset"]) {
+    assert.match(materials, new RegExp(`${key}: new THREE\\.MeshStandardMaterial\\(\\{ color: baseColor, roughness:`));
+  }
+  assert.doesNotMatch(materials, /createFinishTexture|\bmap:|bumpMap|normalMap|roughnessMap/);
+  assert.match(materials, /JQ cabinetry is painted, not veneered/);
 });
 
 function frontComponent(role, style, options = {}) {

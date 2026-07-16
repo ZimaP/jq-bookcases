@@ -43,6 +43,7 @@ second construction interpretation.
 | Back panel | ANSI/AWI 0641 assembly-performance framework | Existing repository value 0.25 | 0.25 | Retains the existing depth stack and product brief | `CONSTRUCTION_RULES.backPanelThickness`, `getConstructionReferencePlanes()` | `OUTSIDE_BOOKCASE_BOUNDS`, `COMPONENT_COLLISION` | Existing JQ rule; shop reconfirmation requested | Confirm back joinery and wall-anchoring method. |
 | Door and drawer-front thickness | Blum standard hinge applications accept fronts 15-26 mm | 0.59-1.02 for that Blum range; repository value 0.75 | 0.75 | 19.05 mm lies within the cited general hinge-front range and preserves JQ proportions | `CONSTRUCTION_RULES.doorThickness` | `FRONT_DEPTH_DIRECTION_INVALID`, `FRONT_MOUNTING_INVALID` | Hardware-specific approval required | Final hinge selection, cup boring, edge profile, weight, and mounting plate control buildability. |
 | Default shelf thickness | ANSI/AWI 0641 specifies 0.75 minimum for pullout shelves; KCMA specifies performance tests, not a universal display-shelf thickness | Repository options 0.75-2.0; current default 1.25 | 1.25 default; retain existing supported options | Preserves the existing JQ visual and engineering behavior | `SHELF_THICKNESS_OPTIONS`, `CONSTRUCTION_RULES.shelfThickness` | `NON_POSITIVE_SIZE`, `SHELF_SUPPORT_REVIEW` | Existing JQ rule; shop reconfirmation requested | Thickness alone does not establish allowable span or load. |
+| Fixed lower-storage separator | Product-specific structural panel; adjustable-shelf clearances do not define its geometry | Existing panel thickness 0.75 | 0.75 thick; begins at `carcassFrontPlaneZ`; spans the full section clear width to both section boundaries | Keeps the lower-storage cap structurally continuous and prevents adjustable shelf setback, side clearance, or selected shelf thickness from recessing or narrowing it | `CONSTRUCTION_RULES.fixedSeparatorThickness`, `fixedSeparatorFrontPlaneZ`, `buildSectionContents()` | `LOWER_SEPARATOR_PLANE_MISMATCH`, `LOWER_SEPARATOR_SIDE_GAP`, `LOWER_SEPARATOR_THICKNESS_MISMATCH` | JQ engineering decision; pending shop sign-off | This is a fixed structural panel with the descriptor role `fixed_shelf`, not an adjustable shelf. Confirm joinery with the shop. |
 | Unsupported shelf span | KCMA loads shelves at 15 lb/ft2 for seven days and limits deflection; actual capacity depends on material and support | Existing repository review threshold 36 | Warning above 36; do not silently claim capacity | Retains the current engineering-review behavior until JQ provides tested material data | `CONSTRUCTION_RULES.maxUnsupportedShelfSpan` | `SHELF_SUPPORT_REVIEW` warning | Shop engineering data required | This is a review trigger, not a certified load rating. |
 | Minimum section clear width | Product geometry and current repository constraint | Existing repository minimum 15 | 15 | Preserves current supported configurations and keeps fittings usable | `CONSTRUCTION_RULES.minSectionClearWidth`, `getSectionCountLimits()` | `MIN_SECTION_CLEAR_WIDTH` | Existing JQ rule; shop reconfirmation requested | Door-leaf minima are separate and may make a 15-inch section invalid for a requested arrangement. |
 | Inset perimeter reveal | ANSI/AWI 0641 limits the uniform inset face-frame `X` reveal to 0.125; Blum gaps are application-specific | AWI maximum benchmark 0.125; Blum minimum varies with thickness, radius, boring, and plate | 0.125 on every opening edge | A stable, premium inset expression that matches the existing brief and remains centralized | `CONSTRUCTION_RULES.doorReveal`, `getFrontBounds()` | `FRONT_REVEAL_INCONSISTENT`, `FRONT_PLANE_MISMATCH` | Hardware mock-up and shop approval required | Verify operating clearance with the selected hinge; the AWI value is not a substitute for hinge planning. |
@@ -99,6 +100,7 @@ following planes:
 | `outerTopPlaneY` | `height` |
 | `carcassFrontPlaneZ` | `0` |
 | `finishedFrontPlaneZ` | `0` for `jq_inset_v1`; `-doorThickness` (`-0.75`) for `legacy_overlay_v1` |
+| `fixedSeparatorFrontPlaneZ` | `0`; the structural lower-storage separator begins at the carcass front plane for both construction profiles |
 | `shelfFrontPlaneZ` | `0.75` for `jq_inset_v1`; the legacy open-front reference is `0.125`; section-context logic must use the centralized setback constants |
 | `backInteriorPlaneZ` | `depth - backPanelThickness` |
 | `outerBackPlaneZ` | `depth` |
@@ -111,9 +113,14 @@ negative Z. For `legacy_overlay_v1`, the front body may span negative Z and its
 rear face attaches to the opening/carcass plane. Mounting is always explicit
 metadata; bounds signs never select a profile.
 
-Closed-front shelves, fixed lower separators, lights, and interior fittings
-must clear the inward front body. Open shelving and desk areas use an explicit
-context-specific front relationship so they are not accidentally recessed.
+Adjustable shelves, lights, and interior fittings use their context-specific
+front clearances so closed/glass-front interiors clear the inward front body.
+The fixed panel above lower storage is structural: it starts at
+`fixedSeparatorFrontPlaneZ`, spans the full section clear width, and uses
+`fixedSeparatorThickness` independently of adjustable-shelf front setback, side
+clearance, and selected shelf thickness. Open shelving and desk areas use an
+explicit context-specific front relationship so they are not accidentally
+recessed.
 
 ## Construction profiles and migration
 
@@ -318,6 +325,9 @@ Corrections are used only for deterministic, reported normalization.
 | `MIN_SECTION_CLEAR_WIDTH` | Error | Every usable section has at least 15 clear width. |
 | `SHELF_CLEARANCE` | Error | Adjacent shelves maintain the centralized minimum clearance. |
 | `SHELF_SUPPORT_REVIEW` | Warning | Unsupported shelf span exceeds 36. |
+| `LOWER_SEPARATOR_PLANE_MISMATCH` | Error | The fixed panel above lower storage begins at `fixedSeparatorFrontPlaneZ` / the carcass front plane. |
+| `LOWER_SEPARATOR_SIDE_GAP` | Error | The fixed panel meets both section boundaries with no adjustable-shelf side clearance. |
+| `LOWER_SEPARATOR_THICKNESS_MISMATCH` | Error | The fixed panel uses `fixedSeparatorThickness`, independent of the selected adjustable-shelf thickness. |
 | `ATTACHMENT_SURFACE_DISCONNECTED` | Error | Coincident attachment coordinates also overlap on both host-surface axes. |
 | Light host/attachment checks | Error | Lights remain in the intended section and have a real shared host footprint. |
 | `COMPONENT_COLLISION` or more specific collision code | Error | Unexpected solid intersections are rejected. |
@@ -376,7 +386,10 @@ renderer-only physical part exists.
   continuous returns to the back-interior plane, molding section, and attachment;
   no crown may exceed nominal total height or interfere with lights.
 - [ ] Confirm 0.75 closed/glass-front shelf setback, 0.125 intentional open-
-  shelf setback, and 0.125 nominal light-strip thickness with fixture/wiring
+  shelf setback, and the 0.75 fixed lower separator spanning full section width
+  from the carcass front plane; confirm its joinery separately from adjustable-
+  shelf clearances.
+- [ ] Confirm 0.125 nominal light-strip thickness with fixture/wiring
   clearances.
 - [ ] Confirm the 36-inch unsupported-shelf review threshold against JQ's
   actual materials, shelf thicknesses, loads, and support methods.

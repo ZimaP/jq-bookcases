@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 
 import {
   CONSTRUCTION_RULES,
+  CROWN_PROFILE_CATALOG,
+  CROWN_PROFILE_GEOMETRY_SCHEMA_VERSION,
   LIGHTING_WARMTH_OPTIONS,
   SHELF_THICKNESS_OPTIONS,
   boundsIntersect,
@@ -429,6 +431,37 @@ test("door and drawer descriptors carry independent normalized front profiles", 
   assert.ok(invalid.corrections.some((correction) => correction.code === "DRAWER_FRONT_STYLE_DEFAULTED"));
 });
 
+test("tall glass doors retain their section's interior shelves", () => {
+  const layout = generateBookcaseLayout({
+    ...defaultBookcaseConfig,
+    width: 24,
+    sections: 1,
+    shelves: 4,
+    doorStyle: "glass",
+    layoutMetadata: {
+      sectionRatios: [1],
+      sectionTypes: ["tall_doors"],
+      sectionDoorLayouts: [{ arrangement: "single_hinge_left" }]
+    }
+  });
+  const section = findComponent(layout, layout.sectionIds[0]);
+  const opening = findComponent(layout, `${section.id}-tall-opening`);
+  const door = byRole(layout, "door")[0];
+  const shelves = byRole(layout, "shelf").filter((shelf) => shelf.parentId === section.id);
+
+  assert.equal(layout.validation.valid, true, JSON.stringify(layout.validation.errors));
+  assert.equal(door.metadata.style, "glass");
+  assert.equal(door.metadata.profileGeometry.fieldRegion.kind, "glass");
+  assert.equal(shelves.length, layout.config.shelves);
+  assert.equal(byRole(layout, "fixed_shelf").length, 0);
+  for (const shelf of shelves) {
+    assert.equal(containsBounds(opening.bounds, shelf.bounds), true);
+    assert.equal(shelf.bounds.min.z, layout.metrics.referencePlanes.shelfFrontPlaneZ);
+    assert.ok(shelf.bounds.min.z >= door.bounds.max.z);
+    assert.equal(boundsIntersect(shelf.bounds, door.bounds), false);
+  }
+});
+
 test("preset metadata can assign drawers to selected sections only", () => {
   const layout = generateBookcaseLayout({
     layoutMetadata: { drawerSections: [1] },
@@ -559,6 +592,65 @@ test("base and crown styles emit distinct renderer-facing descriptors", () => {
     assert.ok(returns.every((item) => findComponent(layout, item.hostId)?.role === "side_panel"));
   }
   assert.equal(toe.validation.valid && plinth.validation.valid && furniture.validation.valid && soffit.validation.valid, true);
+});
+
+test("crown descriptors carry normalized front and return extrusion profiles", () => {
+  const profileIds = new Set();
+  for (const style of ["slim_cap", "classic_crown", "modern_soffit"]) {
+    const layout = generateBookcaseLayout({ crownStyle: style });
+    const crowns = byRole(layout, "crown");
+    assert.ok(crowns.length > 0);
+    for (const crown of crowns) {
+      const geometry = crown.metadata.profileGeometry;
+      const isReturn = crown.metadata.hostSurface === "side_panel";
+      assert.equal(geometry.schemaVersion, CROWN_PROFILE_GEOMETRY_SCHEMA_VERSION);
+      assert.equal(geometry.kind, "crown_profile_extrusion");
+      assert.equal(geometry.outlineUnits, "normalized");
+      assert.equal(geometry.crossSection.heightAxis, "y");
+      assert.equal(geometry.crossSection.projectionAxis, isReturn ? "x" : "z");
+      assert.equal(geometry.extrusion.axis, isReturn ? "z" : "x");
+      approximately(geometry.extrusion.min, crown.bounds.min[geometry.extrusion.axis]);
+      approximately(geometry.extrusion.max, crown.bounds.max[geometry.extrusion.axis]);
+      assert.ok(geometry.outline.length >= 6);
+      assert.equal(Math.min(...geometry.outline.map((point) => point.height)), 0);
+      assert.equal(Math.max(...geometry.outline.map((point) => point.height)), 1);
+      assert.equal(Math.min(...geometry.outline.map((point) => point.projection)), 0);
+      assert.equal(Math.max(...geometry.outline.map((point) => point.projection)), 1);
+      profileIds.add(geometry.profileId);
+    }
+    assert.equal(layout.validation.valid, true, JSON.stringify(layout.validation.errors));
+  }
+  assert.deepEqual(
+    [...profileIds].sort(),
+    ["classic_compound_ogee", "classic_lower_bead", "modern_reveal_band", "slim_beveled_cap"]
+  );
+  assert.equal(CROWN_PROFILE_CATALOG.classic_crown.parts.classic_cap.contour, "compound_ogee");
+});
+
+test("classic crown rises from a lower bead into a full-projection top ogee", () => {
+  const layout = generateBookcaseLayout({ crownStyle: "classic_crown" });
+  const rail = findComponent(layout, "crown-classic-rail");
+  const cap = findComponent(layout, "crown-classic-cap");
+  const railOutline = rail.metadata.profileGeometry.outline;
+  const capOutline = cap.metadata.profileGeometry.outline;
+  const railTop = railOutline.find((point) => point.height === 1 && point.projection > 0);
+  const capBottom = [...capOutline].reverse().find((point) => point.height === 0 && point.projection > 0);
+
+  approximately(rail.bounds.max.y, cap.bounds.min.y);
+  approximately(cap.bounds.max.y, layout.config.height);
+  approximately(railTop.projection * rail.size.z, capBottom.projection * cap.size.z);
+  assert.equal(cap.hostId, rail.id);
+  assert.deepEqual(cap.metadata.attachment, { axis: "y", hostFace: "max", componentFace: "min" });
+  assert.ok(cap.size.z > rail.size.z);
+  assert.equal(layout.validation.valid, true, JSON.stringify(layout.validation.errors));
+});
+
+test("invalid crown profile metadata is rejected during layout validation", () => {
+  const layout = clone(generateBookcaseLayout({ crownStyle: "classic_crown" }));
+  findComponent(layout, "crown-classic-cap").metadata.profileGeometry.outline[3].projection = 2;
+  const validation = validateBookcaseLayout(layout);
+  assert.equal(validation.valid, false);
+  assert.ok(issueCodes(validation).includes("CROWN_PROFILE_GEOMETRY_INVALID"));
 });
 
 test("all ten existing presets pass programmatic geometry validation", async (t) => {

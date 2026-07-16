@@ -2,8 +2,8 @@ import {
   createDesignId,
   migrateLegacyConstructionConfig,
   normalizeBookcaseConfig
-} from "./bookcase-config.js?v=direct-hardware-20260714a";
-import { createHardwareVariantSnapshot } from "./hardware-catalog.js?v=direct-hardware-20260714a";
+} from "./bookcase-config.js?v=engine-polish-20260716a";
+import { createHardwareVariantSnapshot } from "./hardware-catalog.js?v=engine-polish-20260716a";
 
 export const CABINET_AR_SCHEMA_VERSION = 1;
 export const CABINET_AR_FEATURE_ATTRIBUTE = "data-enable-cabinet-ar";
@@ -60,6 +60,7 @@ const MAX_DECOMPRESSED_CONFIGURATION_LENGTH = 262144;
 const COMPRESSION_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 const HARDWARE_HANDOFF_MARKER = "jq-hardware-selections-1";
 const HARDWARE_SNAPSHOT_HANDOFF_MARKER = "jq-hardware-snapshot-1";
+const SECTION_STORAGE_HANDOFF_KEY = "~section-storage-1";
 const HARDWARE_HANDOFF_KEYS = Object.freeze([
   "schemaVersion", "catalogVersion", "defaultVariantId", "defaultSnapshot", "byHostId", "migrationWarnings",
   "id", "variantId", "brandId", "brandName", "collectionId", "collectionName", "familyId", "familyName",
@@ -192,9 +193,11 @@ export function hashCabinetArConfiguration(configuration) {
 
 export function encodeCabinetConfiguration(config, options = {}) {
   const normalized = normalizeBookcaseConfig(config);
-  const values = CONFIGURATION_FIELDS.map((field) => field === "hardwareSelections"
-    ? compactHardwareSelectionsForHandoff(normalized[field])
-    : normalized[field]);
+  const values = CONFIGURATION_FIELDS.map((field) => {
+    if (field === "hardwareSelections") return compactHardwareSelectionsForHandoff(normalized[field]);
+    if (field === "layoutMetadata") return compactLayoutMetadataForHandoff(normalized[field]);
+    return normalized[field];
+  });
   const serialized = JSON.stringify([CABINET_AR_SCHEMA_VERSION, values]);
   const uncompressed = encodeBase64Url(serialized);
   if (options.compress === false) return uncompressed;
@@ -217,9 +220,13 @@ export function decodeCabinetConfiguration(token) {
     const candidate = {};
     CONFIGURATION_FIELDS.forEach((field, index) => {
       if (index < payload[1].length) {
-        candidate[field] = field === "hardwareSelections"
-          ? expandHardwareSelectionsFromHandoff(payload[1][index])
-          : payload[1][index];
+        if (field === "hardwareSelections") {
+          candidate[field] = expandHardwareSelectionsFromHandoff(payload[1][index]);
+        } else if (field === "layoutMetadata") {
+          candidate[field] = expandLayoutMetadataFromHandoff(payload[1][index]);
+        } else {
+          candidate[field] = payload[1][index];
+        }
       }
     });
     validateRawDimensions(candidate);
@@ -595,6 +602,49 @@ function createArHardwareScheduleEntry(component) {
     proxyMode: metadata.proxyMode || null,
     modelAccuracy: metadata.modelAccuracy || snapshot.modelAccuracy || null
   };
+}
+
+function compactLayoutMetadataForHandoff(metadata) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return metadata;
+  const sectionConfigs = Array.isArray(metadata.sectionConfigs) ? metadata.sectionConfigs : [];
+  if (!sectionConfigs.length) return metadata;
+  const compact = { ...metadata };
+  delete compact.sectionConfigs;
+  delete compact.sectionTypes;
+  delete compact.sectionDoorLayouts;
+  compact[SECTION_STORAGE_HANDOFF_KEY] = sectionConfigs.map((section) => [
+    section.id,
+    section.type,
+    section.shelfCount,
+    section.shelfDistribution,
+    section.doorStyle,
+    section.doorArrangement,
+    section.drawerCount,
+    section.drawerFrontStyle,
+    section.lowerStorageHeight
+  ]);
+  return compact;
+}
+
+function expandLayoutMetadataFromHandoff(metadata) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return metadata;
+  const records = metadata[SECTION_STORAGE_HANDOFF_KEY];
+  if (!Array.isArray(records)) return metadata;
+  const expanded = { ...metadata };
+  delete expanded[SECTION_STORAGE_HANDOFF_KEY];
+  expanded.sectionConfigs = records.map((record) => Array.isArray(record) ? {
+    schemaVersion: 1,
+    id: record[0],
+    type: record[1],
+    shelfCount: record[2],
+    shelfDistribution: record[3],
+    doorStyle: record[4],
+    doorArrangement: record[5],
+    drawerCount: record[6],
+    drawerFrontStyle: record[7],
+    lowerStorageHeight: record[8]
+  } : record);
+  return expanded;
 }
 
 function compactHardwareSelectionsForHandoff(selections) {

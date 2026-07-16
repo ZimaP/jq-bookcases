@@ -3,7 +3,7 @@ import {
   diagramSvg,
   iconManifest,
   iconSvg
-} from "../icon-system.js?v=jq-icons-20260715g";
+} from "../icon-system.js?v=interface-polish-20260715a";
 
 const sizeSamples = [16, 20, 24, 32, 40];
 const gallery = document.querySelector("[data-icon-gallery]");

@@ -2,12 +2,10 @@ import {
   defaultBookcaseConfig,
   layoutPresets,
   normalizeBookcaseConfig
-} from "./bookcase-config.js?v=direct-hardware-20260714a";
+} from "./bookcase-config.js?v=engine-polish-20260716a";
 
 export const STUDIO_ENTRY_VIEWS = Object.freeze({
-  welcome: "welcome",
-  custom: "custom",
-  ideas: "ideas"
+  welcome: "welcome"
 });
 
 export const STUDIO_DESIGN_INTENTS = Object.freeze({
@@ -17,11 +15,13 @@ export const STUDIO_DESIGN_INTENTS = Object.freeze({
 
 export const STUDIO_CAPABILITIES = Object.freeze([
   "Add or remove sections",
-  "Resize each section",
-  "Mix doors and drawers",
-  "Open or tall storage",
   "Crown and base profiles",
-  "Color and lighting"
+  "Resize each section",
+  "Color and finishes",
+  "Mix doors and drawers",
+  "Lighting options",
+  "Open or tall storage",
+  "Built to fit your space"
 ]);
 
 export const STUDIO_DIMENSION_LIMITS = Object.freeze({
@@ -36,47 +36,36 @@ export const STUDIO_PROVISIONAL_DIMENSIONS = Object.freeze({
   depth: 15
 });
 
-export const INSPIRATION_FILTERS = Object.freeze([
-  { id: "all", label: "All" },
-  { id: "library", label: "Library" },
-  { id: "storage", label: "Storage" },
-  { id: "media", label: "Media" },
-  { id: "work", label: "Work" },
-  { id: "feature", label: "Feature" }
-]);
-
-const inspirationMetadata = Object.freeze({
-  "lower-cabinets": Object.freeze({ category: "storage", tags: ["closed storage", "balanced"], fullyEditable: true }),
-  "classic-open": Object.freeze({ category: "library", tags: ["open shelving", "minimal"], fullyEditable: true }),
-  "media-wall": Object.freeze({ category: "media", tags: ["television", "display"], fullyEditable: false }),
-  "library-wall": Object.freeze({ category: "library", tags: ["books", "symmetrical"], fullyEditable: true }),
-  "display-wall": Object.freeze({ category: "storage", tags: ["drawers", "display"], fullyEditable: true }),
-  "glass-library": Object.freeze({ category: "library", tags: ["glass doors", "display"], fullyEditable: true }),
-  "desk-niche": Object.freeze({ category: "work", tags: ["desk", "workspace"], fullyEditable: false }),
-  "feature-wall": Object.freeze({ category: "feature", tags: ["fireplace", "surround"], fullyEditable: false }),
-  "asymmetric-modern": Object.freeze({ category: "storage", tags: ["asymmetrical", "drawers"], fullyEditable: true }),
-  "tall-storage": Object.freeze({ category: "storage", tags: ["tall doors", "open shelving"], fullyEditable: true })
-});
-
-export const inspirationIdeas = Object.freeze(layoutPresets.map((preset) => {
-  const metadata = inspirationMetadata[preset.id];
-  if (!metadata) throw new Error(`Missing inspiration metadata for ${preset.id}.`);
-  return Object.freeze({
-    id: preset.id,
-    name: preset.name,
-    description: preset.description,
-    category: metadata.category,
-    tags: Object.freeze([...metadata.tags]),
-    fullyEditable: metadata.fullyEditable,
-    config: preset.config
-  });
-}));
-
 export const STUDIO_PREVIEW_IDEA_IDS = Object.freeze([
   "classic-open",
   "display-wall",
   "tall-storage"
 ]);
+
+export const STUDIO_PREVIEW_CALLOUTS = Object.freeze({
+  "classic-open": Object.freeze([
+    Object.freeze({ id: "add-shelves", label: "Add shelves", icon: "shelves", side: "left", y: "38%" }),
+    Object.freeze({ id: "resize-sections", label: "Resize sections", icon: "dimensions", side: "right", y: "62%" })
+  ]),
+  "display-wall": Object.freeze([
+    Object.freeze({ id: "add-drawers", label: "Add drawers", icon: "drawers", side: "left", y: "66%" }),
+    Object.freeze({ id: "add-doors", label: "Add doors", icon: "doors", side: "right", y: "66%" })
+  ]),
+  "tall-storage": Object.freeze([
+    Object.freeze({ id: "add-tall-doors", label: "Add tall doors", icon: "doors", side: "left", y: "68%" }),
+    Object.freeze({ id: "mix-storage", label: "Mix storage", icon: "storage", side: "right", y: "34%" })
+  ])
+});
+
+export function getStudioPreviewIdeas() {
+  return STUDIO_PREVIEW_IDEA_IDS
+    .map((ideaId) => layoutPresets.find((preset) => preset.id === ideaId))
+    .filter(Boolean)
+    .map((preset) => Object.freeze({
+      ...preset,
+      callouts: STUDIO_PREVIEW_CALLOUTS[preset.id] || Object.freeze([])
+    }));
+}
 
 export function resolveStudioEntryState({
   hasValidSharedConfiguration = false,
@@ -173,19 +162,4 @@ export function createNeutralCustomConfig(input = {}) {
     layoutMetadata: { sectionRatios }
   });
   return Object.freeze({ accepted: true, config });
-}
-
-export function filterInspirationIdeas(filterId = "all", ideas = inspirationIdeas) {
-  const normalizedFilter = INSPIRATION_FILTERS.some((filter) => filter.id === filterId) ? filterId : "all";
-  return normalizedFilter === "all"
-    ? [...ideas]
-    : ideas.filter((idea) => idea.category === normalizedFilter);
-}
-
-export function getInspirationIdea(ideaId) {
-  return inspirationIdeas.find((idea) => idea.id === ideaId) || null;
-}
-
-export function getStudioPreviewIdeas() {
-  return STUDIO_PREVIEW_IDEA_IDS.map((ideaId) => getInspirationIdea(ideaId)).filter(Boolean);
 }

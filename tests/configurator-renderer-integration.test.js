@@ -54,7 +54,7 @@ test("viewer swaps models only after layout and render audits pass", () => {
   assert.match(rebuild, /this\.root\.dataset\.renderValid = "true"/);
 });
 
-test("active physical renderer consumes descriptor dimensions without base, crown, or shelf recalc", () => {
+test("active physical renderer consumes descriptor dimensions without base, crown-style, or shelf recalc", () => {
   const renderer = block(
     "function renderLayoutComponent(",
     "function getLayoutMaterial("
@@ -67,7 +67,20 @@ test("active physical renderer consumes descriptor dimensions without base, crow
   assert.doesNotMatch(renderer, /addShelf/);
   assert.doesNotMatch(renderer, /config\.baseStyle/);
   assert.doesNotMatch(renderer, /config\.crownStyle/);
+  assert.match(renderer, /component\.role === "crown" && renderDescriptorCrown/);
   assert.match(renderer, /addBox\(componentGroup, size, position, material/);
+});
+
+test("crown renderer extrudes descriptor-owned profiles without reading configuration style", () => {
+  const renderer = block(
+    "function renderDescriptorCrown(",
+    "function renderDescriptorDoor("
+  );
+  assert.match(renderer, /component\.metadata\?\.profileGeometry/);
+  assert.match(renderer, /profile\?\.kind !== "crown_profile_extrusion"/);
+  assert.match(renderer, /new THREE\.ExtrudeGeometry\(shape/);
+  assert.match(renderer, /geometry\.rotateY\(Math\.PI \/ 2\)/);
+  assert.doesNotMatch(renderer, /crownStyle|classic_crown|modern_soffit|slim_cap/);
 });
 
 test("front profile rendering derives scene depth from semantic mounting planes", () => {

@@ -35,7 +35,7 @@ test("the reference workspace owns one stage rail, persistent viewer, properties
 
   assert.match(shell, /data-unified-configurator data-configurator-workspace/);
   assert.match(shell, /data-workspace-stages aria-label="Configurator stages"/);
-  assert.match(shell, /data-properties-inspector data-controls-scroll aria-label="Selected object properties"/);
+  assert.match(shell, /data-properties-inspector data-controls-scroll aria-label="Design properties"/);
   assert.match(shell, /data-section-organizer aria-label="Bookcase sections"/);
   assert.match(shell, /data-total-width-card aria-label="Total width status"/);
   assert.equal((shell.match(/data-inspector-content/g) || []).length, 1);
@@ -46,6 +46,8 @@ test("the reference workspace owns one stage rail, persistent viewer, properties
   assert.match(inspector, /inspectorContent\.innerHTML = this\.renderWorkspaceProperties\(\)/);
   assert.match(inspector, /sectionOrganizerContent\.innerHTML = this\.renderSectionOrganizer\(\)/);
   assert.match(inspector, /totalWidthContent\.innerHTML = this\.renderTotalWidthCard\(\)/);
+  assert.match(inspector, /this\.captureWorkspaceFocus\(\)/);
+  assert.match(inspector, /this\.restoreWorkspaceFocus\(focusedControl\)/);
   assert.doesNotMatch(inspector, /viewer\.innerHTML|host\.innerHTML|createViewer|new BookcaseViewer3D|viewer\.update/);
 });
 
@@ -85,7 +87,7 @@ test("stage navigation and model selection route the fixed properties inspector 
   assert.match(select, /this\.selection = selection/);
   assert.match(select, /resolveWorkspaceSelection\(selection, this\.layout\)/);
   assert.match(select, /this\.activeStageId = workspaceRoute/);
-  assert.match(select, /this\.activeInspectorTabId = workspaceRoute/);
+  assert.match(select, /this\.activeInspectorTabId = "general"/);
   assert.match(select, /this\.renderInspector\(/);
   assert.match(close, /this\.selection = null/);
   for (const presentationOnly of [stage, select, close]) {
@@ -94,6 +96,17 @@ test("stage navigation and model selection route the fixed properties inspector 
       /this\.update\(|viewer\.update|evaluateBookcaseCandidate|calculateBookcasePrice|createViewer|new BookcaseViewer3D/
     );
   }
+});
+
+test("projected model section labels remain pointer and keyboard selectable", () => {
+  assert.match(source, /data-overlay-section-select="\$\{index\}" aria-label="Select Section \$\{index \+ 1\}"/);
+  assert.match(precisionCss, /section-designer-overlay button\.dimension-label\s*\{[^}]*pointer-events:\s*auto;/s);
+  assert.match(precisionCss, /section-designer-overlay button\.dimension-label:focus-visible/);
+});
+
+test("section Storage steppers keep 44-pixel portrait and landscape phone targets", () => {
+  assert.match(precisionCss, /@media \(max-width: 767px\)[\s\S]*workspace-storage-stepper \.workspace-number-stepper\s*\{[^}]*grid-template-columns:\s*44px minmax\(44px, 1fr\) 44px auto;/);
+  assert.match(precisionCss, /@media \(min-width: 768px\) and \(max-width: 950px\) and \(orientation: landscape\) and \(max-height: 500px\)[\s\S]*workspace-storage-stepper \.workspace-number-stepper\s*\{[^}]*grid-template-columns:\s*44px minmax\(44px, 1fr\) 44px auto;/);
 });
 
 test("one delegated action path owns Save Design and Request Quote", () => {
@@ -130,7 +143,7 @@ test("the cached shared total feeds estimate, review, Save, and Quote without su
   assert.doesNotMatch(`${review}\n${summary}\n${save}\n${quote}`, /calculateBookcasePrice|buildPricingContext|evaluateBookcaseCandidate/);
 });
 
-test("the reference workspace has complete navigation, toolbar, inspector-tab, organizer, and live-region semantics", () => {
+test("the reference workspace has complete navigation, toolbar, one-card Properties, organizer, and live-region semantics", () => {
   const shell = methodBody("renderFullPageConfigurator", "renderStudioEntryShell");
   const properties = methodBody("renderWorkspaceProperties", "getSelectedSectionState");
   const organizer = methodBody("renderSectionOrganizer", "renderTotalWidthCard");
@@ -142,21 +155,22 @@ test("the reference workspace has complete navigation, toolbar, inspector-tab, o
   assert.match(shell, /aria-keyshortcuts="Control\+Z Meta\+Z"/);
   assert.match(shell, /aria-roledescription="interactive 3D configurator"/);
   assert.match(shell, /data-selection-live role="status" aria-live="polite" aria-atomic="true"/);
-  assert.match(properties, /role="tablist" aria-label="Section properties"/);
-  assert.match(properties, /role="tab"[^>]*aria-selected=/);
-  assert.match(properties, /aria-controls="\$\{this\.id\}-tabpanel-/);
-  assert.match(properties, /role="tabpanel"/);
+  assert.match(properties, /class="workspace-properties-panel" role="region"/);
+  assert.match(properties, /aria-label="\$\{escapeHtml\(title\)\} controls"/);
+  assert.match(properties, /this\.renderWorkspacePropertiesContent\(selectedSection\)/);
+  assert.doesNotMatch(properties, /role="tablist"|role="tab"|role="tabpanel"|data-inspector-tab|aria-controls=/);
   assert.match(properties, /data-close-selection aria-label="Clear model selection"/);
-  assert.match(organizer, /role="list" aria-label="Current sections"/);
-  assert.match(organizer, /role="listitem"/);
+  assert.match(organizer, /role="group" aria-label="Section organizer"/);
   assert.match(organizer, /aria-pressed=/);
-  assert.match(organizer, /<summary aria-label="Section/);
+  assert.match(organizer, /class="workspace-section-card-actions" role="group" aria-label="Section/);
+  assert.match(organizer, /aria-label="Duplicate Section/);
+  assert.match(organizer, /aria-label="Delete Section/);
   assert.match(source, /data-validation-field="customPaintColor"/);
   assert.match(source, /\[data-field\], \[data-validation-field\]/);
   assert.doesNotMatch(shell, /data-configurator-mode|data-mode-panel|data-appearance-tab|aria-modal="false"/);
 });
 
-test("the workspace exposes exactly seven directly reachable stages in reference order", () => {
+test("the workspace exposes exactly eight directly reachable stages in reference order", () => {
   const stageContract = workflow.slice(
     workflow.indexOf("export const WORKSPACE_STAGES"),
     workflow.indexOf("export const STAGE_CONTROL_GROUPS")
@@ -166,6 +180,7 @@ test("the workspace exposes exactly seven directly reachable stages in reference
     "space",
     "layout",
     "storage",
+    "base_top",
     "finish",
     "hardware",
     "lighting",
@@ -175,46 +190,47 @@ test("the workspace exposes exactly seven directly reachable stages in reference
     "Space",
     "Layout",
     "Storage",
+    "Base & Top",
     "Finish",
     "Hardware",
     "Lighting",
     "Preview"
   ]);
-  assert.equal(stages.length, 7);
+  assert.equal(stages.length, 8);
   assert.ok(stages.every((match) => match[3] && match[4]), "every stage needs concise copy and an icon");
 
   assert.match(workflow, /space: Object\.freeze\(\["overall_size"\]\)/);
-  assert.match(workflow, /layout: Object\.freeze\(\["sections_layout", "base_crown"\]\)/);
+  assert.match(workflow, /layout: Object\.freeze\(\["sections_layout"\]\)/);
   assert.match(workflow, /storage: Object\.freeze\(\["shelves", "storage_fronts"\]\)/);
+  assert.match(workflow, /base_top: Object\.freeze\(\["base_crown"\]\)/);
   const rail = methodBody("renderWorkspaceStageRail", "renderFullPageConfigurator");
   assert.match(rail, /WORKSPACE_STAGES\.map\(\(stage, index\)/);
   assert.match(rail, /data-workspace-stage="\$\{escapeHtml\(stage\.id\)\}"/);
-  assert.match(rail, /aria-current="step"/);
+  assert.match(rail, /aria-current="location"/);
+  assert.match(rail, /workspace-stage-state" aria-hidden="true">\$\{index \+ 1\}/);
+  assert.doesNotMatch(rail, /complete \? builderIcons\.check|is-complete/);
   assert.doesNotMatch(source, /data-guided-(?:back|continue)|data-mode-panel|data-configurator-mode|configurator-step-rail/);
   assert.doesNotMatch(workflow, /CONFIGURATOR_MODES|GUIDED_STEPS|ALL_CONTROL_CATEGORIES/);
 });
 
-test("selected sections expose only applicable fixed-inspector tabs through one control renderer", () => {
-  const tabs = methodBody("getWorkspaceInspectorTabs", "renderWorkspacePropertiesContent");
-  const properties = methodBody("renderWorkspacePropertiesContent", "renderSectionGeneralInspector");
-  const tabContract = workflow.slice(
-    workflow.indexOf("export const INSPECTOR_TAB_DEFINITIONS"),
-    workflow.indexOf("Deprecated compatibility projection")
-  );
-  assert.deepEqual([...tabContract.matchAll(/id: "([^"]+)"/g)].map((match) => match[1]), [
-    "general", "shelves", "doors", "drawers", "back", "lighting"
-  ]);
-  assert.match(tabs, /const ids = \["general", "shelves"\]/);
-  assert.match(tabs, /\["lower_doors", "tall_doors"\]\.includes\(selectedSection\.type\)\) ids\.push\("doors"\)/);
-  assert.match(tabs, /selectedSection\.type === "drawers"\) ids\.push\("drawers"\)/);
-  assert.match(tabs, /ids\.push\("back", "lighting"\)/);
-  assert.match(properties, /activeTab === "shelves"/);
-  assert.match(properties, /activeTab === "doors" \|\| activeTab === "drawers"/);
-  assert.match(properties, /activeTab === "back"/);
-  assert.match(properties, /activeTab === "lighting"/);
+test("selected sections feed the same one-card stage console without accepted-workspace tabs", () => {
+  const properties = methodBody("renderWorkspacePropertiesContent", "renderLayoutConsole");
+  assert.doesNotMatch(source, /getWorkspaceInspectorTabs\(|data-inspector-tab=/);
+  assert.match(properties, /if \(this\.selection\)/);
+  assert.match(properties, /editorId === "back"\) return this\.renderBackPanelSummary\(\)/);
+  assert.match(properties, /editorId === "body"\) return this\.renderSpaceGroup\(\)/);
+  assert.match(properties, /this\.activeStageId === "storage"\) return this\.renderStorageConsole\(selectedSection\)/);
   assert.match(properties, /groups\.map\(\(groupId\) => this\.renderControlGroup\(groupId, "properties"\)\)/);
   assert.equal((source.match(/renderControlGroup\(groupId, surface = "inspector"\) \{/g) || []).length, 1);
   assert.doesNotMatch(methodBody("renderFullPageConfigurator", "renderStudioEntryShell"), /data-contextual-editor|data-context-leader/);
+});
+
+test("Layout, Storage, and Base & Top each route to one dedicated Properties card", () => {
+  const properties = methodBody("renderWorkspacePropertiesContent", "renderLayoutConsole");
+  assert.match(properties, /this\.activeStageId === "layout"\) return this\.renderLayoutConsole\(\)/);
+  assert.match(properties, /this\.activeStageId === "storage"\) return this\.renderStorageConsole\(selectedSection\)/);
+  assert.match(properties, /this\.activeStageId === "base_top"\) return this\.renderStructureGroup\(\)/);
+  assert.doesNotMatch(properties, /activeTab|renderLayoutCards|renderStorageFrontsGroup/);
 });
 
 test("the organizer projects accepted sections and the width card reports canonical overall width", () => {
@@ -227,6 +243,10 @@ test("the organizer projects accepted sections and the width card reports canoni
   assert.match(organizer, /data-section-select="\$\{section\.index\}"/);
   assert.match(organizer, /data-section-duplicate="\$\{section\.index\}"/);
   assert.match(organizer, /data-section-delete="\$\{section\.index\}"/);
+  assert.match(organizer, /class="workspace-section-card-actions"/);
+  assert.match(organizer, /class="workspace-section-duplicate"/);
+  assert.match(organizer, /class="workspace-section-delete"/);
+  assert.doesNotMatch(organizer, /<details|<summary|workspace-section-menu/);
   assert.match(organizer, /duplicateSection\(this\.state, this\.layout, section\.index\)/);
   assert.match(organizer, /deleteSection\(this\.state, this\.layout, section\.index\)/);
   assert.match(organizer, /addAvailability\.accepted/);
@@ -274,19 +294,56 @@ test("door quantity is a generated output and cannot drift from physical opening
   assert.match(workflow, /field: "doorCount"[^\n]*access: "derived"/);
 });
 
-test("the unified Storage & Fronts group reconciles global storage with explicit section types", () => {
-  const storage = methodBody("renderStorageFrontsGroup", "renderSectionDesignerGroup");
-  const input = methodBody("handleFieldInput", "handleStepperClick");
-  assert.match(storage, /this\.renderDoorGroup\(\)/);
-  assert.match(storage, /data-open-structure/);
-  assert.match(input, /fieldName === "lowerCabinets" \|\| fieldName === "lowerStorage"/);
-  assert.match(input, /applyGlobalStorageSelection\(/);
+test("Storage exposes one accessible independent-section editor with conditional details", () => {
+  const storage = methodBody("renderStorageConsole", "renderBackPanelSummary");
+  const events = methodBody("bindEvents", "handleDelegatedClick");
+  const click = methodBody("handleDelegatedClick", "activateWorkspaceStage");
+  const commit = methodBody("commitSelectedSectionStorage", "commitSelectedSectionWidth");
+  assert.match(storage, /class="workspace-storage-console" data-storage-console/);
+  assert.match(storage, /data-selected-section-id="\$\{escapeHtml\(selected\.stableId \|\| selected\.id\)\}"/);
+  assert.match(storage, /Section \$\{selected\.index \+ 1\} of \$\{designer\.sections\.length\}/);
+  assert.match(storage, /data-storage-section-step="-1"/);
+  assert.match(storage, /data-storage-section-step="1"/);
+  assert.match(storage, /<strong>Each section is independent\.<\/strong>/);
+  for (const label of ["Open Shelves", "Lower Doors + Shelves", "Lower Drawers + Shelves", "Full Doors", "Glass Display"]) {
+    assert.match(source, new RegExp(`label: "${label.replaceAll("+", "\\+")}"`));
+  }
+  assert.match(storage, /sectionStoragePresets\.map/);
+  assert.match(storage, /data-section-storage-preset="\$\{preset\.id\}"/);
+  assert.match(storage, /renderStorageStepper\("shelfCount", "Shelf count", selected\.shelfCount, 0, 8\)/);
+  assert.match(storage, /Evenly spaced automatically/);
+  assert.doesNotMatch(storage, /data-section-storage-field="shelfDistribution"/);
+  assert.match(storage, /usesDoors \|\| usesDrawers \? `<section class="workspace-storage-detail workspace-storage-fronts/);
+  assert.match(storage, /usesDoors \? "workspace-storage-doors" : "workspace-storage-drawers"/);
+  assert.match(storage, /renderStyleSelect\("doorStyle"/);
+  assert.match(storage, /data-section-storage-field="doorArrangement"/);
+  assert.match(storage, /renderStorageStepper\("drawerCount", "Drawer count", selected\.drawerCount, 1, 5\)/);
+  assert.match(storage, /renderStyleSelect\("drawerFrontStyle"/);
+  assert.match(storage, /renderStorageStepper\("lowerStorageHeight", "Cabinet height", selected\.lowerStorageHeight, 24, 42, 0\.25, "in"\)/);
+  assert.ok(storage.indexOf("workspace-storage-fronts") < storage.indexOf("workspace-storage-shelves"));
+  assert.match(storage, /Global · all sections/);
+  assert.match(storage, /renderRangeControl\("shelfThickness", "Shelf thickness", 0\.75, 2, 0\.25, "in"\)/);
+  assert.doesNotMatch(storage, /renderStepperControl\("shelves"|renderDoorGroup\(|data-field="drawerCount"/);
+  assert.match(events, /data-section-storage-preset/);
+  assert.match(events, /data-section-storage-field/);
+  assert.match(click, /data-storage-section-step/);
+  assert.match(click, /data-section-storage-step/);
+  assert.match(commit, /setSectionStorageConfiguration\(this\.state, this\.selectedSectionIndex, patch, this\.layout\)/);
+  assert.match(precisionCss, /\.workspace-storage-preset-grid/);
+  assert.match(precisionCss, /\.workspace-storage-detail-fields/);
+  assert.match(precisionCss, /@media \(max-width: 767px\)[\s\S]*\.workspace-storage-section-nav button[\s\S]*min-height: 44px/);
 });
 
-test("the unified Hardware group hides when no generated front uses hardware", () => {
+test("the unified Hardware stage explains when no generated front uses hardware", () => {
   const hardware = methodBody("renderHardwareGroup", "renderLightingGroup");
-  assert.match(hardware, /control-section-hardware" data-applicability="hardware"/);
-  assert.doesNotMatch(hardware, /hardware-selection" data-applicability=/);
+  assert.match(hardware, /data-hardware-empty-state/);
+  assert.match(hardware, /data-workspace-stage-link="storage"/);
+  assert.match(hardware, /const hasHardwareHosts = applicability\.showHardware/);
+  assert.match(hardware, /No hardware quantity yet/);
+  assert.match(hardware, /data-hardware-type/);
+  assert.match(hardware, /data-hardware-finish/);
+  assert.match(hardware, /hardware-library-button[^>]*\$\{hasHardwareHosts \? "" : `disabled/);
+  assert.doesNotMatch(hardware, /control-section-hardware" data-applicability="hardware"/);
 });
 
 test("section steppers use buildable counts and the viewer never retains stale geometry", () => {
@@ -316,6 +373,7 @@ test("section operations respect build limits and feed the single global physica
   assert.match(designer, /Splitting requires room for two/);
   assert.match(designer, /splitDisabled \? `disabled aria-describedby=/);
   assert.match(commit, /this\.update\(operation\.config, \{ sourceField: "layoutMetadata"/);
+  assert.match(commit, /this\.renderInspector\(\);[\s\S]*this\.syncInterface\(\);[\s\S]*this\.showSectionDesignerError\(error\)/);
   assert.match(commit, /const requestedSelection = Number\.isInteger\(options\.selectedIndex\)/);
   assert.match(commit, /this\.selectSection\(requestedSelection, \{ openProperties: true, render: false, ensureFramed: true \}\)/);
   assert.ok(
@@ -342,29 +400,63 @@ test("service and derived metadata updates never rebuild unchanged 3D geometry",
   assert.match(partial, /every\(\(field\) => nonVisualFields\.has\(field\)\)/);
 });
 
-test("Sections & Layout is custom-first while ideas remain engine-backed inspiration", () => {
-  const controls = methodBody("renderControlGroup", "renderLayoutCards");
-  const ideas = methodBody("renderStudioIdeaLibrary", "renderStudioIdeaCard");
-  assert.match(controls, /groupId === "sections_layout"[\s\S]*renderLayoutCards\("inspector"\)[\s\S]*renderStructureStartGroup/);
-  assert.match(controls, /surface === "inspector"/);
-  assert.doesNotMatch(controls, /renderLayoutCards\("guided"\)|renderLayoutCards\("all"\)/);
-  assert.match(ideas, /filterInspirationIdeas\(this\.inspirationFilter\)/);
-  assert.match(ideas, /View all \$\{filtered\.length\} editable ideas/);
+test("the entry has one direct start and three presentation-only selectors with no routes or idea library", () => {
+  const shell = methodBody("renderStudioEntryShell", "renderStudioEntryCopyContent");
+  const entry = methodBody("renderStudioEntryContent", "renderStudioIntroPreview");
+  const preview = methodBody("renderStudioIntroPreview", "renderInspector");
+  const motion = methodBody("startStudioPreviewMotion", "stopStudioPreviewMotion");
+  const selection = methodBody("setStudioPreview", "handleStudioStart");
+  const start = methodBody("handleStudioStart", "acceptStudioDesign");
+  assert.equal((entry.match(/data-studio-start/g) || []).length, 1);
+  assert.match(entry, /<h1[^>]*><span>Design any bookcase\.<\/span>\s*<em>Your vision, your way\.<\/em><\/h1>/);
+  assert.match(entry, /data-studio-start><span>Start Building Your Bookcase<\/span>/);
+  assert.match(shell, /data-price>Your project estimate will appear as you build<\/strong>/);
+  assert.match(shell, /class="studio-preview-variants" role="group" aria-label="Preview different bookcase arrangements"/);
+  assert.match(shell, /getStudioPreviewIdeas\(\)\.map\(\(idea, index\) =>[\s\S]*data-studio-preview-index="\$\{index\}"[\s\S]*aria-pressed=/);
+  assert.match(preview, /data-studio-preview-idea="\$\{escapeHtml\(idea\.id\)\}"/);
+  assert.match(preview, /this\.renderPresetMini\(idea, 1\)/);
+  assert.match(preview, /idea\.callouts\.map\(\(callout\) =>/);
+  assert.match(preview, /data-studio-preview-callout="\$\{escapeHtml\(callout\.id\)\}"/);
+  assert.match(preview, /style="--studio-callout-y: \$\{escapeHtml\(callout\.y\)\}"/);
+  assert.match(preview, /builderIcons\[callout\.icon\] \|\| builderIcons\.check/);
+  assert.match(preview, /<small>\$\{escapeHtml\(callout\.label\)\}<\/small>/);
+  assert.doesNotMatch(preview, /Add section|Resize any section/);
+  assert.doesNotMatch(
+    `${shell}\n${entry}\n${preview}`,
+    /data-studio-route|data-studio-back|data-studio-dimension|data-idea-id|data-idea-filter|data-view-all-ideas|data-studio-preview-dot|studio-preview-dots|studio-preview-dot|studio-entry-locked-actions/
+  );
+  assert.match(motion, /prefers-reduced-motion: reduce/);
+  assert.match(motion, /window\.setInterval\([\s\S]*this\.setStudioPreview\(\(this\.introPreviewIndex \+ 1\) % previewIdeas\.length, \{ manual: false \}\)[\s\S]*3600/);
+  assert.match(selection, /if \(options\.manual\) this\.stopStudioPreviewMotion\(true\)/);
+  assert.match(selection, /studioIntroPreview\.innerHTML = this\.renderStudioIntroPreview\(\)/);
+  assert.match(selection, /setAttribute\("aria-pressed", String\(Number\(button\.dataset\.studioPreviewIndex\) === this\.introPreviewIndex\)\)/);
+  assert.match(start, /createNeutralCustomConfig\(\{ \.\.\.STUDIO_PROVISIONAL_DIMENSIONS, sections: selectedSections \}\)/);
+  assert.match(start, /this\.acceptStudioDesign\(startingPoint\.config, \{ source: "custom" \}\)/);
 });
 
-test("unified groups separate Size, Shelves, Storage & Fronts, and Base & Crown concerns", () => {
+test("accepted Layout remains custom-first without a preset gallery", () => {
+  const properties = methodBody("renderWorkspacePropertiesContent", "renderLayoutConsole");
+  const layout = methodBody("renderLayoutConsole", "renderStorageConsole");
+  assert.match(properties, /this\.activeStageId === "layout"\) return this\.renderLayoutConsole\(\)/);
+  assert.match(layout, /class="workspace-layout-console" data-layout-console/);
+  assert.doesNotMatch(`${properties}\n${layout}`, /renderLayoutCards|data-preset-id|foundation|Ideas|filterInspirationIdeas/);
+});
+
+test("accepted one-card stages separate Space, Layout, Storage, and Base & Top concerns", () => {
   const space = methodBody("renderSpaceGroup", "renderStructureStartGroup");
-  const shelves = methodBody("renderShelvesGroup", "renderStorageFrontsGroup");
-  const storage = methodBody("renderStorageFrontsGroup", "renderSectionDesignerGroup");
+  const layout = methodBody("renderLayoutConsole", "renderStorageConsole");
+  const storage = methodBody("renderStorageConsole", "renderBackPanelSummary");
   const construction = methodBody("renderStructureGroup", "renderFinishGroup");
   assert.match(space, /renderRangeControl\("width"/);
   assert.doesNotMatch(space, /renderRangeControl\("shelves"|renderRangeControl\("shelfThickness"/);
-  assert.match(shelves, /renderStepperControl\("shelves"/);
-  assert.match(shelves, /renderRangeControl\("shelfThickness"/);
-  assert.doesNotMatch(storage, /renderStepperControl\("shelves"/);
-  assert.match(storage, /this\.renderDoorGroup\(\)/);
-  assert.doesNotMatch(storage, /renderSectionDesignerGroup|data-section-designer-open/);
-  assert.match(storage, /data-open-structure/);
+  assert.match(layout, /renderStepperControl\("sections"/);
+  assert.match(layout, /data-section-width/);
+  assert.doesNotMatch(layout, /data-section-type|renderStepperControl\("shelves"|data-field="baseStyle"/);
+  assert.match(storage, /renderStorageStepper\("shelfCount"/);
+  assert.match(storage, /renderRangeControl\("shelfThickness"/);
+  assert.match(storage, /renderStyleSelect\("doorStyle"/);
+  assert.match(storage, /renderStorageStepper\("drawerCount"/);
+  assert.doesNotMatch(storage, /renderRangeControl\("width"|data-field="baseStyle"|data-field="crownStyle"/);
   assert.match(construction, /data-field="baseStyle"/);
   assert.match(construction, /data-field="crownStyle"/);
   assert.doesNotMatch(construction, /shelfThickness|lowerCabinets|doorStyle/);
@@ -383,16 +475,18 @@ test("Structure is an inline overview grid with selected detail and disclosed ad
   assert.match(css, /\.section-overview-grid \{[\s\S]*overflow: visible;/);
 });
 
-test("the unified Sections & Layout group exposes Structure and guards precision focus", () => {
-  const controls = methodBody("renderControlGroup", "renderLayoutCards");
-  assert.match(controls, /groupId === "sections_layout"[\s\S]*this\.renderStructureStartGroup\(\)/);
+test("the unified Layout group exposes the one-card console and guards precision focus", () => {
+  const controls = methodBody("renderControlGroup", "renderShelvesGroup");
+  assert.match(controls, /groupId === "sections_layout"\) return this\.renderLayoutConsole\(\)/);
+  assert.doesNotMatch(controls, /renderLayoutCards|renderStructureStartGroup/);
   const widthCommit = methodBody("commitSelectedSectionWidth", "commitSectionDividerResize");
   assert.match(widthCommit, /rawValue === "" \|\| !Number\.isFinite\(targetWidth\)/);
   assert.match(widthCommit, /Enter a valid clear section width/);
   const viewerControls = methodBody("bindControls", "setView");
   assert.match(viewerControls, /event\.target !== this\.root[\s\S]*?\[data-section-overlay\]/);
   const update = methodBody("update", "renderDoorOptions");
-  assert.match(update, /focusedHardwareInput/);
+  assert.doesNotMatch(update, /focusedHardwareInput/);
+  assert.match(source, /captureWorkspaceFocus\(\)[\s\S]*restoreWorkspaceFocus\(snapshot\)/);
   assert.match(update, /this\.selectedSectionIndex = clamp\(this\.selectedSectionIndex/);
 });
 
@@ -431,20 +525,15 @@ test("Hardware separates geometry type from valid finishes but commits one canon
   assert.match(css, /\.hardware-finish-grid/);
 });
 
-test("organizer menus dismiss predictably while section mutations preserve one selected Properties context", () => {
+test("organizer exposes direct section actions while section mutations preserve one selected Properties context", () => {
   const events = methodBody("bindEvents", "handleDelegatedClick");
   const click = methodBody("handleDelegatedClick", "activateWorkspaceStage");
   const commit = methodBody("commitSectionOperation", "undoSectionChange");
 
-  assert.match(events, /if \(event\.key === "Escape"\) \{[\s\S]*\.workspace-section-menu\[open\][\s\S]*openMenu\.removeAttribute\("open"\)[\s\S]*openMenu\.querySelector\("summary"\)\?\.focus\(\{ preventScroll: true \}\)[\s\S]*return;/);
-  assert.ok(
-    events.indexOf('this.host.querySelector(".workspace-section-menu[open]")')
-      < events.indexOf('if (event.key === "Escape" && this.contextEditorOpen)'),
-    "Escape must close and refocus an open organizer menu before clearing Properties"
-  );
-  assert.match(click, /const activeSectionMenu = target\.closest\?\.\("\.workspace-section-menu"\)/);
-  assert.match(click, /querySelectorAll\("\.workspace-section-menu\[open\]"\)[\s\S]*if \(menu !== activeSectionMenu\) menu\.removeAttribute\("open"\)/);
-  assert.match(events, /document\.addEventListener\("click", \(event\) => \{[\s\S]*activeSectionMenu && this\.host\.contains\(activeSectionMenu\)\) return;[\s\S]*querySelectorAll\("\.workspace-section-menu\[open\]"\)[\s\S]*removeAttribute\("open"\)[\s\S]*\}, \{ signal \}\)/);
+  assert.doesNotMatch(events, /workspace-section-menu|openMenu/);
+  assert.doesNotMatch(click, /workspace-section-menu|activeSectionMenu/);
+  assert.match(click, /target\.closest\?\.\("\[data-section-duplicate\]"\)/);
+  assert.match(click, /target\.closest\?\.\("\[data-section-delete\]"\)/);
   assert.match(events, /window\.addEventListener\("pagehide"[\s\S]*if \(!event\.persisted\) this\.destroy\(\)[\s\S]*\{ signal \}/);
   const destroy = source.slice(
     source.indexOf("  destroy() {", source.indexOf("class BookcaseConfigurator")),
@@ -455,9 +544,9 @@ test("organizer menus dismiss predictably while section mutations preserve one s
   for (const operation of ["addSection", "duplicateSection", "deleteSection"]) {
     assert.match(click, new RegExp(`const operation = ${operation}\\(`));
   }
-  assert.match(click, /Section added\.", \{ selectedIndex: operation\.affectedSections\?\.at\(-1\) \}/);
-  assert.match(click, /duplicated\.`, \{ selectedIndex: operation\.affectedSections\?\.at\(-1\) \}/);
-  assert.match(click, /deleted\.`, \{ selectedIndex: operation\.affectedSections\?\.\[0\] \}/);
+  assert.match(click, /operation\.reflowed[\s\S]*All clear widths were rebalanced[\s\S]*selectedIndex: operation\.selectedSectionIndex/);
+  assert.match(click, /duplicated\.`, \{ selectedIndex: operation\.selectedSectionIndex \}/);
+  assert.match(click, /operation\.reflowed[\s\S]*Remaining clear widths were rebalanced[\s\S]*selectedIndex: operation\.selectedSectionIndex/);
   assert.match(commit, /this\.selectSection\(requestedSelection, \{ openProperties: true, render: false, ensureFramed: true \}\)/);
 });
 
@@ -649,7 +738,9 @@ test("lighting packages can replace an in-flight lighting camera pose", () => {
 });
 
 test("puck lights render as restrained recessed diffusers instead of hanging spheres", () => {
-  assert.match(source, /CylinderGeometry\(radius, radius, size\[1\] \* 0\.8, 20\)/);
+  assert.match(source, /CylinderGeometry\(radius, radius, size\[1\] \* 0\.72, 28\)/);
+  assert.match(source, /CylinderGeometry\(radius \* 0\.78, radius \* 0\.78, size\[1\] \* 0\.24, 28\)/);
+  assert.match(source, /materials\.puckTrim/);
   assert.doesNotMatch(source, /SphereGeometry\(radius \* 0\.78/);
   assert.doesNotMatch(source, /getLightingLensColor/);
 });
@@ -776,6 +867,7 @@ test("viewer controls remain enabled after focus and preserve browser zoom short
 
 test("unified validation disables completion actions and links them to shared guidance", () => {
   const availability = methodBody("syncActionAvailability", "getDiagnostics");
+  const delegatedClick = methodBody("handleDelegatedClick", "focusInspectorGroup");
   assert.match(availability, /validateUnifiedConfiguration\(this\.state, this\.layout, this\.drafts\)/);
   assert.match(availability, /\[data-action-hint\]/);
   assert.match(availability, /\[data-review-design\]/);
@@ -784,6 +876,10 @@ test("unified validation disables completion actions and links them to shared gu
   assert.match(availability, /\[data-open-ar\]/);
   assert.match(availability, /button\.disabled = blocking/);
   assert.match(availability, /aria-describedby/);
+  assert.match(availability, /className = "configurator-fix-stage"/);
+  assert.match(availability, /fixButton\.dataset\.workspaceStageLink = issueStage\.id/);
+  assert.match(availability, /fixButton\.dataset\.workspaceFocusField = issue\.field/);
+  assert.match(delegatedClick, /field\?\.focus\(\{ preventScroll: false \}\)/);
   assert.match(source, /data-action-hint aria-live="polite"/);
   assert.doesNotMatch(source, /data-guided-errors/);
 });
@@ -797,7 +893,7 @@ test("legacy dual-sidebar handlers and DOM-scanning state reconstruction are gon
 
 test("responsive presentation covers desktop, tablet, mobile, touch scrolling, and reduced motion", () => {
   assert.match(css, /\.reference-workspace \{[\s\S]*grid-template-columns: var\(--workspace-rail-width\) minmax\(0, 1fr\) var\(--workspace-properties-width\);/);
-  assert.match(css, /\.reference-workspace \.workspace-stage-list \{[\s\S]*grid-template-rows: repeat\(7, minmax\(64px, 1fr\)\);/);
+  assert.match(css, /\.reference-workspace \.workspace-stage-list \{[\s\S]*grid-template-rows: repeat\(8, minmax\(60px, 1fr\)\);/);
   for (const breakpoint of ["1200px", "767px"]) assert.match(css, new RegExp(`@media \\(max-width: ${breakpoint}\\)`));
   assert.match(css, /@media \(max-width: 1200px\)[\s\S]*\.reference-workspace \.workspace-stage-list \{[\s\S]*display: flex;[\s\S]*overflow-x: auto;/);
   assert.match(css, /@media \(max-width: 1200px\)[\s\S]*\.reference-workspace \.workspace-properties \{[\s\S]*grid-row: 4;[\s\S]*overflow-y: auto;[\s\S]*border-radius: 18px 18px 0 0;/);
@@ -808,8 +904,8 @@ test("responsive presentation covers desktop, tablet, mobile, touch scrolling, a
 
 test("reference-workspace controls use a scoped contrasting focus ring and accessible touch targets", () => {
   assert.match(
-    css,
-    /\.reference-workspace :is\([\s\S]*\[tabindex\][\s\S]*\):focus-visible \{[\s\S]*outline: 3px solid rgba\(143, 94, 40, 0\.42\);/
+    precisionCss,
+    /Accepted-workspace interface polish[\s\S]*\.reference-workspace :is\([\s\S]*\[tabindex\][\s\S]*\):focus-visible \{[\s\S]*outline: 3px solid #734719;/
   );
   assert.match(
     precisionCss,

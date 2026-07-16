@@ -48,6 +48,73 @@ test("drawer profile counts flow from descriptors into BOM and billable summarie
   assert.equal(bom.doors.count, 0);
 });
 
+test("BOM and billable summaries retain stable descriptor-driven section ownership", () => {
+  const layout = generateBookcaseLayout({
+    ...defaultBookcaseConfig,
+    width: 96,
+    sections: 3,
+    lighting: "no_lighting",
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1],
+      sectionConfigs: [
+        { type: "open", shelfCount: 2 },
+        { type: "lower_doors", shelfCount: 4, doorStyle: "flat" },
+        { type: "drawers", shelfCount: 6, drawerCount: 5, drawerFrontStyle: "slim_shaker" }
+      ]
+    }
+  });
+  const bom = deriveBookcaseBOM(layout);
+  const billable = deriveBillableComponents(layout);
+  const sectionIds = layout.config.layoutMetadata.sectionConfigs.map((section) => section.id);
+  const [openId, doorId, drawerId] = sectionIds;
+
+  assert.deepEqual(Object.keys(bom.bySectionId), sectionIds);
+  assert.deepEqual(Object.keys(billable.bySectionId), sectionIds);
+  assert.deepEqual(sectionIds.map((id) => bom.bySectionId[id].shelves.adjustableCount), [2, 4, 6]);
+  assert.deepEqual(bom.bySectionId[openId].doors.byStyle, {});
+  assert.deepEqual(bom.bySectionId[doorId].doors.byStyle, { flat: 2 });
+  assert.deepEqual(bom.bySectionId[drawerId].drawers.byStyle, { slim_shaker: 5 });
+  assert.deepEqual(billable.bySectionId[doorId].doorsByStyle, { flat: 2 });
+  assert.deepEqual(billable.bySectionId[drawerId].drawersByStyle, { slim_shaker: 5 });
+  assert.equal(
+    Object.values(bom.bySectionId).reduce((total, section) => total + section.shelves.adjustableCount, 0),
+    bom.shelves.adjustableCount
+  );
+  assert.equal(
+    Object.values(billable.bySectionId).reduce((total, section) => total + section.generatedDrawerFronts, 0),
+    billable.generatedDrawerFronts
+  );
+  assert.equal(
+    Object.values(billable.bySectionId).reduce((total, section) => total + section.hardwareUnits, 0),
+    billable.hardwareUnits
+  );
+});
+
+test("multi-section feature components remain explicit shared group quantities", () => {
+  const preset = layoutPresets.find((item) => item.id === "desk-niche");
+  const layout = generateBookcaseLayout(preset.config);
+  const bom = deriveBookcaseBOM(layout);
+  const billable = deriveBillableComponents(layout);
+  const group = bom.bySectionGroupId["feature-zone"];
+  const billableGroup = billable.bySectionGroupId["feature-zone"];
+
+  assert.equal(group.kind, "desk");
+  assert.deepEqual(group.memberDescriptorIds, ["section-02", "section-03", "section-04"]);
+  assert.deepEqual(
+    group.memberSectionIds,
+    layout.config.layoutMetadata.sectionConfigs.slice(1, 4).map((section) => section.id)
+  );
+  assert.equal(group.shelves.fixedCount, 1);
+  assert.deepEqual(group.openings.specialByKind, { desk: 1 });
+  assert.equal(
+    Object.values(bom.bySectionId).reduce((total, section) => total + section.shelves.fixedCount, 0)
+      + Object.values(bom.bySectionGroupId).reduce((total, sectionGroup) => total + sectionGroup.shelves.fixedCount, 0),
+    bom.shelves.fixedCount
+  );
+  assert.equal(billableGroup.generatedDrawerFronts, 0);
+  assert.equal(billableGroup.hingedDoorLeaves, 0);
+});
+
 test("layout fingerprints are deterministic, serializable, and geometry-sensitive", () => {
   const first = generateBookcaseLayout(defaultBookcaseConfig);
   const second = generateBookcaseLayout(defaultBookcaseConfig);
@@ -115,11 +182,15 @@ test("special openings and mixed storage are priced from actual generated parts"
     const pricedHandleCount = breakdown.lineItems
       .filter((item) => item.code.startsWith("HARDWARE_"))
       .reduce((total, item) => total + item.quantity, 0);
+    const pricedDrawerFrontCount = breakdown.lineItems
+      .filter((item) => item.code === "DRAWER_FRONTS")
+      .reduce((total, item) => total + item.quantity, 0);
     const pricedLightCount = breakdown.lineItems
       .filter((item) => item.code.startsWith("LIGHTING_"))
       .reduce((total, item) => total + item.quantity, 0);
 
     assert.equal(pricedDoorCount, breakdown.bom.doors.count, presetId);
+    assert.equal(pricedDrawerFrontCount, breakdown.bom.drawers.frontCount, presetId);
     assert.equal(pricedHandleCount, breakdown.bom.hardware.handleCount, presetId);
     assert.equal(pricedLightCount, breakdown.bom.lighting.count, presetId);
     assert.equal(breakdown.total % breakdown.roundingIncrement, 0, presetId);

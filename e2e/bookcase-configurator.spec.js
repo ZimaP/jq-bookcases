@@ -13,6 +13,12 @@ const presetIds = [
   "tall-storage"
 ];
 
+const welcomePreviewStates = [
+  { index: 0, label: "Open framework", id: "classic-open", name: "Open Shelves", width: 96, height: 96, callouts: ["Add shelves", "Resize sections"] },
+  { index: 1, label: "Mixed storage", id: "display-wall", name: "Display Wall", width: 102, height: 96, callouts: ["Add drawers", "Add doors"] },
+  { index: 2, label: "Tall zones", id: "tall-storage", name: "Tall Storage + Shelves", width: 132, height: 96, callouts: ["Add tall doors", "Mix storage"] }
+];
+
 function monitorRuntime(page) {
   const errors = [];
   page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
@@ -58,18 +64,13 @@ async function openVerifiedConfigurator(page, presetId = "lower-cabinets") {
   return viewer;
 }
 
-async function openPresetLibrary(page) {
+async function openSectionDesigner(page, expectedSectionCount = null) {
   await page.locator('[data-workspace-stage="layout"]').click();
-  const ideas = page.locator("[data-properties-inspector] .workspace-foundation-ideas");
-  if (await ideas.getAttribute("open") === null) await ideas.locator("summary").click();
-  await expect(page.locator("[data-preset-id]").first()).toBeVisible();
-}
-
-async function openSectionDesigner(page) {
-  await page.locator('[data-workspace-stage="layout"]').click();
-  await expect(page.locator('[data-workspace-stage="layout"]')).toHaveAttribute("aria-current", "step");
+  await expect(page.locator('[data-workspace-stage="layout"]')).toHaveAttribute("aria-current", "location");
   await expect(page.locator("[data-properties-inspector]")).toBeVisible();
-  await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(4);
+  if (Number.isInteger(expectedSectionCount)) {
+    await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(expectedSectionCount);
+  }
 }
 
 function sectionButton(page, index) {
@@ -85,15 +86,27 @@ async function setSectionWidth(page, index, width) {
 }
 
 async function setSectionType(page, index, type) {
+  const storagePresetByType = {
+    open: "open_shelves",
+    lower_doors: "lower_doors",
+    drawers: "lower_drawers",
+    tall_doors: "full_doors"
+  };
+  const presetId = storagePresetByType[type];
+  if (!presetId) throw new Error(`No Storage preset is defined for section type: ${type}`);
+  await page.locator('[data-workspace-stage="storage"]').click();
+  await expect(page.locator('[data-workspace-stage="storage"]')).toHaveAttribute("aria-current", "location");
   await sectionButton(page, index).click();
-  await page.locator(`[data-properties-inspector] .workspace-section-type-card:has([data-section-type="${type}"])`).click();
+  const preset = page.locator(`[data-properties-inspector] [data-section-storage-preset="${presetId}"]`);
+  await preset.check();
+  await expect(preset).toBeChecked();
 }
 
 async function expectReferenceStages(page) {
   const stages = page.locator("[data-workspace-stage]");
-  await expect(stages).toHaveCount(7);
+  await expect(stages).toHaveCount(8);
   expect(await stages.evaluateAll((items) => items.map((item) => item.dataset.workspaceStage))).toEqual([
-    "space", "layout", "storage", "finish", "hardware", "lighting", "preview"
+    "space", "layout", "storage", "base_top", "finish", "hardware", "lighting", "preview"
   ]);
 }
 
@@ -112,19 +125,34 @@ async function readAcceptedDesign(page) {
   });
 }
 
-test("new visitor sees an unnumbered presentation-only welcome with no commercial artifacts", async ({ page }) => {
+test("new visitor sees one presentation-only start action with no setup routes", async ({ page }) => {
   const errors = monitorRuntime(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/configurator.html", { waitUntil: "networkidle" });
 
-  await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Start with my space/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Use an editable idea/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Design any bookcase. Your vision, your way." })).toBeVisible();
+  await expect(page.locator("[data-studio-start]")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Start Building Your Bookcase", exact: true })).toHaveCount(1);
+  const previewGroup = page.getByRole("group", { name: "Preview different bookcase arrangements" });
+  const previewSelectors = previewGroup.locator("[data-studio-preview-index]");
+  await expect(previewSelectors).toHaveCount(3);
+  await expect(previewSelectors).toHaveText(welcomePreviewStates.map((state) => state.label));
+  await expect(page.locator("[data-studio-route], [data-studio-back], [data-studio-dimension], [data-idea-id], [data-idea-filter], [data-view-all-ideas], [data-studio-preview-dot], .studio-dimension-line, .studio-preview-dots, .studio-preview-dot")).toHaveCount(0);
   await expect(page.locator("[data-3d-viewer]")).toHaveCount(0);
   await expect(page.locator("canvas")).toHaveCount(0);
   await expect(page.locator("[data-save-design], [data-open-order], [data-open-ar]")).toHaveCount(0);
-  await expect(page.locator("[data-price]")).toHaveText("Your estimate will appear as you build");
-  await expect(page.getByRole("button", { name: "Save after you start" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Quote after you start" })).toBeDisabled();
+  await expect(page.locator("[data-price]")).toHaveText("Your project estimate will appear as you build");
+
+  const activePreview = page.locator("[data-studio-preview-idea]");
+  for (const state of welcomePreviewStates) {
+    await previewSelectors.nth(state.index).click();
+    await expect(activePreview).toHaveAttribute("data-studio-preview-idea", state.id);
+    await expect(activePreview.locator(`[data-mini-preset="${state.id}"]`)).toHaveCount(1);
+    await expect(page.locator(".studio-preview-caption strong")).toHaveText(state.name);
+    await expect(activePreview.locator("[data-studio-preview-callout]")).toHaveText(state.callouts);
+    expect(await previewSelectors.evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-pressed"))))
+      .toEqual(welcomePreviewStates.map((candidate) => String(candidate.index === state.index)));
+  }
 
   const diagnostics = await page.locator("[data-builder-form]").evaluate((shell) => ({ ...shell.dataset }));
   expect(diagnostics.diagnosticAcceptedDesign).toBe("false");
@@ -134,6 +162,30 @@ test("new visitor sees an unnumbered presentation-only welcome with no commercia
   expect(diagnostics.diagnosticConfiguration).toBe("null");
   expect(diagnostics.diagnosticPricing).toBe("null");
   expect(errors).toEqual([]);
+});
+
+test("welcome presentation rotates automatically and a manual choice stops the rotation", async ({ page }) => {
+  await page.clock.install();
+  await page.goto("/configurator.html", { waitUntil: "networkidle" });
+  const activePreview = page.locator("[data-studio-preview-idea]");
+  await expect(activePreview).toHaveAttribute("data-studio-preview-idea", "classic-open");
+  await expect(activePreview.locator("[data-studio-preview-callout]")).toHaveText(welcomePreviewStates[0].callouts);
+
+  await page.clock.fastForward(3600);
+  await expect(activePreview).toHaveAttribute("data-studio-preview-idea", "display-wall");
+  await expect(activePreview.locator("[data-studio-preview-callout]")).toHaveText(welcomePreviewStates[1].callouts);
+  await page.clock.fastForward(3600);
+  await expect(activePreview).toHaveAttribute("data-studio-preview-idea", "tall-storage");
+  await expect(activePreview.locator("[data-studio-preview-callout]")).toHaveText(welcomePreviewStates[2].callouts);
+  await page.clock.fastForward(3600);
+  await expect(activePreview).toHaveAttribute("data-studio-preview-idea", "classic-open");
+  await expect(activePreview.locator("[data-studio-preview-callout]")).toHaveText(welcomePreviewStates[0].callouts);
+
+  await page.getByRole("button", { name: "Tall zones", exact: true }).click();
+  await page.clock.fastForward(10_800);
+  await expect(activePreview).toHaveAttribute("data-studio-preview-idea", "tall-storage");
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator("[data-builder-form]")).toHaveAttribute("data-diagnostic-accepted-design", "false");
 });
 
 test("homepage design CTAs force the welcome while plain configurator links resume saved work", async ({ page }) => {
@@ -146,7 +198,7 @@ test("homepage design CTAs force the welcome while plain configurator links resu
 
   await page.goto("/configurator.html", { waitUntil: "networkidle" });
   await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true");
-  await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Design any bookcase. Your vision, your way." })).toHaveCount(0);
   await expect(page.locator("[data-builder-form]")).toHaveAttribute("data-diagnostic-interface", "unified");
 
   await page.goto("/index.html", { waitUntil: "networkidle" });
@@ -154,9 +206,9 @@ test("homepage design CTAs force the welcome while plain configurator links resu
     .getByRole("link", { name: "Design Your Bookcase" });
   await expect(heroCta).toHaveAttribute("href", "configurator.html?start=welcome");
   await heroCta.click();
-  await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Start with my space/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Use an editable idea/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Design any bookcase. Your vision, your way." })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start Building Your Bookcase", exact: true })).toBeVisible();
+  await expect(page.locator("[data-studio-route], [data-studio-dimension], [data-idea-id]")).toHaveCount(0);
   await expect(page.locator("canvas")).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => localStorage.getItem("jqBookcasesDesign"))).not.toBeNull();
   expect(new URL(page.url()).searchParams.has("start")).toBe(false);
@@ -166,7 +218,7 @@ test("homepage design CTAs force the welcome while plain configurator links resu
     .getByRole("link", { name: "Design Your Bookcase" });
   await expect(bottomCta).toHaveAttribute("href", "configurator.html?start=welcome");
   await bottomCta.click();
-  await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Design any bookcase. Your vision, your way." })).toBeVisible();
 
   await page.goto("/index.html", { waitUntil: "networkidle" });
   const resumeLink = page.locator('a.header-save-button[aria-label="Design Your Bookcase"]');
@@ -181,26 +233,24 @@ test("homepage design CTAs force the welcome while plain configurator links resu
   expect(errors).toEqual([]);
 });
 
-test("custom-space route creates the first neutral accepted design exactly once", async ({ page }) => {
+test("Start Building Your Bookcase creates the neutral accepted design after any presentation choice", async ({ page }) => {
   const errors = monitorRuntime(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/configurator.html", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: /Start with my space/ }).click();
-  await page.locator('[data-studio-dimension="width"]').fill("108");
-  await page.locator('[data-studio-dimension="height"]').fill("100");
-  await page.locator('[data-studio-dimension="depth"]').fill("16");
-  await expect(page.locator("[data-studio-sections]")).toHaveCount(0);
-  await expect(page.getByText("You can change wall width, height, and depth at any time inside the design studio.")).toBeVisible();
-  await page.getByRole("button", { name: "Start with these dimensions" }).click();
+  await page.getByRole("button", { name: "Tall zones", exact: true }).click();
+  await expect(page.locator("[data-studio-preview-idea]")).toHaveAttribute("data-studio-preview-idea", "tall-storage");
+  await page.getByRole("button", { name: "Start Building Your Bookcase", exact: true }).click();
 
   const viewer = page.locator("[data-3d-viewer]");
   await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
   await expect(viewer.locator("canvas")).toHaveCount(1);
   const accepted = await readAcceptedDesign(page);
   expect(accepted.diagnostics.acceptedDesign).toBe(true);
-  expect(accepted.diagnostics.state.width).toBe(108);
-  expect(accepted.diagnostics.state.height).toBe(100);
-  expect(accepted.diagnostics.state.depth).toBe(16);
-  expect(accepted.diagnostics.state.sections).toBe(5);
+  expect(accepted.diagnostics.state.width).toBe(96);
+  expect(accepted.diagnostics.state.height).toBe(96);
+  expect(accepted.diagnostics.state.depth).toBe(15);
+  expect(accepted.diagnostics.state.sections).toBe(4);
+  expect(accepted.diagnostics.state.layoutPreset).toBe("custom");
   expect(accepted.diagnostics.state.lowerCabinets).toBe(false);
   expect(accepted.diagnostics.state.lighting).toBe("no_lighting");
   expect(accepted.diagnostics.interface).toBe("unified");
@@ -209,26 +259,6 @@ test("custom-space route creates the first neutral accepted design exactly once"
   await expectReferenceStages(page);
   expect(accepted.diagnostics.priceCalculationCount).toBe(1);
   expect(accepted.diagnostics.updateCount).toBe(0);
-  expect(errors).toEqual([]);
-});
-
-test("idea route filters real configurations and accepts one editable idea", async ({ page }) => {
-  const errors = monitorRuntime(page);
-  await page.goto("/configurator.html", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: /Use an editable idea/ }).click();
-  await expect(page.locator("[data-idea-id]")).toHaveCount(6);
-  await expect(page.getByRole("button", { name: "View all 10 editable ideas" })).toBeVisible();
-  await page.getByRole("button", { name: "Storage", exact: true }).click();
-  await expect(page.locator("[data-idea-id]")).toHaveCount(4);
-  await page.locator('[data-idea-id="display-wall"]').click();
-  await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
-  const accepted = await readAcceptedDesign(page);
-  expect(accepted.diagnostics.state.layoutPreset).toBe("display-wall");
-  expect(accepted.diagnostics.initialSource).toBe("idea");
-  expect(accepted.diagnostics.interface).toBe("unified");
-  expect(accepted.diagnostics.activeInspectorGroup).toBe("sections_layout");
-  expect(accepted.diagnostics.activeWorkspaceStage).toBe("layout");
-  await expectReferenceStages(page);
   expect(errors).toEqual([]);
 });
 
@@ -307,15 +337,109 @@ test("direct model selection routes into the fixed stage-aware Properties inspec
   expect(selected).toBeTruthy();
 
   await expect(page.locator("[data-properties-inspector]")).toBeVisible();
-  await expect(page.locator('[data-workspace-stage="storage"]')).toHaveAttribute("aria-current", "step");
-  await expect(page.locator('[data-inspector-tab="doors"]')).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-workspace-stage="storage"]')).toHaveAttribute("aria-current", "location");
+  await expect(page.locator("[data-properties-inspector] [data-inspector-tab]")).toHaveCount(0);
+  await expect(page.locator("[data-properties-inspector] .workspace-properties-panel")).toHaveCount(1);
+  await expect(page.locator("[data-properties-inspector] [data-storage-console]")).toBeVisible();
+  await expect(page.locator('[data-properties-inspector] .workspace-storage-doors [data-section-storage-field="doorStyle"]')).toBeVisible();
   await expect(page.locator("[data-contextual-editor]")).toHaveCount(0);
   const diagnostics = await page.locator("[data-bookcase-builder]").evaluate((host) => host.__bookcaseConfigurator.getDiagnostics());
   expect(diagnostics.selection.componentId).toBe(selected);
   expect(diagnostics.activeWorkspaceStage).toBe("storage");
-  expect(diagnostics.activeInspectorTab).toBe("doors");
   expect(diagnostics.updateCount).toBe(0);
   expect(diagnostics.priceCalculationCount).toBe(1);
+  expect(errors).toEqual([]);
+});
+
+test("open shelving keeps hardware choices available and explains when quantity is zero", async ({ page }) => {
+  const errors = monitorRuntime(page);
+  await openVerifiedConfigurator(page, "classic-open");
+
+  await page.locator('[data-workspace-stage="hardware"]').click();
+  await expect(page.locator('[data-workspace-stage="hardware"]')).toHaveAttribute("aria-current", "location");
+  const emptyState = page.locator("[data-hardware-empty-state]");
+  await expect(emptyState).toBeVisible();
+  await expect(emptyState).toContainText("No hardware quantity yet");
+  await expect(page.locator("[data-hardware-type]")).toHaveCount(2);
+  await expect(page.locator("[data-hardware-finish]")).toHaveCount(4);
+  await expect(page.locator("[data-open-hardware-library]")).toBeDisabled();
+
+  await emptyState.getByRole("button", { name: "Add fronts in Storage" }).click();
+  await expect(page.locator('[data-workspace-stage="storage"]')).toHaveAttribute("aria-current", "location");
+  await expect(page.locator("[data-properties-inspector] [data-storage-console]")).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("focus survives an accepted inspector choice after Properties rerenders", async ({ page }) => {
+  const errors = monitorRuntime(page);
+  await openVerifiedConfigurator(page, "lower-cabinets");
+  await page.locator('[data-workspace-stage="finish"]').click();
+
+  const finish = page.locator('[data-properties-inspector] input[data-field="finish"][value="silver_satin"]');
+  await finish.focus();
+  await finish.press("Space");
+  await expect.poll(async () => (await readAcceptedDesign(page)).diagnostics.state.finish).toBe("silver_satin");
+
+  const rerenderedFinish = page.locator('[data-properties-inspector] input[data-field="finish"][value="silver_satin"]');
+  await expect(rerenderedFinish).toBeChecked();
+  await expect(rerenderedFinish).toBeFocused();
+  expect(errors).toEqual([]);
+});
+
+test("Benjamin Moore search keeps its helper and disclaimer through live interface sync", async ({ page }) => {
+  const errors = monitorRuntime(page);
+  await openVerifiedConfigurator(page, "lower-cabinets");
+  await page.locator('[data-workspace-stage="finish"]').click();
+  await page.locator("[data-toggle-color-search]:not([data-color-search-close])").click();
+
+  const query = page.locator("[data-bm-query]");
+  await expect(query).toBeVisible();
+  const readDescriptions = () => query.evaluate((input) => {
+    const ids = (input.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean);
+    const defaultIds = (input.dataset.defaultDescribedby || "").split(/\s+/).filter(Boolean);
+    return {
+      ids,
+      defaultIds,
+      classes: ids.map((id) => document.getElementById(id)?.className || "")
+    };
+  });
+
+  const before = await readDescriptions();
+  expect(before.ids).toEqual(before.defaultIds);
+  expect(before.classes).toEqual(expect.arrayContaining(["bm-search-help", "bm-preview-disclaimer"]));
+
+  await page.locator("[data-bookcase-builder]").evaluate((host) => host.__bookcaseConfigurator.syncInterface());
+  await expect.poll(readDescriptions).toEqual(before);
+  expect(errors).toEqual([]);
+});
+
+test("customer section widths are concise in the interface while accepted widths remain exact", async ({ page }) => {
+  const errors = monitorRuntime(page);
+  await openVerifiedConfigurator(page, "classic-open");
+  await openSectionDesigner(page, 4);
+
+  const accepted = await readAcceptedDesign(page);
+  expect(accepted.widths).toEqual([23.0625, 23.0625, 23.0625, 23.0625]);
+  await expect(page.locator("[data-section-width]")).toHaveValue("23.06");
+
+  const displayedWidths = await page.locator("[data-section-organizer] [data-section-card] small").allTextContents();
+  expect(displayedWidths).toEqual(["23.06 in", "23.06 in", "23.06 in", "23.06 in"]);
+  for (const label of displayedWidths) {
+    const decimals = label.match(/\.(\d+)/)?.[1] || "";
+    expect(decimals.length).toBeLessThanOrEqual(2);
+  }
+  expect(errors).toEqual([]);
+});
+
+test("fractional shelf thickness declares decimal keyboard input", async ({ page }) => {
+  const errors = monitorRuntime(page);
+  await openVerifiedConfigurator(page, "classic-open");
+  await page.locator('[data-workspace-stage="storage"]').click();
+
+  const shelfThickness = page.locator('[data-range-control="shelfThickness"] input[type="number"]');
+  await expect(shelfThickness).toBeVisible();
+  await expect(shelfThickness).toHaveAttribute("step", "0.25");
+  await expect(shelfThickness).toHaveAttribute("inputmode", "decimal");
   expect(errors).toEqual([]);
 });
 
@@ -324,7 +448,7 @@ test("hardware type and finish stay canonical, compatible, selected, and camera-
   await openVerifiedConfigurator(page, "lower-cabinets");
   await page.locator('[data-workspace-stage="hardware"]').click();
   await expect(page.locator("[data-hardware-type]")).toHaveCount(2);
-  await expect(page.locator("[data-hardware-finish]")).toHaveCount(2);
+  await expect(page.locator("[data-hardware-finish]")).toHaveCount(4);
   await expect.poll(() => page.locator("[data-bookcase-builder]").evaluate(
     (host) => host.__bookcaseConfigurator.getDiagnostics().viewer.cameraTransitionActive
   )).toBe(false);
@@ -345,7 +469,7 @@ test("hardware type and finish stay canonical, compatible, selected, and camera-
   const initialPose = await readPose();
   await page.locator('.hardware-type-choice:has(input[value="pull"])').click();
   await settleFrames(page, 4);
-  await expect(page.locator("[data-hardware-finish]")).toHaveCount(3);
+  await expect(page.locator("[data-hardware-finish]")).toHaveCount(4);
   await expect(page.locator('[data-hardware-type][value="pull"] + span .hardware-selected-mark')).toBeVisible();
   let accepted = await readAcceptedDesign(page);
   expect(accepted.diagnostics.state.hardware).toBe("brass_pull");
@@ -363,14 +487,9 @@ test("hardware type and finish stay canonical, compatible, selected, and camera-
 
 test("all ten commercial presets render through the descriptor contract", async ({ page }) => {
   const errors = monitorRuntime(page);
-  const viewer = await openVerifiedConfigurator(page);
-  await openPresetLibrary(page);
 
   for (const presetId of presetIds) {
-    await openPresetLibrary(page);
-    const card = page.locator(`[data-preset-id="${presetId}"]`);
-    await card.click();
-    await expect(card).toHaveAttribute("aria-pressed", "true");
+    const viewer = await openVerifiedConfigurator(page, presetId);
     await expect(viewer).toHaveAttribute("data-render-valid", "true");
     await expect(viewer.locator("canvas")).toHaveCount(1);
     await settleFrames(page);
@@ -388,7 +507,7 @@ test("all ten commercial presets render through the descriptor contract", async 
 test("an invalid section draft preserves the accepted model, BOM, price, and save identity", async ({ page }) => {
   const errors = monitorRuntime(page);
   const viewer = await openVerifiedConfigurator(page);
-  await openSectionDesigner(page);
+  await openSectionDesigner(page, 4);
   const accepted = await readAcceptedDesign(page);
   const acceptedDiagnostics = await readRenderDiagnostics(viewer);
 
@@ -417,12 +536,12 @@ test("an invalid section draft preserves the accepted model, BOM, price, and sav
 test("section organizer accepts a mixed design with validated add, duplicate, delete, global history, save, and restore", async ({ page }) => {
   const errors = monitorRuntime(page);
   const viewer = await openVerifiedConfigurator(page);
-  await openSectionDesigner(page);
+  await openSectionDesigner(page, 4);
 
   await page.locator('[data-workspace-stage="space"]').click();
   await page.locator('[data-properties-inspector] input[type="number"][data-field="width"]').fill("132");
   await expect.poll(async () => (await readAcceptedDesign(page)).diagnostics.state.width).toBe(132);
-  await openSectionDesigner(page);
+  await openSectionDesigner(page, 4);
 
   await setSectionWidth(page, 0, 18);
   await setSectionWidth(page, 1, 42);
@@ -446,6 +565,7 @@ test("section organizer accepts a mixed design with validated add, duplicate, de
 
   // Add Section intentionally creates a neutral, minimum-width bay. Duplicate
   // the still-wide drawer bay so the split remains construction-valid.
+  await openSectionDesigner(page, 5);
   await sectionButton(page, 1).click();
   await expect(page.locator("[data-properties-inspector] [data-section-duplicate]")).toBeEnabled();
   await page.locator("[data-properties-inspector] [data-section-duplicate]").click();
@@ -483,7 +603,7 @@ test("section organizer accepts a mixed design with validated add, duplicate, de
 test("one hundred successive section edits remain resource-bounded", async ({ page }) => {
   const errors = monitorRuntime(page);
   const viewer = await openVerifiedConfigurator(page);
-  await openSectionDesigner(page);
+  await openSectionDesigner(page, 4);
   const baseline = await readRenderDiagnostics(viewer);
 
   await page.evaluate(() => {
@@ -510,10 +630,8 @@ test("one hundred successive section edits remain resource-bounded", async ({ pa
 
 test("saved schema-v4 design is canonical, reloadable, and quote-ready", async ({ page }) => {
   const errors = monitorRuntime(page);
-  const viewer = await openVerifiedConfigurator(page);
+  const viewer = await openVerifiedConfigurator(page, "display-wall");
 
-  await openPresetLibrary(page);
-  await page.locator('[data-preset-id="display-wall"]').click();
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
   await page.locator("[data-save-design]").first().click();
   await expect(page.locator("[data-builder-status]")).toContainText(/Saved design JQ-/i);
@@ -531,7 +649,7 @@ test("saved schema-v4 design is canonical, reloadable, and quote-ready", async (
 
   await page.goto("/configurator.html", { waitUntil: "networkidle" });
   await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true");
-  await expect(page.locator('[data-preset-id="display-wall"]')).toHaveAttribute("aria-pressed", "true");
+  expect((await readAcceptedDesign(page)).diagnostics.state.layoutPreset).toBe("display-wall");
 
   await page.goto(`/request-quote.html?design=${encodeURIComponent(saved.id)}`, { waitUntil: "networkidle" });
   await expect(page.locator("[data-saved-design-summary]")).toBeVisible();
@@ -542,161 +660,161 @@ test("saved schema-v4 design is canonical, reloadable, and quote-ready", async (
   expect(errors).toEqual([]);
 });
 
-test("rapid preset cycling is leak-bounded and leaves one verified model", async ({ page }) => {
+test("successive explicit preset boots leave one verified model", async ({ page }) => {
   const errors = monitorRuntime(page);
-  const viewer = await openVerifiedConfigurator(page);
-  const baseline = await readRenderDiagnostics(viewer);
-  await openPresetLibrary(page);
-
-  await page.evaluate((ids) => {
-    for (let cycle = 0; cycle < 10; cycle += 1) {
-      for (const presetId of ids) document.querySelector(`[data-preset-id="${presetId}"]`)?.click();
-    }
-    document.querySelector('[data-preset-id="lower-cabinets"]')?.click();
-  }, presetIds);
+  for (const presetId of presetIds) await openVerifiedConfigurator(page, presetId);
+  const viewer = await openVerifiedConfigurator(page, "lower-cabinets");
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
-  await expect(page.locator('[data-preset-id="lower-cabinets"]')).toHaveAttribute("aria-pressed", "true");
   await expect(viewer.locator("canvas")).toHaveCount(1);
   await expect(page.locator("[data-bookcase-builder] canvas")).toHaveCount(1);
   await settleFrames(page, 6);
 
   const final = await readRenderDiagnostics(viewer);
   expect(final.components).toBe(final.expected);
-  expect(final.components).toBe(baseline.components);
-  expect(final.geometries).toBeLessThanOrEqual(baseline.geometries + 2);
-  expect(final.textures).toBeLessThanOrEqual(baseline.textures + 2);
+  expect(final.geometries).toBeGreaterThan(0);
+  expect(final.calls).toBeGreaterThan(0);
+  expect(final.triangles).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
 
 test("welcome composition is usable at every required desktop and mobile viewport", async ({ page }) => {
   const viewports = [
     { width: 2011, height: 1198 },
+    { width: 1536, height: 1024 },
     { width: 1440, height: 900 },
+    { width: 1200, height: 900 },
+    { width: 1199, height: 900 },
     { width: 1024, height: 900 },
     { width: 390, height: 844 },
     { width: 360, height: 800 }
   ];
   const errors = monitorRuntime(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
   for (const viewport of viewports) {
     await page.setViewportSize(viewport);
     await page.goto("/configurator.html", { waitUntil: "networkidle" });
-    await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Start with my space/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Design any bookcase. Your vision, your way." })).toBeVisible();
+    const startButton = page.getByRole("button", { name: "Start Building Your Bookcase", exact: true });
+    await expect(startButton).toHaveCount(1);
+    await expect(page.locator("[data-studio-start]")).toHaveCount(1);
+    const previewSelectors = page.locator("[data-studio-preview-index]");
+    await expect(previewSelectors).toHaveCount(3);
+    await expect(page.locator("[data-studio-route], [data-studio-back], [data-studio-dimension], [data-idea-id], [data-idea-filter], [data-view-all-ideas], [data-studio-preview-dot], .studio-dimension-line, .studio-preview-dots, .studio-preview-dot")).toHaveCount(0);
     await expect(page.locator("canvas")).toHaveCount(0);
-    const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    expect(horizontalOverflow).toBeLessThanOrEqual(1);
+
+    const activePreview = page.locator("[data-studio-preview-idea]");
+    for (const state of welcomePreviewStates) {
+      await previewSelectors.nth(state.index).click();
+      await expect(activePreview).toHaveAttribute("data-studio-preview-idea", state.id);
+      await expect(activePreview.locator(`[data-mini-preset="${state.id}"]`)).toHaveCount(1);
+      await expect(activePreview.locator("[data-studio-preview-callout]")).toHaveText(state.callouts);
+      const stateGeometry = await activePreview.evaluate((preview) => {
+        const readRect = (element) => {
+          const bounds = element.getBoundingClientRect();
+          return {
+            left: bounds.left,
+            right: bounds.right,
+            top: bounds.top,
+            bottom: bounds.bottom
+          };
+        };
+        return {
+          preview: readRect(preview.closest(".studio-intro-stage")),
+          drawing: readRect(preview.querySelector(".studio-preview-drawing")),
+          callouts: [...preview.querySelectorAll("[data-studio-preview-callout]")].map(readRect)
+        };
+      });
+      for (const callout of stateGeometry.callouts) {
+        expect(callout.left, `${viewport.width}x${viewport.height} ${state.label} callout left containment`).toBeGreaterThanOrEqual(stateGeometry.preview.left - 1);
+        expect(callout.right, `${viewport.width}x${viewport.height} ${state.label} callout right containment`).toBeLessThanOrEqual(stateGeometry.preview.right + 1);
+        expect(callout.top, `${viewport.width}x${viewport.height} ${state.label} callout top containment`).toBeGreaterThanOrEqual(stateGeometry.preview.top - 1);
+        expect(callout.bottom, `${viewport.width}x${viewport.height} ${state.label} callout bottom containment`).toBeLessThanOrEqual(stateGeometry.preview.bottom + 1);
+        const overlapWidth = Math.max(0, Math.min(callout.right, stateGeometry.drawing.right) - Math.max(callout.left, stateGeometry.drawing.left));
+        const overlapHeight = Math.max(0, Math.min(callout.bottom, stateGeometry.drawing.bottom) - Math.max(callout.top, stateGeometry.drawing.top));
+        expect(overlapWidth * overlapHeight, `${viewport.width}x${viewport.height} ${state.label} callout does not cover drawing`).toBeLessThanOrEqual(1);
+      }
+    }
+    await expect(activePreview).toHaveAttribute("data-studio-preview-idea", "tall-storage");
+    await expect(activePreview.locator('[data-mini-preset="tall-storage"]')).toHaveCount(1);
+    const callouts = activePreview.locator(".studio-preview-callout");
+    await expect(callouts).toHaveCount(2);
+    await expect(callouts).toHaveText(welcomePreviewStates[2].callouts);
+    const measures = activePreview.locator(".studio-preview-measure");
+    await expect(measures).toHaveCount(2);
+    await expect(measures.nth(0).locator("strong")).toHaveText(`${welcomePreviewStates[2].height} in`);
+    await expect(measures.nth(0).locator("small")).toHaveText("Wall height");
+    await expect(measures.nth(1).locator("strong")).toHaveText(`${welcomePreviewStates[2].width} in`);
+    await expect(measures.nth(1).locator("small")).toHaveText("Wall width");
+
     const composition = await page.evaluate(() => {
+      const readRect = (element) => {
+        const bounds = element.getBoundingClientRect();
+        return {
+          left: bounds.left,
+          right: bounds.right,
+          top: bounds.top,
+          bottom: bounds.bottom,
+          width: bounds.width,
+          height: bounds.height
+        };
+      };
+      const rect = (selector) => readRect(document.querySelector(selector));
       const shell = document.querySelector(".studio-entry-shell");
-      const leftCopy = document.querySelector(".studio-welcome-heading p");
-      const rightCopy = document.querySelector(".studio-intro-heading p");
-      const preview = document.querySelector(".studio-preview-composition");
-      const leftTitle = document.querySelector(".studio-welcome-heading h1").getBoundingClientRect();
-      const rightTitle = document.querySelector(".studio-intro-heading h2").getBoundingClientRect();
-      const rightHeading = document.querySelector(".studio-intro-heading").getBoundingClientRect();
-      const previewBounds = preview.getBoundingClientRect();
-      const stageBounds = document.querySelector(".studio-intro-stage").getBoundingClientRect();
-      const drawingBounds = document.querySelector(".studio-preview-drawing").getBoundingClientRect();
+      const shellStyle = getComputedStyle(shell);
       return {
-        bodyToken: getComputedStyle(shell).getPropertyValue("--studio-type-body").trim(),
-        leftBodySize: getComputedStyle(leftCopy).fontSize,
-        rightBodySize: getComputedStyle(rightCopy).fontSize,
-        previewHeight: previewBounds.height,
-        leftTitleSize: parseFloat(getComputedStyle(document.querySelector(".studio-welcome-heading h1")).fontSize),
-        rightTitleSize: parseFloat(getComputedStyle(document.querySelector(".studio-intro-heading h2")).fontSize),
-        titleTopDelta: Math.abs(leftTitle.top - rightTitle.top),
-        rightCenterDelta: Math.abs((rightHeading.left + rightHeading.width / 2) - (previewBounds.left + previewBounds.width / 2)),
-        previewStageCenterDelta: Math.abs((previewBounds.left + previewBounds.width / 2) - (stageBounds.left + stageBounds.width / 2)),
-        drawingCenterDelta: Math.abs((drawingBounds.left + drawingBounds.width / 2) - (previewBounds.left + previewBounds.width / 2)),
-        verticalSpaceDelta: Math.abs((rightHeading.top - stageBounds.top) - (stageBounds.bottom - previewBounds.bottom)),
-        variantSize: parseFloat(getComputedStyle(document.querySelector(".studio-preview-variants button")).fontSize),
-        dimensionSize: parseFloat(getComputedStyle(document.querySelector(".studio-dimension-line small")).fontSize),
-        calloutSize: parseFloat(getComputedStyle(document.querySelector(".studio-preview-callout")).fontSize)
+        pageOverflow: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
+        shell: readRect(shell),
+        shellInnerRight: shell.getBoundingClientRect().right - parseFloat(shellStyle.paddingRight || "0"),
+        copy: rect(".studio-entry-copy"),
+        copyContent: rect(".studio-entry-action"),
+        heading: rect(".studio-welcome-heading"),
+        capabilities: rect(".studio-capability-list"),
+        preview: rect(".studio-intro-stage"),
+        drawing: rect(".studio-preview-drawing"),
+        callouts: [...document.querySelectorAll("[data-studio-preview-callout]")].map(readRect),
+        footer: rect(".studio-entry-lockbar"),
+        cta: rect(".studio-start-button")
       };
     });
-    expect(composition.bodyToken).toBe("13px");
-    expect(composition.leftBodySize).toBe(composition.rightBodySize);
-    expect(composition.leftTitleSize).toBe(composition.rightTitleSize);
-    expect(composition.drawingCenterDelta).toBeLessThanOrEqual(1);
-    if (viewport.width > 760) {
-      expect(composition.previewHeight).toBeLessThanOrEqual(620.5);
-      expect(composition.titleTopDelta).toBeLessThanOrEqual(1);
-      expect(composition.rightCenterDelta).toBeLessThanOrEqual(1);
-      expect(composition.previewStageCenterDelta).toBeLessThanOrEqual(1);
-      if (viewport.height >= 1100) expect(composition.verticalSpaceDelta).toBeLessThanOrEqual(8);
-      expect(composition.variantSize).toBeGreaterThanOrEqual(13);
-      expect(composition.dimensionSize).toBeGreaterThanOrEqual(13);
-      expect(composition.calloutSize).toBeGreaterThanOrEqual(12);
+
+    expect(composition.pageOverflow, `${viewport.width}x${viewport.height} horizontal overflow`).toBeLessThanOrEqual(1);
+    expect(composition.cta.height, `${viewport.width}x${viewport.height} CTA height`).toBeGreaterThanOrEqual(44);
+    expect(composition.cta.left, `${viewport.width}x${viewport.height} CTA left containment`).toBeGreaterThanOrEqual(composition.copy.left - 1);
+    expect(composition.cta.right, `${viewport.width}x${viewport.height} CTA right containment`).toBeLessThanOrEqual(composition.copy.right + 1);
+    expect(Math.abs(composition.heading.left - composition.copyContent.left), `${viewport.width}x${viewport.height} heading/action left edge`).toBeLessThanOrEqual(1);
+    expect(Math.abs(composition.heading.right - composition.copyContent.right), `${viewport.width}x${viewport.height} heading/action right edge`).toBeLessThanOrEqual(1);
+    expect(Math.abs(composition.capabilities.left - composition.copyContent.left), `${viewport.width}x${viewport.height} capabilities/action left edge`).toBeLessThanOrEqual(1);
+    expect(Math.abs(composition.capabilities.right - composition.copyContent.right), `${viewport.width}x${viewport.height} capabilities/action right edge`).toBeLessThanOrEqual(1);
+    for (const callout of composition.callouts) {
+      expect(callout.left, `${viewport.width}x${viewport.height} callout left containment`).toBeGreaterThanOrEqual(composition.preview.left - 1);
+      expect(callout.right, `${viewport.width}x${viewport.height} callout right containment`).toBeLessThanOrEqual(composition.preview.right + 1);
+      expect(callout.top, `${viewport.width}x${viewport.height} callout top containment`).toBeGreaterThanOrEqual(composition.preview.top - 1);
+      expect(callout.bottom, `${viewport.width}x${viewport.height} callout bottom containment`).toBeLessThanOrEqual(composition.preview.bottom + 1);
+      const overlapWidth = Math.max(0, Math.min(callout.right, composition.drawing.right) - Math.max(callout.left, composition.drawing.left));
+      const overlapHeight = Math.max(0, Math.min(callout.bottom, composition.drawing.bottom) - Math.max(callout.top, composition.drawing.top));
+      expect(overlapWidth * overlapHeight, `${viewport.width}x${viewport.height} callout does not cover drawing`).toBeLessThanOrEqual(1);
+    }
+
+    if (viewport.width >= 1200) {
+      expect(composition.preview.right, `${viewport.width}x${viewport.height} preview before copy`).toBeLessThanOrEqual(composition.copy.left + 1);
+      expect(composition.preview.width, `${viewport.width}x${viewport.height} preview wider than visible copy`).toBeGreaterThan(composition.copyContent.width);
+      const expectedCopyCenter = (composition.preview.right + composition.shellInnerRight) / 2;
+      const actualCopyCenter = (composition.copyContent.left + composition.copyContent.right) / 2;
+      expect(Math.abs(actualCopyCenter - expectedCopyCenter), `${viewport.width}x${viewport.height} copy centered in right region`).toBeLessThanOrEqual(1);
+      expect(composition.footer.top, `${viewport.width}x${viewport.height} footer below preview`).toBeGreaterThanOrEqual(composition.preview.bottom - 1);
+      expect(composition.footer.top, `${viewport.width}x${viewport.height} footer below copy`).toBeGreaterThanOrEqual(composition.copy.bottom - 1);
+      expect(composition.footer.left, `${viewport.width}x${viewport.height} footer spans preview edge`).toBeLessThanOrEqual(composition.preview.left + 1);
+      expect(composition.footer.right, `${viewport.width}x${viewport.height} footer spans copy edge`).toBeGreaterThanOrEqual(composition.copy.right - 1);
     } else {
-      expect(composition.variantSize).toBeGreaterThanOrEqual(11);
-      expect(composition.calloutSize).toBeGreaterThanOrEqual(10);
+      expect(composition.copy.bottom, `${viewport.width}x${viewport.height} copy before preview`).toBeLessThanOrEqual(composition.preview.top + 1);
+      expect(composition.preview.bottom, `${viewport.width}x${viewport.height} preview before footer`).toBeLessThanOrEqual(composition.footer.top + 1);
+      expect(composition.footer.left, `${viewport.width}x${viewport.height} footer left alignment`).toBeGreaterThanOrEqual(composition.shell.left - 1);
+      expect(composition.footer.right, `${viewport.width}x${viewport.height} footer right alignment`).toBeLessThanOrEqual(composition.shell.right + 1);
     }
     await page.screenshot({
       path: `test-results/custom-studio-qa/welcome-${viewport.width}x${viewport.height}.png`,
       animations: "disabled"
     });
-    await page.getByRole("button", { name: /Start with my space/ }).click();
-    await expect(page.locator("[data-studio-sections]")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Start with these dimensions" })).toBeVisible();
-    const customHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    expect(customHorizontalOverflow).toBeLessThanOrEqual(1);
-    if (viewport.width <= 760) {
-      await page.screenshot({
-        path: `test-results/custom-studio-qa/custom-${viewport.width}x${viewport.height}.png`,
-        fullPage: true,
-        animations: "disabled"
-      });
-    }
-  }
-  expect(errors).toEqual([]);
-});
-
-test("opening a studio route preserves the desktop composition anchors", async ({ page }) => {
-  const viewports = [
-    { width: 2005, height: 1199 },
-    { width: 1440, height: 900 },
-    { width: 1024, height: 900 }
-  ];
-  const errors = monitorRuntime(page);
-  const measure = () => page.evaluate(() => {
-    const rect = (selector) => {
-      const bounds = document.querySelector(selector).getBoundingClientRect();
-      return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
-    };
-    return {
-      heading: rect(".studio-welcome-heading"),
-      stageHeading: rect(".studio-intro-heading"),
-      preview: rect(".studio-preview-composition")
-    };
-  });
-
-  for (const viewport of viewports) {
-    await page.setViewportSize(viewport);
-    await page.goto("/configurator.html", { waitUntil: "networkidle" });
-    const welcome = await measure();
-    await page.locator(".studio-intro-stage").evaluate((stage) => {
-      stage.dataset.routeTransitionSentinel = "preserved";
-    });
-    await page.getByRole("button", { name: /Start with my space/ }).click();
-    const custom = await measure();
-    await page.screenshot({
-      path: `test-results/custom-studio-qa/custom-${viewport.width}x${viewport.height}.png`,
-      animations: "disabled"
-    });
-    await page.getByRole("button", { name: "Back to studio start" }).click();
-    await page.getByRole("button", { name: /Use an editable idea/ }).click();
-    const ideas = await measure();
-
-    await expect(page.locator(".studio-intro-stage")).toHaveAttribute("data-route-transition-sentinel", "preserved");
-    for (const route of [custom, ideas]) {
-      expect(Math.abs(route.heading.x - welcome.heading.x)).toBeLessThanOrEqual(1);
-      expect(Math.abs(route.heading.y - welcome.heading.y)).toBeLessThanOrEqual(1);
-      expect(Math.abs(route.stageHeading.x - welcome.stageHeading.x)).toBeLessThanOrEqual(1);
-      expect(Math.abs(route.stageHeading.y - welcome.stageHeading.y)).toBeLessThanOrEqual(1);
-      expect(Math.abs(route.preview.x - welcome.preview.x)).toBeLessThanOrEqual(1);
-      expect(Math.abs(route.preview.y - welcome.preview.y)).toBeLessThanOrEqual(1);
-    }
-    const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-    expect(horizontalOverflow).toBeLessThanOrEqual(1);
   }
   expect(errors).toEqual([]);
 });
@@ -724,30 +842,30 @@ test("navigation hover uses the shared underline position on every public page",
   }
 });
 
-test("Start over clears the accepted design and returns to both studio routes", async ({ page }) => {
+test("Start over clears the accepted design and returns to the single start screen", async ({ page }) => {
   await openVerifiedConfigurator(page, "display-wall");
   await page.locator('[data-workspace-stage="preview"]').click();
   await page.getByRole("button", { name: "Start over", exact: true }).click();
   await page.getByRole("button", { name: "Confirm start over", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Design any bookcase. Your vision, your way." })).toBeVisible();
   await expect(page.locator("canvas")).toHaveCount(0);
   await expect(page.locator("[data-3d-viewer]")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: /Start with my space/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /Use an editable idea/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start Building Your Bookcase", exact: true })).toHaveCount(1);
+  await expect(page.locator("[data-studio-start]")).toHaveCount(1);
+  await expect(page.locator("[data-studio-preview-index]")).toHaveCount(3);
+  await expect(page.locator("[data-studio-route], [data-studio-dimension], [data-idea-id], [data-studio-preview-dot], .studio-preview-dots, .studio-preview-dot")).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => localStorage.getItem("jqBookcasesDesign"))).toBeNull();
 });
 
 test("mobile viewport keeps controls usable and the accepted model valid", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const errors = monitorRuntime(page);
-  const viewer = await openVerifiedConfigurator(page);
+  const viewer = await openVerifiedConfigurator(page, "classic-open");
 
   await expect(page.locator("[data-save-design]").first()).toBeVisible();
-  await openPresetLibrary(page);
-  await page.locator('[data-preset-id="classic-open"]').click();
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
   await page.locator('[data-workspace-stage="layout"]').click();
-  await expect(page.locator('[data-workspace-stage="layout"]')).toHaveAttribute("aria-current", "step");
+  await expect(page.locator('[data-workspace-stage="layout"]')).toHaveAttribute("aria-current", "location");
   await expect(page.locator("[data-properties-inspector]")).toBeVisible();
   await expect(page.locator("[data-section-width]")).toBeVisible();
   await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(4);

@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   PROFILE_CAMERA_DURATION,
   PROFILE_CAMERA_KEYS,
+  calculateBoundsCameraPose,
   calculateProfileCameraPose,
   createProfileFocusRegion,
   isProfileCameraKey,
@@ -232,6 +233,105 @@ test("the viewport-aware target projects the profile focus to the safe-rect cent
   assert.notDeepEqual(result.target, result.focusCenter);
   assert.notEqual(result.viewport.safeCenterNdc.x, 0);
   assert.notEqual(result.viewport.safeCenterNdc.y, 0);
+});
+
+test("full-bounds camera fits every AABB corner inside an asymmetric safe viewport", () => {
+  const result = calculateBoundsCameraPose({
+    bounds: DEFAULT_MODEL,
+    theta: -0.18,
+    phi: 0.11,
+    verticalFovDegrees: 34,
+    aspect: 1.5,
+    viewport: DEFAULT_VIEWPORT,
+    fitMargin: 1.12
+  });
+
+  for (const corner of cornersOf(DEFAULT_MODEL)) {
+    const pixel = projectToViewport(corner, result, 34, 1.5);
+    assert.ok(pixel.x >= result.viewport.safeRect.left - 1e-6, "full bounds corner is left-clipped");
+    assert.ok(pixel.x <= result.viewport.safeRect.right + 1e-6, "full bounds corner is right-clipped");
+    assert.ok(pixel.y >= result.viewport.safeRect.top - 1e-6, "full bounds corner is top-clipped");
+    assert.ok(pixel.y <= result.viewport.safeRect.bottom + 1e-6, "full bounds corner is bottom-clipped");
+  }
+});
+
+test("full-bounds camera centers the model in the safe rectangle and preserves requested angles", () => {
+  const result = calculateBoundsCameraPose({
+    bounds: DEFAULT_MODEL,
+    theta: -0.23,
+    phi: 0.14,
+    verticalFovDegrees: 34,
+    aspect: 10 / 7,
+    viewport: {
+      width: 1000,
+      height: 700,
+      insets: { top: 60, right: 80, bottom: 140, left: 260 }
+    }
+  });
+  const projectedCenter = projectToViewport(result.focusCenter, result, 34, 10 / 7);
+
+  assert.equal(result.theta, -0.23);
+  assert.equal(result.phi, 0.14);
+  approximately(projectedCenter.x, result.viewport.safeRect.centerX, 1e-9);
+  approximately(projectedCenter.y, result.viewport.safeRect.centerY, 1e-9);
+  assert.deepEqual(result.bounds, DEFAULT_MODEL);
+});
+
+test("full-bounds fit margin adds breathing room and scales with the model", () => {
+  const options = {
+    bounds: DEFAULT_MODEL,
+    theta: -0.18,
+    phi: 0.11,
+    verticalFovDegrees: 34,
+    aspect: 1.5,
+    viewport: DEFAULT_VIEWPORT
+  };
+  const edgeFit = calculateBoundsCameraPose({ ...options, fitMargin: 1 });
+  const comfortableFit = calculateBoundsCameraPose({ ...options, fitMargin: 1.12 });
+  const doubled = calculateBoundsCameraPose({
+    ...options,
+    bounds: scaleBounds(DEFAULT_MODEL, 2),
+    fitMargin: 1.12
+  });
+
+  assert.ok(comfortableFit.radius > edgeFit.radius);
+  approximately(doubled.radius, comfortableFit.radius * 2);
+  for (const axis of ["x", "y", "z"]) {
+    approximately(doubled.target[axis], comfortableFit.target[axis] * 2);
+    approximately(doubled.focusCenter[axis], comfortableFit.focusCenter[axis] * 2);
+  }
+});
+
+test("full-bounds camera normalizes reversed and degenerate bounds to finite poses", () => {
+  const scenarios = [
+    bounds(48, 96, 15, -48, 0, 0),
+    bounds(0, 0, 0, 0, 96, 15),
+    bounds(12, 34, 56, 12, 34, 56)
+  ];
+
+  for (const value of scenarios) {
+    const result = calculateBoundsCameraPose({
+      bounds: value,
+      theta: -0.18,
+      phi: 0.11,
+      verticalFovDegrees: 34,
+      aspect: 390 / 800,
+      viewport: {
+        width: 390,
+        height: 800,
+        insets: { top: 64, right: 0, bottom: 280, left: 0 }
+      }
+    });
+
+    assert.ok(result.radius > 0);
+    for (const numeric of [
+      result.radius,
+      ...Object.values(result.target),
+      ...Object.values(result.focusCenter),
+      ...Object.values(result.bounds.min),
+      ...Object.values(result.bounds.max)
+    ]) assert.equal(Number.isFinite(numeric), true);
+  }
 });
 
 function pose(kind, modelBounds, featureBounds) {

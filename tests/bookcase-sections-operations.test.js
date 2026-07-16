@@ -87,6 +87,17 @@ test("addSection uses the selected bay when eligible or the widest eligible bay 
   assert.equal(selectedResult.accepted, true);
   assert.equal(selectedResult.sourceSectionIndex, 1);
   assert.deepEqual(selectedResult.widths, [40, 17, 17]);
+
+  const defaultFourBay = layoutPresets.find((preset) => preset.id === "lower-cabinets");
+  const reflowed = addSection(defaultFourBay.config, generateBookcaseLayout(defaultFourBay.config), 0);
+  assert.equal(reflowed.accepted, true);
+  assert.equal(reflowed.reflowed, true);
+  assert.equal(reflowed.insertedSectionIndex, 1);
+  assert.deepEqual(reflowed.widths, [18.3, 18.3, 18.3, 18.3, 18.3]);
+  assert.deepEqual(reflowed.config.layoutMetadata.sectionTypes, [
+    "lower_doors", "open", "lower_doors", "lower_doors", "lower_doors"
+  ]);
+  assert.equal(generateBookcaseLayout(reflowed.config).validation.valid, true);
 });
 
 test("duplicateSection preserves compatible door arrangements and falls back to Auto when a copied arrangement no longer fits", () => {
@@ -197,6 +208,17 @@ test("deleteSection removes selected metadata, chooses the narrower suitable nei
   assert.equal(left.accepted, true);
   assert.equal(left.mergeDirection, "left");
   assert.deepEqual(left.widths, [45.75, 18, 29.25]);
+
+  const glassLibrary = layoutPresets.find((preset) => preset.id === "glass-library");
+  const reflowed = deleteSection(glassLibrary.config, generateBookcaseLayout(glassLibrary.config), 0);
+  assert.equal(reflowed.accepted, true);
+  assert.equal(reflowed.reflowed, true);
+  assert.equal(reflowed.mergeDirection, "reflow");
+  assert.deepEqual(reflowed.widths, [35, 35, 35]);
+  assert.deepEqual(reflowed.config.layoutMetadata.sectionTypes, [
+    "lower_doors", "lower_doors", "lower_doors"
+  ]);
+  assert.equal(generateBookcaseLayout(reflowed.config).validation.valid, true);
 });
 
 test("organizer operations return stable failures for invalid, bounded, narrow, and locked requests", () => {

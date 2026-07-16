@@ -1,10 +1,10 @@
-import { buildPricingContext } from "./bookcase-pricing.js?v=direct-hardware-20260714a";
+import { buildPricingContext } from "./bookcase-pricing.js?v=engine-polish-20260716a";
 import {
   getHardwareVariant,
   hardwareFinishOptions,
   hardwareTypeOptions,
   optionLabels
-} from "./bookcase-config.js?v=direct-hardware-20260714a";
+} from "./bookcase-config.js?v=engine-polish-20260716a";
 
 const storedLayoutLabels = Object.freeze({
   "lower-cabinets": "Full Bookcase",
@@ -56,10 +56,8 @@ export function createQuotePrefill(config = {}) {
   const hardwareVariant = getHardwareVariant(normalizedConfig.hardware);
   const hardwareTypeLabel = hardwareTypeOptions.find((option) => option.value === hardwareVariant?.type)?.label || "";
   const hardwareFinishLabel = hardwareFinishOptions.find((option) => option.value === hardwareVariant?.finish)?.label || "";
-  const doorFrontProfile = createDoorFrontProfile(billable.doorsByStyle);
-  const drawerFrontProfile = billable.generatedDrawerFronts > 0
-    ? { id: normalizedConfig.drawerFrontStyle, label: optionLabels.drawerFrontStyle[normalizedConfig.drawerFrontStyle], count: billable.generatedDrawerFronts }
-    : null;
+  const doorFrontProfile = createFrontProfile(billable.doorsByStyle, optionLabels.doorStyle);
+  const drawerFrontProfile = createFrontProfile(billable.drawersByStyle, optionLabels.drawerFrontStyle);
   const legacyHardwareSelection = billable.hardwareUnits > 0 && hardwareVariant
     ? {
         id: hardwareVariant.value,
@@ -255,12 +253,12 @@ function cloneLayoutMetadata(value) {
   ]));
 }
 
-function createDoorFrontProfile(doorsByStyle = {}) {
-  const styles = Object.entries(doorsByStyle)
+function createFrontProfile(frontsByStyle = {}, labels = {}) {
+  const styles = Object.entries(frontsByStyle)
     .filter(([, count]) => Number.isFinite(count) && count > 0)
     .map(([id, count]) => ({
       id,
-      label: optionLabels.doorStyle[id] || formatProfileId(id),
+      label: labels[id] || formatProfileId(id),
       count
     }));
   if (!styles.length) return null;

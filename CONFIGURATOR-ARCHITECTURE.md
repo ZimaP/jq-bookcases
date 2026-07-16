@@ -163,10 +163,13 @@ saved-design schema.
 Section editing is a view over accepted physical state. A persistent organizer
 shows `Sections (N)`, exact total width, Add Section, and one horizontally
 scrollable card per section with descriptor-derived thumbnail, section number,
-exact clear width, selected state, and Duplicate/Delete menu. Selecting a card
-or model section synchronizes Layout / General Properties. The exact numeric
-field and steppers remain the non-drag alternative. Organizer scroll, selection,
-menu state, and numeric drafts do not affect design identity, BOM, or price.
+customer-facing clear width rounded to at most two decimal places, selected
+state, and Duplicate/Delete menu. Selecting a card or model section synchronizes
+Layout / General Properties. Its numeric field shows the same customer-facing
+precision and remains the non-drag alternative; accepted section widths and
+all engine calculations retain full canonical precision. Organizer scroll,
+selection, menu state, and numeric drafts do not affect design identity, BOM,
+or price.
 
 `bookcase-sections.js` owns pure, non-mutating operations that resize adjacent
 sections while preserving total clear width, split and merge with the 0.75 in
@@ -205,7 +208,9 @@ Pan are mutually exclusive interaction tools; native or fallback fullscreen
 changes presentation and requests viewer resize. Projected dimensions use
 accepted descriptor bounds and fade in oblique views rather than implying
 false screen-space measurements. Narrow projections use compact labels and
-collision checks while exact numeric values remain available in Properties.
+collision checks. Section-width labels and the Properties field present at
+most two decimal places; accepted state and engine math retain full canonical
+precision.
 
 Divider handles remain available on desktop, tablet, and mobile with enlarged
 targets and a numeric alternative. Pointer previews update the overlay and a
@@ -273,6 +278,7 @@ plane calculation. It returns:
 | `outerTopPlaneY` | Nominal overall height |
 | `carcassFrontPlaneZ` | Nominal carcass/opening front, always 0 |
 | `finishedFrontPlaneZ` | 0 for `jq_inset_v1`; `-doorThickness` for `legacy_overlay_v1` |
+| `fixedSeparatorFrontPlaneZ` | Structural lower-storage separator front, always aligned to `carcassFrontPlaneZ` |
 | `shelfFrontPlaneZ` | Centralized front-clearance reference for the active construction profile |
 | `backInteriorPlaneZ`, `outerBackPlaneZ` | Back-panel interior face and nominal rear face |
 | `baseFrontPlaneZ` | Style-specific visible/structural base reference |
@@ -481,6 +487,7 @@ in `docs/JQ-CONSTRUCTION-STANDARD.md`. Current code values are:
 | Side, top, bottom, and divider thickness | 0.75 in |
 | Back panel thickness | 0.25 in |
 | Default shelf thickness | 1.25 in |
+| Fixed lower-storage separator thickness | 0.75 in |
 | Door and drawer front thickness | 0.75 in |
 | Door and drawer edge reveal | 0.125 in |
 | Double-door center gap | 0.125 in |
@@ -567,9 +574,14 @@ depth are derived from that section.
 - Asymmetric layouts use a bounded deterministic vertical offset; they still
   preserve containment and clearance.
 
-Lower storage creates a fixed separator. Adjustable shelves begin above that
-separator. Tall-door, media, desk, and feature zones suppress shelves only
-where their structured opening requires it.
+Lower storage creates a fixed structural separator. It begins at
+`fixedSeparatorFrontPlaneZ` / the carcass front plane, spans the full section
+clear width, and uses `fixedSeparatorThickness`; adjustable-shelf front setback,
+side clearance, and selected thickness do not alter it. Adjustable shelves begin
+above that separator. Tall-door sections retain their section-configured
+interior shelves, including visible shelving behind glass fronts. Media, desk,
+and feature zones suppress shelves only where their structured opening requires
+it.
 
 ## Doors, drawers, and hardware
 

@@ -1,5 +1,5 @@
 import * as THREE from "./assets/vendor/three.module.js";
-import { diagramSvg, iconSvg } from "./icon-system.js?v=jq-icons-20260715g";
+import { diagramSvg, iconSvg } from "./icon-system.js?v=interface-polish-20260715a";
 import {
   baseStyleOptions,
   crownStyleOptions,
@@ -21,9 +21,9 @@ import {
   normalizeBookcaseConfig,
   optionLabels,
   resolveHardwareVariant
-} from "./bookcase-config.js?v=direct-hardware-20260714a";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=direct-hardware-20260714a";
-import { formatPrice } from "./bookcase-pricing.js?v=direct-hardware-20260714a";
+} from "./bookcase-config.js?v=engine-polish-20260716a";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=engine-polish-20260716a";
+import { formatPrice } from "./bookcase-pricing.js?v=engine-polish-20260716a";
 import {
   addSection,
   applySectionWidths,
@@ -38,24 +38,25 @@ import {
   resizeAdjacentSections,
   setSectionClearWidth,
   setSectionDoorArrangement,
+  setSectionStorageConfiguration,
   setSectionType,
   splitSection
-} from "./bookcase-sections.js?v=reference-layout-20260715g";
+} from "./bookcase-sections.js?v=engine-polish-20260716a";
 import {
   PROFILE_CAMERA_DURATION,
+  calculateBoundsCameraPose,
   calculateProfileCameraPose,
   calculateViewportAwareTarget,
   isProfileCameraKey,
   resolveCameraTransitionDuration
-} from "./profile-camera.js?v=direct-hardware-20260714a";
+} from "./profile-camera.js?v=engine-polish-20260716a";
 import {
   BENJAMIN_MOORE_COLOR_DATA_NOTICE,
   BENJAMIN_MOORE_OFFICIAL_COLORS_URL,
   createBenjaminMoorePaintSelection,
   getBenjaminMooreColorCatalogProvider
-} from "./benjamin-moore-colors.js?v=direct-hardware-20260714a";
+} from "./benjamin-moore-colors.js?v=engine-polish-20260716a";
 import {
-  INSPECTOR_TAB_DEFINITIONS,
   STAGE_CONTROL_GROUPS,
   UNIFIED_CONTROL_GROUPS,
   WORKSPACE_STAGES,
@@ -77,53 +78,82 @@ import {
   resolveSelectionContext,
   shouldRunAction,
   validateUnifiedConfiguration
-} from "./configurator-experience.js?v=reference-layout-20260715i";
+} from "./configurator-experience.js?v=engine-polish-20260716a";
 import {
   createAcceptedDesignSnapshot,
   evaluateBookcaseCandidate,
   restoreAcceptedDesignSnapshot
-} from "./bookcase-engine.js?v=direct-hardware-20260714a";
-import { createLegacyHardwareSelections } from "./hardware-catalog.js?v=direct-hardware-20260714a";
-import { resolveDirectEditIntersection } from "./direct-edit-picking.js?v=direct-hardware-20260714a";
+} from "./bookcase-engine.js?v=engine-polish-20260716a";
+import { createLegacyHardwareSelections } from "./hardware-catalog.js?v=engine-polish-20260716a";
+import { resolveDirectEditIntersection } from "./direct-edit-picking.js?v=engine-polish-20260716a";
 import {
   createCabinetLatchProxyParts,
   createCupPullProxyParts,
   createLinearPullProxyParts,
   descriptorMountCentersToScene
-} from "./hardware-proxy-geometry.js?v=direct-hardware-20260714a";
+} from "./hardware-proxy-geometry.js?v=engine-polish-20260716a";
 import {
   createExpectedRenderManifest,
   validateRenderedManifest
-} from "./bookcase-render-contract.js?v=direct-hardware-20260714a";
+} from "./bookcase-render-contract.js?v=engine-polish-20260716a";
 import {
-  INSPIRATION_FILTERS,
   STUDIO_CAPABILITIES,
   STUDIO_DESIGN_INTENTS,
   STUDIO_ENTRY_VIEWS,
   STUDIO_PROVISIONAL_DIMENSIONS,
   createNeutralCustomConfig,
-  filterInspirationIdeas,
-  getInspirationIdea,
   getStudioPreviewIdeas,
-  inspirationIdeas,
   isStudioResumeRequest,
   isStudioWelcomeRequest,
   normalizeStudioDesignIntent,
   normalizeStudioEntryView,
-  suggestStudioSectionCount,
-  validateStudioDimensions
-} from "./configurator-studio.js?v=direct-hardware-20260714a";
+  suggestStudioSectionCount
+} from "./configurator-studio.js?v=responsive-callouts-20260715e";
 
 const numericFields = new Set(["width", "height", "depth", "sections", "shelves", "shelfThickness", "lightingWarmth", "drawerCount"]);
+const sectionStoragePresets = Object.freeze([
+  Object.freeze({
+    id: "open_shelves",
+    label: "Open Shelves",
+    description: "Open display with adjustable shelves",
+    patch: Object.freeze({ type: "open", shelfCount: 4 })
+  }),
+  Object.freeze({
+    id: "lower_doors",
+    label: "Lower Doors + Shelves",
+    description: "Closed storage below, open shelves above",
+    patch: Object.freeze({ type: "lower_doors", shelfCount: 3, lowerStorageHeight: 30, doorArrangement: "auto" })
+  }),
+  Object.freeze({
+    id: "lower_drawers",
+    label: "Lower Drawers + Shelves",
+    description: "Drawer storage below, open shelves above",
+    patch: Object.freeze({ type: "drawers", shelfCount: 3, drawerCount: 3, lowerStorageHeight: 30 })
+  }),
+  Object.freeze({
+    id: "full_doors",
+    label: "Full Doors",
+    description: "Full-height concealed storage",
+    patch: Object.freeze({ type: "tall_doors", shelfCount: 4, doorStyle: "shaker", doorArrangement: "auto" })
+  }),
+  Object.freeze({
+    id: "glass_display",
+    label: "Glass Display",
+    description: "Full-height glass doors with display shelves",
+    patch: Object.freeze({ type: "tall_doors", shelfCount: 4, doorStyle: "glass", doorArrangement: "auto" })
+  })
+]);
 const builderIcons = Object.freeze({
   dimensions: iconSvg("dimensions"),
+  width: iconSvg("width"),
   space: iconSvg("space-frame"),
   layout: iconSvg("sections"),
   storage: iconSvg("storage"),
-  structure: iconSvg("material-layers"),
+  structure: iconSvg("crown-molding"),
+  ideas: iconSvg("inspiration"),
   lighting: iconSvg("light-bulb"),
   finish: iconSvg("paint-finish"),
-  hardware: iconSvg("handle-pull"),
+  hardware: iconSvg("hardware"),
   preview: iconSvg("preview-eye"),
   shelves: iconSvg("shelves"),
   doors: iconSvg("doors"),
@@ -158,6 +188,17 @@ const builderIcons = Object.freeze({
   craftsmanship: iconSvg("craftsmanship"),
   customFit: iconSvg("dimensions"),
 });
+
+const studioCapabilityIcons = Object.freeze([
+  builderIcons.layout,
+  builderIcons.structure,
+  builderIcons.dimensions,
+  builderIcons.finish,
+  builderIcons.storage,
+  builderIcons.lighting,
+  builderIcons.shelves,
+  builderIcons.customFit
+]);
 
 const deliveryOptionIcons = Object.freeze({
   pickup: iconSvg("shop-pickup"),
@@ -226,10 +267,10 @@ const SMART_CAMERA_PROFILES = Object.freeze({
 });
 
 const LIGHTING_CAMERA_OVERRIDES = Object.freeze({
-  warm_pucks: Object.freeze({ theta: -0.2, phi: -0.24, radiusScale: 0.52, selection: "center", limit: 1, targetModelYOffset: -0.055, targetModelZOffset: -0.025 }),
+  warm_pucks: Object.freeze({ theta: -0.46, phi: -0.28, radiusScale: 0.56, selection: "center", limit: 1, targetModelYOffset: -0.055, targetModelZOffset: -0.04 }),
   shelf_accent: Object.freeze({ theta: -0.38, phi: -0.13, radiusScale: 0.54, selection: "centerInterior", limit: 2, targetModelYOffset: -0.015, targetModelZOffset: -0.06 }),
   vertical_led: Object.freeze({ theta: -0.4, phi: -0.035, radiusScale: 0.64, selection: "centerInterior", limit: 2, targetModelZOffset: -0.08 }),
-  full_package: Object.freeze({ theta: -0.38, phi: -0.1, radiusScale: 0.6, selection: "centerInterior", limit: 3, targetModelYOffset: -0.02, targetModelZOffset: -0.07 })
+  full_package: Object.freeze({ theta: -0.48, phi: -0.17, radiusScale: 0.62, selection: "centerInterior", limit: 3, targetModelYOffset: -0.02, targetModelZOffset: -0.07 })
 });
 
 const CAMERA_PROFILE_BY_CATEGORY = Object.freeze({
@@ -317,7 +358,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (host.__bookcaseConfigurator) return;
     if (host.getAttribute("data-enable-cabinet-ar") === "true") {
       try {
-        const { readCabinetArShareConfiguration } = await import("./cabinet-ar.js?v=direct-hardware-20260714a");
+        const { readCabinetArShareConfiguration } = await import("./cabinet-ar.js?v=engine-polish-20260716a");
         host.__cabinetArSharedConfiguration = readCabinetArShareConfiguration(window.location.href);
       } catch (error) {
         host.__cabinetArSharedConfiguration = null;
@@ -367,13 +408,7 @@ class BookcaseConfigurator {
     this.contextInvoker = null;
     this.contextAnchor = null;
     this.entryView = STUDIO_ENTRY_VIEWS.welcome;
-    this.inspirationFilter = "all";
-    this.inspirationExpanded = false;
-    this.studioDimensions = { ...STUDIO_PROVISIONAL_DIMENSIONS };
-    this.studioDimensionsProvisional = false;
-    this.studioDimensionIssues = [];
-    this.studioSectionCount = suggestStudioSectionCount(this.studioDimensions.width);
-    this.introPreviewIndex = 1;
+    this.introPreviewIndex = 0;
     this.introPreviewTimer = 0;
     this.introPreviewStopped = false;
     this.analyticsEvents = [];
@@ -399,6 +434,8 @@ class BookcaseConfigurator {
     this.sectionActionsExpanded = false;
     this.sectionDesignerCameraState = null;
     this.sectionDesignerCameraChanged = false;
+    this.previewCameraState = null;
+    this.previewActiveView = null;
     this.activeSectionDividerDrag = null;
     this.activeView = "front";
     this.arController = null;
@@ -607,14 +644,12 @@ class BookcaseConfigurator {
   renderWorkspaceStageRail() {
     return WORKSPACE_STAGES.map((stage, index) => {
       const active = stage.id === this.activeStageId;
-      const complete = stage.id === "space"
-        && !validateUnifiedConfiguration(this.state, this.layout, this.drafts).issues.some((issue) => issue.inspectorGroupId === "overall_size");
       const icon = builderIcons[stage.icon || stage.id] || builderIcons.layout;
       return `
-        <button type="button" class="workspace-stage${active ? " is-active" : ""}${complete ? " is-complete" : ""}" data-workspace-stage="${escapeHtml(stage.id)}" ${active ? 'aria-current="step"' : ""}>
+        <button type="button" class="workspace-stage${active ? " is-active" : ""}" data-workspace-stage="${escapeHtml(stage.id)}" ${active ? 'aria-current="location"' : ""}>
           <span class="workspace-stage-icon" aria-hidden="true">${icon}</span>
           <span class="workspace-stage-copy"><strong>${escapeHtml(stage.label)}</strong><small>${escapeHtml(stage.subtitle)}</small></span>
-          <span class="workspace-stage-state" aria-hidden="true">${complete ? builderIcons.check : index + 1}</span>
+          <span class="workspace-stage-state" aria-hidden="true">${index + 1}</span>
         </button>
       `;
     }).join("");
@@ -663,7 +698,7 @@ class BookcaseConfigurator {
           </div>
         </section>
 
-        <aside class="workspace-properties" data-properties-inspector data-controls-scroll aria-label="Selected object properties" tabindex="-1">
+        <aside class="workspace-properties" data-properties-inspector data-controls-scroll aria-label="Design properties" tabindex="-1">
           <div class="workspace-properties-content" data-inspector-content></div>
         </aside>
 
@@ -718,17 +753,12 @@ class BookcaseConfigurator {
           ${this.renderStudioEntryCopyContent()}
         </section>
 
-        <section class="studio-intro-stage" aria-labelledby="${this.id}-preview-title">
-          <header class="studio-intro-heading">
-            <span class="section-kicker">A flexible starting point</span>
-            <h2 id="${this.id}-preview-title">One system, many arrangements</h2>
-            <p>These presentation views are derived from buildable configurations. They are not your design and do not create an estimate.</p>
-          </header>
+        <section class="studio-intro-stage" aria-label="Bookcase arrangement presentation">
           <div class="studio-preview-composition">
-            <div class="studio-intro-preview" data-studio-intro-preview aria-live="polite">
+            <div class="studio-intro-preview" data-studio-intro-preview>
               ${this.renderStudioIntroPreview()}
             </div>
-            <div class="studio-preview-variants" role="group" aria-label="Preview different arrangement capabilities">
+            <div class="studio-preview-variants" role="group" aria-label="Preview different bookcase arrangements">
               ${getStudioPreviewIdeas().map((idea, index) => `
                 <button type="button" data-studio-preview-index="${index}" aria-pressed="${index === this.introPreviewIndex}">${escapeHtml(index === 0 ? "Open framework" : index === 1 ? "Mixed storage" : "Tall zones")}</button>
               `).join("")}
@@ -736,15 +766,11 @@ class BookcaseConfigurator {
           </div>
         </section>
 
-        <footer class="studio-entry-lockbar" aria-label="Estimate and actions available after starting a design">
+        <footer class="studio-entry-lockbar" aria-label="Estimate available after starting a design">
+          <span class="studio-entry-estimate-icon" aria-hidden="true">${builderIcons.customFit}</span>
           <div class="studio-entry-estimate">
-            <span>Project estimate</span>
-            <strong data-price>Your estimate will appear as you build</strong>
-            <small>No configuration, price, or design ID has been created yet.</small>
-          </div>
-          <div class="studio-entry-locked-actions" aria-label="Actions unlock after a design begins">
-            <button type="button" disabled aria-disabled="true">Save after you start</button>
-            <button type="button" disabled aria-disabled="true">Quote after you start</button>
+            <strong data-price>Your project estimate will appear as you build</strong>
+            <small>Pricing updates in real time based on your selections and changes.</small>
           </div>
         </footer>
         <p class="status-message" data-builder-status role="status" aria-live="polite"></p>
@@ -753,122 +779,38 @@ class BookcaseConfigurator {
   }
 
   renderStudioEntryCopyContent() {
-    return `${this.entryView === STUDIO_ENTRY_VIEWS.welcome ? "" : `
-      <button class="studio-entry-back" type="button" data-studio-back>${builderIcons.back}<span>Back to studio start</span></button>
-    `}${this.renderStudioEntryContent()}`;
+    return this.renderStudioEntryContent();
   }
 
   renderStudioEntryContent() {
-    if (this.entryView === STUDIO_ENTRY_VIEWS.custom) return this.renderStudioCustomStart();
-    if (this.entryView === STUDIO_ENTRY_VIEWS.ideas) return this.renderStudioIdeaLibrary();
     return `
       <header class="studio-welcome-heading">
-        <span class="section-kicker">Built around your space</span>
-        <h1 id="${this.id}-entry-title">Start with your wall. Build it your way.</h1>
-        <p>Your room sets the boundaries; the details stay yours. Begin with measurements or an editable idea, then shape every section, storage type, profile, finish, and lighting choice in one continuous design studio.</p>
+        <span class="section-kicker">One studio. Total freedom.</span>
+        <h1 id="${this.id}-entry-title"><span>Design any bookcase.</span> <em>Your vision, your way.</em></h1>
+        <p>From layout and storage to finishes and lighting—customize every detail to create a built-in that’s perfectly yours.</p>
       </header>
       <ul class="studio-capability-list" aria-label="What you can customize">
-        ${STUDIO_CAPABILITIES.map((capability) => `<li>${builderIcons.check}<span>${escapeHtml(capability)}</span></li>`).join("")}
+        ${STUDIO_CAPABILITIES.map((capability, index) => `<li>${studioCapabilityIcons[index] || builderIcons.check}<span>${escapeHtml(capability)}</span></li>`).join("")}
       </ul>
-      <div class="studio-entry-routes">
-        <button class="studio-route-card is-primary" type="button" data-studio-route="custom">
-          <span class="studio-route-number" aria-hidden="true">01</span>
-          <span><small>Recommended</small><strong>Start with my space</strong><em>Enter my dimensions</em></span>
-          ${builderIcons.dimensions}
-        </button>
-        <button class="studio-route-card" type="button" data-studio-route="ideas">
-          <span class="studio-route-number" aria-hidden="true">02</span>
-          <span><small>Explore possibilities</small><strong>Use an editable idea</strong><em>Browse ideas</em></span>
-          ${builderIcons.layout}
-        </button>
+      <div class="studio-entry-action">
+        <button class="studio-start-button" type="button" data-studio-start><span>Start Building Your Bookcase</span><span aria-hidden="true">${builderIcons.chevronRight}</span></button>
       </div>
-      <p class="studio-reassurance">Every starting point stays editable. Media, desk, and fireplace openings explain their structural constraints where you edit them.</p>
-    `;
-  }
-
-  renderStudioCustomStart() {
-    const issueFor = (field) => this.studioDimensionIssues.find((issue) => issue.field === field)?.message || "";
-    return `
-      <header class="studio-welcome-heading is-compact">
-        <span class="section-kicker">Start with my space</span>
-        <h1 id="${this.id}-entry-title">Give the design a real boundary.</h1>
-        <p>Enter the wall dimensions you know. If they are provisional, you can revise them in Space before saving or requesting a quote.</p>
-      </header>
-      ${this.studioDimensionsProvisional ? `
-        <p class="studio-provisional-note" role="status"><strong>Provisional measurements</strong> We started with 96 × 96 × 15 inches. Confirm these before production planning.</p>
-      ` : ""}
-      <fieldset class="studio-dimension-fields">
-        <legend>Wall and bookcase dimensions</legend>
-        ${[
-          ["width", "Wall width", 24, 144],
-          ["height", "Available height", 72, 120],
-          ["depth", "Preferred depth", 10, 24]
-        ].map(([field, label, min, max]) => `
-          <label>
-            <span>${label}<small>${min}–${max} in</small></span>
-            <span class="studio-dimension-input"><input data-studio-dimension="${field}" type="number" min="${min}" max="${max}" step="1" inputmode="decimal" value="${escapeHtml(this.studioDimensions[field])}" aria-label="${label} in inches" aria-describedby="${this.id}-studio-${field}-error"><i aria-hidden="true">in</i></span>
-            <small id="${this.id}-studio-${field}-error" class="studio-field-error" data-studio-dimension-error="${field}">${escapeHtml(issueFor(field))}</small>
-          </label>
-        `).join("")}
-      </fieldset>
-      <p class="studio-dimension-reassurance">You can change wall width, height, and depth at any time inside the design studio.</p>
-      <button class="studio-unsure-button" type="button" data-studio-unsure>I’m not sure yet</button>
-      <button class="studio-create-button" type="button" data-studio-create>Start with these dimensions</button>
-      <p class="studio-reassurance">This creates your first editable design and opens the live 3D model, estimate, Save, Quote, and room view.</p>
-    `;
-  }
-
-  renderStudioIdeaLibrary() {
-    const filtered = filterInspirationIdeas(this.inspirationFilter);
-    const visible = this.inspirationExpanded || this.inspirationFilter !== "all" ? filtered : filtered.slice(0, 6);
-    return `
-      <header class="studio-welcome-heading is-compact">
-        <span class="section-kicker">Ideas, not limits</span>
-        <h1 id="${this.id}-entry-title">Choose a buildable idea to reshape.</h1>
-        <p>Every card is backed by the same configuration engine. Choose one to create your first accepted design, then edit its dimensions, sections, storage, construction, and appearance.</p>
-      </header>
-      <div class="studio-idea-filters" role="group" aria-label="Filter editable ideas">
-        ${INSPIRATION_FILTERS.map((filter) => `
-          <button type="button" data-idea-filter="${filter.id}" aria-pressed="${filter.id === this.inspirationFilter}">${escapeHtml(filter.label)}</button>
-        `).join("")}
-      </div>
-      <div class="studio-idea-grid" data-studio-idea-grid>
-        ${visible.map((idea) => this.renderStudioIdeaCard(idea)).join("")}
-      </div>
-      ${this.inspirationFilter === "all" && !this.inspirationExpanded && filtered.length > visible.length ? `
-        <button class="studio-view-all" type="button" data-view-all-ideas>View all ${filtered.length} editable ideas</button>
-      ` : ""}
-      <p class="studio-reassurance">“Fully editable” means every section type and width can be changed directly. Feature openings remain editable within the structural rules shown in the designer.</p>
-    `;
-  }
-
-  renderStudioIdeaCard(idea) {
-    const preset = layoutPresets.find((item) => item.id === idea.id);
-    const index = layoutPresets.findIndex((item) => item.id === idea.id) + 1;
-    return `
-      <button class="studio-idea-card" type="button" data-idea-id="${escapeHtml(idea.id)}">
-        ${this.renderPresetMini(preset, index)}
-        <span class="studio-idea-copy">
-          <span><small>${escapeHtml(INSPIRATION_FILTERS.find((filter) => filter.id === idea.category)?.label || idea.category)}</small>${idea.fullyEditable ? "<em>Fully editable</em>" : "<em>Feature constraints</em>"}</span>
-          <strong>${escapeHtml(idea.name)}</strong>
-          <small>${escapeHtml(idea.description)}</small>
-        </span>
-      </button>
     `;
   }
 
   renderStudioIntroPreview() {
     const previewIdeas = getStudioPreviewIdeas();
     const idea = previewIdeas[clamp(this.introPreviewIndex, 0, previewIdeas.length - 1)] || previewIdeas[0];
-    const preset = layoutPresets.find((item) => item.id === idea.id);
-    const layout = generateBookcaseLayout(preset.config);
+    if (!idea) return "";
+    const layout = generateBookcaseLayout(idea.config);
     return `
       <div class="studio-preview-scaffold" data-studio-preview-idea="${escapeHtml(idea.id)}">
-        <span class="studio-dimension-line is-width" aria-hidden="true"><i></i><small><b>${layout.config.width} in</b><span>Wall width</span></small><i></i></span>
-        <span class="studio-dimension-line is-height" aria-hidden="true"><i></i><small><b>${layout.config.height} in</b><span>Wall height</span></small><i></i></span>
-        <div class="studio-preview-drawing">${this.renderPresetMini(preset, 1)}</div>
-        <span class="studio-preview-callout is-add">${builderIcons.plus}<small>Add section</small></span>
-        <span class="studio-preview-callout is-resize">${builderIcons.dimensions}<small>Resize any section</small></span>
+        <div class="studio-preview-drawing">${this.renderPresetMini(idea, 1)}</div>
+        <span class="studio-preview-measure is-height" aria-hidden="true"><strong>${layout.config.height} in</strong><small>Wall height</small></span>
+        <span class="studio-preview-measure is-width" aria-hidden="true"><strong>${layout.config.width} in</strong><small>Wall width</small></span>
+        ${idea.callouts.map((callout) => `
+          <span class="studio-preview-callout is-${escapeHtml(callout.side)}" data-studio-preview-callout="${escapeHtml(callout.id)}" style="--studio-callout-y: ${escapeHtml(callout.y)}">${builderIcons[callout.icon] || builderIcons.check}<small>${escapeHtml(callout.label)}</small></span>
+        `).join("")}
       </div>
       <p class="studio-preview-caption"><strong>${escapeHtml(idea.name)}</strong><span>${layout.config.sections} engine-derived sections · presentation only</span></p>
     `;
@@ -877,8 +819,14 @@ class BookcaseConfigurator {
   renderInspector(options = {}) {
     if (!this.elements?.inspectorContent) return;
     this.clearResetConfirmation();
+    const focusedControl = options.preserveFocus === false ? null : this.captureWorkspaceFocus();
     const scrollTop = this.elements.controlsScroll?.scrollTop || 0;
     this.elements.inspectorContent.innerHTML = this.renderWorkspaceProperties();
+    const renderedTitle = this.elements.inspectorContent.querySelector(".workspace-properties-heading h2")?.textContent?.trim();
+    this.elements.controlsScroll?.setAttribute(
+      "aria-label",
+      this.selection && renderedTitle ? `${renderedTitle} properties` : "Design properties"
+    );
     if (this.elements.sectionOrganizerContent) {
       this.elements.sectionOrganizerContent.innerHTML = this.renderSectionOrganizer();
     }
@@ -890,7 +838,56 @@ class BookcaseConfigurator {
     window.requestAnimationFrame(() => {
       if (!this.elements.controlsScroll) return;
       this.elements.controlsScroll.scrollTop = options.resetScroll ? 0 : scrollTop;
+      this.restoreWorkspaceFocus(focusedControl);
     });
+  }
+
+  captureWorkspaceFocus() {
+    const active = document.activeElement;
+    if (!active || !this.host.contains(active)) return null;
+    if (active.id) return { id: active.id };
+    const attributes = [
+      "data-workspace-stage",
+      "data-hardware-type",
+      "data-hardware-finish",
+      "data-section-type",
+      "data-section-select",
+      "data-section-add",
+      "data-section-duplicate",
+      "data-section-delete",
+      "data-section-equalize",
+      "data-step-field",
+      "data-section-width-step",
+      "data-toggle-color-search",
+      "data-search-bm",
+      "data-review-design"
+    ];
+    const attribute = attributes.find((name) => active.hasAttribute?.(name));
+    if (!attribute) return null;
+    return {
+      attribute,
+      attributeValue: active.getAttribute(attribute),
+      value: "value" in active ? String(active.value) : null,
+      direction: active.getAttribute("data-step-direction")
+    };
+  }
+
+  restoreWorkspaceFocus(snapshot) {
+    if (!snapshot) return;
+    let target = snapshot.id ? this.host.querySelectorAll("[id]") : [];
+    if (snapshot.id) {
+      target = [...target].find((element) => element.id === snapshot.id) || null;
+    } else {
+      const candidates = [...this.host.querySelectorAll(`[${snapshot.attribute}]`)]
+        .filter((element) => element.getAttribute(snapshot.attribute) === snapshot.attributeValue)
+        .filter((element) => snapshot.value === null || !("value" in element) || String(element.value) === snapshot.value)
+        .filter((element) => snapshot.direction === null || element.getAttribute("data-step-direction") === snapshot.direction);
+      target = candidates[0] || null;
+    }
+    if (!target && ["data-section-delete", "data-section-duplicate"].includes(snapshot.attribute)) {
+      target = this.host.querySelector(`[data-section-select="${this.selectedSectionIndex}"]`);
+    }
+    target?.focus?.({ preventScroll: true });
   }
 
   renderWorkspaceProperties() {
@@ -898,30 +895,18 @@ class BookcaseConfigurator {
     const selectedSection = this.getSelectedSectionState();
     const title = this.selection
       ? this.selection.title
-      : stage.label;
+      : stage.id === "storage" ? "Interior options" : stage.label;
     const subtitle = this.selection
       ? (selectedSection ? formatSectionType(selectedSection.type) : this.selection.summary || stage.subtitle)
-      : stage.subtitle;
-    const tabs = this.getWorkspaceInspectorTabs(selectedSection);
-    const activeTab = tabs.find((tab) => tab.id === this.activeInspectorTabId)?.id || tabs[0]?.id || null;
-    if (activeTab) this.activeInspectorTabId = activeTab;
+      : stage.id === "storage" ? "Shelves, doors & drawers" : stage.subtitle;
     return `
       <header class="workspace-properties-heading">
         <div><h2>${escapeHtml(title)}</h2><p>${escapeHtml(subtitle)}</p></div>
         ${this.selection ? `<button type="button" data-close-selection aria-label="Clear model selection">${builderIcons.close}</button>` : ""}
       </header>
-      ${tabs.length ? `
-        <div class="workspace-inspector-tabs" role="tablist" aria-label="Section properties">
-          ${tabs.map((tab) => `
-            <button id="${this.id}-tab-${tab.id}" type="button" role="tab" data-inspector-tab="${tab.id}" aria-selected="${tab.id === activeTab}" aria-controls="${this.id}-tabpanel-${tab.id}" tabindex="${tab.id === activeTab ? 0 : -1}">
-              <span aria-hidden="true">${builderIcons[tab.icon] || builderIcons.layout}</span><small>${escapeHtml(tab.label)}</small>
-            </button>
-          `).join("")}
-        </div>
-      ` : ""}
-      <div id="${this.id}-tabpanel-${activeTab || stage.id}" class="workspace-properties-panel" role="tabpanel" ${activeTab ? `aria-labelledby="${this.id}-tab-${activeTab}"` : ""} data-active-stage-panel="${escapeHtml(stage.id)}">
-        ${this.renderWorkspacePropertiesContent(activeTab, selectedSection)}
-      </div>
+      <section class="workspace-properties-panel" role="region" aria-label="${escapeHtml(title)} controls" data-active-stage-panel="${escapeHtml(stage.id)}" data-inspector-view="${escapeHtml(stage.id)}">
+        ${this.renderWorkspacePropertiesContent(selectedSection)}
+      </section>
     `;
   }
 
@@ -933,34 +918,15 @@ class BookcaseConfigurator {
     return sections[index] || null;
   }
 
-  getWorkspaceInspectorTabs(selectedSection) {
-    if (!this.selection || !selectedSection || !["section", "divider", "door", "drawer", "shelves"].includes(this.selection.editorId)) return [];
-    const definitions = INSPECTOR_TAB_DEFINITIONS;
-    const ids = ["general", "shelves"];
-    if (["lower_doors", "tall_doors"].includes(selectedSection.type)) ids.push("doors");
-    if (selectedSection.type === "drawers") ids.push("drawers");
-    ids.push("back", "lighting");
-    return ids.map((id) => definitions[id]).filter(Boolean);
-  }
-
-  renderWorkspacePropertiesContent(activeTab, selectedSection) {
+  renderWorkspacePropertiesContent(selectedSection) {
     if (this.selection) {
       const editorId = this.selection.editorId;
-      if (selectedSection && ["section", "divider", "door", "drawer", "shelves"].includes(editorId)) {
-        if (activeTab === "shelves") return this.renderShelvesGroup();
-        if (activeTab === "doors" || activeTab === "drawers") return this.renderSelectedSectionFronts(activeTab);
-        if (activeTab === "back") return this.renderBackPanelSummary();
-        if (activeTab === "lighting") return this.renderLightingGroup();
-        return this.renderSectionGeneralInspector({ includeFoundation: this.activeStageId === "layout" });
-      }
-      if (editorId === "hardware") return this.renderHardwareGroup();
-      if (editorId === "lighting") return this.renderLightingGroup();
       if (editorId === "back") return this.renderBackPanelSummary();
-      if (editorId === "base" || editorId === "crown") return this.renderStructureGroup();
-      if (editorId === "body") return `${this.renderSpaceGroup()}${this.renderFinishGroup()}`;
+      if (editorId === "body") return this.renderSpaceGroup();
     }
-    if (this.activeStageId === "layout") return this.renderSectionGeneralInspector({ includeFoundation: true });
-    if (this.activeStageId === "storage") return `${this.renderShelvesGroup()}${this.renderStorageFrontsGroup()}`;
+    if (this.activeStageId === "layout") return this.renderLayoutConsole();
+    if (this.activeStageId === "storage") return this.renderStorageConsole(selectedSection);
+    if (this.activeStageId === "base_top") return this.renderStructureGroup();
     if (this.activeStageId === "preview") return `
       <section class="workspace-preview-stage">
         <button class="workspace-review-launch" type="button" data-review-design>Review Design</button>
@@ -971,91 +937,188 @@ class BookcaseConfigurator {
     return groups.map((groupId) => this.renderControlGroup(groupId, "properties")).join("");
   }
 
-  renderSectionGeneralInspector({ includeFoundation = false } = {}) {
+  renderLayoutConsole() {
     const designer = getSectionDesignerState(this.state, this.layout);
     this.selectedSectionIndex = clamp(this.selectedSectionIndex, 0, Math.max(0, designer.sections.length - 1));
     const selected = designer.sections[this.selectedSectionIndex];
     if (!selected) return "";
-    const typeOptions = [
-      ["open", "Open Shelves", "Full-height adjustable"],
-      ["lower_doors", "Lower Doors", "Closed storage"],
-      ["drawers", "Lower Drawers", `${this.state.drawerCount} fitted drawers`],
-      ["tall_doors", "Tall Doors", "Full-height storage"]
-    ];
     const widthValue = this.sectionWidthDraft || formatSectionWidth(selected.width);
     const duplicateAvailability = duplicateSection(this.state, this.layout, selected.index);
     const deleteAvailability = deleteSection(this.state, this.layout, selected.index);
     return `
-      <section class="workspace-section-general" data-section-general>
-        <fieldset class="workspace-section-types" ${selected.locked ? "disabled" : ""}>
-          <legend>Section type</legend>
-          <div class="workspace-section-type-grid">
-            ${typeOptions.map(([type, label, description]) => `
-              <label class="workspace-section-type-card">
-                <input type="radio" name="${this.id}-section-type" data-section-type="${type}" ${selected.type === type ? "checked" : ""}>
-                <span aria-hidden="true">${this.renderSectionThumbnail({ ...selected, type })}</span>
-                <strong>${escapeHtml(label)}</strong><small>${escapeHtml(description)}</small>
-                ${selected.type === type ? `<i class="workspace-type-check" aria-hidden="true">${builderIcons.check}</i>` : ""}
-              </label>
-            `).join("")}
-          </div>
-        </fieldset>
-        ${selected.locked ? `<p class="workspace-property-note">This preset feature is structurally locked. Choose another foundation to change its type.</p>` : ""}
-        <section class="workspace-property-block section-width-editor" aria-labelledby="${this.id}-section-width-label">
-          <h3 id="${this.id}-section-width-label">Width (clear)</h3>
+      <section class="workspace-layout-console" data-layout-console aria-label="Section layout controls">
+        <section class="workspace-console-block workspace-layout-count" aria-labelledby="${this.id}-layout-count-heading">
+          <header class="workspace-console-heading">
+            <div><span aria-hidden="true">${builderIcons.layout}</span><h3 id="${this.id}-layout-count-heading">Sections</h3></div>
+            <p>Set the number of vertical sections. Room dimensions stay in Space.</p>
+          </header>
+          ${this.renderStepperControl("sections", "Number of sections", 1, 6)}
+          <p class="control-helper section-limit-helper" data-section-limit></p>
+        </section>
+        <section class="workspace-console-block workspace-layout-width section-width-editor" aria-labelledby="${this.id}-section-width-label">
+          <header class="workspace-console-heading is-selected-section">
+            <div><span aria-hidden="true">${builderIcons.width}</span><h3 id="${this.id}-section-width-label">Section ${selected.index + 1} width</h3></div>
+            <strong>${formatSectionWidth(selected.width)} in clear</strong>
+          </header>
           <div class="section-width-input workspace-number-stepper">
             <button type="button" data-section-width-step="-0.5" aria-label="Decrease Section ${selected.index + 1} clear width">${builderIcons.minus}</button>
             <input id="${this.id}-section-width" data-section-width type="number" min="${designer.minimumClearWidth}" step="0.25" inputmode="decimal" value="${escapeHtml(widthValue)}" aria-describedby="${this.id}-section-width-help ${this.id}-section-width-error">
             <button type="button" data-section-width-step="0.5" aria-label="Increase Section ${selected.index + 1} clear width">${builderIcons.plus}</button>
             <span>in</span>
           </div>
-          <p id="${this.id}-section-width-help" class="control-helper">Overall width stays ${formatSectionWidth(this.state.width)} in. Drag a model divider or use these controls.</p>
+          <p id="${this.id}-section-width-help" class="control-helper">Bookcase width stays ${formatSectionWidth(this.state.width)} in. Drag a model divider or use these controls.</p>
           <p id="${this.id}-section-width-error" class="inline-validation-message" data-section-width-error aria-live="polite"></p>
         </section>
-        <section class="workspace-global-dimensions" aria-label="Overall dimensions">
-          <h3>Overall dimensions</h3>
-          <p>Height and depth apply to the entire bookcase.</p>
-          ${this.renderStepperControl("height", "Bookcase height (in)", 72, 120)}
-          ${this.renderStepperControl("depth", "Bookcase depth (in)", 10, 24)}
-        </section>
         <div class="workspace-section-actions">
+          <button type="button" data-section-equalize>${builderIcons.width}<span>Equalize Widths</span></button>
           <button type="button" data-section-duplicate ${duplicateAvailability.accepted ? "" : `disabled aria-describedby="${this.id}-duplicate-reason"`}>${builderIcons.copy}<span>Duplicate Section</span></button>
           <button type="button" class="is-destructive" data-section-delete ${deleteAvailability.accepted ? "" : `disabled aria-describedby="${this.id}-delete-reason"`}>${builderIcons.delete}<span>Delete Section</span></button>
         </div>
         ${duplicateAvailability.accepted ? "" : `<p id="${this.id}-duplicate-reason" class="workspace-action-reason"><strong>Duplicate unavailable:</strong> ${escapeHtml(duplicateAvailability.error?.message || "This section cannot be duplicated.")}</p>`}
         ${deleteAvailability.accepted ? "" : `<p id="${this.id}-delete-reason" class="workspace-action-reason"><strong>Delete unavailable:</strong> ${escapeHtml(deleteAvailability.error?.message || "This section cannot be deleted.")}</p>`}
-        ${includeFoundation ? `
-          <details class="workspace-foundation-ideas"><summary>Change foundation idea</summary>${this.renderLayoutCards("inspector")}</details>
-          <details class="workspace-construction-details" open><summary>Base &amp; crown</summary>${this.renderStructureGroup()}</details>
-        ` : ""}
       </section>
     `;
   }
 
-  renderSelectedSectionFronts(activeTab) {
-    const selected = this.getSelectedSectionState();
+  renderStorageConsole(selectedSection = null) {
+    const designer = getSectionDesignerState(this.state, this.layout);
+    const requestedIndex = Number.isInteger(selectedSection?.index)
+      ? selectedSection.index
+      : this.selectedSectionIndex;
+    this.selectedSectionIndex = clamp(requestedIndex, 0, Math.max(0, designer.sections.length - 1));
+    const selected = designer.sections[this.selectedSectionIndex];
     if (!selected) return "";
-    const isDoors = activeTab === "doors";
-    const arrangement = selected.doorLayout?.arrangement || "auto";
+    const usesDoors = ["lower_doors", "tall_doors"].includes(selected.type);
+    const usesDrawers = selected.type === "drawers";
+    const usesLowerStorage = selected.type === "lower_doors" || usesDrawers;
+    const arrangement = selected.doorLayout?.arrangement || selected.configuration?.doorArrangement || "auto";
     const generatedDoor = this.layout.components.find((component) => (
       component.role === "door" && component.id.startsWith(`${selected.id}-`)
     ));
     const arrangementAvailability = generatedDoor?.metadata?.arrangementAvailability || {};
+    const activePresetId = selected.type === "tall_doors"
+      ? (selected.doorStyle === "glass" ? "glass_display" : "full_doors")
+      : selected.type === "lower_doors" ? "lower_doors"
+        : selected.type === "drawers" ? "lower_drawers"
+          : "open_shelves";
+    const renderStorageStepper = (field, label, value, min, max, step = 1, unit = "") => `
+      <div class="workspace-storage-stepper" data-section-storage-control="${field}">
+        <label for="${this.id}-section-${field}">${escapeHtml(label)}</label>
+        <div class="workspace-number-stepper">
+          <button type="button" data-section-storage-step="${field}" data-step-direction="-${step}" data-min="${min}" data-max="${max}" aria-label="Decrease ${escapeHtml(label)}" ${Number(value) <= min ? "disabled" : ""}>${builderIcons.minus}</button>
+          <input id="${this.id}-section-${field}" data-section-storage-field="${field}" type="number" min="${min}" max="${max}" step="${step}" inputmode="${Number(step) % 1 === 0 ? "numeric" : "decimal"}" value="${escapeHtml(value)}" aria-describedby="${this.id}-section-storage-scope">
+          <button type="button" data-section-storage-step="${field}" data-step-direction="${step}" data-min="${min}" data-max="${max}" aria-label="Increase ${escapeHtml(label)}" ${Number(value) >= max ? "disabled" : ""}>${builderIcons.plus}</button>
+          ${unit ? `<span aria-hidden="true">${escapeHtml(unit)}</span>` : ""}
+        </div>
+      </div>`;
+    const renderStyleSelect = (field, label, options, value) => `
+      <label class="workspace-storage-select">
+        <span>${escapeHtml(label)}</span>
+        <select data-section-storage-field="${field}" aria-describedby="${this.id}-section-storage-scope">
+          ${options.map((option) => `<option value="${escapeHtml(option.value)}" ${option.value === value ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
+        </select>
+      </label>`;
+    const shelvesHeading = usesLowerStorage
+      ? "Shelves above"
+      : usesDoors ? "Interior shelves" : "Shelves";
+    const frontsHeading = usesDrawers
+      ? "Lower cabinet"
+      : usesLowerStorage ? "Lower cabinet" : "Doors";
+    const frontsIcon = usesDrawers ? builderIcons.drawers : builderIcons.doors;
     return `
-      <section class="workspace-front-properties" aria-label="${isDoors ? "Door" : "Drawer"} properties">
-        <header><h3>${isDoors ? "Door profile" : "Drawer profile"}</h3><p>Applied to the accepted fronts generated for Section ${selected.index + 1}.</p></header>
-        ${this.renderDoorGroup(isDoors ? "doors" : "drawers")}
-        ${isDoors ? `
-          <fieldset class="section-door-arrangement-field">
-            <legend>Door arrangement</legend>
-            <div class="segmented-options section-door-arrangement-options">
-              ${[["auto", "Auto"], ["single_hinge_left", "Left"], ["single_hinge_right", "Right"], ["pair", "Pair"]].map(([value, label]) => `
-                <label title="${escapeHtml(arrangementAvailability[value]?.reason || "")}"><input type="radio" name="${this.id}-section-door-arrangement" data-section-door-arrangement="${value}" value="${value}" ${arrangement === value ? "checked" : ""} ${arrangementAvailability[value]?.enabled === false ? "disabled" : ""}><span>${label}</span></label>
+      <section class="workspace-storage-console" data-storage-console data-selected-section-id="${escapeHtml(selected.stableId || selected.id)}" aria-labelledby="${this.id}-storage-section-heading">
+        <header class="workspace-storage-section-header">
+          <div class="workspace-storage-section-title">
+            <span class="workspace-storage-section-icon" aria-hidden="true">${builderIcons.storage}</span>
+            <div>
+              <p>Selected section</p>
+              <h3 id="${this.id}-storage-section-heading">Section ${selected.index + 1} of ${designer.sections.length}</h3>
+            </div>
+          </div>
+          <nav class="workspace-storage-section-nav" aria-label="Choose a section to customize">
+            <button type="button" data-storage-section-step="-1" aria-label="Customize previous section" ${selected.index === 0 ? "disabled" : ""}>${builderIcons.back}</button>
+            <button type="button" data-storage-section-step="1" aria-label="Customize next section" ${selected.index === designer.sections.length - 1 ? "disabled" : ""}>${builderIcons.chevronRight}</button>
+          </nav>
+        </header>
+        <p id="${this.id}-section-storage-scope" class="workspace-storage-scope-note"><strong>Each section is independent.</strong> These controls change only Section ${selected.index + 1}; choose another section above or in the organizer to customize it separately.</p>
+
+        <section class="workspace-storage-presets" aria-labelledby="${this.id}-storage-layout-heading">
+          <header class="workspace-console-heading">
+            <div><h3 id="${this.id}-storage-layout-heading">Storage layout</h3></div>
+            <small>Starting configurations</small>
+          </header>
+          <fieldset ${selected.locked ? "disabled" : ""}>
+            <legend class="sr-only">Storage layout preset for Section ${selected.index + 1}</legend>
+            <div class="workspace-storage-preset-grid">
+              ${sectionStoragePresets.map((preset) => `
+                <label class="workspace-storage-preset">
+                  <input type="radio" name="${this.id}-section-storage-preset" data-section-storage-preset="${preset.id}" value="${preset.id}" ${activePresetId === preset.id ? "checked" : ""}>
+                  <span>
+                    <strong>${escapeHtml(preset.label)}</strong>
+                    <small>${escapeHtml(preset.description)}</small>
+                  </span>
+                  ${activePresetId === preset.id ? `<i aria-hidden="true">${builderIcons.check}</i>` : ""}
+                </label>
               `).join("")}
             </div>
           </fieldset>
-        ` : ""}
-        <button class="workspace-related-stage" type="button" data-workspace-stage-link="hardware">Choose handles &amp; knobs ${builderIcons.chevronRight}</button>
+          ${selected.locked ? `<p class="workspace-property-note" role="note">This preset feature is structurally locked.</p>` : ""}
+        </section>
+
+        ${usesDoors || usesDrawers ? `<section class="workspace-storage-detail workspace-storage-fronts ${usesDoors ? "workspace-storage-doors" : "workspace-storage-drawers"}" aria-labelledby="${this.id}-storage-fronts-heading">
+          <header class="workspace-console-heading">
+            <div><span aria-hidden="true">${frontsIcon}</span><h3 id="${this.id}-storage-fronts-heading">${frontsHeading}</h3></div>
+            <small>Section ${selected.index + 1}</small>
+          </header>
+          <fieldset class="workspace-storage-detail-fields" ${selected.locked ? "disabled" : ""}>
+            <legend class="sr-only">${frontsHeading} settings for Section ${selected.index + 1}</legend>
+            ${usesLowerStorage ? renderStorageStepper("lowerStorageHeight", "Cabinet height", selected.lowerStorageHeight, 24, 42, 0.25, "in") : ""}
+            ${usesDrawers ? renderStorageStepper("drawerCount", "Drawer count", selected.drawerCount, 1, 5) : ""}
+            ${usesDrawers ? renderStyleSelect("drawerFrontStyle", "Drawer front", drawerFrontStyleOptions, selected.drawerFrontStyle) : ""}
+            ${usesDoors ? renderStyleSelect("doorStyle", "Door style", doorStyleOptions, selected.doorStyle) : ""}
+          </fieldset>
+          ${usesDoors ? `<fieldset class="section-door-arrangement-field" ${selected.locked ? "disabled" : ""}>
+            <legend>Door arrangement</legend>
+            <div class="segmented-options section-door-arrangement-options">
+              ${[["auto", "Auto"], ["single_hinge_left", "Left"], ["single_hinge_right", "Right"], ["pair", "Pair"]].map(([value, label]) => {
+                const option = arrangementAvailability[value] || { enabled: true, reason: null };
+                const reasonId = `${this.id}-storage-door-${value}-reason`;
+                return `
+                  <label class="${option.enabled === false ? "is-disabled" : ""}">
+                    <input type="radio" name="${this.id}-section-door-arrangement" data-section-storage-field="doorArrangement" value="${value}" ${arrangement === value ? "checked" : ""} ${option.enabled === false ? `disabled aria-describedby="${reasonId}"` : `aria-describedby="${this.id}-section-storage-scope"`}>
+                    <span>${label}</span>
+                  </label>
+                  ${option.reason ? `<small id="${reasonId}" class="sr-only">${escapeHtml(option.reason)}</small>` : ""}`;
+              }).join("")}
+            </div>
+            <p class="control-helper">Auto chooses the best valid leaf arrangement for this section width.</p>
+          </fieldset>` : ""}
+        </section>` : ""}
+
+        <section class="workspace-storage-detail workspace-storage-shelves" aria-labelledby="${this.id}-storage-shelves-heading">
+          <header class="workspace-console-heading">
+            <div><span aria-hidden="true">${builderIcons.shelves}</span><h3 id="${this.id}-storage-shelves-heading">${shelvesHeading}</h3></div>
+            <small>Section ${selected.index + 1}</small>
+          </header>
+          <fieldset class="workspace-storage-detail-fields" ${selected.locked ? "disabled" : ""}>
+            <legend class="sr-only">Shelf settings for Section ${selected.index + 1}</legend>
+            ${renderStorageStepper("shelfCount", "Shelf count", selected.shelfCount, 0, 8)}
+            <div class="workspace-storage-automatic" role="note">
+              <span>Distribution</span>
+              <strong>Evenly spaced automatically</strong>
+            </div>
+          </fieldset>
+          <div class="workspace-storage-global" aria-labelledby="${this.id}-storage-global-heading">
+            <header class="workspace-console-heading">
+              <div><h3 id="${this.id}-storage-global-heading">Shelf thickness</h3></div>
+              <strong class="workspace-global-badge">Global · all sections</strong>
+            </header>
+            <p class="control-helper">This construction choice applies to every shelf in the bookcase.</p>
+            ${this.renderRangeControl("shelfThickness", "Shelf thickness", 0.75, 2, 0.25, "in")}
+          </div>
+        </section>
+
+        ${selected.warnings?.length ? `<div class="section-warning" role="status">${selected.warnings.map((warning) => escapeHtml(warning.message)).join(" ")}</div>` : ""}
       </section>
     `;
   }
@@ -1096,26 +1159,26 @@ class BookcaseConfigurator {
     const addAvailability = addSection(this.state, this.layout, this.selectedSectionIndex);
     return `
       <header class="workspace-organizer-summary">
-        <div><strong>Sections (${organizer.sectionCount})</strong><small>${escapeHtml(organizer.totalClearWidthLabel)}</small></div>
+        <div><strong>Sections (${organizer.sectionCount})</strong><small>${escapeHtml(organizer.totalClearWidthLabel)}</small>${addAvailability.accepted ? "" : `<small class="workspace-organizer-note">${escapeHtml(addAvailability.error?.message || "A section cannot be added.")}</small>`}</div>
       </header>
-      <div class="workspace-section-cards" role="list" aria-label="Current sections">
-        <button class="workspace-add-section" type="button" data-section-add ${addAvailability.accepted ? "" : `disabled title="${escapeHtml(addAvailability.error?.message || "A section cannot be added.")}"`} role="listitem">
+      <div class="workspace-section-cards" role="group" aria-label="Section organizer" data-section-count="${organizer.sectionCount}" style="--workspace-section-count:${organizer.sectionCount}">
+        <button class="workspace-add-section" type="button" data-section-add ${addAvailability.accepted ? "" : `disabled title="${escapeHtml(addAvailability.error?.message || "A section cannot be added.")}"`}>
           <span aria-hidden="true">${builderIcons.plus}</span><strong>Add<br>Section</strong>
         </button>
         ${organizer.items.map((section) => {
           const duplicateAvailability = duplicateSection(this.state, this.layout, section.index);
           const deleteAvailability = deleteSection(this.state, this.layout, section.index);
           return `
-          <article class="workspace-section-card${section.index === this.selectedSectionIndex ? " is-selected" : ""}" role="listitem" data-section-card="${section.index}">
+          <article class="workspace-section-card${section.index === this.selectedSectionIndex ? " is-selected" : ""}" data-section-card="${section.index}">
             <button type="button" class="workspace-section-card-main" data-section-select="${section.index}" aria-pressed="${section.index === this.selectedSectionIndex}">
               ${this.renderSectionThumbnail(section, section.thumbnail)}
               <span><strong>${escapeHtml(section.title)}</strong><small>${escapeHtml(section.widthLabel.replace(" clear", ""))}</small></span>
               ${section.index === this.selectedSectionIndex ? `<i class="workspace-selected-check" aria-hidden="true">${builderIcons.check}</i>` : ""}
             </button>
-            <details class="workspace-section-menu">
-              <summary aria-label="Section ${section.index + 1} actions">${builderIcons.more}</summary>
-              <div><button type="button" data-section-duplicate="${section.index}" ${duplicateAvailability.accepted ? "" : `disabled title="${escapeHtml(duplicateAvailability.error?.message || "Unavailable")}"`}>Duplicate</button><button type="button" data-section-delete="${section.index}" ${deleteAvailability.accepted ? "" : `disabled title="${escapeHtml(deleteAvailability.error?.message || "Unavailable")}"`}>Delete</button></div>
-            </details>
+            <div class="workspace-section-card-actions" role="group" aria-label="Section ${section.index + 1} actions">
+              <button type="button" class="workspace-section-duplicate" data-section-duplicate="${section.index}" aria-label="Duplicate Section ${section.index + 1}" title="${escapeHtml(duplicateAvailability.accepted ? `Duplicate Section ${section.index + 1}` : duplicateAvailability.error?.message || "Unavailable")}" ${duplicateAvailability.accepted ? "" : "disabled"}>${builderIcons.copy}</button>
+              <button type="button" class="workspace-section-delete" data-section-delete="${section.index}" aria-label="Delete Section ${section.index + 1}" title="${escapeHtml(deleteAvailability.accepted ? `Delete Section ${section.index + 1}` : deleteAvailability.error?.message || "Unavailable")}" ${deleteAvailability.accepted ? "" : "disabled"}>${builderIcons.delete}</button>
+            </div>
           </article>
         `;}).join("")}
       </div>
@@ -1137,11 +1200,8 @@ class BookcaseConfigurator {
     if (surface !== "inspector") this.id = `${originalId}-${surface}`;
     try {
       if (groupId === "overall_size") return this.renderSpaceGroup();
-      if (groupId === "sections_layout") return `
-        ${surface === "inspector" ? `<details class="layout-ideas"><summary>Change foundation idea</summary>${this.renderLayoutCards("inspector")}</details>` : ""}
-        ${this.renderStructureStartGroup()}`;
-      if (groupId === "shelves") return this.renderShelvesGroup();
-      if (groupId === "storage_fronts") return this.renderStorageFrontsGroup();
+      if (groupId === "sections_layout") return this.renderLayoutConsole();
+      if (groupId === "shelves" || groupId === "storage_fronts") return this.renderStorageConsole();
       if (groupId === "base_crown") return this.renderStructureGroup();
       if (groupId === "finish") return this.renderFinishGroup();
       if (groupId === "hardware") return this.renderHardwareGroup();
@@ -1153,63 +1213,51 @@ class BookcaseConfigurator {
     }
   }
 
-  renderLayoutCards(context = "inspector") {
-    const renderCards = (presets) => presets.map((preset) => {
-      const index = layoutPresets.findIndex((item) => item.id === preset.id) + 1;
-      return `
-        <button class="layout-card" type="button" data-preset-id="${preset.id}" aria-pressed="false">
-          ${this.renderPresetMini(preset, index)}
-          <span class="layout-card-copy"><strong>${preset.name}</strong><small>${preset.description}</small></span>
-          <span class="layout-card-check" aria-hidden="true">${builderIcons.check}</span>
-        </button>
-      `;
-    }).join("");
-    return `
-      <div class="layout-card-grid is-${context}" role="group" aria-label="Bookcase layouts">${renderCards(layoutPresets)}</div>
-    `;
-  }
-
   renderShelvesGroup() {
     return `
       <section class="control-section control-section-storage" aria-labelledby="${this.id}-shelves-heading">
-        <header><h2 id="${this.id}-shelves-heading"><span class="control-heading-icon" aria-hidden="true">${builderIcons.structure}</span>Shelves</h2><p>Shelf quantity is currently a global physical setting.</p></header>
-        ${this.renderStepperControl("shelves", "Shelves per open section — applies to all open sections", 2, 8)}
+        <header><h2 id="${this.id}-shelves-heading"><span class="control-heading-icon" aria-hidden="true">${builderIcons.shelves}</span>Shelves</h2><p>These settings apply to every shelf-bearing section.</p></header>
+        ${this.renderStepperControl("shelves", "Shelves per shelf-bearing section", 2, 8)}
         ${this.renderRangeControl("shelfThickness", "Shelf thickness", 0.75, 2, 0.25, "in")}
       </section>
     `;
   }
 
-  renderStorageFrontsGroup() {
+  renderStorageFrontsGroup(scope = "doors") {
+    const isDrawers = scope === "drawers";
+    const designer = getSectionDesignerState(this.state, this.layout);
+    const matchingSections = designer.sections.filter((section) => isDrawers
+      ? section.type === "drawers"
+      : ["lower_doors", "tall_doors"].includes(section.type));
+    const noun = isDrawers ? "drawer" : "door";
+    const pluralNoun = isDrawers ? "drawers" : "doors";
+    if (!matchingSections.length) {
+      return `
+        <section class="workspace-storage-empty" aria-labelledby="${this.id}-${noun}-empty-heading">
+          <span aria-hidden="true">${isDrawers ? builderIcons.drawers : builderIcons.doors}</span>
+          <h3 id="${this.id}-${noun}-empty-heading">No ${noun} sections yet</h3>
+          <p>Choose which sections use ${pluralNoun} in Layout. Storage will then show their configuration here.</p>
+          <button class="workspace-related-stage" type="button" data-section-select="${this.selectedSectionIndex}">Choose section types ${builderIcons.chevronRight}</button>
+        </section>
+      `;
+    }
+    const sectionButtons = matchingSections.map((section) => `
+      <button type="button" data-storage-section-select="${section.index}" data-storage-section-tab="${scope}">Section ${section.index + 1}</button>
+    `).join("");
+    const generatedDrawerCount = Number(this.bom?.drawers?.frontCount || 0);
     return `
-      <section class="control-section control-section-storage" aria-label="Storage and front controls">
-        <section class="storage-control-group storage-lower-group" aria-labelledby="${this.id}-storage-lower-heading">
-          <header><h3 id="${this.id}-storage-lower-heading">Lower storage</h3><p>Choose whether applicable sections include fitted storage below.</p></header>
-          <div class="toggle-row premium-toggle">
-            <label for="${this.id}-lowerCabinets">Lower cabinets</label>
-            <label class="switch">
-              <input id="${this.id}-lowerCabinets" data-field="lowerCabinets" type="checkbox">
-              <span aria-hidden="true"></span>
-            </label>
-          </div>
-          <fieldset class="choice-field storage-type-field" data-applicability="cabinets">
-            <legend>Storage type</legend>
-            <div class="segmented-options">
-              <label><input data-field="lowerStorage" name="${this.id}-lowerStorage" type="radio" value="doors"><span>Doors</span></label>
-              <label><input data-field="lowerStorage" name="${this.id}-lowerStorage" type="radio" value="drawers"><span>Drawers</span></label>
-            </div>
-          </fieldset>
-          <div class="drawer-quantity-card" data-applicability="drawers">
-            ${this.renderStepperControl("drawerCount", "Drawers per drawer section", 2, 5)}
-          </div>
+      <section class="control-section control-section-storage workspace-storage-task" data-storage-scope="${escapeHtml(scope)}" aria-label="${isDrawers ? "Drawer" : "Door"} controls">
+        <header class="workspace-storage-task-summary">
+          <div><span aria-hidden="true">${isDrawers ? builderIcons.drawers : builderIcons.doors}</span><h3>${matchingSections.length} ${noun} section${matchingSections.length === 1 ? "" : "s"}</h3></div>
+          <p>${isDrawers ? "Count and front profile apply to every drawer section." : "Front profile applies to every door section. Open a section to set its door arrangement."}</p>
+          <div class="workspace-storage-section-list" role="group" aria-label="${isDrawers ? "Drawer" : "Door"} sections">${sectionButtons}</div>
+        </header>
+        ${isDrawers ? `<div class="drawer-quantity-card">${this.renderStepperControl("drawerCount", "Drawers per section", 2, 5)}</div>` : ""}
+        <section class="storage-control-group storage-fronts-group">
+          ${this.renderDoorGroup(isDrawers ? "drawers" : "doors")}
         </section>
-        <section class="storage-control-group storage-fronts-group" data-applicability="fronts" aria-labelledby="${this.id}-storage-fronts-heading">
-          <header><h3 id="${this.id}-storage-fronts-heading">Front profiles</h3><p>Door and drawer fronts use their own compatible millwork profiles.</p></header>
-          ${this.renderDoorGroup()}
-        </section>
-        <section class="storage-control-group storage-section-link" aria-labelledby="${this.id}-storage-sections-heading">
-          <header><h3 id="${this.id}-storage-sections-heading">Per-section customization</h3><p>Use Sections &amp; Layout to change one section’s width or storage type.</p></header>
-          <button type="button" data-open-structure>Open Sections &amp; Layout</button>
-        </section>
+        ${isDrawers ? `<div class="generated-front-count"><span>Generated drawer fronts</span><strong>${generatedDrawerCount}</strong></div>` : ""}
+        <button class="workspace-related-stage" type="button" data-section-select="${matchingSections[0].index}">Edit section types ${builderIcons.chevronRight}</button>
       </section>
     `;
   }
@@ -1357,7 +1405,7 @@ class BookcaseConfigurator {
     `;
   }
 
-  renderDoorGroup(scope = "all") {
+  renderDoorGroup(scope = "all", options = {}) {
     const descriptions = {
       shaker: "Classic framed profile",
       flat: "Clean slab front",
@@ -1373,9 +1421,11 @@ class BookcaseConfigurator {
         </span>
       </label>
     `).join("");
+    const doorApplicability = options.alwaysVisible ? "" : ' data-applicability="doors"';
+    const drawerApplicability = options.alwaysVisible ? "" : ' data-applicability="drawers"';
     return `
       <div class="front-profile-groups" data-front-profile-groups>
-        ${scope === "drawers" ? "" : `<fieldset class="choice-field front-profile-group" data-applicability="doors">
+        ${scope === "drawers" ? "" : `<fieldset class="choice-field front-profile-group"${doorApplicability}>
           <legend>Door front profile</legend>
           <div class="door-style-grid">${renderProfiles("doorStyle", doorStyleOptions, "door")}</div>
           <div class="generated-front-count">
@@ -1383,7 +1433,7 @@ class BookcaseConfigurator {
             <output data-generated-door-count aria-live="polite"></output>
           </div>
         </fieldset>`}
-        ${scope === "doors" ? "" : `<fieldset class="choice-field front-profile-group" data-applicability="drawers">
+        ${scope === "doors" ? "" : `<fieldset class="choice-field front-profile-group"${drawerApplicability}>
           <legend>Drawer front profile</legend>
           <div class="door-style-grid">${renderProfiles("drawerFrontStyle", drawerFrontStyleOptions, "drawer")}</div>
           <p class="control-helper">Drawer fronts support Shaker, Flat Panel, and Slim Shaker profiles.</p>
@@ -1475,7 +1525,7 @@ class BookcaseConfigurator {
         <div class="review-summary-grid">
           ${groups.map((group) => `
             <section class="review-summary-group">
-              <header><h3>${escapeHtml(group.title)}</h3><button type="button" data-edit-group="${escapeHtml(group.inspectorGroupId)}">Edit</button></header>
+              <header><h3>${escapeHtml(group.title)}</h3><button type="button" data-edit-group="${escapeHtml(group.inspectorGroupId)}" ${group.inspectorField ? `data-edit-field="${escapeHtml(group.inspectorField)}"` : ""}>Edit</button></header>
               <dl>${group.items.map((item) => `<div><dt>${escapeHtml(item.label)}</dt><dd>${escapeHtml(item.value)}</dd></div>`).join("")}</dl>
             </section>
           `).join("")}
@@ -1602,7 +1652,7 @@ class BookcaseConfigurator {
 
     return `
       <section class="control-section control-section-structure">
-        <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.structure}</span>Base &amp; Crown</h2>
+        <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.structure}</span>Base &amp; Top</h2>
         <fieldset class="structure-field">
           <legend>Base Style</legend>
           <div class="style-choice-grid base-choice-grid">${baseChoices}</div>
@@ -1650,11 +1700,11 @@ class BookcaseConfigurator {
           </fieldset>
           ${selectedCard}
           <button class="additional-colors-button" type="button" data-toggle-color-search>${this.showColorSearch ? "Close Benjamin Moore Search" : selected ? "Change Benjamin Moore color" : "Benjamin Moore Search"}</button>
-          <div class="bm-search" data-custom-bm-fields ${this.showColorSearch ? "" : "hidden"}>
-            <div class="bm-search-heading"><strong>Benjamin Moore Color</strong><span>Search by color name or code.</span></div>
+          <div class="bm-search" data-custom-bm-fields role="region" aria-label="Benjamin Moore color search" ${this.showColorSearch ? "" : "hidden"}>
+            <div class="bm-search-heading"><span><strong>Benjamin Moore Color</strong><small>Search by color name or code.</small></span><button class="bm-search-close" type="button" data-toggle-color-search data-color-search-close aria-label="Close Benjamin Moore color search">${builderIcons.close}</button></div>
             <label for="${this.id}-customPaintColor">Color name or code</label>
             <div class="bm-search-input">
-              <input id="${this.id}-customPaintColor" data-bm-query data-validation-field="customPaintColor" type="search" maxlength="80" placeholder="OC-17, HC-154, White Dove…" autocomplete="off" aria-describedby="${this.id}-bm-help ${this.id}-bm-disclaimer">
+              <input id="${this.id}-customPaintColor" data-bm-query data-validation-field="customPaintColor" data-default-describedby="${this.id}-bm-help ${this.id}-bm-disclaimer" type="search" maxlength="80" placeholder="OC-17, HC-154, White Dove…" autocomplete="off" aria-describedby="${this.id}-bm-help ${this.id}-bm-disclaimer">
               <button type="button" data-search-bm aria-label="Search Benjamin Moore colors">${builderIcons.search}</button>
             </div>
             <p id="${this.id}-bm-help" class="bm-search-help">Examples: OC-17, HC-154, White Dove, Hale Navy</p>
@@ -1669,6 +1719,8 @@ class BookcaseConfigurator {
   }
 
   renderHardwareGroup() {
+    const applicability = getApplicability(this.state, this.layout);
+    const hasHardwareHosts = applicability.showHardware;
     const currentType = getHardwareType(this.state.hardware) || hardwareTypeOptions[0].value;
     const currentFinish = getHardwareFinish(this.state.hardware);
     const types = hardwareTypeOptions.map((option) => `
@@ -1687,9 +1739,15 @@ class BookcaseConfigurator {
         </label>
       `).join("");
     return `
-        <section class="control-section control-section-hardware" data-applicability="hardware">
+        <section class="control-section control-section-hardware">
           <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.hardware}</span>Hardware</h2>
           <div class="hardware-selection">
+            ${hasHardwareHosts ? "" : `
+              <div class="workspace-hardware-notice" data-hardware-empty-state role="note" id="${this.id}-hardware-host-note">
+                <span aria-hidden="true">${builderIcons.information}</span>
+                <p><strong>No hardware quantity yet.</strong> Choose a type and finish now; it will be applied automatically when you add doors or drawers.</p>
+                <button class="workspace-related-stage" type="button" data-workspace-stage-link="storage">Add fronts in Storage ${builderIcons.chevronRight}</button>
+              </div>`}
             <p class="control-scope-note">Standard type and finish apply to all visible hardware. Use the expanded library for an exact front, section, or matching-front scope.</p>
             <fieldset class="hardware-type-field">
               <legend>Type</legend>
@@ -1699,7 +1757,7 @@ class BookcaseConfigurator {
               <legend>Finish</legend>
               <div class="hardware-finish-grid">${finishes}</div>
             </fieldset>
-            <button class="additional-colors-button hardware-library-button" type="button" data-open-hardware-library>Open expanded hardware library</button>
+            <button class="additional-colors-button hardware-library-button" type="button" data-open-hardware-library ${hasHardwareHosts ? "" : `disabled aria-describedby="${this.id}-hardware-host-note" title="Add a door or drawer before assigning catalog hardware to an exact front."`}>Open expanded hardware library</button>
           </div>
         </section>
     `;
@@ -1707,6 +1765,9 @@ class BookcaseConfigurator {
 
   renderLightingGroup() {
     const generatedLightCount = getApplicability(this.state, this.layout).generatedLightCount;
+    const scopeNote = generatedLightCount > 0
+      ? `Applies to all ${generatedLightCount} compatible ${generatedLightCount === 1 ? "location" : "locations"} in the accepted design.`
+      : "Choose a lighting package to generate compatible locations across the accepted design.";
     const lighting = lightingOptions.map((option) => `
         <div class="lighting-card" data-lighting="${option.value}">
           <input id="${this.id}-lighting-${option.value}" data-field="lighting" name="${this.id}-lighting" type="radio" value="${option.value}">
@@ -1725,7 +1786,7 @@ class BookcaseConfigurator {
     return `
         <section class="control-section control-section-lighting">
           <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.lighting}</span>Lighting</h2>
-          <p class="control-scope-note">Applies to all ${generatedLightCount} compatible ${generatedLightCount === 1 ? "location" : "locations"} in the accepted design.</p>
+          <p class="control-scope-note">${scopeNote}</p>
           <fieldset class="lighting-field">
             <legend class="sr-only">Lighting package</legend>
             <div class="lighting-grid">${lighting}</div>
@@ -1744,7 +1805,7 @@ class BookcaseConfigurator {
         <div class="range-label">
           <label for="${this.id}-${name}-range">${label}</label>
           <div class="range-value">
-            <input id="${this.id}-${name}-number" data-field="${name}" type="number" min="${min}" max="${max}" step="${step}" inputmode="numeric" aria-label="${label} value">
+            <input id="${this.id}-${name}-number" data-field="${name}" type="number" min="${min}" max="${max}" step="${step}" inputmode="${Number(step) % 1 === 0 ? "numeric" : "decimal"}" aria-label="${label} value">
             ${unit ? `<span>${unit}</span>` : ""}
           </div>
         </div>
@@ -1831,33 +1892,12 @@ class BookcaseConfigurator {
     this.startStudioPreviewMotion();
   }
 
-  renderStudioEntryView(options = {}) {
-    this.stopStudioPreviewMotion();
-    const shell = this.elements?.shell;
-    const entryCopy = shell?.querySelector(".studio-entry-copy");
-    const canUpdateRouteInPlace = !this.hasAcceptedDesign
-      && shell?.classList.contains("studio-entry-shell")
-      && entryCopy;
-
-    if (canUpdateRouteInPlace) {
-      shell.dataset.entryView = this.entryView;
-      entryCopy.innerHTML = this.renderStudioEntryCopyContent();
-      entryCopy.scrollTop = 0;
-      this.cacheElements();
-    } else {
-      this.render();
-      this.cacheElements();
-      this.viewer = this.createStudioIntroViewer();
-    }
-    this.syncStudioEntry();
-    if (options.focusSelector) window.requestAnimationFrame(() => this.host.querySelector(options.focusSelector)?.focus());
-  }
-
   startStudioPreviewMotion() {
     this.stopStudioPreviewMotion();
     if (this.hasAcceptedDesign || this.introPreviewStopped || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const previewIdeas = getStudioPreviewIdeas();
+    if (previewIdeas.length < 2) return;
     this.introPreviewTimer = window.setInterval(() => {
-      const previewIdeas = getStudioPreviewIdeas();
       this.setStudioPreview((this.introPreviewIndex + 1) % previewIdeas.length, { manual: false });
     }, 3600);
   }
@@ -1870,6 +1910,7 @@ class BookcaseConfigurator {
 
   setStudioPreview(index, options = {}) {
     const previewIdeas = getStudioPreviewIdeas();
+    if (!previewIdeas.length) return;
     this.introPreviewIndex = clamp(Number(index) || 0, 0, previewIdeas.length - 1);
     if (options.manual) this.stopStudioPreviewMotion(true);
     if (this.elements?.studioIntroPreview) this.elements.studioIntroPreview.innerHTML = this.renderStudioIntroPreview();
@@ -1878,48 +1919,15 @@ class BookcaseConfigurator {
     });
   }
 
-  readStudioDimensions() {
-    const values = {};
-    this.host.querySelectorAll("[data-studio-dimension]").forEach((input) => {
-      values[input.dataset.studioDimension] = input.value;
-    });
-    return values;
-  }
-
-  handleStudioCustomStart() {
-    const rawDimensions = this.readStudioDimensions();
-    const validation = validateStudioDimensions(rawDimensions);
-    this.studioDimensionIssues = [...validation.issues];
-    if (!validation.valid) {
-      this.studioDimensions = { ...this.studioDimensions, ...rawDimensions };
-      this.renderStudioEntryView({ focusSelector: `[data-studio-dimension="${validation.issues[0].field}"]` });
-      this.showStatus(validation.issues[0].message, true);
-      return;
-    }
-    this.studioDimensions = { ...validation.dimensions };
-    const selectedSections = suggestStudioSectionCount(validation.dimensions.width);
-    this.studioSectionCount = selectedSections;
-    const startingPoint = createNeutralCustomConfig({ ...validation.dimensions, sections: selectedSections });
+  handleStudioStart() {
+    const selectedSections = suggestStudioSectionCount(STUDIO_PROVISIONAL_DIMENSIONS.width);
+    const startingPoint = createNeutralCustomConfig({ ...STUDIO_PROVISIONAL_DIMENSIONS, sections: selectedSections });
     if (!startingPoint.accepted) {
-      this.showStatus(startingPoint.issues[0]?.message || "Review the starting dimensions.", true);
+      this.showStatus(startingPoint.issues[0]?.message || "The design studio could not start.", true);
       return;
     }
-    this.emitStudioEvent("studio_custom_dimensions_accepted", {
-      provisional: this.studioDimensionsProvisional,
-      sectionCount: selectedSections
-    });
+    this.emitStudioEvent("studio_build_started", { sectionCount: selectedSections });
     this.acceptStudioDesign(startingPoint.config, { source: "custom" });
-  }
-
-  acceptStudioIdea(ideaId) {
-    const idea = getInspirationIdea(ideaId);
-    if (!idea) return;
-    this.emitStudioEvent("studio_idea_selected", {
-      ideaId: idea.id,
-      category: idea.category,
-      fullyEditable: idea.fullyEditable
-    });
-    this.acceptStudioDesign(idea.config, { source: "idea", ideaId: idea.id });
   }
 
   acceptStudioDesign(config, options = {}) {
@@ -1989,7 +1997,7 @@ class BookcaseConfigurator {
     if (!this.directHardwareEditingEnabled || !this.hasAcceptedDesign) return Promise.resolve(null);
     if (this.directHardwareEditorPromise) return this.directHardwareEditorPromise;
     document.body.dataset.directHardwareEditing = "loading";
-    this.directHardwareEditorPromise = import("./direct-hardware-editor.js?v=direct-hardware-20260714a")
+    this.directHardwareEditorPromise = import("./direct-hardware-editor.js?v=engine-polish-20260716a")
       .then(async ({ DirectHardwareEditor }) => {
         if (!this.hasAcceptedDesign || !this.elements?.viewer) return null;
         this.directHardwareEditor?.destroy?.();
@@ -2128,15 +2136,20 @@ class BookcaseConfigurator {
     }
     const selection = this.resolveModelSelection(payload);
     if (!selection) return false;
+    const previousSectionIndex = this.selectedSectionIndex;
     this.contextInvoker = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.selection = selection;
     this.contextEditorOpen = true;
     this.activeInspectorGroup = normalizeInspectorGroup(selection.inspectorGroupId);
     const workspaceRoute = resolveWorkspaceSelection(selection, this.layout);
     this.activeStageId = workspaceRoute?.stageId || selection.stageId || "layout";
-    this.activeInspectorTabId = workspaceRoute?.inspectorTabId || selection.inspectorTabId || "general";
+    this.activeInspectorTabId = "general";
     this.inspectorGroupCollapsed = false;
     if (Number.isInteger(selection.sectionIndex)) this.selectedSectionIndex = selection.sectionIndex;
+    if (this.selectedSectionIndex !== previousSectionIndex) {
+      this.viewer.setSectionSelection?.(this.selectedSectionIndex);
+      window.requestAnimationFrame(() => this.viewer.focusSection?.(this.selectedSectionIndex));
+    }
     this.viewer.setSelectedComponent?.(selection.highlightTarget?.componentId || selection.componentId);
     this.renderInspector({ focusGroup: this.activeInspectorGroup });
     this.syncInterface();
@@ -2155,7 +2168,7 @@ class BookcaseConfigurator {
 
   getSelectionSummary(selection) {
     const sectionLabel = Number.isInteger(selection.sectionIndex) ? `Section ${selection.sectionIndex + 1}` : "";
-    if (selection.kind === "shelf") return `${sectionLabel} · Shelf quantity applies to all open sections.`;
+    if (selection.kind === "shelf") return `${sectionLabel} · Shelf quantity applies to every shelf-bearing section.`;
     if (selection.kind === "hardware") return `${sectionLabel} · Standard hardware applies to all visible hardware.`;
     if (selection.kind === "divider") return "Resize the adjacent sections while preserving the overall width.";
     if (sectionLabel) return sectionLabel;
@@ -2262,6 +2275,34 @@ class BookcaseConfigurator {
         this.commitSelectedSectionWidth(sectionWidth.value);
         return;
       }
+      const storagePresetInput = event.target.closest?.("[data-section-storage-preset]");
+      if (storagePresetInput && this.host.contains(storagePresetInput)) {
+        const preset = sectionStoragePresets.find((item) => item.id === storagePresetInput.dataset.sectionStoragePreset);
+        if (preset) {
+          this.commitSelectedSectionStorage(
+            preset.patch,
+            `${preset.label} applied to Section ${this.selectedSectionIndex + 1}.`
+          );
+        }
+        return;
+      }
+      const sectionStorageInput = event.target.closest?.("[data-section-storage-field]");
+      if (sectionStorageInput && this.host.contains(sectionStorageInput)) {
+        const field = sectionStorageInput.dataset.sectionStorageField;
+        const value = sectionStorageInput.type === "number"
+          ? Number(sectionStorageInput.value)
+          : sectionStorageInput.value;
+        if (sectionStorageInput.type === "number" && !Number.isFinite(value)) {
+          this.renderInspector();
+          this.showSectionDesignerError({ message: "Enter a valid section storage value." });
+          return;
+        }
+        this.commitSelectedSectionStorage(
+          { [field]: value },
+          `${formatSectionStorageField(field)} updated for Section ${this.selectedSectionIndex + 1}.`
+        );
+        return;
+      }
       const sectionTypeInput = event.target.closest?.("[data-section-type]");
       if (sectionTypeInput && this.host.contains(sectionTypeInput)) {
         this.commitSectionOperation(
@@ -2300,15 +2341,6 @@ class BookcaseConfigurator {
     }, { signal });
 
     this.host.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") {
-        const openMenu = this.host.querySelector(".workspace-section-menu[open]");
-        if (openMenu) {
-          event.preventDefault();
-          openMenu.removeAttribute("open");
-          openMenu.querySelector("summary")?.focus({ preventScroll: true });
-          return;
-        }
-      }
       const isTextEditing = event.target.matches?.("input:not([type=radio]):not([type=checkbox]), textarea, [contenteditable=true]");
       if ((event.metaKey || event.ctrlKey) && !event.altKey && !isTextEditing) {
         const key = event.key.toLowerCase();
@@ -2324,17 +2356,6 @@ class BookcaseConfigurator {
         this.closeContextEditor({ restoreFocus: true });
         return;
       }
-      const inspectorTab = event.target.closest?.("[data-inspector-tab]");
-      if (inspectorTab && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
-        const tabs = [...this.host.querySelectorAll("[data-inspector-tab]")];
-        const current = tabs.indexOf(inspectorTab);
-        const nextIndex = event.key === "Home" ? 0
-          : event.key === "End" ? tabs.length - 1
-            : (current + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
-        event.preventDefault();
-        tabs[nextIndex]?.click();
-        return;
-      }
       const divider = event.target.closest?.("[data-section-divider]");
       if (divider && ["ArrowLeft", "ArrowRight"].includes(event.key)) {
         event.preventDefault();
@@ -2347,6 +2368,12 @@ class BookcaseConfigurator {
       if (sectionWidth && event.key === "Enter") {
         event.preventDefault();
         this.commitSelectedSectionWidth(sectionWidth.value);
+        return;
+      }
+      const sectionStorageNumber = event.target.closest?.('input[type="number"][data-section-storage-field]');
+      if (sectionStorageNumber && event.key === "Enter") {
+        event.preventDefault();
+        sectionStorageNumber.dispatchEvent(new Event("change", { bubbles: true }));
         return;
       }
       const numericField = event.target.closest?.('input[type="number"][data-field]');
@@ -2389,12 +2416,6 @@ class BookcaseConfigurator {
 
     this.host.addEventListener("click", (event) => this.handleDelegatedClick(event), { signal });
 
-    document.addEventListener("click", (event) => {
-      const activeSectionMenu = event.target.closest?.(".workspace-section-menu");
-      if (activeSectionMenu && this.host.contains(activeSectionMenu)) return;
-      this.host.querySelectorAll(".workspace-section-menu[open]").forEach((menu) => menu.removeAttribute("open"));
-    }, { signal });
-
     this.elements.reviewDialog?.addEventListener("click", (event) => {
       if (event.target === this.elements.reviewDialog) this.closeReviewDialog();
     }, { signal });
@@ -2415,77 +2436,31 @@ class BookcaseConfigurator {
 
   handleDelegatedClick(event) {
     const target = event.target;
-    const activeSectionMenu = target.closest?.(".workspace-section-menu");
-    this.host.querySelectorAll(".workspace-section-menu[open]").forEach((menu) => {
-      if (menu !== activeSectionMenu) menu.removeAttribute("open");
-    });
     if (!this.hasAcceptedDesign) {
-      const route = target.closest?.("[data-studio-route]");
-      if (route) {
-        this.stopStudioPreviewMotion(true);
-        this.entryView = normalizeStudioEntryView(route.dataset.studioRoute);
-        this.studioDimensionIssues = [];
-        this.emitStudioEvent(this.entryView === STUDIO_ENTRY_VIEWS.custom ? "studio_custom_route_opened" : "studio_ideas_opened");
-        this.renderStudioEntryView({ focusSelector: "[data-studio-back]" });
-        return;
-      }
-      if (target.closest?.("[data-studio-back]")) {
-        this.entryView = STUDIO_ENTRY_VIEWS.welcome;
-        this.studioDimensionIssues = [];
-        this.renderStudioEntryView({ focusSelector: "[data-studio-route]" });
-        return;
-      }
-      if (target.closest?.("[data-studio-unsure]")) {
-        this.studioDimensions = { ...STUDIO_PROVISIONAL_DIMENSIONS };
-        this.studioDimensionsProvisional = true;
-        this.studioDimensionIssues = [];
-        this.studioSectionCount = suggestStudioSectionCount(this.studioDimensions.width);
-        this.emitStudioEvent("studio_provisional_dimensions_used");
-        this.renderStudioEntryView({ focusSelector: "[data-studio-dimension=\"width\"]" });
-        return;
-      }
-      if (target.closest?.("[data-studio-create]")) {
-        this.handleStudioCustomStart();
-        return;
-      }
       const preview = target.closest?.("[data-studio-preview-index]");
       if (preview) {
         this.setStudioPreview(Number(preview.dataset.studioPreviewIndex), { manual: true });
         this.emitStudioEvent("studio_intro_preview_changed", { previewIndex: this.introPreviewIndex });
         return;
       }
-      const filter = target.closest?.("[data-idea-filter]");
-      if (filter) {
-        this.inspirationFilter = filter.dataset.ideaFilter;
-        this.inspirationExpanded = this.inspirationFilter !== "all";
-        this.emitStudioEvent("studio_ideas_filtered", { filter: this.inspirationFilter });
-        this.renderStudioEntryView({ focusSelector: `[data-idea-filter="${this.inspirationFilter}"]` });
-        return;
-      }
-      if (target.closest?.("[data-view-all-ideas]")) {
-        this.inspirationExpanded = true;
-        this.emitStudioEvent("studio_ideas_expanded", { visibleCount: inspirationIdeas.length });
-        this.renderStudioEntryView({ focusSelector: "[data-studio-idea-grid] [data-idea-id]:nth-child(7)" });
-        return;
-      }
-      const idea = target.closest?.("[data-idea-id]");
-      if (idea) {
-        this.acceptStudioIdea(idea.dataset.ideaId);
-        return;
-      }
+      if (target.closest?.("[data-studio-start]")) this.handleStudioStart();
       return;
     }
     const stageButton = target.closest?.("[data-workspace-stage], [data-workspace-stage-link]");
     if (stageButton) {
-      this.activateWorkspaceStage(stageButton.dataset.workspaceStage || stageButton.dataset.workspaceStageLink);
-      return;
-    }
-    const inspectorTab = target.closest?.("[data-inspector-tab]");
-    if (inspectorTab) {
-      this.activeInspectorTabId = inspectorTab.dataset.inspectorTab;
-      this.renderInspector();
-      this.syncInterface();
-      window.requestAnimationFrame(() => this.host.querySelector(`[data-inspector-tab="${this.activeInspectorTabId}"]`)?.focus({ preventScroll: true }));
+      const focusField = stageButton.dataset.workspaceFocusField;
+      this.activateWorkspaceStage(
+        stageButton.dataset.workspaceStage || stageButton.dataset.workspaceStageLink,
+        { focus: !focusField }
+      );
+      if (focusField) {
+        window.requestAnimationFrame(() => {
+          const field = [...this.host.querySelectorAll("[data-field]")]
+            .find((element) => element.dataset.field === focusField && !element.disabled && element.type !== "range");
+          field?.focus({ preventScroll: false });
+          field?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+        });
+      }
       return;
     }
     if (target.closest?.("[data-close-selection]")) {
@@ -2553,14 +2528,61 @@ class BookcaseConfigurator {
       this.sectionActionsExpanded = !sectionActionsSummary.parentElement.open;
       return;
     }
+    const storageSectionStep = target.closest?.("[data-storage-section-step]");
+    if (storageSectionStep) {
+      const direction = Number(storageSectionStep.dataset.storageSectionStep);
+      this.selectSection(this.selectedSectionIndex + direction, {
+        openProperties: true,
+        ensureFramed: true,
+        stageId: "storage",
+        inspectorGroupId: "storage_fronts"
+      });
+      window.requestAnimationFrame(() => {
+        const preferred = this.host.querySelector(`[data-storage-section-step="${direction}"]:not(:disabled)`);
+        const fallback = this.host.querySelector("[data-storage-section-step]:not(:disabled)");
+        (preferred || fallback)?.focus({ preventScroll: true });
+      });
+      return;
+    }
     const sectionSelect = target.closest?.("[data-section-select]");
     if (sectionSelect) {
       this.selectSection(Number(sectionSelect.dataset.sectionSelect), { openProperties: true, focus: true, ensureFramed: true });
       return;
     }
+    const storageSectionSelect = target.closest?.("[data-storage-section-select]");
+    if (storageSectionSelect) {
+      this.selectSection(Number(storageSectionSelect.dataset.storageSectionSelect), {
+        openProperties: true,
+        ensureFramed: true,
+        stageId: "storage",
+        inspectorGroupId: "storage_fronts",
+        inspectorTabId: storageSectionSelect.dataset.storageSectionTab || "doors"
+      });
+      return;
+    }
     const overlaySectionSelect = target.closest?.("[data-overlay-section-select]");
     if (overlaySectionSelect) {
-      this.selectSection(Number(overlaySectionSelect.dataset.overlaySectionSelect), { openProperties: true });
+      this.selectSection(Number(overlaySectionSelect.dataset.overlaySectionSelect), {
+        openProperties: true,
+        ensureFramed: true
+      });
+      return;
+    }
+    const storageValueStep = target.closest?.("[data-section-storage-step]");
+    if (storageValueStep) {
+      const field = storageValueStep.dataset.sectionStorageStep;
+      const selected = getSectionDesignerState(this.state, this.layout).sections[this.selectedSectionIndex];
+      const currentValue = Number(selected?.[field]);
+      const delta = Number(storageValueStep.dataset.stepDirection);
+      const minimum = Number(storageValueStep.dataset.min);
+      const maximum = Number(storageValueStep.dataset.max);
+      if (selected && Number.isFinite(currentValue) && Number.isFinite(delta)) {
+        const nextValue = clamp(currentValue + delta, minimum, maximum);
+        this.commitSelectedSectionStorage(
+          { [field]: nextValue },
+          `${formatSectionStorageField(field)} updated for Section ${this.selectedSectionIndex + 1}.`
+        );
+      }
       return;
     }
     const widthStep = target.closest?.("[data-section-width-step]");
@@ -2576,21 +2598,33 @@ class BookcaseConfigurator {
     }
     if (target.closest?.("[data-section-add]")) {
       const operation = addSection(this.state, this.layout, this.selectedSectionIndex);
-      this.commitSectionOperation(operation, "Section added.", { selectedIndex: operation.affectedSections?.at(-1) });
+      this.commitSectionOperation(
+        operation,
+        operation.reflowed
+          ? `Section added. All clear widths were rebalanced while the overall width stayed ${this.state.width} inches.`
+          : "Section added.",
+        { selectedIndex: operation.selectedSectionIndex }
+      );
       return;
     }
     const duplicate = target.closest?.("[data-section-duplicate]");
     if (duplicate) {
       const index = duplicate.dataset.sectionDuplicate === "" ? this.selectedSectionIndex : Number(duplicate.dataset.sectionDuplicate);
       const operation = duplicateSection(this.state, this.layout, index);
-      this.commitSectionOperation(operation, `Section ${index + 1} duplicated.`, { selectedIndex: operation.affectedSections?.at(-1) });
+      this.commitSectionOperation(operation, `Section ${index + 1} duplicated.`, { selectedIndex: operation.selectedSectionIndex });
       return;
     }
     const deleteButton = target.closest?.("[data-section-delete]");
     if (deleteButton) {
       const index = deleteButton.dataset.sectionDelete === "" ? this.selectedSectionIndex : Number(deleteButton.dataset.sectionDelete);
       const operation = deleteSection(this.state, this.layout, index);
-      this.commitSectionOperation(operation, `Section ${index + 1} deleted.`, { selectedIndex: operation.affectedSections?.[0] });
+      this.commitSectionOperation(
+        operation,
+        operation.reflowed
+          ? `Section ${index + 1} deleted. Remaining clear widths were rebalanced while the overall width stayed ${this.state.width} inches.`
+          : `Section ${index + 1} deleted.`,
+        { selectedIndex: operation.selectedSectionIndex }
+      );
       return;
     }
     const merge = target.closest?.("[data-section-merge]");
@@ -2671,7 +2705,7 @@ class BookcaseConfigurator {
     const editButton = target.closest?.("[data-edit-group]");
     if (editButton) {
       this.closeReviewDialog();
-      this.focusInspectorGroup(editButton.dataset.editGroup);
+      this.focusInspectorGroup(editButton.dataset.editGroup, { field: editButton.dataset.editField || "" });
       return;
     }
     const colorSearchToggle = target.closest?.("[data-toggle-color-search]");
@@ -2680,9 +2714,11 @@ class BookcaseConfigurator {
       this.host.querySelectorAll("[data-custom-bm-fields]").forEach((panel) => {
         panel.hidden = !this.showColorSearch;
       });
-      colorSearchToggle.textContent = this.showColorSearch
-        ? "Close Benjamin Moore Search"
-        : this.state.finish === "custom_bm" ? "Change Benjamin Moore color" : "Benjamin Moore Search";
+      this.host.querySelectorAll("[data-toggle-color-search]:not([data-color-search-close])").forEach((button) => {
+        button.textContent = this.showColorSearch
+          ? "Close Benjamin Moore Search"
+          : this.state.finish === "custom_bm" ? "Change Benjamin Moore color" : "Benjamin Moore Search";
+      });
       if (this.showColorSearch) this.host.querySelector("[data-bm-query]")?.focus();
       else this.closeBenjaminMooreResults();
       return;
@@ -2724,6 +2760,19 @@ class BookcaseConfigurator {
 
   activateWorkspaceStage(stageId, options = {}) {
     if (!WORKSPACE_STAGES.some((stage) => stage.id === stageId)) return false;
+    const previousStageId = this.activeStageId;
+    const enteringPreview = stageId === "preview" && previousStageId !== "preview";
+    const leavingPreview = previousStageId === "preview" && stageId !== "preview";
+    if (enteringPreview) {
+      this.previewCameraState = this.viewer.getViewState?.() || null;
+      this.previewActiveView = this.activeView;
+    }
+    const restoreCameraState = leavingPreview ? this.previewCameraState : null;
+    const restoreActiveView = leavingPreview ? this.previewActiveView : null;
+    if (leavingPreview) {
+      this.previewCameraState = null;
+      this.previewActiveView = null;
+    }
     this.activeStageId = stageId;
     this.activeInspectorGroup = STAGE_CONTROL_GROUPS[stageId]?.[0] || "overall_size";
     this.activeInspectorTabId = "general";
@@ -2732,6 +2781,24 @@ class BookcaseConfigurator {
     this.viewer.clearDirectSelection?.();
     this.renderInspector({ resetScroll: true });
     this.syncInterface();
+    window.requestAnimationFrame(() => {
+      if (enteringPreview && this.activeStageId === "preview") {
+        this.viewer.fitFullModel?.({ duration: SMART_CAMERA_DURATION });
+        this.activeView = "three-quarter";
+        this.syncViewButtons();
+        this.syncDiagnosticsAttributes();
+      } else if (restoreCameraState && this.activeStageId === stageId) {
+        this.viewer.restoreCameraState?.(restoreCameraState);
+        this.activeView = restoreActiveView || "custom";
+        this.syncViewButtons();
+        this.syncDiagnosticsAttributes();
+      } else if (stageId === "lighting" && previousStageId !== "preview") {
+        this.viewer.focus?.("lighting", { force: true });
+        this.activeView = "custom";
+        this.syncViewButtons();
+        this.syncDiagnosticsAttributes();
+      }
+    });
     if (options.focus !== false) {
       window.requestAnimationFrame(() => this.host.querySelector(`[data-workspace-stage="${stageId}"]`)?.focus({ preventScroll: true }));
     }
@@ -2937,7 +3004,7 @@ class BookcaseConfigurator {
       active: true,
       selectedIndex: this.selectedSectionIndex,
       layout: this.layout,
-      onSelect: (index) => this.selectSection(index, { render: false })
+      onSelect: (index) => this.selectSection(index, { render: false, ensureFramed: true })
     });
     if (options.focusCamera === true) this.setView("front");
     if (options.render !== false) {
@@ -2972,6 +3039,7 @@ class BookcaseConfigurator {
 
   selectSection(index, options = {}) {
     const count = getSectionDesignerState(this.state, this.layout).sections.length;
+    const previousSectionIndex = this.selectedSectionIndex;
     this.selectedSectionIndex = clamp(Number(index) || 0, 0, Math.max(0, count - 1));
     this.sectionWidthDraft = "";
     if (options.openProperties) {
@@ -2990,14 +3058,24 @@ class BookcaseConfigurator {
         sectionIndex: this.selectedSectionIndex
       };
       this.contextEditorOpen = true;
-      this.activeStageId = "layout";
-      this.activeInspectorGroup = "sections_layout";
+      const sectionStage = options.stageId
+        || (["layout", "storage"].includes(this.activeStageId) ? this.activeStageId : "layout");
+      this.activeStageId = sectionStage;
+      this.activeInspectorGroup = normalizeInspectorGroup(
+        options.inspectorGroupId || (sectionStage === "storage" ? "storage_fronts" : "sections_layout")
+      );
       this.activeInspectorTabId = "general";
     }
     this.viewer.setSectionSelection?.(this.selectedSectionIndex);
     if (this.selection) this.viewer.setSelectedComponent?.(this.selection.highlightTarget?.componentId || this.selection.componentId);
     if (options.ensureFramed) {
-      window.requestAnimationFrame(() => this.viewer.ensureModelComfortablyFramed?.());
+      window.requestAnimationFrame(() => {
+        if (this.selectedSectionIndex !== previousSectionIndex || options.forceSectionFocus) {
+          this.viewer.focusSection?.(this.selectedSectionIndex, { force: Boolean(options.forceSectionFocus) });
+        } else if (this.viewer.activeFocusKey !== "section") {
+          this.viewer.ensureModelComfortablyFramed?.();
+        }
+      });
     }
     if (options.render !== false) {
       this.renderInspector();
@@ -3007,6 +3085,13 @@ class BookcaseConfigurator {
     if (options.focus) {
       window.requestAnimationFrame(() => this.host.querySelector(`[data-section-select="${this.selectedSectionIndex}"]`)?.focus({ preventScroll: true }));
     }
+  }
+
+  commitSelectedSectionStorage(patch, successMessage) {
+    return this.commitSectionOperation(
+      setSectionStorageConfiguration(this.state, this.selectedSectionIndex, patch, this.layout),
+      successMessage
+    );
   }
 
   commitSelectedSectionWidth(value) {
@@ -3049,7 +3134,13 @@ class BookcaseConfigurator {
 
   commitSectionOperation(operation, successMessage, options = {}) {
     if (!operation?.accepted || !operation.config) {
-      this.showSectionDesignerError(operation?.error || { message: "That section change is not buildable." });
+      const error = operation?.error || { message: "That section change is not buildable." };
+      // Native radio state changes before the structural operation is
+      // validated. Re-render from the accepted model so a rejected option can
+      // never look selected while the 3D design remains unchanged.
+      this.renderInspector();
+      this.syncInterface();
+      this.showSectionDesignerError(error);
       return false;
     }
     const applied = this.update(operation.config, { sourceField: "layoutMetadata", refreshSectionDesigner: false });
@@ -3078,7 +3169,7 @@ class BookcaseConfigurator {
         active: true,
         selectedIndex: this.selectedSectionIndex,
         layout: this.layout,
-        onSelect: (index) => this.selectSection(index, { render: false })
+        onSelect: (index) => this.selectSection(index, { render: false, ensureFramed: true })
       });
     }
     this.renderInspector();
@@ -3205,7 +3296,7 @@ class BookcaseConfigurator {
       button.textContent = "Confirm start over";
       window.clearTimeout(this.resetConfirmationTimer);
       this.resetConfirmationTimer = window.setTimeout(() => this.clearResetConfirmation(), 4500);
-      this.showStatus("Choose “Confirm start over” to clear this accepted design and return to the two studio starting routes.");
+      this.showStatus("Choose “Confirm start over” to clear this accepted design and return to the start screen.");
       return;
     }
     try {
@@ -3243,12 +3334,7 @@ class BookcaseConfigurator {
     this.hoverSelection = null;
     this.contextEditorOpen = false;
     this.entryView = STUDIO_ENTRY_VIEWS.welcome;
-    this.inspirationFilter = "all";
-    this.inspirationExpanded = false;
-    this.studioDimensions = { ...STUDIO_PROVISIONAL_DIMENSIONS };
-    this.studioDimensionsProvisional = false;
-    this.studioDimensionIssues = [];
-    this.studioSectionCount = suggestStudioSectionCount(this.studioDimensions.width);
+    this.introPreviewIndex = 0;
     this.introPreviewStopped = false;
     this.drafts = {};
     this.updateCount = 0;
@@ -3261,8 +3347,8 @@ class BookcaseConfigurator {
     this.viewer = this.createStudioIntroViewer();
     this.syncStudioEntry();
     this.emitStudioEvent("studio_start_over", { source: "accepted-design" });
-    this.showStatus("Accepted design cleared. Choose how you want to begin again.");
-    window.requestAnimationFrame(() => this.host.querySelector("[data-studio-route]")?.focus());
+    this.showStatus("Accepted design cleared. Start building when you’re ready.");
+    window.requestAnimationFrame(() => this.host.querySelector("[data-studio-start]")?.focus());
   }
 
   clearResetConfirmation() {
@@ -3304,7 +3390,7 @@ class BookcaseConfigurator {
     if (!hasBlockingConfigurationIssue(this.state, this.layout, this.drafts)) return true;
     const issues = validateUnifiedConfiguration(this.state, this.layout, this.drafts).issues;
     const issue = issues[0] || { field: "configuration", message: "Review the highlighted configuration issue first." };
-    this.focusInspectorGroup(issue.inspectorGroupId || inspectorGroupForField(issue.field), { focus: false });
+    this.focusInspectorGroup(issue.inspectorGroupId || inspectorGroupForField(issue.field), { focus: false, field: issue.field });
     window.requestAnimationFrame(() => {
       this.host.querySelector('[data-field="' + issue.field + '"], [data-validation-field="' + issue.field + '"]')?.focus?.({ preventScroll: true });
     });
@@ -3408,7 +3494,7 @@ class BookcaseConfigurator {
     }
     status.textContent = "Loading the Benjamin Moore color catalog…";
     try {
-      const matches = await this.colorCatalog.search(normalizedQuery, { limit: 12 });
+      const matches = await this.colorCatalog.search(normalizedQuery, { limit: 4 });
       if (searchSequence !== this.colorSearchSequence) return;
       if (!matches.length) {
         resultsHost.hidden = true;
@@ -3650,12 +3736,6 @@ class BookcaseConfigurator {
 
   update(nextState, options = {}) {
     const previousState = this.state;
-    const focusedHardwareInput = document.activeElement?.matches?.("[data-hardware-type], [data-hardware-finish]")
-      ? {
-          group: document.activeElement.hasAttribute("data-hardware-type") ? "type" : "finish",
-          value: document.activeElement.value
-        }
-      : null;
     const evaluation = evaluateBookcaseCandidate(nextState);
     if (!evaluation.accepted) {
       this.syncInterface();
@@ -3730,17 +3810,9 @@ class BookcaseConfigurator {
         active: true,
         selectedIndex: this.selectedSectionIndex,
         layout: this.layout,
-        onSelect: (index) => this.selectSection(index, { render: false })
+        onSelect: (index) => this.selectSection(index, { render: false, ensureFramed: true })
       });
     }
-    if (focusedHardwareInput && changedFields.includes("hardware")) {
-      window.requestAnimationFrame(() => {
-        this.host.querySelector(
-          `[data-hardware-${focusedHardwareInput.group}][value="${focusedHardwareInput.value}"]`
-        )?.focus({ preventScroll: true });
-      });
-    }
-
     const engineeringWarning = evaluation.warnings.find((item) => item.code === "SHELF_SUPPORT_REVIEW");
     if (!options.silent && evaluation.corrections.length) {
       this.showStatus(evaluation.corrections.map((correction) => correction.message || correction).join(" "));
@@ -3964,7 +4036,9 @@ class BookcaseConfigurator {
     const validation = result || validateUnifiedConfiguration(this.state, this.layout, this.drafts);
     this.host.querySelectorAll("[data-field], [data-validation-field]").forEach((field) => {
       field.removeAttribute("aria-invalid");
-      field.removeAttribute("aria-describedby");
+      const defaultDescription = field.dataset.defaultDescribedby?.trim();
+      if (defaultDescription) field.setAttribute("aria-describedby", defaultDescription);
+      else field.removeAttribute("aria-describedby");
     });
     this.host.querySelectorAll("[data-field-error]").forEach((element) => {
       element.textContent = "";
@@ -3978,12 +4052,28 @@ class BookcaseConfigurator {
       this.host.querySelectorAll('[data-field="' + issue.field + '"], [data-validation-field="' + issue.field + '"]').forEach((field, index) => {
         field.setAttribute("aria-invalid", "true");
         const error = errors[Math.min(index, Math.max(0, errors.length - 1))];
-        if (error?.id) field.setAttribute("aria-describedby", error.id);
+        if (error?.id) {
+          const descriptions = new Set((field.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean));
+          descriptions.add(error.id);
+          field.setAttribute("aria-describedby", [...descriptions].join(" "));
+        }
       });
     });
     const invalidGroups = new Set(validation.issues.map((issue) => issue.inspectorGroupId || inspectorGroupForField(issue.field)));
     this.host.querySelectorAll("[data-category]").forEach((category) => {
       category.classList.toggle("needs-attention", invalidGroups.has(category.dataset.category));
+    });
+    this.host.querySelectorAll("[data-workspace-stage]").forEach((stageButton) => {
+      const stage = WORKSPACE_STAGES.find((item) => item.id === stageButton.dataset.workspaceStage);
+      const issue = validation.issues.find((item) => STAGE_CONTROL_GROUPS[stage?.id]?.includes(item.inspectorGroupId || inspectorGroupForField(item.field)));
+      stageButton.classList.toggle("needs-attention", Boolean(issue));
+      if (issue) {
+        stageButton.setAttribute("aria-label", `${stage.label}, needs attention: ${issue.message}`);
+        stageButton.setAttribute("aria-invalid", "true");
+      } else {
+        stageButton.removeAttribute("aria-label");
+        stageButton.removeAttribute("aria-invalid");
+      }
     });
   }
 
@@ -3995,9 +4085,23 @@ class BookcaseConfigurator {
     const quoteLocked = !shouldRunAction(this.actionStartedAt.quote, now);
     const actionHint = this.host.querySelector("[data-action-hint]");
     if (actionHint) {
+      const issue = validation.issues[0];
       actionHint.textContent = blocking
-        ? `${validation.issues[0]?.message || "Review the highlighted configuration issue."} Complete the highlighted field before reviewing, saving, or requesting a quote.`
+        ? `${issue?.message || "Review the highlighted configuration issue."} Complete the highlighted field before reviewing, saving, or requesting a quote.`
         : "Final pricing is confirmed after measurements and project details are verified.";
+      if (blocking && issue) {
+        const issueGroup = issue.inspectorGroupId || inspectorGroupForField(issue.field);
+        const issueStage = WORKSPACE_STAGES.find((stage) => STAGE_CONTROL_GROUPS[stage.id]?.includes(issueGroup));
+        if (issueStage) {
+          const fixButton = document.createElement("button");
+          fixButton.type = "button";
+          fixButton.className = "configurator-fix-stage";
+          fixButton.dataset.workspaceStageLink = issueStage.id;
+          fixButton.dataset.workspaceFocusField = issue.field;
+          fixButton.textContent = `Fix ${issueStage.label}`;
+          actionHint.append(" ", fixButton);
+        }
+      }
       actionHint.classList.toggle("is-blocking", blocking);
     }
     this.host.querySelectorAll("[data-review-design]").forEach((button) => {
@@ -4854,6 +4958,135 @@ class BookcaseViewer3D {
     return true;
   }
 
+  fitFullModel(options = {}) {
+    if (!this.model?.children?.length) return false;
+    const bounds = new THREE.Box3().setFromObject(this.model);
+    if (bounds.isEmpty()) return false;
+    const viewport = this.getSafeViewport();
+    const calculated = calculateBoundsCameraPose({
+      bounds: box3ToPlainBounds(bounds),
+      theta: SMART_CAMERA_PROFILES.overview.theta,
+      phi: SMART_CAMERA_PROFILES.overview.phi,
+      verticalFovDegrees: this.camera.fov,
+      aspect: this.camera.aspect,
+      viewport,
+      fitMargin: 1.12
+    });
+    let radius = calculated.radius;
+    let targetData = calculated.target;
+    for (let pass = 0; pass < 2; pass += 1) {
+      const target = new THREE.Vector3(targetData.x, targetData.y, targetData.z);
+      const collisionSafeRadius = this.resolveCollisionSafeRadius(
+        calculated.theta,
+        calculated.phi,
+        target,
+        radius
+      );
+      if (collisionSafeRadius <= radius + 0.0001) break;
+      radius = collisionSafeRadius;
+      targetData = calculateViewportAwareTarget({
+        focusCenter: calculated.focusCenter,
+        radius,
+        theta: calculated.theta,
+        phi: calculated.phi,
+        verticalFovDegrees: this.camera.fov,
+        aspect: this.camera.aspect,
+        viewport: calculated.viewport
+      });
+    }
+    const target = new THREE.Vector3(targetData.x, targetData.y, targetData.z);
+    this.clearComponentHighlight();
+    this.setProductLightingBoost(1);
+    this.activeFocusKey = "preview";
+    this.activeFocusVariant = `preview:${this.rebuildCount}`;
+    this.focusRadius = radius;
+    this.root.dataset.cameraFocus = "preview";
+    this.animateToCameraPose({
+      theta: calculated.theta,
+      phi: calculated.phi,
+      radius,
+      target,
+      environmentScale: 1,
+      exposure: 1.08
+    }, { duration: options.duration ?? SMART_CAMERA_DURATION });
+    return true;
+  }
+
+  focusSection(index, options = {}) {
+    const sections = (this.lastLayout?.components || [])
+      .filter((component) => component.role === "section")
+      .sort((left, right) => Number(left.metadata?.index) - Number(right.metadata?.index));
+    if (!sections.length) return false;
+    const sectionIndex = clamp(Number(index) || 0, 0, sections.length - 1);
+    const section = sections[sectionIndex];
+    const focusVariant = `section:${section.metadata?.configId || section.id}`;
+    if (!options.force && focusVariant === this.activeFocusVariant) return false;
+
+    const bounds = descriptorBoundsToSceneBox(section.bounds, this.lastLayout.config.depth);
+    const size = bounds.getSize(new THREE.Vector3());
+    const center = bounds.getCenter(new THREE.Vector3());
+    const viewport = this.getSafeViewport();
+    const verticalFov = THREE.MathUtils.degToRad(this.camera.fov);
+    const safeAspect = Math.max(
+      0.3,
+      (viewport.localBounds.width || viewport.width) / Math.max(viewport.localBounds.height || viewport.height, 1)
+    );
+    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * safeAspect);
+    const fitDistance = Math.max(
+      size.y / Math.max(2 * Math.tan(verticalFov / 2), 0.01),
+      size.x / Math.max(2 * Math.tan(horizontalFov / 2), 0.01)
+    ) * 1.18 + size.z * 0.52;
+    const previousZoomScale = this.activeFocusKey === "section" && this.focusRadius > 0
+      ? clamp(this.radius / this.focusRadius, 0.82, 1.2)
+      : 1;
+    let radius = clamp(
+      fitDistance * previousZoomScale,
+      this.baseRadius * 0.4,
+      this.baseRadius * 1.35
+    );
+    let targetData = calculateViewportAwareTarget({
+      focusCenter: { x: center.x, y: center.y, z: center.z },
+      radius,
+      theta: this.theta,
+      phi: this.phi,
+      verticalFovDegrees: this.camera.fov,
+      aspect: this.camera.aspect,
+      viewport
+    });
+    let target = new THREE.Vector3(targetData.x, targetData.y, targetData.z);
+    const collisionSafeRadius = this.resolveCollisionSafeRadius(this.theta, this.phi, target, radius);
+    if (collisionSafeRadius > radius + 0.0001) {
+      radius = collisionSafeRadius;
+      targetData = calculateViewportAwareTarget({
+        focusCenter: { x: center.x, y: center.y, z: center.z },
+        radius,
+        theta: this.theta,
+        phi: this.phi,
+        verticalFovDegrees: this.camera.fov,
+        aspect: this.camera.aspect,
+        viewport
+      });
+      target = new THREE.Vector3(targetData.x, targetData.y, targetData.z);
+    }
+
+    this.activeFocusKey = "section";
+    this.activeFocusVariant = focusVariant;
+    this.focusRadius = radius;
+    this.sectionDesigner.selectedIndex = sectionIndex;
+    this.root.dataset.cameraFocus = "section";
+    this.root.dataset.cameraSection = String(sectionIndex + 1);
+    this.setProductLightingBoost(1);
+    this.animateToCameraPose({
+      theta: this.theta,
+      phi: this.phi,
+      radius,
+      target,
+      environmentScale: 1,
+      exposure: 1.08
+    }, { duration: options.duration ?? SMART_CAMERA_DURATION });
+    return true;
+  }
+
   zoom(direction) {
     const scale = Number(direction) < 0 ? 0.9 : 1.1;
     const limits = this.getZoomLimits();
@@ -4957,7 +5190,7 @@ class BookcaseViewer3D {
   focus(profileKey = "overview", options = {}) {
     const normalizedKey = SMART_CAMERA_PROFILES[profileKey] ? profileKey : "overview";
     const focusVariant = normalizedKey === "lighting"
-      ? `${normalizedKey}:${this.state.lighting}`
+      ? `${normalizedKey}:${this.state.lighting}:${this.state.crownStyle}`
       : normalizedKey;
     const profile = SMART_CAMERA_PROFILES[normalizedKey];
     const pose = this.getFocusPose(normalizedKey, profile);
@@ -4990,7 +5223,7 @@ class BookcaseViewer3D {
       viewport.insets.bottom,
       viewport.insets.left
     ].map((value) => Math.round(value)).join("x");
-    const cacheKey = `${profileKey}:${profileKey === "lighting" ? this.state.lighting : "default"}:${this.rebuildCount}:${Number(this.camera.aspect || 1).toFixed(3)}:${viewportKey}`;
+    const cacheKey = `${profileKey}:${profileKey === "lighting" ? `${this.state.lighting}:${this.state.crownStyle}` : "default"}:${this.rebuildCount}:${Number(this.camera.aspect || 1).toFixed(3)}:${viewportKey}`;
     const cached = this.focusTargetCache.get(cacheKey);
     if (cached) {
       return {
@@ -5310,6 +5543,7 @@ class BookcaseViewer3D {
   }
 
   refreshComponentHighlight() {
+    if (this.activeFocusKey === "section") return;
     const profile = SMART_CAMERA_PROFILES[this.activeFocusKey] || SMART_CAMERA_PROFILES.overview;
     const pose = this.getFocusPose(this.activeFocusKey, profile);
     this.applyComponentHighlight(pose.activeRoles);
@@ -5346,7 +5580,9 @@ class BookcaseViewer3D {
   }
 
   setSectionSelection(index) {
-    this.sectionDesigner.selectedIndex = Number(index) || 0;
+    const sectionCount = (this.sectionDesigner.layout || this.lastLayout)?.components
+      ?.filter((component) => component.role === "section").length || 0;
+    this.sectionDesigner.selectedIndex = clamp(Number(index) || 0, 0, Math.max(0, sectionCount - 1));
     this.sectionInteractionLayer.children.forEach((mesh) => {
       const selected = mesh.userData.sectionIndex === this.sectionDesigner.selectedIndex;
       mesh.material.opacity = selected ? 0.08 : 0.008;
@@ -5714,6 +5950,8 @@ class BookcaseViewer3D {
     this.root.dataset.cameraFocus = this.activeFocusKey;
     this.setEnvironmentLightScale(Number.isFinite(Number(snapshot.environmentScale)) ? Number(snapshot.environmentScale) : 1);
     this.renderer.toneMappingExposure = Number.isFinite(Number(snapshot.exposure)) ? Number(snapshot.exposure) : 1.08;
+    this.setProductLightingBoost(this.activeFocusKey === "lighting" ? 2.35 : 1);
+    this.refreshComponentHighlight();
     this.updateCamera();
   }
 
@@ -5727,6 +5965,11 @@ class BookcaseViewer3D {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
     if (this.model?.children?.length) {
+      if (this.activeFocusKey === "preview") {
+        this.fitFullModel({ duration: 0 });
+        this.notifyDirectAnchor();
+        return;
+      }
       this.frameModel(true, this.activeFocusKey !== "overview");
       if (this.activeFocusKey === "overview") this.ensureModelComfortablyFramed();
     } else this.updateSectionOverlayProjection();
@@ -6109,8 +6352,12 @@ class BookcaseViewer3D {
     this.updateModelFrameMetrics();
     const ratio = clamp(previousRatio || 1, 0.84, 1.48);
     if (transition) {
-      const duration = isProfileCameraKey(this.activeFocusKey) ? PROFILE_CAMERA_DURATION : 480;
-      this.focus(this.activeFocusKey || "overview", { duration, force: true });
+      if (this.activeFocusKey === "section") {
+        this.focusSection(this.sectionDesigner.selectedIndex, { duration: SMART_CAMERA_DURATION, force: true });
+      } else {
+        const duration = isProfileCameraKey(this.activeFocusKey) ? PROFILE_CAMERA_DURATION : 480;
+        this.focus(this.activeFocusKey || "overview", { duration, force: true });
+      }
     } else {
       this.target.copy(this.overviewTarget);
       this.radius = this.baseRadius * ratio;
@@ -6635,6 +6882,9 @@ function renderLayoutComponent(componentGroup, rootGroup, component, config, mat
     renderDescriptorLight(componentGroup, rootGroup, component, materials, size, position);
     return;
   }
+  if (component.role === "crown" && renderDescriptorCrown(componentGroup, component, materials, size, position)) {
+    return;
+  }
 
   const material = getLayoutMaterial(component, materials);
   const showEdges = !["trim", "crown", "base"].includes(component.role);
@@ -6644,6 +6894,71 @@ function renderLayoutComponent(componentGroup, rootGroup, component, config, mat
 function getLayoutMaterial(component, materials) {
   if (component.role === "back_panel") return materials.back;
   return materials.case;
+}
+
+function renderDescriptorCrown(group, component, materials, size, position) {
+  const profile = component.metadata?.profileGeometry;
+  const outline = Array.isArray(profile?.outline) ? profile.outline : [];
+  const extrusionAxis = profile?.extrusion?.axis;
+  if (
+    profile?.kind !== "crown_profile_extrusion"
+    || outline.length < 3
+    || !["x", "z"].includes(extrusionAxis)
+  ) return false;
+
+  const [width, height, depth] = size;
+  const projectionDirection = Number(profile.crossSection?.projectionDirection) >= 0 ? 1 : -1;
+  const points = outline.map((point) => ({
+    height: clamp(Number(point.height), 0, 1),
+    projection: clamp(Number(point.projection), 0, 1)
+  }));
+  if (points.some((point) => !Number.isFinite(point.height) || !Number.isFinite(point.projection))) return false;
+
+  const shape = new THREE.Shape();
+  points.forEach((point, index) => {
+    const localY = -height / 2 + point.height * height;
+    let shapeX;
+    if (extrusionAxis === "x") {
+      const localZ = -depth / 2 + point.projection * depth;
+      shapeX = -localZ;
+    } else {
+      shapeX = projectionDirection > 0
+        ? -width / 2 + point.projection * width
+        : width / 2 - point.projection * width;
+    }
+    if (index === 0) shape.moveTo(shapeX, localY);
+    else shape.lineTo(shapeX, localY);
+  });
+  shape.closePath();
+
+  const extrusionLength = extrusionAxis === "x" ? width : depth;
+  if (!Number.isFinite(extrusionLength) || extrusionLength <= 0) return false;
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: extrusionLength,
+    steps: 1,
+    bevelEnabled: false,
+    curveSegments: 1
+  });
+  if (extrusionAxis === "x") {
+    geometry.rotateY(Math.PI / 2);
+    geometry.translate(-width / 2, 0, 0);
+  } else {
+    geometry.translate(0, 0, -depth / 2);
+  }
+  geometry.computeVertexNormals();
+
+  const mesh = new THREE.Mesh(geometry, materials.case);
+  mesh.position.set(...position);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  group.add(mesh);
+
+  const edgeMaterial = group.userData.edgeLine
+    || new THREE.LineBasicMaterial({ color: 0x8f806e, transparent: true, opacity: 0.16 });
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry, 24), edgeMaterial);
+  edges.position.copy(mesh.position);
+  group.add(edges);
+  return true;
 }
 
 function renderDescriptorDoor(group, component, config, materials, size, position) {
@@ -6675,10 +6990,10 @@ function renderDescriptorDoor(group, component, config, materials, size, positio
     return;
   }
 
-  addBox(group, [width, rail, frameDepth], [x, y + height / 2 - rail / 2, frameZ], materials.case, false);
-  addBox(group, [width, rail, frameDepth], [x, y - height / 2 + rail / 2, frameZ], materials.case, false);
-  addBox(group, [rail, centerHeight, frameDepth], [x - width / 2 + rail / 2, y, frameZ], materials.case, false);
-  addBox(group, [rail, centerHeight, frameDepth], [x + width / 2 - rail / 2, y, frameZ], materials.case, false);
+  addBox(group, [width, rail, frameDepth], [x, y + height / 2 - rail / 2, frameZ], materials.case, true);
+  addBox(group, [width, rail, frameDepth], [x, y - height / 2 + rail / 2, frameZ], materials.case, true);
+  addBox(group, [rail, centerHeight, frameDepth], [x - width / 2 + rail / 2, y, frameZ], materials.case, true);
+  addBox(group, [rail, centerHeight, frameDepth], [x + width / 2 - rail / 2, y, frameZ], materials.case, true);
   addBox(
     group,
     [centerWidth, centerHeight, panelDepth],
@@ -6880,10 +7195,20 @@ function renderDescriptorLight(group, rootGroup, component, materials, size, pos
   const type = component.metadata?.lightType || "puck";
   if (type === "puck") {
     const radius = Math.max(0.003, Math.min(size[0], size[2]) * 0.45);
-    const puck = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, size[1] * 0.8, 20), materials.puckLight);
-    puck.position.set(...position);
-    puck.castShadow = false;
-    group.add(puck);
+    const trim = new THREE.Mesh(
+      new THREE.CylinderGeometry(radius, radius, size[1] * 0.72, 28),
+      materials.puckTrim
+    );
+    trim.position.set(...position);
+    trim.castShadow = false;
+    group.add(trim);
+    const diffuser = new THREE.Mesh(
+      new THREE.CylinderGeometry(radius * 0.78, radius * 0.78, size[1] * 0.24, 28),
+      materials.puckLight
+    );
+    diffuser.position.set(position[0], position[1] - size[1] * 0.35, position[2]);
+    diffuser.castShadow = false;
+    group.add(diffuser);
   } else {
     addBox(
       group,
@@ -6993,56 +7318,20 @@ function createContactShadowTexture() {
   return texture;
 }
 
-function createFinishTexture(surface) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 96;
-  canvas.height = 192;
-  const context = canvas.getContext("2d");
-  context.fillStyle = "#ffffff";
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  const lineCount = 34;
-  context.lineCap = "round";
-  for (let index = 0; index < lineCount; index += 1) {
-    const x = (index * 17 + (index % 7) * 5) % canvas.width;
-    const wobble = 2;
-    const alpha = 0.018 + (index % 3) * 0.008;
-    context.strokeStyle = `rgba(34, 29, 24, ${alpha})`;
-    context.lineWidth = 0.45;
-    context.beginPath();
-    context.moveTo(x, -10);
-    for (let y = 0; y <= canvas.height + 12; y += 24) {
-      const wave = Math.sin((y + index * 13) * 0.055) * wobble;
-      context.lineTo(x + wave, y);
-    }
-    context.stroke();
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(surface === "back" ? 2.4 : 1.4, surface === "inset" ? 2.2 : 3.4);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.needsUpdate = true;
-  return texture;
-}
-
 function createMaterials(baseColor, config) {
   const hardwareAppearance = getHardwareAppearance(config.hardware);
-  const caseTexture = createFinishTexture("case");
-  const sideTexture = createFinishTexture("side");
-  const backTexture = createFinishTexture("back");
-  const insetTexture = createFinishTexture("inset");
-  const paintBump = 0.004;
   const edgeColor = new THREE.Color(baseColor).lerp(new THREE.Color(0x342f2a), 0.5).getHex();
   const revealColor = new THREE.Color(baseColor).lerp(new THREE.Color(0x211e1b), 0.66).getHex();
   const lightColor = getLightingTemperatureColor(config.lightingWarmth);
 
   return {
-    case: new THREE.MeshStandardMaterial({ color: baseColor, map: caseTexture, bumpMap: caseTexture, bumpScale: paintBump * 0.66, roughness: 0.66, metalness: 0 }),
-    side: new THREE.MeshStandardMaterial({ color: baseColor, map: sideTexture, bumpMap: sideTexture, bumpScale: paintBump * 0.64, roughness: 0.7, metalness: 0 }),
-    back: new THREE.MeshStandardMaterial({ color: baseColor, map: backTexture, bumpMap: backTexture, bumpScale: paintBump * 0.42, roughness: 0.82, metalness: 0 }),
-    inset: new THREE.MeshStandardMaterial({ color: baseColor, map: insetTexture, bumpMap: insetTexture, bumpScale: paintBump * 0.5, roughness: 0.74, metalness: 0 }),
+    // JQ cabinetry is painted, not veneered. The slight roughness differences
+    // describe sprayed paint over casework and inset panels without inventing
+    // a directional wood-grain color or bump texture.
+    case: new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.58, metalness: 0 }),
+    side: new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.6, metalness: 0 }),
+    back: new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.72, metalness: 0 }),
+    inset: new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.64, metalness: 0 }),
     edgeBlock: new THREE.MeshStandardMaterial({ color: baseColor, roughness: 0.82, metalness: 0 }),
     shadow: new THREE.MeshStandardMaterial({ color: 0x28241f, roughness: 0.92, metalness: 0 }),
     reveal: new THREE.MeshStandardMaterial({ color: revealColor, roughness: 0.92, metalness: 0 }),
@@ -7051,7 +7340,7 @@ function createMaterials(baseColor, config) {
     pinHole: new THREE.MeshStandardMaterial({ color: 0x4e4034, roughness: 0.96, metalness: 0 }),
     screen: new THREE.MeshStandardMaterial({ color: 0x17191a, roughness: 0.28, metalness: 0.08, emissive: 0x101213, emissiveIntensity: 0.12 }),
     firebox: new THREE.MeshStandardMaterial({ color: 0x211f1c, roughness: 0.94, metalness: 0 }),
-    glass: new THREE.MeshPhysicalMaterial({ color: 0xe7edf0, roughness: 0.08, metalness: 0, transparent: true, opacity: 0.055, depthWrite: false, side: THREE.DoubleSide, clearcoat: 0.75, clearcoatRoughness: 0.1 }),
+    glass: new THREE.MeshPhysicalMaterial({ color: 0xdce8ec, roughness: 0.18, metalness: 0, transparent: true, opacity: 0.18, depthWrite: false, side: THREE.DoubleSide, clearcoat: 0.35, clearcoatRoughness: 0.2 }),
     glassLine: new THREE.MeshPhysicalMaterial({ color: 0xfffbf2, roughness: 0.04, metalness: 0, transparent: true, opacity: 0.2, depthWrite: false, clearcoat: 0.8 }),
     hardware: new THREE.MeshStandardMaterial({
       color: hardwareAppearance.color,
@@ -7156,7 +7445,10 @@ function disposeMaterialSet(materialSet) {
   if (!materialSet || typeof materialSet !== "object") return;
   const textures = new Set();
   const materials = new Set();
-  Object.values(materialSet).forEach((material) => {
+  const candidates = Object.values(materialSet).flatMap((value) => (
+    value instanceof Map ? [...value.values()] : [value]
+  ));
+  candidates.forEach((material) => {
     if (!material || typeof material.dispose !== "function") return;
     materials.add(material);
     ["map", "bumpMap", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap"].forEach((key) => {
@@ -7196,7 +7488,7 @@ function easeInOutCubic(value) {
 }
 
 function formatSectionWidth(value) {
-  return Number(Number(value || 0).toFixed(3)).toString();
+  return Number(Number(value || 0).toFixed(2)).toString();
 }
 
 function formatSectionType(type) {
@@ -7209,6 +7501,18 @@ function formatSectionType(type) {
     desk: "Desk Feature",
     feature: "Fireplace Feature"
   }[type] || "Generated Section";
+}
+
+function formatSectionStorageField(field) {
+  return {
+    shelfCount: "Shelf count",
+    shelfDistribution: "Shelf distribution",
+    doorStyle: "Door style",
+    doorArrangement: "Door arrangement",
+    drawerCount: "Drawer count",
+    drawerFrontStyle: "Drawer front style",
+    lowerStorageHeight: "Lower storage height"
+  }[field] || "Section storage";
 }
 
 function formatHardwareMillimeters(value) {

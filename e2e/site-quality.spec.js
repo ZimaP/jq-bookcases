@@ -331,7 +331,7 @@ test("corrupted saved configuration and malformed query data recover to the stud
   });
   const runtime = monitorPage(page);
   await page.goto("/configurator.html?preset=%E0%A4%A&design=%ZZ", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: "Start with your wall. Build it your way." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Design any bookcase. Your vision, your way." })).toBeVisible();
   await expect(page.locator("canvas")).toHaveCount(0);
   expect(runtime.errors).toEqual([]);
   expect(runtime.failedRequests).toEqual([]);
@@ -340,13 +340,15 @@ test("corrupted saved configuration and malformed query data recover to the stud
 test("selected option illustrations retain visible foreground contrast", async ({ page }) => {
   await page.goto("/configurator.html?preset=lower-cabinets", { waitUntil: "networkidle" });
   await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
-  const layoutStage = page.locator('[data-workspace-stage="layout"]');
-  await layoutStage.click();
-  await expect(layoutStage).toHaveAttribute("aria-current", "step");
+  const baseTopStage = page.locator('[data-workspace-stage="base_top"]');
+  await baseTopStage.click();
+  await expect(baseTopStage).toHaveAttribute("aria-current", "location");
   const properties = page.locator("[data-properties-inspector]");
   await expect(properties).toBeVisible();
-  await expect(properties.locator('[data-active-stage-panel="layout"]')).toBeVisible();
-  await expect(properties.locator(".workspace-construction-details[open]")).toBeVisible();
+  await expect(properties.locator('[data-active-stage-panel="base_top"]')).toBeVisible();
+  await expect(properties.locator("[data-inspector-tab]")).toHaveCount(0);
+  await expect(properties.locator(".workspace-properties-panel")).toHaveCount(1);
+  await expect(properties.locator(".control-section-structure")).toBeVisible();
 
   const findings = await page.evaluate(() => {
     const parse = (value) => {

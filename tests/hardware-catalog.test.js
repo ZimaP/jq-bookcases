@@ -233,7 +233,10 @@ test("legacy tokens migrate to exact snapshots and unknown tokens remain reviewa
     matte_black_knob: "armac-queslett-knob__armac-qk34__armac-mbl",
     brass_pull: "atlas-oskar-pull__atlas-oskar-6-3125__atlas-wb",
     matte_black_pull: "atlas-oskar-pull__atlas-oskar-6-3125__atlas-bl",
-    polished_nickel_pull: "atlas-oskar-pull__atlas-oskar-6-3125__atlas-pn"
+    polished_nickel_pull: "atlas-oskar-pull__atlas-oskar-6-3125__atlas-pn",
+    polished_nickel_knob: "armac-queslett-knob__armac-qk34__armac-pnp",
+    unlacquered_brass_knob: "armac-queslett-knob__armac-qk34__armac-pbul",
+    satin_nickel_pull: "atlas-oskar-pull__atlas-oskar-6-3125__atlas-brn"
   });
   assert.equal(HARDWARE_SELECTION_SCHEMA_VERSION, 1);
 
@@ -248,6 +251,12 @@ test("legacy tokens migrate to exact snapshots and unknown tokens remain reviewa
   assert.equal(unknown.migrationWarnings[0].code, "UNKNOWN_LEGACY_HARDWARE");
   assert.equal(unknown.migrationWarnings[0].legacyToken, "vendor_custom_42");
   assert.equal(normalizeHardwareSelections("brass_pull").defaultVariantId, LEGACY_HARDWARE_VARIANT_IDS.brass_pull);
+  for (const token of ["polished_nickel_knob", "unlacquered_brass_knob", "satin_nickel_pull"]) {
+    const selection = createLegacyHardwareSelections(token);
+    assert.equal(selection.defaultVariantId, LEGACY_HARDWARE_VARIANT_IDS[token]);
+    assert.deepEqual(selection.defaultSnapshot, LEGACY_VARIANT_SNAPSHOTS[token]);
+    assert.deepEqual(selection.migrationWarnings, []);
+  }
 });
 
 test("normalization preserves saved snapshots, host overrides, placement zeroes, and warnings", () => {

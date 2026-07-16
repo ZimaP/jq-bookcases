@@ -1,4 +1,4 @@
-import * as hardwareCatalogApi from "./hardware-catalog.js?v=direct-hardware-20260714a";
+import * as hardwareCatalogApi from "./hardware-catalog.js?v=engine-polish-20260716a";
 
 /**
  * Standalone direct-on-model hardware editor.
@@ -42,7 +42,10 @@ const LEGACY_HARDWARE_HINTS = Object.freeze({
   brass_pull: { categories: ["bar_pull", "d_handle_pull", "textured_bar_pull"], finishes: ["satin-brass", "brass", "warm-brass"] },
   matte_black_knob: { categories: ["round_knob", "t_bar_knob"], finishes: ["matte-black"] },
   matte_black_pull: { categories: ["bar_pull", "d_handle_pull", "textured_bar_pull"], finishes: ["matte-black"] },
-  polished_nickel_pull: { categories: ["bar_pull", "d_handle_pull", "textured_bar_pull"], finishes: ["polished-nickel", "polished-chrome"] }
+  polished_nickel_pull: { categories: ["bar_pull", "d_handle_pull", "textured_bar_pull"], finishes: ["polished-nickel", "polished-chrome"] },
+  polished_nickel_knob: { categories: ["round_knob", "t_bar_knob"], finishes: ["polished-nickel", "polished-chrome"] },
+  unlacquered_brass_knob: { categories: ["round_knob", "t_bar_knob"], finishes: ["unlacquered-brass"] },
+  satin_nickel_pull: { categories: ["bar_pull", "d_handle_pull", "textured_bar_pull"], finishes: ["satin-nickel"] }
 });
 
 function componentsFromLayout(layout) {

@@ -26,6 +26,13 @@ async function expectSectionSelectionSynchronized(page) {
   );
 }
 
+async function deleteFromOrganizerCard(page, index) {
+  const card = page.locator(`[data-section-card="${index}"]`);
+  const action = card.locator(`[data-section-delete="${index}"]`);
+  await expect(action).toBeVisible();
+  await action.click();
+}
+
 test("global hardware changes preserve exact per-host selections and migration warnings", async ({ page }) => {
   await openWorkspace(page, "lower-cabinets");
   const seeded = await page.locator("[data-bookcase-builder]").evaluate((host) => {
@@ -98,24 +105,66 @@ test("add, duplicate, and delete keep organizer, model selection, and Properties
   await expectSectionSelectionSynchronized(page);
 });
 
-test("organizer menus stay open for internal clicks and dismiss outside the workspace or with Escape", async ({ page }) => {
+test("the default layout can add a neutral section and delete it from the selected organizer card", async ({ page }) => {
+  await openWorkspace(page, "lower-cabinets");
+  const add = page.locator("[data-section-organizer] [data-section-add]");
+  await expect(add).toBeEnabled();
+  await add.click();
+  await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(5);
+  await expectSectionSelectionSynchronized(page);
+
+  const added = await page.locator("[data-bookcase-builder]").evaluate((host) => {
+    const controller = host.__bookcaseConfigurator;
+    return {
+      width: controller.state.width,
+      selectedSectionIndex: controller.selectedSectionIndex,
+      types: controller.layout.components
+        .filter((component) => component.role === "section")
+        .map((component) => component.metadata.type),
+      widths: controller.layout.metrics.sectionClearWidths
+    };
+  });
+  expect(added.width).toBe(96);
+  expect(added.selectedSectionIndex).toBe(1);
+  expect(added.types).toEqual(["lower_doors", "open", "lower_doors", "lower_doors", "lower_doors"]);
+  expect(added.widths).toEqual([18.3, 18.3, 18.3, 18.3, 18.3]);
+
+  await deleteFromOrganizerCard(page, 1);
+  await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(4);
+  await expectSectionSelectionSynchronized(page);
+});
+
+test("delete reflows a door layout when an adjacent merge is not buildable", async ({ page }) => {
+  await openWorkspace(page, "glass-library");
+  await page.locator('[data-section-organizer] [data-section-select="0"]').click();
+  await deleteFromOrganizerCard(page, 0);
+  await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(3);
+
+  const result = await page.locator("[data-bookcase-builder]").evaluate((host) => {
+    const controller = host.__bookcaseConfigurator;
+    return {
+      width: controller.state.width,
+      types: controller.layout.components
+        .filter((component) => component.role === "section")
+        .map((component) => component.metadata.type),
+      widths: controller.layout.metrics.sectionClearWidths,
+      renderValid: controller.getDiagnostics().viewer.renderAudit.valid
+    };
+  });
+  expect(result.width).toBe(108);
+  expect(result.types).toEqual(["lower_doors", "lower_doors", "lower_doors"]);
+  expect(result.widths).toEqual([35, 35, 35]);
+  expect(result.renderValid).toBe(true);
+  await expectSectionSelectionSynchronized(page);
+});
+
+test("organizer exposes visible labeled duplicate and delete actions without a disclosure menu", async ({ page }) => {
   await openWorkspace(page);
-  const menu = page.locator(".workspace-section-menu").first();
-  const summary = menu.locator("summary");
-
-  await summary.click();
-  await expect(menu).toHaveAttribute("open", "");
-  await menu.evaluate((element) => element.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-  await expect(menu).toHaveAttribute("open", "");
-
-  await page.locator("[data-site-header]").click({ position: { x: 4, y: 4 } });
-  await expect(menu).not.toHaveAttribute("open", "");
-
-  await summary.click();
-  await expect(menu).toHaveAttribute("open", "");
-  await page.keyboard.press("Escape");
-  await expect(menu).not.toHaveAttribute("open", "");
-  await expect(summary).toBeFocused();
+  const firstCard = page.locator('[data-section-card="0"]');
+  await expect(firstCard.locator('.workspace-section-card-actions')).toBeVisible();
+  await expect(firstCard.getByRole('button', { name: 'Duplicate Section 1' })).toBeVisible();
+  await expect(firstCard.getByRole('button', { name: 'Delete Section 1' })).toBeVisible();
+  await expect(page.locator('.workspace-section-menu, .workspace-section-card summary')).toHaveCount(0);
 });
 
 test("back-panel hits route to the read-only Back properties summary", async ({ page }) => {
@@ -131,7 +180,6 @@ test("back-panel hits route to the read-only Back properties summary", async ({ 
   expect(result.accepted).toBe(true);
   expect(result.diagnostics).toMatchObject({
     activeWorkspaceStage: "layout",
-    activeInspectorTab: "back",
     contextEditorOpen: true,
     selection: {
       editorId: "back",
@@ -139,6 +187,8 @@ test("back-panel hits route to the read-only Back properties summary", async ({ 
       title: "Fitted Back"
     }
   });
+  await expect(page.locator("[data-properties-inspector] [data-inspector-tab]")).toHaveCount(0);
+  await expect(page.locator("[data-properties-inspector] .workspace-properties-panel")).toHaveCount(1);
   await expect(page.locator("[data-properties-inspector] .workspace-properties-heading h2")).toHaveText("Fitted Back");
   await expect(page.locator("[data-properties-inspector] .workspace-readonly-property")).toContainText("Standard fitted back");
   await expect(page.locator("[data-properties-inspector] .workspace-readonly-property")).toContainText("Included");
