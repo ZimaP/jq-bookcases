@@ -299,6 +299,7 @@ test("Storage exposes one accessible independent-section editor with conditional
   const events = methodBody("bindEvents", "handleDelegatedClick");
   const click = methodBody("handleDelegatedClick", "activateWorkspaceStage");
   const commit = methodBody("commitSelectedSectionStorage", "commitSelectedSectionWidth");
+  const focus = methodBody("captureWorkspaceFocus", "restoreWorkspaceFocus");
   assert.match(storage, /class="workspace-storage-console" data-storage-console/);
   assert.match(storage, /data-selected-section-id="\$\{escapeHtml\(selected\.stableId \|\| selected\.id\)\}"/);
   assert.match(storage, /Section \$\{selected\.index \+ 1\} of \$\{designer\.sections\.length\}/);
@@ -311,6 +312,8 @@ test("Storage exposes one accessible independent-section editor with conditional
   assert.match(storage, /sectionStoragePresets\.map/);
   assert.match(storage, /data-section-storage-preset="\$\{preset\.id\}"/);
   assert.match(storage, /renderStorageStepper\("shelfCount", "Shelf count", selected\.shelfCount, 0, 8\)/);
+  assert.match(storage, /data-section-storage-error="\$\{field\}"/);
+  assert.match(storage, /aria-describedby="\$\{this\.id\}-section-storage-scope \$\{this\.id\}-section-\$\{field\}-error"/);
   assert.match(storage, /Evenly spaced automatically/);
   assert.doesNotMatch(storage, /data-section-storage-field="shelfDistribution"/);
   assert.match(storage, /usesDoors \|\| usesDrawers \? `<section class="workspace-storage-detail workspace-storage-fronts/);
@@ -326,9 +329,16 @@ test("Storage exposes one accessible independent-section editor with conditional
   assert.doesNotMatch(storage, /renderStepperControl\("shelves"|renderDoorGroup\(|data-field="drawerCount"/);
   assert.match(events, /data-section-storage-preset/);
   assert.match(events, /data-section-storage-field/);
+  assert.match(events, /this\.validateSectionStorageNumber\(sectionStorageInput\)/);
+  assert.match(events, /this\.showSectionStorageInputError\(sectionStorageInput, validation\.message\)/);
   assert.match(click, /data-storage-section-step/);
   assert.match(click, /data-section-storage-step/);
   assert.match(commit, /setSectionStorageConfiguration\(this\.state, this\.selectedSectionIndex, patch, this\.layout\)/);
+  assert.match(commit, /const raw = String\(input\?\.value \?\? ""\)\.trim\(\)/);
+  assert.match(commit, /value >= min && value <= max && stepAligned/);
+  for (const attribute of ["data-storage-section-step", "data-section-storage-step", "data-section-storage-field", "data-section-storage-preset"]) {
+    assert.match(focus, new RegExp(`"${attribute}"`));
+  }
   assert.match(precisionCss, /\.workspace-storage-preset-grid/);
   assert.match(precisionCss, /\.workspace-storage-detail-fields/);
   assert.match(precisionCss, /@media \(max-width: 767px\)[\s\S]*\.workspace-storage-section-nav button[\s\S]*min-height: 44px/);
@@ -366,7 +376,9 @@ test("section operations respect build limits and feed the single global physica
   const globalRedo = methodBody("redoDesignChange", "syncWorkspaceToolbar");
   const update = methodBody("update", "renderDoorOptions");
   const dragStart = methodBody("beginRangeDrag", "updateRangeDrag");
+  const dragMove = methodBody("updateRangeDrag", "endRangeDrag");
   const dragEnd = methodBody("endRangeDrag", "applyRangePointerValue");
+  const dragApply = methodBody("applyRangePointerValue", "setView");
 
   assert.match(designer, /const splitDisabled = selected\.locked \|\| designer\.sections\.length >= this\.layout\.rules\.maxSections/);
   assert.match(designer, /const splitTooNarrow = selected\.width \+ 1e-6 < splitMinimumWidth/);
@@ -389,8 +401,19 @@ test("section operations respect build limits and feed the single global physica
   assert.match(globalRedo, /this\.designHistory\.undo\.push\(current\)/);
   assert.match(update, /if \(options\.recordHistory !== false\)/);
   assert.ok(update.indexOf("if (rendered === false)") < update.indexOf("this.recordDesignHistory(previousSnapshot)"));
+  assert.match(update, /if \(!this\.activeRangeDrag\?\.range\?\.isConnected\) this\.renderInspector\(\)/);
   assert.match(dragStart, /startSnapshot: this\.snapshotDesignState\(\)/);
-  assert.match(dragEnd, /if \(changed\)[\s\S]*this\.recordDesignHistory\(startSnapshot\)/);
+  assert.match(dragStart, /control\?\.classList\.add\("is-dragging"\)/);
+  assert.match(dragMove, /window\.requestAnimationFrame\(\(\) =>/);
+  assert.match(dragMove, /this\.activeRangeDrag !== drag \|\| !drag\.range\.isConnected/);
+  assert.match(dragEnd, /if \(drag\.changed\)[\s\S]*this\.recordDesignHistory\(drag\.startSnapshot\)/);
+  assert.match(dragEnd, /this\.renderInspector\(\);[\s\S]*this\.syncInterface\(\)/);
+  assert.match(dragApply, /if \(!range\?\.isConnected \|\| !Number\.isFinite\(event\?\.clientX\)\) return false/);
+  assert.match(dragApply, /Math\.abs\(previousValue - value\) <= 1e-9/);
+  assert.match(source, /field\.type === "range" && this\.activeRangeDrag\?\.range === field/);
+  assert.match(precisionCss, /\.workspace-properties-panel \.range-control > input\[type="range"\][\s\S]*min-height: 44px/);
+  assert.match(precisionCss, /\.configurator-context-editor,[\s\S]*\.configurator-panel[\s\S]*touch-action: pan-y/);
+  assert.match(precisionCss, /touch-action: pan-y/);
   assert.doesNotMatch(source, /sectionUndoStack|sectionRedoStack|createSectionHistorySnapshot|applySectionHistorySnapshot/);
 });
 
@@ -855,10 +878,13 @@ test("viewer teardown removes controls, resources, and its canvas", () => {
 
 test("viewer controls remain enabled after focus and preserve browser zoom shortcuts", () => {
   const controls = methodBody("bindControls", "setView");
-  for (const eventName of ["pointerdown", "pointermove", "pointerup", "pointercancel", "wheel", "keydown"]) {
+  for (const eventName of ["pointerdown", "pointermove", "pointerup", "pointercancel", "lostpointercapture", "wheel", "keydown"]) {
     assert.match(controls, new RegExp(`addEventListener\\("${eventName}"`));
   }
   assert.match(controls, /this\.cancelCameraTransition\(\)/);
+  assert.match(controls, /pointerId: event\.pointerId/);
+  assert.match(controls, /event\.pointerId !== this\.drag\.pointerId/);
+  assert.match(controls, /event\.isPrimary === false \|\| this\.drag/);
   assert.match(controls, /if \(event\.ctrlKey \|\| event\.metaKey\) return;/);
   assert.match(controls, /addEventListener\("wheel"[\s\S]*event\.preventDefault\(\)/);
   assert.match(controls, /addEventListener\("keydown"[\s\S]*event\.ctrlKey \|\| event\.metaKey/);
