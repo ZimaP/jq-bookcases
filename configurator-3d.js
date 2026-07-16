@@ -858,6 +858,10 @@ class BookcaseConfigurator {
       "data-section-equalize",
       "data-step-field",
       "data-section-width-step",
+      "data-storage-section-step",
+      "data-section-storage-step",
+      "data-section-storage-field",
+      "data-section-storage-preset",
       "data-toggle-color-search",
       "data-search-bm",
       "data-review-design"
@@ -1006,10 +1010,11 @@ class BookcaseConfigurator {
         <label for="${this.id}-section-${field}">${escapeHtml(label)}</label>
         <div class="workspace-number-stepper">
           <button type="button" data-section-storage-step="${field}" data-step-direction="-${step}" data-min="${min}" data-max="${max}" aria-label="Decrease ${escapeHtml(label)}" ${Number(value) <= min ? "disabled" : ""}>${builderIcons.minus}</button>
-          <input id="${this.id}-section-${field}" data-section-storage-field="${field}" type="number" min="${min}" max="${max}" step="${step}" inputmode="${Number(step) % 1 === 0 ? "numeric" : "decimal"}" value="${escapeHtml(value)}" aria-describedby="${this.id}-section-storage-scope">
+          <input id="${this.id}-section-${field}" data-section-storage-field="${field}" type="number" min="${min}" max="${max}" step="${step}" inputmode="${Number(step) % 1 === 0 ? "numeric" : "decimal"}" value="${escapeHtml(value)}" aria-describedby="${this.id}-section-storage-scope ${this.id}-section-${field}-error">
           <button type="button" data-section-storage-step="${field}" data-step-direction="${step}" data-min="${min}" data-max="${max}" aria-label="Increase ${escapeHtml(label)}" ${Number(value) >= max ? "disabled" : ""}>${builderIcons.plus}</button>
           ${unit ? `<span aria-hidden="true">${escapeHtml(unit)}</span>` : ""}
         </div>
+        <p id="${this.id}-section-${field}-error" class="inline-validation-message" data-section-storage-error="${field}" aria-live="polite"></p>
       </div>`;
     const renderStyleSelect = (field, label, options, value) => `
       <label class="workspace-storage-select">
@@ -2223,7 +2228,15 @@ class BookcaseConfigurator {
     }, { signal });
     this.host.addEventListener("pointercancel", (event) => {
       this.cancelSectionDividerDrag(event);
-      this.endRangeDrag(event);
+      this.endRangeDrag(event, { applyFinal: false });
+    }, { signal });
+    this.host.addEventListener("lostpointercapture", (event) => {
+      if (this.activeSectionDividerDrag?.handle === event.target) {
+        this.cancelSectionDividerDrag(event);
+        return;
+      }
+      if (this.activeRangeDrag?.range !== event.target) return;
+      this.endRangeDrag(event, { applyFinal: false, releaseCapture: false });
     }, { signal });
 
     this.host.addEventListener("pointerover", (event) => {
@@ -2256,6 +2269,11 @@ class BookcaseConfigurator {
         if (error) error.textContent = "";
         return;
       }
+      const sectionStorageNumber = event.target.closest?.('input[type="number"][data-section-storage-field]');
+      if (sectionStorageNumber && this.host.contains(sectionStorageNumber)) {
+        this.clearSectionStorageInputError(sectionStorageNumber);
+        return;
+      }
       const colorQuery = event.target.closest?.("[data-bm-query]");
       if (colorQuery && this.host.contains(colorQuery)) {
         this.colorQueryDraft = colorQuery.value;
@@ -2266,6 +2284,7 @@ class BookcaseConfigurator {
       const field = event.target.closest?.("[data-field]");
       if (!field || !this.host.contains(field)) return;
       if (field.type === "radio" || field.type === "checkbox" || field.tagName === "SELECT") return;
+      if (field.type === "range" && this.activeRangeDrag?.range === field) return;
       this.handleFieldInput(field);
     }, { signal });
 
@@ -2289,13 +2308,15 @@ class BookcaseConfigurator {
       const sectionStorageInput = event.target.closest?.("[data-section-storage-field]");
       if (sectionStorageInput && this.host.contains(sectionStorageInput)) {
         const field = sectionStorageInput.dataset.sectionStorageField;
-        const value = sectionStorageInput.type === "number"
-          ? Number(sectionStorageInput.value)
-          : sectionStorageInput.value;
-        if (sectionStorageInput.type === "number" && !Number.isFinite(value)) {
-          this.renderInspector();
-          this.showSectionDesignerError({ message: "Enter a valid section storage value." });
-          return;
+        let value = sectionStorageInput.value;
+        if (sectionStorageInput.type === "number") {
+          const validation = this.validateSectionStorageNumber(sectionStorageInput);
+          if (!validation.valid) {
+            this.showSectionStorageInputError(sectionStorageInput, validation.message);
+            return;
+          }
+          value = validation.value;
+          this.clearSectionStorageInputError(sectionStorageInput);
         }
         this.commitSelectedSectionStorage(
           { [field]: value },
@@ -3094,6 +3115,43 @@ class BookcaseConfigurator {
     );
   }
 
+  validateSectionStorageNumber(input) {
+    const raw = String(input?.value ?? "").trim();
+    const value = Number(raw);
+    const min = input?.min === "" ? Number.NEGATIVE_INFINITY : Number(input.min);
+    const max = input?.max === "" ? Number.POSITIVE_INFINITY : Number(input.max);
+    const step = !input?.step || input.step === "any" ? null : Number(input.step);
+    const base = Number.isFinite(min) ? min : 0;
+    const stepOffset = step && Number.isFinite(step) && step > 0 ? (value - base) / step : 0;
+    const stepAligned = !step || !Number.isFinite(step) || step <= 0
+      || Math.abs(stepOffset - Math.round(stepOffset)) <= 1e-7;
+    const label = input?.closest?.("[data-section-storage-control]")?.querySelector("label")?.textContent?.trim()
+      || formatSectionStorageField(input?.dataset?.sectionStorageField || "value");
+    if (raw && Number.isFinite(value) && value >= min && value <= max && stepAligned) {
+      return { valid: true, value };
+    }
+    const range = Number.isFinite(min) && Number.isFinite(max) ? ` between ${min} and ${max}` : "";
+    const increment = step && Number.isFinite(step) && step > 0 ? ` in increments of ${step}` : "";
+    return {
+      valid: false,
+      value: null,
+      message: `Enter ${label.toLowerCase()}${range}${increment}.`
+    };
+  }
+
+  clearSectionStorageInputError(input) {
+    input?.removeAttribute?.("aria-invalid");
+    const error = input?.closest?.("[data-section-storage-control]")?.querySelector("[data-section-storage-error]");
+    if (error) error.textContent = "";
+  }
+
+  showSectionStorageInputError(input, message) {
+    input?.setAttribute?.("aria-invalid", "true");
+    const error = input?.closest?.("[data-section-storage-control]")?.querySelector("[data-section-storage-error]");
+    if (error) error.textContent = message;
+    this.showStatus(message, true);
+  }
+
   commitSelectedSectionWidth(value) {
     const rawValue = typeof value === "string" ? value.trim() : value;
     const targetWidth = Number(rawValue);
@@ -3188,7 +3246,12 @@ class BookcaseConfigurator {
   }
 
   beginSectionDividerDrag(event, handle) {
-    if (!this.sectionDesignerActive) return;
+    if (
+      !this.sectionDesignerActive
+      || (event.button != null && event.button !== 0)
+      || event.isPrimary === false
+      || this.activeSectionDividerDrag
+    ) return;
     const overlay = handle.closest("[data-section-overlay]");
     const rect = overlay?.getBoundingClientRect();
     if (!rect?.width) return;
@@ -3232,7 +3295,7 @@ class BookcaseConfigurator {
     const drag = this.activeSectionDividerDrag;
     if (!drag || drag.pointerId !== event.pointerId) return;
     this.activeSectionDividerDrag = null;
-    drag.handle.releasePointerCapture?.(event.pointerId);
+    if (drag.handle.hasPointerCapture?.(event.pointerId)) drag.handle.releasePointerCapture(event.pointerId);
     this.viewer.clearSectionDividerPreview?.();
     if (Math.abs(drag.delta) >= 0.25) this.commitSectionDividerResize(drag.dividerIndex, drag.delta);
   }
@@ -3399,13 +3462,21 @@ class BookcaseConfigurator {
   }
 
   beginRangeDrag(event, range) {
-    if (event.button != null && event.button !== 0) return;
+    if ((event.button != null && event.button !== 0) || event.isPrimary === false || this.activeRangeDrag) return;
+    const control = range.closest("[data-range-control]");
+    const travelLane = this.measureRangeTravelLane(range);
+    if (!travelLane) return;
     this.activeRangeDrag = {
       range,
+      control,
+      travelLane,
       pointerId: event.pointerId,
       startSnapshot: this.snapshotDesignState(),
-      changed: false
+      changed: false,
+      frameRequest: 0,
+      latestClientX: event.clientX
     };
+    control?.classList.add("is-dragging");
     range.focus({ preventScroll: true });
     range.setPointerCapture?.(event.pointerId);
     this.applyRangePointerValue(event, range);
@@ -3413,42 +3484,84 @@ class BookcaseConfigurator {
   }
 
   updateRangeDrag(event) {
-    if (!this.activeRangeDrag || event.pointerId !== this.activeRangeDrag.pointerId) return;
-    this.applyRangePointerValue(event, this.activeRangeDrag.range);
+    const drag = this.activeRangeDrag;
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    drag.latestClientX = event.clientX;
+    if (!drag.frameRequest) {
+      drag.frameRequest = window.requestAnimationFrame(() => {
+        drag.frameRequest = 0;
+        if (this.activeRangeDrag !== drag || !drag.range.isConnected) return;
+        this.applyRangePointerValue({ clientX: drag.latestClientX }, drag.range);
+      });
+    }
     event.preventDefault();
   }
 
-  endRangeDrag(event) {
-    if (!this.activeRangeDrag) return;
-    const { range, pointerId, startSnapshot, changed } = this.activeRangeDrag;
-    if (!event || event.pointerId === pointerId) {
-      range.releasePointerCapture?.(pointerId);
-      this.activeRangeDrag = null;
-      if (changed) {
-        this.recordDesignHistory(startSnapshot);
-        this.syncWorkspaceToolbar();
-        this.syncDiagnosticsAttributes();
-      }
+  endRangeDrag(event, options = {}) {
+    const drag = this.activeRangeDrag;
+    if (!drag || (event && event.pointerId !== drag.pointerId)) return;
+    if (drag.frameRequest) {
+      window.cancelAnimationFrame(drag.frameRequest);
+      drag.frameRequest = 0;
     }
+    if (options.applyFinal !== false && Number.isFinite(event?.clientX) && drag.range.isConnected) {
+      this.applyRangePointerValue(event, drag.range);
+    }
+    this.activeRangeDrag = null;
+    drag.control?.classList.remove("is-dragging");
+    if (options.releaseCapture !== false && drag.range.hasPointerCapture?.(drag.pointerId)) {
+      drag.range.releasePointerCapture(drag.pointerId);
+    }
+    if (drag.changed) {
+      this.recordDesignHistory(drag.startSnapshot);
+      this.syncWorkspaceToolbar();
+      this.syncDiagnosticsAttributes();
+    }
+    this.renderInspector();
+    this.syncInterface();
   }
 
   applyRangePointerValue(event, range) {
-    const rect = range.getBoundingClientRect();
+    if (!range?.isConnected || !Number.isFinite(event?.clientX)) return false;
+    const travelLane = this.activeRangeDrag?.range === range
+      ? this.activeRangeDrag.travelLane
+      : this.measureRangeTravelLane(range);
+    if (!travelLane) return false;
     const min = Number(range.min);
     const max = Number(range.max);
     const step = Number(range.step) || 1;
-    const ratio = clamp((event.clientX - rect.left) / Math.max(rect.width, 1), 0, 1);
+    const ratio = clamp((event.clientX - travelLane.left) / travelLane.width, 0, 1);
     const rawValue = min + ratio * (max - min);
     const steppedValue = min + Math.round((rawValue - min) / step) * step;
     const value = clamp(steppedValue, min, max);
     const previousValue = Number(this.state[range.dataset.field]);
     range.value = String(value);
+    if (Math.abs(previousValue - value) <= 1e-9) return false;
     delete this.drafts[range.dataset.field];
     const applied = this.update(
       { ...this.state, [range.dataset.field]: value },
       { sourceField: range.dataset.field, recordHistory: this.activeRangeDrag ? false : true }
     );
     if (applied && this.activeRangeDrag && Math.abs(previousValue - value) > 1e-9) this.activeRangeDrag.changed = true;
+    return applied;
+  }
+
+  measureRangeTravelLane(range) {
+    const rect = range?.getBoundingClientRect?.();
+    if (!rect || rect.width <= 0) return null;
+    const configuredThumbSize = Number.parseFloat(
+      window.getComputedStyle(range).getPropertyValue("--range-thumb-size")
+    );
+    const thumbSize = clamp(
+      Number.isFinite(configuredThumbSize) && configuredThumbSize > 0 ? configuredThumbSize : 20,
+      0,
+      rect.width
+    );
+    const inset = thumbSize / 2;
+    return {
+      left: rect.left + inset,
+      width: Math.max(rect.width - thumbSize, 1)
+    };
   }
 
   setView(view) {
@@ -3798,7 +3911,7 @@ class BookcaseConfigurator {
         this.viewer.setSelectedComponent?.(this.selection.highlightTarget?.componentId || this.selection.componentId);
       }
     }
-    this.renderInspector();
+    if (!this.activeRangeDrag?.range?.isConnected) this.renderInspector();
     if (this.contextEditorOpen && this.selection) this.renderContextEditor();
     this.syncInterface();
     this.directHardwareEditor?.sync?.({
@@ -4521,8 +4634,9 @@ class BookcaseViewer3D {
     const signal = this.controlAbortController.signal;
     this.root.addEventListener("pointerdown", (event) => {
       if (event.target.closest?.("[data-section-overlay]")) return;
+      if ((event.button != null && event.button !== 0) || event.isPrimary === false || this.drag) return;
       this.cancelCameraTransition();
-      this.drag = { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false, tool: this.activeTool };
+      this.drag = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false, tool: this.activeTool };
       this.root.setPointerCapture(event.pointerId);
       this.root.classList.add("is-dragging");
     }, { signal });
@@ -4532,6 +4646,7 @@ class BookcaseViewer3D {
         this.updateDirectEditHover(event);
         return;
       }
+      if (event.pointerId !== this.drag.pointerId) return;
       const dx = event.clientX - this.drag.x;
       const dy = event.clientY - this.drag.y;
       const moved = this.drag.moved || Math.hypot(event.clientX - this.drag.startX, event.clientY - this.drag.startY) > 5;
@@ -4553,6 +4668,7 @@ class BookcaseViewer3D {
     }, { signal });
 
     this.root.addEventListener("pointerup", (event) => {
+      if (!this.drag || event.pointerId !== this.drag.pointerId) return;
       const isClick = Boolean(this.drag && !this.drag.moved);
       const selectDirectComponent = this.activeTool === "select" && this.directEdit.enabled && isClick;
       const selectSection = this.sectionDesigner.active && !selectDirectComponent && isClick;
@@ -4563,7 +4679,14 @@ class BookcaseViewer3D {
       else if (selectSection) this.selectSectionFromPointer(event);
     }, { signal });
 
-    this.root.addEventListener("pointercancel", () => {
+    this.root.addEventListener("pointercancel", (event) => {
+      if (!this.drag || event.pointerId !== this.drag.pointerId) return;
+      this.drag = null;
+      this.root.classList.remove("is-dragging");
+    }, { signal });
+
+    this.root.addEventListener("lostpointercapture", (event) => {
+      if (!this.drag || event.pointerId !== this.drag.pointerId) return;
       this.drag = null;
       this.root.classList.remove("is-dragging");
     }, { signal });

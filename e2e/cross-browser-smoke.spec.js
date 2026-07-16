@@ -68,6 +68,46 @@ test("a physical dimension edit rebuilds one valid model and survives reload", a
   expect(failures).toEqual([]);
 });
 
+test("dimension ranges keep one captured control through a continuous pointer drag", async ({ page }) => {
+  const failures = monitorRuntime(page);
+  await page.goto("/configurator.html?preset=classic-open", { waitUntil: "networkidle" });
+  const viewer = page.locator("[data-3d-viewer]");
+  await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
+  await page.locator('[data-workspace-stage="space"]').click();
+
+  const width = page.locator('[data-properties-inspector] input[type="range"][data-field="width"]');
+  await width.scrollIntoViewIfNeeded();
+  const box = await width.boundingBox();
+  expect(box).not.toBeNull();
+  const marker = `range-${Date.now()}`;
+  await width.evaluate((element, value) => { element.dataset.dragProbe = value; }, marker);
+  const travelLane = await width.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const configuredThumbSize = Number.parseFloat(getComputedStyle(element).getPropertyValue("--range-thumb-size"));
+    const thumbSize = Number.isFinite(configuredThumbSize) && configuredThumbSize > 0 ? configuredThumbSize : 20;
+    return {
+      left: rect.left + thumbSize / 2,
+      width: rect.width - thumbSize
+    };
+  });
+
+  const startX = travelLane.left + travelLane.width * 0.6;
+  const endX = travelLane.left + travelLane.width * 0.8;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(startX, y);
+  await page.mouse.down();
+  await page.mouse.move(endX, y, { steps: 8 });
+  await expect(page.locator(`[data-drag-probe="${marker}"]`)).toHaveCount(1);
+  await page.mouse.up();
+
+  await expect.poll(() => page.locator("[data-bookcase-builder]").evaluate((host) => (
+    host.__bookcaseConfigurator?.state?.width
+  ))).toBe(120);
+  await expect(page.locator('[data-properties-inspector] input[type="number"][data-field="width"]')).toHaveValue("120");
+  await expect(viewer).toHaveAttribute("data-render-valid", "true");
+  expect(failures).toEqual([]);
+});
+
 test("room-view entry prepares the real procedural GLB and closes back to its invoker", async ({ page }) => {
   const failures = monitorRuntime(page);
   await page.route("https://ajax.googleapis.com/**", (route) => route.fulfill({
