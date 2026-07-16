@@ -2,7 +2,7 @@ import {
   createLegacyHardwareSelections,
   normalizeHardwareSelections,
   projectVariantToLegacyHardware
-} from "./hardware-catalog.js?v=direct-hardware-20260714a";
+} from "./hardware-catalog.js?v=engine-polish-20260716a";
 
 export const CONSTRUCTION_PROFILE_IDS = Object.freeze({
   inset: "jq_inset_v1",
@@ -18,6 +18,18 @@ export const DOOR_ARRANGEMENTS = Object.freeze([
   "single_hinge_right",
   "pair"
 ]);
+
+export const SECTION_STORAGE_SCHEMA_VERSION = 1;
+export const SECTION_SHELF_DISTRIBUTIONS = Object.freeze(["even"]);
+export const SECTION_STORAGE_LIMITS = Object.freeze({
+  minShelfCount: 0,
+  maxShelfCount: 8,
+  minDrawerCount: 1,
+  maxDrawerCount: 5,
+  minLowerStorageHeight: 24,
+  maxLowerStorageHeight: 42,
+  lowerStorageHeightStep: 0.25
+});
 
 const DOOR_SECTION_TYPES = new Set(["lower_doors", "tall_doors"]);
 
@@ -134,7 +146,9 @@ export const hardwareTypeOptions = Object.freeze([
 export const hardwareFinishOptions = Object.freeze([
   Object.freeze({ value: "brass", label: "Brushed Brass", swatch: "#b38a4a", materialColor: 0xb38a4a, roughness: 0.34, metalness: 0.84 }),
   Object.freeze({ value: "matte_black", label: "Matte Black", swatch: "#171614", materialColor: 0x171614, roughness: 0.62, metalness: 0.2 }),
-  Object.freeze({ value: "polished_nickel", label: "Polished Nickel", swatch: "#d8d9d2", materialColor: 0xd8d9d2, roughness: 0.26, metalness: 0.84 })
+  Object.freeze({ value: "polished_nickel", label: "Polished Nickel", swatch: "#d8d9d2", materialColor: 0xd8d9d2, roughness: 0.26, metalness: 0.84 }),
+  Object.freeze({ value: "unlacquered_brass", label: "Unlacquered Brass", swatch: "#b68d47", materialColor: 0xb68d47, roughness: 0.38, metalness: 0.84 }),
+  Object.freeze({ value: "satin_nickel", label: "Satin Nickel", swatch: "#b7b7b0", materialColor: 0xb7b7b0, roughness: 0.42, metalness: 0.78 })
 ]);
 
 export const hardwareVariants = Object.freeze([
@@ -142,7 +156,10 @@ export const hardwareVariants = Object.freeze([
   Object.freeze({ value: "brass_pull", type: "pull", finish: "brass", label: "Brushed Brass Pull" }),
   Object.freeze({ value: "matte_black_knob", type: "knob", finish: "matte_black", label: "Matte Black Knob" }),
   Object.freeze({ value: "matte_black_pull", type: "pull", finish: "matte_black", label: "Matte Black Pull" }),
-  Object.freeze({ value: "polished_nickel_pull", type: "pull", finish: "polished_nickel", label: "Polished Nickel Pull" })
+  Object.freeze({ value: "polished_nickel_pull", type: "pull", finish: "polished_nickel", label: "Polished Nickel Pull" }),
+  Object.freeze({ value: "polished_nickel_knob", type: "knob", finish: "polished_nickel", label: "Polished Nickel Knob" }),
+  Object.freeze({ value: "unlacquered_brass_knob", type: "knob", finish: "unlacquered_brass", label: "Unlacquered Brass Knob" }),
+  Object.freeze({ value: "satin_nickel_pull", type: "pull", finish: "satin_nickel", label: "Satin Nickel Pull" })
 ]);
 
 // Push-to-open is an internal physical selection used by restored or
@@ -663,13 +680,21 @@ export function migrateLegacyConstructionConfig(config = {}) {
     }
     return { arrangement: "pair" };
   });
+  const sectionConfigs = Array.isArray(sourceMetadata.sectionConfigs)
+    ? sourceMetadata.sectionConfigs.map((entry, index) => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) return entry;
+        const arrangement = sectionDoorLayouts[index]?.arrangement;
+        return arrangement ? { ...entry, doorArrangement: arrangement } : { ...entry };
+      })
+    : undefined;
 
   return {
     ...source,
     constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay,
     layoutMetadata: {
       ...sourceMetadata,
-      sectionDoorLayouts
+      sectionDoorLayouts,
+      ...(sectionConfigs ? { sectionConfigs } : {})
     }
   };
 }
@@ -706,7 +731,6 @@ function normalizeLegacyConfigValues(config) {
   const next = { ...config };
   if (next.shelfThickness == null && next.shelf_thickness != null) next.shelfThickness = next.shelf_thickness;
   if (next.lightingWarmth == null && next.warmth != null) next.lightingWarmth = next.warmth;
-  if (next.hardware === "polished_nickel_knob") next.hardware = "polished_nickel_pull";
   if (next.lighting === "shelf_wash") next.lighting = "shelf_accent";
   if (next.lighting === "top_puck_lights") next.lighting = "warm_pucks";
   if (next.lighting === "shelf_led_strips") next.lighting = "shelf_accent";
@@ -799,13 +823,105 @@ function normalizeLayoutMetadata(value, sections, source = {}) {
   }
   const sectionTypes = resolveMetadataSectionTypes(metadata, sections, source);
   const requestedDoorLayouts = Array.isArray(input.sectionDoorLayouts) ? input.sectionDoorLayouts : [];
-  metadata.sectionDoorLayouts = sectionTypes.map((type, index) => {
-    if (!DOOR_SECTION_TYPES.has(type)) return null;
+  const requestedSectionConfigs = Array.isArray(input.sectionConfigs) && input.sectionConfigs.length === sections
+    ? input.sectionConfigs
+    : [];
+  const usedIds = new Set();
+  const globalDoorStyle = normalizeOption(source.doorStyle, doorStyleOptions, defaultBookcaseConfig.doorStyle);
+  const globalDrawerStyle = normalizeDrawerFrontStyleValue(
+    source.drawerFrontStyle,
+    normalizeDrawerFrontStyleValue(globalDoorStyle)
+  );
+  const globalShelfCount = clampInt(
+    source.shelves,
+    SECTION_STORAGE_LIMITS.minShelfCount,
+    SECTION_STORAGE_LIMITS.maxShelfCount
+  );
+  const globalDrawerCount = clampInt(
+    source.drawerCount,
+    SECTION_STORAGE_LIMITS.minDrawerCount,
+    SECTION_STORAGE_LIMITS.maxDrawerCount
+  );
+
+  metadata.sectionConfigs = sectionTypes.map((inferredType, index) => {
+    const requested = requestedSectionConfigs[index] && typeof requestedSectionConfigs[index] === "object"
+      && !Array.isArray(requestedSectionConfigs[index])
+      ? requestedSectionConfigs[index]
+      : {};
+    const requestedType = normalizeSectionTypeValue(requested.type);
+    const type = LOCKED_SECTION_TYPES.includes(inferredType)
+      ? inferredType
+      : requestedType || inferredType;
+    const legacyArrangement = normalizeDoorArrangementValue(requestedDoorLayouts[index]);
+    const requestedArrangement = normalizeDoorArrangementValue(requested.doorArrangement);
+    const doorArrangement = DOOR_SECTION_TYPES.has(type)
+      ? requestedArrangement || legacyArrangement || "auto"
+      : null;
     return {
-      arrangement: normalizeDoorArrangementValue(requestedDoorLayouts[index]) || "auto"
+      schemaVersion: SECTION_STORAGE_SCHEMA_VERSION,
+      id: normalizeSectionConfigId(requested.id, index, usedIds),
+      type,
+      shelfCount: LOCKED_SECTION_TYPES.includes(type)
+        ? 0
+        : clampInt(
+            requested.shelfCount ?? globalShelfCount,
+            SECTION_STORAGE_LIMITS.minShelfCount,
+            SECTION_STORAGE_LIMITS.maxShelfCount
+          ),
+      shelfDistribution: SECTION_SHELF_DISTRIBUTIONS.includes(requested.shelfDistribution)
+        ? requested.shelfDistribution
+        : "even",
+      doorStyle: normalizeOption(requested.doorStyle, doorStyleOptions, globalDoorStyle),
+      doorArrangement,
+      drawerCount: clampInt(
+        requested.drawerCount ?? globalDrawerCount,
+        SECTION_STORAGE_LIMITS.minDrawerCount,
+        SECTION_STORAGE_LIMITS.maxDrawerCount
+      ),
+      drawerFrontStyle: normalizeDrawerFrontStyleValue(requested.drawerFrontStyle, globalDrawerStyle),
+      lowerStorageHeight: normalizeLowerStorageHeight(requested.lowerStorageHeight)
     };
   });
+  metadata.sectionTypes = metadata.sectionConfigs.map((section) => section.type);
+  metadata.sectionDoorLayouts = metadata.sectionConfigs.map((section) => (
+    DOOR_SECTION_TYPES.has(section.type) ? { arrangement: section.doorArrangement || "auto" } : null
+  ));
   return metadata;
+}
+
+export function getSectionConfiguration(config, index) {
+  const state = normalizeBookcaseConfig(config);
+  const sectionIndex = Number(index);
+  if (!Number.isInteger(sectionIndex) || sectionIndex < 0 || sectionIndex >= state.sections) return null;
+  return structuredClone(state.layoutMetadata.sectionConfigs[sectionIndex]);
+}
+
+function normalizeSectionConfigId(value, index, usedIds) {
+  const token = typeof value === "string" ? value.trim().toLowerCase() : "";
+  let candidate = /^section-config-[a-z0-9][a-z0-9-]{0,47}$/.test(token) ? token : "";
+  if (!candidate || usedIds.has(candidate)) {
+    const base = `section-config-${String(index + 1).padStart(2, "0")}`;
+    candidate = base;
+    let suffix = 2;
+    while (usedIds.has(candidate)) {
+      candidate = `${base}-${suffix}`;
+      suffix += 1;
+    }
+  }
+  usedIds.add(candidate);
+  return candidate;
+}
+
+function normalizeLowerStorageHeight(value) {
+  const numeric = Number(value);
+  const fallback = 30;
+  const finite = Number.isFinite(numeric) ? numeric : fallback;
+  const clamped = Math.min(
+    SECTION_STORAGE_LIMITS.maxLowerStorageHeight,
+    Math.max(SECTION_STORAGE_LIMITS.minLowerStorageHeight, finite)
+  );
+  const step = SECTION_STORAGE_LIMITS.lowerStorageHeightStep;
+  return Math.round(clamped / step) * step;
 }
 
 function resolveMetadataSectionTypes(metadata, sections, source) {

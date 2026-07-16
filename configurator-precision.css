@@ -209,6 +209,515 @@ body[data-page="configurator"] .configurator-review-button {
   }
 }
 
+/* 2026-07 engine polish: direct section actions and task-oriented Storage. */
+body[data-page="configurator"] .reference-workspace .workspace-section-card-actions {
+  position: absolute;
+  z-index: 5;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  gap: 4px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card-actions > button,
+body[data-page="configurator"] .reference-workspace .workspace-section-card-actions .workspace-section-delete {
+  position: static;
+  display: grid;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  place-items: center;
+  border: 1px solid var(--workspace-line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 0;
+  color: var(--workspace-soft-ink);
+  touch-action: manipulation;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card-actions > button:hover:not(:disabled) {
+  border-color: var(--workspace-accent-dark);
+  background: #fff;
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card-actions .workspace-section-delete {
+  border-color: #e4c7c2;
+  background: #fff8f6;
+  color: var(--workspace-danger);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card-actions .workspace-section-delete:hover:not(:disabled) {
+  border-color: #c98d82;
+  color: var(--workspace-danger);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card-actions > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.34;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-section-card-actions svg {
+  width: 14px;
+  height: 14px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-selected-check {
+  right: 42px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-automatic {
+  display: grid;
+  min-height: 38px;
+  align-content: center;
+  gap: 2px;
+  border: 1px solid #dce1e5;
+  border-radius: 7px;
+  background: #f7f9fa;
+  padding: 6px 9px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-automatic span {
+  color: var(--workspace-muted);
+  font-size: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-automatic strong {
+  color: var(--workspace-ink);
+  font-size: 9px;
+  line-height: 1.25;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-shelves > .workspace-storage-global {
+  margin-top: 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-hardware-notice {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 7px 9px;
+  align-items: start;
+  border: 1px solid #e2c9a8;
+  border-radius: 9px;
+  background: #fff8ef;
+  padding: 10px;
+  color: var(--workspace-soft-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-hardware-notice > span {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f1dfc8;
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-hardware-notice > span svg {
+  width: 13px;
+  height: 13px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-hardware-notice p {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-hardware-notice p strong {
+  color: var(--workspace-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-hardware-notice .workspace-related-stage {
+  grid-column: 1 / -1;
+  min-height: 38px;
+}
+
+@media (hover: none), (pointer: coarse) {
+  body[data-page="configurator"] .reference-workspace .workspace-section-card {
+    min-height: 112px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-section-card-actions > button,
+  body[data-page="configurator"] .reference-workspace .workspace-section-card-actions .workspace-section-delete {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-section-card-main {
+    padding-right: 52px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-selected-check {
+    right: 52px;
+  }
+}
+
+/* Selected-section Storage editor. Section-local controls intentionally use
+ * their own selectors so global form synchronization cannot overwrite them. */
+body[data-page="configurator"] .reference-workspace .workspace-storage-section-header {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid #dec39f;
+  border-radius: 10px;
+  background: #fff9f1;
+  padding: 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-section-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-section-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--workspace-accent-dark);
+  color: #fff;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-section-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-section-title :is(p, h3) {
+  margin: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-section-title p {
+  color: var(--workspace-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-section-title h3 {
+  color: var(--workspace-ink);
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-section-nav {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(2, 40px);
+  gap: 5px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-section-nav button {
+  display: grid;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  place-items: center;
+  border: 1px solid var(--workspace-line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--workspace-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-section-nav button:not(:disabled):hover {
+  border-color: var(--workspace-accent-dark);
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-section-nav button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-section-nav svg {
+  width: 16px;
+  height: 16px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-scope-note {
+  margin: 0;
+  border-left: 3px solid #c17d2e;
+  border-radius: 0 6px 6px 0;
+  background: #fffaf4;
+  padding: 7px 9px;
+  color: var(--workspace-muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-scope-note strong {
+  color: var(--workspace-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-presets > fieldset,
+body[data-page="configurator"] .reference-workspace .workspace-storage-detail-fields {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-preset-grid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-preset {
+  position: relative;
+  display: block;
+  min-width: 0;
+  cursor: pointer;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-preset > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-preset > span {
+  display: grid;
+  min-height: 50px;
+  align-content: center;
+  gap: 2px;
+  border: 1px solid var(--workspace-line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 7px 25px 7px 8px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-preset > span strong {
+  color: var(--workspace-ink);
+  font-size: 9px;
+  line-height: 1.15;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-preset > span small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--workspace-muted);
+  font-size: 7.5px;
+  line-height: 1.25;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-preset > i {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--workspace-accent-dark);
+  color: #fff;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-preset > i svg {
+  width: 10px;
+  height: 10px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-preset > input:checked + span {
+  border-color: var(--workspace-accent-dark);
+  background: #fff8ef;
+  box-shadow: inset 0 0 0 1px var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-preset > input:focus-visible + span,
+body[data-page="configurator"] .reference-workspace :is(.workspace-storage-section-nav button, .workspace-number-stepper button, .workspace-number-stepper input, .workspace-storage-select select):focus-visible {
+  outline: 3px solid #734719;
+  outline-offset: 2px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-preset:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-detail-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-stepper,
+body[data-page="configurator"] .reference-workspace .workspace-storage-select {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  color: var(--workspace-ink);
+  font-size: 9px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-stepper .workspace-number-stepper {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 34px minmax(36px, 1fr) 34px auto;
+  align-items: center;
+  border: 1px solid var(--workspace-line);
+  border-radius: 7px;
+  background: #fff;
+  overflow: hidden;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-stepper .workspace-number-stepper :is(button, input) {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  min-height: 36px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--workspace-ink);
+  text-align: center;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-stepper .workspace-number-stepper button {
+  display: grid;
+  place-items: center;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-stepper .workspace-number-stepper button:first-child {
+  border-right: 1px solid var(--workspace-line);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-stepper .workspace-number-stepper button:nth-of-type(2) {
+  border-left: 1px solid var(--workspace-line);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-stepper .workspace-number-stepper button:disabled {
+  opacity: 0.32;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-stepper .workspace-number-stepper svg {
+  width: 13px;
+  height: 13px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-stepper .workspace-number-stepper > span {
+  padding-right: 6px;
+  color: var(--workspace-muted);
+  font-size: 8px;
+  font-weight: 500;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-select select {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  min-height: 38px;
+  border: 1px solid var(--workspace-line);
+  border-radius: 7px;
+  background: #fff;
+  padding: 0 25px 0 8px;
+  color: var(--workspace-ink);
+  font: inherit;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-console .section-door-arrangement-field .control-helper {
+  margin: 4px 0 0;
+  font-size: 8px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-global {
+  border: 1px solid #dce1e5;
+  border-radius: 9px;
+  background: #f7f9fa;
+  padding: 8px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-global.workspace-storage-global {
+  border-top: 1px solid #dce1e5;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-global .workspace-global-badge {
+  border-radius: 999px;
+  background: #e8edf0;
+  padding: 3px 6px;
+  color: #44525b;
+  font-size: 7.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-global > .control-helper {
+  margin: -2px 0 6px;
+  font-size: 8px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-storage-global .range-control {
+  border-top: 0;
+  padding: 0;
+}
+
+@media (min-width: 768px) and (max-width: 1200px) {
+  body[data-page="configurator"] .reference-workspace .workspace-storage-preset-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] .reference-workspace .workspace-storage-section-header {
+    position: sticky;
+    z-index: 2;
+    top: 0;
+    background: #fff9f1;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-storage-section-nav {
+    grid-template-columns: repeat(2, 44px);
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-storage-section-nav button {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-storage-preset > span {
+    min-height: 58px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-storage-detail-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-storage-stepper .workspace-number-stepper {
+    grid-template-columns: 44px minmax(44px, 1fr) 44px auto;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-storage-stepper .workspace-number-stepper :is(button, input),
+  body[data-page="configurator"] .reference-workspace .workspace-storage-select select {
+    height: 44px;
+    min-height: 44px;
+  }
+}
+
 @media (min-width: 768px) and (max-width: 1279px) and (orientation: portrait) {
   body[data-page="configurator"] .preview-tools,
   body[data-page="configurator"] .configurator-model .view-controls {
@@ -218,6 +727,27 @@ body[data-page="configurator"] .configurator-review-button {
 }
 
 @media (min-width: 768px) and (max-width: 950px) and (orientation: landscape) and (max-height: 500px) {
+  body[data-page="configurator"] .reference-workspace .workspace-storage-section-nav {
+    grid-template-columns: repeat(2, 44px);
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-storage-section-nav button {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-storage-stepper .workspace-number-stepper {
+    grid-template-columns: 44px minmax(44px, 1fr) 44px auto;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-storage-stepper .workspace-number-stepper :is(button, input),
+  body[data-page="configurator"] .reference-workspace .workspace-storage-select select {
+    height: 44px;
+    min-height: 44px;
+  }
+
   body[data-page="configurator"] .configurator-experience.is-context-open .configurator-model {
     z-index: 30;
   }
@@ -924,6 +1454,17 @@ body[data-page="configurator"] .section-designer-overlay .overall-dimension span
   font-size: 11px;
   line-height: 1.2;
   white-space: nowrap;
+}
+
+body[data-page="configurator"] .section-designer-overlay button.dimension-label {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+body[data-page="configurator"] .section-designer-overlay button.dimension-label:hover,
+body[data-page="configurator"] .section-designer-overlay button.dimension-label:focus-visible {
+  border-color: rgba(235, 187, 126, 0.94);
+  background: rgba(52, 40, 31, 0.98);
 }
 
 body[data-page="configurator"] .section-designer-overlay .dimension-label strong {
@@ -1759,6 +2300,27 @@ body[data-page="configurator"] .reference-workspace :is(
   }
 }
 
+@media (min-width: 768px) and (max-width: 1200px) {
+  body[data-page="configurator"] .reference-workspace :is(.workspace-stage-list, .workspace-section-cards, .workspace-model-toolbar) {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(143, 94, 40, 0.62) transparent;
+  }
+
+  body[data-page="configurator"] .reference-workspace :is(.workspace-stage-list, .workspace-section-cards, .workspace-model-toolbar)::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  body[data-page="configurator"] .reference-workspace :is(.workspace-stage-list, .workspace-section-cards, .workspace-model-toolbar)::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  body[data-page="configurator"] .reference-workspace :is(.workspace-stage-list, .workspace-section-cards, .workspace-model-toolbar)::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(143, 94, 40, 0.62);
+  }
+}
+
 @media (max-width: 767px) {
   body[data-page="configurator"] .reference-workspace {
     contain: none;
@@ -1785,5 +2347,556 @@ body[data-page="configurator"] .reference-workspace :is(
 @media (min-width: 768px) and (max-width: 950px) and (orientation: landscape) and (max-height: 500px) {
   body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar {
     grid-row: 5;
+  }
+}
+
+/* Accepted-workspace interface polish -------------------------------------
+ * Preserve the established rail / model / Properties composition while
+ * enforcing readable controls, aligned tracks, and one predictable scroll
+ * surface for dense tasks. */
+
+body[data-page="configurator"] .reference-workspace :is(
+  button,
+  input,
+  select,
+  summary,
+  [tabindex]
+):focus-visible {
+  outline: 3px solid #734719;
+  outline-offset: 2px;
+}
+
+body[data-page="configurator"] .reference-workspace :is(
+  .workspace-section-type-card:has(input:focus-visible),
+  .style-choice:has(input:focus-visible) > label,
+  .finish-choice:has(input:focus-visible) > label,
+  .lighting-card:has(input:focus-visible) > label,
+  .warmth-choice:has(input:focus-visible) > label,
+  .hardware-type-choice:has(input:focus-visible) > span,
+  .hardware-finish-choice:has(input:focus-visible) > span,
+  .door-style-card:has(input:focus-visible) .door-style-card-content
+) {
+  outline: 3px solid #734719;
+  outline-offset: 2px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-display-tools [data-toggle-dimensions][aria-pressed="true"] {
+  border-color: #d9b98f;
+  background: var(--workspace-accent-soft);
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage.needs-attention {
+  border-color: #d8a39b;
+  background: #fff7f5;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage.needs-attention .workspace-stage-state {
+  border-color: #b65345;
+  background: #fff;
+  color: #9d4135;
+  box-shadow: 0 0 0 2px rgba(182, 83, 69, 0.1);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-inspector-view="space"] .control-section-dimensions > h2,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-inspector-view="base_top"] .control-section-structure > h2,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-inspector-view="finish"] .control-section-finish > h2,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-inspector-view="hardware"] .control-section-hardware > h2,
+body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-inspector-view="lighting"] .control-section-lighting > h2 {
+  display: none;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-empty {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  border: 1px solid var(--workspace-line);
+  border-radius: 10px;
+  background: linear-gradient(145deg, #fff, #faf8f4);
+  padding: 16px;
+  color: var(--workspace-soft-ink);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-empty-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 1px solid #dfbd94;
+  border-radius: 10px;
+  background: #fff8ef;
+  color: var(--workspace-accent-dark);
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-empty-icon svg {
+  width: 23px;
+  height: 23px;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-empty h3,
+body[data-page="configurator"] .reference-workspace .workspace-stage-empty p {
+  margin: 0;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-empty h3 {
+  color: var(--workspace-ink);
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-empty p {
+  margin-top: 5px;
+  color: var(--workspace-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+body[data-page="configurator"] .reference-workspace .workspace-stage-empty .workspace-related-stage {
+  grid-column: 1 / -1;
+  min-height: 42px;
+  background: #8f5e28;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+body[data-page="configurator"] .reference-workspace :is(.workspace-related-stage, .workspace-review-launch) {
+  border-color: #7f4f1f;
+  background: #8f5e28;
+  color: #fff;
+}
+
+body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-quote-button {
+  border-color: #7f4f1f;
+  background: linear-gradient(180deg, #9a6228, #7f4f1f);
+  color: #fff;
+}
+
+body[data-page="configurator"] .reference-workspace .configurator-fix-stage {
+  appearance: none;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #734719;
+  font: inherit;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+@media (min-width: 1201px) {
+  body[data-page="configurator"] .reference-workspace .workspace-ar-card {
+    margin-top: auto;
+    margin-bottom: 0;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: #c9c4ba transparent;
+    padding: 11px 12px 16px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: #c9c4ba;
+    background-clip: padding-box;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="base_top"] .style-choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="base_top"] :is(.style-choice, .style-choice:has(input:checked)) {
+    min-height: 66px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="base_top"] .style-choice > label {
+    min-height: 66px;
+    grid-template-columns: 46px minmax(0, 1fr);
+    align-content: center;
+    align-items: center;
+    justify-items: stretch;
+    gap: 8px;
+    border: 1px solid var(--workspace-line);
+    border-radius: 8px;
+    padding: 7px 9px;
+    text-align: left;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="base_top"] .style-diagram {
+    width: 46px;
+    max-width: none;
+    height: 34px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="base_top"] .style-choice > label > span:last-child {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel .finish-choice-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    padding: 2px 0 4px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel .finish-choice,
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel .finish-choice > label {
+    width: 100%;
+    min-width: 0;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel .finish-choice > label {
+    min-height: 58px;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: center;
+    justify-items: stretch;
+    gap: 9px;
+    border: 1px solid var(--workspace-line);
+    border-radius: 8px;
+    padding: 7px 9px;
+    text-align: left;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel :is(
+    .finish-choice-dot,
+    .finish-choice-swatch,
+    .finish-choice > span:first-of-type
+  ) {
+    width: 34px;
+    height: 34px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel :is(
+    .finish-choice-name,
+    .finish-choice-code,
+    .finish-choice > span:not(:first-of-type),
+    .finish-choice label > span:last-child
+  ) {
+    width: auto;
+    min-height: 0;
+    font-size: 10px;
+    line-height: 1.15;
+    text-align: left;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel .finish-choice label > span:last-child small {
+    margin-top: 3px;
+    font-size: 8px;
+    line-height: 1.1;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel .lighting-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel :is(.lighting-card, .lighting-card:has(input:checked)) {
+    min-height: 62px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel .lighting-card > label {
+    min-height: 62px;
+    grid-template-columns: 32px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-content: center;
+    align-items: center;
+    justify-items: stretch;
+    gap: 8px;
+    border: 1px solid var(--workspace-line);
+    border-radius: 8px;
+    padding: 7px 9px;
+    text-align: left;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel .lighting-card-icon,
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel .lighting-card-icon svg {
+    width: 29px;
+    height: 29px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel .lighting-card label > span:last-child {
+    font-size: 10px;
+    line-height: 1.2;
+    text-align: left;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel .warmth-choice strong {
+    font-size: 9.5px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel .warmth-choice small {
+    font-size: 8px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"] {
+    padding: 10px 10px 14px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-storage-console {
+    gap: 8px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-storage-console > section + section {
+    padding-top: 8px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-console-heading {
+    min-height: 24px;
+    margin-bottom: 5px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-console-heading h3 {
+    font-size: 11px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-console-heading :is(strong, small) {
+    font-size: 9px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] :is(
+    .workspace-section-types > legend,
+    .front-profile-group > legend,
+    .section-door-arrangement-field > legend
+  ) {
+    margin-bottom: 4px;
+    font-size: 9px;
+    line-height: 1.2;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-section-type-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-section-type-card {
+    min-height: 58px;
+    grid-template-columns: 30px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+    padding: 6px 8px;
+    text-align: left;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-section-type-card > span {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: center;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-section-type-card .workspace-section-thumbnail {
+    width: 26px;
+    height: 36px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-section-type-card > strong {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-storage-doors .door-style-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-storage-drawers .door-style-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-storage-doors .door-style-card-content {
+    min-height: 60px;
+    grid-template-columns: 30px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+    justify-items: stretch;
+    padding: 6px 8px;
+    text-align: left;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-storage-doors .door-style-illustration {
+    width: 28px;
+    height: 38px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-storage-doors .door-style-copy {
+    justify-items: start;
+    gap: 1px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-storage-doors .door-style-copy strong {
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-storage-doors .door-style-copy small {
+    display: block;
+    font-size: 8px;
+    line-height: 1.15;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-storage-drawers .door-style-card-content {
+    min-height: 58px;
+    grid-template-rows: 31px auto;
+    gap: 2px;
+    padding: 5px 3px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-storage-drawers .door-style-illustration {
+    width: 24px;
+    height: 31px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .workspace-storage-drawers .door-style-copy strong {
+    font-size: 9px;
+    line-height: 1.1;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .generated-front-count {
+    min-height: 22px;
+    padding: 4px 7px;
+    font-size: 9px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .section-door-arrangement-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-properties-panel[data-active-stage-panel="storage"][data-inspector-view="storage"] .section-door-arrangement-options label > span {
+    min-height: 36px;
+    padding: 5px;
+    font-size: 9px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-section-organizer {
+    margin: 0 20px 12px 28px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-section-organizer > div {
+    grid-template-columns: 132px minmax(0, 1fr);
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-section-cards:is(
+    [data-section-count="1"],
+    [data-section-count="2"],
+    [data-section-count="3"],
+    [data-section-count="4"],
+    [data-section-count="5"],
+    [data-section-count="6"]
+  ) {
+    grid-template-columns: 72px repeat(var(--workspace-section-count), minmax(84px, 1fr));
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-organizer-summary strong {
+    font-size: 10.5px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-organizer-summary small,
+  body[data-page="configurator"] .reference-workspace .workspace-section-card-main small {
+    font-size: 9px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-section-card-main strong {
+    font-size: 10px;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-total-width {
+    place-items: stretch;
+    padding: 0 20px 12px 0;
+  }
+
+  body[data-page="configurator"] .reference-workspace .workspace-total-width > div {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    align-content: center;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar {
+    grid-template-columns: var(--workspace-rail-width) minmax(0, 1fr) var(--workspace-properties-width);
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-price-block {
+    padding: 0 24px;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .studio-trust-item strong {
+    font-size: 10px;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .studio-trust-item small {
+    font-size: 8.75px;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-actions {
+    justify-content: flex-end;
+    padding: 0 20px 0 12px;
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-actions button {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 767px) {
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-quote-note.is-blocking {
+    position: fixed;
+    z-index: 45;
+    right: 8px;
+    bottom: calc(var(--workspace-footer-height) + 8px);
+    left: 8px;
+    display: block !important;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    border: 1px solid #d8a39b;
+    border-radius: 8px;
+    background: #fff7f5;
+    padding: 9px 11px;
+    color: #7e3a31;
+    font-size: 10px;
+    line-height: 1.35;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    box-shadow: 0 8px 24px rgba(80, 45, 38, 0.16);
+  }
+
+  body[data-page="configurator"] .reference-workspace > .workspace-estimate-bar .configurator-quote-note.is-blocking .configurator-fix-stage {
+    display: inline;
+    min-width: 0;
+    min-height: 0;
+    color: #7e3a31;
   }
 }

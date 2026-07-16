@@ -5,12 +5,12 @@ import {
   layoutPresets,
   normalizeBookcaseConfig,
   normalizeSectionTypeValue
-} from "./bookcase-config.js?v=direct-hardware-20260714a";
+} from "./bookcase-config.js?v=engine-polish-20260716a";
 import {
   CONSTRUCTION_RULES,
   generateBookcaseLayout,
   resolveDoorArrangement
-} from "./bookcase-layout.js?v=direct-hardware-20260714a";
+} from "./bookcase-layout.js?v=engine-polish-20260716a";
 
 const PRECISION = 1e6;
 const RATIO_PRECISION = 1e12;
@@ -56,12 +56,21 @@ export function getSectionDesignerState(config, layout) {
     sections: widths.map((width, index) => {
       const descriptor = sectionDescriptors[index];
       const type = types[index];
+      const sectionConfig = getSectionConfigAt(state, index, type);
       return {
         id: descriptor?.id || `section-${String(index + 1).padStart(2, "0")}`,
+        stableId: sectionConfig.id,
         index,
         width,
         type,
         doorLayout: cloneDoorLayout(doorLayouts[index]),
+        shelfCount: sectionConfig.shelfCount,
+        shelfDistribution: sectionConfig.shelfDistribution,
+        doorStyle: sectionConfig.doorStyle,
+        drawerCount: sectionConfig.drawerCount,
+        drawerFrontStyle: sectionConfig.drawerFrontStyle,
+        lowerStorageHeight: sectionConfig.lowerStorageHeight,
+        configuration: cloneSectionConfig(sectionConfig),
         locked: LOCKED_SECTION_TYPES.includes(type),
         editable: EDITABLE_SECTION_TYPES.includes(type),
         bounds: descriptor?.bounds ? structuredClone(descriptor.bounds) : null,
@@ -162,8 +171,23 @@ export function splitSection(config, layout, sectionIndex, rules = CONSTRUCTION_
   const doorLayouts = designer.sections.map((item) => cloneDoorLayout(item.doorLayout));
   const splitDoorLayout = isDoorSectionType(section.type) ? { arrangement: "auto" } : null;
   doorLayouts.splice(index, 1, cloneDoorLayout(splitDoorLayout), cloneDoorLayout(splitDoorLayout));
+  const sectionConfigs = designer.sections.map((item) => cloneSectionConfig(item.configuration));
+  const sourceSectionConfig = cloneSectionConfig(section.configuration);
+  const insertedSectionConfig = {
+    ...cloneSectionConfig(sourceSectionConfig),
+    id: allocateSectionConfigId(sectionConfigs),
+    doorArrangement: splitDoorLayout?.arrangement || null
+  };
+  sectionConfigs.splice(
+    index,
+    1,
+    { ...sourceSectionConfig, doorArrangement: splitDoorLayout?.arrangement || null },
+    insertedSectionConfig
+  );
+  const customized = applyCustomization(config, widths, types, doorLayouts, sectionConfigs);
+  const indexMap = createStableSectionIndexMap(designer.sections, sectionConfigs);
   return acceptedConfig(
-    applyCustomization(config, widths, types, doorLayouts),
+    reconcileSectionHardwareSelections(config, layout, customized, indexMap),
     widths,
     [index, index + 1]
   );
@@ -203,11 +227,7 @@ export function addSection(config, layout, sectionIndex = null, rules = CONSTRUC
     null
   );
   if (!source) {
-    return rejectedConfig(
-      "SECTION_TOO_NARROW_TO_SPLIT",
-      splitWidthFailureMessage(rules),
-      config
-    );
+    return createOrganizerReflowAdd(config, layout, designer, requestedIndex.value, rules);
   }
   return createOrganizerSplit(config, layout, designer, source.index, false, rules);
 }
@@ -319,11 +339,7 @@ export function deleteSection(
     }];
   });
   if (!candidates.length) {
-    return rejectedConfig(
-      "NO_SUITABLE_DELETE_NEIGHBOR",
-      "No adjacent section can receive this width while remaining buildable.",
-      config
-    );
+    return createOrganizerReflowDelete(config, layout, designer, index, rules);
   }
   candidates.sort((left, right) => (
     Number(right.sameType) - Number(left.sameType)
@@ -338,13 +354,16 @@ export function deleteSection(
   types.splice(index, 1);
   const doorLayouts = designer.sections.map((item) => cloneDoorLayout(item.doorLayout));
   doorLayouts.splice(index, 1);
+  const sectionConfigs = designer.sections.map((item) => cloneSectionConfig(item.configuration));
+  sectionConfigs.splice(index, 1);
   const survivorIndex = chosen.neighborIndex > index ? chosen.neighborIndex - 1 : chosen.neighborIndex;
   doorLayouts[survivorIndex] = cloneDoorLayout(chosen.doorLayout);
+  sectionConfigs[survivorIndex].doorArrangement = chosen.doorLayout?.arrangement || null;
   const indexMap = new Map();
   for (let oldIndex = 0; oldIndex < designer.sections.length; oldIndex += 1) {
     indexMap.set(oldIndex, oldIndex === index ? [] : [oldIndex > index ? oldIndex - 1 : oldIndex]);
   }
-  const customized = applyCustomization(state, widths, types, doorLayouts);
+  const customized = applyCustomization(state, widths, types, doorLayouts, sectionConfigs);
   const nextConfig = reconcileSectionHardwareSelections(config, layout, customized, indexMap);
   return {
     ...acceptedConfig(nextConfig, widths, [survivorIndex]),
@@ -396,6 +415,15 @@ export function applyGlobalStorageSelection(config, layout, selection = {}) {
     return type;
   });
   const affectedSections = nextTypes.flatMap((type, index) => type === previousTypes[index] ? [] : [index]);
+  const nextSectionConfigs = designer.sections.map((section, index) => ({
+    ...cloneSectionConfig(section.configuration),
+    type: nextTypes[index],
+    doorArrangement: isDoorSectionType(nextTypes[index])
+      ? isDoorSectionType(previousTypes[index])
+        ? section.doorLayout?.arrangement || "auto"
+        : "auto"
+      : null
+  }));
 
   return acceptedConfig(
     normalizeBookcaseConfig({
@@ -404,7 +432,11 @@ export function applyGlobalStorageSelection(config, layout, selection = {}) {
       lowerStorage,
       layoutMetadata: {
         ...state.layoutMetadata,
-        sectionTypes: nextTypes
+        sectionTypes: nextTypes,
+        sectionDoorLayouts: nextSectionConfigs.map((section) => (
+          isDoorSectionType(section.type) ? { arrangement: section.doorArrangement || "auto" } : null
+        )),
+        sectionConfigs: nextSectionConfigs
       }
     }),
     designer.widths,
@@ -433,7 +465,19 @@ export function mergeSection(config, layout, sectionIndex, direction = "right", 
   types.splice(first, 2, selected.type);
   const doorLayouts = designer.sections.map((item) => cloneDoorLayout(item.doorLayout));
   doorLayouts.splice(first, 2, isDoorSectionType(selected.type) ? { arrangement: "auto" } : null);
-  return acceptedConfig(applyCustomization(config, widths, types, doorLayouts), widths, [first]);
+  const sectionConfigs = designer.sections.map((item) => cloneSectionConfig(item.configuration));
+  sectionConfigs.splice(first, 2, {
+    ...cloneSectionConfig(selected.configuration),
+    type: selected.type,
+    doorArrangement: isDoorSectionType(selected.type) ? "auto" : null
+  });
+  const customized = applyCustomization(config, widths, types, doorLayouts, sectionConfigs);
+  const indexMap = createStableSectionIndexMap(designer.sections, sectionConfigs);
+  return acceptedConfig(
+    reconcileSectionHardwareSelections(config, layout, customized, indexMap),
+    widths,
+    [first]
+  );
 }
 
 export function equalizeSectionWidths(config, layout, rules = CONSTRUCTION_RULES) {
@@ -480,8 +524,15 @@ export function setSectionType(config, sectionIndex, type, layout = null) {
       ? doorLayouts[index]
       : { arrangement: "auto" }
     : null;
+  const sectionConfigs = designer.sections.map((item, itemIndex) => ({
+    ...cloneSectionConfig(item.configuration),
+    type: types[itemIndex],
+    doorArrangement: doorLayouts[itemIndex]?.arrangement || null
+  }));
+  const customized = applyCustomization(config, designer.widths, types, doorLayouts, sectionConfigs);
+  const indexMap = createStableSectionIndexMap(designer.sections, sectionConfigs);
   return acceptedConfig(
-    applyCustomization(config, designer.widths, types, doorLayouts),
+    reconcileSectionHardwareSelections(config, layout, customized, indexMap),
     designer.widths,
     [index]
   );
@@ -519,13 +570,87 @@ export function setSectionDoorArrangement(config, sectionIndex, arrangement, lay
   }
   const doorLayouts = designer.sections.map((item) => cloneDoorLayout(item.doorLayout));
   doorLayouts[index] = { arrangement };
+  const sectionConfigs = designer.sections.map((item, itemIndex) => ({
+    ...cloneSectionConfig(item.configuration),
+    doorArrangement: doorLayouts[itemIndex]?.arrangement || null
+  }));
+  const customized = applyCustomization(
+    state,
+    designer.widths,
+    designer.sections.map((item) => item.type),
+    doorLayouts,
+    sectionConfigs
+  );
+  const indexMap = createStableSectionIndexMap(designer.sections, sectionConfigs);
   return acceptedConfig(
-    applyCustomization(
-      state,
-      designer.widths,
-      designer.sections.map((item) => item.type),
-      doorLayouts
-    ),
+    reconcileSectionHardwareSelections(config, layout, customized, indexMap),
+    designer.widths,
+    [index]
+  );
+}
+
+/**
+ * Apply storage details to exactly one stable section record. The layout
+ * engine remains authoritative for dimensional clamping and front
+ * buildability; this helper only owns the section-local state transition.
+ */
+export function setSectionStorageConfiguration(config, sectionIndex, patch = {}, layout = null) {
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) {
+    return rejectedConfig("INVALID_SECTION_STORAGE", "Choose valid section storage settings.", config);
+  }
+  const designer = getSectionDesignerState(config, layout);
+  const index = Number(sectionIndex);
+  const section = designer.sections[index];
+  if (!section) return rejectedConfig("INVALID_SECTION", "Choose a section to configure.", config);
+  if (section.locked) return rejectedConfig("LOCKED_SECTION", "Preset feature sections keep their generated storage.", config);
+
+  const allowedFields = new Set([
+    "type",
+    "shelfCount",
+    "shelfDistribution",
+    "doorStyle",
+    "doorArrangement",
+    "drawerCount",
+    "drawerFrontStyle",
+    "lowerStorageHeight"
+  ]);
+  const requested = Object.fromEntries(
+    Object.entries(patch).filter(([field]) => allowedFields.has(field))
+  );
+  if (!Object.keys(requested).length) {
+    return acceptedConfig(normalizeBookcaseConfig(config), designer.widths, []);
+  }
+  if (Object.prototype.hasOwnProperty.call(requested, "type")) {
+    const normalizedType = normalizeSectionTypeValue(requested.type);
+    if (!normalizedType || !EDITABLE_SECTION_TYPES.includes(normalizedType)) {
+      return rejectedConfig("UNSUPPORTED_SECTION_TYPE", "Choose a supported storage layout.", config);
+    }
+    requested.type = normalizedType;
+  }
+  if (
+    Object.prototype.hasOwnProperty.call(requested, "doorArrangement")
+    && !DOOR_ARRANGEMENTS.includes(requested.doorArrangement)
+  ) {
+    return rejectedConfig("UNSUPPORTED_DOOR_ARRANGEMENT", "Choose Auto, a supported single hinge side, or Pair.", config);
+  }
+
+  const sectionConfigs = designer.sections.map((item) => cloneSectionConfig(item.configuration));
+  const nextSectionConfig = {
+    ...sectionConfigs[index],
+    ...requested,
+    id: sectionConfigs[index].id
+  };
+  if (!isDoorSectionType(nextSectionConfig.type)) nextSectionConfig.doorArrangement = null;
+  else if (!DOOR_ARRANGEMENTS.includes(nextSectionConfig.doorArrangement)) nextSectionConfig.doorArrangement = "auto";
+  sectionConfigs[index] = nextSectionConfig;
+  const types = sectionConfigs.map((item) => item.type);
+  const doorLayouts = sectionConfigs.map((item) => (
+    isDoorSectionType(item.type) ? { arrangement: item.doorArrangement || "auto" } : null
+  ));
+  const customized = applyCustomization(config, designer.widths, types, doorLayouts, sectionConfigs);
+  const indexMap = createStableSectionIndexMap(designer.sections, sectionConfigs);
+  return acceptedConfig(
+    reconcileSectionHardwareSelections(config, layout, customized, indexMap),
     designer.widths,
     [index]
   );
@@ -570,6 +695,7 @@ export function reconcileSectionCustomization(previousConfig, nextSectionCount, 
   const widths = getAcceptedWidths(state, null);
   const types = resolveSectionTypes(state, []);
   const doorLayouts = resolveSectionDoorLayouts(state, types);
+  const sectionConfigs = types.map((type, index) => cloneSectionConfig(getSectionConfigAt(state, index, type)));
   const panel = getPanel(rules);
   const minimum = getMinimum(rules);
   const hasGeneratedFeatureZone = state.centerOpening || state.deskOpening || state.featureOpening;
@@ -594,6 +720,17 @@ export function reconcileSectionCustomization(previousConfig, nextSectionCount, 
       cloneDoorLayout(splitDoorLayout),
       cloneDoorLayout(splitDoorLayout)
     );
+    const sourceSectionConfig = sectionConfigs[splitIndex];
+    sectionConfigs.splice(
+      splitIndex,
+      1,
+      { ...cloneSectionConfig(sourceSectionConfig), doorArrangement: splitDoorLayout?.arrangement || null },
+      {
+        ...cloneSectionConfig(sourceSectionConfig),
+        id: allocateSectionConfigId(sectionConfigs),
+        doorArrangement: splitDoorLayout?.arrangement || null
+      }
+    );
   }
 
   while (widths.length > targetCount) {
@@ -614,6 +751,11 @@ export function reconcileSectionCustomization(previousConfig, nextSectionCount, 
       2,
       isDoorSectionType(types[mergeIndex]) ? { arrangement: "auto" } : null
     );
+    sectionConfigs.splice(mergeIndex, 2, {
+      ...cloneSectionConfig(sectionConfigs[mergeIndex]),
+      type: types[mergeIndex],
+      doorArrangement: isDoorSectionType(types[mergeIndex]) ? "auto" : null
+    });
   }
 
   // A section-count selection is a global layout transition. It intentionally
@@ -621,8 +763,16 @@ export function reconcileSectionCustomization(previousConfig, nextSectionCount, 
   // divider operations remain the tools for preserving or creating asymmetry.
   const reconciledWidths = allocateWidths(targetTotal, Array.from({ length: targetCount }, () => 1));
 
+  const customized = applyCustomization(previousConfig, reconciledWidths, types, doorLayouts, sectionConfigs);
+  const previousSections = types.length === state.sections
+    ? sectionConfigs.map((sectionConfig, index) => ({ index, stableId: sectionConfig.id }))
+    : Array.from({ length: state.sections }, (_, index) => ({
+        index,
+        stableId: state.layoutMetadata.sectionConfigs[index]?.id
+      }));
+  const indexMap = createStableSectionIndexMap(previousSections, sectionConfigs);
   return acceptedConfig(
-    applyCustomization(previousConfig, reconciledWidths, types, doorLayouts),
+    reconcileSectionHardwareSelections(previousConfig, null, customized, indexMap),
     reconciledWidths,
     reconciledWidths.map((_, index) => index)
   );
@@ -763,13 +913,31 @@ function createOrganizerSplit(config, layout, designer, index, duplicate, rules)
   types.splice(index, 1, section.type, rightType);
   const doorLayouts = designer.sections.map((item) => cloneDoorLayout(item.doorLayout));
   doorLayouts.splice(index, 1, cloneDoorLayout(leftDoorLayout.layout), cloneDoorLayout(rightDoorLayout.layout));
+  const sectionConfigs = designer.sections.map((item) => cloneSectionConfig(item.configuration));
+  const leftSectionConfig = {
+    ...cloneSectionConfig(section.configuration),
+    doorArrangement: leftDoorLayout.layout?.arrangement || null
+  };
+  const rightSectionConfig = duplicate
+    ? {
+        ...cloneSectionConfig(section.configuration),
+        id: allocateSectionConfigId(sectionConfigs),
+        doorArrangement: rightDoorLayout.layout?.arrangement || null
+      }
+    : {
+        ...cloneSectionConfig(section.configuration),
+        id: allocateSectionConfigId(sectionConfigs),
+        type: "open",
+        doorArrangement: null
+      };
+  sectionConfigs.splice(index, 1, leftSectionConfig, rightSectionConfig);
   const indexMap = new Map();
   for (let oldIndex = 0; oldIndex < designer.sections.length; oldIndex += 1) {
     if (oldIndex < index) indexMap.set(oldIndex, [oldIndex]);
     else if (oldIndex > index) indexMap.set(oldIndex, [oldIndex + 1]);
     else indexMap.set(oldIndex, duplicate ? [oldIndex, oldIndex + 1] : [oldIndex]);
   }
-  const customized = applyCustomization(state, widths, types, doorLayouts);
+  const customized = applyCustomization(state, widths, types, doorLayouts, sectionConfigs);
   const nextConfig = reconcileSectionHardwareSelections(config, layout, customized, indexMap);
   return {
     ...acceptedConfig(nextConfig, widths, [index, index + 1]),
@@ -778,6 +946,131 @@ function createOrganizerSplit(config, layout, designer, index, duplicate, rules)
     insertedSectionIndex: index + 1,
     selectedSectionIndex: index + 1
   };
+}
+
+/**
+ * When no individual bay is wide enough to split, add a neutral section by
+ * redistributing the available clear width across the whole bookcase. This is
+ * the same physical transition exposed by the globally valid section counts.
+ */
+function createOrganizerReflowAdd(config, layout, designer, requestedIndex, rules) {
+  const state = normalizeBookcaseConfig(config);
+  const panel = getPanel(rules);
+  const minimum = getMinimum(rules);
+  const nextCount = designer.sections.length + 1;
+  const nextTotal = round(state.width - panel * (nextCount + 1));
+  if (nextTotal / nextCount + EPSILON < minimum) {
+    return rejectedConfig(
+      "MIN_SECTION_CLEAR_WIDTH",
+      `That section count cannot preserve ${formatWidth(minimum)} in clear bays at the selected overall width.`,
+      config
+    );
+  }
+
+  const insertionIndex = requestedIndex === null
+    ? designer.sections.length
+    : Math.min(designer.sections.length, requestedIndex + 1);
+  const widths = allocateWidths(nextTotal, Array.from({ length: nextCount }, () => 1));
+  const types = designer.sections.map((section) => section.type);
+  types.splice(insertionIndex, 0, "open");
+  const requestedDoorLayouts = designer.sections.map((section) => cloneDoorLayout(section.doorLayout));
+  requestedDoorLayouts.splice(insertionIndex, 0, null);
+  const doorLayouts = resolveReflowDoorLayouts(state, widths, types, requestedDoorLayouts, rules);
+  if (!doorLayouts) {
+    return rejectedConfig(
+      "NO_BUILDABLE_DOOR_ARRANGEMENT",
+      "The additional section would leave an unsupported door arrangement.",
+      config
+    );
+  }
+
+  const sectionConfigs = designer.sections.map((section) => cloneSectionConfig(section.configuration));
+  const sourceConfig = designer.sections[Math.max(0, Math.min(designer.sections.length - 1, requestedIndex ?? designer.sections.length - 1))]?.configuration
+    || designer.sections[0]?.configuration;
+  sectionConfigs.splice(insertionIndex, 0, {
+    ...cloneSectionConfig(sourceConfig),
+    id: allocateSectionConfigId(sectionConfigs),
+    type: "open",
+    doorArrangement: null
+  });
+  const indexMap = new Map();
+  for (let oldIndex = 0; oldIndex < designer.sections.length; oldIndex += 1) {
+    indexMap.set(oldIndex, [oldIndex < insertionIndex ? oldIndex : oldIndex + 1]);
+  }
+  const customized = applyCustomization(state, widths, types, doorLayouts, sectionConfigs);
+  const nextConfig = reconcileSectionHardwareSelections(config, layout, customized, indexMap);
+  return {
+    ...acceptedConfig(nextConfig, widths, widths.map((_, index) => index)),
+    operation: "add",
+    sourceSectionIndex: requestedIndex,
+    insertedSectionIndex: insertionIndex,
+    selectedSectionIndex: insertionIndex,
+    reflowed: true
+  };
+}
+
+/**
+ * If merging the deleted width into one neighbor would create an invalid door
+ * bay, redistribute the remaining clear width instead of disabling Delete.
+ */
+function createOrganizerReflowDelete(config, layout, designer, deletedIndex, rules) {
+  const state = normalizeBookcaseConfig(config);
+  const panel = getPanel(rules);
+  const nextCount = designer.sections.length - 1;
+  const nextTotal = round(state.width - panel * (nextCount + 1));
+  const widths = allocateWidths(nextTotal, Array.from({ length: nextCount }, () => 1));
+  const types = designer.sections.map((section) => section.type);
+  types.splice(deletedIndex, 1);
+  const requestedDoorLayouts = designer.sections.map((section) => cloneDoorLayout(section.doorLayout));
+  requestedDoorLayouts.splice(deletedIndex, 1);
+  const doorLayouts = resolveReflowDoorLayouts(state, widths, types, requestedDoorLayouts, rules);
+  if (!doorLayouts) {
+    return rejectedConfig(
+      "NO_SUITABLE_DELETE_NEIGHBOR",
+      "The remaining sections cannot be redistributed into a buildable layout.",
+      config
+    );
+  }
+
+  const sectionConfigs = designer.sections.map((section) => cloneSectionConfig(section.configuration));
+  sectionConfigs.splice(deletedIndex, 1);
+  doorLayouts.forEach((doorLayout, index) => {
+    sectionConfigs[index].doorArrangement = doorLayout?.arrangement || null;
+  });
+  const indexMap = new Map();
+  for (let oldIndex = 0; oldIndex < designer.sections.length; oldIndex += 1) {
+    indexMap.set(oldIndex, oldIndex === deletedIndex ? [] : [oldIndex > deletedIndex ? oldIndex - 1 : oldIndex]);
+  }
+  const customized = applyCustomization(state, widths, types, doorLayouts, sectionConfigs);
+  const nextConfig = reconcileSectionHardwareSelections(config, layout, customized, indexMap);
+  const selectedSectionIndex = Math.min(deletedIndex, nextCount - 1);
+  return {
+    ...acceptedConfig(nextConfig, widths, widths.map((_, index) => index)),
+    operation: "delete",
+    deletedSectionIndex: deletedIndex,
+    selectedSectionIndex,
+    mergeDirection: "reflow",
+    reflowed: true
+  };
+}
+
+function resolveReflowDoorLayouts(state, widths, types, requestedDoorLayouts, rules) {
+  const sectionCount = types.length;
+  const resolved = [];
+  for (let index = 0; index < sectionCount; index += 1) {
+    const result = resolveCompatibleDoorLayout({
+      state,
+      type: types[index],
+      width: widths[index],
+      doorLayout: requestedDoorLayouts[index],
+      sectionIndex: index,
+      sectionCount,
+      rules
+    });
+    if (!result.valid) return null;
+    resolved.push(cloneDoorLayout(result.layout));
+  }
+  return resolved;
 }
 
 function resolveCompatibleDoorLayout({ state, type, width, doorLayout, sectionIndex, sectionCount, rules }) {
@@ -911,12 +1204,25 @@ function splitWidthFailureMessage(rules) {
   return `Splitting requires room for two ${formatWidth(getMinimum(rules))} in clear sections plus the divider.`;
 }
 
-function applyCustomization(config, widths, types, doorLayouts = null) {
+function applyCustomization(config, widths, types, doorLayouts = null, sectionConfigs = null) {
   const state = normalizeBookcaseConfig(config);
   const lowerStorageTypes = types.filter((type) => type === "lower_doors" || type === "drawers");
   const alignedDoorLayouts = Array.isArray(doorLayouts) && doorLayouts.length === types.length
     ? doorLayouts.map((layout, index) => isDoorSectionType(types[index]) ? cloneDoorLayout(layout) : null)
     : resolveSectionDoorLayouts(state, types);
+  const sourceSectionConfigs = Array.isArray(sectionConfigs) && sectionConfigs.length === types.length
+    ? sectionConfigs
+    : types.map((type, index) => ({
+        ...getSectionConfigAt(state, index, type),
+        type
+      }));
+  const alignedSectionConfigs = sourceSectionConfigs.map((sectionConfig, index) => ({
+    ...cloneSectionConfig(sectionConfig),
+    type: types[index],
+    doorArrangement: isDoorSectionType(types[index])
+      ? alignedDoorLayouts[index]?.arrangement || "auto"
+      : null
+  }));
   return normalizeBookcaseConfig({
     ...state,
     layoutPreset: "custom",
@@ -931,6 +1237,7 @@ function applyCustomization(config, widths, types, doorLayouts = null) {
       sectionRatios: sectionWidthsToRatios(widths),
       sectionTypes: types.slice(),
       sectionDoorLayouts: alignedDoorLayouts,
+      sectionConfigs: alignedSectionConfigs,
       drawerSections: undefined
     }
   });
@@ -942,6 +1249,55 @@ function isDoorSectionType(type) {
 
 function cloneDoorLayout(value) {
   return value && typeof value === "object" ? { arrangement: value.arrangement } : null;
+}
+
+function cloneSectionConfig(value) {
+  return value && typeof value === "object" ? structuredClone(value) : null;
+}
+
+function getSectionConfigAt(config, index, type = "open") {
+  const stored = config.layoutMetadata?.sectionConfigs?.[index];
+  if (stored && typeof stored === "object") return stored;
+  return {
+    id: `section-config-${String(index + 1).padStart(2, "0")}`,
+    type,
+    shelfCount: config.shelves,
+    shelfDistribution: "even",
+    doorStyle: config.doorStyle,
+    doorArrangement: isDoorSectionType(type)
+      ? config.layoutMetadata?.sectionDoorLayouts?.[index]?.arrangement || "auto"
+      : null,
+    drawerCount: config.drawerCount,
+    drawerFrontStyle: config.drawerFrontStyle,
+    lowerStorageHeight: CONSTRUCTION_RULES.lowerCabinetClearHeight
+  };
+}
+
+function allocateSectionConfigId(sectionConfigs) {
+  const used = new Set(sectionConfigs.map((section) => section?.id).filter(Boolean));
+  let ordinal = 1;
+  let candidate = "";
+  do {
+    candidate = `section-config-${String(ordinal).padStart(2, "0")}`;
+    ordinal += 1;
+  } while (used.has(candidate));
+  return candidate;
+}
+
+function createStableSectionIndexMap(previousSections, nextSectionConfigs) {
+  const nextIndicesById = new Map();
+  nextSectionConfigs.forEach((section, index) => {
+    if (!section?.id) return;
+    const indices = nextIndicesById.get(section.id) || [];
+    indices.push(index);
+    nextIndicesById.set(section.id, indices);
+  });
+  const indexMap = new Map();
+  previousSections.forEach((section, index) => {
+    const stableId = section?.stableId || section?.configuration?.id || section?.id;
+    indexMap.set(Number.isInteger(section?.index) ? section.index : index, nextIndicesById.get(stableId) || []);
+  });
+  return indexMap;
 }
 
 function cloneHistoryValue(value) {

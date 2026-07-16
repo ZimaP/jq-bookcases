@@ -33,14 +33,16 @@ test("drawer-only pricing ignores stale door style and prices generated drawer h
   assert.equal(shaker.billableQuantities.doorHardwareUnits, 0);
   assert.equal(shaker.componentCharges.doorStyle.amount, 0);
   assert.equal(glass.componentCharges.doorStyle.amount, 0);
+  assert.equal(shaker.componentCharges.drawerFronts.quantity, 12);
+  assert.equal(shaker.componentCharges.drawerFronts.amount, 660);
   assert.equal(shaker.componentCharges.hardware.quantity, 12);
   assert.equal(shaker.componentCharges.hardware.amount, 225);
   assert.equal(shaker.componentCharges.lighting.amount, 450);
-  assert.equal(shaker.total, 14850);
+  assert.equal(shaker.total, 15500);
   assert.equal(glass.total, shaker.total);
 });
 
-test("drawer front profiles are carried physically without inventing a price difference", () => {
+test("drawer front profiles share the named descriptor-driven unit rate", () => {
   const base = {
     ...defaultBookcaseConfig,
     layoutType: "lower_drawers",
@@ -49,9 +51,56 @@ test("drawer front profiles are carried physically without inventing a price dif
   const totals = ["shaker", "flat", "slim_shaker"].map((drawerFrontStyle) => {
     const pricing = contextFor({ ...base, drawerFrontStyle });
     assert.deepEqual(pricing.bom.drawers.byStyle, { [drawerFrontStyle]: 12 });
+    assert.equal(pricing.componentCharges.drawerFronts.quantity, 12);
+    assert.equal(pricing.componentCharges.drawerFronts.amount, 12 * PRICING_RATES.drawerFrontPerFront);
+    assert.equal(pricing.componentCharges.drawerFronts.items[0].unitRate, PRICING_RATES.drawerFrontPerFront);
     return pricing.total;
   });
   assert.deepEqual(totals, [totals[0], totals[0], totals[0]]);
+});
+
+test("changing one section's drawer count removes only its generated front charges", () => {
+  const base = {
+    ...defaultBookcaseConfig,
+    width: 72,
+    sections: 2,
+    hardware: "push_latch",
+    lighting: "no_lighting",
+    installation: "diy",
+    layoutMetadata: {
+      sectionRatios: [1, 1],
+      sectionConfigs: [
+        { type: "drawers", drawerCount: 5, drawerFrontStyle: "flat" },
+        { type: "drawers", drawerCount: 2, drawerFrontStyle: "slim_shaker" }
+      ]
+    }
+  };
+  const before = contextFor(base);
+  const after = contextFor({
+    ...base,
+    layoutMetadata: {
+      ...base.layoutMetadata,
+      sectionConfigs: [
+        { type: "drawers", drawerCount: 2, drawerFrontStyle: "flat" },
+        base.layoutMetadata.sectionConfigs[1]
+      ]
+    }
+  });
+
+  assert.deepEqual(
+    Object.values(before.billableQuantities.bySectionId).map((section) => section.generatedDrawerFronts),
+    [5, 2]
+  );
+  assert.deepEqual(
+    Object.values(after.billableQuantities.bySectionId).map((section) => section.generatedDrawerFronts),
+    [2, 2]
+  );
+  assert.equal(before.componentCharges.drawerFronts.quantity, 7);
+  assert.equal(after.componentCharges.drawerFronts.quantity, 4);
+  assert.equal(
+    before.subtotalBeforeMultipliers - after.subtotalBeforeMultipliers,
+    3 * PRICING_RATES.drawerFrontPerFront
+  );
 });
 
 test("push latch persists canonically while pricing only generated visible hardware", () => {
@@ -72,7 +121,7 @@ test("push latch persists canonically while pricing only generated visible hardw
   assert.equal(saved.config.hardware, "push_latch");
 });
 
-test("generated tall doors and their hardware are priced while zero compatible lights are not", () => {
+test("generated tall doors retain priced interior shelf lighting", () => {
   const config = {
     ...preset("tall-storage").config,
     width: 96,
@@ -92,12 +141,13 @@ test("generated tall doors and their hardware are priced while zero compatible l
   assert.equal(selected.billableQuantities.generatedTallDoors, 4);
   assert.equal(selected.billableQuantities.hingedDoorLeaves, 4);
   assert.equal(selected.billableQuantities.doorHardwareUnits, 4);
-  assert.equal(selected.billableQuantities.compatibleLightingComponents, 0);
+  assert.equal(selected.billableQuantities.compatibleLightingComponents, 8);
   assert.equal(selected.componentCharges.doorStyle.amount, 125);
   assert.equal(selected.componentCharges.hardware.amount, 112.5);
-  assert.equal(selected.componentCharges.lighting.amount, 0);
-  assert.equal(selected.total, 11100);
-  assert.equal(disabled.total, selected.total);
+  assert.equal(selected.componentCharges.lighting.amount, 337.82);
+  assert.equal(selected.total, 12450);
+  assert.equal(disabled.total, 12050);
+  assert.notEqual(disabled.total, selected.total);
 });
 
 test("valid lighting uses generated component quantities and preserved rates", () => {
@@ -130,7 +180,7 @@ test("valid lighting uses generated component quantities and preserved rates", (
   );
   assert.deepEqual(
     [fullWithTallEnds.billableQuantities.compatibleLightingComponents, fullWithTallEnds.componentCharges.lighting.amount, fullWithTallEnds.total],
-    [14, 775, 12450]
+    [22, 1112.82, 13650]
   );
   assert.notEqual(fullOpen.total, fullWithTallEnds.total);
 });
@@ -199,15 +249,18 @@ test("mixed doors and drawers price only their generated styles and attached har
   assert.equal(pricing.billableQuantities.doorHardwareUnits, 4);
   assert.equal(pricing.componentCharges.doorStyle.quantity, 4);
   assert.equal(pricing.componentCharges.doorStyle.amount, 125);
+  assert.equal(pricing.componentCharges.drawerFronts.quantity, 3);
+  assert.equal(pricing.componentCharges.drawerFronts.amount, 165);
   assert.equal(pricing.componentCharges.hardware.quantity, 7);
   assert.equal(pricing.componentCharges.hardware.amount, 131.25);
   assert.equal(pricing.componentCharges.lighting.amount, 337.5);
-  assert.equal(pricing.total, 13850);
+  assert.equal(pricing.total, 14050);
 });
 
 test("normalized component rates preserve every established reference premium", () => {
   assert.equal(PRICING_RATES.doorStylePerDoor.slim_shaker * 8, 250);
   assert.equal(PRICING_RATES.doorStylePerDoor.glass * 8, 700);
+  assert.equal(PRICING_RATES.drawerFrontPerFront * 12, 660);
   assert.deepEqual(
     Object.fromEntries(Object.entries(PRICING_RATES.hardwarePerUnit)
       .filter(([type]) => type !== "unknown")
@@ -217,7 +270,10 @@ test("normalized component rates preserve every established reference premium", 
       brass_pull: 225,
       matte_black_knob: 125,
       matte_black_pull: 175,
-      polished_nickel_pull: 225
+      polished_nickel_pull: 225,
+      polished_nickel_knob: 150,
+      unlacquered_brass_knob: 150,
+      satin_nickel_pull: 225
     }
   );
   assert.equal(PRICING_RATES.lightingPerComponent.puck * 4, 450);
@@ -239,6 +295,7 @@ test("every preset prices exactly the generated door, handle, and light descript
     assert.equal(pricing.billableQuantities.compatibleLightingComponents, roleCount("light"), item.id);
     assert.deepEqual(pricing.billableQuantities, derived, item.id);
     assert.equal(pricing.componentCharges.doorStyle.quantity, roleCount("door"), item.id);
+    assert.equal(pricing.componentCharges.drawerFronts.quantity, roleCount("drawer_front"), item.id);
     assert.equal(pricing.componentCharges.hardware.quantity, roleCount("handle"), item.id);
     assert.equal(pricing.componentCharges.lighting.quantity, roleCount("light"), item.id);
     assert.equal(calculateBookcasePrice(item.config, layout), pricing.total, item.id);

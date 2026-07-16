@@ -8,10 +8,10 @@ import {
   layoutPresets,
   normalizeBookcaseConfig,
   optionLabels
-} from "./bookcase-config.js?v=direct-hardware-20260714a";
-import { deriveBillableComponents } from "./bookcase-billable.js?v=direct-hardware-20260714a";
-import { deriveBookcaseBOM } from "./bookcase-bom.js?v=direct-hardware-20260714a";
-import { getSectionDesignerState } from "./bookcase-sections.js?v=reference-layout-20260715g";
+} from "./bookcase-config.js?v=engine-polish-20260716a";
+import { deriveBillableComponents } from "./bookcase-billable.js?v=engine-polish-20260716a";
+import { deriveBookcaseBOM } from "./bookcase-bom.js?v=engine-polish-20260716a";
+import { getSectionDesignerState } from "./bookcase-sections.js?v=engine-polish-20260716a";
 
 /**
  * Non-linear customer workspace navigation. These are organizational stages,
@@ -19,8 +19,9 @@ import { getSectionDesignerState } from "./bookcase-sections.js?v=reference-layo
  */
 export const WORKSPACE_STAGES = Object.freeze([
   Object.freeze({ id: "space", label: "Space", subtitle: "Set your room dimensions", icon: "space" }),
-  Object.freeze({ id: "layout", label: "Layout", subtitle: "Build your bookcase", icon: "layout" }),
-  Object.freeze({ id: "storage", label: "Storage", subtitle: "Add shelves, doors & drawers", icon: "storage" }),
+  Object.freeze({ id: "layout", label: "Layout", subtitle: "Set section count & widths", icon: "layout" }),
+  Object.freeze({ id: "storage", label: "Storage", subtitle: "Configure shelves, doors & drawers", icon: "storage" }),
+  Object.freeze({ id: "base_top", label: "Base & Top", subtitle: "Choose base & crown details", icon: "structure" }),
   Object.freeze({ id: "finish", label: "Finish", subtitle: "Choose materials & colors", icon: "finish" }),
   Object.freeze({ id: "hardware", label: "Hardware", subtitle: "Select handles & knobs", icon: "hardware" }),
   Object.freeze({ id: "lighting", label: "Lighting", subtitle: "Add lighting options", icon: "lighting" }),
@@ -30,8 +31,9 @@ export const WORKSPACE_STAGES = Object.freeze([
 /** Physical control groups projected into each directly reachable stage. */
 export const STAGE_CONTROL_GROUPS = Object.freeze({
   space: Object.freeze(["overall_size"]),
-  layout: Object.freeze(["sections_layout", "base_crown"]),
+  layout: Object.freeze(["sections_layout"]),
   storage: Object.freeze(["shelves", "storage_fronts"]),
+  base_top: Object.freeze(["base_crown"]),
   finish: Object.freeze(["finish"]),
   hardware: Object.freeze(["hardware"]),
   lighting: Object.freeze(["lighting"]),
@@ -289,10 +291,10 @@ export const COMPONENT_ROLE_TO_STAGE = Object.freeze({
   door: "storage",
   drawer_front: "storage",
   handle: "hardware",
-  base: "layout",
-  trim: "layout",
-  crown: "layout",
-  top_panel: "layout",
+  base: "base_top",
+  trim: "base_top",
+  crown: "base_top",
+  top_panel: "base_top",
   light: "lighting",
   assembly: "space",
   side_panel: "space",
@@ -687,7 +689,7 @@ export function getInspectorGroupSummary(groupId, config, layout, basePresetId =
     return `${getLayoutLabel(state, basePresetId)} · ${designer.sections.length} sections${parts.length ? ` · ${parts.join(" · ")}` : ""}`;
   }
   if (group === "shelves") {
-    return `${state.shelves} per open section · ${optionLabels.shelfThickness[state.shelfThickness]} thick · Applies to all open sections`;
+    return `${formatSectionShelfPlan(getSectionDesignerState(state, layout))} · ${optionLabels.shelfThickness[state.shelfThickness]} thick`;
   }
   if (group === "storage_fronts") {
     if (!applicability.hasFronts) return state.lowerCabinets ? `${state.sections} sections · Storage fronts not generated` : "Open storage · No fronts";
@@ -712,6 +714,8 @@ export function createReviewGroups(config, layout, basePresetId = "") {
   const state = normalizeBookcaseConfig(config);
   const applicability = getApplicability(state, layout);
   const designer = getSectionDesignerState(state, layout);
+  const doorSectionCount = designer.sections.filter((section) => ["lower_doors", "tall_doors"].includes(section.type)).length;
+  const drawerSectionCount = designer.sections.filter((section) => section.type === "drawers").length;
   const hardwareType = hardwareTypeOptions.find((option) => option.value === getHardwareType(state.hardware));
   const hardwareFinish = getHardwareFinishOption(getHardwareFinish(state.hardware));
   const hardwareSchedule = layout?.validation?.valid ? deriveBookcaseBOM(layout).hardware.schedule || [] : [];
@@ -736,7 +740,7 @@ export function createReviewGroups(config, layout, basePresetId = "") {
       inspectorGroupId: "overall_size",
       items: [
         { label: "Overall size", value: `${state.width} in W × ${state.height} in H × ${state.depth} in D` },
-        { label: "Shelves per section", value: String(state.shelves), inspectorGroupId: "shelves" },
+        { label: "Shelf plan", value: formatSectionShelfPlan(designer), inspectorGroupId: "shelves" },
         { label: "Shelf thickness", value: optionLabels.shelfThickness[state.shelfThickness], inspectorGroupId: "shelves" }
       ]
     },
@@ -744,16 +748,19 @@ export function createReviewGroups(config, layout, basePresetId = "") {
       id: "storage",
       title: "Shelves & Cabinets",
       inspectorGroupId: "storage_fronts",
+      inspectorField: doorSectionCount ? "doorStyle" : drawerSectionCount ? "drawerFrontStyle" : "doorStyle",
       items: [
         { label: "Sections", value: String(state.sections) },
-        { label: "Lower storage", value: state.lowerCabinets ? (state.lowerStorage === "drawers" ? "Drawers" : "Doors") : "None" },
-        ...(applicability.hasDoors ? [{ label: "Door front profile", value: optionLabels.doorStyle[state.doorStyle] }] : []),
-        ...(applicability.hasDrawers ? [{ label: "Drawer front profile", value: optionLabels.drawerFrontStyle[state.drawerFrontStyle] }] : []),
+        ...(doorSectionCount ? [{ label: "Door sections", value: String(doorSectionCount) }] : []),
+        ...(drawerSectionCount ? [{ label: "Drawer sections", value: String(drawerSectionCount) }] : []),
+        ...(!doorSectionCount && !drawerSectionCount ? [{ label: "Closed storage", value: "None" }] : []),
+        ...(applicability.hasDoors ? [{ label: "Door front profile", value: formatGeneratedStyleNames(applicability.billableQuantities.doorsByStyle, optionLabels.doorStyle) }] : []),
+        ...(applicability.hasDrawers ? [{ label: "Drawer front profile", value: formatGeneratedStyleNames(applicability.billableQuantities.drawersByStyle, optionLabels.drawerFrontStyle) }] : []),
         ...(applicability.hasDoors ? [{ label: "Doors", value: `${applicability.generatedDoorCount} generated · ${formatGeneratedDoorStyles(applicability.billableQuantities.doorsByStyle)}` }] : []),
         ...(applicability.hasDrawers ? [{ label: "Drawers", value: `${applicability.generatedDrawerCount} generated` }] : []),
         ...designer.sections.map((section) => ({
           label: `Section ${section.index + 1}`,
-          value: `${formatSectionWidth(section.width)} in clear · ${formatSectionType(section.type, state.drawerCount)}`
+          value: `${formatSectionWidth(section.width)} in clear · ${formatSectionType(section.type, section.drawerCount)} · ${section.shelfCount} ${section.shelfCount === 1 ? "shelf" : "shelves"}`
         }))
       ]
     },
@@ -885,11 +892,11 @@ function getOrganizerWarnings(section, layout, componentById) {
   return warnings;
 }
 
-function formatSectionTypeCount(type, count, drawerCount) {
+function formatSectionTypeCount(type, count) {
   const labels = {
     open: ["open section", "open sections"],
     lower_doors: ["lower-door section", "lower-door sections"],
-    drawers: [`${drawerCount}-drawer section`, `${drawerCount}-drawer sections`],
+    drawers: ["drawer section", "drawer sections"],
     tall_doors: ["tall-door section", "tall-door sections"],
     media: ["Media Feature", "Media Features"],
     desk: ["Desk Feature", "Desk Features"],
@@ -912,7 +919,7 @@ export function createSectionOrganizerSummary(config, layout) {
     ...counts,
     [section.type]: (counts[section.type] || 0) + 1
   }), {});
-  const typeSummary = Object.entries(typeCounts).map(([type, count]) => formatSectionTypeCount(type, count, state.drawerCount));
+  const typeSummary = Object.entries(typeCounts).map(([type, count]) => formatSectionTypeCount(type, count));
   const items = designer.sections.map((section) => {
     const generated = countOwnedSectionComponents(section, components, componentById);
     const warnings = getOrganizerWarnings(section, layout, componentById);
@@ -923,7 +930,7 @@ export function createSectionOrganizerSummary(config, layout) {
       width: section.width,
       widthLabel: `${formatSectionWidth(section.width)} in clear`,
       type: section.type,
-      typeLabel: formatSectionType(section.type, state.drawerCount),
+      typeLabel: formatSectionType(section.type, section.drawerCount),
       locked: section.locked,
       lockReason: section.locked ? "Preset feature sections keep their required opening geometry." : null,
       editable: section.editable,
@@ -931,7 +938,7 @@ export function createSectionOrganizerSummary(config, layout) {
       generated: Object.freeze(generated),
       warnings: Object.freeze([...warnings]),
       thumbnail: createSectionOrganizerThumbnail(section, generated),
-      shelvesApplyToAllOpenSections: true
+      shelvesApplyToAllOpenSections: false
     });
   });
   return Object.freeze({
@@ -954,7 +961,17 @@ export function getSectionOrganizerSummary(config, layout) {
 }
 
 function formatSectionWidth(value) {
-  return Number(Number(value).toFixed(3)).toString();
+  return Number(Number(value).toFixed(2)).toString();
+}
+
+function formatSectionShelfPlan(designer) {
+  const sections = (designer?.sections || []).filter((section) => !section.locked);
+  if (!sections.length) return "No adjustable shelves";
+  const counts = sections.map((section) => Number(section.shelfCount) || 0);
+  if (counts.every((count) => count === counts[0])) {
+    return `${counts[0]} ${counts[0] === 1 ? "shelf" : "shelves"} in each editable section`;
+  }
+  return sections.map((section, index) => `S${Number(section.index ?? index) + 1}: ${counts[index]}`).join(" · ");
 }
 
 function formatHardwareScheduleEntry(entry) {
@@ -1192,4 +1209,10 @@ function formatGeneratedDrawerStyles(styles) {
     const label = optionLabels.drawerFrontStyle[style] || String(style).replaceAll("_", " ");
     return `${count} ${label}`;
   }).join(" + ");
+}
+
+function formatGeneratedStyleNames(styles, labels) {
+  return Object.keys(styles || {}).map((style) => (
+    labels[style] || String(style).replaceAll("_", " ")
+  )).join(" + ");
 }

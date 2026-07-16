@@ -49,7 +49,7 @@ test("a physical dimension edit rebuilds one valid model and survives reload", a
   await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
   const spaceStage = page.locator('[data-workspace-stage="space"]');
   await spaceStage.click();
-  await expect(spaceStage).toHaveAttribute("aria-current", "step");
+  await expect(spaceStage).toHaveAttribute("aria-current", "location");
   const inspector = page.locator("[data-properties-inspector]");
   await expect(inspector).toBeVisible();
   await expect(inspector.locator('[data-active-stage-panel="space"]')).toBeVisible();

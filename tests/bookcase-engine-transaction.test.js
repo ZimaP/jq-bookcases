@@ -18,6 +18,27 @@ import {
 
 const clone = (value) => structuredClone(value);
 
+function removeDrawerFrontPricing(priceBreakdown, pricingVersion) {
+  const lineItems = clone(priceBreakdown.lineItems).filter((item) => item.code !== "DRAWER_FRONTS");
+  const subtotalBeforeMultipliers = Number(lineItems.reduce((total, item) => total + item.amount, 0).toFixed(2));
+  const subtotal = Number((
+    subtotalBeforeMultipliers
+    * priceBreakdown.multipliers.depth
+    * priceBreakdown.multipliers.finish
+  ).toFixed(2));
+  const total = Math.round(Math.max(4500, subtotal) / priceBreakdown.roundingIncrement)
+    * priceBreakdown.roundingIncrement;
+  return {
+    ...clone(priceBreakdown),
+    pricingVersion,
+    lineItems,
+    subtotalBeforeMultipliers,
+    subtotal,
+    minimumApplied: subtotal < 4500,
+    total
+  };
+}
+
 function createPreProfileSavedConfig(overrides = {}) {
   const config = clone({ ...defaultBookcaseConfig, ...overrides });
   delete config.constructionProfile;
@@ -393,6 +414,53 @@ test("schema-4 saves without drawer profile metadata verify through the legacy f
   assert.equal(restored.compatible, true);
   assert.equal(restored.state.drawerFrontStyle, "flat");
   assert.notEqual(restored.layoutFingerprint, legacyFingerprint);
+});
+
+test("verified schema-4 drawer saves migrate from pre-front pricing and reject altered lines", () => {
+  const evaluation = evaluateBookcaseCandidate({
+    ...defaultBookcaseConfig,
+    lowerStorage: "drawers",
+    drawerCount: 4
+  });
+  const snapshot = createAcceptedDesignSnapshot(evaluation);
+  const priorPricingVersion = "2026.07-hardware-catalog-v2";
+  const priorBreakdown = removeDrawerFrontPricing(snapshot.priceBreakdown, priorPricingVersion);
+  const canonicalConfig = clone(snapshot.canonicalConfig);
+  delete canonicalConfig.layoutMetadata.sectionConfigs;
+  const legacySelectionFingerprint = restoreAcceptedDesignSnapshot({
+    schemaVersion: 3,
+    config: canonicalConfig
+  }).selectionFingerprint;
+  const historical = {
+    ...snapshot,
+    schemaVersion: 4,
+    pricingVersion: priorPricingVersion,
+    canonicalConfig,
+    selectionFingerprint: legacySelectionFingerprint,
+    priceBreakdown: priorBreakdown,
+    total: priorBreakdown.total,
+    id: createAcceptedDesignId(
+      snapshot.layoutFingerprint,
+      priorBreakdown.total,
+      priorPricingVersion,
+      legacySelectionFingerprint
+    )
+  };
+
+  const restored = restoreAcceptedDesignSnapshot(historical);
+  assert.equal(restored.accepted, true, JSON.stringify(restored.errors));
+  assert.equal(restored.compatible, true);
+  assert.equal(restored.migration.priorPricingVersion, priorPricingVersion);
+  assert.equal(restored.migration.pricingVersion, evaluation.pricing.pricingVersion);
+  assert.equal(restored.migration.repricedFromVerifiedSchemaFour, true);
+  assert.equal(restored.pricing.total, snapshot.total);
+  assert.ok(restored.pricing.total > historical.total);
+
+  const altered = clone(historical);
+  altered.priceBreakdown.lineItems[0].amount += 1;
+  const rejected = restoreAcceptedDesignSnapshot(altered);
+  assert.equal(rejected.accepted, false);
+  assert.ok(rejected.errors.some((error) => error.code === "SAVED_PRICING_MISMATCH"));
 });
 
 test("schema-2 and schema-3 configs without a profile restore overlay fronts and historical door counts", () => {

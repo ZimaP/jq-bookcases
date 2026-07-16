@@ -153,23 +153,34 @@ test("door and drawer front profiles normalize independently with legacy inferen
 
 test("canonical hardware variants round-trip through type and finish metadata", () => {
   assert.deepEqual(hardwareTypeOptions.map((option) => option.value), ["knob", "pull"]);
-  assert.deepEqual(hardwareFinishOptions.map((option) => option.label), ["Brushed Brass", "Matte Black", "Polished Nickel"]);
+  assert.deepEqual(hardwareFinishOptions.map((option) => option.label), [
+    "Brushed Brass",
+    "Matte Black",
+    "Polished Nickel",
+    "Unlacquered Brass",
+    "Satin Nickel"
+  ]);
   assert.deepEqual(hardwareVariants.map((variant) => variant.value), [
     "brass_knob",
     "brass_pull",
     "matte_black_knob",
     "matte_black_pull",
-    "polished_nickel_pull"
+    "polished_nickel_pull",
+    "polished_nickel_knob",
+    "unlacquered_brass_knob",
+    "satin_nickel_pull"
   ]);
   for (const variant of hardwareVariants) {
     assert.equal(parseHardwareVariant(variant.value), variant);
     assert.equal(resolveHardwareVariant({ type: variant.type, finish: variant.finish }), variant);
   }
-  assert.equal(resolveHardwareVariant({ type: "knob", finish: "polished_nickel" }).value, "brass_knob");
+  assert.equal(resolveHardwareVariant({ type: "knob", finish: "polished_nickel" }).value, "polished_nickel_knob");
   assert.equal(resolveHardwareVariant({ type: "pull", finish: "not-a-finish" }).value, "brass_pull");
   assert.equal(resolveHardwareVariant({ type: "invalid", finish: "matte_black" }, "matte_black_pull").value, "matte_black_pull");
   assert.equal(getHardwareFinishOption("brass").label, "Brushed Brass");
-  assert.equal(parseHardwareVariant("polished_nickel_knob"), null);
+  for (const value of ["polished_nickel_knob", "unlacquered_brass_knob", "satin_nickel_pull"]) {
+    assert.equal(normalizeBookcaseConfig({ ...defaultBookcaseConfig, hardware: value }).hardware, value);
+  }
 });
 
 test("push latch remains a canonical internal selection without entering the customer hardware catalog", () => {

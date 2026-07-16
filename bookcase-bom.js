@@ -105,6 +105,8 @@ export function deriveBookcaseBOM(layout) {
     openings.filter((component) => !["lower_cabinet", "drawers", "tall_storage", "upper_glass"].includes(component.metadata?.kind)),
     (component) => component.metadata?.kind || "unknown"
   );
+  const bySectionId = deriveSectionBOM(layout);
+  const bySectionGroupId = deriveSectionGroupBOM(layout);
 
   return {
     schemaVersion: BOM_SCHEMA_VERSION,
@@ -165,9 +167,195 @@ export function deriveBookcaseBOM(layout) {
       upperGlassCount: openings.filter((component) => component.metadata?.kind === "upper_glass").length,
       specialByKind: specialOpenings
     },
+    bySectionId,
+    bySectionGroupId,
     byRole,
     physicalComponentIds: physical.map((component) => component.id)
   };
+}
+
+/**
+ * Project the descriptor graph into stable section-owned quantities without
+ * changing the long-standing aggregate BOM fields above. Section configuration
+ * IDs are preferred because ordinal descriptor IDs can change after topology
+ * edits; legacy layouts fall back to the descriptor ID.
+ */
+function deriveSectionBOM(layout) {
+  const components = layout.components;
+  const componentById = new Map(components.map((component) => [component.id, component]));
+  const sections = components
+    .filter((component) => component.role === "section")
+    .sort((left, right) => Number(left.metadata?.index) - Number(right.metadata?.index));
+  const sectionByIdentity = createSectionIdentityMap(sections);
+  const ownedBySectionId = new Map(sections.map((section) => [section.id, []]));
+
+  for (const component of components) {
+    if (component.role === "section") continue;
+    const section = resolveOwningSection(component, componentById, sectionByIdentity);
+    if (section) ownedBySectionId.get(section.id)?.push(component);
+  }
+
+  return Object.fromEntries(sections.map((section) => {
+    const sectionId = getStableSectionId(section);
+
+    return [sectionId, {
+      sectionId,
+      descriptorId: section.id,
+      index: Number(section.metadata?.index),
+      type: section.metadata?.type || "open",
+      clearWidthIn: round(section.size.x),
+      ...summarizeOwnedBOMComponents(ownedBySectionId.get(section.id) || [])
+    }];
+  }));
+}
+
+/**
+ * Feature and desk zones intentionally span several sections. Keep their
+ * shared descriptors explicit instead of double-counting them against every
+ * member section or silently dropping them from the section projection.
+ */
+function deriveSectionGroupBOM(layout) {
+  const components = layout.components;
+  const componentById = new Map(components.map((component) => [component.id, component]));
+  const sections = components.filter((component) => component.role === "section");
+  const sectionByIdentity = createSectionIdentityMap(sections);
+  const groups = components.filter((component) => component.role === "section_group");
+  const ownedByGroupId = new Map(groups.map((group) => [group.id, []]));
+
+  for (const component of components) {
+    if (component.role === "section_group") continue;
+    const group = resolveOwningRole(component, componentById, "section_group");
+    if (group) ownedByGroupId.get(group.id)?.push(component);
+  }
+
+  return Object.fromEntries(groups.map((group) => {
+    const memberDescriptorIds = Array.isArray(group.metadata?.memberSectionIds)
+      ? group.metadata.memberSectionIds.map(String)
+      : [];
+    const memberSectionIds = memberDescriptorIds.map((id) => {
+      const section = sectionByIdentity.get(id);
+      return section ? getStableSectionId(section) : id;
+    });
+    return [group.id, {
+      sectionGroupId: group.id,
+      kind: group.metadata?.kind || "unknown",
+      memberSectionIds,
+      memberDescriptorIds,
+      widthIn: round(group.size.x),
+      ...summarizeOwnedBOMComponents(ownedByGroupId.get(group.id) || [])
+    }];
+  }));
+}
+
+function summarizeOwnedBOMComponents(owned) {
+  const physical = owned.filter((component) => PHYSICAL_ROLES.has(component.role));
+  const adjustableShelves = owned.filter((component) => component.role === "shelf");
+  const fixedShelves = owned.filter((component) => component.role === "fixed_shelf");
+  const doors = owned.filter((component) => component.role === "door");
+  const drawers = owned.filter((component) => component.role === "drawer_front");
+  const handles = owned.filter((component) => component.role === "handle");
+  const lights = owned.filter((component) => component.role === "light");
+  const openings = owned.filter((component) => component.role === "opening");
+  const lowerOpenings = openings.filter((component) => ["lower_cabinet", "drawers"].includes(component.metadata?.kind));
+  const specialOpenings = openings.filter(
+    (component) => !["lower_cabinet", "drawers", "tall_storage", "upper_glass"].includes(component.metadata?.kind)
+  );
+
+  return {
+    physicalComponentCount: physical.length,
+    shelves: {
+      adjustableCount: adjustableShelves.length,
+      fixedCount: fixedShelves.length,
+      adjustableLinearIn: round(sum(adjustableShelves, (component) => component.size.x)),
+      fixedLinearIn: round(sum(fixedShelves, (component) => component.size.x)),
+      byThicknessIn: countBy(adjustableShelves, (component) => String(component.size.y))
+    },
+    doors: {
+      count: doors.length,
+      primaryCount: doors.filter((component) => component.metadata?.tier === "primary").length,
+      secondaryCount: doors.filter((component) => component.metadata?.tier === "secondary").length,
+      byStyle: countBy(doors, (component) => component.metadata?.style || "unknown")
+    },
+    drawers: {
+      frontCount: drawers.length,
+      totalFrontAreaSqIn: round(sum(drawers, largestFaceArea)),
+      byStyle: countBy(drawers, (component) => component.metadata?.style || "unknown")
+    },
+    hardware: {
+      handleCount: handles.length,
+      byType: countBy(handles, (component) => component.metadata?.hardware || "unknown")
+    },
+    lighting: {
+      count: lights.length,
+      byType: countBy(lights, (component) => component.metadata?.lightType || "unknown")
+    },
+    openings: {
+      lowerStorageCount: lowerOpenings.length,
+      lowerStorageLinearIn: round(sum(lowerOpenings, (component) => component.size.x)),
+      tallStorageCount: openings.filter((component) => component.metadata?.kind === "tall_storage").length,
+      upperGlassCount: openings.filter((component) => component.metadata?.kind === "upper_glass").length,
+      specialByKind: countBy(specialOpenings, (component) => component.metadata?.kind || "unknown")
+    },
+    byRole: countBy(physical, (component) => component.role),
+    physicalComponentIds: physical.map((component) => component.id)
+  };
+}
+
+function createSectionIdentityMap(sections) {
+  const identities = new Map();
+  for (const section of sections) {
+    identities.set(section.id, section);
+    identities.set(getStableSectionId(section), section);
+  }
+  return identities;
+}
+
+function getStableSectionId(section) {
+  return String(
+    section?.metadata?.configId
+    || section?.metadata?.sectionConfigId
+    || section?.metadata?.stableId
+    || section?.id
+  );
+}
+
+function resolveOwningSection(component, componentById, sectionByIdentity) {
+  const pending = [component];
+  const visited = new Set();
+  while (pending.length) {
+    const current = pending.shift();
+    if (!current || visited.has(current.id)) continue;
+    visited.add(current.id);
+    if (current.role === "section") return current;
+    const explicitId = current.metadata?.configId
+      || current.metadata?.sectionConfigId
+      || current.metadata?.sectionId
+      || current.sectionId;
+    if (explicitId && sectionByIdentity.has(String(explicitId))) {
+      return sectionByIdentity.get(String(explicitId));
+    }
+    for (const relatedId of [current.parentId, current.hostId]) {
+      const related = componentById.get(relatedId);
+      if (related && !visited.has(related.id)) pending.push(related);
+    }
+  }
+  return null;
+}
+
+function resolveOwningRole(component, componentById, role) {
+  const pending = [component];
+  const visited = new Set();
+  while (pending.length) {
+    const current = pending.shift();
+    if (!current || visited.has(current.id)) continue;
+    visited.add(current.id);
+    if (current.role === role) return current;
+    for (const relatedId of [current.parentId, current.hostId]) {
+      const related = componentById.get(relatedId);
+      if (related && !visited.has(related.id)) pending.push(related);
+    }
+  }
+  return null;
 }
 
 export function deriveHardwareSchedule(layout, prefilteredHandles = null) {

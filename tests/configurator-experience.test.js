@@ -60,11 +60,12 @@ const componentByRole = (layout, role, predicate = () => true) => (
   layout.components.find((component) => component.role === role && predicate(component))
 );
 
-test("the customer workspace exposes exactly seven non-linear stages in reference order", () => {
+test("the customer workspace exposes exactly eight non-linear stages in reference order", () => {
   assert.deepEqual(WORKSPACE_STAGES.map((stage) => stage.id), [
     "space",
     "layout",
     "storage",
+    "base_top",
     "finish",
     "hardware",
     "lighting",
@@ -74,20 +75,22 @@ test("the customer workspace exposes exactly seven non-linear stages in referenc
     "Space",
     "Layout",
     "Storage",
+    "Base & Top",
     "Finish",
     "Hardware",
     "Lighting",
     "Preview"
   ]);
-  assert.equal(new Set(WORKSPACE_STAGES.map((stage) => stage.id)).size, 7);
+  assert.equal(new Set(WORKSPACE_STAGES.map((stage) => stage.id)).size, 8);
   assert.equal(WORKSPACE_STAGES.every((stage) => stage.subtitle && stage.icon), true);
 });
 
 test("workspace stages project every legacy physical group exactly once", () => {
   assert.deepEqual(STAGE_CONTROL_GROUPS, {
     space: ["overall_size"],
-    layout: ["sections_layout", "base_crown"],
+    layout: ["sections_layout"],
     storage: ["shelves", "storage_fronts"],
+    base_top: ["base_crown"],
     finish: ["finish"],
     hardware: ["hardware"],
     lighting: ["lighting"],
@@ -134,8 +137,11 @@ test("selected-section tabs express front applicability and read-only back data"
 
 test("fields route through physical groups into workspace stages and section tabs", () => {
   assert.equal(workspaceStageForControlGroup("overall_size"), "space");
-  assert.equal(workspaceStageForControlGroup("base_crown"), "layout");
+  assert.equal(workspaceStageForControlGroup("sections_layout"), "layout");
+  assert.equal(workspaceStageForControlGroup("base_crown"), "base_top");
   assert.equal(workspaceStageForField("shelfThickness"), "storage");
+  assert.equal(workspaceStageForField("baseStyle"), "base_top");
+  assert.equal(workspaceStageForField("crownStyle"), "base_top");
   assert.equal(workspaceStageForField("hardwareSelections"), "hardware");
   assert.equal(workspaceStageForField("delivery"), "preview");
   assert.equal(inspectorTabForField("shelfThickness"), "shelves");
@@ -224,6 +230,10 @@ test("context editor definitions distinguish fronts, hardware, construction, lig
   });
   assert.equal(COMPONENT_ROLE_TO_STAGE.section, "layout");
   assert.equal(COMPONENT_ROLE_TO_STAGE.shelf, "storage");
+  assert.equal(COMPONENT_ROLE_TO_STAGE.base, "base_top");
+  assert.equal(COMPONENT_ROLE_TO_STAGE.trim, "base_top");
+  assert.equal(COMPONENT_ROLE_TO_STAGE.crown, "base_top");
+  assert.equal(COMPONENT_ROLE_TO_STAGE.top_panel, "base_top");
   assert.equal(COMPONENT_ROLE_TO_STAGE.handle, "hardware");
   assert.equal(COMPONENT_ROLE_TO_STAGE.light, "lighting");
   assert.equal(COMPONENT_ROLE_TO_INSPECTOR.door, "doors");
@@ -264,8 +274,16 @@ test("descriptor selection resolves semantic editors and owning sections from ac
   assert.deepEqual([hardwareContext.editorId, hardwareContext.frontId, hardwareContext.sectionId], ["hardware", door.id, section.id]);
   assert.deepEqual([hardwareContext.stageId, hardwareContext.inspectorTabId], ["hardware", "doors"]);
 
-  assert.equal(resolveSelectionContext(layout, trim.id).editorId, "base");
-  assert.equal(resolveSelectionContext(layout, crown.id).editorId, "crown");
+  const baseContext = resolveSelectionContext(layout, trim.id);
+  assert.deepEqual(
+    [baseContext.editorId, baseContext.inspectorGroupId, baseContext.stageId, baseContext.inspectorTabId],
+    ["base", "base_crown", "base_top", "general"]
+  );
+  const crownContext = resolveSelectionContext(layout, crown.id);
+  assert.deepEqual(
+    [crownContext.editorId, crownContext.inspectorGroupId, crownContext.stageId, crownContext.inspectorTabId],
+    ["crown", "base_crown", "base_top", "general"]
+  );
   assert.deepEqual(
     [resolveSelectionContext(layout, light.id).editorId, resolveSelectionContext(layout, light.id).sectionId],
     ["lighting", section.id]
@@ -327,7 +345,11 @@ test("drawer, feature group, top-panel, and divider hits expose exact contextual
   assert.equal(featureOpeningContext.sectionId, featureGroup.metadata.memberSectionIds[0]);
 
   const flatTopLayout = layoutFor({ ...defaultBookcaseConfig, crownStyle: "none" });
-  assert.equal(resolveSelectionContext(flatTopLayout, "top-panel").editorId, "crown");
+  const topPanelContext = resolveSelectionContext(flatTopLayout, "top-panel");
+  assert.deepEqual(
+    [topPanelContext.editorId, topPanelContext.inspectorGroupId, topPanelContext.stageId],
+    ["crown", "base_crown", "base_top"]
+  );
 
   const divider = componentByRole(drawerLayout, "divider", (component) => component.metadata.boundaryIndex === 1);
   const dividerContext = resolveSelectionContext(drawerLayout, divider.id);
@@ -446,7 +468,7 @@ test("drawer layouts show drawer count and hardware while hiding door controls",
 test("lighting warmth is contextual to an enabled lighting package", () => {
   const off = normalizeBookcaseConfig({ ...defaultBookcaseConfig, lighting: "no_lighting" });
   const on = normalizeBookcaseConfig({ ...defaultBookcaseConfig, lighting: "shelf_accent" });
-  const incompatible = normalizeBookcaseConfig({
+  const tallStorage = normalizeBookcaseConfig({
     ...preset("tall-storage").config,
     sections: 2,
     lowerCabinets: false,
@@ -455,23 +477,23 @@ test("lighting warmth is contextual to an enabled lighting package", () => {
   });
   assert.equal(getApplicability(off, layoutFor(off)).showLightingWarmth, false);
   assert.equal(getApplicability(on, layoutFor(on)).showLightingWarmth, true);
-  assert.equal(getApplicability(incompatible, layoutFor(incompatible)).showLightingWarmth, false);
+  assert.equal(getApplicability(tallStorage, layoutFor(tallStorage)).showLightingWarmth, true);
 });
 
-test("review and inspector summaries distinguish selected lighting from generated lighting", () => {
-  const incompatible = normalizeBookcaseConfig({
+test("review and inspector summaries include generated tall-storage lighting", () => {
+  const tallStorage = normalizeBookcaseConfig({
     ...preset("tall-storage").config,
     sections: 2,
     lowerCabinets: false,
     lighting: "full_package",
     layoutMetadata: { sectionRatios: [1, 1] }
   });
-  const incompatibleLayout = layoutFor(incompatible);
-  const appearance = createReviewGroups(incompatible, incompatibleLayout, "tall-storage")
+  const tallLayout = layoutFor(tallStorage);
+  const appearance = createReviewGroups(tallStorage, tallLayout, "tall-storage")
     .find((group) => group.id === "appearance");
-  assert.match(getInspectorGroupSummary("lighting", incompatible, incompatibleLayout), /No compatible locations/);
-  assert.match(appearance.items.find((item) => item.label === "Lighting").value, /No compatible locations/);
-  assert.equal(appearance.items.some((item) => item.label === "Light temperature"), false);
+  assert.match(getInspectorGroupSummary("lighting", tallStorage, tallLayout), /8 generated/);
+  assert.match(appearance.items.find((item) => item.label === "Lighting").value, /8 generated/);
+  assert.equal(appearance.items.some((item) => item.label === "Light temperature"), true);
 
   const valid = normalizeBookcaseConfig(defaultBookcaseConfig);
   const validAppearance = createReviewGroups(valid, layoutFor(valid), "lower-cabinets")
@@ -525,7 +547,7 @@ test("collapsed inspector summaries use the same normalized configuration", () =
   const layout = layoutFor(state);
   assert.match(getInspectorGroupSummary("overall_size", state, layout), /108 in W/);
   assert.match(getInspectorGroupSummary("sections_layout", state, layout), /sections/);
-  assert.match(getInspectorGroupSummary("shelves", state, layout), /Applies to all open sections/);
+  assert.match(getInspectorGroupSummary("shelves", state, layout), /4 shelves in each editable section/);
   assert.equal(getInspectorGroupSummary("lighting", state, layout), "No Lights");
   assert.match(getInspectorGroupSummary("project_service", state, layout), /Delivery/);
 });
@@ -588,10 +610,52 @@ test("mixed storage reviews keep door and drawer front profiles independent", ()
   });
   const layout = layoutFor(state);
   const storage = createReviewGroups(state, layout, "lower-cabinets").find((group) => group.id === "storage");
+  assert.equal(storage.inspectorField, "doorStyle");
+  assert.equal(storage.items.find((item) => item.label === "Door sections")?.value, "2");
+  assert.equal(storage.items.find((item) => item.label === "Drawer sections")?.value, "1");
+  assert.equal(storage.items.some((item) => item.label === "Lower storage"), false);
   assert.equal(storage.items.find((item) => item.label === "Door front profile")?.value, "Glass Frame");
   assert.equal(storage.items.find((item) => item.label === "Drawer front profile")?.value, "Flat Panel");
   assert.match(getInspectorGroupSummary("storage_fronts", state, layout), /Glass Frame/);
   assert.match(getInspectorGroupSummary("storage_fronts", state, layout), /Flat Panel/);
+
+  const drawerOnly = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1, 1],
+      sectionTypes: ["drawers", "open", "open", "open"]
+    }
+  });
+  const drawerOnlyStorage = createReviewGroups(drawerOnly, layoutFor(drawerOnly), "lower-cabinets")
+    .find((group) => group.id === "storage");
+  assert.equal(drawerOnlyStorage.inspectorField, "drawerFrontStyle");
+});
+
+test("review summaries expose independent shelves, door styles, and drawer counts by section", () => {
+  const state = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1, 1],
+      sectionTypes: ["lower_doors", "drawers", "open", "lower_doors"],
+      sectionConfigs: [
+        { id: "section-config-a", type: "lower_doors", shelfCount: 2, doorStyle: "glass", doorArrangement: "auto" },
+        { id: "section-config-b", type: "drawers", shelfCount: 4, drawerCount: 5, drawerFrontStyle: "flat" },
+        { id: "section-config-c", type: "open", shelfCount: 6 },
+        { id: "section-config-d", type: "lower_doors", shelfCount: 3, doorStyle: "shaker", doorArrangement: "auto" }
+      ]
+    }
+  });
+  const layout = layoutFor(state);
+  const groups = createReviewGroups(state, layout, "lower-cabinets");
+  const dimensions = groups.find((group) => group.id === "dimensions");
+  const storage = groups.find((group) => group.id === "storage");
+
+  assert.match(dimensions.items.find((item) => item.label === "Shelf plan").value, /S1: 2/);
+  assert.match(dimensions.items.find((item) => item.label === "Shelf plan").value, /S3: 6/);
+  assert.match(storage.items.find((item) => item.label === "Door front profile").value, /Glass Frame/);
+  assert.match(storage.items.find((item) => item.label === "Door front profile").value, /Shaker/);
+  assert.match(storage.items.find((item) => item.label === "Drawer front profile").value, /Flat Panel/);
+  assert.match(storage.items.find((item) => item.label === "Section 2").value, /5 Lower Drawers · 4 shelves/);
 });
 
 test("saved design records are presentation-independent schema 3 physical payloads", () => {
@@ -666,12 +730,13 @@ test("section organizer summaries and thumbnails derive exact accepted descripto
   assert.equal(organizer.sectionCount, state.sections);
   assert.equal(organizer.items.length, state.sections);
   assert.match(organizer.summary, /4 sections/);
-  assert.equal(organizer.items.every((item) => item.widthLabel.endsWith(" in clear")), true);
+  assert.deepEqual(organizer.items.map((item) => item.widthLabel), Array(4).fill("23.06 in clear"));
+  assert.equal(organizer.totalClearWidthLabel, "92.25 in total clear width");
   assert.equal(organizer.items.every((item) => item.generated.adjustableShelves === state.shelves), true);
   assert.equal(organizer.items.every((item) => item.generated.doors > 0), true);
   assert.equal(organizer.items.every((item) => item.generated.handles > 0), true);
   assert.equal(organizer.items.every((item) => item.thumbnail.frontKind === "doors"), true);
-  assert.equal(organizer.items.every((item) => item.shelvesApplyToAllOpenSections), true);
+  assert.equal(organizer.items.every((item) => item.shelvesApplyToAllOpenSections === false), true);
 });
 
 test("section thumbnail data is semantic and locked feature zones remain visible in summaries", () => {

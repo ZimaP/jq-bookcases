@@ -35,6 +35,105 @@ const DEFAULT_VERTICAL_FOV_DEGREES = 34;
 const FIT_MARGIN = 1.14;
 const MIN_SAFE_VIEWPORT_FRACTION = 0.08;
 
+/**
+ * Calculate an orbit pose that contains an entire axis-aligned bounds inside
+ * the unobstructed viewport. Unlike the profile-detail helper, this keeps the
+ * complete model in view and accepts caller-selected orbit angles.
+ *
+ * The fit is solved against all eight corners. The safe rectangle can be
+ * asymmetric: the target is shifted so the bounds center projects to the safe
+ * rectangle's center, then each corner is constrained against its left,
+ * right, top, and bottom edges at that corner's own perspective depth.
+ */
+export function calculateBoundsCameraPose({
+  bounds,
+  theta,
+  phi,
+  verticalFovDegrees = DEFAULT_VERTICAL_FOV_DEGREES,
+  aspect,
+  viewport,
+  fitMargin = FIT_MARGIN
+} = {}) {
+  const normalizedBounds = normalizeRequiredBounds(bounds, "bounds");
+  const normalizedTheta = normalizeAngle(theta, "theta");
+  const normalizedPhi = normalizeAngle(phi, "phi");
+  const normalizedViewport = normalizeViewport(viewport, aspect);
+  const resolvedAspect = normalizeAspect(aspect, normalizedViewport.width / normalizedViewport.height);
+  const resolvedVerticalFov = normalizeVerticalFov(verticalFovDegrees);
+  const resolvedFitMargin = normalizeFitMargin(fitMargin);
+  const verticalFovRadians = degreesToRadians(resolvedVerticalFov);
+  const tanVertical = Math.tan(verticalFovRadians / 2);
+  const tanHorizontal = tanVertical * resolvedAspect;
+  const axes = cameraAxes(normalizedTheta, normalizedPhi);
+  const focusCenter = centerOf(normalizedBounds);
+  const corners = cornersOf(normalizedBounds);
+
+  // A fit margin greater than one shrinks the usable half-extents around the
+  // safe center. This creates even breathing room without moving the center.
+  const horizontalHalfExtent = normalizedViewport.safeFraction.x / resolvedFitMargin;
+  const verticalHalfExtent = normalizedViewport.safeFraction.y / resolvedFitMargin;
+  const safeCenter = normalizedViewport.safeCenterNdc;
+  const left = safeCenter.x - horizontalHalfExtent;
+  const right = safeCenter.x + horizontalHalfExtent;
+  const bottom = safeCenter.y - verticalHalfExtent;
+  const top = safeCenter.y + verticalHalfExtent;
+
+  let fitRadius = 0;
+  let farthestProjection = Number.NEGATIVE_INFINITY;
+  for (const corner of corners) {
+    const relative = subtract(corner, focusCenter);
+    const outwardProjection = dot(relative, axes.direction);
+    const horizontalProjection = dot(relative, axes.right);
+    const verticalProjection = dot(relative, axes.up);
+    farthestProjection = Math.max(farthestProjection, outwardProjection);
+
+    fitRadius = Math.max(
+      fitRadius,
+      radiusForUpperEdge(horizontalProjection, outwardProjection, right, safeCenter.x, tanHorizontal),
+      radiusForLowerEdge(horizontalProjection, outwardProjection, left, safeCenter.x, tanHorizontal),
+      radiusForUpperEdge(verticalProjection, outwardProjection, top, safeCenter.y, tanVertical),
+      radiusForLowerEdge(verticalProjection, outwardProjection, bottom, safeCenter.y, tanVertical)
+    );
+  }
+
+  const boundsSize = sizeOf(normalizedBounds);
+  const diagonal = Math.hypot(boundsSize.x, boundsSize.y, boundsSize.z);
+  const coordinateScale = Math.max(
+    1,
+    Math.abs(focusCenter.x),
+    Math.abs(focusCenter.y),
+    Math.abs(focusCenter.z)
+  );
+  const minimumSpan = Math.max(diagonal, coordinateScale * 1e-6);
+  const depthPadding = minimumSpan * 1e-6;
+  const radius = Math.max(
+    fitRadius,
+    farthestProjection + depthPadding,
+    minimumSpan * 0.3
+  );
+
+  const target = calculateViewportAwareTarget({
+    focusCenter,
+    radius,
+    theta: normalizedTheta,
+    phi: normalizedPhi,
+    verticalFovDegrees: resolvedVerticalFov,
+    aspect: resolvedAspect,
+    viewport: normalizedViewport
+  });
+
+  return {
+    theta: normalizedTheta,
+    phi: normalizedPhi,
+    radius,
+    target,
+    bounds: normalizedBounds,
+    focusCenter,
+    viewport: normalizedViewport,
+    fitMargin: resolvedFitMargin
+  };
+}
+
 export function isProfileCameraKey(key) {
   return typeof key === "string" && PROFILE_CAMERA_KEY_LOOKUP.has(key);
 }
@@ -403,6 +502,22 @@ function sizeOf(bounds) {
   };
 }
 
+function centerOf(bounds) {
+  return {
+    x: (bounds.min.x + bounds.max.x) / 2,
+    y: (bounds.min.y + bounds.max.y) / 2,
+    z: (bounds.min.z + bounds.max.z) / 2
+  };
+}
+
+function radiusForUpperEdge(projection, depthProjection, edge, center, tangent) {
+  return (projection + edge * tangent * depthProjection) / ((edge - center) * tangent);
+}
+
+function radiusForLowerEdge(projection, depthProjection, edge, center, tangent) {
+  return (-projection - edge * tangent * depthProjection) / ((center - edge) * tangent);
+}
+
 function subtract(left, right) {
   return { x: left.x - right.x, y: left.y - right.y, z: left.z - right.z };
 }
@@ -419,6 +534,11 @@ function positiveFinite(value, fallback) {
 function nonnegativeFinite(value) {
   const numeric = Number(value);
   return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+}
+
+function normalizeFitMargin(value) {
+  const numeric = Number(value);
+  return clamp(Number.isFinite(numeric) && numeric > 0 ? numeric : FIT_MARGIN, 1, 4);
 }
 
 function degreesToRadians(value) {

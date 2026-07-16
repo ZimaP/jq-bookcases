@@ -117,8 +117,9 @@ the canvas. Required captures include:
 
 1. The organizer always shows `Sections (N)`, exact total width, Add Section,
    and horizontally scroll-contained cards. Each card shows a descriptor-
-   derived thumbnail, section number, exact clear width, selection, and a
-   Duplicate/Delete menu.
+   derived thumbnail, section number, customer-facing clear width rounded to
+   at most two decimal places, selection, and a Duplicate/Delete menu. The
+   accepted configuration retains the full-precision canonical width.
 2. Model and organizer selection stay synchronized and route to Layout /
    General Properties. Keyboard and pointer use retain visible focus and
    pressed/selected state.
@@ -152,8 +153,10 @@ the canvas. Required captures include:
     descriptor bounds. At sufficiently oblique views they fade and divider
     handles disable rather than implying false measurements.
 13. Divider handles remain available on desktop, tablet, and mobile with a
-    large pointer target and keyboard support. The exact numeric field remains
-    the non-drag alternative; organizer scrolling remains contained.
+    large pointer target and keyboard support. The numeric field shows the same
+    at-most-two-decimal customer value and remains the non-drag alternative;
+    accepted edits and total-width validation use full-precision canonical
+    values. Organizer scrolling remains contained.
 14. A selected lower-door or tall-door section exposes Door arrangement in its
     Doors tab: Auto, Single/hinge left, Single/hinge right, and Pair. The tab is
     absent for open, drawer, media, desk, and feature sections.
@@ -179,8 +182,10 @@ the canvas. Required captures include:
 6. A finish-only hardware change updates materials in place. A knob/pull shape
    change rebuilds required geometry while restoring the exact camera pose,
    active view, canvas, and viewer instance.
-7. Hardware remains hidden and inert when no generated front can host it.
-   Lighting warmth remains hidden and inert when lighting is off.
+7. When no generated front can host hardware, Type and Finish controls remain
+   hidden and inert while Properties shows an explanatory empty state with a
+   direct route to Storage to add doors or drawers. Lighting warmth remains
+   hidden and inert when lighting is off.
 8. New designs use the internal `jq_inset_v1` profile without exposing a
    construction-profile selector. A door-arrangement change immediately updates
    generated leaf/handle counts, estimate, Review, save payload, quote prefill,
@@ -247,9 +252,10 @@ hardware have passed the new construction release matrix.
 
 The same spec also verified that all six clear-width labels remain visible and
 non-overlapping at 390 × 844 and 360 × 800. Narrow five/six-bay labels use the
-compact inch-mark presentation; the cards and numeric field retain the exact
-value. The capture audit independently reported 3840 px client and scroll
-widths, one canvas, a valid render, and zero horizontal Structure scrollers.
+compact inch-mark presentation; cards and the numeric field show at most two
+decimal places while accepted configuration math retains full precision. The
+capture audit independently reported 3840 px client and scroll widths, one
+canvas, a valid render, and zero horizontal Structure scrollers.
 
 Completed browser scenarios:
 

@@ -64,7 +64,7 @@ test("the 3D viewer renders on demand, animates camera moves, and returns to idl
   expect(settled.renderScheduled).toBe(false);
   expect(settled.cameraTransitionActive).toBe(false);
 
-  // The section controls stay available in the seven-stage workspace. Moving
+  // The section controls stay available in the eight-stage workspace. Moving
   // between stages only changes presentation state and must not create a
   // physical transaction or replace the persistent viewer.
   const beforeInspector = await page.locator("[data-bookcase-builder]").evaluate((host) => ({
@@ -72,15 +72,17 @@ test("the 3D viewer renders on demand, animates camera moves, and returns to idl
     viewerInstance: host.__bookcaseConfigurator.viewer.getDiagnostics().instanceId
   }));
   await page.locator('[data-workspace-stage="layout"]').click();
-  await expect(page.locator('[data-workspace-stage="layout"]')).toHaveAttribute("aria-current", "step");
+  await expect(page.locator('[data-workspace-stage="layout"]')).toHaveAttribute("aria-current", "location");
   await expect(page.locator('[data-properties-inspector] [data-active-stage-panel="layout"]')).toBeVisible();
-  await expect(page.locator("[data-properties-inspector] [data-section-general]")).toBeVisible();
+  await expect(page.locator("[data-properties-inspector] [data-layout-console]")).toBeVisible();
+  await expect(page.locator("[data-properties-inspector] [data-section-width]")).toBeVisible();
   const structureIdle = await waitForViewerIdle(page);
   expect(structureIdle.renderCount).toBeGreaterThanOrEqual(settled.renderCount);
   await page.locator('[data-workspace-stage="storage"]').click();
-  await expect(page.locator('[data-workspace-stage="storage"]')).toHaveAttribute("aria-current", "step");
+  await expect(page.locator('[data-workspace-stage="storage"]')).toHaveAttribute("aria-current", "location");
   await expect(page.locator('[data-properties-inspector] [data-active-stage-panel="storage"]')).toBeVisible();
-  await expect(page.locator('[data-properties-inspector] [data-field="shelves"]')).toBeVisible();
+  await expect(page.locator("[data-properties-inspector] [data-storage-console]")).toBeVisible();
+  await expect(page.locator('[data-properties-inspector] [data-section-storage-field="shelfCount"]')).toBeVisible();
   await expect(page.locator("[data-section-organizer]")).toBeVisible();
   await expect(page.locator("[data-section-overlay]")).toBeVisible();
   await waitForViewerIdle(page);

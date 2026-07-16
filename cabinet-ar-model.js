@@ -1,9 +1,9 @@
-import { hashCabinetArConfiguration, inchesToMeters } from "./cabinet-ar.js?v=direct-hardware-20260714a";
+import { hashCabinetArConfiguration, inchesToMeters } from "./cabinet-ar.js?v=engine-polish-20260716a";
 import {
   getHardwareFinish,
   getHardwareFinishOption,
   getHardwareType
-} from "./bookcase-config.js?v=direct-hardware-20260714a";
+} from "./bookcase-config.js?v=engine-polish-20260716a";
 
 const NON_RENDERED_ROLES = new Set(["assembly", "section", "section_group", "opening"]);
 const GLB_MAGIC = 0x46546c67;

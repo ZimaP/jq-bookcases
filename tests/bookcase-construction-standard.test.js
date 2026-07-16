@@ -126,6 +126,7 @@ test("construction reference planes are pure, explicit, and profile-aware", () =
   assert.equal(inset.outerTopPlaneY, 108);
   assert.equal(inset.carcassFrontPlaneZ, 0);
   assert.equal(inset.finishedFrontPlaneZ, 0);
+  assert.equal(inset.fixedSeparatorFrontPlaneZ, inset.carcassFrontPlaneZ);
   assert.equal(inset.shelfFrontPlaneZ, CONSTRUCTION_RULES.doorThickness);
   assert.equal(inset.backInteriorPlaneZ, 18 - CONSTRUCTION_RULES.backPanelThickness);
   assert.equal(inset.outerBackPlaneZ, 18);
@@ -140,6 +141,7 @@ test("construction reference planes are pure, explicit, and profile-aware", () =
     constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay
   });
   assert.equal(legacy.finishedFrontPlaneZ, -CONSTRUCTION_RULES.doorThickness);
+  assert.equal(legacy.fixedSeparatorFrontPlaneZ, legacy.carcassFrontPlaneZ);
   assert.equal(legacy.shelfFrontPlaneZ, CONSTRUCTION_RULES.openShelfFrontSetback);
   assert.equal(legacy.baseFrontPlaneZ, 0);
 
@@ -298,7 +300,7 @@ test("inset and migrated legacy layouts preserve explicit front-plane semantics"
   assert.equal(insetDoor.metadata.backPlaneZ, CONSTRUCTION_RULES.doorThickness);
   assert.equal(insetHandle.bounds.max.z, insetDoor.bounds.min.z);
   assert.ok(insetHandle.bounds.min.z < insetDoor.bounds.min.z);
-  assert.ok(separator.bounds.min.z >= insetDoor.bounds.max.z);
+  assert.equal(separator.bounds.min.z, inset.metrics.referencePlanes.carcassFrontPlaneZ);
 
   const legacy = singleSectionLayout({
     constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay,
@@ -321,6 +323,36 @@ test("inset and migrated legacy layouts preserve explicit front-plane semantics"
     assert.equal(drawer.metadata.mounting, "inset");
     assert.equal(drawer.bounds.min.z, 0);
     assert.equal(drawer.bounds.max.z, CONSTRUCTION_RULES.doorThickness);
+  }
+});
+
+test("lower storage separators use fixed structural geometry, not adjustable-shelf rules", () => {
+  for (const constructionProfile of Object.values(CONSTRUCTION_PROFILE_IDS)) {
+    for (const type of ["lower_doors", "drawers"]) {
+      const layout = singleSectionLayout({
+        type,
+        constructionProfile,
+        doorStyle: "glass"
+      });
+      const section = findComponent(layout, layout.sectionIds[0]);
+      const separator = findComponent(layout, `${section.id}-lower-separator`);
+      const adjustableShelves = byRole(layout, "shelf").filter((shelf) => shelf.parentId === section.id);
+      const planes = layout.metrics.referencePlanes;
+
+      assert.equal(layout.validation.valid, true, JSON.stringify(layout.validation.errors));
+      assert.equal(separator.metadata.purpose, "lower_separator");
+      assert.equal(separator.metadata.constructionThickness, CONSTRUCTION_RULES.fixedSeparatorThickness);
+      assert.equal(separator.bounds.min.z, planes.fixedSeparatorFrontPlaneZ);
+      assert.equal(separator.bounds.min.z, planes.carcassFrontPlaneZ);
+      assert.equal(separator.bounds.min.x, section.bounds.min.x);
+      assert.equal(separator.bounds.max.x, section.bounds.max.x);
+      assert.equal(separator.size.y, CONSTRUCTION_RULES.fixedSeparatorThickness);
+      assert.notEqual(separator.size.y, layout.config.shelfThickness);
+      assert.ok(adjustableShelves.length > 0);
+      assert.ok(adjustableShelves.every((shelf) => shelf.bounds.min.x > separator.bounds.min.x));
+      assert.ok(adjustableShelves.every((shelf) => shelf.bounds.max.x < separator.bounds.max.x));
+      assert.ok(adjustableShelves.every((shelf) => shelf.bounds.min.z > separator.bounds.min.z));
+    }
   }
 });
 
@@ -760,6 +792,29 @@ test("named validator invariants identify semantic front, hardware, profile, and
     light.bounds.max.y = crown.bounds.min.y;
     light.bounds.min.y = crown.bounds.min.y - height;
     syncBox(light);
+  });
+});
+
+test("lower separator validator mutations name each structural invariant", () => {
+  const layout = singleSectionLayout({
+    arrangement: "single_hinge_left",
+    doorStyle: "glass"
+  });
+
+  expectMutationCode(layout, "LOWER_SEPARATOR_PLANE_MISMATCH", (changed) => {
+    const separator = byRole(changed, "fixed_shelf")[0];
+    separator.bounds.min.z += 0.25;
+    syncBox(separator);
+  });
+  expectMutationCode(layout, "LOWER_SEPARATOR_SIDE_GAP", (changed) => {
+    const separator = byRole(changed, "fixed_shelf")[0];
+    separator.bounds.min.x += 0.25;
+    syncBox(separator);
+  });
+  expectMutationCode(layout, "LOWER_SEPARATOR_THICKNESS_MISMATCH", (changed) => {
+    const separator = byRole(changed, "fixed_shelf")[0];
+    separator.bounds.max.y += 0.25;
+    syncBox(separator);
   });
 });
 

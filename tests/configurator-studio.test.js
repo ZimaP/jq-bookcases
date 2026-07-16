@@ -2,13 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { evaluateBookcaseCandidate } from "../bookcase-engine.js";
 import {
-  INSPIRATION_FILTERS,
   STUDIO_DESIGN_INTENTS,
+  STUDIO_PREVIEW_IDEA_IDS,
   STUDIO_PROVISIONAL_DIMENSIONS,
   createNeutralCustomConfig,
-  filterInspirationIdeas,
   getStudioPreviewIdeas,
-  inspirationIdeas,
   isStudioResumeRequest,
   isStudioWelcomeRequest,
   normalizeStudioDesignIntent,
@@ -16,6 +14,45 @@ import {
   suggestStudioSectionCount,
   validateStudioDimensions
 } from "../configurator-studio.js";
+
+test("the welcome exposes exactly three stable engine-backed presentation states", () => {
+  assert.deepEqual([...STUDIO_PREVIEW_IDEA_IDS], [
+    "classic-open",
+    "display-wall",
+    "tall-storage"
+  ]);
+
+  const previews = getStudioPreviewIdeas();
+  assert.deepEqual(
+    previews.map(({ id, name, config }) => ({
+      id,
+      name,
+      width: config.width,
+      height: config.height,
+      sections: config.sections
+    })),
+    [
+      { id: "classic-open", name: "Open Shelves", width: 96, height: 96, sections: 4 },
+      { id: "display-wall", name: "Display Wall", width: 102, height: 96, sections: 3 },
+      { id: "tall-storage", name: "Tall Storage + Shelves", width: 132, height: 96, sections: 4 }
+    ]
+  );
+  assert.equal(new Set(previews.map((preview) => preview.id)).size, 3);
+  assert.deepEqual(previews.map((preview) => preview.callouts.map((callout) => callout.label)), [
+    ["Add shelves", "Resize sections"],
+    ["Add drawers", "Add doors"],
+    ["Add tall doors", "Mix storage"]
+  ]);
+  for (const preview of previews) {
+    assert.equal(preview.callouts.length, 2);
+    assert.deepEqual(preview.callouts.map((callout) => callout.side), ["left", "right"]);
+    assert.equal(preview.callouts.every((callout) => callout.id && callout.icon && callout.y), true);
+  }
+  for (const preview of previews) {
+    const evaluation = evaluateBookcaseCandidate(preview.config);
+    assert.equal(evaluation.accepted, true, `${preview.id} must remain engine-backed`);
+  }
+});
 
 test("new visitors stay presentation-only while valid explicit sources bypass welcome", () => {
   assert.deepEqual(resolveStudioEntryState(), { presentationOnly: true, source: "new" });
@@ -73,16 +110,14 @@ test("custom starts create one neutral, valid, equal-width open structure", () =
   assert.equal(evaluation.layout.components.some((component) => ["door", "drawer_front", "light"].includes(component.role)), false);
 });
 
-test("the idea library contains only real engine-backed configurations with honest editability", () => {
-  assert.equal(inspirationIdeas.length, 10);
-  assert.deepEqual(INSPIRATION_FILTERS.map((filter) => filter.id), ["all", "library", "storage", "media", "work", "feature"]);
-  for (const idea of inspirationIdeas) {
-    assert.deepEqual(Object.keys(idea), ["id", "name", "description", "category", "tags", "fullyEditable", "config"]);
-    assert.equal(evaluateBookcaseCandidate(idea.config).accepted, true, idea.id);
-    const constrained = Boolean(idea.config.centerOpening || idea.config.deskOpening || idea.config.featureOpening);
-    assert.equal(idea.fullyEditable, !constrained, idea.id);
-  }
-  assert.equal(filterInspirationIdeas("library").every((idea) => idea.category === "library"), true);
-  assert.equal(filterInspirationIdeas("unsupported").length, inspirationIdeas.length);
-  assert.deepEqual(getStudioPreviewIdeas().map((idea) => idea.id), ["classic-open", "display-wall", "tall-storage"]);
+test("the one-click starter uses the neutral provisional framework", () => {
+  const sections = suggestStudioSectionCount(STUDIO_PROVISIONAL_DIMENSIONS.width);
+  const result = createNeutralCustomConfig({ ...STUDIO_PROVISIONAL_DIMENSIONS, sections });
+  assert.equal(result.accepted, true);
+  assert.deepEqual(
+    { width: result.config.width, height: result.config.height, depth: result.config.depth, sections: result.config.sections },
+    { width: 96, height: 96, depth: 15, sections: 4 }
+  );
+  assert.deepEqual(result.config.layoutMetadata.sectionRatios, [1, 1, 1, 1]);
+  assert.equal(evaluateBookcaseCandidate(result.config).accepted, true);
 });

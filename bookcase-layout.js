@@ -1,21 +1,23 @@
 import {
   CONSTRUCTION_PROFILE_IDS as CONFIG_CONSTRUCTION_PROFILE_IDS,
   DOOR_ARRANGEMENTS as CONFIG_DOOR_ARRANGEMENTS,
+  SECTION_STORAGE_LIMITS,
   getHardwareType,
+  normalizeBookcaseConfig,
   normalizeHardwareConfiguration,
   normalizeDrawerFrontStyleValue,
   normalizeSectionTypeValue
-} from "./bookcase-config.js?v=direct-hardware-20260714a";
+} from "./bookcase-config.js?v=engine-polish-20260716a";
 import {
   getHardwareProxySpec,
   projectVariantToLegacyHardware,
   resolveHardwareSelectionForHost
-} from "./hardware-catalog.js?v=direct-hardware-20260714a";
+} from "./hardware-catalog.js?v=engine-polish-20260716a";
 import {
   createRecommendedHardwarePlacement,
   evaluateHardwareCompatibility,
   millimetersToInches
-} from "./hardware-compatibility.js?v=direct-hardware-20260714a";
+} from "./hardware-compatibility.js?v=engine-polish-20260716a";
 
 /**
  * Pure parametric layout engine for JQ Bookcases.
@@ -45,6 +47,7 @@ export const CONSTRUCTION_RULES = Object.freeze({
   panelThickness: 0.75,
   backPanelThickness: 0.25,
   shelfThickness: 1.25,
+  fixedSeparatorThickness: 0.75,
   doorThickness: 0.75,
   doorReveal: 0.125,
   doubleDoorCenterGap: 0.125,
@@ -54,6 +57,8 @@ export const CONSTRUCTION_RULES = Object.freeze({
   openShelfFrontSetback: 0.125,
   minSectionClearWidth: 15,
   minShelfClearance: 4,
+  minOpenCompartmentHeight: 12,
+  minDrawerFrontHeight: 5,
   maxUnsupportedShelfSpan: 36,
   lowerCabinetClearHeight: 30,
   minUpperClearHeight: 24,
@@ -86,6 +91,7 @@ export const CONSTRUCTION_RULES = Object.freeze({
   shakerFrameWidth: 2.25,
   slimShakerFrameWidth: 1.25,
   glassFrameWidth: 2.25,
+  glassThickness: 0.25,
   frontPanelRecess: 0.125,
   minProfileCenterField: 1.5,
   minDrawerProfileFrameWidth: 0.75,
@@ -113,6 +119,103 @@ export const CONSTRUCTION_RULES = Object.freeze({
   maxSections: 6,
   minShelves: 2,
   maxShelves: 8
+});
+
+export const CROWN_PROFILE_GEOMETRY_SCHEMA_VERSION = 1;
+
+const crownProfileOutline = (points) => Object.freeze(points.map(([height, projection]) => Object.freeze({
+  height,
+  projection
+})));
+
+const crownProfilePart = ({ id, contour, outline }) => Object.freeze({
+  id,
+  contour,
+  outlineUnits: "normalized",
+  outline: crownProfileOutline(outline)
+});
+
+/**
+ * Renderer-independent crown cross-sections.
+ *
+ * Every outline is a closed solid polygon expressed as normalized
+ * `{ height, projection }` coordinates. Height 0/1 maps to the descriptor's
+ * min/max Y. Projection 0 is the mounting plane and projection 1 is the
+ * furthest decorative edge. Front pieces extrude on X; their side returns
+ * reuse the same section while extruding on Z.
+ */
+export const CROWN_PROFILE_CATALOG = Object.freeze({
+  slim_cap: Object.freeze({
+    style: "slim_cap",
+    parts: Object.freeze({
+      slim_cap: crownProfilePart({
+        id: "slim_beveled_cap",
+        contour: "beveled_cap",
+        outline: [
+          [0, 0],
+          [1, 0],
+          [1, 1],
+          [0.82, 0.9],
+          [0.4, 0.55],
+          [0, 0.3]
+        ]
+      })
+    })
+  }),
+  classic_crown: Object.freeze({
+    style: "classic_crown",
+    parts: Object.freeze({
+      classic_rail: crownProfilePart({
+        id: "classic_lower_bead",
+        contour: "lower_bead",
+        outline: [
+          [0, 0],
+          [1, 0],
+          [1, 0.55],
+          [0.78, 0.62],
+          [0.58, 0.82],
+          [0.36, 1],
+          [0.12, 1],
+          [0, 0.88]
+        ]
+      }),
+      classic_cap: crownProfilePart({
+        id: "classic_compound_ogee",
+        contour: "compound_ogee",
+        outline: [
+          [0, 0],
+          [1, 0],
+          [1, 1],
+          [0.92, 1],
+          [0.78, 0.92],
+          [0.62, 0.75],
+          [0.48, 0.58],
+          [0.33, 0.4],
+          [0.18, 0.26],
+          [0, 0.22]
+        ]
+      })
+    })
+  }),
+  modern_soffit: Object.freeze({
+    style: "modern_soffit",
+    parts: Object.freeze({
+      modern_soffit: crownProfilePart({
+        id: "modern_reveal_band",
+        contour: "stepped_reveal",
+        outline: [
+          [0, 0],
+          [1, 0],
+          [1, 0.7],
+          [0.88, 0.7],
+          [0.88, 1],
+          [0.12, 1],
+          [0.12, 0.55],
+          [0, 0.55]
+        ]
+      })
+    })
+  })
 });
 
 export const CONSTRUCTION_PROFILE_IDS = CONFIG_CONSTRUCTION_PROFILE_IDS;
@@ -244,6 +347,7 @@ export function getConstructionReferencePlanes(config, rules = CONSTRUCTION_RULE
     finishedFrontPlaneZ: profile === CONSTRUCTION_PROFILE_IDS.legacyOverlay
       ? round(-rules.doorThickness)
       : 0,
+    fixedSeparatorFrontPlaneZ: 0,
     shelfFrontPlaneZ: profile === CONSTRUCTION_PROFILE_IDS.legacyOverlay
       ? rules.openShelfFrontSetback
       : Math.max(rules.shelfFrontSetback, rules.doorThickness),
@@ -443,6 +547,9 @@ export function resolveFrontProfileGeometry(face, definition = getFrontProfileDe
       region("top_rail", "solid", box.min.x, box.max.x, centerMaxY, box.max.y)
     ];
   const fieldKind = definition.kind === "glass_frame" ? "glass" : "recessed_panel";
+  const fieldDepth = definition.kind === "glass_frame"
+    ? Math.min(CONSTRUCTION_RULES.glassThickness, Math.max(0.125, size.z - definition.panelRecess))
+    : Math.max(0.125, size.z - definition.panelRecess);
   return Object.freeze({
     style: definition.id,
     kind: definition.kind,
@@ -452,7 +559,7 @@ export function resolveFrontProfileGeometry(face, definition = getFrontProfileDe
     // is stepped inward by the resolved visible recess.
     frameDepth: round(size.z),
     panelRecess: definition.panelRecess,
-    panelDepth: round(Math.max(0.125, size.z - definition.panelRecess)),
+    panelDepth: round(fieldDepth),
     minimumCenterField: definition.minimumCenterField,
     centerFieldBounds: definition.kind === "slab" ? null : {
       min: { x: centerMinX, y: centerMinY },
@@ -996,6 +1103,7 @@ export function generateBookcaseLayout(input = {}, options = {}) {
     const { minX, maxX } = sectionRanges[index];
     const id = "section-" + pad(index + 1);
     const type = resolveSectionType(config, index, special);
+    const sectionConfig = getSectionConfig(config, index, type);
     const leftBoundaryId = index === 0
       ? frame.leftSide.id
       : dividerByBoundary.get(index)?.id || null;
@@ -1011,6 +1119,13 @@ export function generateBookcaseLayout(input = {}, options = {}) {
       metadata: {
         index,
         type,
+        configId: sectionConfig.id,
+        shelfCount: sectionConfig.shelfCount,
+        shelfDistribution: sectionConfig.shelfDistribution,
+        doorStyle: sectionConfig.doorStyle,
+        drawerCount: sectionConfig.drawerCount,
+        drawerFrontStyle: sectionConfig.drawerFrontStyle,
+        lowerStorageHeight: sectionConfig.lowerStorageHeight,
         leftBoundaryId,
         rightBoundaryId,
         topBoundaryId: frame.top.id,
@@ -1092,7 +1207,8 @@ export function generateBookcaseLayout(input = {}, options = {}) {
       clearTop,
       lowerOpeningTop,
       shelves,
-      referencePlanes
+      referencePlanes,
+      corrections
     });
   }
 
@@ -1172,14 +1288,34 @@ function buildSectionContents(context) {
     clearTop,
     lowerOpeningTop,
     shelves,
-    referencePlanes
+    referencePlanes,
+    corrections
   } = context;
   const index = section.metadata.index;
+  const sectionConfig = getSectionConfig(config, index, section.metadata.type);
   const isSpecial = special.indices.includes(index);
   const sectionType = section.metadata.type;
   const isTall = sectionType === "tall_doors";
   const isDesk = sectionType === "desk";
   const frontOpeningTop = getFrontOpeningTop(config, clearTop);
+  const requestedLowerOpeningTop = section.bounds.min.y + sectionConfig.lowerStorageHeight;
+  const maximumLowerOpeningTop = clearTop - rules.minUpperClearHeight - rules.fixedSeparatorThickness;
+  const sectionLowerOpeningTop = round(Math.min(requestedLowerOpeningTop, maximumLowerOpeningTop));
+  const appliedLowerStorageHeight = round(sectionLowerOpeningTop - section.bounds.min.y);
+  if (
+    (sectionType === "lower_doors" || sectionType === "drawers")
+    && Math.abs(appliedLowerStorageHeight - sectionConfig.lowerStorageHeight) > EPSILON
+  ) {
+    corrections.push(createCorrection(
+      "SECTION_STORAGE_HEIGHT_REDUCED",
+      `layoutMetadata.sectionConfigs.${index}.lowerStorageHeight`,
+      sectionConfig.lowerStorageHeight,
+      appliedLowerStorageHeight,
+      `Section ${index + 1} lower storage height was reduced to preserve the upper open compartment.`
+    ));
+    sectionConfig.lowerStorageHeight = appliedLowerStorageHeight;
+    section.metadata.lowerStorageHeight = appliedLowerStorageHeight;
+  }
   const usesLowerStorage = (sectionType === "lower_doors" || sectionType === "drawers") &&
     !isTall && !isDesk && !(isSpecial && special.kind === "feature");
   let shelfRegionBottom = section.bounds.min.y;
@@ -1207,11 +1343,15 @@ function buildSectionContents(context) {
       sectionIndex: index,
       sectionCount: config.sections,
       tier: "primary",
-      style: config.doorStyle,
+      style: sectionConfig.doorStyle,
       placementContext: "tall",
       referencePlanes
     });
-    return;
+    // Pre-profile saved designs represented tall storage as one closed void
+    // with no generated interior shelves. Preserve that verified legacy
+    // artifact chain while current inset sections expose usable internal
+    // shelving behind full-height doors.
+    if (config.constructionProfile === CONSTRUCTION_PROFILE_IDS.legacyOverlay) return;
   }
 
   if (usesLowerStorage) {
@@ -1224,7 +1364,7 @@ function buildSectionContents(context) {
         section.bounds.min.x,
         section.bounds.max.x,
         section.bounds.min.y,
-        lowerOpeningTop,
+        sectionLowerOpeningTop,
         0,
         clearDepth
       ),
@@ -1239,19 +1379,24 @@ function buildSectionContents(context) {
       parentId: section.id,
       hostId: section.id,
       bounds: bounds(
-        section.bounds.min.x + rules.shelfSideClearance,
-        section.bounds.max.x - rules.shelfSideClearance,
-        lowerOpeningTop,
-        lowerOpeningTop + config.shelfThickness,
-        referencePlanes.shelfFrontPlaneZ,
+        section.bounds.min.x,
+        section.bounds.max.x,
+        sectionLowerOpeningTop,
+        sectionLowerOpeningTop + rules.fixedSeparatorThickness,
+        referencePlanes.fixedSeparatorFrontPlaneZ,
         clearDepth
       ),
-      metadata: { fixed: true, purpose: "lower_separator" }
+      metadata: {
+        fixed: true,
+        purpose: "lower_separator",
+        frontPlaneZ: referencePlanes.fixedSeparatorFrontPlaneZ,
+        constructionThickness: rules.fixedSeparatorThickness
+      }
     });
     shelfRegionBottom = separator.bounds.max.y;
 
     if (sectionType === "drawers") {
-      addDrawerStack(add, config, opening, referencePlanes);
+      addDrawerStack(add, config, opening, referencePlanes, sectionConfig, corrections, index);
     } else {
       addDoorAssembly(add, config, opening, {
         baseId: opening.id,
@@ -1260,7 +1405,7 @@ function buildSectionContents(context) {
         sectionIndex: index,
         sectionCount: config.sections,
         tier: "primary",
-        style: config.doorStyle,
+        style: sectionConfig.doorStyle,
         placementContext: "lower",
         referencePlanes
       });
@@ -1271,14 +1416,24 @@ function buildSectionContents(context) {
 
   const shelfBounds = distributeShelves({
     section,
-    count: config.shelves,
+    count: resolveSectionShelfCount({
+      config,
+      sectionConfig,
+      sectionIndex: index,
+      minY: shelfRegionBottom,
+      maxY: clearTop,
+      thickness: config.shelfThickness,
+      rules,
+      corrections,
+      section
+    }),
     thickness: config.shelfThickness,
     minY: shelfRegionBottom,
     maxY: clearTop,
     clearDepth,
     rules,
     asymmetric: config.layoutType === "asymmetric",
-    frontSetback: config.layoutType === "glass_library"
+    frontSetback: config.layoutType === "glass_library" || isTall || sectionConfig.doorStyle === "glass"
       ? referencePlanes.shelfFrontPlaneZ
       : rules.openShelfFrontSetback
   });
@@ -1305,7 +1460,7 @@ function buildSectionContents(context) {
     shelves.push(shelf);
   });
 
-  if (config.layoutType === "glass_library") {
+  if (config.layoutType === "glass_library" && !isTall) {
     const opening = add({
       id: section.id + "-upper-opening",
       role: "opening",
@@ -1346,7 +1501,9 @@ function getFrontOpeningTop(config, clearTop) {
 }
 
 function getSectionDoorArrangement(config, index) {
-  return config.layoutMetadata?.sectionDoorLayouts?.[index]?.arrangement || "auto";
+  return config.layoutMetadata?.sectionConfigs?.[index]?.doorArrangement
+    || config.layoutMetadata?.sectionDoorLayouts?.[index]?.arrangement
+    || "auto";
 }
 
 function addDoorAssembly(add, config, opening, options) {
@@ -1433,10 +1590,25 @@ function addDoorAssembly(add, config, opening, options) {
   });
 }
 
-function addDrawerStack(add, config, opening, referencePlanes) {
+function addDrawerStack(add, config, opening, referencePlanes, sectionConfig, corrections, sectionIndex) {
   const reveal = CONSTRUCTION_RULES.doorReveal;
   const gap = CONSTRUCTION_RULES.drawerGap;
-  const count = config.drawerCount;
+  const maximumCount = Math.max(1, Math.floor(
+    (opening.size.y - reveal * 2 + gap + EPSILON) /
+    (CONSTRUCTION_RULES.minDrawerFrontHeight + gap)
+  ));
+  const requestedCount = sectionConfig.drawerCount;
+  const count = Math.max(1, Math.min(requestedCount, maximumCount));
+  if (count !== requestedCount) {
+    corrections.push(createCorrection(
+      "SECTION_DRAWER_COUNT_REDUCED",
+      `layoutMetadata.sectionConfigs.${sectionIndex}.drawerCount`,
+      requestedCount,
+      count,
+      `Section ${sectionIndex + 1} drawer count was reduced to preserve the minimum drawer-front height.`
+    ));
+    sectionConfig.drawerCount = count;
+  }
   const available = opening.size.y - reveal * 2 - gap * (count - 1);
   const drawerHeight = available / count;
   const legacyOverlay = config.constructionProfile === CONSTRUCTION_PROFILE_IDS.legacyOverlay;
@@ -1468,7 +1640,7 @@ function addDrawerStack(add, config, opening, referencePlanes) {
       hostId: opening.id,
       bounds: frontBounds,
       metadata: {
-        style: config.drawerFrontStyle,
+        style: sectionConfig.drawerFrontStyle,
         ordinal: index + 1,
         mounting,
         frontPlaneZ,
@@ -1488,7 +1660,7 @@ function addDrawerStack(add, config, opening, referencePlanes) {
     });
     drawer.metadata.profileGeometry = resolveFrontProfileGeometry(
       drawer,
-      getFrontProfileDefinition(config.drawerFrontStyle)
+      getFrontProfileDefinition(sectionConfig.drawerFrontStyle)
     );
     addHandle(add, config, drawer, "drawer", referencePlanes);
   }
@@ -1830,7 +2002,10 @@ function addLighting(context) {
   if (modes.includes("vertical_led")) {
     for (const section of eligibleSections) {
       const hasLowerStorage = section.metadata.type === "lower_doors" || section.metadata.type === "drawers";
-      const yMin = hasLowerStorage ? lowerOpeningTop + config.shelfThickness + 2 : section.bounds.min.y + 2;
+      const yMin = hasLowerStorage
+        ? section.bounds.min.y + Number(section.metadata.lowerStorageHeight || rules.lowerCabinetClearHeight)
+          + rules.fixedSeparatorThickness + 2
+        : section.bounds.min.y + 2;
       const yMax = section.bounds.max.y - 2;
       const sides = [
         {
@@ -1898,6 +2073,59 @@ function addLighting(context) {
       });
     }
   }
+}
+
+function getSectionConfig(config, index, fallbackType = "open") {
+  const stored = config.layoutMetadata?.sectionConfigs?.[index];
+  if (stored && typeof stored === "object") return stored;
+  return {
+    id: `section-config-${String(index + 1).padStart(2, "0")}`,
+    type: fallbackType,
+    shelfCount: config.shelves,
+    shelfDistribution: "even",
+    doorStyle: config.doorStyle,
+    doorArrangement: config.layoutMetadata?.sectionDoorLayouts?.[index]?.arrangement || "auto",
+    drawerCount: config.drawerCount,
+    drawerFrontStyle: config.drawerFrontStyle,
+    lowerStorageHeight: CONSTRUCTION_RULES.lowerCabinetClearHeight
+  };
+}
+
+function resolveSectionShelfCount({
+  sectionConfig,
+  sectionIndex,
+  minY,
+  maxY,
+  thickness,
+  rules,
+  corrections,
+  section
+}) {
+  const availableHeight = Math.max(0, maxY - minY);
+  const maximumCount = Math.max(0, Math.min(
+    SECTION_STORAGE_LIMITS.maxShelfCount,
+    Math.floor(
+      (availableHeight - rules.minShelfClearance + EPSILON) /
+      (thickness + rules.minShelfClearance)
+    )
+  ));
+  const requestedCount = Math.max(
+    SECTION_STORAGE_LIMITS.minShelfCount,
+    Math.min(SECTION_STORAGE_LIMITS.maxShelfCount, Math.round(Number(sectionConfig.shelfCount) || 0))
+  );
+  const count = Math.min(requestedCount, maximumCount);
+  if (count !== requestedCount) {
+    corrections.push(createCorrection(
+      "SECTION_SHELF_COUNT_REDUCED",
+      `layoutMetadata.sectionConfigs.${sectionIndex}.shelfCount`,
+      requestedCount,
+      count,
+      `Section ${sectionIndex + 1} shelf count was reduced to preserve at least ${rules.minShelfClearance} inches of clear spacing.`
+    ));
+    sectionConfig.shelfCount = count;
+  }
+  section.metadata.shelfCount = count;
+  return count;
 }
 
 function distributeShelves(options) {
@@ -2114,6 +2342,37 @@ export function validateBookcaseLayout(layout) {
         parent.id,
         "Component is outside its parent bounds."
       ));
+    }
+
+    if (component.role === "fixed_shelf" && component.metadata?.purpose === "lower_separator" && parent) {
+      const expectedFrontPlane = Number(referencePlanes.fixedSeparatorFrontPlaneZ ?? referencePlanes.carcassFrontPlaneZ);
+      if (!nearlyEqual(component.bounds.min.z, expectedFrontPlane)) {
+        issues.push(issue(
+          "LOWER_SEPARATOR_PLANE_MISMATCH",
+          "error",
+          component.id,
+          parent.id,
+          "The fixed panel above lower storage must align with the cabinet structural front plane."
+        ));
+      }
+      if (!nearlyEqual(component.bounds.min.x, parent.bounds.min.x) || !nearlyEqual(component.bounds.max.x, parent.bounds.max.x)) {
+        issues.push(issue(
+          "LOWER_SEPARATOR_SIDE_GAP",
+          "error",
+          component.id,
+          parent.id,
+          "The fixed panel above lower storage must meet both section boundaries."
+        ));
+      }
+      if (!nearlyEqual(component.size.y, CONSTRUCTION_RULES.fixedSeparatorThickness)) {
+        issues.push(issue(
+          "LOWER_SEPARATOR_THICKNESS_MISMATCH",
+          "error",
+          component.id,
+          parent.id,
+          "The fixed panel above lower storage must use the structural separator thickness."
+        ));
+      }
     }
 
     if (FACE_CHILD_ROLES.has(component.role) && host) {
@@ -2716,11 +2975,79 @@ function validateCrownComponent(component, root, layout, issues) {
       "Crown geometry or metadata exceeds the selected style's centralized decorative envelope."
     ));
   }
+  validateCrownProfileGeometry(component, issues);
   if (component.metadata?.hostSurface === "side_panel") {
     const expectedBack = Number(layout?.config?.depth) - CONSTRUCTION_RULES.backPanelThickness;
     if (!nearlyEqual(component.bounds.min.z, 0) || !nearlyEqual(component.bounds.max.z, expectedBack)) {
       issues.push(issue("CROWN_SIDE_RETURN_INVALID", "error", component.id, component.hostId, "Crown side returns must run continuously from the front plane to the back-interior plane."));
     }
+  }
+}
+
+function validateCrownProfileGeometry(component, issues) {
+  const geometry = component.metadata?.profileGeometry;
+  const invalid = () => issues.push(issue(
+    "CROWN_PROFILE_GEOMETRY_INVALID",
+    "error",
+    component.id,
+    component.hostId,
+    "Crown descriptors require a supported normalized cross-section and an extrusion aligned to their physical bounds."
+  ));
+  if (
+    !geometry ||
+    geometry.schemaVersion !== CROWN_PROFILE_GEOMETRY_SCHEMA_VERSION ||
+    geometry.kind !== "crown_profile_extrusion" ||
+    geometry.outlineUnits !== "normalized" ||
+    typeof geometry.profileId !== "string"
+  ) {
+    invalid();
+    return;
+  }
+  const catalogParts = Object.values(CROWN_PROFILE_CATALOG[component.metadata?.style]?.parts || {});
+  if (!catalogParts.some((part) => part.id === geometry.profileId && part.contour === geometry.contour)) {
+    invalid();
+    return;
+  }
+  const isReturn = component.metadata?.hostSurface === "side_panel";
+  const expectedExtrusionAxis = isReturn ? "z" : "x";
+  const expectedProjectionAxis = isReturn ? "x" : "z";
+  const expectedDirection = component.metadata?.side === "right" ? 1 : -1;
+  const expectedMountingPlane = isReturn
+    ? component.bounds[expectedDirection > 0 ? "min" : "max"].x
+    : component.bounds.max.z;
+  const crossSection = geometry.crossSection;
+  const extrusion = geometry.extrusion;
+  if (
+    crossSection?.heightAxis !== "y" ||
+    crossSection?.projectionAxis !== expectedProjectionAxis ||
+    crossSection?.projectionDirection !== expectedDirection ||
+    !nearlyEqual(Number(crossSection?.mountingPlane), expectedMountingPlane) ||
+    extrusion?.axis !== expectedExtrusionAxis ||
+    !nearlyEqual(Number(extrusion?.min), component.bounds.min[expectedExtrusionAxis]) ||
+    !nearlyEqual(Number(extrusion?.max), component.bounds.max[expectedExtrusionAxis])
+  ) {
+    invalid();
+    return;
+  }
+  const outline = geometry.outline;
+  if (!Array.isArray(outline) || outline.length < 4 || outline.some((point) => (
+    !Number.isFinite(point?.height) ||
+    !Number.isFinite(point?.projection) ||
+    point.height < 0 || point.height > 1 ||
+    point.projection < 0 || point.projection > 1
+  ))) {
+    invalid();
+    return;
+  }
+  const heights = outline.map((point) => point.height);
+  const projections = outline.map((point) => point.projection);
+  if (
+    !nearlyEqual(Math.min(...heights), 0) ||
+    !nearlyEqual(Math.max(...heights), 1) ||
+    !nearlyEqual(Math.min(...projections), 0) ||
+    !nearlyEqual(Math.max(...projections), 1)
+  ) {
+    invalid();
   }
 }
 
@@ -3084,7 +3411,8 @@ function addCrownDescriptors(add, config, root, topPanel, leftSidePanel, rightSi
       maxY: config.height,
       minZ: -0.375,
       maxZ: 0,
-      purpose: "slim_cap"
+      purpose: "slim_cap",
+      profilePart: "slim_cap"
     });
   } else if (config.crownStyle === "modern_soffit") {
     definitions.push({
@@ -3095,7 +3423,8 @@ function addCrownDescriptors(add, config, root, topPanel, leftSidePanel, rightSi
       maxY: config.height,
       minZ: -0.5,
       maxZ: 0,
-      purpose: "modern_soffit"
+      purpose: "modern_soffit",
+      profilePart: "modern_soffit"
     });
   } else {
     definitions.push(
@@ -3103,24 +3432,28 @@ function addCrownDescriptors(add, config, root, topPanel, leftSidePanel, rightSi
         id: "crown-classic-rail",
         minX: -config.width / 2 - 0.125,
         maxX: config.width / 2 + 0.125,
-        minY: config.height - 0.75,
-        maxY: config.height,
+        minY: config.height - CONSTRUCTION_RULES.classicCrownProfileDrop,
+        maxY: config.height - CONSTRUCTION_RULES.classicCrownProfileDrop + 0.75,
         minZ: -0.25,
         maxZ: 0,
-        purpose: "classic_rail"
+        purpose: "classic_rail",
+        profilePart: "classic_rail",
+        hostId: root.id,
+        hostSurface: "carcass_front"
       },
       {
         id: "crown-classic-cap",
         minX: -config.width / 2 - 0.5,
         maxX: config.width / 2 + 0.5,
-        minY: config.height - CONSTRUCTION_RULES.classicCrownProfileDrop,
-        maxY: config.height - 0.75,
+        minY: config.height - CONSTRUCTION_RULES.classicCrownProfileDrop + 0.75,
+        maxY: config.height,
         minZ: -0.625,
         maxZ: 0,
         purpose: "classic_cap",
         hostId: "crown-classic-rail",
         hostSurface: "crown_profile",
-        attachment: { axis: "y", hostFace: "min", componentFace: "max" }
+        attachment: { axis: "y", hostFace: "max", componentFace: "min" },
+        profilePart: "classic_cap"
       }
     );
   }
@@ -3139,6 +3472,36 @@ function addCrownDescriptors(add, config, root, topPanel, leftSidePanel, rightSi
     hostSurface
   });
 
+  const profileGeometry = (definition, side = null) => {
+    const catalogPart = CROWN_PROFILE_CATALOG[config.crownStyle]?.parts?.[definition.profilePart];
+    if (!catalogPart) return null;
+    const isReturn = side === "left" || side === "right";
+    const projectionAxis = isReturn ? "x" : "z";
+    const projectionDirection = side === "right" ? 1 : -1;
+    const mountingPlane = side === "left"
+      ? -config.width / 2
+      : side === "right"
+        ? config.width / 2
+        : definition.maxZ;
+    return {
+      schemaVersion: CROWN_PROFILE_GEOMETRY_SCHEMA_VERSION,
+      kind: "crown_profile_extrusion",
+      profileId: catalogPart.id,
+      contour: catalogPart.contour,
+      outlineUnits: catalogPart.outlineUnits,
+      outline: catalogPart.outline,
+      crossSection: {
+        heightAxis: "y",
+        projectionAxis,
+        mountingPlane,
+        projectionDirection
+      },
+      extrusion: isReturn
+        ? { axis: "z", min: 0, max: config.depth - CONSTRUCTION_RULES.backPanelThickness }
+        : { axis: "x", min: definition.minX, max: definition.maxX }
+    };
+  };
+
   definitions.forEach((definition) => {
     add({
       id: definition.id,
@@ -3155,7 +3518,8 @@ function addCrownDescriptors(add, config, root, topPanel, leftSidePanel, rightSi
       ),
       metadata: {
         ...metadata(definition.purpose, definition.hostSurface || "top_panel"),
-        attachment: definition.attachment || { axis: "z", hostFace: "min", componentFace: "max" }
+        attachment: definition.attachment || { axis: "z", hostFace: "min", componentFace: "max" },
+        profileGeometry: profileGeometry(definition)
       }
     });
 
@@ -3180,7 +3544,8 @@ function addCrownDescriptors(add, config, root, topPanel, leftSidePanel, rightSi
           ...metadata(`${definition.purpose}_${side}_return`, "side_panel", side),
           attachment: side === "left"
             ? { axis: "x", hostFace: "min", componentFace: "max" }
-            : { axis: "x", hostFace: "max", componentFace: "min" }
+            : { axis: "x", hostFace: "max", componentFace: "min" },
+          profileGeometry: profileGeometry(definition, side)
         }
       });
     }
@@ -3323,6 +3688,31 @@ function reconcileLayoutMetadata(value, sections, width, corrections, source = {
     }
     return { arrangement };
   });
+  const canonicalMetadata = normalizeBookcaseConfig({
+    ...source,
+    width,
+    sections,
+    layoutMetadata: metadata
+  }).layoutMetadata;
+  const requestedSectionConfigs = Array.isArray(value?.sectionConfigs) ? value.sectionConfigs : [];
+  canonicalMetadata.sectionConfigs.forEach((sectionConfig, index) => {
+    const requested = requestedSectionConfigs[index];
+    if (!requested || typeof requested !== "object") return;
+    for (const field of ["shelfCount", "drawerCount", "lowerStorageHeight", "doorStyle", "drawerFrontStyle"]) {
+      if (requested[field] !== undefined && requested[field] !== sectionConfig[field]) {
+        corrections.push(createCorrection(
+          "SECTION_STORAGE_SETTING_NORMALIZED",
+          `layoutMetadata.sectionConfigs.${index}.${field}`,
+          requested[field],
+          sectionConfig[field],
+          `Section ${index + 1} ${field} was adjusted to a supported cabinet value.`
+        ));
+      }
+    }
+  });
+  metadata.sectionConfigs = canonicalMetadata.sectionConfigs;
+  metadata.sectionTypes = canonicalMetadata.sectionTypes;
+  metadata.sectionDoorLayouts = canonicalMetadata.sectionDoorLayouts;
   return metadata;
 }
 

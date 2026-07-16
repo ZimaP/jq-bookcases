@@ -136,7 +136,7 @@ test("feature metadata preselects room and applicable project options", () => {
   assert.equal(library.fields.room, "Library");
 });
 
-test("quote prefill omits stale lighting when the generated design has no compatible locations", () => {
+test("quote prefill includes generated lighting and shelves inside tall storage", () => {
   const config = {
     ...preset("tall-storage").config,
     width: 96,
@@ -148,13 +148,13 @@ test("quote prefill omits stale lighting when the generated design has no compat
   const selected = createQuotePrefill(config);
   const disabled = createQuotePrefill({ ...config, lighting: "no_lighting" });
 
-  assert.equal(selected.billableQuantities.compatibleLightingComponents, 0);
+  assert.equal(selected.billableQuantities.compatibleLightingComponents, 8);
   assert.equal(selected.billableQuantities.generatedTallDoors, 4);
   assert.equal(selected.billableQuantities.doorHardwareUnits, 4);
-  assert.equal(selected.options.includes("lighting"), false);
+  assert.equal(selected.options.includes("lighting"), true);
   assert.equal(selected.options.includes("hardware"), true);
-  assert.equal(selected.options.includes("shelves"), false);
-  assert.equal(selected.price, disabled.price);
+  assert.equal(selected.options.includes("shelves"), true);
+  assert.notEqual(selected.price, disabled.price);
 });
 
 test("quote lower-cabinet answer follows generated openings rather than a stale legacy flag", () => {
@@ -249,6 +249,34 @@ test("quote prefill reports every generated style in a mixed door assembly", () 
     ]
   });
   assert.equal(prefill.fields.doorFrontProfile, "Glass Frame (8) + Shaker (8)");
+});
+
+test("quote prefill reports mixed per-section drawer-front styles from generated descriptors", () => {
+  const prefill = createQuotePrefill({
+    ...defaultBookcaseConfig,
+    width: 96,
+    sections: 3,
+    layoutMetadata: {
+      sectionRatios: [1, 1, 1],
+      sectionConfigs: [
+        { type: "drawers", drawerCount: 2, drawerFrontStyle: "flat" },
+        { type: "drawers", drawerCount: 4, drawerFrontStyle: "slim_shaker" },
+        { type: "open", shelfCount: 5 }
+      ]
+    }
+  });
+
+  assert.deepEqual(prefill.billableQuantities.drawersByStyle, { flat: 2, slim_shaker: 4 });
+  assert.deepEqual(prefill.frontProfiles.drawer, {
+    id: "mixed",
+    label: "Flat Panel (2) + Slim Shaker (4)",
+    count: 6,
+    styles: [
+      { id: "flat", label: "Flat Panel", count: 2 },
+      { id: "slim_shaker", label: "Slim Shaker", count: 4 }
+    ]
+  });
+  assert.equal(prefill.fields.drawerFrontProfile, "Flat Panel (2) + Slim Shaker (4)");
 });
 
 test("push-latch quotes contain no visible-hardware selection or form fields", () => {
