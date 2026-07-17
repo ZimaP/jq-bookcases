@@ -92,7 +92,20 @@ test("non-envelope hardware rebuilds preserve the exact camera pose", () => {
   assert.match(preserveHelper, /\.every\(/, "All changes must be checked against the envelope field set.");
 });
 
-test("Preview fits the full model to the safe viewport and restores the prior camera on exit", () => {
+test("model rebuilds advance the active camera intent without replaying persistent UI selection", () => {
+  const update = between(
+    "  update(nextState, options = {}) {",
+    "  renderDoorOptions() {"
+  );
+  const generationBranch = update.slice(update.indexOf("const nextCameraModelGeneration"));
+
+  assert.match(generationBranch, /type: "model-change"/);
+  assert.match(generationBranch, /targetValid: this\.isCameraIntentTargetValid\(\)/);
+  assert.match(generationBranch, /preserveUserPose: shouldPreserveExactCamera\(changedFields\)/);
+  assert.doesNotMatch(generationBranch, /type: "selection-change"/);
+});
+
+test("Preview fits the full model while every stage resolves a fresh camera intent", () => {
   const activation = between(
     "  activateWorkspaceStage(stageId, options = {}) {",
     "  snapshotDesignState() {"
@@ -106,19 +119,21 @@ test("Preview fits the full model to the safe viewport and restores the prior ca
     "  update(nextState, precomputedLayout = null, changedFields = null) {"
   );
 
-  assert.match(activation, /enteringPreview/);
-  assert.match(activation, /this\.previewCameraState = this\.viewer\.getViewState\?\.\(\)/);
-  assert.match(activation, /this\.viewer\.fitFullModel\?\.\(\{ duration: SMART_CAMERA_DURATION \}\)/);
-  assert.match(activation, /this\.viewer\.restoreCameraState\?\.\(restoreCameraState\)/);
+  assert.match(activation, /this\.cancelQueuedCameraIntent\(\)/);
+  assert.match(activation, /this\.endOptionPreview\(null, \{ restore: true \}\)/);
+  assert.match(activation, /this\.viewer\.cancelCameraTransition\?\.\(\)/);
+  assert.match(activation, /this\.dispatchCameraIntent\(\{[\s\S]*type: "stage-change"[\s\S]*stage: stageId/);
+  assert.doesNotMatch(activation, /previewCameraState|getViewState|restoreCameraState/);
   assert.match(fit, /new THREE\.Box3\(\)\.setFromObject\(this\.model\)/);
   assert.match(fit, /calculateBoundsCameraPose\(\{/);
   assert.match(fit, /fitMargin: 1\.12/);
-  assert.match(fit, /this\.activeFocusKey = "preview"/);
+  assert.match(fit, /const profileKey = \["finish", "preview", "lighting"\]\.includes\(options\.profileKey\)/);
+  assert.match(fit, /this\.activeFocusKey = profileKey/);
   assert.match(fit, /this\.clearComponentHighlight\(\)/);
-  assert.match(resize, /this\.activeFocusKey === "preview"[\s\S]*this\.fitFullModel\(\{ duration: 0 \}\)/);
+  assert.match(resize, /this\.onCameraInteraction\("viewport-change", \{ modelGeneration: this\.modelGeneration \}\)/);
 });
 
-test("changing sections targets that section once while preserving the manual camera angle", () => {
+test("changing sections dispatches a fresh section-context intent while preserving the manual angle", () => {
   const selection = between(
     "  selectSection(index, options = {}) {",
     "  commitSelectedSectionStorage(patch, successMessage) {"
@@ -134,12 +149,13 @@ test("changing sections targets that section once while preserving the manual ca
 
   assert.match(selection, /previousSectionIndex/);
   assert.match(selection, /this\.selectedSectionIndex\s*!==\s*previousSectionIndex/);
-  assert.match(selection, /this\.viewer\.focusSection\?\./);
-  assert.match(selection, /this\.viewer\.activeFocusKey\s*!==\s*"section"/);
+  assert.match(selection, /this\.dispatchCameraIntent\(\{[\s\S]*type: "section-change"/);
+  assert.match(selection, /sectionIndex: this\.selectedSectionIndex/);
   assert.match(focus, /focusVariant === this\.activeFocusVariant/);
-  assert.match(focus, /descriptorBoundsToSceneBox\(section\.bounds/);
-  assert.match(focus, /theta:\s*this\.theta/);
-  assert.match(focus, /phi:\s*this\.phi/);
+  assert.match(focus, /new THREE\.Box3\(\)\.setFromObject\(this\.model\)/);
+  assert.doesNotMatch(focus, /descriptorBoundsToSceneBox\(section\.bounds/);
+  assert.match(focus, /const theta = options\.preserveAngles \? this\.theta : SMART_CAMERA_PROFILES\.overview\.theta/);
+  assert.match(focus, /const phi = options\.preserveAngles \? this\.phi : SMART_CAMERA_PROFILES\.overview\.phi/);
   assert.match(focus, /resolveCollisionSafeRadius/);
   assert.match(focus, /calculateViewportAwareTarget/);
   assert.match(framing, /this\.activeFocusKey === "section"/);

@@ -31,7 +31,7 @@ test("renderer acceptance happens before accepted UI state is committed", () => 
     "  update(nextState, options = {}) {",
     "  renderDoorOptions() {"
   );
-  const renderIndex = update.indexOf("this.viewer.update(state, evaluation.layout)");
+  const renderIndex = update.search(/this\.viewer\.update\(state, evaluation\.layout(?:, changedFields)?\)/);
   const commitIndex = update.indexOf("this.acceptedEvaluation = committedEvaluation");
 
   assert.ok(renderIndex >= 0, "The candidate must be rendered before commit.");

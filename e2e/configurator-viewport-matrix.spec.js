@@ -1,43 +1,70 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
-const workspaceViewports = [
-  { width: 2011, height: 1198 },
-  { width: 1440, height: 900 },
-  { width: 1280, height: 720 },
-  { width: 1180, height: 820 },
-  { width: 1024, height: 900 },
-  { width: 768, height: 1024 },
-  { width: 390, height: 844 },
-  { width: 360, height: 800 }
+const requiredViewports = [
+  { name: "desktop-2048x1152", width: 2048, height: 1152 },
+  { name: "desktop-1920x1080", width: 1920, height: 1080 },
+  { name: "desktop-1536x1024", width: 1536, height: 1024 },
+  { name: "desktop-1440x900", width: 1440, height: 900 },
+  { name: "desktop-1366x768", width: 1366, height: 768 },
+  { name: "desktop-1280x800", width: 1280, height: 800 },
+  { name: "landscape-1366x1024", width: 1366, height: 1024 },
+  { name: "landscape-1180x820", width: 1180, height: 820 },
+  { name: "landscape-1024x768", width: 1024, height: 768 },
+  { name: "portrait-1024x1366", width: 1024, height: 1366 },
+  { name: "portrait-820x1180", width: 820, height: 1180 },
+  { name: "portrait-768x1024", width: 768, height: 1024 }
 ];
 
-const expectedStages = ["space", "layout", "storage", "base_top", "finish", "hardware", "lighting", "preview"];
-const desktopAuditViewports = [
-  { width: 2011, height: 1198 },
-  { width: 1440, height: 900 },
-  { width: 1280, height: 720 }
-];
+const stages = ["space", "layout", "storage", "base_top", "finish", "hardware", "lighting", "preview"];
+const overviewProfiles = Object.freeze({
+  space: "overview",
+  layout: "overview",
+  storage: "overview",
+  base_top: "overview",
+  finish: "finish",
+  hardware: "overview",
+  lighting: "lighting",
+  preview: "preview"
+});
+
+test.describe.configure({ mode: "serial", timeout: 180_000 });
 
 function monitorRuntime(page) {
   const issues = [];
   page.on("pageerror", (error) => issues.push(`pageerror: ${error.message}`));
   page.on("console", (message) => {
-    const driverOnlyReadbackWarning = message.type() === "warning"
+    const readbackWarning = message.type() === "warning"
       && /GL Driver Message .*GPU stall due to ReadPixels/.test(message.text());
-    if (driverOnlyReadbackWarning) return;
-    if (["warning", "error"].includes(message.type())) {
-      issues.push(`console ${message.type()}: ${message.text()}`);
+    if (!readbackWarning && message.type() === "error") {
+      issues.push(`console error: ${message.text()}`);
     }
+  });
+  page.on("requestfailed", (request) => {
+    issues.push(`requestfailed: ${request.method()} ${request.url()} (${request.failure()?.errorText || "unknown"})`);
   });
   return issues;
 }
 
-async function settleFrames(page, count = 4) {
+async function settleWorkspace(page, frames = 3) {
   await page.evaluate(async (frameCount) => {
+    await document.fonts?.ready;
     for (let index = 0; index < frameCount; index += 1) {
       await new Promise((resolve) => requestAnimationFrame(resolve));
     }
-  }, count);
+  }, frames);
+}
+
+async function waitForCamera(page) {
+  const workspace = page.locator("[data-configurator-workspace]");
+  await expect.poll(async () => {
+    const state = await workspace.getAttribute("data-camera-state");
+    const transitioning = await page.locator("[data-bookcase-builder]").evaluate((host) => (
+      Boolean(host.__bookcaseConfigurator?.viewer?.getDiagnostics?.().cameraTransitionActive)
+    ));
+    return state !== "transitioning" && transitioning === false;
+  }).toBe(true);
+  await settleWorkspace(page);
 }
 
 async function openWorkspace(page) {
@@ -45,488 +72,616 @@ async function openWorkspace(page) {
   const viewer = page.locator("[data-3d-viewer]");
   await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
   await expect(viewer.locator("canvas")).toHaveCount(1);
+  await expect(page.locator("[data-configurator-workspace]")).toHaveAttribute("data-camera-state", /overview|transitioning/);
+  await waitForCamera(page);
   return viewer;
 }
 
-async function addSection(page) {
-  const add = page.locator("[data-section-organizer] [data-section-add]");
-  await expect(add).toBeEnabled();
-  await add.click();
+function formatViolations(violations) {
+  return violations.map((violation) => ({
+    id: violation.id,
+    impact: violation.impact,
+    nodes: violation.nodes.map((node) => node.target)
+  }));
 }
 
-test("reference workspace keeps one model, eight stages, fixed Properties, and responsive organizer regions", async ({ page }) => {
-  const runtimeIssues = monitorRuntime(page);
-  await page.setViewportSize(workspaceViewports[0]);
-  const viewer = await openWorkspace(page);
+async function setStage(page, stage) {
+  const button = page.locator(`[data-workspace-stage="${stage}"]`);
+  await button.click();
+  await expect(button).toHaveAttribute("aria-current", "location");
+  await expect(page.locator("[data-properties-inspector] .workspace-properties-panel")).toHaveCount(1);
+  await waitForCamera(page);
+}
 
-  const stages = page.locator("[data-workspace-stage]");
-  await expect(stages).toHaveCount(8);
-  expect(await stages.evaluateAll((items) => items.map((item) => item.dataset.workspaceStage))).toEqual(expectedStages);
-  expect(await stages.locator(".workspace-stage-state").allTextContents()).toEqual(["1", "2", "3", "4", "5", "6", "7", "8"]);
-  await expect(page.locator("[data-properties-inspector]")).toHaveCount(1);
-  await expect(page.locator("[data-section-organizer]")).toHaveCount(1);
-  await expect(page.locator("[data-total-width-card]")).toHaveCount(1);
-  await expect(page.locator("[data-3d-viewer]")).toHaveCount(1);
-  await expect(page.locator("[data-contextual-editor], [data-unified-inspector], [data-viewer-zoom], [data-view]")).toHaveCount(0);
-
-  for (const viewport of workspaceViewports) {
-    const label = `${viewport.width}x${viewport.height}`;
-    await page.setViewportSize(viewport);
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await settleFrames(page);
-
-    await expect(viewer, `${label} viewer`).toHaveAttribute("data-render-valid", "true");
-    await expect(viewer.locator("canvas"), `${label} persistent canvas`).toHaveCount(1);
-    await expect(page.locator("[data-properties-inspector]"), `${label} Properties`).toBeVisible();
-    await expect(page.locator("[data-section-organizer]"), `${label} organizer`).toBeVisible();
-    await expect(page.locator("[data-total-width-card]"), `${label} width card`).toBeVisible();
-    await expect(page.locator("[data-estimate-bar]"), `${label} estimate footer`).toBeVisible();
-
-    const audit = await page.evaluate(() => {
-      const rect = (selector) => {
-        const element = document.querySelector(selector);
-        if (!element) return null;
-        const bounds = element.getBoundingClientRect();
-        return { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom, width: bounds.width, height: bounds.height };
-      };
-      const host = document.querySelector("[data-bookcase-builder]");
-      const diagnostics = host?.__bookcaseConfigurator?.getDiagnostics();
-      const viewerRoot = document.querySelector("[data-3d-viewer]");
-      return {
-        pageOverflow: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
-        workspace: rect("[data-configurator-workspace]"),
-        rail: rect("[data-workspace-stages]"),
-        model: rect("[data-model-workspace]"),
-        inspector: rect("[data-properties-inspector]"),
-        organizer: rect("[data-section-organizer]"),
-        widthCard: rect("[data-total-width-card]"),
-        footer: rect("[data-estimate-bar]"),
-        stageDirection: getComputedStyle(document.querySelector(".workspace-stage-list")).display,
-        renderValid: viewerRoot?.dataset.renderValid || "",
-        canvasCount: viewerRoot?.querySelectorAll("canvas").length || 0,
-        renderedComponents: Number(viewerRoot?.dataset.renderComponents || 0),
-        expectedComponents: Number(viewerRoot?.dataset.renderExpected || 0),
-        acceptedDesign: Boolean(diagnostics?.acceptedDesign),
-        interface: diagnostics?.interface || ""
-      };
-    });
-
-    expect(audit.pageOverflow, `${label} page horizontal overflow`).toBeLessThanOrEqual(1);
-    expect(audit.acceptedDesign, `${label} accepted design`).toBe(true);
-    expect(audit.interface, `${label} interface`).toBe("unified");
-    expect(audit.renderValid, `${label} render validity`).toBe("true");
-    expect(audit.canvasCount, `${label} canvas count`).toBe(1);
-    expect(audit.renderedComponents, `${label} rendered components`).toBeGreaterThan(0);
-    expect(audit.renderedComponents, `${label} complete component render`).toBe(audit.expectedComponents);
-    for (const [region, bounds] of Object.entries({
-      rail: audit.rail,
-      model: audit.model,
-      inspector: audit.inspector,
-      organizer: audit.organizer,
-      widthCard: audit.widthCard,
-      footer: audit.footer
-    })) {
-      expect(bounds, `${label} ${region} exists`).not.toBeNull();
-      expect(bounds.width, `${label} ${region} width`).toBeGreaterThan(0);
-      expect(bounds.height, `${label} ${region} height`).toBeGreaterThan(0);
-    }
-
-    if (viewport.width > 1200) {
-      expect(audit.rail.right, `${label} left rail before model`).toBeLessThanOrEqual(audit.model.left + 1);
-      expect(audit.model.right, `${label} model before fixed Properties`).toBeLessThanOrEqual(audit.inspector.left + 1);
-      expect(audit.organizer.top, `${label} organizer below model`).toBeGreaterThanOrEqual(audit.model.bottom - 1);
-      expect(audit.widthCard.left, `${label} width card aligned under Properties`).toBeGreaterThanOrEqual(audit.inspector.left - 1);
-      expect(audit.stageDirection, `${label} vertical stage list`).toBe("grid");
-    } else {
-      expect(audit.rail.bottom, `${label} stage navigator before model`).toBeLessThanOrEqual(audit.model.top + 12);
-      expect(audit.organizer.top, `${label} organizer below model`).toBeGreaterThanOrEqual(audit.model.bottom - 1);
-      expect(audit.inspector.top, `${label} Properties sheet below organizer`).toBeGreaterThanOrEqual(audit.organizer.bottom - 1);
-      expect(audit.stageDirection, `${label} horizontal stage list`).toBe("flex");
-    }
-    expect(runtimeIssues, `${label} runtime warnings/errors`).toEqual([]);
+async function setSectionCount(page, count) {
+  const cards = page.locator("[data-section-organizer] [data-section-card]");
+  let current = await cards.count();
+  while (current > count) {
+    const targetIndex = current - 1;
+    const select = page.locator(`[data-section-organizer] [data-section-select="${targetIndex}"]`);
+    if (await select.getAttribute("aria-pressed") !== "true") await select.click();
+    const remove = page.locator(`[data-section-organizer] [data-section-delete="${targetIndex}"]:not([disabled])`);
+    await expect(remove).toBeVisible();
+    await remove.click();
+    current -= 1;
+    await expect(cards).toHaveCount(current);
   }
-});
+  while (current < count) {
+    const add = page.locator("[data-section-organizer] [data-section-add]");
+    await expect(add).toBeEnabled();
+    await add.click();
+    current += 1;
+    await expect(cards).toHaveCount(current);
+  }
+  await settleWorkspace(page);
+}
 
-test("desktop Properties uses one scroll surface and keeps every task readable", async ({ page }) => {
-  const runtimeIssues = monitorRuntime(page);
-  await page.setViewportSize({ width: 2011, height: 1198 });
-  await openWorkspace(page);
-
-  const auditCurrentTask = async (label) => {
-    const audit = await page.locator("[data-properties-inspector]").evaluate(async (inspector) => {
-      const content = inspector.querySelector("[data-inspector-content]");
-      const panel = inspector.querySelector(".workspace-properties-panel");
-      const panelBounds = panel?.getBoundingClientRect();
-      const isRendered = (element) => {
-        const style = getComputedStyle(element);
-        const bounds = element.getBoundingClientRect();
-        return !element.hidden
-          && style.display !== "none"
-          && style.visibility !== "hidden"
-          && Number(style.opacity || 1) > 0
-          && bounds.width > 1
-          && bounds.height > 1;
-      };
-      const visibleControlProxies = panel
-        ? Array.from(panel.querySelectorAll("button, select, summary, a, input:not([type='radio']):not([type='checkbox']), label"))
-          .filter(isRendered)
-        : [];
-      const readableCards = panel
-        ? Array.from(panel.querySelectorAll([
-          ".style-choice > label",
-          ".finish-choice > label",
-          ".lighting-card > label",
-          ".workspace-storage-preset > span",
-          ".workspace-stage-empty"
-        ].join(","))).filter(isRendered)
-        : [];
-      const prominentLabels = panel
-        ? Array.from(panel.querySelectorAll([
-          ".style-choice > label > span:last-child",
-          ".finish-choice-name",
-          ".finish-choice label > span:last-child",
-          ".lighting-card label > span:last-child",
-          ".workspace-storage-preset > span > strong",
-          ".workspace-stage-empty h3"
-        ].join(","))).filter(isRendered)
-        : [];
-      const readableIcons = panel
-        ? Array.from(panel.querySelectorAll([
-          ".style-diagram",
-          ".finish-choice-dot",
-          ".finish-choice-swatch",
-          ".lighting-card-icon",
-          ".workspace-storage-section-icon",
-          ".workspace-stage-empty-icon"
-        ].join(","))).filter(isRendered)
-        : [];
-      const nestedVerticalScrollers = panel
-        ? Array.from(panel.querySelectorAll("*"))
-          .filter((element) => {
-            const overflowY = getComputedStyle(element).overflowY;
-            return ["auto", "scroll"].includes(overflowY)
-              && element.scrollHeight > element.clientHeight + 1;
-          })
-          .map((element) => element.className || element.tagName)
-        : [];
-
-      if (panel) {
-        panel.scrollTop = panel.scrollHeight;
-        await new Promise((resolve) => requestAnimationFrame(resolve));
+async function readFullModelFraming(page) {
+  return page.locator("[data-bookcase-builder]").evaluate((host) => {
+    const viewer = host.__bookcaseConfigurator.viewer;
+    viewer.model.updateMatrixWorld(true);
+    viewer.camera.updateMatrixWorld(true);
+    const root = viewer.root.getBoundingClientRect();
+    const projected = [];
+    viewer.model.traverse((object) => {
+      if (!object.isMesh || !object.geometry || object.userData?.nonPhysicalHelper) return;
+      if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
+      const box = object.geometry.boundingBox;
+      for (const x of [box.min.x, box.max.x]) {
+        for (const y of [box.min.y, box.max.y]) {
+          for (const z of [box.min.z, box.max.z]) {
+            const point = viewer.camera.position.clone().set(x, y, z).applyMatrix4(object.matrixWorld).project(viewer.camera);
+            projected.push({
+              x: (point.x + 1) * root.width / 2,
+              y: (1 - point.y) * root.height / 2,
+              depth: point.z
+            });
+          }
+        }
       }
-      const lastControlBounds = visibleControlProxies.at(-1)?.getBoundingClientRect() || null;
-      const cardHeights = readableCards.map((card) => card.getBoundingClientRect().height);
-      const labelFonts = prominentLabels.map((element) => Number.parseFloat(getComputedStyle(element).fontSize));
-      const iconSizes = readableIcons.map((icon) => {
-        const bounds = icon.getBoundingClientRect();
-        return Math.min(bounds.width, bounds.height);
-      });
-      return {
-        pageHorizontalOverflow: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
-        pageVerticalOverflow: Math.max(0, document.documentElement.scrollHeight - window.innerHeight),
-        inspectorClientHeight: inspector.clientHeight,
-        inspectorScrollHeight: inspector.scrollHeight,
-        contentClientHeight: content?.clientHeight || 0,
-        contentScrollHeight: content?.scrollHeight || 0,
-        panelClientHeight: panel?.clientHeight || 0,
-        panelScrollHeight: panel?.scrollHeight || 0,
-        panelScrollTop: panel?.scrollTop || 0,
-        panelMaxScroll: panel ? Math.max(0, panel.scrollHeight - panel.clientHeight) : 0,
-        panelTop: panelBounds?.top || 0,
-        panelBottom: panelBounds?.bottom || 0,
-        lastControlTop: lastControlBounds?.top || 0,
-        lastControlBottom: lastControlBounds?.bottom || 0,
-        inspectorOverflowY: getComputedStyle(inspector).overflowY,
-        contentOverflowY: content ? getComputedStyle(content).overflowY : "",
-        panelOverflowY: panel ? getComputedStyle(panel).overflowY : "",
-        horizontalOverflow: Math.max(
-          inspector.scrollWidth - inspector.clientWidth,
-          (content?.scrollWidth || 0) - (content?.clientWidth || 0),
-          (panel?.scrollWidth || 0) - (panel?.clientWidth || 0)
-        ),
-        nestedVerticalScrollers,
-        readableCardCount: cardHeights.length,
-        minReadableCardHeight: cardHeights.length ? Math.min(...cardHeights) : null,
-        prominentLabelCount: labelFonts.length,
-        minProminentLabelFont: labelFonts.length ? Math.min(...labelFonts) : null,
-        readableIconCount: iconSizes.length,
-        minReadableIconSize: iconSizes.length ? Math.min(...iconSizes) : null
-      };
     });
-    expect(audit.pageHorizontalOverflow, `${label} page horizontal overflow`).toBeLessThanOrEqual(1);
-    expect(audit.pageVerticalOverflow, `${label} page vertical overflow`).toBeLessThanOrEqual(1);
-    expect(audit.inspectorOverflowY, `${label} inspector overflow mode`).toBe("hidden");
-    expect(audit.contentOverflowY, `${label} Properties content overflow mode`).toBe("hidden");
-    expect(audit.panelOverflowY, `${label} task scroll surface`).toBe("auto");
-    expect(audit.inspectorScrollHeight, `${label} inspector content`).toBeLessThanOrEqual(audit.inspectorClientHeight + 1);
-    expect(audit.panelClientHeight, `${label} task viewport fits Properties content`).toBeLessThanOrEqual(audit.contentClientHeight + 1);
-    expect(audit.horizontalOverflow, `${label} Properties horizontal overflow`).toBeLessThanOrEqual(1);
-    expect(audit.nestedVerticalScrollers, `${label} nested vertical scroll surfaces`).toEqual([]);
-    expect(audit.panelScrollTop, `${label} task can reach its scroll extent`).toBeGreaterThanOrEqual(audit.panelMaxScroll - 1);
-    expect(audit.lastControlTop, `${label} final control starts inside Properties`).toBeGreaterThanOrEqual(audit.panelTop - 1);
-    expect(audit.lastControlBottom, `${label} last control remains visible`).toBeLessThanOrEqual(audit.panelBottom + 1);
-    if (audit.readableCardCount > 0) {
-      expect(audit.minReadableCardHeight, `${label} choice card height`).toBeGreaterThanOrEqual(50);
-    }
-    if (audit.prominentLabelCount > 0) {
-      expect(audit.minProminentLabelFont, `${label} prominent choice label size`).toBeGreaterThanOrEqual(9);
-    }
-    if (audit.readableIconCount > 0) {
-      expect(audit.minReadableIconSize, `${label} choice icon size`).toBeGreaterThanOrEqual(24);
-    }
-  };
+    const safe = viewer.getSafeViewport().localBounds;
+    return {
+      safe,
+      bounds: {
+        left: Math.min(...projected.map((point) => point.x)),
+        right: Math.max(...projected.map((point) => point.x)),
+        top: Math.min(...projected.map((point) => point.y)),
+        bottom: Math.max(...projected.map((point) => point.y)),
+        near: Math.min(...projected.map((point) => point.depth)),
+        far: Math.max(...projected.map((point) => point.depth))
+      }
+    };
+  });
+}
 
-  for (const viewport of desktopAuditViewports) {
-    await page.setViewportSize(viewport);
-    await settleFrames(page);
-    for (const stage of expectedStages) {
-      await page.locator(`[data-workspace-stage="${stage}"]`).click();
-      const inspector = page.locator("[data-properties-inspector]");
-      await expect(inspector.locator("[data-inspector-tab]")).toHaveCount(0);
-      await expect(inspector.locator(".workspace-properties-panel")).toHaveCount(1);
-      await auditCurrentTask(`${viewport.width}x${viewport.height} ${stage}`);
-    }
+async function expectFullModelFit(page, label) {
+  const { safe, bounds } = await readFullModelFraming(page);
+  expect(bounds.left, `${label} model left`).toBeGreaterThanOrEqual(safe.left - 1.5);
+  expect(bounds.right, `${label} model right`).toBeLessThanOrEqual(safe.right + 1.5);
+  expect(bounds.top, `${label} model top`).toBeGreaterThanOrEqual(safe.top - 1.5);
+  expect(bounds.bottom, `${label} model bottom`).toBeLessThanOrEqual(safe.bottom + 1.5);
+  expect(bounds.near, `${label} near clipping plane`).toBeGreaterThanOrEqual(-1);
+  expect(bounds.far, `${label} far clipping plane`).toBeLessThanOrEqual(1);
+}
 
-    await page.locator('[data-workspace-stage="storage"]').click();
-    await page.locator('[data-section-organizer] [data-section-select="0"]').click();
-    const drawerPreset = page.locator('[data-properties-inspector] .workspace-storage-preset:has([data-section-storage-preset="lower_drawers"])');
-    await drawerPreset.click();
-    await expect(page.locator('[data-properties-inspector] [data-section-storage-preset="lower_drawers"]')).toBeChecked();
-    await expect(page.locator('[data-properties-inspector] .workspace-storage-drawers')).toHaveCount(1);
-    await expect(page.locator('[data-properties-inspector] .workspace-storage-doors')).toHaveCount(0);
-    await auditCurrentTask(`${viewport.width}x${viewport.height} storage/drawers-configured`);
+async function auditWorkspaceGeometry(page, label, options = {}) {
+  const audit = await page.evaluate(() => {
+    const rectangle = (element) => {
+      if (!element) return null;
+      const bounds = element.getBoundingClientRect();
+      return {
+        left: bounds.left,
+        right: bounds.right,
+        top: bounds.top,
+        bottom: bounds.bottom,
+        width: bounds.width,
+        height: bounds.height
+      };
+    };
+    const bySelector = (selector) => document.querySelector(selector);
+    const rendered = (element) => {
+      const style = getComputedStyle(element);
+      const bounds = element.getBoundingClientRect();
+      return !element.hidden
+        && style.display !== "none"
+        && style.visibility !== "hidden"
+        && Number(style.opacity || 1) > 0.05
+        && bounds.width > 1
+        && bounds.height > 1;
+    };
+    const intersectionArea = (first, second) => {
+      if (!first || !second) return 0;
+      return Math.max(0, Math.min(first.right, second.right) - Math.max(first.left, second.left))
+        * Math.max(0, Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top));
+    };
+    const contains = (outer, inner, tolerance = 1) => Boolean(outer && inner)
+      && inner.left >= outer.left - tolerance
+      && inner.right <= outer.right + tolerance
+      && inner.top >= outer.top - tolerance
+      && inner.bottom <= outer.bottom + tolerance;
 
-    await page.locator('[data-workspace-stage="layout"]').click();
-    await page.locator('[data-section-organizer] [data-section-select="0"]').click();
-    await expect(page.locator("[data-properties-inspector] [data-inspector-tab]")).toHaveCount(0);
-    await expect(page.locator("[data-properties-inspector] .workspace-properties-panel")).toHaveCount(1);
-    await auditCurrentTask(`${viewport.width}x${viewport.height} layout/selected`);
-
-    await page.locator('[data-workspace-stage="storage"]').click();
-    await page.locator('[data-section-organizer] [data-section-select="0"]').click();
-    await expect(page.locator("[data-properties-inspector] [data-inspector-tab]")).toHaveCount(0);
-    await expect(page.locator("[data-properties-inspector] .workspace-properties-panel")).toHaveCount(1);
-    await auditCurrentTask(`${viewport.width}x${viewport.height} storage/selected`);
-  }
-
-  expect(runtimeIssues).toEqual([]);
-});
-
-test("Storage choices stay readable and the final controls remain reachable", async ({ page }) => {
-  const runtimeIssues = monitorRuntime(page);
-  await page.setViewportSize({ width: 2011, height: 1198 });
-  await openWorkspace(page);
-
-  for (const viewport of desktopAuditViewports) {
-    await page.setViewportSize(viewport);
-    await settleFrames(page);
-    await page.locator('[data-workspace-stage="storage"]').click();
-
-    const auditStorageState = async (label, expectedState) => {
-      const audit = await page.locator("[data-properties-inspector]").evaluate(async (inspector) => {
-        const panel = inspector.querySelector(".workspace-properties-panel");
-        const console = inspector.querySelector(".workspace-storage-console");
-        const presetCards = Array.from(inspector.querySelectorAll(".workspace-storage-preset > span"));
-        const presetLabels = Array.from(inspector.querySelectorAll(".workspace-storage-preset > span > strong"));
-        const selects = Array.from(inspector.querySelectorAll("[data-section-storage-field][type='number'], .workspace-storage-select select"));
-        const stepperButtons = Array.from(inspector.querySelectorAll("[data-section-storage-step]"));
-        const panelBounds = panel.getBoundingClientRect();
-        const consoleBounds = console.getBoundingClientRect();
-        const cardBounds = presetCards.map((card) => card.getBoundingClientRect());
-        const controlBounds = [...selects, ...stepperButtons].map((control) => control.getBoundingClientRect());
-        const checkedPreset = inspector.querySelector("[data-section-storage-preset]:checked");
-        panel.scrollTop = panel.scrollHeight;
-        await new Promise((resolve) => requestAnimationFrame(resolve));
-        const finalControl = inspector.querySelector(".workspace-storage-global [data-field='shelfThickness'][type='range']");
-        const finalControlBounds = finalControl?.getBoundingClientRect();
-        return {
-          pageHorizontalOverflow: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
-          pageVerticalOverflow: Math.max(0, document.documentElement.scrollHeight - window.innerHeight),
-          presetCount: presetCards.length,
-          checkedPreset: checkedPreset?.value || "",
-          doorSections: inspector.querySelectorAll(".workspace-storage-doors").length,
-          drawerSections: inspector.querySelectorAll(".workspace-storage-drawers").length,
-          lowerHeightSections: inspector.querySelectorAll('.workspace-storage-fronts [data-section-storage-control="lowerStorageHeight"]').length,
-          shelfSteppers: inspector.querySelectorAll('[data-section-storage-control="shelfCount"]').length,
-          drawerSteppers: inspector.querySelectorAll('[data-section-storage-control="drawerCount"]').length,
-          lowerHeightSteppers: inspector.querySelectorAll('[data-section-storage-control="lowerStorageHeight"]').length,
-          selectCount: inspector.querySelectorAll(".workspace-storage-select select").length,
-          labelsFit: presetLabels.every((label) => (
-            label.scrollWidth <= label.clientWidth + 1
-            && label.scrollHeight <= label.clientHeight + 1
-          )),
-          minCardHeight: Math.min(...cardBounds.map((bounds) => bounds.height)),
-          controlsHaveArea: controlBounds.every((bounds) => bounds.width > 0 && bounds.height >= 36),
-          cardsContained: cardBounds.every((bounds) => (
-            bounds.left >= panelBounds.left - 1
-            && bounds.right <= panelBounds.right + 1
-          )),
-          consoleContained: consoleBounds.left >= panelBounds.left - 1
-            && consoleBounds.right <= panelBounds.right + 1,
-          horizontalOverflow: Math.max(
-            inspector.scrollWidth - inspector.clientWidth,
-            panel.scrollWidth - panel.clientWidth
-          ),
-          panelOverflowY: getComputedStyle(panel).overflowY,
-          panelMaxScroll: Math.max(0, panel.scrollHeight - panel.clientHeight),
-          panelScrollTop: panel.scrollTop,
-          finalControlVisible: Boolean(finalControlBounds)
-            && finalControlBounds.top >= panelBounds.top - 1
-            && finalControlBounds.bottom <= panelBounds.bottom + 1
-        };
-      });
-
-      expect(audit.pageHorizontalOverflow, `${label} page horizontal overflow`).toBeLessThanOrEqual(1);
-      expect(audit.pageVerticalOverflow, `${label} page vertical overflow`).toBeLessThanOrEqual(1);
-      expect(audit.presetCount, `${label} storage presets`).toBe(5);
-      expect(audit.checkedPreset, `${label} active preset`).toBe(expectedState.preset);
-      expect(audit.doorSections, `${label} conditional door controls`).toBe(expectedState.doors);
-      expect(audit.drawerSections, `${label} conditional drawer controls`).toBe(expectedState.drawers);
-      expect(audit.lowerHeightSections, `${label} lower-height controls`).toBe(1);
-      expect(audit.shelfSteppers, `${label} shelf stepper`).toBe(1);
-      expect(audit.drawerSteppers, `${label} drawer stepper`).toBe(expectedState.drawers);
-      expect(audit.lowerHeightSteppers, `${label} lower-height stepper`).toBe(1);
-      expect(audit.selectCount, `${label} section-specific selects`).toBe(1);
-      expect(audit.labelsFit, `${label} preset labels`).toBe(true);
-      expect(audit.minCardHeight, `${label} preset card height`).toBeGreaterThanOrEqual(50);
-      expect(audit.controlsHaveArea, `${label} section controls have readable targets`).toBe(true);
-      expect(audit.cardsContained, `${label} horizontal card containment`).toBe(true);
-      expect(audit.consoleContained, `${label} horizontal console containment`).toBe(true);
-      expect(audit.horizontalOverflow, `${label} horizontal overflow`).toBeLessThanOrEqual(1);
-      expect(audit.panelOverflowY, `${label} Properties scroll surface`).toBe("auto");
-      expect(audit.panelScrollTop, `${label} scroll extent`).toBeGreaterThanOrEqual(audit.panelMaxScroll - 1);
-      expect(audit.finalControlVisible, `${label} final shelf-thickness control reachable`).toBe(true);
+    const workspace = bySelector("[data-configurator-workspace]");
+    const inspector = bySelector("[data-properties-inspector]");
+    const content = bySelector("[data-inspector-content]");
+    const panel = bySelector("[data-properties-inspector] .workspace-properties-panel");
+    const toolbar = bySelector("[data-model-toolbar]");
+    const organizer = bySelector("[data-section-organizer]");
+    const cards = bySelector(".workspace-section-cards");
+    const footer = bySelector("[data-estimate-bar]");
+    const viewer = bySelector("[data-3d-viewer]");
+    const elements = {
+      workspace: rectangle(workspace),
+      rail: rectangle(bySelector("[data-workspace-stages]")),
+      model: rectangle(bySelector("[data-model-workspace]")),
+      inspector: rectangle(inspector),
+      organizer: rectangle(organizer),
+      cards: rectangle(cards),
+      widthCard: rectangle(bySelector("[data-total-width-card]")),
+      footer: rectangle(footer),
+      toolbar: rectangle(toolbar),
+      viewer: rectangle(viewer)
     };
 
-    const doorPreset = page.locator('[data-properties-inspector] .workspace-storage-preset:has([data-section-storage-preset="lower_doors"])');
-    await doorPreset.click();
-    await expect(page.locator('[data-properties-inspector] [data-section-storage-preset="lower_doors"]')).toBeChecked();
-    await auditStorageState(`${viewport.width}x${viewport.height} lower doors`, { preset: "lower_doors", doors: 1, drawers: 0 });
+    const controlSelectors = [
+      "button", "input", "select", "textarea", "summary", "a[href]",
+      ".style-choice label", ".finish-choice label", ".hardware-type-choice",
+      ".hardware-finish-choice", ".lighting-card label", ".workspace-storage-preset"
+    ].join(",");
+    const controls = inspector
+      ? [...new Set(inspector.querySelectorAll(controlSelectors))].filter(rendered)
+      : [];
+    const criticalLabels = inspector
+      ? [...inspector.querySelectorAll([
+        ".style-choice label > span:last-child", ".finish-choice label > span:last-child",
+        ".hardware-type-choice strong", ".hardware-finish-choice strong",
+        ".lighting-card strong", ".workspace-storage-preset strong"
+      ].join(","))].filter(rendered)
+      : [];
+    const toolbarButtons = toolbar ? [...toolbar.querySelectorAll("button")].filter(rendered) : [];
+    const sectionItems = cards ? [...cards.querySelectorAll(".workspace-add-section, .workspace-section-card")].filter(rendered) : [];
+    const sectionActions = cards ? [...cards.querySelectorAll("button")].filter(rendered) : [];
+    const sectionContents = cards ? [...cards.querySelectorAll(
+      ".workspace-section-thumbnail, .workspace-section-card-main > span:not(.workspace-section-thumbnail)"
+    )].filter(rendered) : [];
+    const dimensionLabels = [...document.querySelectorAll("[data-section-overlay] .dimension-label")].filter(rendered);
+    const toolbarBounds = elements.toolbar;
+    const organizerBounds = elements.organizer;
+    const safe = viewer && hostSafeViewport(viewer);
 
-    const drawerPreset = page.locator('[data-properties-inspector] .workspace-storage-preset:has([data-section-storage-preset="lower_drawers"])');
-    await drawerPreset.click();
-    await expect(page.locator('[data-properties-inspector] [data-section-storage-preset="lower_drawers"]')).toBeChecked();
-    await auditStorageState(`${viewport.width}x${viewport.height} lower drawers`, { preset: "lower_drawers", doors: 0, drawers: 1 });
+    function hostSafeViewport(viewerElement) {
+      const host = viewerElement.closest("[data-bookcase-builder]");
+      const viewport = host?.__bookcaseConfigurator?.viewer?.getSafeViewport?.();
+      return viewport?.clientBounds || null;
+    }
+
+    const pairOverlaps = (items) => {
+      const pairs = [];
+      items.forEach((item, index) => {
+        const first = rectangle(item);
+        items.slice(index + 1).forEach((candidate, offset) => {
+          if (intersectionArea(first, rectangle(candidate)) > 1) pairs.push([index, index + offset + 1]);
+        });
+      });
+      return pairs;
+    };
+
+    const scrolling = document.scrollingElement;
+    return {
+      elements,
+      documentOverflow: {
+        x: Math.max(0, scrolling.scrollWidth - scrolling.clientWidth),
+        y: Math.max(0, scrolling.scrollHeight - scrolling.clientHeight)
+      },
+      surfaces: {
+        inspectorX: Math.max(0, inspector.scrollWidth - inspector.clientWidth),
+        inspectorY: Math.max(0, inspector.scrollHeight - inspector.clientHeight),
+        contentX: Math.max(0, content.scrollWidth - content.clientWidth),
+        contentY: Math.max(0, content.scrollHeight - content.clientHeight),
+        panelX: Math.max(0, panel.scrollWidth - panel.clientWidth),
+        panelY: Math.max(0, panel.scrollHeight - panel.clientHeight),
+        toolbarX: Math.max(0, toolbar.scrollWidth - toolbar.clientWidth),
+        toolbarY: Math.max(0, toolbar.scrollHeight - toolbar.clientHeight),
+        organizerX: Math.max(0, organizer.scrollWidth - organizer.clientWidth),
+        organizerY: Math.max(0, organizer.scrollHeight - organizer.clientHeight),
+        cardsX: Math.max(0, cards.scrollWidth - cards.clientWidth),
+        cardsY: Math.max(0, cards.scrollHeight - cards.clientHeight)
+      },
+      controlCount: controls.length,
+      controlsContained: controls.every((control) => contains(elements.inspector, rectangle(control))),
+      criticalLabelsUnclipped: criticalLabels.every((label) => (
+        label.scrollWidth <= label.clientWidth + 1 && label.scrollHeight <= label.clientHeight + 1
+      )),
+      toolbarButtonsContained: toolbarButtons.every((button) => contains(elements.toolbar, rectangle(button))),
+      toolbarButtonOverlaps: pairOverlaps(toolbarButtons),
+      sectionCount: cards?.querySelectorAll("[data-section-card]").length || 0,
+      sectionItemsContained: sectionItems.every((item) => contains(elements.cards, rectangle(item))),
+      sectionActionsContained: sectionActions.every((action) => contains(elements.cards, rectangle(action))),
+      sectionContentsContained: sectionContents.every((item) => contains(rectangle(item.closest(".workspace-section-card")), rectangle(item))),
+      sectionContentsUnclipped: sectionContents.every((item) => (
+        item.scrollWidth <= item.clientWidth + 1 && item.scrollHeight <= item.clientHeight + 1
+      )),
+      footerOrganizerOverlap: intersectionArea(elements.footer, elements.organizer),
+      footerPropertiesOverlap: intersectionArea(elements.footer, elements.inspector),
+      modelPropertiesOverlap: intersectionArea(elements.model, elements.inspector),
+      labels: dimensionLabels.map((label) => ({
+        className: label.closest("[data-overlay-section], .overall-dimension, .overall-height-dimension, .overall-depth-dimension")?.className || "",
+        bounds: rectangle(label),
+        toolbarOverlap: intersectionArea(rectangle(label), toolbarBounds),
+        organizerOverlap: intersectionArea(rectangle(label), organizerBounds),
+        insideSafeViewport: contains(safe, rectangle(label), 1.5)
+      })),
+      labelCollision: bySelector("[data-section-overlay]")?.dataset.labelCollision || "",
+      regionsInsideWorkspace: Object.entries(elements)
+        .filter(([name]) => !["workspace"].includes(name))
+        .every(([, bounds]) => contains(elements.workspace, bounds)),
+      workspaceInsideViewport: elements.workspace.left >= -1
+        && elements.workspace.right <= innerWidth + 1
+        && elements.workspace.top >= -1
+        && elements.workspace.bottom <= innerHeight + 1
+    };
+  });
+
+  expect(audit.documentOverflow.x, `${label} document horizontal overflow`).toBeLessThanOrEqual(1);
+  expect(audit.documentOverflow.y, `${label} document vertical overflow`).toBeLessThanOrEqual(1);
+  for (const [surface, overflow] of Object.entries(audit.surfaces)) {
+    expect(overflow, `${label} ${surface} overflow`).toBeLessThanOrEqual(1);
   }
+  expect(audit.controlCount, `${label} visible Properties controls`).toBeGreaterThan(0);
+  expect(audit.controlsContained, `${label} Properties control containment`).toBe(true);
+  expect(audit.criticalLabelsUnclipped, `${label} critical option labels`).toBe(true);
+  expect(audit.toolbarButtonsContained, `${label} toolbar button containment`).toBe(true);
+  expect(audit.toolbarButtonOverlaps, `${label} toolbar button collisions`).toEqual([]);
+  expect(audit.sectionItemsContained, `${label} section item containment`).toBe(true);
+  expect(audit.sectionActionsContained, `${label} section action containment`).toBe(true);
+  expect(audit.sectionContentsContained, `${label} section content containment`).toBe(true);
+  expect(audit.sectionContentsUnclipped, `${label} section content clipping`).toBe(true);
+  expect(audit.footerOrganizerOverlap, `${label} footer/organizer overlap`).toBeLessThanOrEqual(1);
+  expect(audit.footerPropertiesOverlap, `${label} footer/Properties overlap`).toBeLessThanOrEqual(1);
+  expect(audit.modelPropertiesOverlap, `${label} model/Properties overlap`).toBeLessThanOrEqual(1);
+  expect(audit.regionsInsideWorkspace, `${label} workspace region containment`).toBe(true);
+  expect(audit.workspaceInsideViewport, `${label} workspace viewport containment`).toBe(true);
 
-  expect(runtimeIssues).toEqual([]);
-});
+  if (options.annotations !== false) {
+    expect(audit.labels.length, `${label} visible dimension labels`).toBeGreaterThan(0);
+    expect(audit.labelCollision, `${label} section label collision state`).toBe("false");
+    for (const [index, annotation] of audit.labels.entries()) {
+      expect(annotation.toolbarOverlap, `${label} annotation ${index + 1}/toolbar overlap`).toBeLessThanOrEqual(1);
+      expect(annotation.organizerOverlap, `${label} annotation ${index + 1}/organizer overlap`).toBeLessThanOrEqual(1);
+      expect(annotation.insideSafeViewport, `${label} annotation ${index + 1} safe viewport`).toBe(true);
+    }
+  }
+  return audit;
+}
 
-test("six section cards remain readable and reachable in the desktop organizer", async ({ page }) => {
-  const runtimeIssues = monitorRuntime(page);
-  for (const viewport of desktopAuditViewports) {
+for (const viewport of requiredViewports) {
+  test(`${viewport.name} keeps every default task and 1–6 sections in one viewport`, async ({ page }) => {
+    const runtimeIssues = monitorRuntime(page);
     await page.setViewportSize(viewport);
     await openWorkspace(page);
-    await addSection(page);
-    await addSection(page);
-    await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(6);
-    await expect(page.locator("[data-section-organizer] [data-section-add]")).toBeDisabled();
 
-    const audit = await page.locator(".workspace-section-cards").evaluate(async (cards) => {
-      const bounds = cards.getBoundingClientRect();
-      const organizerBounds = cards.closest("[data-section-organizer]").getBoundingClientRect();
-      const items = Array.from(cards.querySelectorAll(".workspace-add-section, .workspace-section-card"));
-      const sectionCards = Array.from(cards.querySelectorAll(".workspace-section-card"));
-      const labels = Array.from(cards.querySelectorAll(".workspace-section-card-main strong"));
-      const initialFirstBounds = items[0].getBoundingClientRect();
-      const sectionWidths = sectionCards.map((card) => card.getBoundingClientRect().width);
-      const labelFonts = labels.map((label) => Number.parseFloat(getComputedStyle(label).fontSize));
-      const rowCount = new Set(items.map((item) => Math.round(item.getBoundingClientRect().top))).size;
-      const itemContentBounds = items.map((item) => {
-        const itemBounds = item.getBoundingClientRect();
-        return {
-          left: itemBounds.left - bounds.left + cards.scrollLeft,
-          right: itemBounds.right - bounds.left + cards.scrollLeft
-        };
-      });
-      cards.scrollLeft = cards.scrollWidth;
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      const finalItemBounds = items.at(-1).getBoundingClientRect();
-      return {
-        pageHorizontalOverflow: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
-        pageVerticalOverflow: Math.max(0, document.documentElement.scrollHeight - window.innerHeight),
-        horizontalOverflow: Math.max(0, cards.scrollWidth - cards.clientWidth),
-        verticalOverflow: Math.max(0, cards.scrollHeight - cards.clientHeight),
-        overflowX: getComputedStyle(cards).overflowX,
-        overflowY: getComputedStyle(cards).overflowY,
-        rowCount,
-        organizerBounded: organizerBounds.left >= -1
-          && organizerBounds.right <= window.innerWidth + 1
-          && bounds.left >= organizerBounds.left - 1
-          && bounds.right <= organizerBounds.right + 1,
-        itemsInsideScrollContent: itemContentBounds.every((itemBounds) => (
-          itemBounds.left >= -1 && itemBounds.right <= cards.scrollWidth + 1
-        )),
-        firstItemInitiallyVisible: initialFirstBounds.left >= bounds.left - 1
-          && initialFirstBounds.right <= bounds.right + 1,
-        finalItemReachable: finalItemBounds.left >= bounds.left - 1
-          && finalItemBounds.right <= bounds.right + 1,
-        scrollAtEnd: cards.scrollLeft >= cards.scrollWidth - cards.clientWidth - 1,
-        minSectionWidth: Math.min(...sectionWidths),
-        maxSectionWidth: Math.max(...sectionWidths),
-        minLabelFont: Math.min(...labelFonts),
-        labelsReadable: labels.every((label) => label.clientWidth > 0 && label.scrollWidth <= label.clientWidth + 1)
-      };
-    });
-    expect(audit.pageHorizontalOverflow, `${viewport.width}x${viewport.height} page horizontal overflow`).toBeLessThanOrEqual(1);
-    expect(audit.pageVerticalOverflow, `${viewport.width}x${viewport.height} page vertical overflow`).toBeLessThanOrEqual(1);
-    expect(audit.overflowX, `${viewport.width}x${viewport.height} organizer horizontal policy`).toBe("auto");
-    expect(audit.overflowY, `${viewport.width}x${viewport.height} organizer vertical policy`).toBe("hidden");
-    expect(audit.verticalOverflow, `${viewport.width}x${viewport.height} organizer vertical overflow`).toBeLessThanOrEqual(1);
-    expect(audit.rowCount, `${viewport.width}x${viewport.height} organizer row count`).toBe(1);
-    expect(audit.organizerBounded, `${viewport.width}x${viewport.height} organizer bounds`).toBe(true);
-    expect(audit.itemsInsideScrollContent, `${viewport.width}x${viewport.height} cards inside scroll content`).toBe(true);
-    expect(audit.firstItemInitiallyVisible, `${viewport.width}x${viewport.height} Add Section reachable`).toBe(true);
-    expect(audit.finalItemReachable, `${viewport.width}x${viewport.height} final section reachable`).toBe(true);
-    expect(audit.scrollAtEnd, `${viewport.width}x${viewport.height} organizer reaches its end`).toBe(true);
-    expect(audit.minSectionWidth, `${viewport.width}x${viewport.height} minimum section card width`).toBeGreaterThanOrEqual(84);
-    expect(audit.maxSectionWidth, `${viewport.width}x${viewport.height} bounded section card width`).toBeLessThanOrEqual(240);
-    expect(audit.minLabelFont, `${viewport.width}x${viewport.height} section label size`).toBeGreaterThanOrEqual(9);
-    expect(audit.labelsReadable, `${viewport.width}x${viewport.height} section labels`).toBe(true);
+    await expect(page.locator("[data-workspace-stage]")).toHaveCount(8);
+    await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(4);
+
+    for (const stage of stages) {
+      await setStage(page, stage);
+      const workspace = page.locator("[data-configurator-workspace]");
+      await expect(workspace, `${viewport.name} ${stage} state`).toHaveAttribute("data-camera-state", "overview");
+      await expect(workspace, `${viewport.name} ${stage} profile`).toHaveAttribute("data-camera-profile", overviewProfiles[stage]);
+      await expect(workspace, `${viewport.name} ${stage} source stage`).toHaveAttribute("data-camera-source-stage", stage);
+      await expect(workspace, `${viewport.name} ${stage} source section`).toHaveAttribute("data-camera-source-section", "");
+      await auditWorkspaceGeometry(page, `${viewport.name} ${stage}`);
+      await expectFullModelFit(page, `${viewport.name} ${stage}`);
+    }
+
+    await setStage(page, "storage");
+    for (const preset of ["lower_doors", "lower_drawers"]) {
+      const choice = page.locator(`[data-properties-inspector] [data-section-storage-preset="${preset}"]`);
+      await choice.check();
+      await expect(choice).toBeChecked();
+      await settleWorkspace(page);
+      await auditWorkspaceGeometry(page, `${viewport.name} storage ${preset}`);
+    }
+
+    await setStage(page, "layout");
+    await setSectionCount(page, 1);
+    let audit = await auditWorkspaceGeometry(page, `${viewport.name} one section`);
+    expect(audit.sectionCount).toBe(1);
+    await expectFullModelFit(page, `${viewport.name} one section`);
+
+    await setSectionCount(page, 6);
+    audit = await auditWorkspaceGeometry(page, `${viewport.name} six sections`);
+    expect(audit.sectionCount).toBe(6);
+    await expectFullModelFit(page, `${viewport.name} six sections`);
+
+    const dimensions = page.locator("[data-toggle-dimensions]");
+    await dimensions.click();
+    await expect(dimensions).toHaveAttribute("aria-pressed", "false");
+    await auditWorkspaceGeometry(page, `${viewport.name} dimensions off`, { annotations: false });
+    await dimensions.click();
+    await expect(dimensions).toHaveAttribute("aria-pressed", "true");
+    await settleWorkspace(page);
+    await auditWorkspaceGeometry(page, `${viewport.name} dimensions on`);
+
+    const wall = page.locator("[data-toggle-wall]");
+    await wall.click();
+    await expect(wall).toHaveAttribute("aria-pressed", "false");
+    await auditWorkspaceGeometry(page, `${viewport.name} wall off`);
+    await wall.click();
+    await expect(wall).toHaveAttribute("aria-pressed", "true");
+
+    expect(runtimeIssues, `${viewport.name} runtime issues`).toEqual([]);
+  });
+}
+
+test("accepted compact header navigation stays legible", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await openWorkspace(page);
+
+  await expect(page.locator("#primary-navigation")).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(page.locator("#primary-navigation .nav-link").first()).toHaveCSS("color", "rgb(36, 37, 34)");
+
+  await page.setViewportSize({ width: 820, height: 1180 });
+  const toggle = page.locator(".nav-toggle");
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toHaveCSS("color", "rgb(36, 37, 34)");
+  await expect(toggle).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("#primary-navigation")).toHaveCSS("background-color", "rgb(33, 29, 24)");
+  await expect(page.locator("#primary-navigation .nav-link").first()).toHaveCSS("color", "rgb(247, 243, 237)");
+  await page.keyboard.press("Escape");
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+});
+
+test("compact Properties labels and Benjamin Moore results remain readable", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await openWorkspace(page);
+
+  await setStage(page, "layout");
+  const layoutActionSizes = await page.locator("[data-properties-inspector] .workspace-section-actions button").evaluateAll((buttons) => (
+    buttons.map((button) => Number.parseFloat(getComputedStyle(button).fontSize))
+  ));
+  expect(Math.min(...layoutActionSizes)).toBeGreaterThanOrEqual(10);
+  await auditWorkspaceGeometry(page, "readable Layout labels");
+
+  await setStage(page, "base_top");
+  const baseLabelSizes = await page.locator("[data-properties-inspector] .style-choice > label > span:last-child").evaluateAll((labels) => (
+    labels.filter((label) => label.getClientRects().length).map((label) => Number.parseFloat(getComputedStyle(label).fontSize))
+  ));
+  expect(Math.min(...baseLabelSizes)).toBeGreaterThanOrEqual(10);
+  await auditWorkspaceGeometry(page, "readable Base & Top labels");
+
+  await setStage(page, "finish");
+  await page.locator("[data-toggle-color-search]:not([data-color-search-close])").click();
+  await page.locator("[data-bm-query]").fill("whit");
+  const results = page.locator("[data-bm-results] .bm-result-card");
+  await expect(results).toHaveCount(4);
+  const resultTypography = await results.evaluateAll((cards) => cards.map((card) => ({
+    name: Number.parseFloat(getComputedStyle(card.querySelector("strong")).fontSize),
+    detail: Number.parseFloat(getComputedStyle(card.querySelector("small")).fontSize),
+    action: Number.parseFloat(getComputedStyle(card.querySelector("button")).fontSize),
+    nameClipped: card.querySelector("strong").scrollWidth > card.querySelector("strong").clientWidth + 1
+      || card.querySelector("strong").scrollHeight > card.querySelector("strong").clientHeight + 1
+  })));
+  for (const typography of resultTypography) {
+    expect(typography.name).toBeGreaterThanOrEqual(11);
+    expect(typography.detail).toBeGreaterThanOrEqual(10);
+    expect(typography.action).toBeGreaterThanOrEqual(10);
+    expect(typography.nameClipped).toBe(false);
   }
+  await auditWorkspaceGeometry(page, "readable Benjamin Moore results");
+});
+
+test("smart camera invalidates stale base, section, and hardware detail intents", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const runtimeIssues = monitorRuntime(page);
+  await openWorkspace(page);
+  const workspace = page.locator("[data-configurator-workspace]");
+
+  await setStage(page, "base_top");
+  const base = page.locator('[data-properties-inspector] [data-field="baseStyle"][value="plinth"]');
+  await base.locator("xpath=ancestor::*[contains(@class, 'style-choice')][1]/label").click();
+  await expect(base).toBeChecked();
+  await waitForCamera(page);
+  await expect(workspace).toHaveAttribute("data-camera-state", "detail-focus");
+  await expect(workspace).toHaveAttribute("data-camera-profile", "base");
+  await expect(workspace).toHaveAttribute("data-camera-source-stage", "base_top");
+
+  await setStage(page, "layout");
+  await expect(workspace).toHaveAttribute("data-camera-state", "overview");
+  await expect(workspace).toHaveAttribute("data-camera-profile", "overview");
+  await expect(workspace).toHaveAttribute("data-camera-source-section", "");
+  await expectFullModelFit(page, "Layout after base focus");
+
+  await page.locator('[data-section-organizer] [data-section-select="1"]').click();
+  await waitForCamera(page);
+  await expect(workspace).toHaveAttribute("data-camera-state", "section-context");
+  await expect(workspace).toHaveAttribute("data-camera-profile", "section");
+  await expect(workspace).toHaveAttribute("data-camera-source-stage", "layout");
+  await expect(workspace).toHaveAttribute("data-camera-source-section", "1");
+  await expectFullModelFit(page, "Section context after section change");
+
+  await setStage(page, "storage");
+  const focusedDoor = await page.locator("[data-bookcase-builder]").evaluate((host) => {
+    const controller = host.__bookcaseConfigurator;
+    const section = controller.layout.components.find((component) => (
+      component.role === "section" && Number(component.metadata?.index) === controller.selectedSectionIndex
+    ));
+    const door = controller.layout.components.find((component) => (
+      component.role === "door" && component.metadata?.sectionId === section?.id
+    ));
+    return door && controller.viewer.selectDirectComponent(door.id, { source: "api" })
+      ? { componentId: door.id, sectionIndex: controller.selectedSectionIndex }
+      : null;
+  });
+  expect(focusedDoor).not.toBeNull();
+  await waitForCamera(page);
+  await expect(workspace).toHaveAttribute("data-camera-state", "detail-focus");
+  await expect(workspace).toHaveAttribute("data-camera-profile", "doors");
+  await expect(workspace).toHaveAttribute("data-camera-source-section", String(focusedDoor.sectionIndex));
+
+  const nextSection = focusedDoor.sectionIndex === 0 ? 1 : 0;
+  await page.locator(`[data-section-organizer] [data-section-select="${nextSection}"]`).click();
+  await waitForCamera(page);
+  await expect(workspace).toHaveAttribute("data-camera-state", "section-context");
+  await expect(workspace).toHaveAttribute("data-camera-profile", "section");
+  await expect(workspace).toHaveAttribute("data-camera-source-section", String(nextSection));
+  await expectFullModelFit(page, "Section context after door detail");
+
+  const removedDoor = await page.locator("[data-bookcase-builder]").evaluate((host) => {
+    const controller = host.__bookcaseConfigurator;
+    const section = controller.layout.components.find((component) => (
+      component.role === "section" && Number(component.metadata?.index) === controller.selectedSectionIndex
+    ));
+    const door = controller.layout.components.find((component) => (
+      component.role === "door" && component.metadata?.sectionId === section?.id
+    ));
+    return door && controller.viewer.selectDirectComponent(door.id, { source: "api" }) ? door.id : null;
+  });
+  expect(removedDoor).not.toBeNull();
+  await waitForCamera(page);
+  await expect(workspace).toHaveAttribute("data-camera-state", "detail-focus");
+  await page.locator(`[data-section-organizer] [data-section-delete="${nextSection}"]`).click();
+  await waitForCamera(page);
+  await expect(workspace).toHaveAttribute("data-camera-state", /overview|section-context/);
+  const staleTarget = await page.locator("[data-bookcase-builder]").evaluate((host, componentId) => {
+    const controller = host.__bookcaseConfigurator;
+    return {
+      componentStillExists: controller.layout.components.some((component) => component.id === componentId),
+      cameraTarget: controller.cameraIntentState?.targetComponentId || null
+    };
+  }, removedDoor);
+  expect(staleTarget).toEqual({ componentStillExists: false, cameraTarget: null });
+  await expectFullModelFit(page, "Model after deleting focused section");
+
+  await setStage(page, "hardware");
+  const selectedHandle = await page.locator("[data-bookcase-builder]").evaluate((host) => {
+    const controller = host.__bookcaseConfigurator;
+    const handle = controller.layout.components.find((component) => component.role === "handle");
+    return handle ? controller.viewer.selectDirectComponent(handle.id, { source: "api" }) : false;
+  });
+  expect(selectedHandle).toBe(true);
+  await waitForCamera(page);
+  await expect(workspace).toHaveAttribute("data-camera-state", "detail-focus");
+  await expect(workspace).toHaveAttribute("data-camera-profile", "hardware");
+  await expect(workspace).toHaveAttribute("data-camera-source-stage", "hardware");
+
+  await setStage(page, "space");
+  await expect(workspace).toHaveAttribute("data-camera-state", "overview");
+  await expect(workspace).toHaveAttribute("data-camera-profile", "overview");
+  await expect(workspace).toHaveAttribute("data-camera-source-section", "");
+  await expectFullModelFit(page, "Space after hardware focus");
+
+  const viewer = page.locator("[data-3d-viewer]");
+  const beforeReset = await page.locator("[data-bookcase-builder]").evaluate((host) => ({
+    theta: host.__bookcaseConfigurator.viewer.theta,
+    cancellations: host.__bookcaseConfigurator.viewer.cameraTransitionCancellationCount
+  }));
+  expect(Math.abs(beforeReset.theta)).toBeGreaterThan(0.05);
+  await viewer.focus();
+  await viewer.press("0");
+  await waitForCamera(page);
+  await expect(workspace).toHaveAttribute("data-camera-state", "user-controlled");
+  const afterReset = await page.locator("[data-bookcase-builder]").evaluate((host) => ({
+    theta: host.__bookcaseConfigurator.viewer.theta,
+    cancellations: host.__bookcaseConfigurator.viewer.cameraTransitionCancellationCount
+  }));
+  expect(Math.abs(afterReset.theta)).toBeLessThan(0.01);
+  expect(afterReset.cancellations).toBe(beforeReset.cancellations);
+
+  await viewer.focus();
+  await viewer.press("ArrowRight");
+  await expect(workspace).toHaveAttribute("data-camera-state", "user-controlled");
+  await setStage(page, "preview");
+  await expect(workspace).toHaveAttribute("data-camera-state", "overview");
+  await expect(workspace).toHaveAttribute("data-camera-profile", "preview");
+  await expectFullModelFit(page, "Preview after manual camera");
+
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await waitForCamera(page);
+  await expect(workspace).toHaveAttribute("data-camera-state", "overview");
+  await expect(workspace).toHaveAttribute("data-camera-profile", "preview");
+  await auditWorkspaceGeometry(page, "Preview after iPad resize");
+  await expectFullModelFit(page, "Preview after iPad resize");
   expect(runtimeIssues).toEqual([]);
 });
 
-test("six projected clear-width labels remain collision-free on narrow mobile", async ({ page }) => {
-  const runtimeIssues = monitorRuntime(page);
-  await page.setViewportSize({ width: 390, height: 844 });
-  await openWorkspace(page);
-  await page.locator('[data-workspace-stage="space"]').click();
-  await page.locator('[data-properties-inspector] input[type="number"][data-field="width"]').fill("132");
-  await expect.poll(async () => Number(await page.locator('[data-builder-form]').getAttribute('data-diagnostic-configuration').then((value) => JSON.parse(value || '{}').width))).toBe(132);
-  await page.locator('[data-workspace-stage="layout"]').click();
-  await addSection(page);
-  await addSection(page);
-  await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(6);
-  await expect(page.locator("[data-overlay-section]")).toHaveCount(6);
+test.describe("touch tablet workspace", () => {
+  test.use({ hasTouch: true });
 
-  for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 800 }]) {
-    await page.setViewportSize(viewport);
-    await settleFrames(page);
-    const audit = await page.locator("[data-section-overlay]").evaluate((overlay) => {
-      const labels = Array.from(overlay.querySelectorAll("[data-overlay-section] .dimension-label"))
-        .map((label) => {
-          const rect = label.getBoundingClientRect();
-          return { left: rect.left, right: rect.right, width: rect.width, visible: rect.width > 0 && rect.height > 0 };
-        });
-      return {
-        labels,
-        collisionState: overlay.dataset.labelCollision,
-        canvasCount: overlay.closest("[data-3d-viewer]")?.querySelectorAll("canvas").length || 0,
-        pageOverflow: Math.max(0, document.documentElement.scrollWidth - window.innerWidth)
-      };
-    });
-    expect(audit.canvasCount).toBe(1);
-    expect(audit.pageOverflow).toBeLessThanOrEqual(1);
-    expect(audit.labels).toHaveLength(6);
-    audit.labels.forEach((label) => expect(label.visible).toBe(true));
-    for (let index = 0; index < audit.labels.length - 1; index += 1) {
-      expect(
-        audit.labels[index].right,
-        `${viewport.width}x${viewport.height} label ${index + 1} must not overlap label ${index + 2}`
-      ).toBeLessThanOrEqual(audit.labels[index + 1].left + 0.5);
+  test("six-section organizer keeps touch actions, content, and grid keyboard movement usable", async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await openWorkspace(page);
+    expect(await page.evaluate(() => matchMedia("(pointer: coarse)").matches)).toBe(true);
+    await setStage(page, "layout");
+    await setSectionCount(page, 6);
+    await auditWorkspaceGeometry(page, "touch landscape six sections");
+
+    const firstSection = page.locator('[data-section-select="0"]');
+    await firstSection.focus();
+    await firstSection.press("ArrowDown");
+    await expect(page.locator('[data-section-select="3"]')).toHaveAttribute("aria-pressed", "true");
+    const selectedActions = page.locator("[data-section-card].is-selected .workspace-section-card-actions button:visible");
+    await expect(selectedActions).toHaveCount(2);
+    for (const action of await selectedActions.all()) {
+      const box = await action.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(40);
+      expect(box?.height).toBeGreaterThanOrEqual(40);
     }
-    expect(audit.collisionState).toBe("false");
-    expect(runtimeIssues).toEqual([]);
-  }
+
+    await page.setViewportSize({ width: 768, height: 1024 });
+    await waitForCamera(page);
+    await auditWorkspaceGeometry(page, "touch portrait six sections");
+    await expect(page.locator("[data-workspace-stage]"), "all icon-only stages stay named").toHaveCount(8);
+    for (const stage of await page.locator("[data-workspace-stage]").all()) {
+      await expect(stage).toHaveAttribute("aria-label", /\S/);
+    }
+
+    await setSectionCount(page, 4);
+    await auditWorkspaceGeometry(page, "touch portrait four sections");
+    const fourSectionCards = await page.locator("[data-section-card]").evaluateAll((cards) => cards.map((card) => {
+      const cardBounds = card.getBoundingClientRect();
+      const contained = (element) => {
+        const bounds = element.getBoundingClientRect();
+        return bounds.left >= cardBounds.left - 1
+          && bounds.right <= cardBounds.right + 1
+          && bounds.top >= cardBounds.top - 1
+          && bounds.bottom <= cardBounds.bottom + 1;
+      };
+      const content = [...card.querySelectorAll(
+        ".workspace-section-thumbnail, .workspace-section-card-main > span:not(.workspace-section-thumbnail)"
+      )];
+      const labels = [...card.querySelectorAll(
+        ".workspace-section-card-main strong, .workspace-section-card-main small"
+      )];
+      return {
+        childContentContained: content.every(contained),
+        labelsContained: labels.every(contained),
+        labelsUnclipped: labels.every((label) => (
+          label.scrollWidth <= label.clientWidth + 1 && label.scrollHeight <= label.clientHeight + 1
+        ))
+      };
+    }));
+    expect(fourSectionCards, "touch portrait four-section card count").toHaveLength(4);
+    expect(
+      fourSectionCards.every(({ childContentContained }) => childContentContained),
+      "touch portrait four-section child content containment"
+    ).toBe(true);
+    expect(
+      fourSectionCards.every(({ labelsContained, labelsUnclipped }) => labelsContained && labelsUnclipped),
+      "touch portrait four-section label containment"
+    ).toBe(true);
+  });
+});
+
+test("accepted iPad workspace has no WCAG A/AA violations", async ({ page }) => {
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await openWorkspace(page);
+  const results = await new AxeBuilder({ page })
+    .include("[data-configurator-workspace]")
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  expect(formatViolations(results.violations)).toEqual([]);
 });

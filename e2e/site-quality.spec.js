@@ -310,7 +310,7 @@ test("configurator chrome stays separated at tablet and short-landscape breakpoi
     expect(layout.modelInspectorOverlap, `${viewport.mode} model and Properties inspector overlap`).toBeLessThanOrEqual(1);
 
     if (viewport.mode === "short-landscape") {
-      expect(layout.pageScrolls).toBe(true);
+      expect(layout.pageScrolls).toBe(false);
       for (const button of layout.visibleButtons) {
         expect(button.left).toBeGreaterThanOrEqual(layout.model.left);
         expect(button.right).toBeLessThanOrEqual(layout.model.right);

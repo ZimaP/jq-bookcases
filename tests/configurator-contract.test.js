@@ -120,7 +120,7 @@ test("one delegated action path owns Save Design and Request Quote", () => {
 
 test("one accepted edit pipeline serves inspector and contextual edits after the explicit studio commit", () => {
   assert.equal((source.match(/update\(nextState, options = \{\}\) \{/g) || []).length, 1);
-  assert.equal((source.match(/this\.viewer\.update\(state, evaluation\.layout\)/g) || []).length, 1);
+  assert.equal((source.match(/this\.viewer\.update\(state, evaluation\.layout, changedFields\)/g) || []).length, 1);
   assert.match(source, /const evaluation = evaluateBookcaseCandidate\(nextState\)/);
   const entryCommit = methodBody("acceptStudioDesign", "initializeCabinetAr");
   assert.match(entryCommit, /evaluateBookcaseCandidate\(config\)/);
@@ -261,7 +261,7 @@ test("the organizer projects accepted sections and the width card reports canoni
 test("rejected engine and renderer candidates cannot replace accepted state or pricing", () => {
   const update = methodBody("update", "renderDoorOptions");
   const engineRejection = update.indexOf("if (!evaluation.accepted)");
-  const viewerCommit = update.indexOf("this.viewer.update(state, evaluation.layout)");
+  const viewerCommit = update.indexOf("this.viewer.update(state, evaluation.layout, changedFields)");
   const rendererRejection = update.indexOf("if (rendered === false)");
   const acceptedCommit = update.indexOf("this.acceptedEvaluation = committedEvaluation");
 
@@ -665,7 +665,8 @@ test("profile camera focus waits for updated geometry and replaces queued focus 
 
   const fieldFocus = methodBody("focusCameraForField", "requestProfileCameraFocus");
   assert.match(fieldFocus, /focusCameraForField\(fieldName, options = \{\}\)/);
-  assert.match(fieldFocus, /this\.viewer\.focus\(profile, options\)/);
+  assert.match(fieldFocus, /this\.dispatchCameraIntent\(\{[\s\S]*type: "field-focus"/);
+  assert.match(fieldFocus, /profile,[\s\S]*transient: true/);
 
   const request = methodBody("requestProfileCameraFocus", "cancelQueuedProfileFocus");
   assert.ok(request.indexOf("this.cancelQueuedProfileFocus()") < request.indexOf("window.requestAnimationFrame"));
@@ -748,7 +749,12 @@ test("smart camera transitions replace stale work and use one on-demand render s
 
   assert.match(source, /shortestAngleDelta\(this\.theta, pose\.theta\)/);
   assert.match(source, /setProductLightingBoost\(normalizedKey === "lighting" \? 2\.35 : 1\)/);
-  assert.match(source, /this\.viewer\.focus\(wasOpen \? "overview"/);
+  assert.match(source, /resolveCameraIntent/);
+  assert.match(source, /type: "stage-change"/);
+  assert.match(source, /type: "manual-interaction"/);
+  assert.match(source, /type: "viewport-change"/);
+  assert.match(source, /dataset\.cameraState/);
+  assert.match(source, /dataset\.cameraProfile/);
   const categoryToggle = methodBody("toggleInspectorGroup", "activateSectionDesigner");
   assert.doesNotMatch(categoryToggle, /this\.viewer\.setView/);
 });
@@ -819,14 +825,10 @@ test("AR is a single left-rail action while estimate, Save, and Quote stay in th
   assert.doesNotMatch(shell, /cabinet-ar-launch|AR View in Your Room|See this bookcase at true scale/);
 });
 
-test("the left-rail AR action compacts with the horizontal tablet and phone stage navigation", () => {
+test("the left-rail AR action remains part of the workspace at compact sizes", () => {
   assert.match(
     css,
     /\.reference-workspace \.workspace-ar-card \{[\s\S]*?margin-top: 0;[\s\S]*?background: #fff;/
-  );
-  assert.match(
-    css,
-    /@media \(max-width: 1200px\)[\s\S]*?\.reference-workspace \.workspace-stage-rail \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) 176px;[\s\S]*?\.reference-workspace \.workspace-ar-card \{[\s\S]*?margin: 0;/
   );
   assert.match(
     css,
@@ -882,12 +884,16 @@ test("viewer controls remain enabled after focus and preserve browser zoom short
     assert.match(controls, new RegExp(`addEventListener\\("${eventName}"`));
   }
   assert.match(controls, /this\.cancelCameraTransition\(\)/);
+  assert.match(controls, /this\.onCameraInteraction\("gesture-start"/);
   assert.match(controls, /pointerId: event\.pointerId/);
   assert.match(controls, /event\.pointerId !== this\.drag\.pointerId/);
   assert.match(controls, /event\.isPrimary === false \|\| this\.drag/);
   assert.match(controls, /if \(event\.ctrlKey \|\| event\.metaKey\) return;/);
   assert.match(controls, /addEventListener\("wheel"[\s\S]*event\.preventDefault\(\)/);
   assert.match(controls, /addEventListener\("keydown"[\s\S]*event\.ctrlKey \|\| event\.metaKey/);
+  assert.match(controls, /addEventListener\("visibilitychange"/);
+  assert.match(controls, /addEventListener\("blur"/);
+  assert.match(source, /finishPointerDrag\([\s\S]*releasePointerCapture/);
   assert.match(source, /controlsEnabled: !this\.destroyed/);
 });
 
@@ -917,15 +923,15 @@ test("legacy dual-sidebar handlers and DOM-scanning state reconstruction are gon
   ]) assert.doesNotMatch(source, new RegExp(retired));
 });
 
-test("responsive presentation covers desktop, tablet, mobile, touch scrolling, and reduced motion", () => {
+test("responsive presentation preserves the three-surface workspace without obsolete tablet scrollers", () => {
   assert.match(css, /\.reference-workspace \{[\s\S]*grid-template-columns: var\(--workspace-rail-width\) minmax\(0, 1fr\) var\(--workspace-properties-width\);/);
   assert.match(css, /\.reference-workspace \.workspace-stage-list \{[\s\S]*grid-template-rows: repeat\(8, minmax\(60px, 1fr\)\);/);
-  for (const breakpoint of ["1200px", "767px"]) assert.match(css, new RegExp(`@media \\(max-width: ${breakpoint}\\)`));
-  assert.match(css, /@media \(max-width: 1200px\)[\s\S]*\.reference-workspace \.workspace-stage-list \{[\s\S]*display: flex;[\s\S]*overflow-x: auto;/);
-  assert.match(css, /@media \(max-width: 1200px\)[\s\S]*\.reference-workspace \.workspace-properties \{[\s\S]*grid-row: 4;[\s\S]*overflow-y: auto;[\s\S]*border-radius: 18px 18px 0 0;/);
+  assert.match(css, /@media \(max-width: 767px\)/);
+  assert.doesNotMatch(css, /@media \(max-width: 1200px\)\s*\{[\s\S]*?\.reference-workspace \.workspace-properties \{[^}]*grid-row:\s*4;[^}]*overflow-y:\s*auto;/);
+  assert.doesNotMatch(css, /\.reference-workspace \.workspace-section-cards \{[^}]*overflow-x:\s*auto;/);
+  assert.match(css, /\.reference-workspace \.workspace-properties-panel \{[^}]*overflow:\s*hidden;/);
   assert.match(precisionCss, /\.reference-workspace \.workspace-viewer-room > \.viewer-stage > canvas \{[\s\S]*touch-action: none;/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.reference-workspace \*/);
-  assert.match(css, /@media \(max-width: 1200px\)[\s\S]*\.reference-workspace > \.workspace-estimate-bar \{[\s\S]*position: sticky;[\s\S]*bottom: 0;/);
 });
 
 test("reference-workspace controls use a scoped contrasting focus ring and accessible touch targets", () => {
@@ -941,8 +947,8 @@ test("reference-workspace controls use a scoped contrasting focus ring and acces
 });
 
 test("the phone layout keeps the viewer persistent and presents Properties as the only contained sheet", () => {
-  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \{[\s\S]*grid-template-rows: auto clamp\(330px, 48dvh, 410px\) 118px auto var\(--workspace-footer-height\);/);
-  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \.workspace-properties \{[\s\S]*max-height: 64dvh;[\s\S]*grid-row: 4;/);
+  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \{[\s\S]*height: 100%;[\s\S]*grid-template-rows: 56px minmax\(0, 1fr\) var\(--workspace-organizer-height\) clamp\(210px, 38dvh, 300px\) var\(--workspace-footer-height\);/);
+  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \.workspace-properties \{[\s\S]*height: 100%;[\s\S]*grid-row: 4;[\s\S]*overflow: hidden;/);
   assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \.workspace-model \{[\s\S]*grid-template-rows: 48px minmax\(0, 1fr\);/);
   assert.match(precisionCss, /\.reference-workspace :is\([\s\S]*\.configurator-context-editor,[\s\S]*\.configurator-context-leader,[\s\S]*\.preview-control-dock,[\s\S]*\.configurator-model > \.cabinet-ar-launch[\s\S]*\) \{[\s\S]*display: none !important;/);
   const anchor = methodBody("updateContextAnchor", "closeContextEditor");
@@ -951,9 +957,9 @@ test("the phone layout keeps the viewer persistent and presents Properties as th
 });
 
 test("the phone toolbar stays compact while the model remains directly selectable", () => {
-  assert.match(css, /@media \(max-width: 767px\)[\s\S]*min-height: calc\(100dvh - var\(--mobile-header-height, 52px\)\)/);
-  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \.workspace-toolbar-group button \{[\s\S]*min-width: 38px;[\s\S]*min-height: 38px;/);
-  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \.workspace-toolbar-group button b,[\s\S]*\.workspace-display-tools > span \{[\s\S]*display: none;/);
+  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\[data-studio-state="accepted"\] \{[\s\S]*height: 100dvh;[\s\S]*overflow: hidden;/);
+  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \.workspace-toolbar-group button \{[\s\S]*min-width: 40px;[\s\S]*min-height: 40px;/);
+  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \.workspace-toolbar-group button b,[\s\S]*\.workspace-toolbar-group > span \{[\s\S]*display: none;/);
   assert.match(source, /aria-roledescription="interactive 3D configurator"/);
   assert.doesNotMatch(source, /data-configurator-mode|data-mode-panel/);
 });

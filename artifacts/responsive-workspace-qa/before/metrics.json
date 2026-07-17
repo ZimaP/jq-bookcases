@@ -1,0 +1,770 @@
+{
+  "2048x1152": {
+    "viewport": {
+      "width": 2048,
+      "height": 1152
+    },
+    "document": {
+      "scrollWidth": 2048,
+      "clientWidth": 2048,
+      "scrollHeight": 1152,
+      "clientHeight": 1152
+    },
+    "workspace": {
+      "left": 0,
+      "top": 76,
+      "right": 2048,
+      "bottom": 1152,
+      "width": 2048,
+      "height": 1076,
+      "scrollWidth": 2048,
+      "scrollHeight": 1076,
+      "clientWidth": 2048,
+      "clientHeight": 1076
+    },
+    "rail": {
+      "left": 0,
+      "top": 76,
+      "right": 247,
+      "bottom": 1064,
+      "width": 247,
+      "height": 988,
+      "scrollWidth": 246,
+      "scrollHeight": 988,
+      "clientWidth": 246,
+      "clientHeight": 988
+    },
+    "model": {
+      "left": 247,
+      "top": 76,
+      "right": 1700,
+      "bottom": 900,
+      "width": 1453,
+      "height": 824,
+      "scrollWidth": 1453,
+      "scrollHeight": 824,
+      "clientWidth": 1453,
+      "clientHeight": 824
+    },
+    "viewer": {
+      "left": 247,
+      "top": 76,
+      "right": 1700,
+      "bottom": 900,
+      "width": 1453,
+      "height": 824,
+      "scrollWidth": 1453,
+      "scrollHeight": 824,
+      "clientWidth": 1453,
+      "clientHeight": 824
+    },
+    "toolbar": {
+      "left": 275,
+      "top": 98,
+      "right": 1672,
+      "bottom": 140,
+      "width": 1397,
+      "height": 42,
+      "scrollWidth": 1397,
+      "scrollHeight": 42,
+      "clientWidth": 1397,
+      "clientHeight": 42
+    },
+    "properties": {
+      "left": 1700,
+      "top": 98,
+      "right": 2028,
+      "bottom": 900,
+      "width": 328,
+      "height": 802,
+      "scrollWidth": 326,
+      "scrollHeight": 800,
+      "clientWidth": 326,
+      "clientHeight": 800
+    },
+    "propertyPanel": {
+      "left": 1701,
+      "top": 155,
+      "right": 2027,
+      "bottom": 899,
+      "width": 326,
+      "height": 744,
+      "scrollWidth": 315,
+      "scrollHeight": 744,
+      "clientWidth": 315,
+      "clientHeight": 744
+    },
+    "organizer": {
+      "left": 275,
+      "top": 900,
+      "right": 1680,
+      "bottom": 1052,
+      "width": 1405,
+      "height": 152,
+      "scrollWidth": 1403,
+      "scrollHeight": 150,
+      "clientWidth": 1403,
+      "clientHeight": 150
+    },
+    "footer": {
+      "left": 0,
+      "top": 1064,
+      "right": 2048,
+      "bottom": 1152,
+      "width": 2048,
+      "height": 88,
+      "scrollWidth": 2048,
+      "scrollHeight": 87,
+      "clientWidth": 2048,
+      "clientHeight": 87
+    },
+    "sectionCount": 4,
+    "camera": {
+      "state": null,
+      "profile": null,
+      "sourceStage": null,
+      "sourceSection": null
+    },
+    "renderValid": "true"
+  },
+  "1440x900": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "document": {
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "scrollHeight": 900,
+      "clientHeight": 900
+    },
+    "workspace": {
+      "left": 0,
+      "top": 76,
+      "right": 1440,
+      "bottom": 900,
+      "width": 1440,
+      "height": 824,
+      "scrollWidth": 1440,
+      "scrollHeight": 824,
+      "clientWidth": 1440,
+      "clientHeight": 824
+    },
+    "rail": {
+      "left": 0,
+      "top": 76,
+      "right": 247,
+      "bottom": 824,
+      "width": 247,
+      "height": 748,
+      "scrollWidth": 246,
+      "scrollHeight": 748,
+      "clientWidth": 246,
+      "clientHeight": 748
+    },
+    "model": {
+      "left": 247,
+      "top": 76,
+      "right": 1092,
+      "bottom": 692,
+      "width": 845,
+      "height": 616,
+      "scrollWidth": 845,
+      "scrollHeight": 616,
+      "clientWidth": 845,
+      "clientHeight": 616
+    },
+    "viewer": {
+      "left": 247,
+      "top": 76,
+      "right": 1092,
+      "bottom": 692,
+      "width": 845,
+      "height": 616,
+      "scrollWidth": 845,
+      "scrollHeight": 616,
+      "clientWidth": 845,
+      "clientHeight": 616
+    },
+    "toolbar": {
+      "left": 275,
+      "top": 98,
+      "right": 1064,
+      "bottom": 140,
+      "width": 789,
+      "height": 42,
+      "scrollWidth": 789,
+      "scrollHeight": 42,
+      "clientWidth": 789,
+      "clientHeight": 42
+    },
+    "properties": {
+      "left": 1092,
+      "top": 92,
+      "right": 1420,
+      "bottom": 692,
+      "width": 328,
+      "height": 600,
+      "scrollWidth": 326,
+      "scrollHeight": 598,
+      "clientWidth": 326,
+      "clientHeight": 598
+    },
+    "propertyPanel": {
+      "left": 1093,
+      "top": 149,
+      "right": 1419,
+      "bottom": 691,
+      "width": 326,
+      "height": 542,
+      "scrollWidth": 315,
+      "scrollHeight": 542,
+      "clientWidth": 315,
+      "clientHeight": 542
+    },
+    "organizer": {
+      "left": 275,
+      "top": 692,
+      "right": 1072,
+      "bottom": 812,
+      "width": 797,
+      "height": 120,
+      "scrollWidth": 795,
+      "scrollHeight": 118,
+      "clientWidth": 795,
+      "clientHeight": 118
+    },
+    "footer": {
+      "left": 0,
+      "top": 824,
+      "right": 1440,
+      "bottom": 900,
+      "width": 1440,
+      "height": 76,
+      "scrollWidth": 1440,
+      "scrollHeight": 75,
+      "clientWidth": 1440,
+      "clientHeight": 75
+    },
+    "sectionCount": 4,
+    "camera": {
+      "state": null,
+      "profile": null,
+      "sourceStage": null,
+      "sourceSection": null
+    },
+    "renderValid": "true"
+  },
+  "1366x768": {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "document": {
+      "scrollWidth": 1366,
+      "clientWidth": 1366,
+      "scrollHeight": 768,
+      "clientHeight": 768
+    },
+    "workspace": {
+      "left": 0,
+      "top": 76,
+      "right": 1366,
+      "bottom": 768,
+      "width": 1366,
+      "height": 692,
+      "scrollWidth": 1366,
+      "scrollHeight": 692,
+      "clientWidth": 1366,
+      "clientHeight": 692
+    },
+    "rail": {
+      "left": 0,
+      "top": 76,
+      "right": 247,
+      "bottom": 692,
+      "width": 247,
+      "height": 616,
+      "scrollWidth": 246,
+      "scrollHeight": 616,
+      "clientWidth": 246,
+      "clientHeight": 616
+    },
+    "model": {
+      "left": 247,
+      "top": 76,
+      "right": 1018,
+      "bottom": 560,
+      "width": 771,
+      "height": 484,
+      "scrollWidth": 771,
+      "scrollHeight": 484,
+      "clientWidth": 771,
+      "clientHeight": 484
+    },
+    "viewer": {
+      "left": 247,
+      "top": 76,
+      "right": 1018,
+      "bottom": 560,
+      "width": 771,
+      "height": 484,
+      "scrollWidth": 771,
+      "scrollHeight": 496,
+      "clientWidth": 771,
+      "clientHeight": 484
+    },
+    "toolbar": {
+      "left": 275,
+      "top": 98,
+      "right": 990,
+      "bottom": 140,
+      "width": 715,
+      "height": 42,
+      "scrollWidth": 715,
+      "scrollHeight": 42,
+      "clientWidth": 715,
+      "clientHeight": 42
+    },
+    "properties": {
+      "left": 1018,
+      "top": 92,
+      "right": 1346,
+      "bottom": 560,
+      "width": 328,
+      "height": 468,
+      "scrollWidth": 326,
+      "scrollHeight": 466,
+      "clientWidth": 326,
+      "clientHeight": 466
+    },
+    "propertyPanel": {
+      "left": 1019,
+      "top": 149,
+      "right": 1345,
+      "bottom": 559,
+      "width": 326,
+      "height": 410,
+      "scrollWidth": 315,
+      "scrollHeight": 410,
+      "clientWidth": 315,
+      "clientHeight": 410
+    },
+    "organizer": {
+      "left": 275,
+      "top": 560,
+      "right": 998,
+      "bottom": 680,
+      "width": 723,
+      "height": 120,
+      "scrollWidth": 721,
+      "scrollHeight": 118,
+      "clientWidth": 721,
+      "clientHeight": 118
+    },
+    "footer": {
+      "left": 0,
+      "top": 692,
+      "right": 1366,
+      "bottom": 768,
+      "width": 1366,
+      "height": 76,
+      "scrollWidth": 1366,
+      "scrollHeight": 75,
+      "clientWidth": 1366,
+      "clientHeight": 75
+    },
+    "sectionCount": 4,
+    "camera": {
+      "state": null,
+      "profile": null,
+      "sourceStage": null,
+      "sourceSection": null
+    },
+    "renderValid": "true"
+  },
+  "1180x820": {
+    "viewport": {
+      "width": 1180,
+      "height": 820
+    },
+    "document": {
+      "scrollWidth": 1180,
+      "clientWidth": 1180,
+      "scrollHeight": 1215,
+      "clientHeight": 820
+    },
+    "workspace": {
+      "left": 0,
+      "top": 76,
+      "right": 1180,
+      "bottom": 1214.65625,
+      "width": 1180,
+      "height": 1138.65625,
+      "scrollWidth": 1180,
+      "scrollHeight": 1139,
+      "clientWidth": 1180,
+      "clientHeight": 1139
+    },
+    "rail": {
+      "left": 0,
+      "top": 86,
+      "right": 1180,
+      "bottom": 170.78125,
+      "width": 1180,
+      "height": 84.78125,
+      "scrollWidth": 1180,
+      "scrollHeight": 84,
+      "clientWidth": 1180,
+      "clientHeight": 84
+    },
+    "model": {
+      "left": 0,
+      "top": 160.78125,
+      "right": 1180,
+      "bottom": 619.96875,
+      "width": 1180,
+      "height": 459.1875,
+      "scrollWidth": 1180,
+      "scrollHeight": 459,
+      "clientWidth": 1180,
+      "clientHeight": 459
+    },
+    "viewer": {
+      "left": 0,
+      "top": 230.78125,
+      "right": 1180,
+      "bottom": 619.96875,
+      "width": 1180,
+      "height": 389.1875,
+      "scrollWidth": 1180,
+      "scrollHeight": 402,
+      "clientWidth": 1180,
+      "clientHeight": 389
+    },
+    "toolbar": {
+      "left": 0,
+      "top": 160.78125,
+      "right": 1180,
+      "bottom": 230.78125,
+      "width": 1180,
+      "height": 70,
+      "scrollWidth": 1180,
+      "scrollHeight": 70,
+      "clientWidth": 1180,
+      "clientHeight": 70
+    },
+    "properties": {
+      "left": 0,
+      "top": 745.96875,
+      "right": 1180,
+      "bottom": 1138.65625,
+      "width": 1180,
+      "height": 392.6875,
+      "scrollWidth": 1179,
+      "scrollHeight": 391,
+      "clientWidth": 1179,
+      "clientHeight": 391
+    },
+    "propertyPanel": {
+      "left": 0,
+      "top": 814.859375,
+      "right": 1179,
+      "bottom": 1137.65625,
+      "width": 1179,
+      "height": 322.796875,
+      "scrollWidth": 1179,
+      "scrollHeight": 323,
+      "clientWidth": 1179,
+      "clientHeight": 323
+    },
+    "organizer": {
+      "left": 8,
+      "top": 619.96875,
+      "right": 976,
+      "bottom": 737.96875,
+      "width": 968,
+      "height": 118,
+      "scrollWidth": 966,
+      "scrollHeight": 116,
+      "clientWidth": 966,
+      "clientHeight": 116
+    },
+    "footer": {
+      "left": 0,
+      "top": 1138.65625,
+      "right": 1180,
+      "bottom": 1214.65625,
+      "width": 1180,
+      "height": 76,
+      "scrollWidth": 1180,
+      "scrollHeight": 75,
+      "clientWidth": 1180,
+      "clientHeight": 75
+    },
+    "sectionCount": 4,
+    "camera": {
+      "state": null,
+      "profile": null,
+      "sourceStage": null,
+      "sourceSection": null
+    },
+    "renderValid": "true"
+  },
+  "1024x768": {
+    "viewport": {
+      "width": 1024,
+      "height": 768
+    },
+    "document": {
+      "scrollWidth": 1024,
+      "clientWidth": 1024,
+      "scrollHeight": 1186,
+      "clientHeight": 768
+    },
+    "workspace": {
+      "left": 0,
+      "top": 76,
+      "right": 1024,
+      "bottom": 1185.546875,
+      "width": 1024,
+      "height": 1109.546875,
+      "scrollWidth": 1024,
+      "scrollHeight": 1110,
+      "clientWidth": 1024,
+      "clientHeight": 1110
+    },
+    "rail": {
+      "left": 0,
+      "top": 86,
+      "right": 1024,
+      "bottom": 170.78125,
+      "width": 1024,
+      "height": 84.78125,
+      "scrollWidth": 1024,
+      "scrollHeight": 84,
+      "clientWidth": 1024,
+      "clientHeight": 84
+    },
+    "model": {
+      "left": 0,
+      "top": 160.78125,
+      "right": 1024,
+      "bottom": 590.859375,
+      "width": 1024,
+      "height": 430.078125,
+      "scrollWidth": 1024,
+      "scrollHeight": 430,
+      "clientWidth": 1024,
+      "clientHeight": 430
+    },
+    "viewer": {
+      "left": 0,
+      "top": 230.78125,
+      "right": 1024,
+      "bottom": 590.859375,
+      "width": 1024,
+      "height": 360.078125,
+      "scrollWidth": 1024,
+      "scrollHeight": 373,
+      "clientWidth": 1024,
+      "clientHeight": 360
+    },
+    "toolbar": {
+      "left": 0,
+      "top": 160.78125,
+      "right": 1024,
+      "bottom": 230.78125,
+      "width": 1024,
+      "height": 70,
+      "scrollWidth": 1024,
+      "scrollHeight": 70,
+      "clientWidth": 1024,
+      "clientHeight": 70
+    },
+    "properties": {
+      "left": 0,
+      "top": 716.859375,
+      "right": 1024,
+      "bottom": 1109.546875,
+      "width": 1024,
+      "height": 392.6875,
+      "scrollWidth": 1023,
+      "scrollHeight": 391,
+      "clientWidth": 1023,
+      "clientHeight": 391
+    },
+    "propertyPanel": {
+      "left": 0,
+      "top": 785.75,
+      "right": 1023,
+      "bottom": 1108.546875,
+      "width": 1023,
+      "height": 322.796875,
+      "scrollWidth": 1023,
+      "scrollHeight": 323,
+      "clientWidth": 1023,
+      "clientHeight": 323
+    },
+    "organizer": {
+      "left": 8,
+      "top": 590.859375,
+      "right": 820,
+      "bottom": 708.859375,
+      "width": 812,
+      "height": 118,
+      "scrollWidth": 810,
+      "scrollHeight": 116,
+      "clientWidth": 810,
+      "clientHeight": 116
+    },
+    "footer": {
+      "left": 0,
+      "top": 1109.546875,
+      "right": 1024,
+      "bottom": 1185.546875,
+      "width": 1024,
+      "height": 76,
+      "scrollWidth": 1024,
+      "scrollHeight": 75,
+      "clientWidth": 1024,
+      "clientHeight": 75
+    },
+    "sectionCount": 4,
+    "camera": {
+      "state": null,
+      "profile": null,
+      "sourceStage": null,
+      "sourceSection": null
+    },
+    "renderValid": "true"
+  },
+  "820x1180": {
+    "viewport": {
+      "width": 820,
+      "height": 1180
+    },
+    "document": {
+      "scrollWidth": 820,
+      "clientWidth": 820,
+      "scrollHeight": 1365,
+      "clientHeight": 1180
+    },
+    "workspace": {
+      "left": 0,
+      "top": 76,
+      "right": 820,
+      "bottom": 1365.46875,
+      "width": 820,
+      "height": 1289.46875,
+      "scrollWidth": 820,
+      "scrollHeight": 1289,
+      "clientWidth": 820,
+      "clientHeight": 1289
+    },
+    "rail": {
+      "left": 0,
+      "top": 86,
+      "right": 820,
+      "bottom": 170.78125,
+      "width": 820,
+      "height": 84.78125,
+      "scrollWidth": 820,
+      "scrollHeight": 84,
+      "clientWidth": 820,
+      "clientHeight": 84
+    },
+    "model": {
+      "left": 0,
+      "top": 160.78125,
+      "right": 820,
+      "bottom": 770.78125,
+      "width": 820,
+      "height": 610,
+      "scrollWidth": 820,
+      "scrollHeight": 610,
+      "clientWidth": 820,
+      "clientHeight": 610
+    },
+    "viewer": {
+      "left": 0,
+      "top": 230.78125,
+      "right": 820,
+      "bottom": 770.78125,
+      "width": 820,
+      "height": 540,
+      "scrollWidth": 820,
+      "scrollHeight": 545,
+      "clientWidth": 820,
+      "clientHeight": 540
+    },
+    "toolbar": {
+      "left": 0,
+      "top": 160.78125,
+      "right": 820,
+      "bottom": 230.78125,
+      "width": 820,
+      "height": 70,
+      "scrollWidth": 820,
+      "scrollHeight": 70,
+      "clientWidth": 820,
+      "clientHeight": 70
+    },
+    "properties": {
+      "left": 0,
+      "top": 896.78125,
+      "right": 820,
+      "bottom": 1289.46875,
+      "width": 820,
+      "height": 392.6875,
+      "scrollWidth": 819,
+      "scrollHeight": 391,
+      "clientWidth": 819,
+      "clientHeight": 391
+    },
+    "propertyPanel": {
+      "left": 0,
+      "top": 965.671875,
+      "right": 819,
+      "bottom": 1288.46875,
+      "width": 819,
+      "height": 322.796875,
+      "scrollWidth": 819,
+      "scrollHeight": 323,
+      "clientWidth": 819,
+      "clientHeight": 323
+    },
+    "organizer": {
+      "left": 8,
+      "top": 770.78125,
+      "right": 616,
+      "bottom": 888.78125,
+      "width": 608,
+      "height": 118,
+      "scrollWidth": 606,
+      "scrollHeight": 116,
+      "clientWidth": 606,
+      "clientHeight": 116
+    },
+    "footer": {
+      "left": 0,
+      "top": 1289.46875,
+      "right": 820,
+      "bottom": 1365.46875,
+      "width": 820,
+      "height": 76,
+      "scrollWidth": 820,
+      "scrollHeight": 75,
+      "clientWidth": 820,
+      "clientHeight": 75
+    },
+    "sectionCount": 4,
+    "camera": {
+      "state": null,
+      "profile": null,
+      "sourceStage": null,
+      "sourceSection": null
+    },
+    "renderValid": "true"
+  }
+}

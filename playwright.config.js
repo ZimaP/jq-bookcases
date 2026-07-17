@@ -57,7 +57,7 @@ export default defineConfig({
     },
     {
       name: "webkit",
-      testMatch: /cross-browser-smoke\.spec\.js/,
+      testMatch: /(?:cross-browser-smoke|configurator-viewport-matrix)\.spec\.js/,
       use: { ...devices["Desktop Safari"] }
     }
   ],

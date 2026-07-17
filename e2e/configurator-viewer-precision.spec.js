@@ -245,7 +245,7 @@ test("divider drag keeps the captured handle, previews without pricing, then com
   expect(during.priceCalculationCount).toBe(before.priceCalculationCount);
   expect(during.acceptedWidths).toEqual(before.widths);
   expect(during.previewWidths).not.toEqual(before.widths);
-  expect(during.label).toMatch(/ in$/);
+  expect(during.label).toMatch(/(?: in|″)$/);
 
   await page.mouse.up();
   await expect.poll(() => page.locator("[data-bookcase-builder]").evaluate((host) => (
@@ -269,8 +269,35 @@ test("divider drag keeps the captured handle, previews without pricing, then com
   expect(after.activeDrag).toBe(false);
   expect(after.canvasCount).toBe(1);
   expect(after.canvasIdentity).toBe("persistent-viewer-canvas");
-  expectExactCamera(after.view, before.view);
+  const shell = page.locator("[data-builder-form]");
+  await expect(shell).toHaveAttribute("data-camera-state", "section-context");
+  await expect(shell).toHaveAttribute("data-camera-profile", "section");
+  await expect(shell).toHaveAttribute("data-camera-source-stage", "layout");
+  await expect(shell).toHaveAttribute("data-camera-source-section", "0");
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
+
+  const interruptedHandle = page.locator('[data-section-divider="0"]');
+  const interruptedBox = await interruptedHandle.boundingBox();
+  expect(interruptedBox).not.toBeNull();
+  await page.mouse.move(interruptedBox.x + interruptedBox.width / 2, interruptedBox.y + interruptedBox.height - 18);
+  await page.mouse.down();
+  await expect.poll(() => page.locator("[data-bookcase-builder]").evaluate((host) => (
+    Boolean(host.__bookcaseConfigurator.activeSectionDividerDrag)
+  ))).toBe(true);
+  const interrupted = await page.locator("[data-bookcase-builder]").evaluate((host) => {
+    const controller = host.__bookcaseConfigurator;
+    const drag = controller.activeSectionDividerDrag;
+    window.dispatchEvent(new Event("blur"));
+    return {
+      activeDrag: Boolean(controller.activeSectionDividerDrag),
+      retainedCapture: Boolean(drag?.handle?.hasPointerCapture?.(drag.pointerId)),
+      cameraState: controller.cameraIntentState?.cameraState
+    };
+  });
+  await page.mouse.up();
+  expect(interrupted.activeDrag).toBe(false);
+  expect(interrupted.retainedCapture).toBe(false);
+  expect(interrupted.cameraState).not.toBe("transitioning");
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -305,18 +332,20 @@ test("Layout precision inputs, keyboard dividers, and workspace section operatio
 
   const divider = page.locator('[data-section-divider="0"]');
   const beforeKeyboard = await host.evaluate((root) => ({
-    widths: root.__bookcaseConfigurator.layout.metrics.sectionClearWidths.slice(),
-    view: root.__bookcaseConfigurator.viewer.getViewState()
+    widths: root.__bookcaseConfigurator.layout.metrics.sectionClearWidths.slice()
   }));
   await divider.focus();
   await divider.press("ArrowRight");
+  const shell = page.locator("[data-builder-form]");
+  await expect(shell).toHaveAttribute("data-camera-state", "section-context");
+  await expect(shell).toHaveAttribute("data-camera-profile", "section");
+  await expect(shell).toHaveAttribute("data-camera-source-stage", "layout");
+  await expect(shell).toHaveAttribute("data-camera-source-section", "0");
   const afterKeyboard = await host.evaluate((root) => ({
-    widths: root.__bookcaseConfigurator.layout.metrics.sectionClearWidths.slice(),
-    view: root.__bookcaseConfigurator.viewer.getViewState()
+    widths: root.__bookcaseConfigurator.layout.metrics.sectionClearWidths.slice()
   }));
   expect(afterKeyboard.widths).not.toEqual(beforeKeyboard.widths);
   expect(afterKeyboard.widths.slice(2)).toEqual(beforeKeyboard.widths.slice(2));
-  expectExactCamera(afterKeyboard.view, beforeKeyboard.view);
 
   const initialSectionCount = await page.locator("[data-section-select]").count();
   expect(initialSectionCount).toBeGreaterThan(3);

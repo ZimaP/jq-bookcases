@@ -2,12 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  CAMERA_INTENT_STATES,
   PROFILE_CAMERA_DURATION,
   PROFILE_CAMERA_KEYS,
   calculateBoundsCameraPose,
   calculateProfileCameraPose,
+  createCameraIntentState,
   createProfileFocusRegion,
   isProfileCameraKey,
+  resolveCameraIntent,
   resolveCameraTransitionDuration
 } from "../profile-camera.js";
 
@@ -40,6 +43,121 @@ test("camera duration honors reduced motion and clamps normal transitions", () =
   assert.equal(resolveCameraTransitionDuration(100, false), 320);
   assert.equal(resolveCameraTransitionDuration(1200, false), 900);
   assert.equal(resolveCameraTransitionDuration(0, false), 0);
+});
+
+test("camera intent maps every workspace stage to a fresh deterministic baseline", () => {
+  let state = createCameraIntentState({ sourceStage: "layout", modelGeneration: 4 });
+  const expected = {
+    space: [CAMERA_INTENT_STATES.overview, "overview", "model"],
+    layout: [CAMERA_INTENT_STATES.overview, "overview", "model"],
+    storage: [CAMERA_INTENT_STATES.overview, "overview", "model"],
+    base_top: [CAMERA_INTENT_STATES.overview, "overview", "model"],
+    hardware: [CAMERA_INTENT_STATES.overview, "overview", "model"],
+    finish: [CAMERA_INTENT_STATES.overview, "finish", "model"],
+    preview: [CAMERA_INTENT_STATES.overview, "preview", "model"],
+    lighting: [CAMERA_INTENT_STATES.overview, "lighting", "model"]
+  };
+  for (const [stage, [settledState, profile, targetKind]] of Object.entries(expected)) {
+    const resolution = resolveCameraIntent(state, { type: "stage-change", stage, sectionIndex: 2, modelGeneration: 4 });
+    assert.equal(resolution.state.settledState, settledState);
+    assert.equal(resolution.state.profile, profile);
+    assert.equal(resolution.state.targetKind, targetKind);
+    assert.equal(resolution.state.sourceStage, stage);
+    assert.equal(resolution.state.sourceSectionIndex, null);
+    assert.ok(resolution.state.intentGeneration > state.intentGeneration);
+    state = resolution.state;
+  }
+});
+
+test("section changes invalidate detail focus and direct component selections create transient detail", () => {
+  const initial = createCameraIntentState({ sourceStage: "storage", modelGeneration: 3 });
+  const detail = resolveCameraIntent(initial, {
+    type: "selection-change",
+    stage: "storage",
+    modelGeneration: 3,
+    selection: { kind: "front", componentId: "door-2", sectionIndex: 1 }
+  });
+  assert.equal(detail.state.settledState, CAMERA_INTENT_STATES.detailFocus);
+  assert.equal(detail.state.profile, "doors");
+  assert.equal(detail.state.targetComponentId, "door-2");
+  assert.equal(detail.state.transient, true);
+
+  const section = resolveCameraIntent(detail.state, {
+    type: "section-change",
+    stage: "layout",
+    sectionIndex: 0,
+    modelGeneration: 3
+  });
+  assert.equal(section.state.settledState, CAMERA_INTENT_STATES.sectionContext);
+  assert.equal(section.state.profile, "section");
+  assert.equal(section.state.targetComponentId, null);
+  assert.equal(section.state.sourceSectionIndex, 0);
+});
+
+test("manual camera control cancels policy ownership and stale completions cannot settle newer intent", () => {
+  const staged = resolveCameraIntent(createCameraIntentState(), {
+    type: "stage-change",
+    stage: "preview",
+    modelGeneration: 1
+  });
+  const manual = resolveCameraIntent(staged.state, { type: "manual-interaction", modelGeneration: 2 });
+  assert.equal(manual.state.cameraState, CAMERA_INTENT_STATES.userControlled);
+  assert.equal(manual.state.targetKind, "user");
+  assert.equal(manual.state.modelGeneration, 2);
+  assert.equal(manual.command, null);
+
+  const stale = resolveCameraIntent(manual.state, {
+    type: "transition-complete",
+    intentGeneration: staged.state.intentGeneration,
+    modelGeneration: 1
+  });
+  assert.deepEqual(stale.state, manual.state);
+  assert.equal(stale.state.cameraState, CAMERA_INTENT_STATES.userControlled);
+});
+
+test("non-envelope model generations preserve a user-controlled camera without issuing a refit", () => {
+  const manual = resolveCameraIntent(createCameraIntentState({ modelGeneration: 4 }), {
+    type: "manual-interaction",
+    modelGeneration: 4
+  });
+  const rebuilt = resolveCameraIntent(manual.state, {
+    type: "model-change",
+    stage: "hardware",
+    modelGeneration: 5,
+    targetValid: true,
+    preserveUserPose: true
+  });
+
+  assert.equal(rebuilt.state.cameraState, CAMERA_INTENT_STATES.userControlled);
+  assert.equal(rebuilt.state.settledState, CAMERA_INTENT_STATES.userControlled);
+  assert.equal(rebuilt.state.targetKind, "user");
+  assert.equal(rebuilt.state.modelGeneration, 5);
+  assert.ok(rebuilt.state.intentGeneration > manual.state.intentGeneration);
+  assert.equal(rebuilt.command, null);
+});
+
+test("model generations invalidate missing targets and viewport changes reissue the current intent", () => {
+  const detail = resolveCameraIntent(createCameraIntentState({ modelGeneration: 2 }), {
+    type: "selection-change",
+    stage: "hardware",
+    modelGeneration: 2,
+    selection: { kind: "hardware", componentId: "handle-old", sectionIndex: 1 }
+  });
+  const rebuilt = resolveCameraIntent(detail.state, {
+    type: "model-change",
+    stage: "hardware",
+    sectionIndex: 1,
+    targetValid: false,
+    modelGeneration: 3
+  });
+  assert.equal(rebuilt.state.profile, "overview");
+  assert.equal(rebuilt.state.targetKind, "model");
+  assert.equal(rebuilt.state.modelGeneration, 3);
+
+  const resized = resolveCameraIntent(rebuilt.state, { type: "viewport-change", modelGeneration: 3 });
+  assert.equal(resized.command.duration, 0);
+  assert.equal(resized.command.profile, "overview");
+  assert.equal(resized.command.modelGeneration, 3);
 });
 
 test("focus regions anchor to the left-front corner and retain the complete return depth", () => {

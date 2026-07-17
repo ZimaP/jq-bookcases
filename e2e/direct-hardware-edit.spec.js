@@ -101,6 +101,12 @@ async function readTransaction(page) {
         previewActive: viewer.previewActive,
         selectedComponentId: viewer.directEditing?.selectedComponentId || null
       },
+      camera: {
+        state: controller.cameraIntentState?.cameraState || null,
+        profile: controller.cameraIntentState?.profile || null,
+        sourceStage: controller.cameraIntentState?.sourceStage || null,
+        sourceSectionIndex: controller.cameraIntentState?.sourceSectionIndex ?? null
+      },
       view: {
         theta: view.theta,
         phi: view.phi,
@@ -188,6 +194,7 @@ test("direct hardware preview is transactional, Apply is exact and partial, and 
   await activateSuppressedQuickControl(quickCard.locator("[data-apply-hardware]"));
   await expect.poll(async () => (await readTransaction(page)).hostSelection?.variantId).toBe(exactVariantId);
   await expect(quickCard).toBeHidden();
+  await expect.poll(async () => (await readTransaction(page)).camera.state).toBe("overview");
 
   const applied = await readTransaction(page);
   expect(applied.updateCount).toBe(before.updateCount + 1);
@@ -196,7 +203,11 @@ test("direct hardware preview is transactional, Apply is exact and partial, and 
   expect(applied.viewer.rebuildCount).toBe(before.viewer.rebuildCount);
   expect(applied.viewer.partialUpdateCount).toBeGreaterThan(preview.viewer.partialUpdateCount);
   expect(applied.canvasIdentity).toBe("persistent-direct-hardware-canvas");
-  expectExactCamera(applied.view, before.view);
+  expect(applied.camera).toMatchObject({
+    state: "overview",
+    profile: "overview",
+    sourceStage: "hardware"
+  });
   expect(applied.hardwareCatalogVersion).toEqual(expect.any(String));
   expect(applied.hostSelection).toMatchObject({
     variantId: exactVariantId,
@@ -335,6 +346,9 @@ test("phone layout keeps the fixed Properties sheet and hardware library bounded
   const propertiesGeometry = await properties.evaluate((panel) => {
     const rect = panel.getBoundingClientRect();
     const style = getComputedStyle(panel);
+    const scroller = panel.querySelector(".workspace-properties-panel");
+    const scrollerRect = scroller.getBoundingClientRect();
+    const scrollerStyle = getComputedStyle(scroller);
     return {
       left: rect.left,
       right: rect.right,
@@ -343,16 +357,22 @@ test("phone layout keeps the fixed Properties sheet and hardware library bounded
       width: rect.width,
       position: style.position,
       overflowY: style.overflowY,
+      scrollerTop: scrollerRect.top,
+      scrollerBottom: scrollerRect.bottom,
+      scrollerOverflowY: scrollerStyle.overflowY,
       documentOverflow: document.documentElement.scrollWidth - window.innerWidth
     };
   });
-  expect(propertiesGeometry.position).toBe("sticky");
+  expect(propertiesGeometry.position).toBe("relative");
   expect(propertiesGeometry.left).toBeGreaterThanOrEqual(-1);
   expect(propertiesGeometry.right).toBeLessThanOrEqual(391);
   expect(propertiesGeometry.top).toBeGreaterThanOrEqual(-1);
   expect(propertiesGeometry.bottom).toBeLessThanOrEqual(845);
   expect(propertiesGeometry.width).toBeLessThanOrEqual(390);
-  expect(propertiesGeometry.overflowY).toBe("auto");
+  expect(propertiesGeometry.overflowY).toBe("hidden");
+  expect(propertiesGeometry.scrollerTop).toBeGreaterThanOrEqual(propertiesGeometry.top);
+  expect(propertiesGeometry.scrollerBottom).toBeLessThanOrEqual(propertiesGeometry.bottom + 1);
+  expect(propertiesGeometry.scrollerOverflowY).toBe("auto");
   expect(propertiesGeometry.documentOverflow).toBeLessThanOrEqual(1);
 
   const library = await openHardwareLibrary(page, builder);

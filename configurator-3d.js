@@ -43,13 +43,16 @@ import {
   splitSection
 } from "./bookcase-sections.js?v=engine-polish-20260716a";
 import {
+  CAMERA_INTENT_STATES,
   PROFILE_CAMERA_DURATION,
   calculateBoundsCameraPose,
   calculateProfileCameraPose,
   calculateViewportAwareTarget,
+  createCameraIntentState,
   isProfileCameraKey,
+  resolveCameraIntent,
   resolveCameraTransitionDuration
-} from "./profile-camera.js?v=engine-polish-20260716a";
+} from "./profile-camera.js?v=workspace-camera-20260716i";
 import {
   BENJAMIN_MOORE_COLOR_DATA_NOTICE,
   BENJAMIN_MOORE_OFFICIAL_COLORS_URL,
@@ -442,6 +445,12 @@ class BookcaseConfigurator {
     this.arControllerPromise = null;
     this.activeRangeDrag = null;
     this.profileFocusFrame = 0;
+    this.cameraIntentFrame = 0;
+    this.pendingCameraIntentCommand = null;
+    this.cameraIntentState = createCameraIntentState({
+      sourceStage: this.activeStageId,
+      sourceSectionIndex: this.selectedSectionIndex
+    });
     this.optionPreview = null;
     this.optionPreviewTimer = 0;
     this.price = this.hasAcceptedDesign ? this.pricing.total : null;
@@ -464,6 +473,12 @@ class BookcaseConfigurator {
       this.viewer.setDimensionsVisible?.(this.showDimensions);
       this.viewer.setWallVisible?.(this.showWall);
       this.setView("front");
+      this.dispatchCameraIntent({
+        type: "stage-change",
+        stage: this.activeStageId,
+        sectionIndex: this.selectedSectionIndex,
+        duration: 0
+      });
       this.verifyRestoredPaintSelection();
       this.emitStudioEvent("studio_entry_bypassed", { source: this.initialSource });
     } else {
@@ -586,12 +601,12 @@ class BookcaseConfigurator {
   createViewer(initialLayout = null) {
     if (!isWebGLAvailable()) return this.createViewerFallback();
     try {
-      return new BookcaseViewer3D(this.elements.viewer, this.state, initialLayout, (interaction) => {
-        if (interaction === "rotate") this.activeView = "custom";
-        if (this.sectionDesignerActive && ["rotate", "zoom"].includes(interaction)) this.sectionDesignerCameraChanged = true;
-        this.syncViewButtons();
-        this.syncDiagnosticsAttributes();
-      });
+      return new BookcaseViewer3D(
+        this.elements.viewer,
+        this.state,
+        initialLayout,
+        (interaction, detail) => this.handleViewerCameraInteraction(interaction, detail)
+      );
     } catch (error) {
       return this.createViewerFallback();
     }
@@ -618,6 +633,10 @@ class BookcaseConfigurator {
       setDimensionsVisible: () => {},
       setWallVisible: () => {},
       resize: () => {},
+      applyCameraIntent: () => false,
+      adoptCameraIntent: () => {},
+      cancelCameraTransition: () => {},
+      getModelGeneration: () => 0,
       getComponentScreenAnchor: () => null,
       getSafeViewport: () => {
         const bounds = this.elements.viewer.getBoundingClientRect();
@@ -646,7 +665,7 @@ class BookcaseConfigurator {
       const active = stage.id === this.activeStageId;
       const icon = builderIcons[stage.icon || stage.id] || builderIcons.layout;
       return `
-        <button type="button" class="workspace-stage${active ? " is-active" : ""}" data-workspace-stage="${escapeHtml(stage.id)}" ${active ? 'aria-current="location"' : ""}>
+        <button type="button" class="workspace-stage${active ? " is-active" : ""}" data-workspace-stage="${escapeHtml(stage.id)}" aria-label="${escapeHtml(`${stage.label}: ${stage.subtitle}`)}" ${active ? 'aria-current="location"' : ""}>
           <span class="workspace-stage-icon" aria-hidden="true">${icon}</span>
           <span class="workspace-stage-copy"><strong>${escapeHtml(stage.label)}</strong><small>${escapeHtml(stage.subtitle)}</small></span>
           <span class="workspace-stage-state" aria-hidden="true">${index + 1}</span>
@@ -966,7 +985,7 @@ class BookcaseConfigurator {
           </header>
           <div class="section-width-input workspace-number-stepper">
             <button type="button" data-section-width-step="-0.5" aria-label="Decrease Section ${selected.index + 1} clear width">${builderIcons.minus}</button>
-            <input id="${this.id}-section-width" data-section-width type="number" min="${designer.minimumClearWidth}" step="0.25" inputmode="decimal" value="${escapeHtml(widthValue)}" aria-describedby="${this.id}-section-width-help ${this.id}-section-width-error">
+            <input id="${this.id}-section-width" data-section-width type="number" min="${designer.minimumClearWidth}" step="0.25" inputmode="decimal" value="${escapeHtml(widthValue)}" aria-labelledby="${this.id}-section-width-label" aria-describedby="${this.id}-section-width-help ${this.id}-section-width-error">
             <button type="button" data-section-width-step="0.5" aria-label="Increase Section ${selected.index + 1} clear width">${builderIcons.plus}</button>
             <span>in</span>
           </div>
@@ -1970,6 +1989,12 @@ class BookcaseConfigurator {
     this.viewer.setDimensionsVisible?.(this.showDimensions);
     this.viewer.setWallVisible?.(this.showWall);
     this.setView("front");
+    this.dispatchCameraIntent({
+      type: "stage-change",
+      stage: this.activeStageId,
+      sectionIndex: this.selectedSectionIndex,
+      duration: 0
+    });
     this.directHardwareEditorPromise = null;
     this.emitStudioEvent("studio_design_accepted", {
       source: this.initialSource,
@@ -2141,7 +2166,6 @@ class BookcaseConfigurator {
     }
     const selection = this.resolveModelSelection(payload);
     if (!selection) return false;
-    const previousSectionIndex = this.selectedSectionIndex;
     this.contextInvoker = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     this.selection = selection;
     this.contextEditorOpen = true;
@@ -2151,13 +2175,17 @@ class BookcaseConfigurator {
     this.activeInspectorTabId = "general";
     this.inspectorGroupCollapsed = false;
     if (Number.isInteger(selection.sectionIndex)) this.selectedSectionIndex = selection.sectionIndex;
-    if (this.selectedSectionIndex !== previousSectionIndex) {
-      this.viewer.setSectionSelection?.(this.selectedSectionIndex);
-      window.requestAnimationFrame(() => this.viewer.focusSection?.(this.selectedSectionIndex));
-    }
+    this.viewer.setSectionSelection?.(this.selectedSectionIndex);
     this.viewer.setSelectedComponent?.(selection.highlightTarget?.componentId || selection.componentId);
     this.renderInspector({ focusGroup: this.activeInspectorGroup });
     this.syncInterface();
+    this.dispatchCameraIntent({
+      type: "selection-change",
+      stage: this.activeStageId,
+      sectionIndex: this.selectedSectionIndex,
+      selection
+    });
+    this.activeView = "custom";
     const announcement = `${selection.title} selected.`;
     if (this.elements.selectionLive) this.elements.selectionLive.textContent = announcement;
     if (selection.source === "keyboard") {
@@ -2196,6 +2224,15 @@ class BookcaseConfigurator {
     if (options.clearViewer !== false) this.viewer.clearDirectSelection?.();
     this.renderInspector();
     this.syncInterface();
+    if (options.camera !== false) {
+      this.dispatchCameraIntent({
+        type: "selection-change",
+        stage: this.activeStageId,
+        sectionIndex: this.selectedSectionIndex,
+        selection: null
+      });
+      this.activeView = "three-quarter";
+    }
     if (options.restoreFocus && this.contextInvoker?.isConnected) this.contextInvoker.focus({ preventScroll: true });
     if (options.announce !== false && this.elements?.selectionLive) this.elements.selectionLive.textContent = "Model selection cleared.";
   }
@@ -2238,6 +2275,14 @@ class BookcaseConfigurator {
       if (this.activeRangeDrag?.range !== event.target) return;
       this.endRangeDrag(event, { applyFinal: false, releaseCapture: false });
     }, { signal });
+    const cancelInterruptedPointerWork = () => {
+      this.cancelSectionDividerDrag();
+      this.endRangeDrag(null, { applyFinal: false });
+    };
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") cancelInterruptedPointerWork();
+    }, { signal });
+    window.addEventListener("blur", cancelInterruptedPointerWork, { signal });
 
     this.host.addEventListener("pointerover", (event) => {
       if (event.pointerType === "touch") return;
@@ -2408,13 +2453,34 @@ class BookcaseConfigurator {
         event.preventDefault();
         const count = getSectionDesignerState(this.state, this.layout).sections.length;
         const current = Number(sectionOption.dataset.sectionSelect);
-        const columns = Math.max(1, getComputedStyle(sectionOption.parentElement).gridTemplateColumns.split(" ").length);
-        const offset = event.key === "ArrowRight" ? 1
-          : event.key === "ArrowLeft" ? -1
-            : event.key === "ArrowDown" ? columns
-              : event.key === "ArrowUp" ? -columns
-                : 0;
-        const next = event.key === "Home" ? 0 : event.key === "End" ? count - 1 : clamp(current + offset, 0, count - 1);
+        let next = event.key === "Home" ? 0 : event.key === "End" ? count - 1 : current;
+        if (["ArrowLeft", "ArrowRight"].includes(event.key)) {
+          next = clamp(current + (event.key === "ArrowRight" ? 1 : -1), 0, count - 1);
+        } else if (["ArrowUp", "ArrowDown"].includes(event.key)) {
+          const container = sectionOption.closest(".workspace-section-cards");
+          const options = [...(container?.querySelectorAll("[data-section-select]") || [])];
+          const rows = [];
+          for (const option of options) {
+            const rect = option.getBoundingClientRect();
+            let row = rows.find((candidate) => Math.abs(candidate.top - rect.top) <= 2);
+            if (!row) {
+              row = { top: rect.top, items: [] };
+              rows.push(row);
+            }
+            row.items.push({ option, center: rect.left + rect.width / 2 });
+          }
+          rows.sort((left, right) => left.top - right.top);
+          const rowIndex = rows.findIndex((row) => row.items.some((item) => item.option === sectionOption));
+          const targetRow = rows[rowIndex + (event.key === "ArrowDown" ? 1 : -1)];
+          if (targetRow) {
+            const currentRect = sectionOption.getBoundingClientRect();
+            const center = currentRect.left + currentRect.width / 2;
+            const target = targetRow.items.reduce((closest, item) => (
+              !closest || Math.abs(item.center - center) < Math.abs(closest.center - center) ? item : closest
+            ), null);
+            next = Number(target?.option.dataset.sectionSelect ?? current);
+          }
+        }
         this.selectSection(next, { openProperties: true, focus: true, ensureFramed: true });
         return;
       }
@@ -2499,12 +2565,14 @@ class BookcaseConfigurator {
     if (target.closest?.("[data-toggle-dimensions]")) {
       this.showDimensions = !this.showDimensions;
       this.viewer.setDimensionsVisible?.(this.showDimensions);
+      this.dispatchCameraIntent({ type: "layout-change", sectionIndex: this.selectedSectionIndex });
       this.syncWorkspaceToolbar();
       return;
     }
     if (target.closest?.("[data-toggle-wall]")) {
       this.showWall = !this.showWall;
       this.viewer.setWallVisible?.(this.showWall);
+      this.dispatchCameraIntent({ type: "layout-change", sectionIndex: this.selectedSectionIndex });
       this.syncWorkspaceToolbar();
       return;
     }
@@ -2699,10 +2767,7 @@ class BookcaseConfigurator {
     }
     if (target.closest?.("[data-reset-view]")) {
       this.cancelQueuedProfileFocus();
-      this.viewer.setView("reset");
-      this.activeView = "three-quarter";
-      this.syncViewButtons();
-      this.syncDiagnosticsAttributes();
+      this.setView("reset");
       this.showStatus("Preview view reset. Your design is unchanged.");
       return;
     }
@@ -2781,19 +2846,10 @@ class BookcaseConfigurator {
 
   activateWorkspaceStage(stageId, options = {}) {
     if (!WORKSPACE_STAGES.some((stage) => stage.id === stageId)) return false;
-    const previousStageId = this.activeStageId;
-    const enteringPreview = stageId === "preview" && previousStageId !== "preview";
-    const leavingPreview = previousStageId === "preview" && stageId !== "preview";
-    if (enteringPreview) {
-      this.previewCameraState = this.viewer.getViewState?.() || null;
-      this.previewActiveView = this.activeView;
-    }
-    const restoreCameraState = leavingPreview ? this.previewCameraState : null;
-    const restoreActiveView = leavingPreview ? this.previewActiveView : null;
-    if (leavingPreview) {
-      this.previewCameraState = null;
-      this.previewActiveView = null;
-    }
+    this.cancelQueuedProfileFocus();
+    this.cancelQueuedCameraIntent();
+    this.endOptionPreview(null, { restore: true });
+    this.viewer.cancelCameraTransition?.();
     this.activeStageId = stageId;
     this.activeInspectorGroup = STAGE_CONTROL_GROUPS[stageId]?.[0] || "overall_size";
     this.activeInspectorTabId = "general";
@@ -2802,24 +2858,15 @@ class BookcaseConfigurator {
     this.viewer.clearDirectSelection?.();
     this.renderInspector({ resetScroll: true });
     this.syncInterface();
-    window.requestAnimationFrame(() => {
-      if (enteringPreview && this.activeStageId === "preview") {
-        this.viewer.fitFullModel?.({ duration: SMART_CAMERA_DURATION });
-        this.activeView = "three-quarter";
-        this.syncViewButtons();
-        this.syncDiagnosticsAttributes();
-      } else if (restoreCameraState && this.activeStageId === stageId) {
-        this.viewer.restoreCameraState?.(restoreCameraState);
-        this.activeView = restoreActiveView || "custom";
-        this.syncViewButtons();
-        this.syncDiagnosticsAttributes();
-      } else if (stageId === "lighting" && previousStageId !== "preview") {
-        this.viewer.focus?.("lighting", { force: true });
-        this.activeView = "custom";
-        this.syncViewButtons();
-        this.syncDiagnosticsAttributes();
-      }
+    this.dispatchCameraIntent({
+      type: "stage-change",
+      stage: stageId,
+      sectionIndex: this.selectedSectionIndex,
+      duration: SMART_CAMERA_DURATION
     });
+    this.activeView = ["lighting"].includes(stageId) ? "custom" : "three-quarter";
+    this.syncViewButtons();
+    this.syncDiagnosticsAttributes();
     if (options.focus !== false) {
       window.requestAnimationFrame(() => this.host.querySelector(`[data-workspace-stage="${stageId}"]`)?.focus({ preventScroll: true }));
     }
@@ -2921,20 +2968,137 @@ class BookcaseConfigurator {
     });
   }
 
+  getCameraModelGeneration() {
+    return Number(this.viewer?.getModelGeneration?.() ?? this.viewer?.modelGeneration ?? 0) || 0;
+  }
+
+  isCameraIntentTargetValid(state = this.cameraIntentState) {
+    if (!state) return true;
+    if (state.targetKind === "section") {
+      return Number.isInteger(state.sourceSectionIndex)
+        && state.sourceSectionIndex >= 0
+        && state.sourceSectionIndex < Number(this.state?.sections || 0);
+    }
+    if (state.targetKind === "detail" && state.targetComponentId) {
+      return Boolean(this.layout?.components?.some((component) => component.id === state.targetComponentId));
+    }
+    return true;
+  }
+
+  dispatchCameraIntent(event, options = {}) {
+    const current = this.cameraIntentState || createCameraIntentState({ sourceStage: this.activeStageId });
+    const resolution = resolveCameraIntent(current, {
+      ...event,
+      stage: event.stage || this.activeStageId,
+      modelGeneration: event.modelGeneration ?? this.getCameraModelGeneration()
+    });
+    this.cameraIntentState = resolution.state;
+    this.viewer?.adoptCameraIntent?.(resolution.state);
+    this.syncCameraIntentAttributes();
+
+    if (!resolution.command) return resolution.state;
+    this.viewer?.cancelCameraTransition?.();
+    this.pendingCameraIntentCommand = resolution.command;
+    if (this.cameraIntentFrame) window.cancelAnimationFrame(this.cameraIntentFrame);
+    const apply = () => {
+      this.cameraIntentFrame = 0;
+      const command = this.pendingCameraIntentCommand;
+      this.pendingCameraIntentCommand = null;
+      if (
+        !command
+        || this.destroyed
+        || command.intentGeneration !== this.cameraIntentState.intentGeneration
+      ) return;
+      const latestModelGeneration = this.getCameraModelGeneration();
+      if (command.modelGeneration !== latestModelGeneration) {
+        this.dispatchCameraIntent({
+          type: "model-change",
+          stage: this.activeStageId,
+          sectionIndex: this.selectedSectionIndex,
+          modelGeneration: latestModelGeneration,
+          targetValid: this.isCameraIntentTargetValid()
+        });
+        return;
+      }
+      const applied = this.viewer?.applyCameraIntent?.(command) === true;
+      if (!applied) {
+        this.dispatchCameraIntent({
+          type: "transition-complete",
+          intentGeneration: command.intentGeneration,
+          modelGeneration: command.modelGeneration
+        });
+      }
+    };
+    if (options.immediate) apply();
+    else this.cameraIntentFrame = window.requestAnimationFrame(apply);
+    return resolution.state;
+  }
+
+  cancelQueuedCameraIntent() {
+    if (this.cameraIntentFrame) window.cancelAnimationFrame(this.cameraIntentFrame);
+    this.cameraIntentFrame = 0;
+    this.pendingCameraIntentCommand = null;
+  }
+
+  handleViewerCameraInteraction(interaction, detail = {}) {
+    if (["gesture-start", "rotate", "pan", "zoom", "reset"].includes(interaction)) {
+      this.activeView = "custom";
+      if (this.sectionDesignerActive) this.sectionDesignerCameraChanged = true;
+      if (this.cameraIntentState?.cameraState !== CAMERA_INTENT_STATES.userControlled) {
+        this.dispatchCameraIntent({ type: "manual-interaction", modelGeneration: detail.modelGeneration });
+      }
+    } else if (interaction === "focus-complete") {
+      this.dispatchCameraIntent({
+        type: "transition-complete",
+        intentGeneration: detail.intentGeneration,
+        modelGeneration: detail.modelGeneration
+      });
+    } else if (interaction === "viewport-change") {
+      this.dispatchCameraIntent({ type: "viewport-change", modelGeneration: detail.modelGeneration });
+    }
+    this.syncViewButtons();
+    this.syncDiagnosticsAttributes();
+  }
+
+  syncCameraIntentAttributes() {
+    const state = this.cameraIntentState || createCameraIntentState({ sourceStage: this.activeStageId });
+    const targets = [this.elements?.shell, this.elements?.viewer].filter(Boolean);
+    for (const target of targets) {
+      target.dataset.cameraState = state.cameraState;
+      target.dataset.cameraProfile = state.profile;
+      target.dataset.cameraSourceStage = state.sourceStage;
+      target.dataset.cameraSourceSection = Number.isInteger(state.sourceSectionIndex)
+        ? String(state.sourceSectionIndex)
+        : "";
+    }
+  }
+
   focusCameraForCurrentContext(options = {}) {
-    if (!this.viewer?.focus) return;
     this.cancelQueuedProfileFocus();
-    const profile = CAMERA_PROFILE_BY_CATEGORY[this.activeInspectorGroup] || "overview";
-    this.viewer.focus(profile, options);
-    this.activeView = profile === "overview" ? "three-quarter" : "custom";
+    this.dispatchCameraIntent({
+      type: "stage-change",
+      stage: this.activeStageId,
+      sectionIndex: this.selectedSectionIndex,
+      duration: options.duration
+    });
+    this.activeView = "three-quarter";
     this.syncViewButtons();
     this.syncDiagnosticsAttributes();
   }
 
   focusCameraForField(fieldName, options = {}) {
     const profile = CAMERA_PROFILE_BY_FIELD[fieldName];
-    if (!profile || !this.viewer?.focus) return;
-    this.viewer.focus(profile, options);
+    if (!profile) return;
+    this.dispatchCameraIntent({
+      type: "field-focus",
+      stage: this.activeStageId,
+      sectionIndex: this.selectedSectionIndex,
+      field: fieldName,
+      value: this.state?.[fieldName],
+      profile,
+      transient: true,
+      duration: options.duration
+    });
     this.activeView = profile === "overview" ? "three-quarter" : "custom";
     this.syncViewButtons();
     this.syncDiagnosticsAttributes();
@@ -2988,7 +3152,15 @@ class BookcaseConfigurator {
     this.optionPreview = null;
     delete this.host.dataset.previewField;
     delete this.host.dataset.previewValue;
-    if (restore) this.viewer.restorePreview(this.state, this.layout);
+    if (restore) {
+      this.viewer.restorePreview(this.state, this.layout);
+      this.dispatchCameraIntent({
+        type: "stage-change",
+        stage: this.activeStageId,
+        sectionIndex: this.selectedSectionIndex,
+        modelGeneration: this.getCameraModelGeneration()
+      });
+    }
     this.syncDiagnosticsAttributes();
   }
 
@@ -3007,8 +3179,11 @@ class BookcaseConfigurator {
       if (icon) icon.innerHTML = open ? builderIcons.minus : builderIcons.plus;
       if (panel) panel.hidden = !open;
     });
-    this.viewer.focus(wasOpen ? "overview" : CAMERA_PROFILE_BY_CATEGORY[normalized] || "overview");
-    this.activeView = "custom";
+    const profile = wasOpen ? "overview" : CAMERA_PROFILE_BY_CATEGORY[normalized] || "overview";
+    this.dispatchCameraIntent(profile === "overview"
+      ? { type: "stage-change", stage: this.activeStageId, sectionIndex: this.selectedSectionIndex }
+      : { type: "field-focus", stage: this.activeStageId, sectionIndex: this.selectedSectionIndex, profile, field: normalized });
+    this.activeView = profile === "overview" ? "three-quarter" : "custom";
     this.syncViewButtons();
     this.syncDiagnosticsAttributes();
   }
@@ -3089,14 +3264,14 @@ class BookcaseConfigurator {
     }
     this.viewer.setSectionSelection?.(this.selectedSectionIndex);
     if (this.selection) this.viewer.setSelectedComponent?.(this.selection.highlightTarget?.componentId || this.selection.componentId);
-    if (options.ensureFramed) {
-      window.requestAnimationFrame(() => {
-        if (this.selectedSectionIndex !== previousSectionIndex || options.forceSectionFocus) {
-          this.viewer.focusSection?.(this.selectedSectionIndex, { force: Boolean(options.forceSectionFocus) });
-        } else if (this.viewer.activeFocusKey !== "section") {
-          this.viewer.ensureModelComfortablyFramed?.();
-        }
+    if (options.ensureFramed || this.selectedSectionIndex !== previousSectionIndex || options.forceSectionFocus) {
+      this.dispatchCameraIntent({
+        type: "section-change",
+        stage: this.activeStageId,
+        sectionIndex: this.selectedSectionIndex,
+        duration: SMART_CAMERA_DURATION
       });
+      this.activeView = "custom";
     }
     if (options.render !== false) {
       this.renderInspector();
@@ -3298,12 +3473,28 @@ class BookcaseConfigurator {
     if (drag.handle.hasPointerCapture?.(event.pointerId)) drag.handle.releasePointerCapture(event.pointerId);
     this.viewer.clearSectionDividerPreview?.();
     if (Math.abs(drag.delta) >= 0.25) this.commitSectionDividerResize(drag.dividerIndex, drag.delta);
+    else this.dispatchCameraIntent({
+      type: "section-change",
+      stage: this.activeStageId,
+      sectionIndex: this.selectedSectionIndex,
+      modelGeneration: this.getCameraModelGeneration(),
+      duration: 0
+    });
   }
 
-  cancelSectionDividerDrag(event) {
-    if (!this.activeSectionDividerDrag || this.activeSectionDividerDrag.pointerId !== event.pointerId) return;
+  cancelSectionDividerDrag(event = null) {
+    const drag = this.activeSectionDividerDrag;
+    if (!drag || (event?.pointerId != null && drag.pointerId !== event.pointerId)) return;
     this.activeSectionDividerDrag = null;
+    if (drag.handle.hasPointerCapture?.(drag.pointerId)) drag.handle.releasePointerCapture(drag.pointerId);
     this.viewer.clearSectionDividerPreview?.();
+    this.dispatchCameraIntent({
+      type: "section-change",
+      stage: this.activeStageId,
+      sectionIndex: this.selectedSectionIndex,
+      modelGeneration: this.getCameraModelGeneration(),
+      duration: 0
+    });
   }
 
   openReviewDialog() {
@@ -3566,7 +3757,11 @@ class BookcaseConfigurator {
 
   setView(view) {
     this.cancelQueuedProfileFocus();
-    this.viewer.setView(view);
+    const intent = this.dispatchCameraIntent({ type: "manual-interaction" });
+    this.viewer.setView(view, {
+      intentGeneration: intent.intentGeneration,
+      modelGeneration: intent.modelGeneration
+    });
     this.activeView = view === "reset" ? "three-quarter" : view;
     this.syncViewButtons();
     this.syncDiagnosticsAttributes();
@@ -3873,7 +4068,8 @@ class BookcaseConfigurator {
     }
 
     this.selectedSectionIndex = clamp(this.selectedSectionIndex, 0, Math.max(0, state.sections - 1));
-    const rendered = this.viewer.update(state, evaluation.layout);
+    const previousCameraModelGeneration = this.getCameraModelGeneration();
+    const rendered = this.viewer.update(state, evaluation.layout, changedFields);
     if (rendered === false) {
       this.syncInterface();
       const renderMessage = this.viewer.lastRejectedRenderAudit?.issues?.[0]?.message ||
@@ -3924,6 +4120,17 @@ class BookcaseConfigurator {
         selectedIndex: this.selectedSectionIndex,
         layout: this.layout,
         onSelect: (index) => this.selectSection(index, { render: false, ensureFramed: true })
+      });
+    }
+    const nextCameraModelGeneration = this.getCameraModelGeneration();
+    if (nextCameraModelGeneration !== previousCameraModelGeneration) {
+      this.dispatchCameraIntent({
+        type: "model-change",
+        stage: this.activeStageId,
+        sectionIndex: this.selectedSectionIndex,
+        modelGeneration: nextCameraModelGeneration,
+        targetValid: this.isCameraIntentTargetValid(),
+        preserveUserPose: shouldPreserveExactCamera(changedFields)
       });
     }
     const engineeringWarning = evaluation.warnings.find((item) => item.code === "SHELF_SUPPORT_REVIEW");
@@ -4064,6 +4271,7 @@ class BookcaseConfigurator {
       this.syncStudioEntry();
       return;
     }
+    this.syncCameraIntentAttributes();
     const viewer = this.viewer?.getDiagnostics?.() || {};
     const view = this.viewer?.getViewState?.() || {};
     shell.dataset.diagnosticInterface = "unified";
@@ -4091,6 +4299,8 @@ class BookcaseConfigurator {
     shell.dataset.diagnosticCameraTransition = String(Boolean(viewer.cameraTransitionActive));
     shell.dataset.diagnosticCameraSequence = String(viewer.cameraTransitionSequence ?? 0);
     shell.dataset.diagnosticCameraCancellations = String(viewer.cameraTransitionCancellations ?? 0);
+    shell.dataset.diagnosticCameraIntentGeneration = String(this.cameraIntentState?.intentGeneration ?? 0);
+    shell.dataset.diagnosticCameraModelGeneration = String(this.cameraIntentState?.modelGeneration ?? 0);
     shell.dataset.diagnosticControlsEnabled = String(Boolean(viewer.controlsEnabled));
     shell.dataset.diagnosticReducedMotion = String(Boolean(viewer.reducedMotion));
     shell.dataset.diagnosticCanvasCount = String(this.elements.viewer?.querySelectorAll("canvas").length || 0);
@@ -4184,7 +4394,7 @@ class BookcaseConfigurator {
         stageButton.setAttribute("aria-label", `${stage.label}, needs attention: ${issue.message}`);
         stageButton.setAttribute("aria-invalid", "true");
       } else {
-        stageButton.removeAttribute("aria-label");
+        stageButton.setAttribute("aria-label", `${stage.label}: ${stage.subtitle}`);
         stageButton.removeAttribute("aria-invalid");
       }
     });
@@ -4472,6 +4682,9 @@ class BookcaseViewer3D {
     this.cameraTransition = null;
     this.cameraTransitionSequence = 0;
     this.cameraTransitionCancellationCount = 0;
+    this.cameraIntentGeneration = 0;
+    this.modelGeneration = 0;
+    this.cameraIntentProfile = "overview";
     this.focusTargetCache = new Map();
     this.focusRadius = this.baseRadius;
     this.reducedMotionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)") || null;
@@ -4639,6 +4852,7 @@ class BookcaseViewer3D {
       this.drag = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, moved: false, tool: this.activeTool };
       this.root.setPointerCapture(event.pointerId);
       this.root.classList.add("is-dragging");
+      this.onCameraInteraction("gesture-start", { modelGeneration: this.modelGeneration });
     }, { signal });
 
     this.root.addEventListener("pointermove", (event) => {
@@ -4669,27 +4883,27 @@ class BookcaseViewer3D {
 
     this.root.addEventListener("pointerup", (event) => {
       if (!this.drag || event.pointerId !== this.drag.pointerId) return;
-      const isClick = Boolean(this.drag && !this.drag.moved);
+      const drag = this.finishPointerDrag(event.pointerId);
+      const isClick = Boolean(drag && !drag.moved);
       const selectDirectComponent = this.activeTool === "select" && this.directEdit.enabled && isClick;
       const selectSection = this.sectionDesigner.active && !selectDirectComponent && isClick;
-      this.drag = null;
-      if (this.root.hasPointerCapture(event.pointerId)) this.root.releasePointerCapture(event.pointerId);
-      this.root.classList.remove("is-dragging");
       if (selectDirectComponent) this.selectDirectComponentFromPointer(event);
       else if (selectSection) this.selectSectionFromPointer(event);
     }, { signal });
 
     this.root.addEventListener("pointercancel", (event) => {
-      if (!this.drag || event.pointerId !== this.drag.pointerId) return;
-      this.drag = null;
-      this.root.classList.remove("is-dragging");
+      this.finishPointerDrag(event.pointerId);
     }, { signal });
 
     this.root.addEventListener("lostpointercapture", (event) => {
-      if (!this.drag || event.pointerId !== this.drag.pointerId) return;
-      this.drag = null;
-      this.root.classList.remove("is-dragging");
+      this.finishPointerDrag(event.pointerId, { releaseCapture: false });
     }, { signal });
+
+    const cancelInterruptedGesture = () => this.finishPointerDrag();
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") cancelInterruptedGesture();
+    }, { signal });
+    window.addEventListener("blur", cancelInterruptedGesture, { signal });
 
     this.root.addEventListener("pointerleave", () => {
       if (!this.drag) this.setDirectHoveredComponent(null);
@@ -4720,8 +4934,8 @@ class BookcaseViewer3D {
       const limits = this.getZoomLimits();
       if (event.key === "0") {
         event.preventDefault();
-        this.setView("reset");
         this.onCameraInteraction("reset");
+        this.setView("reset");
         return;
       }
       if (this.activeTool === "pan" && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) {
@@ -4742,6 +4956,17 @@ class BookcaseViewer3D {
       this.onCameraInteraction(event.key === "+" || event.key === "=" || event.key === "-" ? "zoom" : "rotate");
       this.updateCamera();
     }, { signal });
+  }
+
+  finishPointerDrag(pointerId = null, options = {}) {
+    const drag = this.drag;
+    if (!drag || (pointerId != null && drag.pointerId !== pointerId)) return null;
+    this.drag = null;
+    if (options.releaseCapture !== false && this.root.hasPointerCapture?.(drag.pointerId)) {
+      this.root.releasePointerCapture(drag.pointerId);
+    }
+    this.root.classList.remove("is-dragging");
+    return drag;
   }
 
   setInteractionTool(tool) {
@@ -5018,7 +5243,46 @@ class BookcaseViewer3D {
     );
   }
 
-  setView(view) {
+  getModelGeneration() {
+    return this.modelGeneration;
+  }
+
+  adoptCameraIntent(intent = {}) {
+    if (Number.isInteger(intent.intentGeneration)) this.cameraIntentGeneration = intent.intentGeneration;
+    if (typeof intent.profile === "string" && intent.profile) this.cameraIntentProfile = intent.profile;
+    this.root.dataset.cameraIntentGeneration = String(this.cameraIntentGeneration);
+    this.root.dataset.cameraModelGeneration = String(this.modelGeneration);
+  }
+
+  applyCameraIntent(command = {}) {
+    if (
+      !Number.isInteger(command.intentGeneration)
+      || command.intentGeneration !== this.cameraIntentGeneration
+      || command.modelGeneration !== this.modelGeneration
+    ) return false;
+    const options = {
+      duration: command.duration,
+      force: true,
+      intentGeneration: command.intentGeneration,
+      modelGeneration: command.modelGeneration,
+      componentId: command.targetComponentId || null
+    };
+    if (command.targetKind === "model") {
+      return this.fitFullModel({ ...options, profileKey: command.profile });
+    }
+    if (command.targetKind === "section") {
+      return this.focusSection(command.sourceSectionIndex, options);
+    }
+    if (command.targetKind === "detail") {
+      return this.focus(command.profile, options);
+    }
+    if (command.targetKind === "user") {
+      return this.refitUserControlledCamera(options);
+    }
+    return false;
+  }
+
+  setView(view, options = {}) {
     let theta = -0.14;
     let phi = 0.12;
     if (view === "front" || view === "reset") {
@@ -5047,7 +5311,49 @@ class BookcaseViewer3D {
       target: this.overviewTarget,
       environmentScale: 1,
       exposure: 1.08
-    }, { duration: SMART_CAMERA_DURATION });
+    }, {
+      duration: options.duration ?? SMART_CAMERA_DURATION,
+      intentGeneration: options.intentGeneration,
+      modelGeneration: options.modelGeneration
+    });
+  }
+
+  refitUserControlledCamera(options = {}) {
+    if (!this.model?.children?.length) return false;
+    const bounds = new THREE.Box3().setFromObject(this.model);
+    if (bounds.isEmpty()) return false;
+    const previousRatio = this.baseRadius > 0 && this.radius > 0
+      ? clamp(this.radius / this.baseRadius, 0.82, 1.48)
+      : 1;
+    const calculated = calculateBoundsCameraPose({
+      bounds: box3ToPlainBounds(bounds),
+      theta: this.theta,
+      phi: this.phi,
+      verticalFovDegrees: this.camera.fov,
+      aspect: this.camera.aspect,
+      viewport: this.getSafeViewport(),
+      fitMargin: 1.08
+    });
+    const target = new THREE.Vector3(calculated.target.x, calculated.target.y, calculated.target.z);
+    const radius = this.resolveCollisionSafeRadius(
+      calculated.theta,
+      calculated.phi,
+      target,
+      calculated.radius * previousRatio
+    );
+    this.activeFocusKey = "user";
+    this.activeFocusVariant = `user:${this.modelGeneration}`;
+    this.focusRadius = radius;
+    this.root.dataset.cameraFocus = "user";
+    this.animateToCameraPose({
+      theta: calculated.theta,
+      phi: calculated.phi,
+      radius,
+      target,
+      environmentScale: this.environmentLightScale,
+      exposure: this.renderer.toneMappingExposure
+    }, options);
+    return true;
   }
 
   ensureModelComfortablyFramed() {
@@ -5085,11 +5391,17 @@ class BookcaseViewer3D {
     if (!this.model?.children?.length) return false;
     const bounds = new THREE.Box3().setFromObject(this.model);
     if (bounds.isEmpty()) return false;
+    const profileKey = ["finish", "preview", "lighting"].includes(options.profileKey) ? options.profileKey : "overview";
+    const profile = profileKey === "finish"
+      ? SMART_CAMERA_PROFILES.finish
+      : profileKey === "lighting"
+        ? { ...SMART_CAMERA_PROFILES.lighting, ...(LIGHTING_CAMERA_OVERRIDES[this.state.lighting] || {}) }
+        : SMART_CAMERA_PROFILES.overview;
     const viewport = this.getSafeViewport();
     const calculated = calculateBoundsCameraPose({
       bounds: box3ToPlainBounds(bounds),
-      theta: SMART_CAMERA_PROFILES.overview.theta,
-      phi: SMART_CAMERA_PROFILES.overview.phi,
+      theta: profile.theta,
+      phi: profile.phi,
       verticalFovDegrees: this.camera.fov,
       aspect: this.camera.aspect,
       viewport,
@@ -5119,19 +5431,23 @@ class BookcaseViewer3D {
     }
     const target = new THREE.Vector3(targetData.x, targetData.y, targetData.z);
     this.clearComponentHighlight();
-    this.setProductLightingBoost(1);
-    this.activeFocusKey = "preview";
-    this.activeFocusVariant = `preview:${this.rebuildCount}`;
+    this.setProductLightingBoost(profileKey === "lighting" ? 2.35 : 1);
+    this.activeFocusKey = profileKey;
+    this.activeFocusVariant = `${profileKey}:${this.modelGeneration}`;
     this.focusRadius = radius;
-    this.root.dataset.cameraFocus = "preview";
+    this.root.dataset.cameraFocus = profileKey;
     this.animateToCameraPose({
       theta: calculated.theta,
       phi: calculated.phi,
       radius,
       target,
-      environmentScale: 1,
-      exposure: 1.08
-    }, { duration: options.duration ?? SMART_CAMERA_DURATION });
+      environmentScale: profile.environmentScale ?? 1,
+      exposure: profile.exposure ?? 1.08
+    }, {
+      duration: options.duration ?? SMART_CAMERA_DURATION,
+      intentGeneration: options.intentGeneration,
+      modelGeneration: options.modelGeneration
+    });
     return true;
   }
 
@@ -5145,46 +5461,31 @@ class BookcaseViewer3D {
     const focusVariant = `section:${section.metadata?.configId || section.id}`;
     if (!options.force && focusVariant === this.activeFocusVariant) return false;
 
-    const bounds = descriptorBoundsToSceneBox(section.bounds, this.lastLayout.config.depth);
-    const size = bounds.getSize(new THREE.Vector3());
-    const center = bounds.getCenter(new THREE.Vector3());
+    const bounds = new THREE.Box3().setFromObject(this.model);
+    if (bounds.isEmpty()) return false;
     const viewport = this.getSafeViewport();
-    const verticalFov = THREE.MathUtils.degToRad(this.camera.fov);
-    const safeAspect = Math.max(
-      0.3,
-      (viewport.localBounds.width || viewport.width) / Math.max(viewport.localBounds.height || viewport.height, 1)
-    );
-    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * safeAspect);
-    const fitDistance = Math.max(
-      size.y / Math.max(2 * Math.tan(verticalFov / 2), 0.01),
-      size.x / Math.max(2 * Math.tan(horizontalFov / 2), 0.01)
-    ) * 1.18 + size.z * 0.52;
-    const previousZoomScale = this.activeFocusKey === "section" && this.focusRadius > 0
-      ? clamp(this.radius / this.focusRadius, 0.82, 1.2)
-      : 1;
-    let radius = clamp(
-      fitDistance * previousZoomScale,
-      this.baseRadius * 0.4,
-      this.baseRadius * 1.35
-    );
-    let targetData = calculateViewportAwareTarget({
-      focusCenter: { x: center.x, y: center.y, z: center.z },
-      radius,
-      theta: this.theta,
-      phi: this.phi,
+    const theta = options.preserveAngles ? this.theta : SMART_CAMERA_PROFILES.overview.theta;
+    const phi = options.preserveAngles ? this.phi : SMART_CAMERA_PROFILES.overview.phi;
+    const calculated = calculateBoundsCameraPose({
+      bounds: box3ToPlainBounds(bounds),
+      theta,
+      phi,
       verticalFovDegrees: this.camera.fov,
       aspect: this.camera.aspect,
-      viewport
+      viewport,
+      fitMargin: 1.12
     });
+    let radius = calculated.radius;
+    let targetData = calculated.target;
     let target = new THREE.Vector3(targetData.x, targetData.y, targetData.z);
-    const collisionSafeRadius = this.resolveCollisionSafeRadius(this.theta, this.phi, target, radius);
+    const collisionSafeRadius = this.resolveCollisionSafeRadius(theta, phi, target, radius);
     if (collisionSafeRadius > radius + 0.0001) {
       radius = collisionSafeRadius;
       targetData = calculateViewportAwareTarget({
-        focusCenter: { x: center.x, y: center.y, z: center.z },
+        focusCenter: calculated.focusCenter,
         radius,
-        theta: this.theta,
-        phi: this.phi,
+        theta,
+        phi,
         verticalFovDegrees: this.camera.fov,
         aspect: this.camera.aspect,
         viewport
@@ -5200,13 +5501,17 @@ class BookcaseViewer3D {
     this.root.dataset.cameraSection = String(sectionIndex + 1);
     this.setProductLightingBoost(1);
     this.animateToCameraPose({
-      theta: this.theta,
-      phi: this.phi,
+      theta,
+      phi,
       radius,
       target,
       environmentScale: 1,
       exposure: 1.08
-    }, { duration: options.duration ?? SMART_CAMERA_DURATION });
+    }, {
+      duration: options.duration ?? SMART_CAMERA_DURATION,
+      intentGeneration: options.intentGeneration,
+      modelGeneration: options.modelGeneration
+    });
     return true;
   }
 
@@ -5263,7 +5568,8 @@ class BookcaseViewer3D {
         if (overlapWidth <= 0 || overlapHeight <= 0) return;
 
         const edgeTolerance = Math.max(18, Math.min(width, height) * 0.04);
-        const touchesTop = intersection.top <= rootRect.top + edgeTolerance;
+        const topOffset = intersection.top - rootRect.top;
+        const touchesTop = topOffset <= Math.max(edgeTolerance, overlapHeight);
         const touchesRight = intersection.right >= rootRect.right - edgeTolerance;
         const touchesBottom = intersection.bottom >= rootRect.bottom - edgeTolerance;
         const touchesLeft = intersection.left <= rootRect.left + edgeTolerance;
@@ -5316,7 +5622,7 @@ class BookcaseViewer3D {
       ? `${normalizedKey}:${this.state.lighting}:${this.state.crownStyle}`
       : normalizedKey;
     const profile = SMART_CAMERA_PROFILES[normalizedKey];
-    const pose = this.getFocusPose(normalizedKey, profile);
+    const pose = this.getFocusPose(normalizedKey, profile, options);
     if (!options.force && focusVariant === this.activeFocusVariant && this.cameraTransition) return;
     const alreadyAtPose = focusVariant === this.activeFocusVariant
       && this.target.distanceTo(pose.target) < 0.01
@@ -5330,10 +5636,15 @@ class BookcaseViewer3D {
     this.setProductLightingBoost(normalizedKey === "lighting" ? 2.35 : 1);
     this.applyComponentHighlight(pose.activeRoles);
     if (alreadyAtPose && !options.force) return;
-    this.animateToCameraPose(pose, { duration: options.duration ?? SMART_CAMERA_DURATION });
+    this.animateToCameraPose(pose, {
+      duration: options.duration ?? SMART_CAMERA_DURATION,
+      intentGeneration: options.intentGeneration,
+      modelGeneration: options.modelGeneration
+    });
+    return true;
   }
 
-  getFocusPose(profileKey, profile) {
+  getFocusPose(profileKey, profile, options = {}) {
     const resolvedProfile = profileKey === "lighting"
       ? { ...profile, ...(LIGHTING_CAMERA_OVERRIDES[this.state.lighting] || {}) }
       : profile;
@@ -5346,7 +5657,7 @@ class BookcaseViewer3D {
       viewport.insets.bottom,
       viewport.insets.left
     ].map((value) => Math.round(value)).join("x");
-    const cacheKey = `${profileKey}:${profileKey === "lighting" ? `${this.state.lighting}:${this.state.crownStyle}` : "default"}:${this.rebuildCount}:${Number(this.camera.aspect || 1).toFixed(3)}:${viewportKey}`;
+    const cacheKey = `${profileKey}:${options.componentId || "profile"}:${profileKey === "lighting" ? `${this.state.lighting}:${this.state.crownStyle}` : "default"}:${this.modelGeneration}:${Number(this.camera.aspect || 1).toFixed(3)}:${viewportKey}`;
     const cached = this.focusTargetCache.get(cacheKey);
     if (cached) {
       return {
@@ -5356,7 +5667,7 @@ class BookcaseViewer3D {
       };
     }
 
-    const result = this.getFocusBounds(resolvedProfile);
+    const result = this.getFocusBounds(resolvedProfile, options);
     if (isProfileCameraKey(resolvedProfile.profileDetail)) {
       const modelBounds = new THREE.Box3().setFromObject(this.model);
       const calculated = calculateProfileCameraPose({
@@ -5420,18 +5731,24 @@ class BookcaseViewer3D {
       bounds.min.y = boundsCenter.y - halfDetailHeight;
       bounds.max.y = boundsCenter.y + halfDetailHeight;
     }
-    const size = bounds.getSize(new THREE.Vector3());
-    const target = bounds.getCenter(new THREE.Vector3());
+    const focusCenter = bounds.getCenter(new THREE.Vector3());
     const modelSize = new THREE.Box3().setFromObject(this.model).getSize(new THREE.Vector3());
-    target.y += modelSize.y * (resolvedProfile.targetModelYOffset || 0);
-    target.z += modelSize.z * (resolvedProfile.targetModelZOffset || 0);
-    const verticalFov = THREE.MathUtils.degToRad(this.camera.fov);
-    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * Math.max(this.camera.aspect || 1, 0.3));
-    const fitDistance = Math.max(
-      size.y / Math.max(2 * Math.tan(verticalFov / 2), 0.01),
-      size.x / Math.max(2 * Math.tan(horizontalFov / 2), 0.01)
-    ) * 1.14 + size.z * 0.48;
-    const desiredRadius = Math.max(this.baseRadius * resolvedProfile.radiusScale, fitDistance);
+    focusCenter.y += modelSize.y * (resolvedProfile.targetModelYOffset || 0);
+    focusCenter.z += modelSize.z * (resolvedProfile.targetModelZOffset || 0);
+    const shiftedBounds = bounds.clone();
+    const centerDelta = focusCenter.clone().sub(bounds.getCenter(new THREE.Vector3()));
+    shiftedBounds.translate(centerDelta);
+    const calculated = calculateBoundsCameraPose({
+      bounds: box3ToPlainBounds(shiftedBounds),
+      theta: resolvedProfile.theta,
+      phi: resolvedProfile.phi,
+      verticalFovDegrees: this.camera.fov,
+      aspect: this.camera.aspect,
+      viewport,
+      fitMargin: 1.14
+    });
+    const desiredRadius = Math.max(this.baseRadius * resolvedProfile.radiusScale, calculated.radius);
+    const target = new THREE.Vector3(calculated.target.x, calculated.target.y, calculated.target.z);
     const radius = this.resolveCollisionSafeRadius(resolvedProfile.theta, resolvedProfile.phi, target, desiredRadius);
     const pose = {
       theta: resolvedProfile.theta,
@@ -5450,10 +5767,23 @@ class BookcaseViewer3D {
     return pose;
   }
 
-  getFocusBounds(profile) {
+  getFocusBounds(profile, options = {}) {
     const modelBounds = new THREE.Box3().setFromObject(this.model);
     const modelCenter = modelBounds.getCenter(new THREE.Vector3());
     const modelSize = modelBounds.getSize(new THREE.Vector3());
+    if (options.componentId) {
+      let componentBounds = null;
+      this.model.updateMatrixWorld(true);
+      this.model.traverse((child) => {
+        if (componentBounds || child.userData?.componentId !== options.componentId) return;
+        const bounds = new THREE.Box3().setFromObject(child);
+        if (!bounds.isEmpty()) componentBounds = bounds;
+      });
+      if (componentBounds) {
+        const component = this.lastLayout?.components?.find((item) => item.id === options.componentId);
+        return { bounds: componentBounds, activeRoles: component?.role ? [component.role] : [] };
+      }
+    }
     const requestedRoles = profile.roles || [];
     if (!requestedRoles.length) return { bounds: modelBounds, activeRoles: [] };
 
@@ -5511,6 +5841,13 @@ class BookcaseViewer3D {
   }
 
   animateToCameraPose(pose, options = {}) {
+    const intentGeneration = Number.isInteger(options.intentGeneration)
+      ? options.intentGeneration
+      : this.cameraIntentGeneration;
+    const modelGeneration = Number.isInteger(options.modelGeneration)
+      ? options.modelGeneration
+      : this.modelGeneration;
+    if (intentGeneration !== this.cameraIntentGeneration || modelGeneration !== this.modelGeneration) return false;
     const endTheta = this.theta + shortestAngleDelta(this.theta, pose.theta);
     const requestedDuration = Number(options.duration ?? SMART_CAMERA_DURATION);
     const duration = resolveCameraTransitionDuration(requestedDuration, this.reducedMotionQuery?.matches);
@@ -5518,12 +5855,14 @@ class BookcaseViewer3D {
       if (this.cameraTransition) this.cameraTransitionCancellationCount += 1;
       this.cameraTransition = null;
       this.applyCameraPose({ ...pose, theta: endTheta });
-      this.onCameraInteraction("focus-complete");
-      return;
+      this.onCameraInteraction("focus-complete", { intentGeneration, modelGeneration });
+      return true;
     }
     if (this.cameraTransition) this.cameraTransitionCancellationCount += 1;
     this.cameraTransition = {
       sequence: ++this.cameraTransitionSequence,
+      intentGeneration,
+      modelGeneration,
       startedAt: performance.now(),
       duration,
       startTheta: this.theta,
@@ -5540,6 +5879,7 @@ class BookcaseViewer3D {
       endExposure: pose.exposure ?? 1.08
     };
     this.requestRender();
+    return true;
   }
 
   applyCameraPose(pose) {
@@ -5558,6 +5898,13 @@ class BookcaseViewer3D {
   updateCameraTransition(now) {
     const transition = this.cameraTransition;
     if (!transition) return;
+    if (
+      transition.intentGeneration !== this.cameraIntentGeneration
+      || transition.modelGeneration !== this.modelGeneration
+    ) {
+      this.cancelCameraTransition();
+      return;
+    }
     const progress = clamp((now - transition.startedAt) / transition.duration, 0, 1);
     const eased = easeInOutCubic(progress);
     this.theta = THREE.MathUtils.lerp(transition.startTheta, transition.endTheta, eased);
@@ -5572,7 +5919,10 @@ class BookcaseViewer3D {
     this.updateCamera();
     if (progress >= 1) {
       this.cameraTransition = null;
-      this.onCameraInteraction("focus-complete");
+      this.onCameraInteraction("focus-complete", {
+        intentGeneration: transition.intentGeneration,
+        modelGeneration: transition.modelGeneration
+      });
     }
   }
 
@@ -5899,7 +6249,8 @@ class BookcaseViewer3D {
     const projectedWidth = Math.max(1, outsideRight - outsideLeft);
     const safeViewport = this.getSafeViewport();
     const desiredSectionY = Math.max(outsideLeftPoint.y, outsideRightPoint.y) + 20;
-    const overallY = Math.max(18, Math.min(outsideTopLeftPoint.y, outsideTopRightPoint.y) - 38);
+    const safeTop = Number(safeViewport.localBounds?.top ?? safeViewport.insets.top) || 0;
+    const overallY = Math.max(safeTop + 8, Math.min(outsideTopLeftPoint.y, outsideTopRightPoint.y) - 38);
     const maximumSectionY = rootRect.height - Math.max(24, safeViewport.insets.bottom || 0) - 34;
     const verticalShift = Math.min(0, maximumSectionY - desiredSectionY);
     const sectionY = desiredSectionY + verticalShift;
@@ -5951,7 +6302,13 @@ class BookcaseViewer3D {
     void this.sectionOverlay.offsetWidth;
     const needsLabelCompaction = measureLabelOverlap();
     this.sectionOverlay.classList.toggle("has-label-collisions", needsLabelCompaction);
-    if (needsLabelCompaction) void this.sectionOverlay.offsetWidth;
+    if (needsLabelCompaction) {
+      projectedSegments.forEach((segment, index) => {
+        const value = segment.querySelector("[data-section-dimension-value]");
+        if (value) value.textContent = `${Number(Number(widths[index]).toFixed(1))}\u2033`;
+      });
+      void this.sectionOverlay.offsetWidth;
+    }
     const labelsOverlap = measureLabelOverlap();
     this.sectionOverlay.classList.toggle("has-unresolved-label-collisions", labelsOverlap);
     this.sectionOverlay.dataset.labelCollision = String(labelsOverlap);
@@ -6088,13 +6445,7 @@ class BookcaseViewer3D {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height, false);
     if (this.model?.children?.length) {
-      if (this.activeFocusKey === "preview") {
-        this.fitFullModel({ duration: 0 });
-        this.notifyDirectAnchor();
-        return;
-      }
-      this.frameModel(true, this.activeFocusKey !== "overview");
-      if (this.activeFocusKey === "overview") this.ensureModelComfortablyFramed();
+      this.onCameraInteraction("viewport-change", { modelGeneration: this.modelGeneration });
     } else this.updateSectionOverlayProjection();
     this.notifyDirectAnchor();
   }
@@ -6317,6 +6668,7 @@ class BookcaseViewer3D {
     this.refreshComponentHighlight();
     this.refreshDirectHighlight();
     this.notifyDirectAnchor();
+    this.modelGeneration += 1;
     this.requestRender();
     return true;
   }
@@ -6520,6 +6872,7 @@ class BookcaseViewer3D {
     this.updateConstructionInspector(this.lastLayout);
     if (this.sectionDesigner.active) this.refreshSectionInteractionLayer(this.lastLayout);
     this.rebuildCount += 1;
+    this.modelGeneration += 1;
     this.focusTargetCache.clear();
     this.root.dataset.renderValid = "true";
     this.root.dataset.renderCandidateValid = "true";
@@ -6735,6 +7088,8 @@ class BookcaseViewer3D {
       cameraTransitionActive: Boolean(this.cameraTransition),
       cameraTransitionSequence: this.cameraTransitionSequence,
       cameraTransitionCancellations: this.cameraTransitionCancellationCount,
+      cameraIntentGeneration: this.cameraIntentGeneration,
+      modelGeneration: this.modelGeneration,
       controlsEnabled: !this.destroyed,
       reducedMotion: Boolean(this.reducedMotionQuery?.matches),
       canvasConnected: Boolean(this.renderer.domElement?.isConnected),

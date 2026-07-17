@@ -7,6 +7,246 @@
 
 export const PROFILE_CAMERA_DURATION = 760;
 
+export const CAMERA_INTENT_STATES = Object.freeze({
+  overview: "overview",
+  sectionContext: "section-context",
+  detailFocus: "detail-focus",
+  userControlled: "user-controlled",
+  transitioning: "transitioning"
+});
+
+const CAMERA_INTENT_STAGE_VALUES = new Set([
+  "space",
+  "layout",
+  "storage",
+  "base_top",
+  "finish",
+  "hardware",
+  "lighting",
+  "preview"
+]);
+
+const CAMERA_INTENT_PROFILE_BY_SELECTION_KIND = Object.freeze({
+  base: "base",
+  crown: "crown",
+  front: "doors",
+  hardware: "hardware",
+  shelf: "shelves",
+  lighting: "lighting",
+  back: "backPanel",
+  section: "section",
+  divider: "section"
+});
+
+const CAMERA_INTENT_PROFILE_BY_ROLE = Object.freeze({
+  base: "base",
+  trim: "base",
+  crown: "crown",
+  top_panel: "crown",
+  door: "doors",
+  drawer_front: "doors",
+  handle: "hardware",
+  shelf: "shelves",
+  fixed_shelf: "shelves",
+  light: "lighting",
+  back_panel: "backPanel",
+  side_panel: "sidePanels",
+  section: "section",
+  divider: "section"
+});
+
+/**
+ * Create the serializable camera-policy state owned by the configurator. The
+ * reducer below is deliberately unaware of DOM and Three.js objects so stage,
+ * selection, render-generation, and manual-control transitions can be tested
+ * without a renderer.
+ */
+export function createCameraIntentState(options = {}) {
+  const sourceStage = normalizeCameraStage(options.sourceStage || options.stage);
+  const sourceSectionIndex = normalizeSectionIndex(options.sourceSectionIndex ?? options.sectionIndex);
+  const modelGeneration = normalizeGeneration(options.modelGeneration);
+  return freezeCameraIntentState({
+    cameraState: CAMERA_INTENT_STATES.overview,
+    settledState: CAMERA_INTENT_STATES.overview,
+    profile: "overview",
+    targetKind: "model",
+    targetComponentId: null,
+    sourceStage,
+    sourceSelectionKey: null,
+    sourceSectionIndex,
+    transient: false,
+    manual: false,
+    intentGeneration: normalizeGeneration(options.intentGeneration),
+    modelGeneration
+  });
+}
+
+/**
+ * Pure policy reducer. It returns the next observable state plus an optional
+ * serializable command for the persistent viewer. Commands carry both intent
+ * and model generations; the renderer must ignore a command or transition
+ * whose generations are no longer current.
+ */
+export function resolveCameraIntent(currentState, event = {}) {
+  const current = normalizeCameraIntentState(currentState);
+  const type = String(event.type || "");
+
+  if (type === "transition-complete") {
+    if (!cameraEventMatchesCurrentIntent(current, event)) return freezeCameraResolution(current, null);
+    return freezeCameraResolution(freezeCameraIntentState({
+      ...current,
+      cameraState: current.settledState
+    }), null);
+  }
+
+  if (type === "manual-interaction") {
+    const next = freezeCameraIntentState({
+      ...current,
+      cameraState: CAMERA_INTENT_STATES.userControlled,
+      settledState: CAMERA_INTENT_STATES.userControlled,
+      targetKind: "user",
+      transient: false,
+      manual: true,
+      intentGeneration: current.intentGeneration + 1,
+      modelGeneration: normalizeGeneration(event.modelGeneration ?? current.modelGeneration)
+    });
+    return freezeCameraResolution(next, null);
+  }
+
+  if (type === "stage-change") {
+    const stage = normalizeCameraStage(event.stage || event.sourceStage);
+    const sectionIndex = normalizeSectionIndex(event.sectionIndex ?? event.sourceSectionIndex);
+    return createCameraResolution(current, stageCameraTarget(stage, sectionIndex), event);
+  }
+
+  if (type === "section-change") {
+    const sectionIndex = normalizeSectionIndex(event.sectionIndex ?? event.sourceSectionIndex);
+    if (sectionIndex === null) {
+      return createCameraResolution(
+        current,
+        stageCameraTarget(normalizeCameraStage(event.stage || current.sourceStage), null),
+        event
+      );
+    }
+    return createCameraResolution(current, {
+      settledState: CAMERA_INTENT_STATES.sectionContext,
+      profile: "section",
+      targetKind: "section",
+      targetComponentId: null,
+      sourceStage: normalizeCameraStage(event.stage || current.sourceStage),
+      sourceSelectionKey: null,
+      sourceSectionIndex: sectionIndex,
+      transient: false,
+      manual: false
+    }, event);
+  }
+
+  if (type === "selection-change") {
+    const selection = event.selection && typeof event.selection === "object" ? event.selection : null;
+    const stage = normalizeCameraStage(event.stage || selection?.stageId || current.sourceStage);
+    if (!selection) return createCameraResolution(current, stageCameraTarget(stage, current.sourceSectionIndex), event);
+    const profile = resolveCameraSelectionProfile(selection);
+    const sectionIndex = normalizeSectionIndex(selection.sectionIndex ?? event.sectionIndex);
+    if (profile === "section") {
+      return createCameraResolution(current, {
+        settledState: CAMERA_INTENT_STATES.sectionContext,
+        profile,
+        targetKind: "section",
+        targetComponentId: null,
+        sourceStage: stage,
+        sourceSelectionKey: normalizeSelectionKey(selection.selectionKey || selection.componentId),
+        sourceSectionIndex: sectionIndex,
+        transient: false,
+        manual: false
+      }, event);
+    }
+    if (!profile || profile === "overview") {
+      return createCameraResolution(current, stageCameraTarget(stage, sectionIndex), event);
+    }
+    return createCameraResolution(current, {
+      settledState: CAMERA_INTENT_STATES.detailFocus,
+      profile,
+      targetKind: "detail",
+      targetComponentId: normalizeSelectionKey(selection.componentId),
+      sourceStage: stage,
+      sourceSelectionKey: normalizeSelectionKey(selection.selectionKey || selection.componentId || `${selection.kind || selection.role || profile}`),
+      sourceSectionIndex: sectionIndex,
+      transient: true,
+      manual: false
+    }, event);
+  }
+
+  if (type === "field-focus") {
+    const stage = normalizeCameraStage(event.stage || current.sourceStage);
+    const profile = typeof event.profile === "string" && event.profile ? event.profile : "overview";
+    const selectionKey = normalizeSelectionKey(event.selectionKey || (event.field ? `${event.field}:${event.value ?? ""}` : profile));
+    if (profile === "overview") return createCameraResolution(current, stageCameraTarget(stage, current.sourceSectionIndex), event);
+    if (profile === "finish") {
+      return createCameraResolution(current, {
+        ...stageCameraTarget("finish", current.sourceSectionIndex),
+        sourceStage: stage,
+        sourceSelectionKey: selectionKey
+      }, event);
+    }
+    return createCameraResolution(current, {
+      settledState: CAMERA_INTENT_STATES.detailFocus,
+      profile,
+      targetKind: "detail",
+      targetComponentId: null,
+      sourceStage: stage,
+      sourceSelectionKey: selectionKey,
+      sourceSectionIndex: normalizeSectionIndex(event.sectionIndex ?? current.sourceSectionIndex),
+      transient: event.transient !== false,
+      manual: false
+    }, event);
+  }
+
+  if (type === "model-change") {
+    const modelGeneration = normalizeGeneration(event.modelGeneration);
+    const stage = normalizeCameraStage(event.stage || current.sourceStage);
+    if (event.targetValid === false) {
+      return createCameraResolution(current, stageCameraTarget(stage, normalizeSectionIndex(event.sectionIndex)), {
+        ...event,
+        modelGeneration
+      });
+    }
+    if (
+      event.preserveUserPose === true
+      && (current.cameraState === CAMERA_INTENT_STATES.userControlled
+        || current.settledState === CAMERA_INTENT_STATES.userControlled)
+    ) {
+      return freezeCameraResolution(freezeCameraIntentState({
+        ...current,
+        cameraState: CAMERA_INTENT_STATES.userControlled,
+        settledState: CAMERA_INTENT_STATES.userControlled,
+        targetKind: "user",
+        modelGeneration,
+        intentGeneration: current.intentGeneration + 1
+      }), null);
+    }
+    if (current.cameraState === CAMERA_INTENT_STATES.userControlled || current.settledState === CAMERA_INTENT_STATES.userControlled) {
+      return createCameraResolution(current, {
+        ...current,
+        cameraState: CAMERA_INTENT_STATES.userControlled,
+        settledState: CAMERA_INTENT_STATES.userControlled,
+        targetKind: "user",
+        modelGeneration
+      }, { ...event, duration: 0, modelGeneration });
+    }
+    return createCameraResolution(current, { ...current, modelGeneration }, { ...event, modelGeneration });
+  }
+
+  if (type === "viewport-change" || type === "layout-change") {
+    const target = current.cameraState === CAMERA_INTENT_STATES.userControlled
+      || current.settledState === CAMERA_INTENT_STATES.userControlled
+      ? { ...current, cameraState: CAMERA_INTENT_STATES.userControlled, settledState: CAMERA_INTENT_STATES.userControlled, targetKind: "user" }
+      : current;
+    return createCameraResolution(current, target, { ...event, duration: event.duration ?? 0 });
+  }
+
+  return freezeCameraResolution(current, null);
+}
+
 const PROFILE_CAMERA_KEY_VALUES = Object.freeze(["base", "crown"]);
 const PROFILE_CAMERA_KEY_LOOKUP = new Set(PROFILE_CAMERA_KEY_VALUES);
 
@@ -353,6 +593,192 @@ function createFocusCenter(region, feature) {
     y: clamp((feature.min.y + feature.max.y) / 2, region.min.y, region.max.y),
     z: region.max.z - regionSize.z * 0.22
   };
+}
+
+function stageCameraTarget(stage, sectionIndex) {
+  if (stage === "finish") {
+    return {
+      settledState: CAMERA_INTENT_STATES.overview,
+      profile: "finish",
+      targetKind: "model",
+      targetComponentId: null,
+      sourceStage: stage,
+      sourceSelectionKey: null,
+      sourceSectionIndex: null,
+      transient: false,
+      manual: false
+    };
+  }
+  if (stage === "preview") {
+    return {
+      settledState: CAMERA_INTENT_STATES.overview,
+      profile: "preview",
+      targetKind: "model",
+      targetComponentId: null,
+      sourceStage: stage,
+      sourceSelectionKey: null,
+      sourceSectionIndex: null,
+      transient: false,
+      manual: false
+    };
+  }
+  if (stage === "lighting") {
+    return {
+      settledState: CAMERA_INTENT_STATES.overview,
+      profile: "lighting",
+      targetKind: "model",
+      targetComponentId: null,
+      sourceStage: stage,
+      sourceSelectionKey: null,
+      sourceSectionIndex: null,
+      transient: false,
+      manual: false
+    };
+  }
+  return {
+    settledState: CAMERA_INTENT_STATES.overview,
+    profile: "overview",
+    targetKind: "model",
+    targetComponentId: null,
+    sourceStage: stage,
+    sourceSelectionKey: null,
+    sourceSectionIndex: null,
+    transient: false,
+    manual: false
+  };
+}
+
+function resolveCameraSelectionProfile(selection) {
+  if (typeof selection.profile === "string" && selection.profile) return selection.profile;
+  return CAMERA_INTENT_PROFILE_BY_ROLE[selection.role]
+    || CAMERA_INTENT_PROFILE_BY_SELECTION_KIND[selection.kind]
+    || null;
+}
+
+function createCameraResolution(current, target, event) {
+  const intentGeneration = current.intentGeneration + 1;
+  const modelGeneration = event.modelGeneration === undefined
+    ? normalizeGeneration(target.modelGeneration ?? current.modelGeneration)
+    : normalizeGeneration(event.modelGeneration);
+  const targetKind = normalizeTargetKind(target.targetKind);
+  const settledState = normalizeSettledCameraState(target.settledState || target.cameraState);
+  const duration = resolveIntentDuration(event.duration, settledState, targetKind);
+  const cameraState = targetKind === "user"
+    ? CAMERA_INTENT_STATES.userControlled
+    : duration > 0
+      ? CAMERA_INTENT_STATES.transitioning
+      : settledState;
+  const state = freezeCameraIntentState({
+    cameraState,
+    settledState,
+    profile: normalizeProfile(target.profile),
+    targetKind,
+    targetComponentId: normalizeSelectionKey(target.targetComponentId),
+    sourceStage: normalizeCameraStage(target.sourceStage || current.sourceStage),
+    sourceSelectionKey: normalizeSelectionKey(target.sourceSelectionKey),
+    sourceSectionIndex: normalizeSectionIndex(target.sourceSectionIndex),
+    transient: Boolean(target.transient),
+    manual: targetKind === "user" || Boolean(target.manual),
+    intentGeneration,
+    modelGeneration
+  });
+  const command = Object.freeze({
+    intentGeneration,
+    modelGeneration,
+    cameraState: settledState,
+    profile: state.profile,
+    targetKind,
+    targetComponentId: state.targetComponentId,
+    sourceStage: state.sourceStage,
+    sourceSelectionKey: state.sourceSelectionKey,
+    sourceSectionIndex: state.sourceSectionIndex,
+    transient: state.transient,
+    preserveAngles: targetKind === "user",
+    duration
+  });
+  return freezeCameraResolution(state, command);
+}
+
+function normalizeCameraIntentState(value) {
+  if (!value || typeof value !== "object") return createCameraIntentState();
+  return freezeCameraIntentState({
+    cameraState: normalizeCameraState(value.cameraState),
+    settledState: normalizeSettledCameraState(value.settledState || value.cameraState),
+    profile: normalizeProfile(value.profile),
+    targetKind: normalizeTargetKind(value.targetKind),
+    targetComponentId: normalizeSelectionKey(value.targetComponentId),
+    sourceStage: normalizeCameraStage(value.sourceStage),
+    sourceSelectionKey: normalizeSelectionKey(value.sourceSelectionKey),
+    sourceSectionIndex: normalizeSectionIndex(value.sourceSectionIndex),
+    transient: Boolean(value.transient),
+    manual: Boolean(value.manual),
+    intentGeneration: normalizeGeneration(value.intentGeneration),
+    modelGeneration: normalizeGeneration(value.modelGeneration)
+  });
+}
+
+function freezeCameraIntentState(value) {
+  return Object.freeze({ ...value });
+}
+
+function freezeCameraResolution(state, command) {
+  return Object.freeze({ state, command });
+}
+
+function cameraEventMatchesCurrentIntent(current, event) {
+  const intentGeneration = Number(event.intentGeneration);
+  const modelGeneration = Number(event.modelGeneration);
+  if (!Number.isInteger(intentGeneration) || intentGeneration !== current.intentGeneration) return false;
+  if (Number.isInteger(modelGeneration) && modelGeneration !== current.modelGeneration) return false;
+  return true;
+}
+
+function normalizeCameraStage(value) {
+  return CAMERA_INTENT_STAGE_VALUES.has(value) ? value : "layout";
+}
+
+function normalizeCameraState(value) {
+  return Object.values(CAMERA_INTENT_STATES).includes(value) ? value : CAMERA_INTENT_STATES.overview;
+}
+
+function normalizeSettledCameraState(value) {
+  if (value === CAMERA_INTENT_STATES.sectionContext) return value;
+  if (value === CAMERA_INTENT_STATES.detailFocus) return value;
+  if (value === CAMERA_INTENT_STATES.userControlled) return value;
+  return CAMERA_INTENT_STATES.overview;
+}
+
+function normalizeTargetKind(value) {
+  return ["model", "section", "detail", "user"].includes(value) ? value : "model";
+}
+
+function normalizeProfile(value) {
+  return typeof value === "string" && value ? value : "overview";
+}
+
+function normalizeSelectionKey(value) {
+  if (value === null || value === undefined || value === "") return null;
+  return String(value);
+}
+
+function normalizeSectionIndex(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(value);
+  return Number.isInteger(numeric) && numeric >= 0 ? numeric : null;
+}
+
+function normalizeGeneration(value) {
+  const numeric = Number(value);
+  return Number.isInteger(numeric) && numeric >= 0 ? numeric : 0;
+}
+
+function resolveIntentDuration(value, settledState, targetKind) {
+  if (value !== undefined) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+  }
+  if (targetKind === "user") return 0;
+  return settledState === CAMERA_INTENT_STATES.detailFocus ? PROFILE_CAMERA_DURATION : 480;
 }
 
 function normalizeViewport(viewport, aspect) {

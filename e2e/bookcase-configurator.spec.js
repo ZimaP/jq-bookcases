@@ -36,6 +36,17 @@ async function settleFrames(page, count = 3) {
   }, count);
 }
 
+function expectStableCameraPose(actual, expected) {
+  for (const key of ["theta", "phi", "radius", "environmentScale", "exposure"]) {
+    expect(actual[key]).toBeCloseTo(expected[key], 12);
+  }
+  for (const group of ["target", "position"]) {
+    for (const axis of ["x", "y", "z"]) {
+      expect(actual[group][axis]).toBeCloseTo(expected[group][axis], 12);
+    }
+  }
+}
+
 async function readRenderDiagnostics(viewer) {
   return viewer.evaluate((element) => ({
     valid: element.dataset.renderValid,
@@ -473,14 +484,14 @@ test("hardware type and finish stay canonical, compatible, selected, and camera-
   await expect(page.locator('[data-hardware-type][value="pull"] + span .hardware-selected-mark')).toBeVisible();
   let accepted = await readAcceptedDesign(page);
   expect(accepted.diagnostics.state.hardware).toBe("brass_pull");
-  expect(await readPose()).toEqual(initialPose);
+  expectStableCameraPose(await readPose(), initialPose);
 
   await page.locator('.hardware-finish-choice:has(input[value="matte_black"])').click();
   await settleFrames(page, 4);
   await expect(page.locator('[data-hardware-finish][value="matte_black"] + span .hardware-selected-mark')).toBeVisible();
   accepted = await readAcceptedDesign(page);
   expect(accepted.diagnostics.state.hardware).toBe("matte_black_pull");
-  expect(await readPose()).toEqual(initialPose);
+  expectStableCameraPose(await readPose(), initialPose);
   await expect(page.locator("[data-3d-viewer] canvas")).toHaveCount(1);
   expect(errors).toEqual([]);
 });

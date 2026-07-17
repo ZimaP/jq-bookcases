@@ -504,7 +504,7 @@ test("mobile keyboard operation navigates workspace stages, manipulates the came
   expect(runtimeErrors).toEqual([]);
 });
 
-test("Preview fits the entire bookcase in the safe viewport and restores the prior detail camera", async ({ page }) => {
+test("Preview fits the entire bookcase and the next stage resolves a fresh camera intent", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const runtimeErrors = monitorRuntime(page);
   await openConfigurator(page, "classic-open");
@@ -576,20 +576,12 @@ test("Preview fits the entire bookcase in the safe viewport and restores the pri
   await page.locator('[data-workspace-stage="storage"]').click();
   await settleFrames(page, 3);
   const after = (await readDesign(page)).view;
-  expect({
-    theta: after.theta,
-    phi: after.phi,
-    radius: after.radius,
-    target: after.target,
-    focus: after.focus,
-    focusVariant: after.focusVariant
-  }).toEqual({
-    theta: before.theta,
-    phi: before.phi,
-    radius: before.radius,
-    target: before.target,
-    focus: before.focus,
-    focusVariant: before.focusVariant
-  });
+  const workspace = page.locator("[data-configurator-workspace]");
+  await expect(workspace).toHaveAttribute("data-camera-state", "overview");
+  await expect(workspace).toHaveAttribute("data-camera-profile", "overview");
+  await expect(workspace).toHaveAttribute("data-camera-source-stage", "storage");
+  await expect(workspace).toHaveAttribute("data-camera-source-section", "");
+  expect(after.focus).toBe("overview");
+  expect(after.focusVariant).not.toBe(before.focusVariant);
   expect(runtimeErrors).toEqual([]);
 });
