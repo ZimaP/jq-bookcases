@@ -99,7 +99,11 @@ async function setSectionCount(page, count) {
   while (current > count) {
     const targetIndex = current - 1;
     const select = page.locator(`[data-section-organizer] [data-section-select="${targetIndex}"]`);
-    if (await select.getAttribute("aria-pressed") !== "true") await select.click();
+    if (await select.getAttribute("aria-pressed") !== "true") {
+      await select.focus();
+      await select.press("Enter");
+    }
+    await page.locator(`[data-section-menu-trigger="${targetIndex}"]`).click();
     const remove = page.locator(`[data-section-organizer] [data-section-delete="${targetIndex}"]:not([disabled])`);
     await expect(remove).toBeVisible();
     await remove.click();
@@ -543,6 +547,7 @@ test("smart camera invalidates stale base, section, and hardware detail intents"
   expect(removedDoor).not.toBeNull();
   await waitForCamera(page);
   await expect(workspace).toHaveAttribute("data-camera-state", "detail-focus");
+  await page.locator(`[data-section-menu-trigger="${nextSection}"]`).click();
   await page.locator(`[data-section-organizer] [data-section-delete="${nextSection}"]`).click();
   await waitForCamera(page);
   await expect(workspace).toHaveAttribute("data-camera-state", /overview|section-context/);
@@ -623,13 +628,16 @@ test.describe("touch tablet workspace", () => {
     await firstSection.focus();
     await firstSection.press("ArrowDown");
     await expect(page.locator('[data-section-select="3"]')).toHaveAttribute("aria-pressed", "true");
-    const selectedActions = page.locator("[data-section-card].is-selected .workspace-section-card-actions button:visible");
+    await page.locator('[data-section-card="3"] [data-section-menu-trigger="3"]').click();
+    const selectedActions = page.locator('[data-section-card="3"] .workspace-section-menu > div button:visible');
     await expect(selectedActions).toHaveCount(2);
     for (const action of await selectedActions.all()) {
       const box = await action.boundingBox();
-      expect(box?.width).toBeGreaterThanOrEqual(40);
-      expect(box?.height).toBeGreaterThanOrEqual(40);
+      expect(box?.width).toBeGreaterThanOrEqual(44);
+      expect(box?.height).toBeGreaterThanOrEqual(44);
     }
+    await page.locator('[data-section-card="3"] [data-section-menu-trigger="3"]').press("Escape");
+    await expect(page.locator('[data-section-card="3"] .workspace-section-menu')).not.toHaveAttribute("open", "");
 
     await page.setViewportSize({ width: 768, height: 1024 });
     await waitForCamera(page);
@@ -654,7 +662,7 @@ test.describe("touch tablet workspace", () => {
         ".workspace-section-thumbnail, .workspace-section-card-main > span:not(.workspace-section-thumbnail)"
       )];
       const labels = [...card.querySelectorAll(
-        ".workspace-section-card-main strong, .workspace-section-card-main small"
+        ".workspace-section-card-main strong, .workspace-section-card-main .workspace-section-card-width"
       )];
       return {
         childContentContained: content.every(contained),

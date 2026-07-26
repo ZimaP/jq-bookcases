@@ -153,6 +153,8 @@ const builderIcons = Object.freeze({
   layout: iconSvg("sections"),
   storage: iconSvg("storage"),
   structure: iconSvg("crown-molding"),
+  base: iconSvg("base-molding"),
+  crown: iconSvg("crown-molding"),
   ideas: iconSvg("inspiration"),
   lighting: iconSvg("light-bulb"),
   finish: iconSvg("paint-finish"),
@@ -190,6 +192,41 @@ const builderIcons = Object.freeze({
   premiumMaterials: iconSvg("material-layers"),
   craftsmanship: iconSvg("craftsmanship"),
   customFit: iconSvg("dimensions"),
+});
+
+const MOBILE_CONFIG_CATEGORIES = Object.freeze([
+  Object.freeze({ id: "sections", label: "Sections", description: "Configure the vertical sections of your bookcase.", stageId: "layout", groupId: "sections_layout", icon: "layout" }),
+  Object.freeze({ id: "shelves", label: "Shelves", description: "Set shelf quantity and construction for the selected section.", stageId: "storage", groupId: "shelves", icon: "shelves" }),
+  Object.freeze({ id: "doors", label: "Doors", description: "Choose doors, drawers, and closed storage for the selected section.", stageId: "storage", groupId: "storage_fronts", icon: "doors" }),
+  Object.freeze({ id: "base", label: "Base", description: "Choose the lower architectural profile for your bookcase.", stageId: "base_top", groupId: "base_crown", icon: "base", focusField: "baseStyle" }),
+  Object.freeze({ id: "crown", label: "Crown", description: "Choose the crown or top profile for your bookcase.", stageId: "base_top", groupId: "base_crown", icon: "crown", focusField: "crownStyle" }),
+  Object.freeze({ id: "finish", label: "Finish", description: "Select a premium paint finish or Benjamin Moore color.", stageId: "finish", groupId: "finish", icon: "finish" }),
+  Object.freeze({ id: "hardware", label: "Hardware", description: "Select the hardware type and finish for doors and drawers.", stageId: "hardware", groupId: "hardware", icon: "hardware" }),
+  Object.freeze({ id: "lighting", label: "Lighting", description: "Add and tune integrated lighting for the bookcase.", stageId: "lighting", groupId: "lighting", icon: "lighting" }),
+  Object.freeze({ id: "view", label: "View", description: "Inspect, review, and prepare your completed design.", stageId: "preview", groupId: "project_service", icon: "preview" })
+]);
+
+const MOBILE_CATEGORY_BY_STAGE = Object.freeze({
+  space: "sections",
+  layout: "sections",
+  storage: "shelves",
+  base_top: "base",
+  finish: "finish",
+  hardware: "hardware",
+  lighting: "lighting",
+  preview: "view"
+});
+
+const MOBILE_CATEGORY_BY_GROUP = Object.freeze({
+  overall_size: "sections",
+  sections_layout: "sections",
+  shelves: "shelves",
+  storage_fronts: "doors",
+  base_crown: "base",
+  finish: "finish",
+  hardware: "hardware",
+  lighting: "lighting",
+  project_service: "view"
 });
 
 const studioCapabilityIcons = Object.freeze([
@@ -398,6 +435,8 @@ class BookcaseConfigurator {
     this.basePresetId = this.hasAcceptedDesign ? inferBasePresetId(this.state) : defaultBookcaseConfig.layoutPreset;
     this.activeInspectorGroup = normalizeInspectorGroup("overall_size");
     this.activeStageId = "layout";
+    this.activeMobileCategoryId = "sections";
+    this.mobileLayoutQuery = window.matchMedia("(max-width: 767px)");
     this.activeInspectorTabId = "general";
     this.activeTool = "select";
     this.showDimensions = true;
@@ -503,6 +542,7 @@ class BookcaseConfigurator {
     this.designIntent = STUDIO_DESIGN_INTENTS.newDesign;
     this.activeInspectorGroup = normalizeInspectorGroup("overall_size");
     this.activeStageId = "layout";
+    this.activeMobileCategoryId = "sections";
     this.activeInspectorTabId = "general";
     this.activeTool = "select";
     this.showDimensions = true;
@@ -660,6 +700,41 @@ class BookcaseConfigurator {
     this.renderFullPageConfigurator();
   }
 
+  syncWorkspaceDomOrder() {
+    const shell = this.host.querySelector("[data-configurator-workspace]");
+    if (!shell) return;
+    const model = shell.querySelector("[data-model-workspace]");
+    const viewer = model?.querySelector("[data-viewer-room]");
+    const toolbar = model?.querySelector("[data-model-toolbar]");
+    if (model && viewer && toolbar) {
+      if (this.isMobileLayout()) model.prepend(viewer);
+      else model.prepend(toolbar);
+    }
+    const stageRail = shell.querySelector("[data-workspace-stages]");
+    const organizer = shell.querySelector("[data-section-organizer]");
+    const mobileCategories = shell.querySelector("[data-mobile-categories]");
+    const properties = shell.querySelector("[data-properties-inspector]");
+    const totalWidth = shell.querySelector("[data-total-width-card]");
+    const footer = shell.querySelector("[data-estimate-bar]");
+    const ordered = this.isMobileLayout()
+      ? [model, organizer, mobileCategories, properties, stageRail, totalWidth, footer]
+      : [stageRail, model, properties, organizer, mobileCategories, totalWidth, footer];
+    const anchor = shell.querySelector("dialog, [data-selection-live], [data-builder-status]");
+    ordered.filter(Boolean).forEach((element) => shell.insertBefore(element, anchor));
+  }
+
+  syncSectionOrganizerOrder() {
+    const rail = this.host.querySelector(".workspace-section-cards");
+    const addButton = rail?.querySelector("[data-section-add]");
+    if (!rail || !addButton) return;
+    if (this.isMobileLayout()) {
+      const addReason = rail.querySelector(`#${this.id}-section-add-reason`);
+      rail.insertBefore(addButton, addReason || null);
+    } else {
+      rail.prepend(addButton);
+    }
+  }
+
   renderWorkspaceStageRail() {
     return WORKSPACE_STAGES.map((stage, index) => {
       const active = stage.id === this.activeStageId;
@@ -674,6 +749,18 @@ class BookcaseConfigurator {
     }).join("");
   }
 
+  renderMobileCategoryNavigation() {
+    return MOBILE_CONFIG_CATEGORIES.map((category) => {
+      const active = category.id === this.activeMobileCategoryId;
+      return `
+        <button type="button" id="${this.id}-mobile-category-${escapeHtml(category.id)}-tab" class="workspace-mobile-category${active ? " is-active" : ""}" data-mobile-category="${escapeHtml(category.id)}" aria-controls="${this.id}-mobile-category-panel" aria-selected="${active}" role="tab" ${active ? 'tabindex="0"' : 'tabindex="-1"'}>
+          <span aria-hidden="true">${builderIcons[category.icon] || builderIcons.layout}</span>
+          <strong>${escapeHtml(category.label)}</strong>
+        </button>
+      `;
+    }).join("");
+  }
+
   renderFullPageConfigurator() {
     if (!this.hasAcceptedDesign) {
       this.renderStudioEntryShell();
@@ -682,6 +769,48 @@ class BookcaseConfigurator {
     this.host.innerHTML = `
       <form class="builder-shell configurator-shell configurator-experience reference-workspace" data-builder-form data-unified-configurator data-configurator-workspace novalidate>
         <h1 id="${this.id}-viewer-title" class="sr-only">3D Bookcase Configurator</h1>
+        <section class="studio-model configurator-model workspace-model" data-model-workspace aria-labelledby="${this.id}-viewer-title">
+          <div class="workspace-viewer-room" data-viewer-room>
+            <div class="viewer-stage" data-3d-viewer tabindex="0" role="application" aria-roledescription="interactive 3D configurator" aria-label="Built-in bookcase model. Select a component to edit, or choose the hand tool to pan. Use plus or minus to zoom."></div>
+            <div class="configurator-hover-label" data-model-hover-label hidden></div>
+          </div>
+          <header class="workspace-model-toolbar" data-model-toolbar>
+            <div class="workspace-toolbar-group workspace-display-tools" role="group" aria-label="Model display">
+              <button type="button" data-toggle-dimensions aria-pressed="true" aria-label="Hide dimensions"><span aria-hidden="true">${builderIcons.dimensions}</span><b>Dimensions</b></button>
+              <button type="button" data-toggle-wall aria-pressed="true" aria-label="Hide wall"><span aria-hidden="true">${builderIcons.space}</span><b>Wall</b></button>
+              <button type="button" data-reset-view aria-label="Reset model view" title="Reset model view"><span aria-hidden="true">${builderIcons.reset}</span><b>Reset</b></button>
+              <button type="button" data-model-fullscreen aria-pressed="false" aria-label="Enter model fullscreen" title="Fullscreen model"><span aria-hidden="true">${builderIcons.fullscreen}</span><b>Fullscreen</b></button>
+            </div>
+            <details class="workspace-toolbar-overflow" ${this.isMobileLayout() ? "" : "open"}>
+              <summary aria-label="More viewport controls" title="More viewport controls"><span aria-hidden="true">${builderIcons.more}</span></summary>
+              <div class="workspace-toolbar-overflow-panel">
+                <div class="workspace-toolbar-group workspace-history-tools" role="group" aria-label="Design history">
+                  <button type="button" data-history-undo aria-label="Undo design change" aria-keyshortcuts="Control+Z Meta+Z" disabled><span aria-hidden="true">${builderIcons.undo}</span><b>Undo</b></button>
+                  <button type="button" class="is-redo" data-history-redo aria-label="Redo design change" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled><span aria-hidden="true">${builderIcons.redo}</span><b>Redo</b></button>
+                </div>
+                <div class="workspace-toolbar-group workspace-model-tools" role="group" aria-label="Model interaction and zoom">
+                  <button type="button" data-model-tool="pan" aria-pressed="false" aria-label="Pan model" title="Pan model"><span aria-hidden="true">${builderIcons.pan}</span><b>Pan</b></button>
+                  <button type="button" data-model-tool="select" aria-pressed="true" aria-label="Select model component" title="Select model component"><span aria-hidden="true">${builderIcons.select}</span><b>Select</b></button>
+                  <button type="button" data-viewer-zoom="out" aria-label="Zoom out"><span aria-hidden="true">${builderIcons.zoomOut}</span><b>Zoom out</b></button>
+                  <button type="button" data-viewer-zoom="in" aria-label="Zoom in"><span aria-hidden="true">${builderIcons.zoomIn}</span><b>Zoom in</b></button>
+                </div>
+              </div>
+            </details>
+          </header>
+        </section>
+
+        <section class="workspace-section-organizer" data-section-organizer aria-label="Bookcase sections">
+          <div data-section-organizer-content></div>
+        </section>
+
+        <nav class="workspace-mobile-category-nav" data-mobile-categories aria-label="Configuration categories">
+          <div class="workspace-mobile-category-list" data-mobile-category-list role="tablist">${this.renderMobileCategoryNavigation()}</div>
+        </nav>
+
+        <aside class="workspace-properties" data-properties-inspector data-controls-scroll aria-label="Design properties" tabindex="-1">
+          <div class="workspace-properties-content" data-inspector-content></div>
+        </aside>
+
         <nav class="workspace-stage-rail" data-workspace-stages aria-label="Configurator stages">
           <div class="workspace-stage-list">${this.renderWorkspaceStageRail()}</div>
           ${this.arEnabled ? `
@@ -692,38 +821,6 @@ class BookcaseConfigurator {
             </button>
           ` : ""}
         </nav>
-
-        <section class="studio-model configurator-model workspace-model" data-model-workspace aria-labelledby="${this.id}-viewer-title">
-          <header class="workspace-model-toolbar" data-model-toolbar>
-            <div class="workspace-toolbar-group workspace-history-tools" role="group" aria-label="Design history">
-              <button type="button" data-history-undo aria-label="Undo design change" aria-keyshortcuts="Control+Z Meta+Z" disabled><span aria-hidden="true">${builderIcons.undo}</span><b>Undo</b></button>
-              <button type="button" class="is-redo" data-history-redo aria-label="Redo design change" aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y Meta+Y" disabled><span aria-hidden="true">${builderIcons.redo}</span><b>Redo</b></button>
-            </div>
-            <div class="workspace-toolbar-group workspace-display-tools" role="group" aria-label="Model display">
-              <span>Show:</span>
-              <button type="button" data-toggle-dimensions aria-pressed="true">Dimensions</button>
-              <button type="button" data-toggle-wall aria-pressed="true">Wall</button>
-            </div>
-            <div class="workspace-toolbar-group workspace-model-tools" role="group" aria-label="Model interaction tool">
-              <button type="button" data-model-tool="pan" aria-pressed="false" aria-label="Pan model" title="Pan model"><span aria-hidden="true">${builderIcons.pan}</span></button>
-              <button type="button" data-model-tool="select" aria-pressed="true" aria-label="Select model component" title="Select model component"><span aria-hidden="true">${builderIcons.select}</span></button>
-              <button type="button" data-reset-view aria-label="Reset model view" title="Reset model view"><span aria-hidden="true">${builderIcons.reset}</span></button>
-              <button type="button" data-model-fullscreen aria-pressed="false" aria-label="Enter model fullscreen" title="Fullscreen model"><span aria-hidden="true">${builderIcons.fullscreen}</span></button>
-            </div>
-          </header>
-          <div class="workspace-viewer-room" data-viewer-room>
-            <div class="viewer-stage" data-3d-viewer tabindex="0" role="application" aria-roledescription="interactive 3D configurator" aria-label="Built-in bookcase model. Select a component to edit, or choose the hand tool to pan. Use plus or minus to zoom."></div>
-            <div class="configurator-hover-label" data-model-hover-label hidden></div>
-          </div>
-        </section>
-
-        <aside class="workspace-properties" data-properties-inspector data-controls-scroll aria-label="Design properties" tabindex="-1">
-          <div class="workspace-properties-content" data-inspector-content></div>
-        </aside>
-
-        <section class="workspace-section-organizer" data-section-organizer aria-label="Bookcase sections">
-          <div data-section-organizer-content></div>
-        </section>
 
         <aside class="workspace-total-width" data-total-width-card aria-label="Total width status">
           <div data-total-width-content></div>
@@ -762,6 +859,7 @@ class BookcaseConfigurator {
         <p class="status-message" data-builder-status role="status" aria-live="polite"></p>
       </form>
     `;
+    this.syncWorkspaceDomOrder();
   }
 
   renderStudioEntryShell() {
@@ -848,16 +946,21 @@ class BookcaseConfigurator {
     );
     if (this.elements.sectionOrganizerContent) {
       this.elements.sectionOrganizerContent.innerHTML = this.renderSectionOrganizer();
+      this.syncSectionOrganizerOrder();
     }
     if (this.elements.totalWidthContent) {
       this.elements.totalWidthContent.innerHTML = this.renderTotalWidthCard();
     }
     const stageList = this.elements.stageRail?.querySelector(".workspace-stage-list");
     if (stageList) stageList.innerHTML = this.renderWorkspaceStageRail();
+    if (this.elements.mobileCategoryList) {
+      this.elements.mobileCategoryList.innerHTML = this.renderMobileCategoryNavigation();
+    }
     window.requestAnimationFrame(() => {
       if (!this.elements.controlsScroll) return;
       this.elements.controlsScroll.scrollTop = options.resetScroll ? 0 : scrollTop;
       this.restoreWorkspaceFocus(focusedControl);
+      this.ensureMobileRailSelectionsVisible();
     });
   }
 
@@ -867,10 +970,12 @@ class BookcaseConfigurator {
     if (active.id) return { id: active.id };
     const attributes = [
       "data-workspace-stage",
+      "data-mobile-category",
       "data-hardware-type",
       "data-hardware-finish",
       "data-section-type",
       "data-section-select",
+      "data-section-menu-trigger",
       "data-section-add",
       "data-section-duplicate",
       "data-section-delete",
@@ -897,6 +1002,12 @@ class BookcaseConfigurator {
 
   restoreWorkspaceFocus(snapshot) {
     if (!snapshot) return;
+    if (["data-section-delete", "data-section-duplicate"].includes(snapshot.attribute)) {
+      const selectedCard = this.host.querySelector(`[data-section-select="${this.selectedSectionIndex}"]`);
+      const selectedMenu = this.host.querySelector(`[data-section-menu-trigger="${this.selectedSectionIndex}"]`);
+      (selectedCard || selectedMenu)?.focus?.({ preventScroll: true });
+      return;
+    }
     let target = snapshot.id ? this.host.querySelectorAll("[id]") : [];
     if (snapshot.id) {
       target = [...target].find((element) => element.id === snapshot.id) || null;
@@ -907,13 +1018,11 @@ class BookcaseConfigurator {
         .filter((element) => snapshot.direction === null || element.getAttribute("data-step-direction") === snapshot.direction);
       target = candidates[0] || null;
     }
-    if (!target && ["data-section-delete", "data-section-duplicate"].includes(snapshot.attribute)) {
-      target = this.host.querySelector(`[data-section-select="${this.selectedSectionIndex}"]`);
-    }
     target?.focus?.({ preventScroll: true });
   }
 
   renderWorkspaceProperties() {
+    if (this.isMobileLayout()) return this.renderMobileWorkspaceProperties();
     const stage = WORKSPACE_STAGES.find((item) => item.id === this.activeStageId) || WORKSPACE_STAGES[0];
     const selectedSection = this.getSelectedSectionState();
     const title = this.selection
@@ -931,6 +1040,134 @@ class BookcaseConfigurator {
         ${this.renderWorkspacePropertiesContent(selectedSection)}
       </section>
     `;
+  }
+
+  renderMobileWorkspaceProperties() {
+    const category = this.getActiveMobileCategory();
+    return `
+      <header class="workspace-properties-heading workspace-mobile-properties-heading">
+        <div><h2>${escapeHtml(category.label)}</h2><p>${escapeHtml(category.description)}</p></div>
+        ${this.selection?.source && this.selection.source !== "organizer" ? `<button type="button" data-close-selection aria-label="Clear model selection">${builderIcons.close}</button>` : ""}
+      </header>
+      <section id="${this.id}-mobile-category-panel" class="workspace-properties-panel" role="tabpanel" aria-labelledby="${this.id}-mobile-category-${escapeHtml(category.id)}-tab" data-active-stage-panel="${escapeHtml(category.stageId)}" data-inspector-view="${escapeHtml(category.stageId)}" data-mobile-category-panel="${escapeHtml(category.id)}">
+        ${this.renderMobileCategoryContent(category.id)}
+      </section>
+    `;
+  }
+
+  renderMobileCategoryContent(categoryId) {
+    const selectedSection = this.getSelectedSectionState();
+    if (categoryId === "sections") return `
+      ${this.selection?.editorId === "back" ? this.renderBackPanelSummary() : ""}
+      ${this.renderLayoutConsole()}
+      <section class="workspace-mobile-overall-size" aria-label="Overall bookcase size">
+        ${this.renderSpaceGroup()}
+      </section>`;
+    if (categoryId === "shelves" || categoryId === "doors") return this.renderStorageConsole(selectedSection);
+    if (categoryId === "base" || categoryId === "crown") return this.renderStructureGroup();
+    if (categoryId === "finish") return this.renderFinishGroup();
+    if (categoryId === "hardware") return this.renderHardwareGroup();
+    if (categoryId === "lighting") return this.renderLightingGroup();
+    return `
+      <section class="workspace-mobile-view-controls" aria-labelledby="${this.id}-mobile-view-heading">
+        <header class="workspace-console-heading"><div><span aria-hidden="true">${builderIcons.preview}</span><h3 id="${this.id}-mobile-view-heading">Camera view</h3></div></header>
+        <div class="workspace-mobile-view-buttons" role="group" aria-label="Camera view">
+          <button type="button" data-view="front" aria-pressed="${this.activeView === "front"}">${builderIcons.front}<span>Front</span></button>
+          <button type="button" data-view="three-quarter" aria-pressed="${this.activeView === "three-quarter"}">${builderIcons.threeQuarter}<span>3/4 View</span></button>
+          <button type="button" data-view="side" aria-pressed="${this.activeView === "side"}">${builderIcons.side}<span>Side</span></button>
+        </div>
+      </section>
+      <section class="workspace-preview-stage">
+        <button class="workspace-review-launch" type="button" data-review-design>Review Design</button>
+        ${this.arEnabled ? `<button class="workspace-mobile-ar-launch" type="button" data-open-ar>${builderIcons.augmentedReality}<span>View in your room</span></button>` : ""}
+        ${this.renderServiceGroup()}
+        <button class="workspace-reset-link" type="button" data-reset-design>Start over</button>
+      </section>`;
+  }
+
+  getActiveMobileCategory() {
+    return MOBILE_CONFIG_CATEGORIES.find((category) => category.id === this.activeMobileCategoryId)
+      || MOBILE_CONFIG_CATEGORIES[0];
+  }
+
+  resolveMobileCategoryId(options = {}) {
+    const field = options.field || "";
+    const editorId = options.editorId || "";
+    const groupId = normalizeInspectorGroup(options.groupId || this.activeInspectorGroup);
+    const stageId = options.stageId || this.activeStageId;
+    if (field === "crownStyle" || editorId === "crown") return "crown";
+    if (field === "baseStyle" || editorId === "base") return "base";
+    if (groupId === "base_crown" && ["base", "crown"].includes(this.activeMobileCategoryId)) {
+      return this.activeMobileCategoryId;
+    }
+    return MOBILE_CATEGORY_BY_GROUP[groupId]
+      || MOBILE_CATEGORY_BY_STAGE[stageId]
+      || "sections";
+  }
+
+  isMobileLayout() {
+    return Boolean(this.mobileLayoutQuery?.matches ?? window.innerWidth <= 767);
+  }
+
+  activateMobileCategory(categoryId, options = {}) {
+    const category = MOBILE_CONFIG_CATEGORIES.find((item) => item.id === categoryId);
+    if (!category) return false;
+    this.cancelQueuedProfileFocus();
+    this.cancelQueuedCameraIntent();
+    this.endOptionPreview(null, { restore: true });
+    this.viewer.cancelCameraTransition?.();
+    this.activeMobileCategoryId = category.id;
+    this.activeStageId = category.stageId;
+    this.activeInspectorGroup = normalizeInspectorGroup(category.groupId);
+    this.activeInspectorTabId = category.id === "doors" ? "doors" : category.id === "shelves" ? "shelves" : "general";
+    this.selection = null;
+    this.contextEditorOpen = false;
+    this.viewer.clearDirectSelection?.();
+    this.viewer.setSectionSelection?.(this.selectedSectionIndex);
+    this.renderInspector({ resetScroll: true });
+    this.syncInterface();
+    this.dispatchCameraIntent({
+      type: "stage-change",
+      stage: category.stageId,
+      sectionIndex: this.selectedSectionIndex,
+      duration: SMART_CAMERA_DURATION
+    });
+    if (category.focusField) this.requestProfileCameraFocus(category.focusField, { force: true });
+    this.activeView = category.stageId === "lighting" ? "custom" : "three-quarter";
+    this.syncViewButtons();
+    this.syncDiagnosticsAttributes();
+    if (options.focus !== false) {
+      window.requestAnimationFrame(() => this.host.querySelector(`[data-mobile-category="${category.id}"]`)?.focus({ preventScroll: true }));
+    }
+    return true;
+  }
+
+  ensureMobileRailSelectionsVisible() {
+    if (!this.isMobileLayout()) return;
+    const sectionScroller = this.host.querySelector(".workspace-section-cards");
+    const section = sectionScroller?.querySelector(`[data-section-select="${this.selectedSectionIndex}"]`)?.closest(".workspace-section-card");
+    this.scrollHorizontalItemIntoView(sectionScroller, section);
+    const categoryScroller = this.elements.mobileCategoryList;
+    const category = categoryScroller?.querySelector(`[data-mobile-category="${this.activeMobileCategoryId}"]`);
+    this.scrollHorizontalItemIntoView(categoryScroller, category);
+  }
+
+  scrollHorizontalItemIntoView(scroller, item) {
+    if (!scroller || !item) return;
+    const scrollerRect = scroller.getBoundingClientRect();
+    const itemRect = item.getBoundingClientRect();
+    const inset = 12;
+    const isClipped = itemRect.left < scrollerRect.left + inset || itemRect.right > scrollerRect.right - inset;
+    if (!isClipped) return;
+    // Move to the item's own snap position instead of the smallest possible
+    // delta. A minimum delta can snap back to the preceding card and leave the
+    // active item partially hidden on narrow viewports.
+    const itemStart = scroller.scrollLeft + itemRect.left - scrollerRect.left;
+    const maxScrollLeft = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+    const target = clamp(itemStart - inset, 0, maxScrollLeft);
+    if (Math.abs(target - scroller.scrollLeft) < 1) return;
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    scroller.scrollTo({ left: target, behavior });
   }
 
   getSelectedSectionState() {
@@ -972,8 +1209,8 @@ class BookcaseConfigurator {
       <section class="workspace-layout-console" data-layout-console aria-label="Section layout controls">
         <section class="workspace-console-block workspace-layout-count" aria-labelledby="${this.id}-layout-count-heading">
           <header class="workspace-console-heading">
-            <div><span aria-hidden="true">${builderIcons.layout}</span><h3 id="${this.id}-layout-count-heading">Sections</h3></div>
-            <p>Set the number of vertical sections. Room dimensions stay in Space.</p>
+            <div><span aria-hidden="true">${builderIcons.layout}</span><h3 id="${this.id}-layout-count-heading">Number of sections</h3></div>
+            <p>Room dimensions stay in space.</p>
           </header>
           ${this.renderStepperControl("sections", "Number of sections", 1, 6)}
           <p class="control-helper section-limit-helper" data-section-limit></p>
@@ -1181,30 +1418,47 @@ class BookcaseConfigurator {
   renderSectionOrganizer() {
     const organizer = createSectionOrganizerSummary(this.state, this.layout);
     const addAvailability = addSection(this.state, this.layout, this.selectedSectionIndex);
+    const addReason = addAvailability.error?.message || "A section cannot be added.";
+    const addReasonId = `${this.id}-section-add-reason`;
     return `
       <header class="workspace-organizer-summary">
         <div><strong>Sections (${organizer.sectionCount})</strong><small>${escapeHtml(organizer.totalClearWidthLabel)}</small>${addAvailability.accepted ? "" : `<small class="workspace-organizer-note">${escapeHtml(addAvailability.error?.message || "A section cannot be added.")}</small>`}</div>
       </header>
       <div class="workspace-section-cards" role="group" aria-label="Section organizer" data-section-count="${organizer.sectionCount}" style="--workspace-section-count:${organizer.sectionCount}">
-        <button class="workspace-add-section" type="button" data-section-add ${addAvailability.accepted ? "" : `disabled title="${escapeHtml(addAvailability.error?.message || "A section cannot be added.")}"`}>
-          <span aria-hidden="true">${builderIcons.plus}</span><strong>Add<br>Section</strong>
-        </button>
         ${organizer.items.map((section) => {
           const duplicateAvailability = duplicateSection(this.state, this.layout, section.index);
           const deleteAvailability = deleteSection(this.state, this.layout, section.index);
+          const duplicateReason = duplicateAvailability.error?.message || "This section cannot be duplicated.";
+          const deleteReason = deleteAvailability.error?.message || "This section cannot be deleted.";
+          const duplicateReasonId = `${this.id}-section-${section.index + 1}-duplicate-reason`;
+          const deleteReasonId = `${this.id}-section-${section.index + 1}-delete-reason`;
+          const visibleReasons = [...new Set([
+            duplicateAvailability.accepted ? null : duplicateReason,
+            deleteAvailability.accepted ? null : deleteReason
+          ].filter(Boolean))];
           return `
           <article class="workspace-section-card${section.index === this.selectedSectionIndex ? " is-selected" : ""}" data-section-card="${section.index}">
             <button type="button" class="workspace-section-card-main" data-section-select="${section.index}" aria-pressed="${section.index === this.selectedSectionIndex}">
               ${this.renderSectionThumbnail(section, section.thumbnail)}
-              <span><strong>${escapeHtml(section.title)}</strong><small>${escapeHtml(section.widthLabel.replace(" clear", ""))}</small></span>
+              <span><strong>${escapeHtml(section.title)}</strong><small class="workspace-section-card-width">${escapeHtml(section.widthLabel.replace(" clear", ""))}</small><small class="workspace-section-card-meta">Width</small></span>
               ${section.index === this.selectedSectionIndex ? `<i class="workspace-selected-check" aria-hidden="true">${builderIcons.check}</i>` : ""}
             </button>
-            <div class="workspace-section-card-actions" role="group" aria-label="Section ${section.index + 1} actions">
-              <button type="button" class="workspace-section-duplicate" data-section-duplicate="${section.index}" aria-label="Duplicate Section ${section.index + 1}" title="${escapeHtml(duplicateAvailability.accepted ? `Duplicate Section ${section.index + 1}` : duplicateAvailability.error?.message || "Unavailable")}" ${duplicateAvailability.accepted ? "" : "disabled"}>${builderIcons.copy}</button>
-              <button type="button" class="workspace-section-delete" data-section-delete="${section.index}" aria-label="Delete Section ${section.index + 1}" title="${escapeHtml(deleteAvailability.accepted ? `Delete Section ${section.index + 1}` : deleteAvailability.error?.message || "Unavailable")}" ${deleteAvailability.accepted ? "" : "disabled"}>${builderIcons.delete}</button>
-            </div>
+            <details class="workspace-section-menu" name="${this.id}-section-actions">
+              <summary data-section-menu-trigger="${section.index}" aria-label="Section ${section.index + 1} actions" title="Section ${section.index + 1} actions">${builderIcons.more}</summary>
+              <div role="group" aria-label="Section ${section.index + 1} actions">
+                <button type="button" data-section-duplicate="${section.index}" aria-label="Duplicate Section ${section.index + 1}" ${duplicateAvailability.accepted ? "" : `disabled aria-describedby="${duplicateReasonId}" title="${escapeHtml(duplicateReason)}"`}>${builderIcons.copy}<span>Duplicate</span></button>
+                <button type="button" data-section-delete="${section.index}" aria-label="Delete Section ${section.index + 1}" ${deleteAvailability.accepted ? "" : `disabled aria-describedby="${deleteReasonId}" title="${escapeHtml(deleteReason)}"`}>${builderIcons.delete}<span>Delete</span></button>
+                <span id="${duplicateReasonId}" class="sr-only">${escapeHtml(duplicateReason)}</span>
+                <span id="${deleteReasonId}" class="sr-only">${escapeHtml(deleteReason)}</span>
+                ${visibleReasons.length ? `<p class="workspace-section-menu-note">${visibleReasons.map((reason) => escapeHtml(reason)).join(" ")}</p>` : ""}
+              </div>
+            </details>
           </article>
         `;}).join("")}
+        <button class="workspace-add-section" type="button" data-section-add ${addAvailability.accepted ? "" : `disabled aria-describedby="${addReasonId}" title="${escapeHtml(addReason)}"`}>
+          <span aria-hidden="true">${builderIcons.plus}</span><strong>Add Section</strong>${addAvailability.accepted ? "" : "<small>Limit reached</small>"}
+        </button>
+        <span id="${addReasonId}" class="sr-only">${escapeHtml(addReason)}</span>
       </div>
     `;
   }
@@ -1677,11 +1931,11 @@ class BookcaseConfigurator {
     return `
       <section class="control-section control-section-structure">
         <h2><span class="control-heading-icon" aria-hidden="true">${builderIcons.structure}</span>Base &amp; Top</h2>
-        <fieldset class="structure-field">
+        <fieldset class="structure-field" data-structure-part="base">
           <legend>Base Style</legend>
           <div class="style-choice-grid base-choice-grid">${baseChoices}</div>
         </fieldset>
-        <fieldset class="structure-field">
+        <fieldset class="structure-field" data-structure-part="crown">
           <legend>Crown / Top Style</legend>
           <div class="style-choice-grid crown-choice-grid">${crownChoices}</div>
         </fieldset>
@@ -1865,6 +2119,7 @@ class BookcaseConfigurator {
       controlsScroll: this.host.querySelector("[data-controls-scroll]"),
       inspectorContent: this.host.querySelector("[data-inspector-content]"),
       stageRail: this.host.querySelector("[data-workspace-stages]"),
+      mobileCategoryList: this.host.querySelector("[data-mobile-category-list]"),
       modelWorkspace: this.host.querySelector("[data-model-workspace]"),
       sectionOrganizerContent: this.host.querySelector("[data-section-organizer-content]"),
       totalWidthContent: this.host.querySelector("[data-total-width-content]"),
@@ -2172,6 +2427,11 @@ class BookcaseConfigurator {
     this.activeInspectorGroup = normalizeInspectorGroup(selection.inspectorGroupId);
     const workspaceRoute = resolveWorkspaceSelection(selection, this.layout);
     this.activeStageId = workspaceRoute?.stageId || selection.stageId || "layout";
+    this.activeMobileCategoryId = this.resolveMobileCategoryId({
+      editorId: selection.editorId,
+      groupId: this.activeInspectorGroup,
+      stageId: this.activeStageId
+    });
     this.activeInspectorTabId = "general";
     this.inspectorGroupCollapsed = false;
     if (Number.isInteger(selection.sectionIndex)) this.selectedSectionIndex = selection.sectionIndex;
@@ -2283,6 +2543,22 @@ class BookcaseConfigurator {
       if (document.visibilityState === "hidden") cancelInterruptedPointerWork();
     }, { signal });
     window.addEventListener("blur", cancelInterruptedPointerWork, { signal });
+
+    const handleMobileLayoutChange = () => {
+      if (!this.hasAcceptedDesign) return;
+      if (this.isMobileLayout()) {
+        this.activeMobileCategoryId = this.resolveMobileCategoryId();
+      }
+      this.syncWorkspaceDomOrder();
+      this.renderInspector({ preserveFocus: false });
+      this.syncInterface();
+      this.host.querySelector(".workspace-toolbar-overflow")?.toggleAttribute("open", !this.isMobileLayout());
+      window.requestAnimationFrame(() => {
+        this.viewer.resize?.();
+        this.ensureMobileRailSelectionsVisible();
+      });
+    };
+    this.mobileLayoutQuery?.addEventListener?.("change", handleMobileLayoutChange, { signal });
 
     this.host.addEventListener("pointerover", (event) => {
       if (event.pointerType === "touch") return;
@@ -2417,9 +2693,29 @@ class BookcaseConfigurator {
           return;
         }
       }
+      const openTransientMenu = this.host.querySelector(".workspace-section-menu[open]")
+        || (this.isMobileLayout() ? this.host.querySelector(".workspace-toolbar-overflow[open]") : null);
+      if (event.key === "Escape" && openTransientMenu) {
+        event.preventDefault();
+        openTransientMenu.removeAttribute("open");
+        openTransientMenu.querySelector("summary")?.focus?.({ preventScroll: true });
+        return;
+      }
       if (event.key === "Escape" && this.contextEditorOpen) {
         event.preventDefault();
         this.closeContextEditor({ restoreFocus: true });
+        return;
+      }
+      const mobileCategory = event.target.closest?.("[data-mobile-category]");
+      if (mobileCategory && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+        event.preventDefault();
+        const current = MOBILE_CONFIG_CATEGORIES.findIndex((category) => category.id === mobileCategory.dataset.mobileCategory);
+        const next = event.key === "Home"
+          ? 0
+          : event.key === "End"
+            ? MOBILE_CONFIG_CATEGORIES.length - 1
+            : clamp(current + (event.key === "ArrowRight" ? 1 : -1), 0, MOBILE_CONFIG_CATEGORIES.length - 1);
+        this.activateMobileCategory(MOBILE_CONFIG_CATEGORIES[next].id, { focus: true });
         return;
       }
       const divider = event.target.closest?.("[data-section-divider]");
@@ -2502,6 +2798,28 @@ class BookcaseConfigurator {
     }, { signal });
 
     this.host.addEventListener("click", (event) => this.handleDelegatedClick(event), { signal });
+    this.host.addEventListener("click", (event) => {
+      const sectionMenuSummary = event.target.closest?.(".workspace-section-menu > summary");
+      if (sectionMenuSummary) {
+        const currentMenu = sectionMenuSummary.parentElement;
+        this.host.querySelectorAll(".workspace-section-menu[open]").forEach((menu) => {
+          if (menu !== currentMenu) menu.removeAttribute("open");
+        });
+      }
+      if (!this.isMobileLayout()) return;
+      const overflow = event.target.closest?.(".workspace-toolbar-overflow[open]");
+      if (overflow && !event.target.closest?.("summary")) {
+        window.requestAnimationFrame(() => overflow.removeAttribute("open"));
+      }
+    }, { signal });
+    document.addEventListener("pointerdown", (event) => {
+      const selector = this.isMobileLayout()
+        ? ".workspace-toolbar-overflow[open], .workspace-section-menu[open]"
+        : ".workspace-section-menu[open]";
+      this.host.querySelectorAll(selector).forEach((details) => {
+        if (!details.contains(event.target)) details.removeAttribute("open");
+      });
+    }, { signal });
 
     this.elements.reviewDialog?.addEventListener("click", (event) => {
       if (event.target === this.elements.reviewDialog) this.closeReviewDialog();
@@ -2531,6 +2849,11 @@ class BookcaseConfigurator {
         return;
       }
       if (target.closest?.("[data-studio-start]")) this.handleStudioStart();
+      return;
+    }
+    const mobileCategory = target.closest?.("[data-mobile-category]");
+    if (mobileCategory) {
+      this.activateMobileCategory(mobileCategory.dataset.mobileCategory);
       return;
     }
     const stageButton = target.closest?.("[data-workspace-stage], [data-workspace-stage-link]");
@@ -2852,6 +3175,7 @@ class BookcaseConfigurator {
     this.viewer.cancelCameraTransition?.();
     this.activeStageId = stageId;
     this.activeInspectorGroup = STAGE_CONTROL_GROUPS[stageId]?.[0] || "overall_size";
+    this.activeMobileCategoryId = MOBILE_CATEGORY_BY_STAGE[stageId] || this.activeMobileCategoryId;
     this.activeInspectorTabId = "general";
     this.selection = null;
     this.contextEditorOpen = false;
@@ -2921,11 +3245,20 @@ class BookcaseConfigurator {
     const redo = this.host.querySelector("[data-history-redo]");
     if (undo) undo.disabled = this.designHistory.undo.length === 0;
     if (redo) redo.disabled = this.designHistory.redo.length === 0;
-    this.host.querySelectorAll("[data-toggle-dimensions]").forEach((button) => button.setAttribute("aria-pressed", String(this.showDimensions)));
-    this.host.querySelectorAll("[data-toggle-wall]").forEach((button) => button.setAttribute("aria-pressed", String(this.showWall)));
+    this.host.querySelectorAll("[data-toggle-dimensions]").forEach((button) => {
+      button.setAttribute("aria-pressed", String(this.showDimensions));
+      button.setAttribute("aria-label", this.showDimensions ? "Hide dimensions" : "Show dimensions");
+    });
+    this.host.querySelectorAll("[data-toggle-wall]").forEach((button) => {
+      button.setAttribute("aria-pressed", String(this.showWall));
+      button.setAttribute("aria-label", this.showWall ? "Hide wall" : "Show wall");
+    });
     this.host.querySelectorAll("[data-model-tool]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.modelTool === this.activeTool)));
-    const isFullscreen = Boolean(document.fullscreenElement === this.elements?.modelWorkspace || this.elements?.modelWorkspace?.classList.contains("is-pseudo-fullscreen"));
+    const isPseudoFullscreen = Boolean(this.elements?.modelWorkspace?.classList.contains("is-pseudo-fullscreen"));
+    const isFullscreen = Boolean(document.fullscreenElement === this.elements?.modelWorkspace || isPseudoFullscreen);
     this.fullscreen = isFullscreen;
+    document.documentElement.classList.toggle("has-configurator-pseudo-fullscreen", isPseudoFullscreen);
+    document.body.classList.toggle("has-configurator-pseudo-fullscreen", isPseudoFullscreen);
     this.host.querySelectorAll("[data-model-fullscreen]").forEach((button) => {
       button.setAttribute("aria-pressed", String(isFullscreen));
       button.setAttribute("aria-label", isFullscreen ? "Exit model fullscreen" : "Enter model fullscreen");
@@ -2950,6 +3283,11 @@ class BookcaseConfigurator {
     const normalized = normalizeInspectorGroup(groupId);
     this.activeInspectorGroup = normalized;
     this.activeStageId = WORKSPACE_STAGES.find((stage) => STAGE_CONTROL_GROUPS[stage.id]?.includes(normalized))?.id || this.activeStageId;
+    this.activeMobileCategoryId = this.resolveMobileCategoryId({
+      field: options.field,
+      groupId: normalized,
+      stageId: this.activeStageId
+    });
     this.activeInspectorTabId = "general";
     if (options.preserveSelection !== true) {
       this.selection = null;
@@ -3260,6 +3598,11 @@ class BookcaseConfigurator {
       this.activeInspectorGroup = normalizeInspectorGroup(
         options.inspectorGroupId || (sectionStage === "storage" ? "storage_fronts" : "sections_layout")
       );
+      if (this.isMobileLayout()) {
+        const category = this.getActiveMobileCategory();
+        this.activeStageId = category.stageId;
+        this.activeInspectorGroup = normalizeInspectorGroup(category.groupId);
+      }
       this.activeInspectorTabId = "general";
     }
     this.viewer.setSectionSelection?.(this.selectedSectionIndex);
@@ -4277,6 +4620,7 @@ class BookcaseConfigurator {
     shell.dataset.diagnosticInterface = "unified";
     shell.dataset.diagnosticInspectorGroup = this.activeInspectorGroup;
     shell.dataset.diagnosticWorkspaceStage = this.activeStageId;
+    shell.dataset.diagnosticMobileCategory = this.activeMobileCategoryId;
     shell.dataset.diagnosticInspectorTab = this.activeInspectorTabId;
     shell.dataset.diagnosticHistoryUndo = String(this.designHistory.undo.length);
     shell.dataset.diagnosticHistoryRedo = String(this.designHistory.redo.length);
@@ -4585,6 +4929,8 @@ class BookcaseConfigurator {
     this.directHardwareEditor?.destroy?.();
     this.viewer?.destroy?.();
     this.arController?.destroy?.();
+    document.documentElement.classList.remove("has-configurator-pseudo-fullscreen");
+    document.body.classList.remove("has-configurator-pseudo-fullscreen");
     if (this.host.__bookcaseConfigurator === this) delete this.host.__bookcaseConfigurator;
   }
 
@@ -6251,7 +6597,8 @@ class BookcaseViewer3D {
     const desiredSectionY = Math.max(outsideLeftPoint.y, outsideRightPoint.y) + 20;
     const safeTop = Number(safeViewport.localBounds?.top ?? safeViewport.insets.top) || 0;
     const overallY = Math.max(safeTop + 8, Math.min(outsideTopLeftPoint.y, outsideTopRightPoint.y) - 38);
-    const maximumSectionY = rootRect.height - Math.max(24, safeViewport.insets.bottom || 0) - 34;
+    const mobileLabelReserve = rootRect.width <= 480 ? 58 : 34;
+    const maximumSectionY = rootRect.height - Math.max(24, safeViewport.insets.bottom || 0) - mobileLabelReserve;
     const verticalShift = Math.min(0, maximumSectionY - desiredSectionY);
     const sectionY = desiredSectionY + verticalShift;
     const frontality = Math.abs(Math.cos(this.theta));
@@ -6279,6 +6626,7 @@ class BookcaseViewer3D {
       segment.style.left = `${left}px`;
       segment.style.top = `${sectionY}px`;
       segment.style.width = `${width}px`;
+      segment.style.setProperty("--dimension-label-shift", "0px");
       segment.classList.toggle("is-compact-label", width < (rootRect.width <= 480 ? 54 : 66));
       segment.classList.toggle("is-ultra-compact-label", width < 44);
       const value = segment.querySelector("[data-section-dimension-value]");
@@ -6291,14 +6639,35 @@ class BookcaseViewer3D {
       projectedSegments.push(segment);
     });
 
+    const safeClientLeft = rootRect.left + Number(safeViewport.localBounds?.left || 0) + 6;
+    const safeClientRight = rootRect.left + Number(safeViewport.localBounds?.right || rootRect.width) - 6;
+    projectedSegments.forEach((segment) => {
+      const label = segment.querySelector(".dimension-label");
+      const labelRect = label?.getBoundingClientRect();
+      if (!labelRect) return;
+      const shift = labelRect.left < safeClientLeft
+        ? safeClientLeft - labelRect.left
+        : labelRect.right > safeClientRight
+          ? safeClientRight - labelRect.right
+          : 0;
+      segment.style.setProperty("--dimension-label-shift", `${shift}px`);
+    });
+    void this.sectionOverlay.offsetWidth;
+
     const measureLabelOverlap = () => projectedSegments.some((segment, index) => {
       const next = projectedSegments[index + 1];
       if (!next) return false;
       const currentLabel = segment.querySelector(".dimension-label")?.getBoundingClientRect();
       const nextLabel = next.querySelector(".dimension-label")?.getBoundingClientRect();
-      return Boolean(currentLabel && nextLabel && currentLabel.right > nextLabel.left + 0.5);
+      return Boolean(
+        currentLabel
+        && nextLabel
+        && currentLabel.right > nextLabel.left + 0.5
+        && currentLabel.bottom > nextLabel.top + 0.5
+        && nextLabel.bottom > currentLabel.top + 0.5
+      );
     });
-    this.sectionOverlay.classList.remove("has-label-collisions", "has-unresolved-label-collisions");
+    this.sectionOverlay.classList.remove("has-label-collisions", "has-staggered-labels", "has-unresolved-label-collisions");
     void this.sectionOverlay.offsetWidth;
     const needsLabelCompaction = measureLabelOverlap();
     this.sectionOverlay.classList.toggle("has-label-collisions", needsLabelCompaction);
@@ -6309,7 +6678,12 @@ class BookcaseViewer3D {
       });
       void this.sectionOverlay.offsetWidth;
     }
-    const labelsOverlap = measureLabelOverlap();
+    let labelsOverlap = measureLabelOverlap();
+    if (labelsOverlap && rootRect.width <= 480) {
+      this.sectionOverlay.classList.add("has-staggered-labels");
+      void this.sectionOverlay.offsetWidth;
+      labelsOverlap = measureLabelOverlap();
+    }
     this.sectionOverlay.classList.toggle("has-unresolved-label-collisions", labelsOverlap);
     this.sectionOverlay.dataset.labelCollision = String(labelsOverlap);
 

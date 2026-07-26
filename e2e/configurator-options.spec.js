@@ -450,21 +450,17 @@ test("construction, fronts, finish, hardware, lighting, and service selections p
   expect(runtimeErrors).toEqual([]);
 });
 
-test("mobile keyboard operation navigates workspace stages, manipulates the camera, reviews, saves, and restores without overflow", async ({ page }) => {
+test("mobile keyboard operation navigates categories, manipulates the camera, reviews, saves, and restores without overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const runtimeErrors = monitorRuntime(page);
   const viewer = await openConfigurator(page, "classic-open");
 
-  const layoutStage = page.locator('[data-workspace-stage="layout"]');
-  await layoutStage.focus();
-  await layoutStage.press("Enter");
-  await expect(layoutStage).toHaveAttribute("aria-current", "location");
+  const sectionsCategory = page.locator('[data-mobile-category="sections"]');
+  await sectionsCategory.focus();
+  await sectionsCategory.press("Enter");
+  await expect(sectionsCategory).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("[data-section-organizer]")).toBeVisible();
 
-  const spaceStage = page.locator('[data-workspace-stage="space"]');
-  await spaceStage.focus();
-  await spaceStage.press("Enter");
-  await expect(spaceStage).toHaveAttribute("aria-current", "location");
   await numberField(page, "overall_size", "width").fill("120");
   await expect.poll(async () => (await readDesign(page)).state.width).toBe(120);
 
@@ -476,10 +472,10 @@ test("mobile keyboard operation navigates workspace stages, manipulates the came
   expect(afterCamera.theta).not.toBe(beforeCamera.theta);
   expect(afterCamera.radius).toBeLessThan(beforeCamera.radius);
 
-  const previewStage = page.locator('[data-workspace-stage="preview"]');
-  await previewStage.focus();
-  await previewStage.press("Enter");
-  await expect(previewStage).toHaveAttribute("aria-current", "location");
+  const viewCategory = page.locator('[data-mobile-category="view"]');
+  await viewCategory.focus();
+  await viewCategory.press("Enter");
+  await expect(viewCategory).toHaveAttribute("aria-selected", "true");
   const reviewInvoker = page.locator("[data-review-design]").first();
   await reviewInvoker.focus();
   await reviewInvoker.press("Enter");
@@ -515,7 +511,7 @@ test("Preview fits the entire bookcase and the next stage resolves a fresh camer
   await settleFrames(page, 3);
   const before = (await readDesign(page)).view;
 
-  await page.locator('[data-workspace-stage="preview"]').click();
+  await page.locator('[data-mobile-category="view"]').click();
   await expect.poll(() => page.locator("[data-bookcase-builder]").evaluate((host) => ({
     focus: host.__bookcaseConfigurator.viewer.activeFocusKey,
     transitioning: Boolean(host.__bookcaseConfigurator.viewer.cameraTransition)
@@ -573,7 +569,7 @@ test("Preview fits the entire bookcase and the next stage resolves a fresh camer
     expect(corner.depth).toBeLessThanOrEqual(1);
   }
 
-  await page.locator('[data-workspace-stage="storage"]').click();
+  await page.locator('[data-mobile-category="shelves"]').click();
   await settleFrames(page, 3);
   const after = (await readDesign(page)).view;
   const workspace = page.locator("[data-configurator-workspace]");

@@ -28,6 +28,7 @@ async function expectSectionSelectionSynchronized(page) {
 
 async function deleteFromOrganizerCard(page, index) {
   const card = page.locator(`[data-section-card="${index}"]`);
+  await card.locator(`[data-section-menu-trigger="${index}"]`).click();
   const action = card.locator(`[data-section-delete="${index}"]`);
   await expect(action).toBeVisible();
   await action.click();
@@ -158,13 +159,17 @@ test("delete reflows a door layout when an adjacent merge is not buildable", asy
   await expectSectionSelectionSynchronized(page);
 });
 
-test("organizer exposes visible labeled duplicate and delete actions without a disclosure menu", async ({ page }) => {
+test("organizer exposes labeled duplicate and delete actions in a contextual menu", async ({ page }) => {
   await openWorkspace(page);
   const firstCard = page.locator('[data-section-card="0"]');
-  await expect(firstCard.locator('.workspace-section-card-actions')).toBeVisible();
+  const menu = firstCard.locator('.workspace-section-menu');
+  const trigger = firstCard.locator('[data-section-menu-trigger="0"]');
+  await expect(trigger).toBeVisible();
+  await expect(menu).not.toHaveAttribute('open', '');
+  await trigger.click();
+  await expect(menu).toHaveAttribute('open', '');
   await expect(firstCard.getByRole('button', { name: 'Duplicate Section 1' })).toBeVisible();
   await expect(firstCard.getByRole('button', { name: 'Delete Section 1' })).toBeVisible();
-  await expect(page.locator('.workspace-section-menu, .workspace-section-card summary')).toHaveCount(0);
 });
 
 test("back-panel hits route to the read-only Back properties summary", async ({ page }) => {

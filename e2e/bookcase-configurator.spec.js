@@ -76,8 +76,12 @@ async function openVerifiedConfigurator(page, presetId = "lower-cabinets") {
 }
 
 async function openSectionDesigner(page, expectedSectionCount = null) {
-  await page.locator('[data-workspace-stage="layout"]').click();
-  await expect(page.locator('[data-workspace-stage="layout"]')).toHaveAttribute("aria-current", "location");
+  const isMobile = await page.evaluate(() => matchMedia("(max-width: 767px)").matches);
+  const trigger = page.locator(isMobile
+    ? '[data-mobile-category="sections"]'
+    : '[data-workspace-stage="layout"]');
+  await trigger.click();
+  await expect(trigger).toHaveAttribute(isMobile ? "aria-selected" : "aria-current", isMobile ? "true" : "location");
   await expect(page.locator("[data-properties-inspector]")).toBeVisible();
   if (Number.isInteger(expectedSectionCount)) {
     await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(expectedSectionCount);
@@ -433,7 +437,7 @@ test("customer section widths are concise in the interface while accepted widths
   expect(accepted.widths).toEqual([23.0625, 23.0625, 23.0625, 23.0625]);
   await expect(page.locator("[data-section-width]")).toHaveValue("23.06");
 
-  const displayedWidths = await page.locator("[data-section-organizer] [data-section-card] small").allTextContents();
+  const displayedWidths = await page.locator("[data-section-organizer] [data-section-card] .workspace-section-card-width").allTextContents();
   expect(displayedWidths).toEqual(["23.06 in", "23.06 in", "23.06 in", "23.06 in"]);
   for (const label of displayedWidths) {
     const decimals = label.match(/\.(\d+)/)?.[1] || "";
@@ -875,8 +879,8 @@ test("mobile viewport keeps controls usable and the accepted model valid", async
 
   await expect(page.locator("[data-save-design]").first()).toBeVisible();
   await expect(viewer).toHaveAttribute("data-render-valid", "true");
-  await page.locator('[data-workspace-stage="layout"]').click();
-  await expect(page.locator('[data-workspace-stage="layout"]')).toHaveAttribute("aria-current", "location");
+  await page.locator('[data-mobile-category="sections"]').click();
+  await expect(page.locator('[data-mobile-category="sections"]')).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("[data-properties-inspector]")).toBeVisible();
   await expect(page.locator("[data-section-width]")).toBeVisible();
   await expect(page.locator("[data-section-organizer] [data-section-card]")).toHaveCount(4);

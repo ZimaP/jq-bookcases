@@ -20,9 +20,12 @@ async function openDirectHardwareEditor(page) {
   await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
   await expect(viewer.locator("canvas")).toHaveCount(1);
 
-  const hardwareStage = page.locator('[data-workspace-stage="hardware"]');
+  const isMobile = await page.evaluate(() => matchMedia("(max-width: 767px)").matches);
+  const hardwareStage = isMobile
+    ? page.locator('[data-mobile-category="hardware"]')
+    : page.locator('[data-workspace-stage="hardware"]');
   await hardwareStage.click();
-  await expect(hardwareStage).toHaveAttribute("aria-current", "location");
+  await expect(hardwareStage).toHaveAttribute(isMobile ? "aria-selected" : "aria-current", isMobile ? "true" : "location");
   const properties = page.locator("[data-properties-inspector]");
   await expect(properties).toBeVisible();
   await expect(properties.locator('[data-active-stage-panel="hardware"]')).toBeVisible();
@@ -332,7 +335,7 @@ test("library filtering exposes gated facts, traps focus, and passes its WCAG A/
   expect(runtimeErrors).toEqual([]);
 });
 
-test("phone layout keeps the fixed Properties sheet and hardware library bounded without horizontal overflow", async ({ page }) => {
+test("phone layout keeps flowing Properties and the hardware library bounded without horizontal overflow", async ({ page }) => {
   const runtimeErrors = monitorRuntime(page);
   await page.setViewportSize({ width: 390, height: 844 });
   const { builder, properties } = await openDirectHardwareEditor(page);
@@ -360,20 +363,24 @@ test("phone layout keeps the fixed Properties sheet and hardware library bounded
       scrollerTop: scrollerRect.top,
       scrollerBottom: scrollerRect.bottom,
       scrollerOverflowY: scrollerStyle.overflowY,
-      documentOverflow: document.documentElement.scrollWidth - window.innerWidth
+      documentOverflow: document.documentElement.scrollWidth - window.innerWidth,
+      documentCanScroll: document.scrollingElement.scrollHeight > document.scrollingElement.clientHeight,
+      footerPosition: getComputedStyle(document.querySelector("[data-estimate-bar]")).position,
+      footerBottom: document.querySelector("[data-estimate-bar]").getBoundingClientRect().bottom
     };
   });
   expect(propertiesGeometry.position).toBe("relative");
   expect(propertiesGeometry.left).toBeGreaterThanOrEqual(-1);
   expect(propertiesGeometry.right).toBeLessThanOrEqual(391);
-  expect(propertiesGeometry.top).toBeGreaterThanOrEqual(-1);
-  expect(propertiesGeometry.bottom).toBeLessThanOrEqual(845);
   expect(propertiesGeometry.width).toBeLessThanOrEqual(390);
-  expect(propertiesGeometry.overflowY).toBe("hidden");
+  expect(propertiesGeometry.overflowY).toBe("visible");
   expect(propertiesGeometry.scrollerTop).toBeGreaterThanOrEqual(propertiesGeometry.top);
   expect(propertiesGeometry.scrollerBottom).toBeLessThanOrEqual(propertiesGeometry.bottom + 1);
-  expect(propertiesGeometry.scrollerOverflowY).toBe("auto");
+  expect(propertiesGeometry.scrollerOverflowY).toBe("visible");
   expect(propertiesGeometry.documentOverflow).toBeLessThanOrEqual(1);
+  expect(propertiesGeometry.documentCanScroll).toBe(true);
+  expect(propertiesGeometry.footerPosition).toBe("fixed");
+  expect(propertiesGeometry.footerBottom).toBeCloseTo(844, 0);
 
   const library = await openHardwareLibrary(page, builder);
   const libraryGeometry = await library.evaluate((dialog) => {

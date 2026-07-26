@@ -8,9 +8,22 @@ async function openConfigurator(page, preset = "classic-open") {
 }
 
 async function openStage(page, stage) {
-  const trigger = page.locator(`[data-workspace-stage="${stage}"]`);
+  const isMobile = await page.evaluate(() => matchMedia("(max-width: 767px)").matches);
+  const mobileCategory = {
+    space: "sections",
+    layout: "sections",
+    storage: "shelves",
+    base_top: "base",
+    finish: "finish",
+    hardware: "hardware",
+    lighting: "lighting",
+    preview: "view"
+  }[stage] || "sections";
+  const trigger = page.locator(isMobile
+    ? `[data-mobile-category="${mobileCategory}"]`
+    : `[data-workspace-stage="${stage}"]`);
   await trigger.click();
-  await expect(trigger).toHaveAttribute("aria-current", "location");
+  await expect(trigger).toHaveAttribute(isMobile ? "aria-selected" : "aria-current", isMobile ? "true" : "location");
 }
 
 function rangeControl(page, field) {
