@@ -22,11 +22,11 @@ function methodBody(name, nextName) {
   return source.slice(start, end);
 }
 
-test("the route mounts exactly one configurator host and one persistent viewer surface", () => {
-  assert.equal((html.match(/data-bookcase-builder/g) || []).length, 1);
-  assert.equal((source.match(/data-3d-viewer tabindex=/g) || []).length, 1);
-  assert.equal((source.match(/new BookcaseViewer3D\(/g) || []).length, 1);
-  assert.match(source, /this\.viewer = this\.createViewer\(this\.layout\)/);
+test("the public route mounts one guided app without loading the archived 3D viewer", () => {
+  assert.equal((html.match(/data-guided-app/g) || []).length, 1);
+  assert.doesNotMatch(html, /configurator-3d\.js|three\.module\.js|data-3d-viewer/);
+  assert.match(html, /guided-configurator\.js/);
+  assert.match(html, /guided-configurator\.css/);
 });
 
 test("the reference workspace owns one stage rail, persistent viewer, properties inspector, organizer, and width card", () => {
@@ -971,16 +971,10 @@ test("mobile appearance controls use dense color, hardware, and lighting grids",
   assert.match(precisionCss, /Dense mobile appearance controls[\s\S]*\.lighting-card \{[\s\S]*min-height: 56px;/);
 });
 
-test("the configurator route loads the experience module and final presentation layer", () => {
-  assert.match(html, /configurator-experience\.css/);
-  assert.match(html, /configurator-3d\.js/);
-  assert.match(source, /from "\.\/configurator-experience\.js/);
-  assert.match(workflow, /export const WORKSPACE_STAGES/);
-  assert.match(workflow, /export const STAGE_CONTROL_GROUPS/);
-  assert.match(workflow, /export const INSPECTOR_TAB_DEFINITIONS/);
-  assert.match(workflow, /export const UNIFIED_CONTROL_GROUPS/);
-  assert.match(workflow, /export const CONTEXT_EDITOR_DEFINITIONS/);
-  assert.match(workflow, /export function validateUnifiedConfiguration/);
+test("the configurator route loads only the guided presentation entrypoint", () => {
+  assert.match(html, /guided-configurator\.css/);
+  assert.match(html, /guided-configurator\.js/);
+  assert.doesNotMatch(html, /configurator-experience|configurator-3d|three\.module/);
 });
 
 test("both unified editing surfaces use one lazy official-palette catalog provider", () => {

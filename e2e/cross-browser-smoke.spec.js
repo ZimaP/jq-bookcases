@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 const publicRoutes = [
   "/index.html",
-  "/configurator.html?start=welcome",
+  "/configurator.html?start=new",
   "/how-it-works.html",
   "/materials.html",
   "/inspiration.html",
@@ -19,7 +19,9 @@ function monitorRuntime(page) {
   page.on("console", (message) => {
     if (message.type() === "error") failures.push(`console: ${message.text()}`);
   });
-  page.on("requestfailed", (request) => failures.push(`request: ${request.url()} ${request.failure()?.errorText || "failed"}`));
+  page.on("requestfailed", (request) => {
+    failures.push(`request: ${request.url()} ${request.failure()?.errorText || "failed"}`);
+  });
   page.on("response", (response) => {
     if (response.status() >= 400) failures.push(`response: ${response.status()} ${response.url()}`);
   });
@@ -42,101 +44,26 @@ test("public routes render without runtime, network, or responsive overflow fail
   }
 });
 
-test("a physical dimension edit rebuilds one valid model and survives reload", async ({ page }) => {
+test("the guided project flow works through review and refresh", async ({ page }) => {
   const failures = monitorRuntime(page);
-  await page.goto("/configurator.html?preset=lower-cabinets", { waitUntil: "networkidle" });
-  const viewer = page.locator("[data-3d-viewer]");
-  await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
-  const spaceStage = page.locator('[data-workspace-stage="space"]');
-  await spaceStage.click();
-  await expect(spaceStage).toHaveAttribute("aria-current", "location");
-  const inspector = page.locator("[data-properties-inspector]");
-  await expect(inspector).toBeVisible();
-  await expect(inspector.locator('[data-active-stage-panel="space"]')).toBeVisible();
-  const width = inspector.locator('input[type="number"][data-field="width"]');
-  await width.fill("120");
-  await width.press("Enter");
-  await expect(width).toHaveValue("120");
-  await expect(viewer).toHaveAttribute("data-render-valid", "true");
-  await page.locator("[data-save-design]").first().click();
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("jqBookcasesDesign") || "null")?.canonicalConfig?.width)).toBe(120);
+  await page.goto("/configurator.html?start=new", { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "TV Unit", exact: true }).click();
+  await page.getByRole("button", { name: "Clear TV Wall", exact: true }).click();
+  await page.locator("[data-continue]").click();
+  await page.getByLabel("Wall width").fill("126 1/2");
+  await page.locator("[data-continue]").click();
+  await page.getByRole("tab", { name: "Finish" }).click();
+  await page.getByRole("button", { name: "Dark Walnut", exact: true }).click();
+  await page.locator("[data-continue]").click();
 
-  await page.goto("/configurator.html", { waitUntil: "networkidle" });
-  await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
-  const restoredWidth = await page.locator("[data-bookcase-builder]").evaluate((host) => host.__bookcaseConfigurator?.state?.width);
-  expect(restoredWidth).toBe(120);
-  expect(failures).toEqual([]);
-});
-
-test("dimension ranges keep one captured control through a continuous pointer drag", async ({ page }) => {
-  const failures = monitorRuntime(page);
-  await page.goto("/configurator.html?preset=classic-open", { waitUntil: "networkidle" });
-  const viewer = page.locator("[data-3d-viewer]");
-  await expect(viewer).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
-  await page.locator('[data-workspace-stage="space"]').click();
-
-  const width = page.locator('[data-properties-inspector] input[type="range"][data-field="width"]');
-  await width.scrollIntoViewIfNeeded();
-  const box = await width.boundingBox();
-  expect(box).not.toBeNull();
-  const marker = `range-${Date.now()}`;
-  await width.evaluate((element, value) => { element.dataset.dragProbe = value; }, marker);
-  const travelLane = await width.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    const configuredThumbSize = Number.parseFloat(getComputedStyle(element).getPropertyValue("--range-thumb-size"));
-    const thumbSize = Number.isFinite(configuredThumbSize) && configuredThumbSize > 0 ? configuredThumbSize : 20;
-    return {
-      left: rect.left + thumbSize / 2,
-      width: rect.width - thumbSize
-    };
-  });
-
-  const startX = travelLane.left + travelLane.width * 0.6;
-  const endX = travelLane.left + travelLane.width * 0.8;
-  const y = box.y + box.height / 2;
-  await page.mouse.move(startX, y);
-  await page.mouse.down();
-  await page.mouse.move(endX, y, { steps: 8 });
-  await expect(page.locator(`[data-drag-probe="${marker}"]`)).toHaveCount(1);
-  await page.mouse.up();
-
-  await expect.poll(() => page.locator("[data-bookcase-builder]").evaluate((host) => (
-    host.__bookcaseConfigurator?.state?.width
-  ))).toBe(120);
-  await expect(page.locator('[data-properties-inspector] input[type="number"][data-field="width"]')).toHaveValue("120");
-  await expect(viewer).toHaveAttribute("data-render-valid", "true");
-  expect(failures).toEqual([]);
-});
-
-test("room-view entry prepares the real procedural GLB and closes back to its invoker", async ({ page }) => {
-  const failures = monitorRuntime(page);
-  await page.route("https://ajax.googleapis.com/**", (route) => route.fulfill({
-    status: 200,
-    contentType: "application/javascript",
-    headers: { "access-control-allow-origin": "*" },
-    body: "if (!customElements.get('model-viewer')) customElements.define('model-viewer', class extends HTMLElement {});"
-  }));
-  await page.route("https://cdn.jsdelivr.net/**", (route) => route.fulfill({
-    status: 200,
-    contentType: "application/javascript",
-    headers: { "access-control-allow-origin": "*" },
-    body: "export async function toCanvas(canvas) { const context = canvas.getContext('2d'); context.fillStyle = '#302923'; context.fillRect(0, 0, 12, 12); }"
-  }));
-
-  await page.goto("/configurator.html?preset=display-wall", { waitUntil: "networkidle" });
-  await expect(page.locator("[data-3d-viewer]")).toHaveAttribute("data-render-valid", "true", { timeout: 20_000 });
-  const launch = page.locator("[data-open-ar]").first();
-  await launch.click();
-  const dialog = page.locator("dialog.cabinet-ar-dialog");
-  await expect(dialog).toBeVisible();
-  const model = dialog.locator("model-viewer");
-  await expect(model).toBeVisible({ timeout: 20_000 });
-  await expect(model).toHaveAttribute("src", /^blob:/);
-  await expect(model).toHaveAttribute("ar-scale", "fixed");
-  await expect(model).toHaveAttribute("ar-placement", "floor");
-  await expect(dialog.getByText("Open on your phone")).toBeVisible();
-  await dialog.getByRole("button", { name: "Close room view" }).click();
-  await expect(dialog).toBeHidden();
-  await expect(launch).toBeFocused();
+  const summary = page.locator(".project-summary-card");
+  await expect(summary).toContainText("TV Unit");
+  await expect(summary).toContainText("Clear TV Wall");
+  await expect(summary).toContainText("126 1/2 in");
+  await expect(summary).toContainText("Dark Walnut");
+  await page.waitForTimeout(250);
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+  await expect(page.locator(".project-summary-card")).toContainText("126 1/2 in");
   expect(failures).toEqual([]);
 });

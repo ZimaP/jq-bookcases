@@ -27,6 +27,10 @@ const configuratorSource = readFileSync(
   path.join(rootDir, "configurator-3d.js"),
   "utf8",
 );
+const guidedConfiguratorSource = readFileSync(
+  path.join(rootDir, "guided-configurator.js"),
+  "utf8",
+);
 const productionWorkflowSource = readFileSync(
   path.join(rootDir, ".github", "workflows", "deploy-pages-production.yml"),
   "utf8",
@@ -243,14 +247,14 @@ test("every canonical page satisfies the shared accessibility and metadata contr
       const staticHeadingCount = matches(html, /<h1\b[^>]*>/gi).length;
       if (file === "configurator.html" && staticHeadingCount === 0) {
         assert.equal(
-          attributeCount(html, "data-bookcase-builder"),
+          attributeCount(html, "data-guided-app"),
           1,
-          "configurator.html must provide one dynamic builder host when its h1 is rendered by JavaScript",
+          "configurator.html must provide one guided app host when its h1 is rendered by JavaScript",
         );
         assert.match(
-          configuratorSource,
+          guidedConfiguratorSource,
           /<h1\b/i,
-          "configurator-3d.js must document the configurator's dynamic h1 in its rendered template",
+          "guided-configurator.js must document the configurator's dynamic h1 in its rendered template",
         );
       } else {
         assert.equal(staticHeadingCount, 1, file + " must have exactly one h1");
@@ -276,7 +280,7 @@ test("every canonical page satisfies the shared accessibility and metadata contr
 test("every public page provides navigation when JavaScript is unavailable", () => {
   for (const [file, html] of pageSource) {
     assert.match(html, /<noscript>[\s\S]*aria-label="Primary navigation without JavaScript"[\s\S]*<\/noscript>/, file);
-    assert.match(html, /The 3D configurator and interactive controls require JavaScript/, file);
+    assert.match(html, /The project configurator and interactive controls require JavaScript|The project configurator requires JavaScript/, file);
   }
 });
 
@@ -289,7 +293,7 @@ test("public images reserve intrinsic space to avoid layout shifts", () => {
   }
 });
 
-test("all pages load the shared stylesheet and site script with one cache token", () => {
+test("all pages load the shared stylesheet; non-configurator pages share the site shell token", () => {
   const tokens = [];
 
   for (const file of publicPages) {
@@ -298,11 +302,16 @@ test("all pages load the shared stylesheet and site script with one cache token"
     const scriptUrls = sharedAssetUrl(html, "script", "src", "site.js");
 
     assert.equal(stylesheetUrls.length, 1, file + " must include styles.css exactly once");
-    assert.equal(scriptUrls.length, 1, file + " must include site.js exactly once");
-
     const stylesheetToken = cacheToken(stylesheetUrls[0]);
-    const scriptToken = cacheToken(scriptUrls[0]);
     assert.ok(stylesheetToken, file + " styles.css must have a cache token");
+
+    if (file === "configurator.html") {
+      assert.equal(scriptUrls.length, 0, "the dedicated configurator shell must not load site.js");
+      continue;
+    }
+
+    assert.equal(scriptUrls.length, 1, file + " must include site.js exactly once");
+    const scriptToken = cacheToken(scriptUrls[0]);
     assert.ok(scriptToken, file + " site.js must have a cache token");
     assert.equal(
       stylesheetToken,
@@ -388,7 +397,7 @@ test("every public page uses the shared JQ Bookcases lockup and canonical produc
     assert.match(title, /JQ Bookcases/, file + " title must use the canonical brand name");
   }
 
-  assert.match(pageSource.get("configurator.html"), /3D Bookcase Configurator/);
+  assert.match(pageSource.get("configurator.html"), /Project Configurator/);
   assert.match(siteSource, /shortName: "JQ Bookcases"/);
   assert.match(siteSource, /initials: "JQ"/);
   assert.match(siteSource, /name: "BOOKCASES"/);
@@ -519,17 +528,21 @@ test("browser modules use one cache identity for every shared dependency", () =>
 test("manual production release uses an allowlisted Pages artifact", () => {
   assert.match(productionWorkflowSource, /find \. -maxdepth 1 -type f/);
   assert.match(productionWorkflowSource, /-name '\*\.html'/);
-  assert.match(productionWorkflowSource, /-name '\*\.css'/);
-  assert.match(productionWorkflowSource, /-name '\*\.js'/);
-  assert.match(productionWorkflowSource, /! -name 'playwright\.config\.js'/);
-  assert.match(productionWorkflowSource, /cp -R assets styles _site\//);
+  assert.match(productionWorkflowSource, /guided-configurator\.css/);
+  assert.match(productionWorkflowSource, /guided-configurator\.js/);
+  assert.match(productionWorkflowSource, /guided-configurator-data\.js/);
+  assert.match(productionWorkflowSource, /guided-configurator-state\.js/);
+  assert.match(productionWorkflowSource, /cp assets\/favicon\.svg _site\/assets\//);
+  assert.match(productionWorkflowSource, /cp -R assets\/photos _site\/assets\//);
+  assert.match(productionWorkflowSource, /cp -R styles _site\//);
   assert.match(productionWorkflowSource, /cp -R data\/generated _site\/data\//);
-  assert.doesNotMatch(productionWorkflowSource, /rsync -a|cp -R \.\/ _site/);
+  assert.doesNotMatch(productionWorkflowSource, /rsync -a|cp -R \.\/ _site|find \. -maxdepth 1 -type f[\s\S]*-name '\*\.js'/);
   assert.match(productionWorkflowSource, /test ! -e _site\/playwright\.config\.js/);
   assert.match(productionWorkflowSource, /test ! -e _site\/package\.json/);
 
   for (const runtimeAsset of [
-    "_site/assets/vendor/three.module.js",
+    "_site/guided-configurator.js",
+    "_site/guided-configurator.css",
     "_site/data/generated/benjamin-moore-colors.json",
   ]) {
     assert.match(
@@ -538,6 +551,8 @@ test("manual production release uses an allowlisted Pages artifact", () => {
       runtimeAsset + " must be verified before upload",
     );
   }
+  assert.match(productionWorkflowSource, /test ! -e _site\/configurator-3d\.js/);
+  assert.match(productionWorkflowSource, /test ! -e _site\/assets\/vendor\/three\.module\.js/);
 });
 
 test("browser QA screenshots stay in ignored test output", () => {

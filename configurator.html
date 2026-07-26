@@ -2,44 +2,191 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>3D Bookcase Configurator | JQ Bookcases</title>
-  <meta name="description" content="Design a semi-custom built-in bookcase and see your estimated JQ Bookcases project price update live.">
-  <meta name="jq-ar-model-endpoint" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Project Configurator | JQ Bookcases</title>
+  <meta name="description" content="Plan a custom JQ Bookcases project in four simple steps: choose your space, add approximate measurements, select a design direction, and request a quote.">
+  <meta name="jq-quote-endpoint" content="">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="styles.css?v=reference-layout-20260715g">
+  <link rel="stylesheet" href="styles.css?v=guided-configurator-20260726a">
   <link rel="stylesheet" href="styles/icons.css?v=jq-icons-20260713i">
-  <link rel="stylesheet" href="configurator.css?v=studio-proportions-20260713b">
-  <link rel="stylesheet" href="configurator-experience.css?v=workspace-camera-20260716i">
-  <link rel="stylesheet" href="cabinet-ar-placement.css?v=ar-placement-20260712a">
-  <link rel="stylesheet" href="visual-consistency.css?v=visual-system-20260713a">
-  <link rel="stylesheet" href="configurator-precision.css?v=workspace-camera-20260716i">
-  <link rel="stylesheet" href="direct-hardware-edit.css?v=workspace-camera-20260716i">
-  <script type="module" src="site.js?v=reference-layout-20260715g" defer></script>
-  <script type="module" src="configurator-3d.js?v=workspace-camera-20260716i"></script>
-  <script type="module" src="cabinet-ar-placement.js?v=ar-placement-20260712a"></script>
+  <link rel="stylesheet" href="guided-configurator.css?v=guided-configurator-20260726a">
+  <script type="module" src="guided-configurator.js?v=guided-configurator-20260726a"></script>
 </head>
-<body data-page="configurator">
-  <a class="skip-link" href="#main">Skip to content</a>
-  <div data-site-header></div>
+<body class="guided-page" data-page="configurator">
+  <a class="skip-link" href="#main">Skip to configurator</a>
+
+  <header class="guided-header" data-site-header>
+    <a class="guided-brand" href="index.html" aria-label="JQ Bookcases home">
+      <span class="guided-brand-mark" aria-hidden="true">JQ</span>
+      <span class="guided-brand-copy" aria-hidden="true">
+        <span>BOOKCASES</span>
+        <small>BUILT-INS &amp; MILLWORK</small>
+      </span>
+    </a>
+    <div class="guided-header-actions">
+      <button class="guided-header-action" type="button" data-guided-save aria-label="Save Project">
+        <i data-icon="save" aria-hidden="true"></i>
+        <span>Save Project</span>
+      </button>
+      <button class="guided-header-action" type="button" data-guided-projects aria-label="My Projects">
+        <i data-icon="storage" aria-hidden="true"></i>
+        <span>My Projects</span>
+      </button>
+      <button class="guided-menu-button" type="button" aria-label="Open menu" aria-controls="guided-menu" aria-expanded="false" data-guided-menu-button>
+        <i data-icon="menu" aria-hidden="true"></i>
+      </button>
+    </div>
+    <nav class="guided-menu" id="guided-menu" aria-label="Configurator menu" hidden>
+      <a href="index.html">Home</a>
+      <a href="how-it-works.html">How It Works</a>
+      <a href="materials.html">Materials</a>
+      <a href="inspiration.html">Inspiration</a>
+      <a href="faq.html">FAQ</a>
+      <a href="mailto:info@jqwoodworking.com">Contact the design team</a>
+    </nav>
+  </header>
+
   <noscript>
     <div class="noscript-shell">
       <a class="noscript-brand" href="index.html">JQ Bookcases</a>
       <nav class="noscript-nav" aria-label="Primary navigation without JavaScript">
-        <a href="how-it-works.html">How It Works</a><a href="materials.html">Materials</a><a href="inspiration.html">Inspiration</a><a href="about.html">About Us</a><a href="faq.html">FAQ</a><a href="request-quote.html">Quote Preview</a>
+        <a href="how-it-works.html">How It Works</a>
+        <a href="inspiration.html">Inspiration</a>
+        <a href="request-quote.html">Request a Quote</a>
       </nav>
-      <p>The 3D configurator and interactive controls require JavaScript.</p>
+      <p>The project configurator requires JavaScript. You can still contact our design team from the quote page.</p>
     </div>
   </noscript>
 
-  <main id="main">
-    <section class="builder-hero builder-page" aria-label="3D Bookcase Configurator">
-      <div class="container">
-        <div data-bookcase-builder data-mode="configurator" data-enable-cabinet-ar="true" data-direct-hardware-editing="true"></div>
-      </div>
-    </section>
+  <main id="main" class="guided-app" data-guided-app>
+    <div class="guided-loading" role="status">
+      <span class="guided-loading-mark" aria-hidden="true">JQ</span>
+      <p>Preparing your project configurator…</p>
+    </div>
   </main>
 
-  <div data-site-footer></div>
+  <footer data-site-footer hidden></footer>
+
+  <dialog class="guided-dialog project-save-dialog" data-save-dialog aria-labelledby="save-dialog-title">
+    <form method="dialog" class="guided-dialog-card" data-save-form>
+      <div class="guided-dialog-heading">
+        <div>
+          <span class="guided-eyebrow">Keep for later</span>
+          <h2 id="save-dialog-title">Save this project</h2>
+        </div>
+        <button class="guided-icon-button" type="button" data-dialog-close aria-label="Close save project dialog">
+          <i data-icon="close" aria-hidden="true"></i>
+        </button>
+      </div>
+      <label class="guided-field">
+        <span>Project name</span>
+        <input type="text" name="projectName" maxlength="80" autocomplete="off" required>
+      </label>
+      <p class="guided-dialog-note">Saved projects stay on this device and can be resumed from My Projects.</p>
+      <div class="guided-dialog-actions">
+        <button class="guided-button guided-button-secondary" type="button" data-dialog-close>Cancel</button>
+        <button class="guided-button guided-button-primary" type="submit">Save Project</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="guided-dialog projects-dialog" data-projects-dialog aria-labelledby="projects-dialog-title">
+    <section class="guided-dialog-card guided-projects-card">
+      <div class="guided-dialog-heading">
+        <div>
+          <span class="guided-eyebrow">Saved on this device</span>
+          <h2 id="projects-dialog-title">My Projects</h2>
+        </div>
+        <button class="guided-icon-button" type="button" data-dialog-close aria-label="Close projects dialog">
+          <i data-icon="close" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="guided-projects-list" data-projects-list></div>
+      <div class="guided-dialog-actions">
+        <button class="guided-button guided-button-secondary" type="button" data-dialog-close>Close</button>
+        <button class="guided-button guided-button-primary" type="button" data-new-project>Start New Project</button>
+      </div>
+    </section>
+  </dialog>
+
+  <dialog class="guided-dialog quote-dialog" data-quote-dialog aria-labelledby="quote-dialog-title">
+    <section class="guided-dialog-card guided-quote-card">
+      <div class="guided-dialog-heading">
+        <div>
+          <span class="guided-eyebrow">Design consultation</span>
+          <h2 id="quote-dialog-title">Request a project quote</h2>
+          <p>Share a few contact details and anything our designers should know.</p>
+        </div>
+        <button class="guided-icon-button" type="button" data-dialog-close aria-label="Close quote request">
+          <i data-icon="close" aria-hidden="true"></i>
+        </button>
+      </div>
+      <form class="guided-quote-form" data-quote-form enctype="multipart/form-data" novalidate>
+        <div class="guided-form-grid">
+          <label class="guided-field">
+            <span>Full name <em>Required</em></span>
+            <input type="text" name="fullName" autocomplete="name" required>
+          </label>
+          <label class="guided-field">
+            <span>Email <em>Required</em></span>
+            <input type="email" name="email" autocomplete="email" required>
+          </label>
+          <label class="guided-field">
+            <span>Phone <em>Required</em></span>
+            <input type="tel" name="phone" autocomplete="tel" required>
+          </label>
+          <label class="guided-field">
+            <span>Project ZIP code <em>Required</em></span>
+            <input type="text" name="zip" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}(?:-[0-9]{4})?" required>
+          </label>
+          <label class="guided-field guided-field-wide">
+            <span>Installation address <small>Optional</small></span>
+            <input type="text" name="address" autocomplete="street-address">
+          </label>
+          <label class="guided-field">
+            <span>Preferred timeline</span>
+            <select name="timeline">
+              <option value="Exploring options">Exploring options</option>
+              <option value="Within 3 months">Within 3 months</option>
+              <option value="3–6 months">3–6 months</option>
+              <option value="6–12 months">6–12 months</option>
+              <option value="More than 12 months">More than 12 months</option>
+            </select>
+          </label>
+          <label class="guided-field">
+            <span>Preferred contact</span>
+            <select name="contactMethod">
+              <option value="Email">Email</option>
+              <option value="Phone">Phone</option>
+              <option value="Text message">Text message</option>
+            </select>
+          </label>
+          <label class="guided-field guided-field-wide">
+            <span>Additional notes <small>Optional</small></span>
+            <textarea name="notes" rows="4" placeholder="Tell us about timing, access, existing trim, or anything else that may help."></textarea>
+          </label>
+          <label class="guided-upload">
+            <span>Room photos</span>
+            <small>JPG, PNG, HEIC, or PDF · up to 10 MB each</small>
+            <input type="file" name="photos" accept="image/*,.heic,.pdf,application/pdf" multiple>
+          </label>
+          <label class="guided-upload">
+            <span>Drawing or measurements <small>Optional</small></span>
+            <small>JPG, PNG, or PDF · up to 10 MB each</small>
+            <input type="file" name="drawings" accept="image/*,.pdf,application/pdf" multiple>
+          </label>
+        </div>
+        <p class="guided-form-error" data-quote-error role="alert" hidden></p>
+        <p class="guided-quote-mode" data-quote-mode></p>
+        <div class="guided-dialog-actions">
+          <button class="guided-button guided-button-secondary" type="button" data-dialog-close>Not Yet</button>
+          <button class="guided-button guided-button-primary" type="submit" data-quote-submit>Prepare Email Request</button>
+        </div>
+      </form>
+      <section class="guided-quote-success" data-quote-success hidden aria-live="polite"></section>
+    </section>
+  </dialog>
+
+  <div class="guided-toast" data-guided-toast role="status" aria-live="polite" hidden></div>
 </body>
 </html>

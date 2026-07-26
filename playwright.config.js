@@ -29,16 +29,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: {
-        ...devices["Desktop Chrome"],
-        launchOptions: {
-          args: [
-            "--enable-webgl",
-            "--ignore-gpu-blocklist",
-            "--use-angle=swiftshader"
-          ]
-        }
-      }
+      use: { ...devices["Desktop Chrome"] }
     },
     {
       name: "firefox",
@@ -47,17 +38,12 @@ export default defineConfig({
         ...devices["Desktop Firefox"],
         ...(process.env.PLAYWRIGHT_FIREFOX_HEADFUL === "1"
           ? { headless: false }
-          : {}),
-        launchOptions: {
-          firefoxUserPrefs: {
-            "webgl.force-enabled": true
-          }
-        }
+          : {})
       }
     },
     {
       name: "webkit",
-      testMatch: /(?:cross-browser-smoke|configurator-viewport-matrix)\.spec\.js/,
+      testMatch: /cross-browser-smoke\.spec\.js/,
       use: { ...devices["Desktop Safari"] }
     }
   ],
