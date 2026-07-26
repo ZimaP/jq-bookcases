@@ -122,18 +122,68 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p _site
-          find . -maxdepth 1 -type f \
-            \( -name '*.html' -o -name '*.css' -o -name '*.js' \) \
-            ! -name 'playwright.config.js' \
+          find . -maxdepth 1 -type f -name '*.html' \
             -exec cp '{}' _site/ \;
-          cp -R assets styles _site/
+          cp \
+            styles.css \
+            home-reference.css \
+            visual-consistency.css \
+            bright-theme.css \
+            how-it-works-reference.css \
+            materials-reference.css \
+            reference-pages.css \
+            inspiration-reference.css \
+            about-reference.css \
+            guided-configurator.css \
+            _site/
+          cp \
+            site.js \
+            icon-system.js \
+            guided-configurator.js \
+            guided-configurator-data.js \
+            guided-configurator-state.js \
+            quote-prefill.js \
+            benjamin-moore-colors.js \
+            bookcase-engine.js \
+            bookcase-config.js \
+            bookcase-layout.js \
+            bookcase-pricing.js \
+            bookcase-bom.js \
+            bookcase-billable.js \
+            hardware-catalog.js \
+            hardware-compatibility.js \
+            _site/
+          mkdir -p _site/assets
+          cp assets/favicon.svg _site/assets/
+          cp -R assets/photos _site/assets/
+          cp -R styles _site/
           mkdir -p _site/data
           cp -R data/generated _site/data/
           cp -R data/hardware _site/data/
           touch _site/.nojekyll
           test -f _site/index.html
           test -f _site/configurator.html
-          test -f _site/assets/vendor/three.module.js
+          test -f _site/guided-configurator.js
+          test -f _site/guided-configurator.css
+          for legacy_asset in \
+            _site/configurator-3d.js \
+            _site/configurator-experience.js \
+            _site/configurator-studio.js \
+            _site/direct-edit-picking.js \
+            _site/direct-hardware-editor.js \
+            _site/hardware-proxy-geometry.js \
+            _site/cabinet-ar.js \
+            _site/cabinet-ar-model.js \
+            _site/cabinet-ar-ui.js \
+            _site/cabinet-ar-placement.js \
+            _site/profile-camera.js \
+            _site/bookcase-render-contract.js \
+            _site/assets/vendor/three.module.js
+          do
+            test ! -e "$legacy_asset"
+          done
+          test ! -e _site/configurator-3d.js
+          test ! -e _site/assets/vendor/three.module.js
           test -f _site/data/generated/benjamin-moore-colors.json
           test -f _site/data/hardware/jq-hardware-catalog.seed.json
           test -f _site/styles/icons.css

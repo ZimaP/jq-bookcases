@@ -14,7 +14,7 @@ const officialBrand = Object.freeze({
   initials: "JQ",
   name: "BOOKCASES",
   descriptor: "BUILT-INS & MILLWORK",
-  product: "3D Bookcase Configurator"
+  product: "Project Configurator"
 });
 
 function renderBrandLink(modifierClass = "brand--header") {
@@ -359,18 +359,22 @@ function initAccordions() {
       });
     });
 
-    let linkedPanel = null;
-    try {
-      linkedPanel = window.location.hash ? document.getElementById(decodeURIComponent(window.location.hash.slice(1))) : null;
-    } catch (error) {
-      // A malformed fragment must not prevent the rest of the page from initializing.
-    }
-    if (linkedPanel && accordion.contains(linkedPanel)) {
+    const openLinkedPanel = () => {
+      let linkedPanel = null;
+      try {
+        linkedPanel = window.location.hash ? document.getElementById(decodeURIComponent(window.location.hash.slice(1))) : null;
+      } catch (error) {
+        // A malformed fragment must not prevent the rest of the page from initializing.
+      }
+      if (!linkedPanel || !accordion.contains(linkedPanel)) return;
       const linkedTrigger = [...accordion.querySelectorAll("[data-accordion-trigger]")]
         .find((trigger) => trigger.getAttribute("aria-controls") === linkedPanel.id);
       if (linkedTrigger?.getAttribute("aria-expanded") !== "true") linkedTrigger?.click();
       window.requestAnimationFrame(() => linkedTrigger?.scrollIntoView({ block: "start" }));
-    }
+    };
+
+    openLinkedPanel();
+    window.addEventListener("hashchange", openLinkedPanel);
   });
 }
 
@@ -408,6 +412,22 @@ function initFaqSearch() {
     if (emptyState) emptyState.hidden = visibleCount !== 0;
   };
 
+  const revealLinkedQuestion = () => {
+    let linkedPanel = null;
+    try {
+      linkedPanel = window.location.hash ? document.getElementById(decodeURIComponent(window.location.hash.slice(1))) : null;
+    } catch (error) {
+      // A malformed fragment must not prevent FAQ filtering from initializing.
+    }
+    if (!linkedPanel || !list.contains(linkedPanel)) return;
+    activeCategory = "all";
+    if (search) search.value = "";
+    filters.forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.faqFilter === "all"));
+    });
+    applyFilters();
+  };
+
   filters.forEach((filter) => {
     filter.addEventListener("click", () => {
       activeCategory = filter.dataset.faqFilter || "all";
@@ -422,6 +442,9 @@ function initFaqSearch() {
     search.value = "";
     applyFilters();
   });
+
+  window.addEventListener("hashchange", revealLinkedQuestion);
+  revealLinkedQuestion();
 }
 
 async function initQuoteForm() {
