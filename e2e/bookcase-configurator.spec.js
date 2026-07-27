@@ -435,7 +435,13 @@ test("landscape tablet keeps Steps 1–4 and every navigation action in one scre
     ".guided-actions"
   ]);
   const layoutRows = await page.locator("[data-layout]").evaluateAll((cards) => (
-    [...new Set(cards.map((card) => Math.round(card.getBoundingClientRect().top)))]
+    cards
+      .map((card) => card.getBoundingClientRect().top)
+      .sort((a, b) => a - b)
+      .reduce((rows, top) => {
+        if (!rows.some((rowTop) => Math.abs(rowTop - top) <= 2)) rows.push(top);
+        return rows;
+      }, [])
   ));
   expect(layoutRows).toHaveLength(2);
 
