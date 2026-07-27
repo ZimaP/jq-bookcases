@@ -47,7 +47,8 @@ test("public routes render without runtime, network, or responsive overflow fail
 test("the guided project flow works through review and refresh", async ({ page }) => {
   const failures = monitorRuntime(page);
   await page.goto("/configurator.html?start=new", { waitUntil: "networkidle" });
-  await page.locator('[data-product="tv-unit"]').click();
+  await page.locator('[data-category="tv-unit"]').click();
+  await page.locator('[data-product-style="framed-tv-wall"]').click();
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
   await page.locator('[data-layout="clear-wall"]').click();

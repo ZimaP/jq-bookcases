@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/test";
 
 const products = [
-  { id: "bookcase", label: "Bookcase" },
-  { id: "tv-unit", label: "TV Unit" },
-  { id: "floating-storage", label: "Floating Storage" },
-  { id: "window-storage", label: "Window Storage" },
-  { id: "radiator-cover", label: "Radiator Cover" }
+  { id: "bookcase", label: "Bookcase", style: "cabinet-base-shelves" },
+  { id: "tv-unit", label: "TV Unit", style: "framed-tv-wall" },
+  { id: "floating-storage", label: "Floating Storage", style: "floating-drawer-bank" },
+  { id: "window-storage", label: "Window Storage", style: "window-seat-storage" },
+  { id: "radiator-cover", label: "Radiator Cover", style: "clean-slat-cover" }
 ];
 
 const sharedLayouts = [
@@ -40,14 +40,18 @@ function monitorRuntime(page) {
 
 async function openFreshProject(page) {
   await page.goto("/configurator.html?start=new", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: "What would you like us to build?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose your bookcase design" })).toBeVisible();
   await expect(page).toHaveURL(/configurator\.html#step-1$/);
 }
 
 async function chooseProduct(page, label = "Bookcase") {
   const product = products.find((candidate) => candidate.label === label);
   if (!product) throw new Error(`Unknown product: ${label}`);
-  const card = page.locator(`[data-product="${product.id}"]`);
+  const category = page.locator(`[data-category="${product.id}"]`);
+  if (await category.getAttribute("aria-pressed") !== "true") {
+    await category.click();
+  }
+  const card = page.locator(`[data-product-style="${product.style}"]`);
   await card.click();
   await expect(card).toHaveAttribute("aria-pressed", "true");
 }
@@ -64,6 +68,38 @@ async function chooseLayout(page, label) {
   const layoutId = await card.getAttribute("data-layout");
   await card.click();
   await expect(page.locator(`[data-layout="${layoutId}"]`)).toHaveAttribute("aria-pressed", "true");
+}
+
+async function expectOneScreenFit(page, selectors) {
+  const report = await page.evaluate((targets) => {
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    return {
+      viewport,
+      documentOverflow: document.documentElement.scrollHeight - viewport.height,
+      elements: targets.map((selector) => {
+        const element = document.querySelector(selector);
+        if (!element) return { selector, missing: true };
+        const rect = element.getBoundingClientRect();
+        return {
+          selector,
+          missing: false,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          left: rect.left
+        };
+      })
+    };
+  }, selectors);
+
+  expect(report.documentOverflow).toBeLessThanOrEqual(1);
+  for (const element of report.elements) {
+    expect(element.missing, element.selector).toBe(false);
+    expect(element.top, `${element.selector} top`).toBeGreaterThanOrEqual(-1);
+    expect(element.left, `${element.selector} left`).toBeGreaterThanOrEqual(-1);
+    expect(element.right, `${element.selector} right`).toBeLessThanOrEqual(report.viewport.width + 1);
+    expect(element.bottom, `${element.selector} bottom`).toBeLessThanOrEqual(report.viewport.height + 1);
+  }
 }
 
 async function continueToReview(page, layout = "Clear Wall", product = "Bookcase") {
@@ -121,10 +157,16 @@ test("public route is the lightweight five-step configurator and excludes the 3D
 
   await expect(page.locator("[data-guided-app]")).toHaveCount(1);
   await expect(page.getByRole("navigation", { name: "Project steps" }).getByRole("button")).toHaveCount(5);
-  await expect(page.locator("[data-product]")).toHaveCount(5);
-  await expect(page.locator("[data-product] .product-card-title")).toHaveText(products.map((product) => product.label));
-  await expect(page.locator("[data-product] picture source[type='image/avif']")).toHaveCount(5);
-  await expect.poll(() => page.locator("[data-product] img").evaluateAll((images) => (
+  await expect(page.locator("[data-category]")).toHaveCount(5);
+  await expect(page.locator("[data-product-style]")).toHaveCount(3);
+  await expect(page.locator("[data-product-style] .product-card-title")).toHaveText([
+    "Cabinets + Shelves",
+    "Drawers + Shelves",
+    "Full Open Shelving"
+  ]);
+  await expect(page.locator(".product-card-reference")).toHaveText(["Drawing 7", "Drawings 5–6", "Drawings 1–2"]);
+  await expect(page.locator("[data-product-style] picture source[type='image/avif']")).toHaveCount(3);
+  await expect.poll(() => page.locator("[data-product-style] img").evaluateAll((images) => (
     images.every((image) => image.complete && image.naturalWidth > 0 && image.currentSrc.endsWith(".avif"))
   ))).toBe(true);
   await expect(page.locator("canvas, [data-3d-viewer], model-viewer")).toHaveCount(0);
@@ -196,6 +238,123 @@ test("measurement fields adapt to the layout, accept fractions, warn gently, and
   await expect(width).toBeFocused();
 });
 
+test("TV measurement diagram keeps the screen centered and its callouts separate at landscape tablet size", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openFreshProject(page);
+  await continueToLayouts(page, "TV Unit");
+  await chooseLayout(page, "Clear Wall");
+  await page.locator("[data-continue]").click();
+
+  const diagram = page.locator(".measurement-diagram-card");
+  const room = diagram.locator(".measurement-room");
+  const tv = room.locator(".measurement-feature");
+  const diagonal = diagram.locator('[data-dimension-chip="tvScreenSize"]');
+  const height = diagram.locator('[data-dimension-chip="tvHeight"]');
+
+  await expect(room).toHaveAttribute("data-feature", "tv");
+  await expect(tv).toBeVisible();
+  await expect(diagonal).toContainText("TV diagonal");
+  await expect(height).toContainText("TV height");
+  await expect(diagram.locator(".measurement-annotation-label")).toHaveText(["A", "B", "C", "TV diagonal", "TV height"]);
+
+  const geometry = await diagram.evaluate((element) => {
+    const bounds = (selector) => {
+      const rect = element.querySelector(selector).getBoundingClientRect();
+      return {
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
+        centerX: rect.left + rect.width / 2
+      };
+    };
+    const diagramRect = element.getBoundingClientRect();
+    const tvRect = bounds(".measurement-feature");
+    const diagonalRect = bounds('[data-dimension-chip="tvScreenSize"]');
+    const heightRect = bounds('[data-dimension-chip="tvHeight"]');
+    const overlaps = (first, second) => (
+      first.left < second.right
+      && first.right > second.left
+      && first.top < second.bottom
+      && first.bottom > second.top
+    );
+    return {
+      tvCenterDelta: Math.abs(tvRect.centerX - (diagramRect.left + diagramRect.width / 2)),
+      calloutsOverlap: overlaps(diagonalRect, heightRect),
+      diagonalBeforeTv: diagonalRect.right < tvRect.left,
+      heightAfterTv: heightRect.left > tvRect.right,
+      allInsideDiagram: [tvRect, diagonalRect, heightRect].every((rect) => (
+        rect.left >= diagramRect.left
+        && rect.right <= diagramRect.right
+        && rect.top >= diagramRect.top
+        && rect.bottom <= diagramRect.bottom
+      ))
+    };
+  });
+
+  expect(geometry.tvCenterDelta).toBeLessThanOrEqual(2);
+  expect(geometry.calloutsOverlap).toBe(false);
+  expect(geometry.diagonalBeforeTv).toBe(true);
+  expect(geometry.heightAfterTv).toBe(true);
+  expect(geometry.allInsideDiagram).toBe(true);
+});
+
+test("landscape tablet keeps Steps 1–4 and every navigation action in one screen", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openFreshProject(page);
+  await chooseProduct(page);
+  await expectOneScreenFit(page, [
+    ".guided-header",
+    ".guided-stepper",
+    ".guided-category-nav",
+    ".product-grid",
+    ".guided-info",
+    ".guided-actions"
+  ]);
+
+  await page.locator("[data-continue]").click();
+  await expectOneScreenFit(page, [
+    ".guided-category-nav",
+    ".selected-product-banner",
+    ".layout-grid",
+    ".guided-info",
+    ".guided-actions"
+  ]);
+  const layoutRows = await page.locator("[data-layout]").evaluateAll((cards) => (
+    [...new Set(cards.map((card) => Math.round(card.getBoundingClientRect().top)))]
+  ));
+  expect(layoutRows).toHaveLength(2);
+
+  await chooseLayout(page, "Clear Wall");
+  await page.locator("[data-continue]").click();
+  await expectOneScreenFit(page, [
+    ".guided-category-nav",
+    ".measurement-panel",
+    ".measurement-diagram-card",
+    ".guided-info",
+    ".guided-actions"
+  ]);
+
+  await page.locator("[data-continue]").click();
+  await expectOneScreenFit(page, [
+    ".guided-category-nav",
+    ".customization-panel",
+    ".concept-preview",
+    ".customization-actions"
+  ]);
+  await expect(page.locator("img.concept-photo")).toHaveCSS("object-fit", "contain");
+
+  for (const tab of ["Details", "Design", "Finish"]) {
+    await page.getByRole("tab", { name: tab }).click();
+    const contentFit = await page.locator(".customization-content").evaluate((element) => ({
+      scrollHeight: element.scrollHeight,
+      clientHeight: element.clientHeight
+    }));
+    expect(contentFit.scrollHeight, `${tab} tab`).toBeLessThanOrEqual(contentFit.clientHeight + 1);
+    await expectOneScreenFit(page, [".customization-panel", ".concept-preview", ".customization-actions"]);
+  }
+});
+
 test("style, finish, compatibility, preview, and review summary stay synchronized", async ({ page }) => {
   await openFreshProject(page);
   await continueToLayouts(page);
@@ -204,8 +363,9 @@ test("style, finish, compatibility, preview, and review summary stay synchronize
   await page.getByLabel("Wall width").fill("132.25");
   await page.locator("[data-continue]").click();
 
+  await page.getByRole("tab", { name: "Design" }).click();
   await expect.poll(() => page.locator(".style-thumb img").evaluateAll((images) => (
-    images.length === 4
+    images.length === 3
       && images.every((image) => image.complete && image.naturalWidth > 0 && image.currentSrc.endsWith(".avif"))
   ))).toBe(true);
   await page.locator('button[data-style="drawer-base-shelves"]').click();
@@ -279,7 +439,8 @@ test("automatic draft saving restores the active step and values after refresh",
 
 test("inspiration presets apply once and then restore edits after refresh", async ({ page }) => {
   await page.goto("/configurator.html?preset=media-wall", { waitUntil: "networkidle" });
-  await expect(page.locator('[data-product="tv-unit"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('[data-category="tv-unit"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('[data-product-style="library-media"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page).toHaveURL(/configurator\.html#step-1$/);
   await page.locator("[data-continue]").click();
   await expect(page.locator('button[data-layout="clear-wall"]')).toHaveAttribute("aria-pressed", "true");
@@ -387,7 +548,7 @@ test("a failed connected quote request keeps the project and reports an honest e
 
 test("keyboard interaction covers product and layout cards, tabs, completed steps, and menu dismissal", async ({ page }) => {
   await openFreshProject(page);
-  const firstProduct = page.locator('[data-product="bookcase"]');
+  const firstProduct = page.locator('[data-product-style="cabinet-base-shelves"]');
   await firstProduct.focus();
   await firstProduct.press("Space");
   await expect(firstProduct).toHaveAttribute("aria-pressed", "true");
@@ -400,7 +561,7 @@ test("keyboard interaction covers product and layout cards, tabs, completed step
   await page.locator("[data-continue]").click();
   await page.locator("[data-continue]").click();
 
-  const styleTab = page.getByRole("tab", { name: "Style" });
+  const styleTab = page.getByRole("tab", { name: "Design" });
   await styleTab.focus();
   await styleTab.press("ArrowRight");
   await expect(page.getByRole("tab", { name: "Finish" })).toHaveAttribute("aria-selected", "true");
@@ -439,7 +600,7 @@ test("desktop, iPad, and phone layouts are overflow-free with usable mobile cont
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), `${viewport.width}x${viewport.height}`).toBeLessThanOrEqual(1);
   }
 
-  const productTargets = await page.locator("[data-product]").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
+  const productTargets = await page.locator("[data-product-style]").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
   expect(Math.min(...productTargets)).toBeGreaterThanOrEqual(44);
   await expect(page.locator(".guided-step-label--mobile")).toHaveText(["Product", "Layout", "Size", "Finish", "Review"]);
   await continueToLayouts(page, "Radiator Cover");
