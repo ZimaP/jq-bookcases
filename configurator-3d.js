@@ -1,5 +1,5 @@
 import * as THREE from "./assets/vendor/three.module.js";
-import { diagramSvg, iconSvg } from "./icon-system.js?v=interface-polish-20260715a";
+import { diagramSvg, iconSvg } from "./icon-system.js?v=product-first-20260727a";
 import {
   baseStyleOptions,
   crownStyleOptions,

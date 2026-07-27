@@ -10,6 +10,7 @@ const source = read("configurator-3d.js");
 const workflow = read("configurator-experience.js");
 const css = read("configurator-experience.css");
 const precisionCss = read("configurator-precision.css");
+const mobileCss = css.slice(css.lastIndexOf("/* Mobile configurator redesign"));
 const html = read("configurator.html");
 const catalogProvider = read("benjamin-moore-colors.js");
 const configSource = read("bookcase-config.js");
@@ -40,8 +41,14 @@ test("the reference workspace owns one stage rail, persistent viewer, properties
   assert.match(shell, /data-total-width-card aria-label="Total width status"/);
   assert.equal((shell.match(/data-inspector-content/g) || []).length, 1);
   assert.equal((shell.match(/data-3d-viewer tabindex=/g) || []).length, 1);
-  assert.doesNotMatch(shell, /data-contextual-editor|data-context-leader|preview-control-dock|data-viewer-zoom|data-view="/);
+  assert.equal((shell.match(/data-mobile-categories/g) || []).length, 1);
+  assert.doesNotMatch(shell, /data-contextual-editor|data-context-leader|preview-control-dock/);
   assert.match(shell, /data-reset-view aria-label="Reset model view"/);
+  assert.match(shell, /data-viewer-zoom="out"/);
+  assert.match(shell, /data-viewer-zoom="in"/);
+  assert.ok(shell.indexOf("data-model-workspace") < shell.indexOf("data-section-organizer"));
+  assert.ok(shell.indexOf("data-section-organizer") < shell.indexOf("data-mobile-categories"));
+  assert.ok(shell.indexOf("data-mobile-categories") < shell.indexOf("data-properties-inspector"));
   assert.doesNotMatch(shell, /data-mode-panel|data-configurator-mode|configurator-step-rail|data-category-trigger/);
   assert.match(inspector, /inspectorContent\.innerHTML = this\.renderWorkspaceProperties\(\)/);
   assert.match(inspector, /sectionOrganizerContent\.innerHTML = this\.renderSectionOrganizer\(\)/);
@@ -151,20 +158,25 @@ test("the reference workspace has complete navigation, toolbar, one-card Propert
   assert.match(shell, /<nav[^>]*aria-label="Configurator stages"/);
   assert.match(shell, /role="group" aria-label="Design history"/);
   assert.match(shell, /role="group" aria-label="Model display"/);
-  assert.match(shell, /role="group" aria-label="Model interaction tool"/);
+  assert.match(shell, /role="group" aria-label="Model interaction and zoom"/);
   assert.match(shell, /aria-keyshortcuts="Control\+Z Meta\+Z"/);
   assert.match(shell, /aria-roledescription="interactive 3D configurator"/);
   assert.match(shell, /data-selection-live role="status" aria-live="polite" aria-atomic="true"/);
   assert.match(properties, /class="workspace-properties-panel" role="region"/);
   assert.match(properties, /aria-label="\$\{escapeHtml\(title\)\} controls"/);
   assert.match(properties, /this\.renderWorkspacePropertiesContent\(selectedSection\)/);
-  assert.doesNotMatch(properties, /role="tablist"|role="tab"|role="tabpanel"|data-inspector-tab|aria-controls=/);
+  assert.match(properties, /role="tabpanel"/);
+  assert.match(properties, /data-mobile-category-panel=/);
+  assert.doesNotMatch(properties, /data-inspector-tab/);
+  assert.match(source, /aria-controls="\$\{this\.id\}-mobile-category-panel"/);
+  assert.match(properties, /aria-labelledby="\$\{this\.id\}-mobile-category-/);
   assert.match(properties, /data-close-selection aria-label="Clear model selection"/);
   assert.match(organizer, /role="group" aria-label="Section organizer"/);
   assert.match(organizer, /aria-pressed=/);
-  assert.match(organizer, /class="workspace-section-card-actions" role="group" aria-label="Section/);
-  assert.match(organizer, /aria-label="Duplicate Section/);
-  assert.match(organizer, /aria-label="Delete Section/);
+  assert.match(organizer, /class="workspace-section-menu"/);
+  assert.match(organizer, /<summary[^>]*aria-label="Section \$\{section\.index \+ 1\} actions"/);
+  assert.match(organizer, /<button type="button" data-section-duplicate=/);
+  assert.match(organizer, /<button type="button" data-section-delete=/);
   assert.match(source, /data-validation-field="customPaintColor"/);
   assert.match(source, /\[data-field\], \[data-validation-field\]/);
   assert.doesNotMatch(shell, /data-configurator-mode|data-mode-panel|data-appearance-tab|aria-modal="false"/);
@@ -243,10 +255,10 @@ test("the organizer projects accepted sections and the width card reports canoni
   assert.match(organizer, /data-section-select="\$\{section\.index\}"/);
   assert.match(organizer, /data-section-duplicate="\$\{section\.index\}"/);
   assert.match(organizer, /data-section-delete="\$\{section\.index\}"/);
-  assert.match(organizer, /class="workspace-section-card-actions"/);
-  assert.match(organizer, /class="workspace-section-duplicate"/);
-  assert.match(organizer, /class="workspace-section-delete"/);
-  assert.doesNotMatch(organizer, /<details|<summary|workspace-section-menu/);
+  assert.match(organizer, /<details class="workspace-section-menu" name=/);
+  assert.match(organizer, /<summary[^>]*aria-label="Section/);
+  assert.doesNotMatch(organizer, /workspace-section-card-actions|workspace-section-duplicate|workspace-section-delete/);
+  assert.ok(organizer.indexOf("organizer.items.map") < organizer.indexOf('class="workspace-add-section"'), "Add Section must follow the section cards in reading order");
   assert.match(organizer, /duplicateSection\(this\.state, this\.layout, section\.index\)/);
   assert.match(organizer, /deleteSection\(this\.state, this\.layout, section\.index\)/);
   assert.match(organizer, /addAvailability\.accepted/);
@@ -548,13 +560,14 @@ test("Hardware separates geometry type from valid finishes but commits one canon
   assert.match(css, /\.hardware-finish-grid/);
 });
 
-test("organizer exposes direct section actions while section mutations preserve one selected Properties context", () => {
+test("organizer exposes contextual section actions while mutations preserve one selected Properties context", () => {
   const events = methodBody("bindEvents", "handleDelegatedClick");
   const click = methodBody("handleDelegatedClick", "activateWorkspaceStage");
   const commit = methodBody("commitSectionOperation", "undoSectionChange");
 
-  assert.doesNotMatch(events, /workspace-section-menu|openMenu/);
-  assert.doesNotMatch(click, /workspace-section-menu|activeSectionMenu/);
+  assert.match(events, /workspace-section-menu\[open\]/);
+  assert.match(events, /sectionMenuSummary/);
+  assert.doesNotMatch(click, /activeSectionMenu/);
   assert.match(click, /target\.closest\?\.\("\[data-section-duplicate\]"\)/);
   assert.match(click, /target\.closest\?\.\("\[data-section-delete\]"\)/);
   assert.match(events, /window\.addEventListener\("pagehide"[\s\S]*if \(!event\.persisted\) this\.destroy\(\)[\s\S]*\{ signal \}/);
@@ -585,6 +598,7 @@ test("new designs reset unified presentation state while resume restores physica
   const load = methodBody("loadInitialDesignRequest", "createStudioIntroViewer");
   assert.match(reset, /this\.activeInspectorGroup = normalizeInspectorGroup\("overall_size"\)/);
   assert.match(reset, /this\.activeStageId = "layout"/);
+  assert.match(reset, /this\.activeMobileCategoryId = "sections"/);
   assert.match(reset, /this\.activeInspectorTabId = "general"/);
   assert.match(reset, /this\.activeTool = "select"/);
   assert.match(reset, /this\.showDimensions = true/);
@@ -923,13 +937,15 @@ test("legacy dual-sidebar handlers and DOM-scanning state reconstruction are gon
   ]) assert.doesNotMatch(source, new RegExp(retired));
 });
 
-test("responsive presentation preserves the three-surface workspace without obsolete tablet scrollers", () => {
+test("responsive presentation preserves desktop and tablet while phones use intentional horizontal rails", () => {
   assert.match(css, /\.reference-workspace \{[\s\S]*grid-template-columns: var\(--workspace-rail-width\) minmax\(0, 1fr\) var\(--workspace-properties-width\);/);
   assert.match(css, /\.reference-workspace \.workspace-stage-list \{[\s\S]*grid-template-rows: repeat\(8, minmax\(60px, 1fr\)\);/);
-  assert.match(css, /@media \(max-width: 767px\)/);
+  assert.match(mobileCss, /@media \(max-width: 767px\)/);
   assert.doesNotMatch(css, /@media \(max-width: 1200px\)\s*\{[\s\S]*?\.reference-workspace \.workspace-properties \{[^}]*grid-row:\s*4;[^}]*overflow-y:\s*auto;/);
-  assert.doesNotMatch(css, /\.reference-workspace \.workspace-section-cards \{[^}]*overflow-x:\s*auto;/);
-  assert.match(css, /\.reference-workspace \.workspace-properties-panel \{[^}]*overflow:\s*hidden;/);
+  assert.match(mobileCss, /\.workspace-section-cards[\s\S]*overflow-x:\s*auto;/);
+  assert.match(mobileCss, /\.workspace-mobile-category-list \{[\s\S]*overflow-x:\s*auto;/);
+  assert.match(mobileCss, /\.workspace-properties-panel \{[\s\S]*overflow:\s*visible;/);
+  assert.match(mobileCss, /overflow-x:\s*hidden;/);
   assert.match(precisionCss, /\.reference-workspace \.workspace-viewer-room > \.viewer-stage > canvas \{[\s\S]*touch-action: none;/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.reference-workspace \*/);
 });
@@ -946,20 +962,29 @@ test("reference-workspace controls use a scoped contrasting focus ring and acces
   assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \.workspace-properties-panel :is\(button, summary, input, select\),[\s\S]*min-height: 44px;/);
 });
 
-test("the phone layout keeps the viewer persistent and presents Properties as the only contained sheet", () => {
-  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \{[\s\S]*height: 100%;[\s\S]*grid-template-rows: 56px minmax\(0, 1fr\) var\(--workspace-organizer-height\) clamp\(210px, 38dvh, 300px\) var\(--workspace-footer-height\);/);
-  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \.workspace-properties \{[\s\S]*height: 100%;[\s\S]*grid-row: 4;[\s\S]*overflow: hidden;/);
-  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \.workspace-model \{[\s\S]*grid-template-rows: 48px minmax\(0, 1fr\);/);
+test("the phone layout is a page-flow hierarchy with a dominant persistent viewer and footer clearance", () => {
+  assert.match(mobileCss, /\.reference-workspace \{[\s\S]*display:\s*flex;[\s\S]*height:\s*auto;[\s\S]*overflow:\s*visible;[\s\S]*padding-bottom:\s*calc\(var\(--mobile-estimate-height\)/);
+  assert.match(mobileCss, /\.reference-workspace \.workspace-properties \{[\s\S]*order:\s*4;[\s\S]*height:\s*auto;[\s\S]*overflow:\s*visible;/);
+  assert.match(mobileCss, /\.reference-workspace \.workspace-model \{[\s\S]*order:\s*1;[\s\S]*grid-template-rows:\s*clamp\(340px, 92vw, 430px\) 60px;/);
+  assert.match(mobileCss, /\.reference-workspace \.workspace-section-organizer \{[\s\S]*order:\s*2;/);
+  assert.match(mobileCss, /\.reference-workspace \.workspace-mobile-category-nav \{[\s\S]*order:\s*3;/);
+  assert.match(mobileCss, /> \.workspace-estimate-bar \{[\s\S]*position:\s*fixed;[\s\S]*env\(safe-area-inset-bottom\)/);
   assert.match(precisionCss, /\.reference-workspace :is\([\s\S]*\.configurator-context-editor,[\s\S]*\.configurator-context-leader,[\s\S]*\.preview-control-dock,[\s\S]*\.configurator-model > \.cabinet-ar-launch[\s\S]*\) \{[\s\S]*display: none !important;/);
   const anchor = methodBody("updateContextAnchor", "closeContextEditor");
   assert.match(anchor, /void anchor/);
   assert.doesNotMatch(anchor, /matchMedia|getBoundingClientRect|contextLeader|style\.left|style\.top/);
 });
 
-test("the phone toolbar stays compact while the model remains directly selectable", () => {
-  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\[data-studio-state="accepted"\] \{[\s\S]*height: 100dvh;[\s\S]*overflow: hidden;/);
-  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \.workspace-toolbar-group button \{[\s\S]*min-width: 40px;[\s\S]*min-height: 40px;/);
-  assert.match(css, /@media \(max-width: 767px\)[\s\S]*\.reference-workspace \.workspace-toolbar-group button b,[\s\S]*\.workspace-toolbar-group > span \{[\s\S]*display: none;/);
+test("the phone toolbar keeps four primary controls and real secondary controls in one compact overflow", () => {
+  assert.match(mobileCss, /\[data-studio-state="accepted"\] \{[\s\S]*height:\s*auto;[\s\S]*overflow-y:\s*auto;/);
+  assert.match(mobileCss, /\.workspace-display-tools \{[\s\S]*repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(mobileCss, /\.workspace-display-tools button \{[\s\S]*min-height:\s*46px;/);
+  assert.match(mobileCss, /\.workspace-toolbar-overflow > summary \{[\s\S]*width:\s*44px;[\s\S]*height:\s*44px;/);
+  assert.match(mobileCss, /\.workspace-toolbar-overflow\[open\] > \.workspace-toolbar-overflow-panel/);
+  assert.match(source, /data-history-undo/);
+  assert.match(source, /data-history-redo/);
+  assert.match(source, /data-viewer-zoom="out"/);
+  assert.match(source, /data-viewer-zoom="in"/);
   assert.match(source, /aria-roledescription="interactive 3D configurator"/);
   assert.doesNotMatch(source, /data-configurator-mode|data-mode-panel/);
 });

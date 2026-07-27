@@ -1,15 +1,16 @@
-import { mountIcons } from "./icon-system.js?v=interface-polish-20260715a";
+import { mountIcons } from "./icon-system.js?v=product-first-20260727a";
 import {
   CATEGORY_DEFINITIONS,
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
+  SHARED_ROOM_LAYOUTS,
   getCategory,
   getCompatibleDetails,
   getFinish,
   getLayout,
   getMeasurementFields,
   getStyle
-} from "./guided-configurator-data.js?v=guided-configurator-20260726a";
+} from "./guided-configurator-data.js?v=product-first-20260727a";
 import {
   buildProjectSummary,
   createProject,
@@ -18,22 +19,49 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=guided-configurator-20260726a";
+} from "./guided-configurator-state.js?v=product-first-20260727a";
 
 const STEP_DEFINITIONS = Object.freeze([
-  Object.freeze({ id: 1, label: "Choose Layout", title: "Choose the layout that matches your space", description: "Start with the wall, opening, or room condition where your built-in will be installed." }),
-  Object.freeze({ id: 2, label: "Room & Size", title: "Tell us about your space", description: "Add a few approximate measurements so we can shape a preliminary project concept." }),
-  Object.freeze({ id: 3, label: "Customization", title: "Refine your concept", description: "Choose a curated style direction and a few finishing details. We’ll keep the process simple." }),
-  Object.freeze({ id: 4, label: "Review & Details", title: "Review your custom concept", description: "Check your selections, save the project, or share it with our design team for a quote." })
+  Object.freeze({ id: 1, label: "Choose Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
+  Object.freeze({ id: 2, label: "Choose Layout", title: "Choose the room condition that matches your space", description: "Select the wall or room condition where your fitted furniture will be built." }),
+  Object.freeze({ id: 3, label: "Room & Size", title: "Tell us about your space", description: "Enter the basic measurements so we can build a pre-designed concept for your wall." }),
+  Object.freeze({ id: 4, label: "Customization", title: "Refine your concept", description: "Choose a style direction and a few finishing details. We’ll keep the process simple." }),
+  Object.freeze({ id: 5, label: "Review & Details", title: "Review your custom concept", description: "Check your selections and request a quote or save the project for later." })
 ]);
 
 const LEGACY_PRESET_MAP = Object.freeze({
-  "media-wall": Object.freeze({ category: "tv-unit", layout: "clear-tv-wall", style: "library-media" }),
-  "library-wall": Object.freeze({ category: "bookcase", layout: "clear-wall", style: "library-style" }),
-  "feature-wall": Object.freeze({ category: "bookcase", layout: "fireplace-wall", style: "lower-cabinets-shelves" }),
-  "lower-cabinets": Object.freeze({ category: "bookcase", layout: "clear-wall", style: "lower-cabinets-shelves" }),
-  "desk-niche": Object.freeze({ category: "floating-storage", layout: "floating-clear-wall", style: "display-ledge-storage" }),
-  "classic-open": Object.freeze({ category: "bookcase", layout: "clear-wall", style: "open-shelving" })
+  "media-wall": Object.freeze({ category: "tv-unit", layout: "clear-wall", style: "library-media" }),
+  "library-wall": Object.freeze({ category: "bookcase", layout: "clear-wall", style: "full-open-shelving" }),
+  "feature-wall": Object.freeze({ category: "bookcase", layout: "fireplace-wall", style: "cabinet-base-shelves" }),
+  "lower-cabinets": Object.freeze({ category: "bookcase", layout: "clear-wall", style: "cabinet-base-shelves" }),
+  "desk-niche": Object.freeze({ category: "floating-storage", layout: "clear-wall", style: "display-ledge-storage" }),
+  "classic-open": Object.freeze({ category: "bookcase", layout: "clear-wall", style: "full-open-shelving" })
+});
+
+const BOOKCASE_CONFIGURATION_DEFAULTS = Object.freeze({
+  "cabinet-base-shelves": Object.freeze({
+    hardware: "brass-pull",
+    lighting: "warm-led",
+    baseStyle: "flush-base",
+    topTreatment: "small-crown"
+  }),
+  "drawer-base-shelves": Object.freeze({
+    hardware: "brass-pull",
+    lighting: "warm-led",
+    baseStyle: "recessed-toe-kick",
+    topTreatment: "small-crown"
+  }),
+  "tv-wall-cabinets": Object.freeze({
+    hardware: "knob",
+    lighting: "warm-led",
+    baseStyle: "recessed-toe-kick",
+    topTreatment: "traditional-crown"
+  }),
+  "full-open-shelving": Object.freeze({
+    lighting: "warm-led",
+    baseStyle: "flush-base",
+    topTreatment: "traditional-crown"
+  })
 });
 
 const app = document.querySelector("[data-guided-app]");
@@ -48,6 +76,7 @@ let renamingProjectId = null;
 let toastTimer = 0;
 let draftTimer = 0;
 let storageWarningShown = false;
+const previewPreloadCache = new Set();
 
 if (app) {
   initializeStaticShell();
@@ -81,6 +110,7 @@ function initializeProject() {
     initial = normalizeProject({
       ...initial,
       category: preset.category,
+      productSelected: true,
       layout: preset.layout,
       style: preset.style,
       currentStep: 1,
@@ -147,14 +177,14 @@ function closeMenu() {
 function renderApp(options = {}) {
   if (!app) return;
   const step = STEP_DEFINITIONS[project.currentStep - 1];
+  if (project.currentStep >= 2) preloadPreviewAsset(project.previewAsset);
   app.innerHTML = `
-    <div class="guided-shell">
+    <div class="guided-shell guided-shell--step-${project.currentStep}">
       ${renderStepper()}
-      <div class="guided-workspace">
-        ${renderCategoryNavigation()}
+      <div class="guided-workspace${project.currentStep === 1 ? " guided-workspace--product" : ""}">
+        ${project.currentStep === 1 ? "" : renderCategoryNavigation()}
         <section class="guided-main" aria-labelledby="guided-page-title">
           <header class="guided-content-head">
-            <span class="guided-eyebrow">Step ${project.currentStep} of 4 · ${escapeHtml(getCategory(project.category).label)}</span>
             <h1 id="guided-page-title" tabindex="-1">${escapeHtml(step.title)}</h1>
             <p>${escapeHtml(step.description)}</p>
           </header>
@@ -170,6 +200,14 @@ function renderApp(options = {}) {
   if (options.focusHeading) {
     requestAnimationFrame(() => app.querySelector("#guided-page-title")?.focus({ preventScroll: true }));
   }
+}
+
+function preloadPreviewAsset(asset) {
+  if (!asset || previewPreloadCache.has(asset)) return;
+  previewPreloadCache.add(asset);
+  const image = new Image();
+  image.decoding = "async";
+  image.src = asset;
 }
 
 function renderStepper() {
@@ -189,7 +227,7 @@ function renderStepper() {
             ${current ? 'aria-current="step"' : ""}
             aria-label="${escapeHtml(`${step.label}${current ? ", current step" : complete ? ", completed" : ""}`)}"
           >
-            <span class="guided-step-number">${complete ? '<i data-icon="check" aria-hidden="true"></i>' : step.id}</span>
+            <span class="guided-step-number">${step.id}</span>
             <span class="guided-step-label">${escapeHtml(step.label)}</span>
           </button>
         `;
@@ -203,12 +241,12 @@ function renderCategoryNavigation() {
     <nav class="guided-category-nav" aria-label="Project category">
       ${CATEGORY_DEFINITIONS.map((category) => `
         <button
-          class="guided-category${category.id === project.category ? " is-selected" : ""}"
+          class="guided-category${project.productSelected && category.id === project.category ? " is-selected" : ""}"
           type="button"
           data-category="${category.id}"
-          aria-pressed="${category.id === project.category}"
+          aria-pressed="${project.productSelected && category.id === project.category}"
         >
-          <span class="category-line-icon category-line-icon--${category.icon}" aria-hidden="true"><span></span></span>
+          ${renderCategoryIcon(category.icon)}
           <span>${escapeHtml(category.label)}</span>
         </button>
       `).join("")}
@@ -216,18 +254,107 @@ function renderCategoryNavigation() {
   `;
 }
 
+function renderCategoryIcon(icon) {
+  const common = `class="category-line-icon category-line-icon--${escapeAttribute(icon)}" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"`;
+  const paths = {
+    bookcase: `
+      <rect x="5.5" y="8" width="7.5" height="25" rx="1"></rect>
+      <rect x="15.8" y="6.5" width="7.5" height="26.5" rx="1"></rect>
+      <path d="M26.2 8.2l6.7-.7 2.4 24.3-6.7.7z"></path>
+      <path d="M8.2 12h2.1M18.5 10.5h2.1M29.1 11.7l2.1-.2"></path>
+    `,
+    tv: `
+      <rect x="4.5" y="7" width="31" height="21" rx="1.5"></rect>
+      <path d="M15 33h10M20 28v5"></path>
+    `,
+    floating: `
+      <rect x="4.5" y="8.5" width="22" height="15" rx="1"></rect>
+      <path d="M26.5 15.5h9v15h-22v-7"></path>
+      <path d="M9 27.2h22"></path>
+    `,
+    window: `
+      <rect x="6.5" y="5" width="27" height="30" rx=".8"></rect>
+      <path d="M20 5v30M6.5 20h27"></path>
+    `,
+    radiator: `
+      <rect x="5" y="8" width="5.5" height="24" rx="2.7"></rect>
+      <rect x="11.1" y="6.5" width="5.5" height="27" rx="2.7"></rect>
+      <rect x="17.2" y="6" width="5.5" height="28" rx="2.7"></rect>
+      <rect x="23.3" y="6.5" width="5.5" height="27" rx="2.7"></rect>
+      <rect x="29.4" y="8" width="5.5" height="24" rx="2.7"></rect>
+      <path d="M7.8 32v2M32.2 32v2"></path>
+    `
+  };
+  return `<svg ${common}>${paths[icon] || paths.bookcase}</svg>`;
+}
+
 function renderCurrentStep() {
-  if (project.currentStep === 1) return renderLayoutStep();
-  if (project.currentStep === 2) return renderMeasurementStep();
-  if (project.currentStep === 3) return renderCustomizationStep();
+  if (project.currentStep === 1) return renderProductStep();
+  if (project.currentStep === 2) return renderLayoutStep();
+  if (project.currentStep === 3) return renderMeasurementStep();
+  if (project.currentStep === 4) return renderCustomizationStep();
   return renderReviewStep();
+}
+
+function renderProductStep() {
+  return `
+    <div class="product-grid" role="group" aria-label="Fitted furniture type">
+      ${CATEGORY_DEFINITIONS.map((category) => {
+        const selected = project.productSelected && category.id === project.category;
+        return `
+          <button
+            class="product-card${selected ? " is-selected" : ""}"
+            type="button"
+            data-product="${category.id}"
+            aria-pressed="${selected}"
+            aria-label="${escapeAttribute(category.label)}"
+          >
+            ${selected ? '<span class="choice-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
+            <span class="product-card-image" aria-hidden="true">
+              <img
+                src="${escapeAttribute(category.productPreviewAsset)}"
+                alt=""
+                loading="eager"
+                decoding="async"
+                style="object-position:${escapeAttribute(category.productPreviewPosition || "50% 50%")}"
+              >
+            </span>
+            <span class="product-card-copy">
+              <span class="product-card-heading">
+                ${renderCategoryIcon(category.icon)}
+                <span class="product-card-title">${escapeHtml(category.label)}</span>
+              </span>
+              <span class="product-card-description">${escapeHtml(category.description)}</span>
+            </span>
+          </button>
+        `;
+      }).join("")}
+    </div>
+    <aside class="guided-info">
+      <i data-icon="information" aria-hidden="true"></i>
+      <span>Choose the kind of fitted furniture you want first. Your room condition and measurements come next.</span>
+    </aside>
+    <div class="guided-actions">
+      <button class="guided-button guided-button-primary" type="button" data-continue ${project.productSelected ? "" : "disabled"}>
+        Continue <i data-icon="arrow-right" aria-hidden="true"></i>
+      </button>
+    </div>
+  `;
 }
 
 function renderLayoutStep() {
   const category = getCategory(project.category);
   return `
-    <div class="layout-grid" role="group" aria-label="${escapeHtml(category.label)} layouts">
-      ${category.layouts.map((layout) => {
+    <div class="selected-product-banner">
+      <span class="selected-product-banner-icon">${renderCategoryIcon(category.icon)}</span>
+      <span>
+        <small>Your selection</small>
+        <strong>${escapeHtml(category.label)}</strong>
+      </span>
+      <button type="button" data-step="1">Change product</button>
+    </div>
+    <div class="layout-grid" role="group" aria-label="Room conditions">
+      ${SHARED_ROOM_LAYOUTS.map((layout) => {
         const selected = layout.id === project.layout;
         return `
           <button
@@ -235,19 +362,25 @@ function renderLayoutStep() {
             type="button"
             data-layout="${layout.id}"
             aria-pressed="${selected}"
+            aria-label="${escapeAttribute(layout.label)}"
           >
-            ${selected ? '<span class="layout-selected-mark" aria-label="Selected"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
-            ${renderLayoutIllustration(layout)}
-            <span class="layout-card-title">${escapeHtml(layout.label)}</span>
+            ${selected ? '<span class="layout-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
+            ${renderLayoutPreview(layout)}
+            <span class="layout-card-copy">
+              <span class="layout-card-title">${escapeHtml(layout.label)}</span>
+            </span>
           </button>
         `;
       }).join("")}
     </div>
     <aside class="guided-info">
       <i data-icon="information" aria-hidden="true"></i>
-      <span>Your selected layout will be converted into a pre-designed concept in the next steps, where you can choose the size, style, finish, and key details.</span>
+      <span>These same ten room conditions apply to every product. Choose the closest match — our team will confirm the details before production.</span>
     </aside>
     <div class="guided-actions">
+      <button class="guided-button guided-button-secondary" type="button" data-back>
+        <i data-icon="chevron-left" aria-hidden="true"></i> Back
+      </button>
       <button class="guided-button guided-button-primary" type="button" data-continue ${project.layout ? "" : "disabled"}>
         Continue <i data-icon="arrow-right" aria-hidden="true"></i>
       </button>
@@ -255,21 +388,178 @@ function renderLayoutStep() {
   `;
 }
 
-function renderLayoutIllustration(layout) {
+function renderLayoutPreview(layout) {
+  if (layout.previewMode === "sprite") {
+    return `
+      <span
+        class="layout-illustration layout-illustration--photo layout-illustration--sprite"
+        aria-hidden="true"
+        style="background-image:url('${escapeAttribute(layout.previewAsset)}');background-position:${escapeAttribute(layout.previewPosition)}"
+      ></span>
+    `;
+  }
   return `
-    <span class="layout-illustration" data-layout-variant="${escapeAttribute(layout.id)}" data-condition="${escapeAttribute(layout.condition)}" data-feature="${escapeAttribute(layout.feature)}" aria-hidden="true">
-      <span class="arch-wall"></span>
-      <span class="arch-side left"></span>
-      <span class="arch-side right"></span>
-      <span class="arch-feature"></span>
-      <span class="arch-floor"></span>
+    <span class="layout-illustration layout-illustration--photo" aria-hidden="true">
+      <img
+        src="${escapeAttribute(layout.previewAsset)}"
+        alt=""
+        loading="eager"
+        decoding="async"
+        style="object-position:${escapeAttribute(layout.previewPosition || "50% 50%")}"
+      >
     </span>
+  `;
+}
+
+function renderLayoutIllustration(layout) {
+  const leftReturn = ["niche", "left-niche"].includes(layout.condition);
+  const rightReturn = ["niche", "right-niche"].includes(layout.condition);
+  const isCorner = layout.condition === "corner";
+  const illustrationId = escapeAttribute(layout.id);
+  return `
+    <span class="layout-illustration layout-illustration--architectural" data-layout-variant="${escapeAttribute(layout.id)}" data-condition="${escapeAttribute(layout.condition)}" data-feature="${escapeAttribute(layout.feature)}" aria-hidden="true">
+      <svg class="layout-architectural-svg" viewBox="0 0 260 166" focusable="false">
+        <defs>
+          <linearGradient id="layout-wall-${illustrationId}" x1="0" y1="0" x2="0.85" y2="1">
+            <stop offset="0" stop-color="#f8f7f5"></stop>
+            <stop offset="0.55" stop-color="#efeeec"></stop>
+            <stop offset="1" stop-color="#e7e5e2"></stop>
+          </linearGradient>
+          <linearGradient id="layout-left-return-${illustrationId}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#d8d8d7"></stop>
+            <stop offset="1" stop-color="#efefee"></stop>
+          </linearGradient>
+          <linearGradient id="layout-right-return-${illustrationId}" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#f1f1f0"></stop>
+            <stop offset="1" stop-color="#d2d2d1"></stop>
+          </linearGradient>
+          <linearGradient id="layout-floor-${illustrationId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#d4bc9c"></stop>
+            <stop offset="1" stop-color="#bb9670"></stop>
+          </linearGradient>
+          <pattern id="layout-planks-${illustrationId}" width="56" height="12" patternUnits="userSpaceOnUse">
+            <rect width="56" height="12" fill="transparent"></rect>
+            <path d="M0 .5H56M0 11.5H56M18 0V12M46 0V12" fill="none" stroke="#8e6a47" stroke-opacity=".2" stroke-width=".7"></path>
+            <path d="M5 4c9-2 19-2 29 0M25 8c8-1 16-.8 25 .5" fill="none" stroke="#8e6a47" stroke-opacity=".12" stroke-width=".65"></path>
+          </pattern>
+          <radialGradient id="layout-fire-${illustrationId}" cx=".5" cy=".7" r=".7">
+            <stop offset="0" stop-color="#ffd16a"></stop>
+            <stop offset=".45" stop-color="#db6b20"></stop>
+            <stop offset="1" stop-color="#48150c"></stop>
+          </radialGradient>
+          <filter id="layout-shadow-${illustrationId}" x="-20%" y="-20%" width="140%" height="160%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2.2" flood-color="#6e665d" flood-opacity=".17"></feDropShadow>
+          </filter>
+        </defs>
+        <rect width="260" height="166" fill="#fbfaf8"></rect>
+        <ellipse class="layout-room-shadow" cx="130" cy="153" rx="115" ry="7"></ellipse>
+        <path class="layout-drawing-wall" d="M29 24H231V116H29Z" fill="url(#layout-wall-${illustrationId})" filter="url(#layout-shadow-${illustrationId})"></path>
+        <path class="layout-drawing-floor" d="M29 116H231L252 156H8Z" fill="url(#layout-floor-${illustrationId})"></path>
+        <path class="layout-floor-texture" d="M29 116H231L252 156H8Z" fill="url(#layout-planks-${illustrationId})"></path>
+        <path class="layout-floor-board" d="M19 137H241M74 116L68 156M126 116L126 156M180 116L187 156"></path>
+        ${leftReturn
+    ? `<path class="layout-drawing-return layout-drawing-return--left" d="M29 24L9 36V137L29 116Z" fill="url(#layout-left-return-${illustrationId})"></path>`
+    : `<path class="layout-drawing-return layout-drawing-return--edge-left" d="M29 24L22 30V126L29 116Z" fill="url(#layout-left-return-${illustrationId})"></path>`}
+        ${rightReturn
+    ? `<path class="layout-drawing-return layout-drawing-return--right" d="M231 24L251 36V137L231 116Z" fill="url(#layout-right-return-${illustrationId})"></path>`
+    : `<path class="layout-drawing-return layout-drawing-return--edge-right" d="M231 24L238 30V126L231 116Z" fill="url(#layout-right-return-${illustrationId})"></path>`}
+        ${isCorner ? `<path class="layout-drawing-return layout-drawing-return--corner" d="M174 24L231 36V137L174 116Z" fill="url(#layout-right-return-${illustrationId})"></path><path class="layout-corner-line" d="M174 24V116"></path>` : ""}
+        <path class="layout-baseboard" d="M29 111H231V116H29Z"></path>
+        ${renderLayoutFeature(layout, illustrationId)}
+      </svg>
+    </span>
+  `;
+}
+
+function renderLayoutFeature(layout, illustrationId = escapeAttribute(layout.id)) {
+  if (layout.id === "center-recess") {
+    return `
+      <path class="layout-recess-side" d="M92 28L101 36V116H92Z"></path>
+      <path class="layout-recess-side layout-recess-side--right" d="M168 28L159 36V116H168Z"></path>
+      <path class="layout-recess-shadow" d="M92 28H168V116H92Z"></path>
+      <path class="layout-recess-cap" d="M88 24H172V31H88Z"></path>
+    `;
+  }
+  if (layout.id === "between-openings") {
+    return `${renderDoorFeature(59)}${renderDoorFeature(159)}`;
+  }
+  if (layout.id === "bay-window") {
+    return `
+      <path class="layout-window-frame" d="M91 51L108 44H152L169 51V102L152 108H108L91 102Z"></path>
+      <path class="layout-window-line" d="M108 44V108M152 44V108M130 44V108M91 76H169"></path>
+    `;
+  }
+
+  let markup = "";
+  if (layout.feature === "window") {
+    const wide = ["wide-window", "window-side-bookcases"].includes(layout.id);
+    const x = wide ? 82 : 99;
+    const width = wide ? 96 : 62;
+    const innerX = x + 6;
+    const innerWidth = width - 12;
+    markup += `
+      <rect class="layout-window-trim" x="${x}" y="43" width="${width}" height="67" rx="1"></rect>
+      <rect class="layout-window-frame" x="${innerX}" y="49" width="${innerWidth}" height="55" rx=".5"></rect>
+      <path class="layout-window-line" d="M${innerX + innerWidth / 3} 49V104M${innerX + (innerWidth * 2) / 3} 49V104M${innerX} 76.5H${innerX + innerWidth}"></path>
+      <path class="layout-window-sill" d="M${x - 5} 111H${x + width + 5}"></path>
+    `;
+  } else if (layout.feature === "door") {
+    markup += renderDoorFeature(107);
+  } else if (layout.feature === "fireplace") {
+    markup += `
+      <path class="layout-chimney-side" d="M105 29L112 35V116H105Z"></path>
+      <path class="layout-chimney-side layout-chimney-side--right" d="M155 29L148 35V116H155Z"></path>
+      <rect class="layout-chimney-front" x="105" y="29" width="50" height="87"></rect>
+      <path class="layout-chimney-cap" d="M100 25H160V32H100Z"></path>
+      <path class="layout-mantel" d="M98 80H162V88H98Z"></path>
+      <rect class="layout-fireplace-surround" x="108" y="88" width="44" height="28"></rect>
+      <rect class="layout-firebox" x="114" y="94" width="32" height="22" fill="url(#layout-fire-${illustrationId})"></rect>
+      <path class="layout-fire" d="M120 115C118 107 124 103 127 97C130 104 136 105 136 113C140 110 142 106 143 103C148 109 147 114 145 116Z"></path>
+    `;
+  } else if (layout.feature === "tv") {
+    markup += `
+      <rect class="layout-tv-screen" x="91" y="52" width="78" height="42" rx="1"></rect>
+      <path class="layout-tv-glint" d="M98 58L119 58"></path>
+      <path class="layout-tv-console" d="M80 103H180V114H80Z"></path>
+    `;
+  } else if (layout.feature === "radiator") {
+    markup += renderRadiatorFeature();
+  }
+
+  if (layout.id === "fireplace-tv") {
+    markup += '<rect class="layout-tv-screen" x="105" y="39" width="50" height="29" rx="1"></rect>';
+  }
+  if (["window-radiator", "radiator-below-window"].includes(layout.id)) {
+    markup += renderRadiatorFeature(112);
+  }
+  if (layout.id === "window-side-tv") {
+    markup += '<rect class="layout-tv-screen layout-tv-screen--side" x="49" y="61" width="43" height="27" rx="1"></rect>';
+  }
+  return markup;
+}
+
+function renderDoorFeature(x) {
+  return `
+    <rect class="layout-door-trim" x="${x - 4}" y="39" width="54" height="77"></rect>
+    <rect class="layout-door-frame" x="${x}" y="43" width="46" height="73"></rect>
+    <path class="layout-door-panel" d="M${x + 7} 51H${x + 39}V76H${x + 7}ZM${x + 7} 83H${x + 39}V108H${x + 7}Z"></path>
+    <circle class="layout-door-knob" cx="${x + 37}" cy="80" r="1.8"></circle>
+  `;
+}
+
+function renderRadiatorFeature(y = 81) {
+  return `
+    <rect class="layout-radiator-frame" x="99" y="${y}" width="62" height="27" rx="3"></rect>
+    <path class="layout-radiator-fins" d="M107 ${y + 5}V${y + 22}M116 ${y + 5}V${y + 22}M125 ${y + 5}V${y + 22}M134 ${y + 5}V${y + 22}M143 ${y + 5}V${y + 22}M152 ${y + 5}V${y + 22}"></path>
   `;
 }
 
 function renderMeasurementStep() {
   const selectedLayout = getLayout(project.category, project.layout);
-  const fields = getMeasurementFields(project.category, project.layout);
+  const diagramFields = getMeasurementFields(project.category, project.layout);
+  const fields = selectedLayout?.feature === "window"
+    ? diagramFields.filter((field) => !["windowLeftDistance", "windowRightDistance"].includes(field.id))
+    : diagramFields;
   const validation = validateMeasurements(project);
   let previousGroup = "";
 
@@ -285,18 +575,22 @@ function renderMeasurementStep() {
   return `
     <div class="measurement-layout">
       <section class="measurement-panel" aria-label="Approximate room measurements">
-        <p class="selected-layout-chip"><span>${escapeHtml(getCategory(project.category).label)}</span><span aria-hidden="true">·</span><span>${escapeHtml(selectedLayout?.label || "Select a layout")}</span></p>
-        <p class="measurement-format-hint">Use inches. Decimals and common fractions are welcome.</p>
+        <h2 class="measurement-panel-title">Selected Layout</h2>
+        <p class="selected-layout-chip">
+          ${renderCategoryIcon(getCategory(project.category).icon)}
+          <span>${escapeHtml(selectedLayout?.label || "Select a layout")}</span>
+        </p>
+        <p class="measurement-format-hint visually-hidden">Use inches. Decimals and common fractions are welcome.</p>
         <div class="measurement-fields">${fieldMarkup}</div>
         <p class="measurement-error" data-measurement-error role="alert" ${validation.errors.length ? "" : "hidden"}>
           ${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}
         </p>
       </section>
-      ${renderMeasurementDiagram(fields, selectedLayout)}
+      ${renderMeasurementDiagram(diagramFields, selectedLayout)}
     </div>
     <aside class="guided-info">
       <i data-icon="information" aria-hidden="true"></i>
-      <span>Approximate measurements are okay. Our team will confirm final field dimensions before production.</span>
+      <span>Don’t worry if your measurements are approximate — our team can confirm detail before production.</span>
     </aside>
     <div class="guided-actions">
       <button class="guided-button guided-button-secondary" type="button" data-back>
@@ -311,7 +605,37 @@ function renderMeasurementStep() {
 
 function renderMeasurementField(field, warning) {
   const value = project.measurements[field.id];
-  const control = field.type === "select"
+  const referenceLabels = {
+    wallWidth: "Wall Width (A)",
+    ceilingHeight: "Ceiling Height (B)",
+    desiredDepth: "Desired Depth (C)",
+    leftReturn: "Left Return",
+    rightReturn: "Right Return",
+    windowWidth: "Window Width",
+    windowHeight: "Window Height",
+    sillHeight: "Sill Height",
+    radiatorBelowWindow: "Radiator Below Window"
+  };
+  const fieldLabel = referenceLabels[field.id] || field.label;
+  const control = field.id === "radiatorBelowWindow"
+    ? `
+      <span class="measurement-toggle" role="radiogroup" aria-labelledby="measurement-label-${field.id}">
+        ${[...field.values].reverse().map((option) => `
+          <label class="${option.value === value ? "is-selected" : ""}">
+            <input
+              id="measurement-${field.id}-${escapeAttribute(option.value)}"
+              type="radio"
+              name="measurement-${field.id}"
+              data-measurement="${field.id}"
+              value="${escapeAttribute(option.value)}"
+              ${option.value === value ? "checked" : ""}
+            >
+            <span>${escapeHtml(option.label)}</span>
+          </label>
+        `).join("")}
+      </span>
+    `
+    : field.type === "select"
     ? `
       <select id="measurement-${field.id}" data-measurement="${field.id}">
         ${field.values.map((option) => `<option value="${escapeAttribute(option.value)}"${option.value === value ? " selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
@@ -329,14 +653,15 @@ function renderMeasurementField(field, warning) {
       >
       <span class="measurement-unit" aria-hidden="true">in</span>
     `;
+  const labelMarkup = field.id === "radiatorBelowWindow"
+    ? `<span class="measurement-field-label" id="measurement-label-${field.id}">${escapeHtml(fieldLabel)}</span>`
+    : `<label class="measurement-field-label" for="measurement-${field.id}">${escapeHtml(fieldLabel)}</label>`;
 
   return `
     <div class="measurement-field" data-measurement-row="${field.id}">
-      <label class="measurement-field-label" for="measurement-${field.id}">
-        <span class="measurement-code" aria-hidden="true">${escapeHtml(field.code)}</span>${escapeHtml(field.label)}
-      </label>
+      ${labelMarkup}
       <span class="measurement-input-wrap">${control}</span>
-      <small class="measurement-help" id="measurement-help-${field.id}">
+      <small class="measurement-help visually-hidden" id="measurement-help-${field.id}">
         ${field.type === "inches" ? "Enter an approximate value in inches." : "Choose the closest answer."}
       </small>
       ${warning ? `<small class="measurement-warning" id="measurement-warning-${field.id}">${escapeHtml(warning.message)}</small>` : ""}
@@ -346,14 +671,33 @@ function renderMeasurementField(field, warning) {
 
 function renderMeasurementDiagram(fields, selectedLayout) {
   const dimensionFields = fields.filter((field) => field.type === "inches");
-  return `
-    <figure class="measurement-diagram-card" aria-label="Measurement diagram for ${escapeAttribute(selectedLayout?.label || "selected layout")}">
-      <div class="measurement-room" data-condition="${escapeAttribute(selectedLayout?.condition || "clear-wall")}" data-feature="${escapeAttribute(selectedLayout?.feature || "none")}">
+  const usesApprovedWindowReference = selectedLayout?.feature === "window";
+  const roomVisual = usesApprovedWindowReference
+    ? `
+        <img
+          class="measurement-room-image"
+          src="assets/photos/configurator/guided-measurement-room-v2.png"
+          alt=""
+          aria-hidden="true"
+          decoding="async"
+        >
+      `
+    : `
         <span class="measurement-room-wall"></span>
+        <span class="measurement-room-floor"></span>
         <span class="measurement-room-side left"></span>
         <span class="measurement-room-side right"></span>
         <span class="measurement-feature"></span>
-        <span class="measurement-room-floor"></span>
+      `;
+  return `
+    <figure class="measurement-diagram-card" aria-label="Measurement diagram for ${escapeAttribute(selectedLayout?.label || "selected layout")}">
+      <div
+        class="measurement-room${usesApprovedWindowReference ? " measurement-room--photo" : " measurement-room--illustrated"}"
+        data-layout="${escapeAttribute(selectedLayout?.id || "clear-wall")}"
+        data-condition="${escapeAttribute(selectedLayout?.condition || "clear-wall")}"
+        data-feature="${escapeAttribute(selectedLayout?.feature || "none")}"
+      >
+        ${roomVisual}
       </div>
       <div class="dimension-overlay" data-dimension-overlay>
         ${dimensionFields.map((field, index) => renderDimensionChip(field, index, dimensionFields)).join("")}
@@ -368,10 +712,19 @@ function renderDimensionChip(field, index, fields) {
     ? field.values.find((option) => option.value === value)?.label || "Not sure"
     : value === null || value === undefined ? "Add estimate" : `${formatInches(value)} in`;
   const placement = dimensionPlacement(field, index, fields);
+  const referenceLabels = {
+    wallWidth: "A",
+    ceilingHeight: "B",
+    desiredDepth: "C",
+    windowWidth: "Window Width",
+    windowHeight: "Window Height"
+  };
+  const annotationLabel = referenceLabels[field.id] || field.code;
+  const supplemental = Object.hasOwn(referenceLabels, field.id) ? "" : " is-supplemental";
   return `
-    <span class="dimension-chip" data-dimension-chip="${field.id}" data-position="${placement.position}" style="${placement.style}">
-      <strong>${escapeHtml(field.code)} · ${escapeHtml(field.label)}</strong>
-      <span>${escapeHtml(displayValue)}</span>
+    <span class="dimension-chip measurement-annotation${supplemental}" data-dimension-chip="${field.id}" data-position="${placement.position}" style="${placement.style}">
+      <strong class="measurement-annotation-label">${escapeHtml(annotationLabel)}</strong>
+      <span class="measurement-annotation-value">${escapeHtml(displayValue)}</span>
     </span>
   `;
 }
@@ -402,17 +755,13 @@ function dimensionPlacement(field, index, fields) {
 function renderCustomizationStep() {
   return `
     <div class="customization-layout">
-      <section class="customization-panel" aria-label="Concept customization">
-        ${renderCustomizationTabs()}
-        <div
-          class="customization-content"
-          id="customization-panel"
-          role="tabpanel"
-          aria-labelledby="customization-tab-${activeCustomizationTab}"
-          tabindex="0"
-        >
-          ${renderCustomizationPanel()}
-        </div>
+      <div class="customization-controls-column">
+        <section class="customization-panel" aria-label="Concept customization">
+          ${renderCustomizationTabs()}
+          <div class="customization-content" id="customization-panel">
+            ${renderCustomizationPanel()}
+          </div>
+        </section>
         <div class="customization-actions">
           <button class="guided-button guided-button-secondary" type="button" data-back>
             <i data-icon="chevron-left" aria-hidden="true"></i> Back
@@ -421,7 +770,7 @@ function renderCustomizationStep() {
             Continue <i data-icon="arrow-right" aria-hidden="true"></i>
           </button>
         </div>
-      </section>
+      </div>
       ${renderConceptPreview()}
     </div>
   `;
@@ -442,7 +791,7 @@ function renderCustomizationTabs() {
           type="button"
           role="tab"
           data-customization-tab="${tab.id}"
-          aria-controls="customization-panel"
+          aria-controls="customization-section-${tab.id}"
           aria-selected="${activeCustomizationTab === tab.id}"
           tabindex="${activeCustomizationTab === tab.id ? "0" : "-1"}"
         >${escapeHtml(tab.label)}</button>
@@ -452,38 +801,75 @@ function renderCustomizationTabs() {
 }
 
 function renderCustomizationPanel() {
-  if (activeCustomizationTab === "finish") return renderFinishChoices();
-  if (activeCustomizationTab === "details") return renderDetailChoices();
-  return renderStyleChoices();
+  return `
+    <div
+      class="customization-section customization-section--style${activeCustomizationTab === "style" ? " is-active" : ""}"
+      id="customization-section-style"
+      role="tabpanel"
+      aria-labelledby="customization-tab-style"
+    >
+      ${activeCustomizationTab === "style" ? `
+        ${renderStyleChoices()}
+        ${renderFinishChoices()}
+        ${renderDetailChoices({ compact: true })}
+      ` : ""}
+    </div>
+    <div
+      class="customization-section customization-section--finish${activeCustomizationTab === "finish" ? " is-active" : ""}"
+      id="customization-section-finish"
+      role="tabpanel"
+      aria-labelledby="customization-tab-finish"
+    >
+      ${activeCustomizationTab === "finish" ? renderFinishChoices() : ""}
+    </div>
+    <div
+      class="customization-section customization-section--details${activeCustomizationTab === "details" ? " is-active" : ""}"
+      id="customization-section-details"
+      role="tabpanel"
+      aria-labelledby="customization-tab-details"
+    >
+      ${activeCustomizationTab === "details" ? renderDetailChoices() : ""}
+    </div>
+  `;
 }
 
 function renderStyleChoices() {
   const category = getCategory(project.category);
+  const selectedLayout = getLayout(project.category, project.layout);
+  const referenceStyles = category.id === "bookcase" && selectedLayout?.feature === "window"
+    ? category.styles.filter((style) => style.id === "cabinet-base-shelves")
+    : category.styles.slice(0, 4);
   return `
     <section class="choice-section">
-      <h3>Curated ${escapeHtml(category.label)} concepts</h3>
-      <div class="choice-grid">
-        ${category.styles.map((style) => {
+      <h3 class="visually-hidden">Style</h3>
+      <div class="choice-grid configuration-grid">
+        ${referenceStyles.map((style) => {
           const selected = style.id === project.style;
           return `
             <button class="choice-card${selected ? " is-selected" : ""}" type="button" data-style="${style.id}" aria-pressed="${selected}">
-              ${selected ? '<span class="choice-selected-mark" aria-label="Selected"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
-              <span class="style-thumb" data-style="${escapeAttribute(style.id)}" aria-hidden="true"></span>
-              <span class="choice-card-title">${escapeHtml(style.label)}</span>
+              ${selected ? '<span class="choice-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
+              <span class="style-thumb" data-style="${escapeAttribute(style.id)}" aria-hidden="true">
+                <img src="${escapeAttribute(style.previewAsset)}" alt="" loading="lazy" decoding="async">
+              </span>
+              <span class="configuration-card-copy">
+                <span class="choice-card-title">${escapeHtml(style.label)}</span>
+              </span>
             </button>
           `;
         }).join("")}
       </div>
     </section>
-    <p class="guided-dialog-note">Each direction is a starting point. Our designers will refine proportions and construction after field measurement.</p>
   `;
 }
 
 function renderFinishChoices() {
+  const referencePaintFinishes = ["warm-white", "soft-ivory", "sage-gray", "charcoal"]
+    .map((finishId) => FINISH_OPTIONS.paint.find((finish) => finish.id === finishId))
+    .filter(Boolean);
   return `
+    <h3 class="customization-group-heading">Finish</h3>
     ${renderFinishGroup("Wood finishes", "wood", FINISH_OPTIONS.wood)}
-    ${renderFinishGroup("Painted finishes", "paint", FINISH_OPTIONS.paint)}
-    ${renderFinishGroup("Accent or interior", "accentFinish", FINISH_OPTIONS.accent)}
+    ${renderFinishGroup("Paint / Accent Colors", "paint", referencePaintFinishes)}
   `;
 }
 
@@ -512,36 +898,55 @@ function renderFinishGroup(label, key, options) {
   `;
 }
 
-function renderDetailChoices() {
+function renderDetailChoices({ compact = false } = {}) {
   const compatible = getCompatibleDetails(project.category, project.style);
   const groups = [
     { key: "doorStyle", label: "Door style", options: compatible.doorStyle },
     { key: "hardware", label: "Hardware", options: compatible.hardware },
     { key: "lighting", label: "Lighting", options: compatible.lighting },
-    { key: "baseStyle", label: "Base style", options: compatible.baseStyle },
+    { key: "baseStyle", label: "Installation", options: compatible.baseStyle, expanded: true },
     { key: "topTreatment", label: "Top treatment", options: compatible.topTreatment }
-  ].filter((group) => group.options.length);
+  ]
+    .map((group) => ({
+      ...group,
+      options: compact && group.key === "hardware"
+        ? group.options.filter((option) => option.id !== "none")
+        : group.options
+    }))
+    .filter((group) => group.options.length && (!compact || ["hardware", "lighting"].includes(group.key)));
 
   if (!groups.length) {
     return `<p class="guided-dialog-note">This concept has no additional details to choose. Our design team will finish the construction details with you.</p>`;
   }
 
-  return groups.map((group) => `
-    <section class="choice-section">
-      <h3>${escapeHtml(group.label)}</h3>
-      <div class="choice-grid${group.options.length === 3 ? " choice-grid--three" : ""}">
-        ${group.options.map((option) => {
-          const selected = project[group.key] === option.id;
-          return `
-            <button class="choice-card${selected ? " is-selected" : ""}" type="button" data-detail-key="${group.key}" data-detail="${option.id}" aria-pressed="${selected}">
-              ${selected ? '<span class="choice-selected-mark" aria-label="Selected"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
-              <span class="choice-card-title">${escapeHtml(option.label)}</span>
-            </button>
-          `;
-        }).join("")}
-      </div>
-    </section>
-  `).join("");
+  return `
+    <h3 class="customization-group-heading">Details</h3>
+    ${groups.map((group) => `
+      <section class="choice-section choice-section--${escapeAttribute(group.key)}">
+        <h3>${escapeHtml(group.label)}</h3>
+        <div class="detail-choice-grid detail-choice-grid--${escapeAttribute(group.key)}${group.expanded ? " detail-choice-grid--expanded" : ""}">
+          ${group.options.map((option) => {
+            const selected = project[group.key] === option.id;
+            return `
+              <button
+                class="detail-choice${selected ? " is-selected" : ""}"
+                type="button"
+                data-detail-key="${group.key}"
+                data-detail="${option.id}"
+                aria-pressed="${selected}"
+                style="--detail-color:${escapeAttribute(option.color || "#262626")}"
+              >
+                ${group.key === "hardware" ? `<span class="detail-option-icon detail-option-icon--${escapeAttribute(option.id)}" aria-hidden="true"></span>` : ""}
+                <span class="detail-choice-copy">
+                  <span class="detail-choice-title">${escapeHtml(option.shortLabel || option.label)}</span>
+                </span>
+              </button>
+            `;
+          }).join("")}
+        </div>
+      </section>
+    `).join("")}
+  `;
 }
 
 function renderConceptPreview() {
@@ -551,11 +956,8 @@ function renderConceptPreview() {
   const finish = getFinish(project.finish);
   const accentFinish = project.accentFinish === "no-accent" ? finish : getFinish(project.accentFinish);
   const hardware = DETAIL_OPTIONS.hardware.find((option) => option.id === project.hardware);
-  const layoutFeature = resolveConceptFeature(category.id, layout);
-  const centerIsTower = category.id === "bookcase" && ["none", "recess"].includes(layoutFeature);
-  const lightingClass = project.lighting && project.lighting !== "no-lighting" ? " has-lighting" : "";
   const doorCount = category.id === "floating-storage" ? 5 : category.id === "window-storage" ? 6 : 4;
-  const hardwareToken = project.hardware || "none";
+  const previewScope = conceptPreviewScope(category, layout, selectedStyle);
 
   return `
     <figure
@@ -564,43 +966,44 @@ function renderConceptPreview() {
       data-layout="${escapeAttribute(layout?.id || "unselected")}"
       data-style="${escapeAttribute(selectedStyle.id)}"
       data-preview-asset="${escapeAttribute(project.previewAsset)}"
+      data-preview-scope="${escapeAttribute(previewScope.id)}"
       aria-label="${escapeAttribute(`${category.label} concept preview in ${finish.label}`)}"
     >
       <div class="concept-scene" data-concept-scene>
-        <span class="concept-wall"></span>
-        <span class="concept-ceiling"></span>
-        <span class="concept-floor"></span>
-        <span class="concept-rug"></span>
-        <div
-          class="concept-unit${lightingClass}"
-          data-style="${escapeAttribute(selectedStyle.id)}"
-          style="--unit-finish:${escapeAttribute(finish.color)};--accent-finish:${escapeAttribute(accentFinish.color)};--hardware-color:${escapeAttribute(hardware?.color || "#302d2a")};--door-count:${doorCount}"
+        <img
+          class="concept-photo"
+          src="${escapeAttribute(project.previewAsset)}"
+          alt=""
           aria-hidden="true"
+          decoding="async"
         >
-          ${renderConceptTower("left")}
-          ${centerIsTower ? renderConceptTower("center") : `<div class="concept-center-feature" data-feature="${escapeAttribute(layoutFeature)}"></div>`}
-          ${renderConceptTower("right")}
-          <div class="concept-base">
-            ${Array.from({ length: doorCount }, () => `
-              <span class="concept-door" data-door-style="${escapeAttribute(project.doorStyle || "flat-panel")}">
-                <i class="concept-hardware" data-hardware="${escapeAttribute(hardwareToken)}"></i>
-              </span>
-            `).join("")}
-          </div>
-        </div>
+        <div
+          class="concept-unit concept-unit--sentinel"
+          data-style="${escapeAttribute(selectedStyle.id)}"
+          style="display:none;--unit-finish:${escapeAttribute(finish.color)};--accent-finish:${escapeAttribute(accentFinish.color)};--hardware-color:${escapeAttribute(hardware?.color || "#302d2a")};--door-count:${doorCount}"
+          aria-hidden="true"
+        ></div>
       </div>
-      <figcaption class="concept-preview-caption">
-        <strong>${escapeHtml(selectedStyle.label)}</strong>
-        <span>${escapeHtml([
-          layout?.label,
-          finish.label,
-          project.accentFinish === "no-accent" ? "" : `${accentFinish.label} interior`,
-          lightingLabel(project.lighting)
-        ].filter(Boolean).join(" · "))}</span>
-      </figcaption>
       ${renderPreviewControls()}
     </figure>
   `;
+}
+
+function conceptPreviewScope(category, layout, selectedStyle) {
+  if (
+    category.id === "bookcase"
+    && selectedStyle.id === "cabinet-base-shelves"
+    && layout?.feature === "window"
+  ) {
+    return { id: "layout-and-configuration", label: "Layout + configuration reference" };
+  }
+  if (category.id === "bookcase" && ["door", "fireplace"].includes(layout?.feature)) {
+    return { id: "configuration-room-feature-pending", label: "Configuration reference · opening adapted next" };
+  }
+  if (category.id === "bookcase") {
+    return { id: "configuration", label: "Construction-matched concept" };
+  }
+  return { id: "category", label: "Curated concept reference" };
 }
 
 function renderConceptTower(position) {
@@ -629,50 +1032,62 @@ function renderPreviewControls() {
   return `
     <div class="preview-controls" aria-label="Preview controls">
       <button class="preview-control" type="button" data-preview-zoom="out" aria-label="Zoom out"><i data-icon="zoom-out" aria-hidden="true"></i></button>
-      <button class="preview-control" type="button" data-preview-zoom="reset" aria-label="Reset preview"><i data-icon="reset" aria-hidden="true"></i></button>
       <button class="preview-control" type="button" data-preview-zoom="in" aria-label="Zoom in"><i data-icon="zoom-in" aria-hidden="true"></i></button>
+      <button class="preview-control" type="button" data-preview-zoom="reset" aria-label="Reset preview"><i data-icon="reset" aria-hidden="true"></i></button>
     </div>
   `;
 }
 
 function renderReviewStep() {
   const summary = buildProjectSummary(project);
+  const summaryKeys = [
+    "category",
+    "layout",
+    "wallWidth",
+    "ceilingHeight",
+    "desiredDepth",
+    "style",
+    "finish",
+    "doorStyle",
+    "hardware",
+    "lighting",
+    "baseStyle",
+    "topTreatment",
+    "notes"
+  ];
+  const summaryLabels = {
+    wallWidth: "Wall Width",
+    ceilingHeight: "Height",
+    desiredDepth: "Depth"
+  };
+  const conciseSummary = summaryKeys
+    .map((key) => summary.find((row) => row.key === key))
+    .filter(Boolean);
   return `
     <div class="review-layout">
       <div class="project-summary-column">
         <section class="project-summary-card" aria-labelledby="project-summary-title">
           <header class="summary-heading">
             <h2 id="project-summary-title">Project Summary</h2>
-            <button class="guided-icon-button" type="button" data-edit-step="2" aria-label="Edit room measurements">
-              <i data-icon="dimensions" aria-hidden="true"></i>
+            <button class="guided-icon-button" type="button" data-edit-review aria-label="Edit project notes">
+              <i data-icon="edit" aria-hidden="true"></i>
             </button>
           </header>
           <dl class="summary-list">
-            ${summary.map((row) => `
+            ${conciseSummary.map((row) => `
               <div class="summary-row">
-                <dt>${escapeHtml(row.label)}</dt>
-                <dd>
-                  <span data-summary-value="${escapeAttribute(row.key)}">${escapeHtml(row.value)}</span>
-                  ${row.step < 4 ? `<button class="summary-edit" type="button" data-edit-step="${row.step}" aria-label="Edit ${escapeAttribute(row.label)}">Edit</button>` : ""}
-                </dd>
+                <dt>${escapeHtml(summaryLabels[row.key] || row.label)}</dt>
+                <dd><span data-summary-value="${escapeAttribute(row.key)}">${escapeHtml(row.value)}</span></dd>
               </div>
             `).join("")}
           </dl>
         </section>
-        <div class="review-notes">
-          <label for="project-notes">Notes for our design team
-            <textarea id="project-notes" data-project-notes maxlength="2000" placeholder="Anything else we should consider?">${escapeHtml(project.notes)}</textarea>
-          </label>
-        </div>
         <div class="summary-actions">
           <button class="guided-button guided-button-primary" type="button" data-open-quote>
             Request a Quote <i data-icon="arrow-right" aria-hidden="true"></i>
           </button>
           <button class="guided-button guided-button-secondary" type="button" data-save-project>
-            Save Project <i data-icon="save" aria-hidden="true"></i>
-          </button>
-          <button class="guided-button guided-button-secondary" type="button" data-back>
-            <i data-icon="chevron-left" aria-hidden="true"></i> Back to Customization
+            Save Project <i data-icon="bookmark" aria-hidden="true"></i>
           </button>
         </div>
       </div>
@@ -692,6 +1107,10 @@ function bindAppEvents() {
 
     if (target.matches("[data-step]")) {
       navigateToStep(Number(target.dataset.step));
+      return;
+    }
+    if (target.matches("[data-product]")) {
+      selectCategory(target.dataset.product);
       return;
     }
     if (target.matches("[data-category]")) {
@@ -720,7 +1139,10 @@ function bindAppEvents() {
     }
     if (target.matches("[data-style]")) {
       const styleId = target.dataset.style;
-      updateProject({ style: styleId });
+      const constructionDefaults = project.category === "bookcase"
+        ? BOOKCASE_CONFIGURATION_DEFAULTS[styleId] || {}
+        : {};
+      updateProject({ style: styleId, ...constructionDefaults });
       renderApp();
       requestAnimationFrame(() => app.querySelector(`[data-style="${CSS.escape(styleId)}"]`)?.focus());
       return;
@@ -743,6 +1165,10 @@ function bindAppEvents() {
     }
     if (target.matches("[data-preview-zoom]")) {
       updatePreviewScale(target.dataset.previewZoom);
+      return;
+    }
+    if (target.matches("[data-edit-review]")) {
+      openReviewEditDialog();
       return;
     }
     if (target.matches("[data-edit-step]")) {
@@ -793,8 +1219,13 @@ function bindAppEvents() {
 }
 
 function selectCategory(categoryId) {
-  if (categoryId === project.category) return;
-  const base = createProject({ category: categoryId, projectId: project.projectId, projectName: project.projectName });
+  if (categoryId === project.category && project.productSelected) return;
+  const base = createProject({
+    category: categoryId,
+    productSelected: true,
+    projectId: project.projectId,
+    projectName: project.projectName
+  });
   project = normalizeProject({
     ...base,
     createdAt: project.createdAt,
@@ -804,14 +1235,20 @@ function selectCategory(categoryId) {
   });
   activeCustomizationTab = "style";
   previewScale = 1;
-  renderApp({ focusHeading: true });
-  showToast(`${getCategory(categoryId).label} selected. Choose a layout to continue.`);
+  renderApp();
+  requestAnimationFrame(() => app.querySelector(`[data-product="${CSS.escape(categoryId)}"]`)?.focus());
+  showToast(`${getCategory(categoryId).label} selected.`);
 }
 
 function selectLayout(layoutId) {
+  const selectedLayout = getLayout(project.category, layoutId);
+  const windowStyleReset = project.category === "bookcase" && selectedLayout?.feature === "window"
+    ? { style: "cabinet-base-shelves", ...BOOKCASE_CONFIGURATION_DEFAULTS["cabinet-base-shelves"] }
+    : {};
   project = normalizeProject({
     ...project,
     layout: layoutId,
+    ...windowStyleReset,
     measurements: project.measurements,
     updatedAt: new Date().toISOString()
   });
@@ -819,11 +1256,15 @@ function selectLayout(layoutId) {
 }
 
 function continueFromStep() {
-  if (project.currentStep === 1 && !project.layout) {
+  if (project.currentStep === 1 && !project.productSelected) {
+    showToast("Please choose what you would like us to build.");
+    return;
+  }
+  if (project.currentStep === 2 && !project.layout) {
     showToast("Please choose the layout that best matches your space.");
     return;
   }
-  if (project.currentStep === 2) {
+  if (project.currentStep === 3) {
     const validation = validateMeasurements(project);
     if (!validation.valid) {
       const error = validation.errors[0];
@@ -836,20 +1277,26 @@ function continueFromStep() {
       return;
     }
   }
-  navigateToStep(Math.min(4, project.currentStep + 1));
+  navigateToStep(Math.min(5, project.currentStep + 1));
 }
 
 function navigateToStep(step, options = {}) {
-  const targetStep = Math.min(4, Math.max(1, Number(step) || 1));
+  const targetStep = Math.min(5, Math.max(1, Number(step) || 1));
   if (targetStep > project.maxVisitedStep + 1) return;
-  if (targetStep > 1 && !project.layout) {
+  if (targetStep > 1 && !project.productSelected) {
     project.currentStep = 1;
-    showToast("Choose a layout before moving to the next step.");
+    showToast("Choose what you would like us to build before moving on.");
     renderApp({ focusHeading: true });
     return;
   }
-  if (targetStep > 2 && !validateMeasurements(project).valid) {
+  if (targetStep > 2 && !project.layout) {
     project.currentStep = 2;
+    showToast("Choose a room layout before moving to measurements.");
+    renderApp({ focusHeading: true });
+    return;
+  }
+  if (targetStep > 3 && !validateMeasurements(project).valid) {
+    project.currentStep = 3;
     showToast("Add the three basic room measurements before continuing.");
     renderApp({ focusHeading: true });
     return;
@@ -903,6 +1350,12 @@ function updateMeasurementFromControl(control, options = {}) {
     else row?.insertAdjacentHTML("beforeend", `<small class="measurement-warning">${escapeHtml(message)}</small>`);
   } else {
     existingWarning?.remove();
+  }
+
+  if (control.type === "radio") {
+    row?.querySelectorAll(".measurement-toggle label").forEach((label) => {
+      label.classList.toggle("is-selected", Boolean(label.querySelector("input")?.checked));
+    });
   }
 
   const errorBox = app.querySelector("[data-measurement-error]");
@@ -971,6 +1424,7 @@ function bindDialogEvents() {
   });
 
   document.querySelector("[data-save-form]")?.addEventListener("submit", handleSaveForm);
+  document.querySelector("[data-review-edit-form]")?.addEventListener("submit", handleReviewEditForm);
   document.querySelector("[data-new-project]")?.addEventListener("click", startNewProject);
   document.querySelector("[data-projects-list]")?.addEventListener("click", handleProjectListAction);
   document.querySelector("[data-quote-form]")?.addEventListener("submit", handleQuoteSubmit);
@@ -996,6 +1450,27 @@ function openSaveDialog() {
     : project.projectName;
   openDialog(dialog);
   requestAnimationFrame(() => form.elements.projectName.select());
+}
+
+function openReviewEditDialog() {
+  const dialog = document.querySelector("[data-review-edit-dialog]");
+  const form = dialog?.querySelector("[data-review-edit-form]");
+  if (!dialog || !form) return;
+  form.elements.projectNotes.value = project.notes || "";
+  openDialog(dialog);
+  requestAnimationFrame(() => form.elements.projectNotes.focus());
+}
+
+function handleReviewEditForm(event) {
+  event.preventDefault();
+  const dialog = event.currentTarget.closest("dialog");
+  updateProject({
+    notes: event.currentTarget.elements.projectNotes.value.trim().slice(0, 2000)
+  });
+  store.saveDraft(project);
+  dialog?.close();
+  renderApp();
+  showToast("Project notes updated.");
 }
 
 function handleSaveForm(event) {

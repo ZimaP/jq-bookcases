@@ -25,7 +25,7 @@ const requiredIcons = [
   "pickup", "shop-pickup", "project-coordination", "standard-delivery", "priority-delivery", "white-glove-delivery", "no-installation", "diy-installation", "professional-installation", "measurement-visit", "schedule", "installation-complete",
   "warranty", "quality", "made-in-usa", "craftsmanship", "sustainability", "local-service", "support", "help-center", "quote", "pricing", "secure", "reviews", "guarantee",
   "living-room", "library", "home-office", "media-wall", "bedroom", "dining-room", "entryway", "kitchen", "closet", "bathroom", "fireplace-wall", "inspiration",
-  "search", "menu", "close", "chevron-down", "chevron-left", "chevron-right", "arrow-right", "check", "plus", "minus", "information", "save", "favorite", "reset", "undo", "redo", "copy", "trash", "pan", "select", "fullscreen", "preview-eye", "more-horizontal", "zoom-in", "zoom-out", "camera-front", "camera-side", "camera-three-quarter", "camera-orbit", "augmented-reality", "share",
+  "search", "menu", "close", "chevron-down", "chevron-left", "chevron-right", "arrow-right", "check", "plus", "minus", "information", "bookmark", "folder", "edit", "save", "favorite", "reset", "undo", "redo", "copy", "trash", "pan", "select", "fullscreen", "preview-eye", "more-horizontal", "zoom-in", "zoom-out", "camera-front", "camera-side", "camera-three-quarter", "camera-orbit", "augmented-reality", "share",
   "instagram", "pinterest", "houzz"
 ];
 
