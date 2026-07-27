@@ -174,6 +174,120 @@ test("public route is the lightweight five-step configurator and excludes the 3D
   expect(runtime).toEqual([]);
 });
 
+test("wide desktop keeps every Step 1 bookcase card readable and fully visible", async ({ page }) => {
+  await page.setViewportSize({ width: 2491, height: 1146 });
+  await openFreshProject(page);
+
+  const cards = page.locator("[data-product-style]");
+  await expect(cards).toHaveCount(3);
+  await expect.poll(() => cards.locator("img").evaluateAll((images) => (
+    images.every((image) => image.complete && image.naturalWidth > 0)
+  ))).toBe(true);
+
+  const geometry = await page.evaluate(() => {
+    const tolerance = 1;
+    const bounds = (element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height
+      };
+    };
+    const contains = (outer, inner) => (
+      inner.top >= outer.top - tolerance
+      && inner.right <= outer.right + tolerance
+      && inner.bottom <= outer.bottom + tolerance
+      && inner.left >= outer.left - tolerance
+    );
+    const textMetrics = (element, cardRect, copyRect) => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const textRect = bounds(range);
+      const style = getComputedStyle(element);
+      const lineHeight = Number.parseFloat(style.lineHeight);
+      return {
+        insideCard: contains(cardRect, textRect),
+        insideCopy: contains(copyRect, textRect),
+        lineCount: Number.isFinite(lineHeight) && lineHeight > 0
+          ? textRect.height / lineHeight
+          : Number.POSITIVE_INFINITY
+      };
+    };
+    const grid = bounds(document.querySelector(".product-grid--concepts"));
+    const cardReports = [...document.querySelectorAll("[data-product-style]")].map((card) => {
+      const image = card.querySelector(".product-card-image");
+      const copy = card.querySelector(".product-card-copy");
+      const reference = card.querySelector(".product-card-reference");
+      const title = card.querySelector(".product-card-title");
+      const description = card.querySelector(".product-card-description");
+      const cardRect = bounds(card);
+      const imageRect = bounds(image);
+      const copyRect = bounds(copy);
+      return {
+        card: cardRect,
+        image: imageRect,
+        copy: copyRect,
+        insideViewport: (
+          cardRect.top >= -tolerance
+          && cardRect.left >= -tolerance
+          && cardRect.right <= window.innerWidth + tolerance
+          && cardRect.bottom <= window.innerHeight + tolerance
+        ),
+        insideGrid: contains(grid, cardRect),
+        noInternalOverflow: (
+          card.scrollWidth <= card.clientWidth + tolerance
+          && card.scrollHeight <= card.clientHeight + tolerance
+          && copy.scrollWidth <= copy.clientWidth + tolerance
+          && copy.scrollHeight <= copy.clientHeight + tolerance
+        ),
+        reference: textMetrics(reference, cardRect, copyRect),
+        title: textMetrics(title, cardRect, copyRect),
+        description: textMetrics(description, cardRect, copyRect)
+      };
+    });
+    const widths = cardReports.map(({ card }) => card.width);
+    const tops = cardReports.map(({ card }) => card.top);
+    return {
+      horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
+      verticalOverflow: document.documentElement.scrollHeight - window.innerHeight,
+      widthSpread: Math.max(...widths) - Math.min(...widths),
+      topSpread: Math.max(...tops) - Math.min(...tops),
+      cards: cardReports
+    };
+  });
+
+  expect(geometry.horizontalOverflow).toBeLessThanOrEqual(1);
+  expect(geometry.verticalOverflow).toBeLessThanOrEqual(1);
+  expect(geometry.widthSpread).toBeLessThanOrEqual(2);
+  expect(geometry.topSpread).toBeLessThanOrEqual(2);
+  for (const [index, card] of geometry.cards.entries()) {
+    const label = `bookcase card ${index + 1}`;
+    expect(card.insideViewport, `${label} inside viewport`).toBe(true);
+    expect(card.insideGrid, `${label} inside grid`).toBe(true);
+    expect(card.noInternalOverflow, `${label} internal overflow`).toBe(true);
+    expect(card.card.width, `${label} width`).toBeGreaterThanOrEqual(320);
+    expect(card.card.height, `${label} height`).toBeGreaterThanOrEqual(220);
+    expect(card.image.width, `${label} image width`).toBeGreaterThanOrEqual(170);
+    expect(card.copy.width, `${label} copy width`).toBeGreaterThanOrEqual(170);
+    expect(card.reference.insideCard, `${label} reference inside card`).toBe(true);
+    expect(card.reference.insideCopy, `${label} reference inside copy`).toBe(true);
+    expect(card.reference.lineCount, `${label} reference lines`).toBeLessThanOrEqual(1.25);
+    expect(card.title.insideCard, `${label} title inside card`).toBe(true);
+    expect(card.title.insideCopy, `${label} title inside copy`).toBe(true);
+    expect(card.title.lineCount, `${label} title lines`).toBeLessThanOrEqual(2.25);
+    expect(card.description.insideCard, `${label} description inside card`).toBe(true);
+    expect(card.description.insideCopy, `${label} description inside copy`).toBe(true);
+  }
+
+  await chooseProduct(page);
+  await expect(page.locator("[data-continue]")).toBeEnabled();
+  await expectOneScreenFit(page, [".product-grid--concepts", ".guided-info", ".guided-actions"]);
+});
+
 test("Continue requires explicit choices and every product uses the same ten room layouts", async ({ page }) => {
   await openFreshProject(page);
   await expect(page.locator("[data-continue]")).toBeDisabled();
