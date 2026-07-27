@@ -259,7 +259,11 @@ export const CATEGORY_DEFINITIONS = Object.freeze([
     styles: Object.freeze([
       style("open-media", "Open Media Shelving", { previewAsset: "assets/photos/configurator/concept-tv-wall-v1.png" }),
       style("low-media-console", "Low Media Console", { previewAsset: "assets/photos/configurator/concept-tv-wall-v1.png" }),
-      style("framed-tv-wall", "Framed TV Wall", { previewAsset: "assets/photos/configurator/concept-tv-wall-v1.png" }),
+      style("framed-tv-wall", "Framed TV Wall", {
+        description: "Centered television, open display shelves, and concealed lower storage.",
+        drawingRef: "Drawing 4",
+        previewAsset: "assets/photos/configurator/concept-tv-wall-v1.png"
+      }),
       style("library-media", "Library + Media", { previewAsset: "assets/photos/configurator/concept-tv-wall-v1.png" }),
       style("closed-media-storage", "Closed Media Storage", { previewAsset: "assets/photos/configurator/concept-tv-wall-v1.png" })
     ])

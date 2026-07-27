@@ -95,7 +95,7 @@ try {
 
   await page.getByRole("button", { name: /Customization, completed/ }).click();
   await waitForHeading("Refine your concept");
-  await page.getByRole("tab", { name: "Style" }).click();
+  await page.getByRole("tab", { name: "Design" }).click();
   await capture("mobile-step-3-customization.png", { fullPage: false });
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
