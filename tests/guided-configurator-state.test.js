@@ -299,6 +299,13 @@ test("project store supports drafts, multiple saves, rename, duplicate, resume, 
 test("catalog provides the complete curated finish and detail collections", () => {
   assert.deepEqual(FINISH_OPTIONS.wood.map((finish) => finish.label), ["White Oak", "Natural Oak", "Light Walnut", "Medium Walnut", "Dark Walnut"]);
   assert.deepEqual(FINISH_OPTIONS.paint.map((finish) => finish.label), ["Warm White", "Soft Ivory", "Light Greige", "Sage Gray", "Charcoal"]);
+  for (const finish of [...FINISH_OPTIONS.wood, ...FINISH_OPTIONS.paint]) {
+    assert.match(finish.color, /^#[0-9a-f]{6}$/i);
+    assert.ok(finish.preview.tintOpacity > 0 && finish.preview.tintOpacity <= 1);
+    assert.ok(finish.preview.toneOpacity >= 0 && finish.preview.toneOpacity <= 1);
+    assert.match(finish.preview.toneColor, /^#[0-9a-f]{6}$/i);
+    assert.ok(["screen", "soft-light", "multiply"].includes(finish.preview.toneBlend));
+  }
   assert.deepEqual(DETAIL_OPTIONS.hardware.map((option) => option.label), ["Knob", "Brass Pull", "Black Pull", "No Visible Hardware"]);
   assert.deepEqual(DETAIL_OPTIONS.lighting.map((option) => option.label), ["No Lighting", "Warm LED", "Integrated LED"]);
   assert.equal(getCompatibleDetails("floating-storage", "floating-cabinets").baseStyle.length, 0);

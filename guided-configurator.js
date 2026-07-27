@@ -10,7 +10,7 @@ import {
   getLayout,
   getMeasurementFields,
   getStyle
-} from "./guided-configurator-data.js?v=product-first-20260727a";
+} from "./guided-configurator-data.js?v=finish-preview-20260727b";
 import {
   buildProjectSummary,
   createProject,
@@ -19,15 +19,28 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=product-first-20260727a";
+} from "./guided-configurator-state.js?v=finish-preview-20260727b";
 
 const STEP_DEFINITIONS = Object.freeze([
-  Object.freeze({ id: 1, label: "Choose Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
-  Object.freeze({ id: 2, label: "Choose Layout", title: "Choose the room condition that matches your space", description: "Select the wall or room condition where your fitted furniture will be built." }),
-  Object.freeze({ id: 3, label: "Room & Size", title: "Tell us about your space", description: "Enter the basic measurements so we can build a pre-designed concept for your wall." }),
-  Object.freeze({ id: 4, label: "Customization", title: "Refine your concept", description: "Choose a style direction and a few finishing details. We’ll keep the process simple." }),
-  Object.freeze({ id: 5, label: "Review & Details", title: "Review your custom concept", description: "Check your selections and request a quote or save the project for later." })
+  Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
+  Object.freeze({ id: 2, label: "Choose Layout", mobileLabel: "Layout", title: "Choose the room condition that matches your space", description: "Select the wall or room condition where your fitted furniture will be built." }),
+  Object.freeze({ id: 3, label: "Room & Size", mobileLabel: "Size", title: "Tell us about your space", description: "Enter the basic measurements so we can build a pre-designed concept for your wall." }),
+  Object.freeze({ id: 4, label: "Customization", mobileLabel: "Finish", title: "Refine your concept", description: "Choose a style direction and a few finishing details. We’ll keep the process simple." }),
+  Object.freeze({ id: 5, label: "Review & Details", mobileLabel: "Review", title: "Review your custom concept", description: "Check your selections and request a quote or save the project for later." })
 ]);
+
+const MEASUREMENT_DIAGRAM_BASE_FIELDS = Object.freeze(["wallWidth", "ceilingHeight", "desiredDepth"]);
+const MEASUREMENT_DIAGRAM_FEATURE_FIELDS = Object.freeze({
+  niche: Object.freeze(["nicheWidth", "nicheHeight"]),
+  recess: Object.freeze(["nicheWidth", "nicheHeight"]),
+  window: Object.freeze(["windowWidth", "windowHeight"]),
+  door: Object.freeze(["doorWidth", "doorHeight"]),
+  fireplace: Object.freeze(["fireplaceWidth", "fireplaceHeight"]),
+  tv: Object.freeze(["tvScreenSize", "tvHeight"]),
+  radiator: Object.freeze(["radiatorWidth", "radiatorHeight"]),
+  corner: Object.freeze(["cornerReturn"]),
+  opening: Object.freeze(["openingLeftDistance", "openingRightDistance"])
+});
 
 const LEGACY_PRESET_MAP = Object.freeze({
   "media-wall": Object.freeze({ category: "tv-unit", layout: "clear-wall", style: "library-media" }),
@@ -61,6 +74,130 @@ const BOOKCASE_CONFIGURATION_DEFAULTS = Object.freeze({
     lighting: "warm-led",
     baseStyle: "flush-base",
     topTreatment: "traditional-crown"
+  })
+});
+
+const CONCEPT_FINISH_MASKS = Object.freeze({
+  "concept-cabinets-shelves-v1.png": Object.freeze({
+    viewBox: "0 0 1254 1254",
+    width: 1254,
+    height: 1254,
+    rectangles: Object.freeze([
+      [195, 82, 872, 76],
+      [195, 112, 55, 596],
+      [615, 112, 39, 596],
+      [1016, 112, 55, 596],
+      [205, 112, 850, 34],
+      [222, 280, 804, 24],
+      [222, 414, 804, 24],
+      [222, 548, 804, 24],
+      [222, 680, 804, 28],
+      [194, 694, 880, 325]
+    ])
+  }),
+  "concept-drawers-shelves-v1.png": Object.freeze({
+    viewBox: "0 0 1448 1086",
+    width: 1448,
+    height: 1086,
+    rectangles: Object.freeze([
+      [221, 38, 1048, 98],
+      [220, 96, 46, 615],
+      [714, 96, 36, 615],
+      [1218, 96, 49, 615],
+      [248, 98, 985, 34],
+      [250, 241, 979, 25],
+      [250, 386, 979, 25],
+      [250, 532, 979, 25],
+      [250, 684, 979, 29],
+      [204, 700, 1084, 289]
+    ])
+  }),
+  "concept-full-shelving-v1.png": Object.freeze({
+    viewBox: "0 0 1536 1024",
+    width: 1536,
+    height: 1024,
+    rectangles: Object.freeze([
+      [177, 59, 1173, 68],
+      [193, 108, 39, 782],
+      [568, 108, 39, 782],
+      [945, 108, 38, 782],
+      [1305, 108, 42, 782],
+      [211, 108, 1118, 34],
+      [224, 245, 1081, 25],
+      [224, 371, 1081, 25],
+      [224, 497, 1081, 25],
+      [224, 620, 1081, 25],
+      [224, 741, 1081, 25],
+      [224, 865, 1081, 27],
+      [193, 872, 1144, 55]
+    ])
+  }),
+  "concept-tv-wall-v1.png": Object.freeze({
+    viewBox: "0 0 1536 1024",
+    width: 1536,
+    height: 1024,
+    rectangles: Object.freeze([
+      [166, 53, 1227, 75],
+      [174, 103, 43, 543],
+      [480, 103, 38, 543],
+      [906, 103, 39, 543],
+      [1334, 103, 43, 543],
+      [196, 103, 1155, 39],
+      [200, 245, 1149, 25],
+      [200, 373, 301, 25],
+      [929, 373, 420, 25],
+      [200, 503, 301, 25],
+      [929, 503, 420, 25],
+      [493, 339, 465, 30],
+      [493, 339, 28, 306],
+      [930, 339, 28, 306],
+      [493, 615, 465, 30],
+      [200, 631, 1149, 21],
+      [157, 643, 1231, 286]
+    ])
+  }),
+  "concept-window-cabinets-v1.png": Object.freeze({
+    viewBox: "0 0 1448 1086",
+    width: 1448,
+    height: 1086,
+    rectangles: Object.freeze([
+      [107, 75, 1233, 81],
+      [109, 120, 45, 635],
+      [436, 120, 42, 635],
+      [977, 120, 42, 635],
+      [1294, 120, 45, 635],
+      [117, 120, 1215, 36],
+      [126, 286, 326, 24],
+      [998, 286, 322, 24],
+      [126, 438, 326, 24],
+      [998, 438, 322, 24],
+      [126, 587, 326, 24],
+      [998, 587, 322, 24],
+      [126, 738, 326, 24],
+      [998, 738, 322, 24],
+      [97, 748, 1253, 219]
+    ])
+  }),
+  "product-floating-storage-v1.png": Object.freeze({
+    viewBox: "0 0 1536 1024",
+    width: 1536,
+    height: 1024,
+    rectangles: Object.freeze([
+      [241, 484, 1065, 25],
+      [241, 484, 28, 66],
+      [1278, 484, 28, 66],
+      [269, 532, 1009, 20],
+      [190, 548, 1142, 217]
+    ])
+  }),
+  "product-radiator-cover-v1.png": Object.freeze({
+    viewBox: "0 0 1536 1024",
+    width: 1536,
+    height: 1024,
+    rectangles: Object.freeze([
+      [113, 389, 1307, 31],
+      [126, 414, 1277, 426]
+    ])
   })
 });
 
@@ -196,10 +333,45 @@ function renderApp(options = {}) {
   mountIcons(app);
   applyPreviewScale();
   scheduleDraftSave();
+  scheduleLikelyNextStepImages();
 
-  if (options.focusHeading) {
-    requestAnimationFrame(() => app.querySelector("#guided-page-title")?.focus({ preventScroll: true }));
+  requestAnimationFrame(() => {
+    centerSelectedCategory();
+    if (options.focusHeading) app.querySelector("#guided-page-title")?.focus({ preventScroll: true });
+  });
+}
+
+function scheduleLikelyNextStepImages() {
+  let assets = [];
+  if (project.currentStep === 1 && project.productSelected) {
+    assets = SHARED_ROOM_LAYOUTS.map((layout) => layout.previewAsset);
+  } else if ([2, 3].includes(project.currentStep)) {
+    const category = getCategory(project.category);
+    assets = [
+      ...category.styles.map((style) => style.previewAsset),
+      category.productPreviewAsset,
+      "assets/photos/configurator/concept-window-cabinets-v1.png"
+    ];
   }
+
+  if (!assets.length) return;
+  window.setTimeout(() => {
+    [...new Set(assets)].forEach(preloadPreviewAsset);
+  }, 0);
+}
+
+function centerSelectedCategory() {
+  if (!window.matchMedia("(max-width: 680px)").matches) return;
+  const navigation = app.querySelector(".guided-category-nav");
+  const selectedCategory = navigation?.querySelector(".guided-category.is-selected");
+  if (!navigation || !selectedCategory) return;
+
+  const centeredPosition = selectedCategory.offsetLeft
+    - (navigation.clientWidth - selectedCategory.offsetWidth) / 2;
+  navigation.scrollLeft = Math.max(
+    0,
+    Math.min(centeredPosition, navigation.scrollWidth - navigation.clientWidth)
+  );
 }
 
 function preloadPreviewAsset(asset) {
@@ -207,7 +379,36 @@ function preloadPreviewAsset(asset) {
   previewPreloadCache.add(asset);
   const image = new Image();
   image.decoding = "async";
-  image.src = asset;
+  image.src = optimizedImageAsset(asset);
+}
+
+function optimizedImageAsset(asset) {
+  const source = String(asset || "");
+  return source.replace(/\.png$/i, ".avif");
+}
+
+function renderOptimizedPicture(asset, options = {}) {
+  const source = String(asset || "");
+  const optimizedSource = optimizedImageAsset(source);
+  const pictureClass = ["guided-picture", options.pictureClass].filter(Boolean).join(" ");
+  const imageClass = ["guided-picture-image", options.imageClass].filter(Boolean).join(" ");
+  const loading = options.loading === "eager" ? "eager" : "lazy";
+  const fetchPriority = options.fetchPriority ? ` fetchpriority="${escapeAttribute(options.fetchPriority)}"` : "";
+  const style = options.style ? ` style="${escapeAttribute(options.style)}"` : "";
+
+  return `
+    <picture class="${escapeAttribute(pictureClass)}" aria-hidden="true">
+      <source type="image/avif" srcset="${escapeAttribute(optimizedSource)}">
+      <img
+        class="${escapeAttribute(imageClass)}"
+        src="${escapeAttribute(source)}"
+        alt=""
+        loading="${loading}"
+        decoding="async"
+        ${fetchPriority}${style}
+      >
+    </picture>
+  `;
 }
 
 function renderStepper() {
@@ -228,7 +429,8 @@ function renderStepper() {
             aria-label="${escapeHtml(`${step.label}${current ? ", current step" : complete ? ", completed" : ""}`)}"
           >
             <span class="guided-step-number">${step.id}</span>
-            <span class="guided-step-label">${escapeHtml(step.label)}</span>
+            <span class="guided-step-label guided-step-label--full" aria-hidden="true">${escapeHtml(step.label)}</span>
+            <span class="guided-step-label guided-step-label--mobile" aria-hidden="true">${escapeHtml(step.mobileLabel)}</span>
           </button>
         `;
       }).join("")}
@@ -299,7 +501,7 @@ function renderCurrentStep() {
 function renderProductStep() {
   return `
     <div class="product-grid" role="group" aria-label="Fitted furniture type">
-      ${CATEGORY_DEFINITIONS.map((category) => {
+      ${CATEGORY_DEFINITIONS.map((category, index) => {
         const selected = project.productSelected && category.id === project.category;
         return `
           <button
@@ -311,13 +513,11 @@ function renderProductStep() {
           >
             ${selected ? '<span class="choice-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
             <span class="product-card-image" aria-hidden="true">
-              <img
-                src="${escapeAttribute(category.productPreviewAsset)}"
-                alt=""
-                loading="eager"
-                decoding="async"
-                style="object-position:${escapeAttribute(category.productPreviewPosition || "50% 50%")}"
-              >
+              ${renderOptimizedPicture(category.productPreviewAsset, {
+                loading: "eager",
+                fetchPriority: index === 0 ? "high" : "low",
+                style: `object-position:${category.productPreviewPosition || "50% 50%"}`
+              })}
             </span>
             <span class="product-card-copy">
               <span class="product-card-heading">
@@ -390,23 +590,21 @@ function renderLayoutStep() {
 
 function renderLayoutPreview(layout) {
   if (layout.previewMode === "sprite") {
+    const optimizedAsset = optimizedImageAsset(layout.previewAsset);
     return `
       <span
         class="layout-illustration layout-illustration--photo layout-illustration--sprite"
         aria-hidden="true"
-        style="background-image:url('${escapeAttribute(layout.previewAsset)}');background-position:${escapeAttribute(layout.previewPosition)}"
+        style="background-image:url('${escapeAttribute(layout.previewAsset)}');background-image:image-set(url('${escapeAttribute(optimizedAsset)}') type('image/avif'),url('${escapeAttribute(layout.previewAsset)}') type('image/png'));background-position:${escapeAttribute(layout.previewPosition)}"
       ></span>
     `;
   }
   return `
     <span class="layout-illustration layout-illustration--photo" aria-hidden="true">
-      <img
-        src="${escapeAttribute(layout.previewAsset)}"
-        alt=""
-        loading="eager"
-        decoding="async"
-        style="object-position:${escapeAttribute(layout.previewPosition || "50% 50%")}"
-      >
+      ${renderOptimizedPicture(layout.previewAsset, {
+        loading: "eager",
+        style: `object-position:${layout.previewPosition || "50% 50%"}`
+      })}
     </span>
   `;
 }
@@ -586,7 +784,7 @@ function renderMeasurementStep() {
           ${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}
         </p>
       </section>
-      ${renderMeasurementDiagram(diagramFields, selectedLayout)}
+      ${renderMeasurementDiagram(selectMeasurementDiagramFields(fields, selectedLayout), selectedLayout)}
     </div>
     <aside class="guided-info">
       <i data-icon="information" aria-hidden="true"></i>
@@ -601,6 +799,39 @@ function renderMeasurementStep() {
       </button>
     </div>
   `;
+}
+
+function selectMeasurementDiagramFields(fields, selectedLayout) {
+  const fieldsById = new Map(fields.map((field) => [field.id, field]));
+  const diagramFieldIds = [...MEASUREMENT_DIAGRAM_BASE_FIELDS];
+  const featureKeys = [
+    selectedLayout?.feature,
+    ...(selectedLayout?.tags || [])
+  ].filter(Boolean);
+
+  let featureFieldIds = [];
+  for (const key of featureKeys) {
+    const candidateIds = MEASUREMENT_DIAGRAM_FEATURE_FIELDS[key] || [];
+    const availableIds = candidateIds.filter((fieldId) => fieldsById.has(fieldId));
+    if (availableIds.length) {
+      featureFieldIds = availableIds.slice(0, 2);
+      break;
+    }
+  }
+
+  if (!featureFieldIds.length) {
+    for (const candidateIds of Object.values(MEASUREMENT_DIAGRAM_FEATURE_FIELDS)) {
+      const availableIds = candidateIds.filter((fieldId) => fieldsById.has(fieldId));
+      if (availableIds.length) {
+        featureFieldIds = availableIds.slice(0, 2);
+        break;
+      }
+    }
+  }
+
+  return [...diagramFieldIds, ...featureFieldIds]
+    .map((fieldId) => fieldsById.get(fieldId))
+    .filter(Boolean);
 }
 
 function renderMeasurementField(field, warning) {
@@ -674,13 +905,12 @@ function renderMeasurementDiagram(fields, selectedLayout) {
   const usesApprovedWindowReference = selectedLayout?.feature === "window";
   const roomVisual = usesApprovedWindowReference
     ? `
-        <img
-          class="measurement-room-image"
-          src="assets/photos/configurator/guided-measurement-room-v2.png"
-          alt=""
-          aria-hidden="true"
-          decoding="async"
-        >
+        ${renderOptimizedPicture("assets/photos/configurator/guided-measurement-room-v2.png", {
+          pictureClass: "measurement-room-image",
+          imageClass: "measurement-room-image",
+          loading: "eager",
+          fetchPriority: "high"
+        })}
       `
     : `
         <span class="measurement-room-wall"></span>
@@ -719,7 +949,7 @@ function renderDimensionChip(field, index, fields) {
     windowWidth: "Window Width",
     windowHeight: "Window Height"
   };
-  const annotationLabel = referenceLabels[field.id] || field.code;
+  const annotationLabel = referenceLabels[field.id] || field.label;
   const supplemental = Object.hasOwn(referenceLabels, field.id) ? "" : " is-supplemental";
   return `
     <span class="dimension-chip measurement-annotation${supplemental}" data-dimension-chip="${field.id}" data-position="${placement.position}" style="${placement.style}">
@@ -835,21 +1065,20 @@ function renderCustomizationPanel() {
 
 function renderStyleChoices() {
   const category = getCategory(project.category);
-  const selectedLayout = getLayout(project.category, project.layout);
-  const referenceStyles = category.id === "bookcase" && selectedLayout?.feature === "window"
-    ? category.styles.filter((style) => style.id === "cabinet-base-shelves")
-    : category.styles.slice(0, 4);
+  const referenceStyles = category.id === "bookcase"
+    ? category.styles.slice(0, 4)
+    : [getStyle(category.id, project.style)];
   return `
     <section class="choice-section">
       <h3 class="visually-hidden">Style</h3>
-      <div class="choice-grid configuration-grid">
+      <div class="choice-grid configuration-grid${referenceStyles.length === 1 ? " configuration-grid--single" : ""}">
         ${referenceStyles.map((style) => {
           const selected = style.id === project.style;
           return `
             <button class="choice-card${selected ? " is-selected" : ""}" type="button" data-style="${style.id}" aria-pressed="${selected}">
               ${selected ? '<span class="choice-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
               <span class="style-thumb" data-style="${escapeAttribute(style.id)}" aria-hidden="true">
-                <img src="${escapeAttribute(style.previewAsset)}" alt="" loading="lazy" decoding="async">
+                ${renderOptimizedPicture(style.previewAsset, { loading: "eager" })}
               </span>
               <span class="configuration-card-copy">
                 <span class="choice-card-title">${escapeHtml(style.label)}</span>
@@ -927,6 +1156,11 @@ function renderDetailChoices({ compact = false } = {}) {
         <div class="detail-choice-grid detail-choice-grid--${escapeAttribute(group.key)}${group.expanded ? " detail-choice-grid--expanded" : ""}">
           ${group.options.map((option) => {
             const selected = project[group.key] === option.id;
+            const hardwareIcon = option.id === "knob"
+              ? "hardware-knob"
+              : option.id === "none"
+              ? "minus"
+              : "handle-pull";
             return `
               <button
                 class="detail-choice${selected ? " is-selected" : ""}"
@@ -936,7 +1170,11 @@ function renderDetailChoices({ compact = false } = {}) {
                 aria-pressed="${selected}"
                 style="--detail-color:${escapeAttribute(option.color || "#262626")}"
               >
-                ${group.key === "hardware" ? `<span class="detail-option-icon detail-option-icon--${escapeAttribute(option.id)}" aria-hidden="true"></span>` : ""}
+                ${group.key === "hardware" ? `
+                  <span class="detail-option-icon detail-option-icon--${escapeAttribute(option.id)}" aria-hidden="true">
+                    <i data-icon="${hardwareIcon}" aria-hidden="true"></i>
+                  </span>
+                ` : ""}
                 <span class="detail-choice-copy">
                   <span class="detail-choice-title">${escapeHtml(option.shortLabel || option.label)}</span>
                 </span>
@@ -954,6 +1192,7 @@ function renderConceptPreview() {
   const layout = getLayout(project.category, project.layout);
   const selectedStyle = getStyle(project.category, project.style);
   const finish = getFinish(project.finish);
+  const finishPreview = finish.preview || {};
   const accentFinish = project.accentFinish === "no-accent" ? finish : getFinish(project.accentFinish);
   const hardware = DETAIL_OPTIONS.hardware.find((option) => option.id === project.hardware);
   const doorCount = category.id === "floating-storage" ? 5 : category.id === "window-storage" ? 6 : 4;
@@ -965,18 +1204,21 @@ function renderConceptPreview() {
       data-category="${escapeAttribute(category.id)}"
       data-layout="${escapeAttribute(layout?.id || "unselected")}"
       data-style="${escapeAttribute(selectedStyle.id)}"
+      data-finish="${escapeAttribute(finish.id)}"
+      data-finish-family="${escapeAttribute(finish.family)}"
       data-preview-asset="${escapeAttribute(project.previewAsset)}"
       data-preview-scope="${escapeAttribute(previewScope.id)}"
+      style="--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)}"
       aria-label="${escapeAttribute(`${category.label} concept preview in ${finish.label}`)}"
     >
       <div class="concept-scene" data-concept-scene>
-        <img
-          class="concept-photo"
-          src="${escapeAttribute(project.previewAsset)}"
-          alt=""
-          aria-hidden="true"
-          decoding="async"
-        >
+        ${renderOptimizedPicture(project.previewAsset, {
+          pictureClass: "concept-photo",
+          imageClass: "concept-photo",
+          loading: "eager",
+          fetchPriority: "high"
+        })}
+        ${renderConceptFinishOverlay(project.previewAsset)}
         <div
           class="concept-unit concept-unit--sentinel"
           data-style="${escapeAttribute(selectedStyle.id)}"
@@ -984,8 +1226,52 @@ function renderConceptPreview() {
           aria-hidden="true"
         ></div>
       </div>
+      <figcaption class="concept-finish-caption" aria-live="polite">
+        <span class="concept-finish-caption-swatch" aria-hidden="true"></span>
+        <span>
+          <small>Live finish preview</small>
+          <strong>${escapeHtml(finish.label)}</strong>
+        </span>
+      </figcaption>
       ${renderPreviewControls()}
     </figure>
+  `;
+}
+
+function renderConceptFinishOverlay(previewAsset) {
+  const assetName = String(previewAsset || "").split("/").pop();
+  const definition = CONCEPT_FINISH_MASKS[assetName];
+  if (!definition) return "";
+
+  const maskId = `concept-finish-mask-${assetName.replace(/[^a-z0-9]+/gi, "-")}`;
+  return `
+    <svg
+      class="concept-finish-overlay"
+      viewBox="${definition.viewBox}"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <mask id="${maskId}" maskUnits="userSpaceOnUse" x="0" y="0" width="${definition.width}" height="${definition.height}">
+          ${definition.rectangles.map(([x, y, width, height]) => (
+            `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="2" fill="#fff"></rect>`
+          )).join("")}
+        </mask>
+      </defs>
+      <rect
+        class="concept-finish-overlay-tint"
+        width="${definition.width}"
+        height="${definition.height}"
+        mask="url(#${maskId})"
+      ></rect>
+      <rect
+        class="concept-finish-overlay-tone"
+        width="${definition.width}"
+        height="${definition.height}"
+        mask="url(#${maskId})"
+      ></rect>
+    </svg>
   `;
 }
 

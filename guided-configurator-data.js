@@ -314,26 +314,104 @@ export const CATEGORY_DEFINITIONS = Object.freeze([
   })
 ]);
 
+const finishOption = (id, label, family, color, preview) => Object.freeze({
+  id,
+  label,
+  family,
+  color,
+  preview: Object.freeze(preview)
+});
+
 export const FINISH_OPTIONS = Object.freeze({
   wood: Object.freeze([
-    Object.freeze({ id: "white-oak", label: "White Oak", family: "wood", color: "#d9c0a0" }),
-    Object.freeze({ id: "natural-oak", label: "Natural Oak", family: "wood", color: "#b88e5e" }),
-    Object.freeze({ id: "light-walnut", label: "Light Walnut", family: "wood", color: "#9a7048" }),
-    Object.freeze({ id: "medium-walnut", label: "Medium Walnut", family: "wood", color: "#775238" }),
-    Object.freeze({ id: "dark-walnut", label: "Dark Walnut", family: "wood", color: "#4b372c" })
+    finishOption("white-oak", "White Oak", "wood", "#d9c0a0", {
+      tintOpacity: 0.58,
+      toneColor: "#eadcc9",
+      toneBlend: "screen",
+      toneOpacity: 0.2
+    }),
+    finishOption("natural-oak", "Natural Oak", "wood", "#b88e5e", {
+      tintOpacity: 0.12,
+      toneColor: "#b88e5e",
+      toneBlend: "soft-light",
+      toneOpacity: 0.08
+    }),
+    finishOption("light-walnut", "Light Walnut", "wood", "#9a7048", {
+      tintOpacity: 0.56,
+      toneColor: "#89603d",
+      toneBlend: "multiply",
+      toneOpacity: 0.15
+    }),
+    finishOption("medium-walnut", "Medium Walnut", "wood", "#775238", {
+      tintOpacity: 0.64,
+      toneColor: "#63402c",
+      toneBlend: "multiply",
+      toneOpacity: 0.2
+    }),
+    finishOption("dark-walnut", "Dark Walnut", "wood", "#4b372c", {
+      tintOpacity: 0.72,
+      toneColor: "#35231c",
+      toneBlend: "multiply",
+      toneOpacity: 0.28
+    })
   ]),
   paint: Object.freeze([
-    Object.freeze({ id: "warm-white", label: "Warm White", family: "paint", color: "#f3f0e9" }),
-    Object.freeze({ id: "soft-ivory", label: "Soft Ivory", family: "paint", color: "#e8dfd0" }),
-    Object.freeze({ id: "light-greige", label: "Light Greige", family: "paint", color: "#b9b6ad" }),
-    Object.freeze({ id: "sage-gray", label: "Sage Gray", family: "paint", color: "#89918a" }),
-    Object.freeze({ id: "charcoal", label: "Charcoal", family: "paint", color: "#343638" })
+    finishOption("warm-white", "Warm White", "paint", "#f3f0e9", {
+      tintOpacity: 0.82,
+      toneColor: "#ffffff",
+      toneBlend: "screen",
+      toneOpacity: 0.58
+    }),
+    finishOption("soft-ivory", "Soft Ivory", "paint", "#e8dfd0", {
+      tintOpacity: 0.8,
+      toneColor: "#f7ecdc",
+      toneBlend: "screen",
+      toneOpacity: 0.48
+    }),
+    finishOption("light-greige", "Light Greige", "paint", "#b9b6ad", {
+      tintOpacity: 0.8,
+      toneColor: "#d4d0c7",
+      toneBlend: "screen",
+      toneOpacity: 0.24
+    }),
+    finishOption("sage-gray", "Sage Gray", "paint", "#89918a", {
+      tintOpacity: 0.75,
+      toneColor: "#747d75",
+      toneBlend: "multiply",
+      toneOpacity: 0.1
+    }),
+    finishOption("charcoal", "Charcoal", "paint", "#343638", {
+      tintOpacity: 0.72,
+      toneColor: "#242729",
+      toneBlend: "multiply",
+      toneOpacity: 0.22
+    })
   ]),
   accent: Object.freeze([
-    Object.freeze({ id: "no-accent", label: "Match exterior", family: "accent", color: "currentColor" }),
-    Object.freeze({ id: "warm-linen", label: "Warm Linen", family: "accent", color: "#d8cec0" }),
-    Object.freeze({ id: "deep-olive", label: "Deep Olive", family: "accent", color: "#5d6250" }),
-    Object.freeze({ id: "ink-blue", label: "Ink Blue", family: "accent", color: "#384b59" })
+    finishOption("no-accent", "Match exterior", "accent", "currentColor", {
+      tintOpacity: 0,
+      toneColor: "transparent",
+      toneBlend: "normal",
+      toneOpacity: 0
+    }),
+    finishOption("warm-linen", "Warm Linen", "accent", "#d8cec0", {
+      tintOpacity: 0.75,
+      toneColor: "#efe5d8",
+      toneBlend: "screen",
+      toneOpacity: 0.35
+    }),
+    finishOption("deep-olive", "Deep Olive", "accent", "#5d6250", {
+      tintOpacity: 0.8,
+      toneColor: "#454a3d",
+      toneBlend: "multiply",
+      toneOpacity: 0.24
+    }),
+    finishOption("ink-blue", "Ink Blue", "accent", "#384b59", {
+      tintOpacity: 0.82,
+      toneColor: "#273945",
+      toneBlend: "multiply",
+      toneOpacity: 0.3
+    })
   ])
 });
 

@@ -9,7 +9,7 @@ import {
   getMeasurementFields,
   getStyle,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=product-first-20260727a";
+} from "./guided-configurator-data.js?v=finish-preview-20260727b";
 
 export const GUIDED_PROJECT_SCHEMA_VERSION = 2;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
