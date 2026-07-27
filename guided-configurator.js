@@ -10,7 +10,7 @@ import {
   getLayout,
   getMeasurementFields,
   getStyle
-} from "./guided-configurator-data.js?v=one-screen-20260727a";
+} from "./guided-configurator-data.js?v=desktop-gallery-20260727a";
 import {
   buildProjectSummary,
   createProject,
@@ -19,7 +19,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=one-screen-20260727a";
+} from "./guided-configurator-state.js?v=desktop-gallery-20260727a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -319,7 +319,7 @@ function renderApp(options = {}) {
     ? `Choose your ${category.label.toLowerCase()} design`
     : step.title;
   const stepDescription = project.currentStep === 1
-    ? "Start with a construction-backed concept from the supplied drawings. Your room condition comes next."
+    ? "Select the cabinet and shelving arrangement that best matches your project. We’ll size it to your room next."
     : step.description;
   if (project.currentStep >= 2) preloadPreviewAsset(project.previewAsset);
   app.innerHTML = `
@@ -555,8 +555,8 @@ function renderProductStep() {
     <aside class="guided-info">
       <i data-icon="information" aria-hidden="true"></i>
       <span>${category.id === "bookcase"
-        ? "These three bookcase designs follow Drawings 1–3 and 5–7. Choose TV Unit at left for the Drawing 4 media wall."
-        : "Choose this product direction first. Your room condition and measurements come next."}</span>
+        ? "Choose the closest construction. Our design team will refine the proportions and details with you."
+        : "Choose the closest product direction. Our design team will refine the proportions and details with you."}</span>
     </aside>
     <div class="guided-actions">
       <button class="guided-button guided-button-primary" type="button" data-continue ${project.productSelected ? "" : "disabled"}>
