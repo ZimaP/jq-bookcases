@@ -9,9 +9,9 @@ import {
   getMeasurementFields,
   getStyle,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=guided-configurator-20260726a";
+} from "./guided-configurator-data.js?v=product-first-20260727a";
 
-export const GUIDED_PROJECT_SCHEMA_VERSION = 1;
+export const GUIDED_PROJECT_SCHEMA_VERSION = 2;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
 export const GUIDED_PROJECTS_STORAGE_KEY = "jqGuidedConfiguratorProjectsV1";
 
@@ -46,7 +46,7 @@ const defaultDetails = Object.freeze({
   doorStyle: DETAIL_OPTIONS.doorStyle[1].id,
   hardware: DETAIL_OPTIONS.hardware[1].id,
   lighting: DETAIL_OPTIONS.lighting[1].id,
-  baseStyle: DETAIL_OPTIONS.baseStyle[1].id,
+  baseStyle: DETAIL_OPTIONS.baseStyle[0].id,
   topTreatment: DETAIL_OPTIONS.topTreatment[1].id
 });
 
@@ -63,6 +63,7 @@ export function createProject(options = {}) {
     currentStep: 1,
     maxVisitedStep: 1,
     category: category.id,
+    productSelected: options.productSelected === true,
     layout: null,
     measurements: defaultMeasurements(category.id, null),
     style: selectedStyle.id,
@@ -76,7 +77,7 @@ export function createProject(options = {}) {
     notes: "",
     uploadedFiles: [],
     customerDetails: {},
-    previewAsset: resolvePreviewAsset(category.id, selectedStyle.id),
+    previewAsset: resolvePreviewAsset(category.id, selectedStyle.id, null),
     createdAt: new Date(now).toISOString(),
     updatedAt: new Date(now).toISOString(),
     status: "draft"
@@ -140,6 +141,7 @@ export function formatInches(rawValue, options = {}) {
 export function normalizeProject(candidate, options = {}) {
   const now = Number(options.now) || Date.now();
   const source = candidate && typeof candidate === "object" ? candidate : {};
+  const sourceSchemaVersion = Math.max(1, Number(source.schemaVersion) || 1);
   const category = getCategory(source.category);
   const layout = getLayout(category.id, source.layout);
   const selectedStyle = getStyle(category.id, source.style);
@@ -169,6 +171,20 @@ export function normalizeProject(candidate, options = {}) {
     const selected = list.find((option) => option.id === source[key]);
     return selected?.id || defaultId;
   };
+  const migrateStep = (rawStep) => {
+    const step = Math.max(1, Number(rawStep) || 1);
+    if (sourceSchemaVersion >= GUIDED_PROJECT_SCHEMA_VERSION) return Math.min(5, step);
+    if (step === 1) return layout ? 2 : 1;
+    return Math.min(5, step + 1);
+  };
+  const migratedCurrentStep = migrateStep(source.currentStep);
+  const migratedMaxVisitedStep = Math.max(
+    migratedCurrentStep,
+    migrateStep(source.maxVisitedStep || source.currentStep)
+  );
+  const productSelected = typeof source.productSelected === "boolean"
+    ? source.productSelected
+    : sourceSchemaVersion < GUIDED_PROJECT_SCHEMA_VERSION && Boolean(source.category);
 
   const normalized = {
     ...fallback,
@@ -179,9 +195,10 @@ export function normalizeProject(candidate, options = {}) {
     projectName: typeof source.projectName === "string" && source.projectName.trim()
       ? source.projectName.trim().slice(0, 80)
       : fallback.projectName,
-    currentStep: Math.min(4, Math.max(1, Number(source.currentStep) || 1)),
-    maxVisitedStep: Math.min(4, Math.max(1, Number(source.maxVisitedStep) || Number(source.currentStep) || 1)),
+    currentStep: migratedCurrentStep,
+    maxVisitedStep: Math.min(5, migratedMaxVisitedStep),
     category: category.id,
+    productSelected,
     layout: layout?.id || null,
     measurements,
     style: selectedStyle.id,
@@ -215,7 +232,7 @@ export function normalizeProject(candidate, options = {}) {
     customerDetails: source.customerDetails && typeof source.customerDetails === "object"
       ? deepClone(source.customerDetails)
       : {},
-    previewAsset: resolvePreviewAsset(category.id, selectedStyle.id),
+    previewAsset: resolvePreviewAsset(category.id, selectedStyle.id, layout?.id),
     createdAt: typeof source.createdAt === "string" && !Number.isNaN(Date.parse(source.createdAt))
       ? source.createdAt
       : fallback.createdAt,
@@ -279,7 +296,7 @@ export function buildProjectSummary(project) {
   const fields = getMeasurementFields(normalized.category, normalized.layout);
   const rows = [
     { key: "category", label: "Category", value: category.label, step: 1 },
-    { key: "layout", label: "Layout", value: layout?.label || "Not selected", step: 1 }
+    { key: "layout", label: "Layout", value: layout?.label || "Not selected", step: 2 }
   ];
 
   for (const field of fields) {
@@ -288,21 +305,21 @@ export function buildProjectSummary(project) {
     const value = field.type === "select"
       ? field.values.find((option) => option.value === raw)?.label || String(raw)
       : `${formatInches(raw)} in`;
-    rows.push({ key: field.id, label: field.label, value, step: 2 });
+    rows.push({ key: field.id, label: field.label, value, step: 3 });
   }
 
   rows.push(
-    { key: "style", label: "Style", value: selectedStyle.label, step: 3 },
-    { key: "finish", label: "Finish", value: getFinish(normalized.finish).label, step: 3 },
-    { key: "accentFinish", label: "Accent / interior", value: getFinish(normalized.accentFinish).label, step: 3 }
+    { key: "style", label: "Style", value: selectedStyle.label, step: 4 },
+    { key: "finish", label: "Finish", value: getFinish(normalized.finish).label, step: 4 },
+    { key: "accentFinish", label: "Accent / interior", value: getFinish(normalized.accentFinish).label, step: 4 }
   );
 
-  if (normalized.doorStyle) rows.push({ key: "doorStyle", label: "Door style", value: labelFor(DETAIL_OPTIONS.doorStyle, normalized.doorStyle), step: 3 });
-  if (normalized.hardware) rows.push({ key: "hardware", label: "Hardware", value: labelFor(DETAIL_OPTIONS.hardware, normalized.hardware), step: 3 });
-  if (normalized.lighting) rows.push({ key: "lighting", label: "Lighting", value: labelFor(DETAIL_OPTIONS.lighting, normalized.lighting), step: 3 });
-  if (normalized.baseStyle) rows.push({ key: "baseStyle", label: "Base", value: labelFor(DETAIL_OPTIONS.baseStyle, normalized.baseStyle), step: 3 });
-  if (normalized.topTreatment) rows.push({ key: "topTreatment", label: "Top treatment", value: labelFor(DETAIL_OPTIONS.topTreatment, normalized.topTreatment), step: 3 });
-  rows.push({ key: "notes", label: "Notes", value: normalized.notes || "—", step: 4 });
+  if (normalized.doorStyle) rows.push({ key: "doorStyle", label: "Door style", value: labelFor(DETAIL_OPTIONS.doorStyle, normalized.doorStyle), step: 4 });
+  if (normalized.hardware) rows.push({ key: "hardware", label: "Hardware", value: labelFor(DETAIL_OPTIONS.hardware, normalized.hardware), step: 4 });
+  if (normalized.lighting) rows.push({ key: "lighting", label: "Lighting", value: labelFor(DETAIL_OPTIONS.lighting, normalized.lighting), step: 4 });
+  if (normalized.baseStyle) rows.push({ key: "baseStyle", label: "Installation", value: labelFor(DETAIL_OPTIONS.baseStyle, normalized.baseStyle), step: 4 });
+  if (normalized.topTreatment) rows.push({ key: "topTreatment", label: "Top treatment", value: labelFor(DETAIL_OPTIONS.topTreatment, normalized.topTreatment), step: 4 });
+  rows.push({ key: "notes", label: "Notes", value: normalized.notes || "—", step: 5 });
 
   return rows;
 }

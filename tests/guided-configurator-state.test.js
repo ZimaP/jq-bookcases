@@ -5,8 +5,11 @@ import {
   CATEGORY_DEFINITIONS,
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
+  SHARED_ROOM_LAYOUTS,
   getCompatibleDetails,
-  getMeasurementFields
+  getLayout,
+  getMeasurementFields,
+  resolvePreviewAsset
 } from "../guided-configurator-data.js";
 import {
   GUIDED_DRAFT_STORAGE_KEY,
@@ -47,31 +50,30 @@ class ToggleStorage extends MemoryStorage {
 
 const categoryById = (id) => CATEGORY_DEFINITIONS.find((category) => category.id === id);
 
-test("all five customer categories expose intentional category-specific layouts", () => {
+test("all five customer categories use the same ten room conditions", () => {
   assert.deepEqual(
     CATEGORY_DEFINITIONS.map((category) => category.id),
     ["bookcase", "tv-unit", "floating-storage", "window-storage", "radiator-cover"]
   );
   assert.deepEqual(
-    categoryById("bookcase").layouts.map((layout) => layout.label),
-    ["Niche Layout", "Left Niche", "Right Niche", "Fireplace Wall", "Clear Wall", "Center Recess", "Window Wall", "Door Wall"]
+    SHARED_ROOM_LAYOUTS.map((layout) => layout.label),
+    ["Niche Layout", "Left Niche", "Right Niche", "Clear Wall", "Fireplace Wall", "Center Projection", "Window Wall", "Door Wall", "Corner Wall", "Between Openings"]
   );
-  assert.deepEqual(
-    categoryById("tv-unit").layouts.map((layout) => layout.label),
-    ["Clear TV Wall", "TV Niche", "Fireplace + TV", "Window-Side TV Wall", "Corner TV Wall"]
-  );
-  assert.equal(categoryById("floating-storage").layouts.length, 5);
-  assert.equal(categoryById("window-storage").layouts.length, 5);
-  assert.equal(categoryById("radiator-cover").layouts.length, 5);
-  assert.ok(categoryById("radiator-cover").layouts.every((layout) => layout.label.toLowerCase().includes("radiator") || layout.label === "Wall-to-Wall Cover"));
+  assert.equal(new Set(SHARED_ROOM_LAYOUTS.map((layout) => layout.id)).size, 10);
+  assert.ok(SHARED_ROOM_LAYOUTS.every((layout) => layout.previewAsset.endsWith(".png")));
+  for (const category of CATEGORY_DEFINITIONS) {
+    assert.equal(category.layouts, SHARED_ROOM_LAYOUTS);
+    assert.deepEqual(category.layouts.map((layout) => layout.id), SHARED_ROOM_LAYOUTS.map((layout) => layout.id));
+    assert.equal(getLayout(category.id, "window-wall")?.label, "Window Wall");
+  }
 });
 
 test("measurement schemas are derived from category and layout conditions", () => {
   const windowFields = getMeasurementFields("bookcase", "window-wall").map((field) => field.id);
   const doorFields = getMeasurementFields("bookcase", "door-wall").map((field) => field.id);
   const fireplaceFields = getMeasurementFields("bookcase", "fireplace-wall").map((field) => field.id);
-  const tvFields = getMeasurementFields("tv-unit", "clear-tv-wall").map((field) => field.id);
-  const radiatorFields = getMeasurementFields("radiator-cover", "standalone-radiator").map((field) => field.id);
+  const tvFields = getMeasurementFields("tv-unit", "clear-wall").map((field) => field.id);
+  const radiatorFields = getMeasurementFields("radiator-cover", "clear-wall").map((field) => field.id);
 
   assert.deepEqual(windowFields.slice(0, 3), ["wallWidth", "ceilingHeight", "desiredDepth"]);
   assert.ok(windowFields.includes("windowWidth"));
@@ -104,6 +106,8 @@ test("inch parsing accepts decimals, mixed fractions, hyphenated fractions, and 
 
 test("core measurements are required while unusual values remain non-blocking warnings", () => {
   const incomplete = createProject({ now: 1, random: 0.1 });
+  assert.equal(incomplete.productSelected, false);
+  assert.equal(incomplete.currentStep, 1);
   let result = validateMeasurements(incomplete);
   assert.equal(result.valid, false);
   assert.equal(result.errors[0].field, "layout");
@@ -129,18 +133,49 @@ test("core measurements are required while unusual values remain non-blocking wa
   assert.match(result.errors[0].message, /approximate wall width/i);
 });
 
+test("five-step state and legacy category layouts migrate without losing a project", () => {
+  const modern = normalizeProject({
+    ...createProject({ now: 4, random: 0.12, productSelected: true }),
+    currentStep: 5,
+    maxVisitedStep: 5,
+    layout: "clear-wall"
+  }, { now: 5 });
+  assert.equal(modern.currentStep, 5);
+  assert.equal(modern.maxVisitedStep, 5);
+  assert.equal(modern.productSelected, true);
+
+  const legacy = normalizeProject({
+    schemaVersion: 1,
+    projectId: "JQ-LEGACY-0001",
+    projectName: "Legacy media wall",
+    category: "tv-unit",
+    layout: "clear-tv-wall",
+    currentStep: 4,
+    maxVisitedStep: 4,
+    measurements: {
+      wallWidth: 120,
+      ceilingHeight: 96,
+      desiredDepth: 14
+    }
+  }, { now: 6 });
+  assert.equal(legacy.productSelected, true);
+  assert.equal(legacy.layout, "clear-wall");
+  assert.equal(legacy.currentStep, 5);
+  assert.equal(legacy.maxVisitedStep, 5);
+});
+
 test("normalization removes incompatible detail choices without disturbing project identity", () => {
   const project = normalizeProject({
     ...createProject({ now: 10, random: 0.2 }),
     layout: "clear-wall",
-    style: "open-shelving",
+    style: "full-open-shelving",
     hardware: "black-pull",
     doorStyle: "glass",
     lighting: "integrated-led"
   }, { now: 11 });
   const compatible = getCompatibleDetails(project.category, project.style);
 
-  assert.equal(project.style, "open-shelving");
+  assert.equal(project.style, "full-open-shelving");
   assert.equal(project.hardware, null);
   assert.equal(project.doorStyle, null);
   assert.equal(project.lighting, "integrated-led");
@@ -165,7 +200,7 @@ test("project summaries reflect normalized measurements and curated selections",
       windowRightDistance: 43.5,
       radiatorBelowWindow: "yes"
     },
-    style: "lower-cabinets-shelves",
+    style: "cabinet-base-shelves",
     finish: "charcoal",
     accentFinish: "ink-blue",
     hardware: "brass-pull",
@@ -178,11 +213,54 @@ test("project summaries reflect normalized measurements and curated selections",
   assert.equal(summary.wallWidth, "121 1/2 in");
   assert.equal(summary.windowRightDistance, "43 1/2 in");
   assert.equal(summary.radiatorBelowWindow, "Yes");
-  assert.equal(summary.style, "Lower Cabinets + Shelves");
+  assert.equal(summary.style, "Cabinets + Shelves");
   assert.equal(summary.finish, "Charcoal");
   assert.equal(summary.accentFinish, "Ink Blue");
   assert.equal(summary.hardware, "Brass Pull");
   assert.equal(summary.notes, "Preserve the existing crown.");
+
+  const summarySteps = Object.fromEntries(buildProjectSummary(project).map((row) => [row.key, row.step]));
+  assert.equal(summarySteps.category, 1);
+  assert.equal(summarySteps.layout, 2);
+  assert.equal(summarySteps.wallWidth, 3);
+  assert.equal(summarySteps.style, 4);
+  assert.equal(summarySteps.notes, 5);
+});
+
+test("bookcase configurations map only to construction-matched concept assets", () => {
+  const bookcaseStyles = categoryById("bookcase").styles;
+  assert.deepEqual(
+    bookcaseStyles.map((style) => style.id),
+    ["cabinet-base-shelves", "drawer-base-shelves", "tv-wall-cabinets", "full-open-shelving"]
+  );
+  assert.ok(bookcaseStyles.every((style) => style.drawingRef));
+  assert.ok(bookcaseStyles.every((style) => style.previewAsset.startsWith("assets/photos/configurator/concept-")));
+  assert.equal(
+    resolvePreviewAsset("bookcase", "cabinet-base-shelves", "window-wall"),
+    "assets/photos/configurator/concept-window-cabinets-v1.png"
+  );
+  assert.equal(
+    resolvePreviewAsset("bookcase", "drawer-base-shelves", "window-wall"),
+    "assets/photos/configurator/concept-drawers-shelves-v1.png"
+  );
+  assert.equal(
+    resolvePreviewAsset("bookcase", "tv-wall-cabinets", "clear-wall"),
+    "assets/photos/configurator/concept-tv-wall-v1.png"
+  );
+  assert.equal(
+    resolvePreviewAsset("bookcase", "full-open-shelving", "clear-wall"),
+    "assets/photos/configurator/concept-full-shelving-v1.png"
+  );
+});
+
+test("legacy bookcase style ids migrate to the closest construction family", () => {
+  const migrated = normalizeProject({
+    ...createProject({ now: 30, random: 0.31 }),
+    layout: "clear-wall",
+    style: "display-shelving"
+  }, { now: 31 });
+  assert.equal(migrated.style, "tv-wall-cabinets");
+  assert.equal(migrated.previewAsset, "assets/photos/configurator/concept-tv-wall-v1.png");
 });
 
 test("project store supports drafts, multiple saves, rename, duplicate, resume, and delete", () => {

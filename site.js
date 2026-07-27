@@ -1,4 +1,4 @@
-import { mountIcons, setIcon } from "./icon-system.js?v=interface-polish-20260715a";
+import { mountIcons, setIcon } from "./icon-system.js?v=product-first-20260727a";
 
 const navItems = [
   { label: "How It Works", href: "how-it-works.html", page: "how" },

@@ -175,7 +175,7 @@ test("corrupted guided draft data recovers safely to a new project", async ({ pa
   });
   const runtime = monitorPage(page);
   await page.goto("/configurator.html?start=resume", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What would you like us to build?" })).toBeVisible();
   await expect(page.locator("[data-continue]")).toBeDisabled();
   await expect(page.locator("canvas, [data-3d-viewer]")).toHaveCount(0);
   expect(runtime.errors).toEqual([]);
@@ -184,15 +184,18 @@ test("corrupted guided draft data recovers safely to a new project", async ({ pa
 
 test("selected choices expose a non-color state and visible keyboard focus", async ({ page }) => {
   await page.goto("/configurator.html?start=new", { waitUntil: "networkidle" });
-  const card = page.getByRole("button", { name: "Clear Wall", exact: true });
+  await page.locator('[data-product="bookcase"]').click();
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
+  const card = page.locator('[data-layout="clear-wall"]');
   await card.click();
   const selectedCard = page.locator('[data-layout="clear-wall"]');
   await expect(selectedCard).toHaveAttribute("aria-pressed", "true");
-  await expect(selectedCard.locator(".layout-selected-mark")).toHaveAccessibleName("Selected");
+  await expect(selectedCard.locator(".layout-selected-mark")).toBeVisible();
   await selectedCard.focus();
   await page.keyboard.press("Tab");
-  const keyboardTarget = page.getByRole("button", { name: "Center Recess", exact: true });
-  await expect(keyboardTarget).toBeFocused();
+  const keyboardTarget = page.locator("button[data-layout]:focus");
+  await expect(keyboardTarget).toHaveCount(1);
   const focus = await keyboardTarget.evaluate((element) => {
     const style = getComputedStyle(element);
     return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };

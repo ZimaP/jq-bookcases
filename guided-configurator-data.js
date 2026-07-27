@@ -76,11 +76,13 @@ const CONDITION_MEASUREMENTS = Object.freeze({
     measurement("rightReturn", "Right return", "H", { min: 0, max: 48, defaultValue: 12, position: "lower-right" })
   ]),
   window: Object.freeze([
+    measurement("leftReturn", "Left Return", "G", { min: 0, max: 48, defaultValue: 12, position: "lower-left", group: "Room & built-in" }),
+    measurement("rightReturn", "Right Return", "H", { min: 0, max: 48, defaultValue: 12, position: "lower-right", group: "Room & built-in" }),
     measurement("windowWidth", "Window width", "D", { min: 12, max: 144, defaultValue: 48, position: "feature-left" }),
     measurement("windowHeight", "Window height", "E", { min: 12, max: 96, defaultValue: 42, position: "feature-right" }),
     measurement("sillHeight", "Sill height", "F", { min: 12, max: 72, defaultValue: 30, position: "feature-bottom" }),
-    measurement("windowLeftDistance", "Distance from left wall", "G", { min: 0, max: 144, defaultValue: 30, position: "lower-left" }),
-    measurement("windowRightDistance", "Distance from right wall", "H", { min: 0, max: 144, defaultValue: 30, position: "lower-right" }),
+    measurement("windowLeftDistance", "Distance from left wall", "G", { min: 0, max: 144, defaultValue: null, position: "lower-left" }),
+    measurement("windowRightDistance", "Distance from right wall", "H", { min: 0, max: 144, defaultValue: null, position: "lower-right" }),
     selectMeasurement("radiatorBelowWindow", "Radiator below window", "I", yesNo, { defaultValue: "no", position: "feature-right" })
   ]),
   door: Object.freeze([
@@ -142,17 +144,23 @@ const CONDITION_MEASUREMENTS = Object.freeze({
   ])
 });
 
-const layout = (id, label, condition, feature, tags = []) => Object.freeze({
+const layout = (id, label, condition, feature, tags = [], options = {}) => Object.freeze({
   id,
   label,
   condition,
   feature,
-  tags: Object.freeze(tags)
+  tags: Object.freeze(tags),
+  previewAsset: "",
+  previewMode: "image",
+  previewPosition: "50% 50%",
+  ...options
 });
 
 const style = (id, label, options = {}) => Object.freeze({
   id,
   label,
+  description: "",
+  drawingRef: "",
   supportsDoors: true,
   supportsHardware: true,
   supportsLighting: true,
@@ -162,29 +170,82 @@ const style = (id, label, options = {}) => Object.freeze({
   ...options
 });
 
+const ROOM_LAYOUT_REFERENCE = "assets/photos/configurator/room-layouts/room-layout-reference-v1.png";
+
+export const SHARED_ROOM_LAYOUTS = Object.freeze([
+  layout("niche-layout", "Niche Layout", "niche", "recess", ["niche"], {
+    previewAsset: ROOM_LAYOUT_REFERENCE,
+    previewMode: "sprite",
+    previewPosition: "0% 0%"
+  }),
+  layout("left-niche", "Left Niche", "left-niche", "recess", ["niche"], {
+    previewAsset: ROOM_LAYOUT_REFERENCE,
+    previewMode: "sprite",
+    previewPosition: "100% 0%"
+  }),
+  layout("right-niche", "Right Niche", "right-niche", "recess", ["niche"], {
+    previewAsset: ROOM_LAYOUT_REFERENCE,
+    previewMode: "sprite",
+    previewPosition: "0% 100%"
+  }),
+  layout("clear-wall", "Clear Wall", "clear-wall", "none", [], {
+    previewAsset: "assets/photos/configurator/room-layouts/room-clear-wall-v1.png"
+  }),
+  layout("fireplace-wall", "Fireplace Wall", "clear-wall", "fireplace", ["fireplace"], {
+    previewAsset: ROOM_LAYOUT_REFERENCE,
+    previewMode: "sprite",
+    previewPosition: "100% 100%"
+  }),
+  layout("center-recess", "Center Projection", "clear-wall", "recess", ["niche"], {
+    previewAsset: "assets/photos/configurator/room-layouts/room-center-projection-v1.png"
+  }),
+  layout("window-wall", "Window Wall", "clear-wall", "window", ["window"], {
+    previewAsset: "assets/photos/configurator/room-layouts/room-window-wall-v1.png"
+  }),
+  layout("door-wall", "Door Wall", "clear-wall", "door", ["door"], {
+    previewAsset: "assets/photos/configurator/room-layouts/room-door-wall-v1.png"
+  }),
+  layout("corner-wall", "Corner Wall", "corner", "none", ["corner"], {
+    previewAsset: "assets/photos/configurator/room-layouts/room-corner-v1.png"
+  }),
+  layout("double-opening", "Between Openings", "clear-wall", "opening", ["opening"], {
+    previewAsset: "assets/photos/configurator/room-layouts/room-double-opening-v1.png"
+  })
+]);
+
 export const CATEGORY_DEFINITIONS = Object.freeze([
   Object.freeze({
     id: "bookcase",
     label: "Bookcase",
     icon: "bookcase",
     description: "Built-in shelving and storage designed around your room.",
-    layouts: Object.freeze([
-      layout("niche-layout", "Niche Layout", "niche", "recess", ["niche"]),
-      layout("left-niche", "Left Niche", "left-niche", "recess", ["niche"]),
-      layout("right-niche", "Right Niche", "right-niche", "recess", ["niche"]),
-      layout("fireplace-wall", "Fireplace Wall", "niche", "fireplace", ["fireplace"]),
-      layout("clear-wall", "Clear Wall", "clear-wall", "none"),
-      layout("center-recess", "Center Recess", "niche", "recess", ["niche"]),
-      layout("window-wall", "Window Wall", "niche", "window", ["window"]),
-      layout("door-wall", "Door Wall", "niche", "door", ["door"])
-    ]),
+    productPreviewAsset: "assets/photos/configurator/concept-cabinets-shelves-v1.png",
+    productPreviewPosition: "50% 45%",
+    layouts: SHARED_ROOM_LAYOUTS,
     styles: Object.freeze([
-      style("open-shelving", "Open Shelving", { supportsDoors: false, supportsHardware: false, previewAsset: "assets/photos/inspiration-library.jpg" }),
-      style("lower-cabinets-shelves", "Lower Cabinets + Shelves", { previewAsset: "assets/photos/inspiration-lower-cabinets.jpg" }),
-      style("full-height-closed", "Full-Height Closed Storage", { previewAsset: "assets/photos/inspiration-walnut.jpg" }),
-      style("display-shelving", "Display Shelving", { supportsDoors: false, supportsHardware: false, previewAsset: "assets/photos/hero-product.jpg" }),
-      style("library-style", "Library Style", { previewAsset: "assets/photos/inspiration-library.jpg" }),
-      style("floating-lower-storage", "Floating Lower Storage", { previewAsset: "assets/photos/inspiration-office.jpg" })
+      style("cabinet-base-shelves", "Cabinets + Shelves", {
+        description: "Open display above concealed cabinet storage.",
+        drawingRef: "Drawing 7",
+        previewAsset: "assets/photos/configurator/concept-cabinets-shelves-v1.png"
+      }),
+      style("drawer-base-shelves", "Drawers + Shelves", {
+        description: "Six-drawer base with open display shelving.",
+        drawingRef: "Drawings 5–6",
+        supportsDoors: false,
+        previewAsset: "assets/photos/configurator/concept-drawers-shelves-v1.png"
+      }),
+      style("tv-wall-cabinets", "TV Wall + Cabinets", {
+        description: "Centered media zone with shelving and closed storage.",
+        drawingRef: "Drawing 4",
+        previewAsset: "assets/photos/configurator/concept-tv-wall-v1.png"
+      }),
+      style("full-open-shelving", "Full Open Shelving", {
+        description: "Full-height display shelving without lower storage.",
+        drawingRef: "Drawings 1–2",
+        supportsDoors: false,
+        supportsHardware: false,
+        previewAsset: "assets/photos/configurator/concept-full-shelving-v1.png"
+      })
     ])
   }),
   Object.freeze({
@@ -192,19 +253,15 @@ export const CATEGORY_DEFINITIONS = Object.freeze([
     label: "TV Unit",
     icon: "tv",
     description: "A balanced media wall with concealed equipment and curated display space.",
-    layouts: Object.freeze([
-      layout("clear-tv-wall", "Clear TV Wall", "clear-wall", "tv", ["tv"]),
-      layout("tv-niche", "TV Niche", "niche", "tv", ["tv", "niche"]),
-      layout("fireplace-tv", "Fireplace + TV", "niche", "fireplace", ["tv", "fireplace"]),
-      layout("window-side-tv", "Window-Side TV Wall", "niche", "window", ["tv", "window"]),
-      layout("corner-tv-wall", "Corner TV Wall", "corner", "tv", ["tv", "corner"])
-    ]),
+    productPreviewAsset: "assets/photos/configurator/concept-tv-wall-v1.png",
+    productPreviewPosition: "50% 45%",
+    layouts: SHARED_ROOM_LAYOUTS,
     styles: Object.freeze([
-      style("open-media", "Open Media Shelving", { previewAsset: "assets/photos/inspiration-media.jpg" }),
-      style("low-media-console", "Low Media Console", { previewAsset: "assets/photos/inspiration-media.jpg" }),
-      style("framed-tv-wall", "Framed TV Wall", { previewAsset: "assets/photos/inspiration-white-classic.jpg" }),
-      style("library-media", "Library + Media", { previewAsset: "assets/photos/inspiration-library.jpg" }),
-      style("closed-media-storage", "Closed Media Storage", { previewAsset: "assets/photos/inspiration-walnut.jpg" })
+      style("open-media", "Open Media Shelving", { previewAsset: "assets/photos/configurator/concept-tv-wall-v1.png" }),
+      style("low-media-console", "Low Media Console", { previewAsset: "assets/photos/configurator/concept-tv-wall-v1.png" }),
+      style("framed-tv-wall", "Framed TV Wall", { previewAsset: "assets/photos/configurator/concept-tv-wall-v1.png" }),
+      style("library-media", "Library + Media", { previewAsset: "assets/photos/configurator/concept-tv-wall-v1.png" }),
+      style("closed-media-storage", "Closed Media Storage", { previewAsset: "assets/photos/configurator/concept-tv-wall-v1.png" })
     ])
   }),
   Object.freeze({
@@ -212,19 +269,15 @@ export const CATEGORY_DEFINITIONS = Object.freeze([
     label: "Floating Storage",
     icon: "floating",
     description: "Lightweight wall-mounted storage tailored to your room condition.",
-    layouts: Object.freeze([
-      layout("floating-clear-wall", "Clear Wall", "clear-wall", "none"),
-      layout("floating-under-window", "Under Window", "clear-wall", "window", ["window"]),
-      layout("between-openings", "Between Openings", "clear-wall", "door", ["opening"]),
-      layout("wall-to-wall-floating", "Wall-to-Wall Floating Unit", "niche", "none", ["niche"]),
-      layout("floating-corner", "Corner Condition", "corner", "none", ["corner"])
-    ]),
+    productPreviewAsset: "assets/photos/configurator/product-floating-storage-v1.png",
+    productPreviewPosition: "50% 52%",
+    layouts: SHARED_ROOM_LAYOUTS,
     styles: Object.freeze([
-      style("slim-floating-console", "Slim Floating Console", { supportsLighting: false, supportsBase: false, supportsTop: false, previewAsset: "assets/photos/inspiration-office.jpg" }),
-      style("floating-drawer-bank", "Floating Drawer Bank", { supportsBase: false, supportsTop: false, previewAsset: "assets/photos/inspiration-lower-cabinets.jpg" }),
-      style("floating-cabinets", "Floating Cabinets", { supportsBase: false, supportsTop: false, previewAsset: "assets/photos/inspiration-living.jpg" }),
-      style("display-ledge-storage", "Display Ledge + Storage", { supportsBase: false, supportsTop: false, previewAsset: "assets/photos/hero-product.jpg" }),
-      style("asymmetric-floating", "Asymmetric Floating Unit", { supportsBase: false, supportsTop: false, previewAsset: "assets/photos/inspiration-office.jpg" })
+      style("slim-floating-console", "Slim Floating Console", { supportsLighting: false, supportsBase: false, supportsTop: false, previewAsset: "assets/photos/configurator/product-floating-storage-v1.png" }),
+      style("floating-drawer-bank", "Floating Drawer Bank", { supportsBase: false, supportsTop: false, previewAsset: "assets/photos/configurator/product-floating-storage-v1.png" }),
+      style("floating-cabinets", "Floating Cabinets", { supportsBase: false, supportsTop: false, previewAsset: "assets/photos/configurator/product-floating-storage-v1.png" }),
+      style("display-ledge-storage", "Display Ledge + Storage", { supportsBase: false, supportsTop: false, previewAsset: "assets/photos/configurator/product-floating-storage-v1.png" }),
+      style("asymmetric-floating", "Asymmetric Floating Unit", { supportsBase: false, supportsTop: false, previewAsset: "assets/photos/configurator/product-floating-storage-v1.png" })
     ])
   }),
   Object.freeze({
@@ -232,19 +285,15 @@ export const CATEGORY_DEFINITIONS = Object.freeze([
     label: "Window Storage",
     icon: "window",
     description: "Window seating and storage that keeps light at the center of the design.",
-    layouts: Object.freeze([
-      layout("single-window", "Single Window", "niche", "window", ["window"]),
-      layout("wide-window", "Wide Window", "niche", "window", ["window"]),
-      layout("bay-window", "Bay-Style Condition", "niche", "window", ["window"]),
-      layout("window-side-bookcases", "Window with Side Bookcases", "niche", "window", ["window"]),
-      layout("window-radiator", "Window with Radiator", "niche", "window", ["window", "radiator"])
-    ]),
+    productPreviewAsset: "assets/photos/configurator/concept-window-cabinets-v1.png",
+    productPreviewPosition: "50% 45%",
+    layouts: SHARED_ROOM_LAYOUTS,
     styles: Object.freeze([
-      style("window-seat-storage", "Window Seat + Storage", { previewAsset: "assets/photos/inspiration-living.jpg" }),
-      style("side-bookcases", "Side Bookcases", { previewAsset: "assets/photos/inspiration-library.jpg" }),
-      style("low-window-cabinets", "Low Window Cabinets", { previewAsset: "assets/photos/inspiration-lower-cabinets.jpg" }),
-      style("display-window-wall", "Display Window Wall", { previewAsset: "assets/photos/hero-product.jpg" }),
-      style("library-window", "Library Window", { previewAsset: "assets/photos/inspiration-walnut.jpg" })
+      style("window-seat-storage", "Window Seat + Storage", { previewAsset: "assets/photos/configurator/concept-window-cabinets-v1.png" }),
+      style("side-bookcases", "Side Bookcases", { previewAsset: "assets/photos/configurator/concept-window-cabinets-v1.png" }),
+      style("low-window-cabinets", "Low Window Cabinets", { previewAsset: "assets/photos/configurator/concept-window-cabinets-v1.png" }),
+      style("display-window-wall", "Display Window Wall", { previewAsset: "assets/photos/configurator/concept-window-cabinets-v1.png" }),
+      style("library-window", "Library Window", { previewAsset: "assets/photos/configurator/concept-window-cabinets-v1.png" })
     ])
   }),
   Object.freeze({
@@ -252,19 +301,15 @@ export const CATEGORY_DEFINITIONS = Object.freeze([
     label: "Radiator Cover",
     icon: "radiator",
     description: "A ventilated cover with optional storage and display elements.",
-    layouts: Object.freeze([
-      layout("standalone-radiator", "Standalone Radiator", "clear-wall", "radiator", ["radiator"]),
-      layout("radiator-below-window", "Radiator Below Window", "clear-wall", "window", ["radiator", "window"]),
-      layout("wall-to-wall-cover", "Wall-to-Wall Cover", "niche", "radiator", ["radiator", "niche"]),
-      layout("radiator-side-storage", "Radiator with Side Storage", "niche", "radiator", ["radiator"]),
-      layout("radiator-upper-shelving", "Radiator with Upper Shelving", "niche", "radiator", ["radiator"])
-    ]),
+    productPreviewAsset: "assets/photos/configurator/product-radiator-cover-v1.png",
+    productPreviewPosition: "50% 55%",
+    layouts: SHARED_ROOM_LAYOUTS,
     styles: Object.freeze([
-      style("clean-slat-cover", "Clean Slat Cover", { supportsDoors: false, supportsHardware: false, supportsLighting: false, supportsTop: false, previewAsset: "assets/photos/material-paint.jpg" }),
-      style("shaker-radiator-cover", "Shaker Radiator Cover", { supportsHardware: false, supportsLighting: false, previewAsset: "assets/photos/inspiration-white-classic.jpg" }),
-      style("cover-side-cabinets", "Cover + Side Cabinets", { previewAsset: "assets/photos/inspiration-lower-cabinets.jpg" }),
-      style("cover-display-shelves", "Cover + Display Shelves", { supportsDoors: false, supportsHardware: false, previewAsset: "assets/photos/hero-product.jpg" }),
-      style("library-radiator-wall", "Library Radiator Wall", { previewAsset: "assets/photos/inspiration-library.jpg" })
+      style("clean-slat-cover", "Clean Slat Cover", { supportsDoors: false, supportsHardware: false, supportsLighting: false, supportsTop: false, previewAsset: "assets/photos/configurator/product-radiator-cover-v1.png" }),
+      style("shaker-radiator-cover", "Shaker Radiator Cover", { supportsHardware: false, supportsLighting: false, previewAsset: "assets/photos/configurator/product-radiator-cover-v1.png" }),
+      style("cover-side-cabinets", "Cover + Side Cabinets", { previewAsset: "assets/photos/configurator/product-radiator-cover-v1.png" }),
+      style("cover-display-shelves", "Cover + Display Shelves", { supportsDoors: false, supportsHardware: false, previewAsset: "assets/photos/configurator/product-radiator-cover-v1.png" }),
+      style("library-radiator-wall", "Library Radiator Wall", { previewAsset: "assets/photos/configurator/product-radiator-cover-v1.png" })
     ])
   })
 ]);
@@ -310,15 +355,68 @@ export const DETAIL_OPTIONS = Object.freeze({
     Object.freeze({ id: "integrated-led", label: "Integrated LED" })
   ]),
   baseStyle: Object.freeze([
-    Object.freeze({ id: "furniture-base", label: "Furniture Base" }),
-    Object.freeze({ id: "flush-base", label: "Flush Base" }),
-    Object.freeze({ id: "recessed-toe-kick", label: "Recessed Toe Kick" })
+    Object.freeze({
+      id: "flush-base",
+      label: "Built-in · Flush room base",
+      shortLabel: "Flush built-in",
+      description: "Fitted wall fillers with the room base carried across the front."
+    }),
+    Object.freeze({
+      id: "recessed-toe-kick",
+      label: "Built-in · Recessed toe kick",
+      shortLabel: "Recessed built-in",
+      description: "Fitted wall fillers with a shadowed working toe space."
+    }),
+    Object.freeze({
+      id: "furniture-base",
+      label: "Freestanding · No fillers",
+      shortLabel: "Freestanding",
+      description: "Finished exterior sides with deliberate clearance from the walls."
+    })
   ]),
   topTreatment: Object.freeze([
-    Object.freeze({ id: "simple-finished-top", label: "Simple Finished Top" }),
-    Object.freeze({ id: "small-crown", label: "Small Crown" }),
-    Object.freeze({ id: "traditional-crown", label: "Traditional Crown" })
+    Object.freeze({ id: "simple-finished-top", label: "Simple Finished Top", shortLabel: "Finished top" }),
+    Object.freeze({ id: "small-crown", label: "Architectural Top Rail", shortLabel: "Top rail" }),
+    Object.freeze({ id: "traditional-crown", label: "Built-Up Crown", shortLabel: "Built-up crown" })
   ])
+});
+
+const BOOKCASE_STYLE_ALIASES = Object.freeze({
+  "open-shelving": "cabinet-base-shelves",
+  "lower-cabinets-shelves": "cabinet-base-shelves",
+  "full-height-closed": "cabinet-base-shelves",
+  "display-shelving": "tv-wall-cabinets",
+  "library-style": "full-open-shelving",
+  "floating-lower-storage": "drawer-base-shelves"
+});
+
+const LEGACY_LAYOUT_ALIASES = Object.freeze({
+  "clear-tv-wall": "clear-wall",
+  "tv-niche": "niche-layout",
+  "fireplace-tv": "fireplace-wall",
+  "window-side-tv": "window-wall",
+  "corner-tv-wall": "corner-wall",
+  "floating-clear-wall": "clear-wall",
+  "floating-under-window": "window-wall",
+  "between-openings": "double-opening",
+  "wall-to-wall-floating": "niche-layout",
+  "floating-corner": "corner-wall",
+  "single-window": "window-wall",
+  "wide-window": "window-wall",
+  "bay-window": "window-wall",
+  "window-side-bookcases": "window-wall",
+  "window-radiator": "window-wall",
+  "standalone-radiator": "clear-wall",
+  "radiator-below-window": "window-wall",
+  "wall-to-wall-cover": "niche-layout",
+  "radiator-side-storage": "niche-layout",
+  "radiator-upper-shelving": "clear-wall"
+});
+
+const CATEGORY_MEASUREMENT_TAGS = Object.freeze({
+  "tv-unit": Object.freeze(["tv"]),
+  "window-storage": Object.freeze(["window"]),
+  "radiator-cover": Object.freeze(["radiator"])
 });
 
 export function getCategory(categoryId) {
@@ -326,12 +424,16 @@ export function getCategory(categoryId) {
 }
 
 export function getLayout(categoryId, layoutId) {
-  return getCategory(categoryId).layouts.find((candidate) => candidate.id === layoutId) || null;
+  const normalizedLayoutId = LEGACY_LAYOUT_ALIASES[layoutId] || layoutId;
+  return SHARED_ROOM_LAYOUTS.find((candidate) => candidate.id === normalizedLayoutId) || null;
 }
 
 export function getStyle(categoryId, styleId) {
   const category = getCategory(categoryId);
-  return category.styles.find((candidate) => candidate.id === styleId) || category.styles[0];
+  const normalizedStyleId = category.id === "bookcase"
+    ? BOOKCASE_STYLE_ALIASES[styleId] || styleId
+    : styleId;
+  return category.styles.find((candidate) => candidate.id === normalizedStyleId) || category.styles[0];
 }
 
 export function getFinish(finishId) {
@@ -342,7 +444,10 @@ export function getMeasurementFields(categoryId, layoutId) {
   const selectedLayout = getLayout(categoryId, layoutId);
   const fields = [...BASE_MEASUREMENTS];
   const seen = new Set(fields.map((field) => field.id));
-  const tags = selectedLayout?.tags || [];
+  const tags = [
+    ...(CATEGORY_MEASUREMENT_TAGS[getCategory(categoryId).id] || []),
+    ...(selectedLayout?.tags || [])
+  ];
 
   for (const tag of tags) {
     for (const field of CONDITION_MEASUREMENTS[tag] || []) {
@@ -366,8 +471,20 @@ export function getCompatibleDetails(categoryId, styleId) {
   });
 }
 
-export function resolvePreviewAsset(categoryId, styleId) {
-  return getStyle(categoryId, styleId).previewAsset;
+export function resolvePreviewAsset(categoryId, styleId, layoutId = null) {
+  const selectedLayout = getLayout(categoryId, layoutId);
+  const selectedStyle = getStyle(categoryId, styleId);
+  if (
+    categoryId === "bookcase"
+    && selectedStyle.id === "cabinet-base-shelves"
+    && selectedLayout?.feature === "window"
+  ) {
+    return "assets/photos/configurator/concept-window-cabinets-v1.png";
+  }
+  if (categoryId === "window-storage") {
+    return "assets/photos/configurator/concept-window-cabinets-v1.png";
+  }
+  return selectedStyle.previewAsset;
 }
 
 export const GUIDED_MEASUREMENT_PROVENANCE = Object.freeze({

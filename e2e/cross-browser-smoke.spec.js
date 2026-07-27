@@ -47,18 +47,22 @@ test("public routes render without runtime, network, or responsive overflow fail
 test("the guided project flow works through review and refresh", async ({ page }) => {
   const failures = monitorRuntime(page);
   await page.goto("/configurator.html?start=new", { waitUntil: "networkidle" });
-  await page.getByRole("button", { name: "TV Unit", exact: true }).click();
-  await page.getByRole("button", { name: "Clear TV Wall", exact: true }).click();
+  await page.locator('[data-product="tv-unit"]').click();
   await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
+  await page.locator('[data-layout="clear-wall"]').click();
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
   await page.getByLabel("Wall width").fill("126 1/2");
   await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
   await page.getByRole("tab", { name: "Finish" }).click();
   await page.getByRole("button", { name: "Dark Walnut", exact: true }).click();
   await page.locator("[data-continue]").click();
 
   const summary = page.locator(".project-summary-card");
   await expect(summary).toContainText("TV Unit");
-  await expect(summary).toContainText("Clear TV Wall");
+  await expect(summary).toContainText("Clear Wall");
   await expect(summary).toContainText("126 1/2 in");
   await expect(summary).toContainText("Dark Walnut");
   await page.waitForTimeout(250);

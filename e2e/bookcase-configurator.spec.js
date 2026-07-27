@@ -1,45 +1,25 @@
 import { test, expect } from "@playwright/test";
 
-const categoryLayouts = {
-  Bookcase: [
-    "Niche Layout",
-    "Left Niche",
-    "Right Niche",
-    "Fireplace Wall",
-    "Clear Wall",
-    "Center Recess",
-    "Window Wall",
-    "Door Wall"
-  ],
-  "TV Unit": [
-    "Clear TV Wall",
-    "TV Niche",
-    "Fireplace + TV",
-    "Window-Side TV Wall",
-    "Corner TV Wall"
-  ],
-  "Floating Storage": [
-    "Clear Wall",
-    "Under Window",
-    "Between Openings",
-    "Wall-to-Wall Floating Unit",
-    "Corner Condition"
-  ],
-  "Window Storage": [
-    "Single Window",
-    "Wide Window",
-    "Bay-Style Condition",
-    "Window with Side Bookcases",
-    "Window with Radiator"
-  ],
-  "Radiator Cover": [
-    "Standalone Radiator",
-    "Radiator Below Window",
-    "Wall-to-Wall Cover",
-    "Radiator with Side Storage",
-    "Radiator with Upper Shelving"
-  ]
-};
+const products = [
+  { id: "bookcase", label: "Bookcase" },
+  { id: "tv-unit", label: "TV Unit" },
+  { id: "floating-storage", label: "Floating Storage" },
+  { id: "window-storage", label: "Window Storage" },
+  { id: "radiator-cover", label: "Radiator Cover" }
+];
+
+const sharedLayouts = [
+  { id: "niche-layout", label: "Niche Layout" },
+  { id: "left-niche", label: "Left Niche" },
+  { id: "right-niche", label: "Right Niche" },
+  { id: "clear-wall", label: "Clear Wall" },
+  { id: "fireplace-wall", label: "Fireplace Wall" },
+  { id: "center-recess", label: "Center Projection" },
+  { id: "window-wall", label: "Window Wall" },
+  { id: "door-wall", label: "Door Wall" },
+  { id: "corner-wall", label: "Corner Wall" },
+  { id: "double-opening", label: "Between Openings" }
+];
 
 function monitorRuntime(page) {
   const failures = [];
@@ -60,8 +40,23 @@ function monitorRuntime(page) {
 
 async function openFreshProject(page) {
   await page.goto("/configurator.html?start=new", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What would you like us to build?" })).toBeVisible();
   await expect(page).toHaveURL(/configurator\.html#step-1$/);
+}
+
+async function chooseProduct(page, label = "Bookcase") {
+  const product = products.find((candidate) => candidate.label === label);
+  if (!product) throw new Error(`Unknown product: ${label}`);
+  const card = page.locator(`[data-product="${product.id}"]`);
+  await card.click();
+  await expect(card).toHaveAttribute("aria-pressed", "true");
+}
+
+async function continueToLayouts(page, product = "Bookcase") {
+  await chooseProduct(page, product);
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
+  await expect(page).toHaveURL(/configurator\.html#step-2$/);
 }
 
 async function chooseLayout(page, label) {
@@ -71,7 +66,8 @@ async function chooseLayout(page, label) {
   await expect(page.locator(`[data-layout="${layoutId}"]`)).toHaveAttribute("aria-pressed", "true");
 }
 
-async function continueToReview(page, layout = "Clear Wall") {
+async function continueToReview(page, layout = "Clear Wall", product = "Bookcase") {
+  await continueToLayouts(page, product);
   await chooseLayout(page, layout);
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
@@ -117,48 +113,53 @@ async function serveWithQuoteEndpoint(page, status, body) {
   }));
 }
 
-test("public route is the lightweight four-step configurator and excludes the 3D engine", async ({ page }) => {
+test("public route is the lightweight five-step configurator and excludes the 3D engine", async ({ page }) => {
   const runtime = monitorRuntime(page);
   const requests = [];
   page.on("request", (request) => requests.push(new URL(request.url()).pathname));
   await openFreshProject(page);
 
   await expect(page.locator("[data-guided-app]")).toHaveCount(1);
-  await expect(page.getByRole("navigation", { name: "Project steps" }).getByRole("button")).toHaveCount(4);
-  await expect(page.getByRole("navigation", { name: "Project category" }).getByRole("button")).toHaveCount(5);
+  await expect(page.getByRole("navigation", { name: "Project steps" }).getByRole("button")).toHaveCount(5);
+  await expect(page.locator("[data-product]")).toHaveCount(5);
+  await expect(page.locator("[data-product] .product-card-title")).toHaveText(products.map((product) => product.label));
   await expect(page.locator("canvas, [data-3d-viewer], model-viewer")).toHaveCount(0);
   expect(requests.some((path) => /configurator-3d|three\.module|cabinet-ar|direct-hardware/i.test(path))).toBe(false);
   expect(runtime).toEqual([]);
 });
 
-test("Continue requires a selection and every category has its intentional layout set", async ({ page }) => {
+test("Continue requires explicit choices and every product uses the same ten room layouts", async ({ page }) => {
   await openFreshProject(page);
   await expect(page.locator("[data-continue]")).toBeDisabled();
 
-  for (const [category, layouts] of Object.entries(categoryLayouts)) {
-    await page.getByRole("button", { name: category, exact: true }).click();
+  for (const product of products) {
+    await openFreshProject(page);
+    await continueToLayouts(page, product.label);
     const cards = page.locator("[data-layout]");
-    await expect(cards).toHaveCount(layouts.length);
-    await expect(cards.locator(".layout-card-title")).toHaveText(layouts);
+    await expect(cards).toHaveCount(sharedLayouts.length);
+    await expect(cards.locator(".layout-card-title")).toHaveText(sharedLayouts.map((layout) => layout.label));
+    expect(await cards.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-layout"))))
+      .toEqual(sharedLayouts.map((layout) => layout.id));
     await expect(page.locator("[data-continue]")).toBeDisabled();
   }
 });
 
 test("measurement fields adapt to the layout, accept fractions, warn gently, and retain values", async ({ page }) => {
   await openFreshProject(page);
+  await continueToLayouts(page);
   await chooseLayout(page, "Window Wall");
   await page.locator("[data-continue]").click();
 
   for (const label of [
-    "Wall width",
-    "Ceiling height",
-    "Desired built-in depth",
-    "Window width",
-    "Window height",
-    "Sill height",
-    "Distance from left wall",
-    "Distance from right wall",
-    "Radiator below window"
+    "Wall Width (A)",
+    "Ceiling Height (B)",
+    "Desired Depth (C)",
+    "Left Return",
+    "Right Return",
+    "Window Width",
+    "Window Height",
+    "Sill Height",
+    "Radiator Below Window"
   ]) {
     await expect(page.getByLabel(label)).toBeVisible();
   }
@@ -176,10 +177,16 @@ test("measurement fields adapt to the layout, accept fractions, warn gently, and
 
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+  await expect(page.locator(".concept-preview")).toHaveAttribute(
+    "data-preview-asset",
+    "assets/photos/configurator/concept-window-cabinets-v1.png"
+  );
   await page.locator("[data-back]").click();
   await expect(width).toHaveValue("190");
 
-  await width.fill("");
+  await width.selectText();
+  await width.press("Backspace");
+  await expect(width).toHaveValue("");
   await page.locator("[data-continue]").click();
   await expect(page.locator("[data-measurement-error]")).toContainText("approximate wall width");
   await expect(width).toBeFocused();
@@ -187,45 +194,57 @@ test("measurement fields adapt to the layout, accept fractions, warn gently, and
 
 test("style, finish, compatibility, preview, and review summary stay synchronized", async ({ page }) => {
   await openFreshProject(page);
+  await continueToLayouts(page);
   await chooseLayout(page, "Clear Wall");
   await page.locator("[data-continue]").click();
   await page.getByLabel("Wall width").fill("132.25");
   await page.locator("[data-continue]").click();
 
-  await page.locator('button[data-style="open-shelving"]').click();
-  await expect(page.locator(".concept-preview")).toHaveAttribute("data-style", "open-shelving");
+  await page.locator('button[data-style="drawer-base-shelves"]').click();
+  await expect(page.locator(".concept-preview")).toHaveAttribute(
+    "data-preview-asset",
+    "assets/photos/configurator/concept-drawers-shelves-v1.png"
+  );
+  await page.locator('button[data-style="cabinet-base-shelves"]').click();
+  await expect(page.locator(".concept-preview")).toHaveAttribute("data-style", "cabinet-base-shelves");
+  await expect(page.locator(".concept-preview")).toHaveAttribute(
+    "data-preview-asset",
+    "assets/photos/configurator/concept-cabinets-shelves-v1.png"
+  );
   await page.getByRole("tab", { name: "Finish" }).click();
   await page.getByRole("button", { name: "Charcoal", exact: true }).click();
   await expect(page.locator(".concept-unit")).toHaveCSS("--unit-finish", "#343638");
-  await page.getByRole("button", { name: "Ink Blue", exact: true }).click();
-  await expect(page.locator(".concept-unit")).toHaveCSS("--accent-finish", "#384b59");
-
   await page.getByRole("button", { name: "Zoom in" }).click();
   await expect(page.locator("[data-concept-scene]")).toHaveCSS("--preview-scale", "1.1");
   await page.getByRole("button", { name: "Reset preview" }).click();
   await expect(page.locator("[data-concept-scene]")).toHaveCSS("--preview-scale", "1");
 
   await page.getByRole("tab", { name: "Details" }).click();
-  await expect(page.getByRole("heading", { name: "Hardware" })).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Door style" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Installation" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Hardware" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Door style" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Lighting" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Top treatment" })).toBeVisible();
+  await page.locator('[data-detail-key="hardware"][data-detail="black-pull"]').click();
   await page.locator("[data-continue]").click();
 
   const summary = page.locator(".project-summary-card");
   await expect(summary).toContainText("Bookcase");
   await expect(summary).toContainText("Clear Wall");
   await expect(summary).toContainText("132 1/4 in");
-  await expect(summary).toContainText("Open Shelving");
+  await expect(summary).toContainText("Cabinets + Shelves");
   await expect(summary).toContainText("Charcoal");
-  await expect(summary).toContainText("Ink Blue");
-  await expect(summary).not.toContainText("Hardware");
+  await expect(summary).toContainText("Black Pull");
+  await page.getByRole("button", { name: "Edit project notes" }).click();
   await page.getByLabel("Notes for our design team").fill("Keep the original picture rail.");
+  await page.getByRole("button", { name: "Save Notes" }).click();
   await expect(summary.locator('[data-summary-value="notes"]')).toHaveText("Keep the original picture rail.");
-  await expect(page.locator(".concept-preview")).toHaveAttribute("data-style", "open-shelving");
+  await expect(page.locator(".concept-preview")).toHaveAttribute("data-style", "cabinet-base-shelves");
 });
 
 test("automatic draft saving restores the active step and values after refresh", async ({ page }) => {
   await openFreshProject(page);
+  await continueToLayouts(page);
   await chooseLayout(page, "Fireplace Wall");
   await page.locator("[data-continue]").click();
   await page.getByLabel("Wall width").fill("137 3/8");
@@ -244,9 +263,10 @@ test("automatic draft saving restores the active step and values after refresh",
 
 test("inspiration presets apply once and then restore edits after refresh", async ({ page }) => {
   await page.goto("/configurator.html?preset=media-wall", { waitUntil: "networkidle" });
-  await expect(page.getByRole("button", { name: "TV Unit", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator('button[data-layout="clear-tv-wall"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('[data-product="tv-unit"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page).toHaveURL(/configurator\.html#step-1$/);
+  await page.locator("[data-continue]").click();
+  await expect(page.locator('button[data-layout="clear-wall"]')).toHaveAttribute("aria-pressed", "true");
   await page.locator("[data-continue]").click();
   await page.getByLabel("Wall width").fill("129.5");
   await page.waitForTimeout(250);
@@ -258,6 +278,7 @@ test("inspiration presets apply once and then restore edits after refresh", asyn
 
 test("saved projects can be renamed, duplicated, deleted, and resumed", async ({ page }) => {
   await openFreshProject(page);
+  await continueToLayouts(page);
   await chooseLayout(page, "Niche Layout");
   await page.getByRole("button", { name: "Save Project", exact: true }).click();
   const saveDialog = page.locator("[data-save-dialog]");
@@ -289,6 +310,7 @@ test("blocked local storage never reports a project as saved", async ({ page }) 
     };
   });
   await openFreshProject(page);
+  await continueToLayouts(page);
   await chooseLayout(page, "Clear Wall");
   await page.getByRole("button", { name: "Save Project", exact: true }).click();
   const dialog = page.locator("[data-save-dialog]");
@@ -347,11 +369,17 @@ test("a failed connected quote request keeps the project and reports an honest e
   await expect.poll(() => page.evaluate(() => localStorage.getItem("jqGuidedConfiguratorDraftV1"))).not.toBeNull();
 });
 
-test("keyboard interaction covers layout cards, tabs, completed steps, and menu dismissal", async ({ page }) => {
+test("keyboard interaction covers product and layout cards, tabs, completed steps, and menu dismissal", async ({ page }) => {
   await openFreshProject(page);
+  const firstProduct = page.locator('[data-product="bookcase"]');
+  await firstProduct.focus();
+  await firstProduct.press("Space");
+  await expect(firstProduct).toHaveAttribute("aria-pressed", "true");
+  await page.locator("[data-continue]").click();
+
   const firstLayout = page.getByRole("button", { name: "Niche Layout", exact: true });
   await firstLayout.focus();
-  await firstLayout.press("Space");
+  await firstLayout.press("Enter");
   await expect(page.locator('button[data-layout="niche-layout"]')).toHaveAttribute("aria-pressed", "true");
   await page.locator("[data-continue]").click();
   await page.locator("[data-continue]").click();
@@ -361,7 +389,7 @@ test("keyboard interaction covers layout cards, tabs, completed steps, and menu 
   await styleTab.press("ArrowRight");
   await expect(page.getByRole("tab", { name: "Finish" })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("button", { name: /Choose Layout, completed/ }).click();
-  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
 
   const menu = page.getByRole("button", { name: "Open menu" });
   await menu.click();
@@ -372,12 +400,11 @@ test("keyboard interaction covers layout cards, tabs, completed steps, and menu 
 });
 
 test("one complete guided flow works for every product category", async ({ page }) => {
-  for (const [category, layouts] of Object.entries(categoryLayouts)) {
+  for (const product of products) {
     await openFreshProject(page);
-    await page.getByRole("button", { name: category, exact: true }).click();
-    await continueToReview(page, layouts[0]);
-    await expect(page.locator(".project-summary-card")).toContainText(category);
-    await expect(page.locator(".project-summary-card")).toContainText(layouts[0]);
+    await continueToReview(page, sharedLayouts[0].label, product.label);
+    await expect(page.locator(".project-summary-card")).toContainText(product.label);
+    await expect(page.locator(".project-summary-card")).toContainText(sharedLayouts[0].label);
   }
 });
 
@@ -395,6 +422,9 @@ test("desktop, iPad, and phone layouts are overflow-free with usable mobile cont
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), `${viewport.width}x${viewport.height}`).toBeLessThanOrEqual(1);
   }
 
+  const productTargets = await page.locator("[data-product]").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
+  expect(Math.min(...productTargets)).toBeGreaterThanOrEqual(44);
+  await continueToLayouts(page);
   await expect(page.locator(".layout-grid")).toHaveCSS("grid-template-columns", /.+ .+/);
   const cardTargets = await page.locator("[data-layout]").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
   expect(Math.min(...cardTargets)).toBeGreaterThanOrEqual(44);
