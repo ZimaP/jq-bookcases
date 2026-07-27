@@ -123,6 +123,10 @@ test("public route is the lightweight five-step configurator and excludes the 3D
   await expect(page.getByRole("navigation", { name: "Project steps" }).getByRole("button")).toHaveCount(5);
   await expect(page.locator("[data-product]")).toHaveCount(5);
   await expect(page.locator("[data-product] .product-card-title")).toHaveText(products.map((product) => product.label));
+  await expect(page.locator("[data-product] picture source[type='image/avif']")).toHaveCount(5);
+  await expect.poll(() => page.locator("[data-product] img").evaluateAll((images) => (
+    images.every((image) => image.complete && image.naturalWidth > 0 && image.currentSrc.endsWith(".avif"))
+  ))).toBe(true);
   await expect(page.locator("canvas, [data-3d-viewer], model-viewer")).toHaveCount(0);
   expect(requests.some((path) => /configurator-3d|three\.module|cabinet-ar|direct-hardware/i.test(path))).toBe(false);
   expect(runtime).toEqual([]);
@@ -200,6 +204,10 @@ test("style, finish, compatibility, preview, and review summary stay synchronize
   await page.getByLabel("Wall width").fill("132.25");
   await page.locator("[data-continue]").click();
 
+  await expect.poll(() => page.locator(".style-thumb img").evaluateAll((images) => (
+    images.length === 4
+      && images.every((image) => image.complete && image.naturalWidth > 0 && image.currentSrc.endsWith(".avif"))
+  ))).toBe(true);
   await page.locator('button[data-style="drawer-base-shelves"]').click();
   await expect(page.locator(".concept-preview")).toHaveAttribute(
     "data-preview-asset",
@@ -213,6 +221,12 @@ test("style, finish, compatibility, preview, and review summary stay synchronize
   );
   await page.getByRole("tab", { name: "Finish" }).click();
   await page.getByRole("button", { name: "Charcoal", exact: true }).click();
+  const customizationPreview = page.locator(".concept-preview");
+  await expect(customizationPreview).toHaveAttribute("data-finish", "charcoal");
+  await expect(customizationPreview).toHaveAttribute("data-finish-family", "paint");
+  await expect(customizationPreview.locator(".concept-finish-overlay")).toBeVisible();
+  await expect(customizationPreview.locator(".concept-finish-overlay-tint")).toHaveCSS("fill", "rgb(52, 54, 56)");
+  await expect(customizationPreview.locator(".concept-finish-caption")).toContainText("Charcoal");
   await expect(page.locator(".concept-unit")).toHaveCSS("--unit-finish", "#343638");
   await page.getByRole("button", { name: "Zoom in" }).click();
   await expect(page.locator("[data-concept-scene]")).toHaveCSS("--preview-scale", "1.1");
@@ -235,6 +249,8 @@ test("style, finish, compatibility, preview, and review summary stay synchronize
   await expect(summary).toContainText("Cabinets + Shelves");
   await expect(summary).toContainText("Charcoal");
   await expect(summary).toContainText("Black Pull");
+  await expect(page.locator(".concept-preview")).toHaveAttribute("data-finish", "charcoal");
+  await expect(page.locator(".concept-finish-caption")).toContainText("Charcoal");
   await page.getByRole("button", { name: "Edit project notes" }).click();
   await page.getByLabel("Notes for our design team").fill("Keep the original picture rail.");
   await page.getByRole("button", { name: "Save Notes" }).click();
@@ -413,6 +429,7 @@ test("desktop, iPad, and phone layouts are overflow-free with usable mobile cont
     { width: 1920, height: 1080 },
     { width: 1440, height: 900 },
     { width: 1366, height: 768 },
+    { width: 1280, height: 720 },
     { width: 1180, height: 820 },
     { width: 820, height: 1180 },
     { width: 390, height: 844 }
@@ -424,25 +441,61 @@ test("desktop, iPad, and phone layouts are overflow-free with usable mobile cont
 
   const productTargets = await page.locator("[data-product]").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
   expect(Math.min(...productTargets)).toBeGreaterThanOrEqual(44);
-  await continueToLayouts(page);
+  await expect(page.locator(".guided-step-label--mobile")).toHaveText(["Product", "Layout", "Size", "Finish", "Review"]);
+  await continueToLayouts(page, "Radiator Cover");
+  const categoryNavigation = await page.evaluate(() => {
+    const navigation = document.querySelector(".guided-category-nav");
+    const selected = navigation.querySelector(".guided-category.is-selected");
+    const navigationRect = navigation.getBoundingClientRect();
+    const selectedRect = selected.getBoundingClientRect();
+    const labelsFit = [...navigation.querySelectorAll(".guided-category > span:last-child")]
+      .every((label) => label.scrollWidth <= label.clientWidth + 1);
+    return {
+      centeredDelta: Math.abs(
+        (selectedRect.left + selectedRect.width / 2)
+        - (navigationRect.left + navigationRect.width / 2)
+      ),
+      labelsFit
+    };
+  });
+  expect(categoryNavigation.centeredDelta).toBeLessThanOrEqual(2);
+  expect(categoryNavigation.labelsFit).toBe(true);
   await expect(page.locator(".layout-grid")).toHaveCSS("grid-template-columns", /.+ .+/);
   const cardTargets = await page.locator("[data-layout]").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
   expect(Math.min(...cardTargets)).toBeGreaterThanOrEqual(44);
   await chooseLayout(page, "Window Wall");
   await page.locator("[data-continue]").click();
+  await expect(page.locator("[data-dimension-chip]")).toHaveCount(5);
+  expect(await page.locator("[data-dimension-chip]").evaluateAll((chips) => (
+    chips.map((chip) => chip.dataset.dimensionChip)
+  ))).toEqual(["wallWidth", "ceilingHeight", "desiredDepth", "windowWidth", "windowHeight"]);
   const mobileOrder = await page.evaluate(() => {
     const diagram = document.querySelector(".measurement-diagram-card").getBoundingClientRect();
     const form = document.querySelector(".measurement-panel").getBoundingClientRect();
     const actions = document.querySelector(".guided-actions");
+    const information = document.querySelector(".guided-info").getBoundingClientRect();
+    const actionsRect = actions.getBoundingClientRect();
     const style = getComputedStyle(actions);
     return {
       diagramBeforeForm: diagram.top < form.top,
       actionsPosition: style.position,
-      actionsBottom: style.bottom
+      actionsBottom: style.bottom,
+      actionsFollowContent: actionsRect.top >= information.bottom - 1
     };
   });
   expect(mobileOrder.diagramBeforeForm).toBe(true);
-  expect(mobileOrder.actionsPosition).toBe("fixed");
-  expect(mobileOrder.actionsBottom).toBe("0px");
+  expect(mobileOrder.actionsPosition).toBe("static");
+  expect(mobileOrder.actionsBottom).toBe("auto");
+  expect(mobileOrder.actionsFollowContent).toBe(true);
   await page.screenshot({ path: "test-results/guided-configurator-phone.png", fullPage: true });
+
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openFreshProject(page);
+  await continueToLayouts(page);
+  await chooseLayout(page, "Clear Wall");
+  await page.locator("[data-continue]").click();
+  await page.locator("[data-continue]").click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), "1280x720 customization").toBeLessThanOrEqual(1);
+  await page.locator("[data-continue]").click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), "1280x720 review").toBeLessThanOrEqual(1);
 });
