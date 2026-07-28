@@ -311,9 +311,9 @@ test("measurement fields adapt to the layout, accept fractions, warn gently, and
   await page.locator("[data-continue]").click();
 
   for (const label of [
-    "Wall Width (A)",
-    "Ceiling Height (B)",
-    "Desired Depth (C)",
+    "Wall Width",
+    "Ceiling Height",
+    "Desired Built-In Depth",
     "Left Return",
     "Right Return",
     "Window Width",
@@ -379,22 +379,30 @@ test("Between Openings remains visible through customization and review", async 
     "data-layout-context-asset",
     "assets/photos/configurator/room-layouts/room-double-opening-v1.png"
   );
+  await expect(customizationContext.locator(".concept-layout-context-visual")).toHaveCount(0);
   await expect.poll(() => customizationPreview.locator("img.concept-photo").evaluate((image) => (
     image.complete
       && image.naturalWidth > 0
       && /concept-full-shelving-between-openings-v1\.(?:avif|png)$/.test(new URL(image.currentSrc).pathname)
   ))).toBe(true);
-  await expect.poll(() => customizationContext.locator("img").evaluate((image) => (
-    image.complete
-      && image.naturalWidth > 0
-      && /room-double-opening-v1\.(?:avif|png)$/.test(new URL(image.currentSrc).pathname)
-  ))).toBe(true);
   const contextGeometry = await customizationPreview.evaluate((preview) => {
     const previewRect = preview.getBoundingClientRect();
+    const metaRect = preview.querySelector(".concept-preview-meta").getBoundingClientRect();
+    const sceneRect = preview.querySelector(".concept-scene").getBoundingClientRect();
+    const finishRect = preview.querySelector(".concept-finish-caption").getBoundingClientRect();
     const contextRect = preview.querySelector("[data-layout-context]").getBoundingClientRect();
+    const overlaps = (first, second) => (
+      first.left < second.right
+      && first.right > second.left
+      && first.top < second.bottom
+      && first.bottom > second.top
+    );
     return {
       widthRatio: contextRect.width / previewRect.width,
       heightRatio: contextRect.height / previewRect.height,
+      metaBeforeScene: metaRect.bottom <= sceneRect.top + 1,
+      contextBeforeScene: contextRect.bottom <= sceneRect.top + 1,
+      controlsDoNotOverlap: !overlaps(finishRect, contextRect),
       insidePreview: (
         contextRect.top >= previewRect.top
         && contextRect.right <= previewRect.right
@@ -404,8 +412,11 @@ test("Between Openings remains visible through customization and review", async 
     };
   });
   expect(contextGeometry.insidePreview).toBe(true);
-  expect(contextGeometry.widthRatio).toBeGreaterThanOrEqual(0.2);
-  expect(contextGeometry.heightRatio).toBeGreaterThanOrEqual(0.12);
+  expect(contextGeometry.widthRatio).toBeLessThan(0.5);
+  expect(contextGeometry.heightRatio).toBeLessThan(0.12);
+  expect(contextGeometry.metaBeforeScene).toBe(true);
+  expect(contextGeometry.contextBeforeScene).toBe(true);
+  expect(contextGeometry.controlsDoNotOverlap).toBe(true);
 
   await page.getByRole("button", { name: "Charcoal", exact: true }).click();
   await expect(customizationPreview).toHaveAttribute("data-finish", "charcoal");
@@ -465,6 +476,94 @@ test("Between Openings keeps every bookcase construction in the selected room", 
   }
 });
 
+test("Right Niche measurement guides explain every visible dimension and keep preview metadata off the furniture", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await openFreshProject(page);
+  await continueToLayouts(page);
+  await chooseLayout(page, "Right Niche");
+  await page.locator("[data-continue]").click();
+
+  const diagram = page.locator(".measurement-diagram-card");
+  const room = diagram.locator(".measurement-room");
+  const guideLabels = diagram.locator(".measurement-annotation-label");
+  await expect(room.locator(":scope > .dimension-overlay")).toBeVisible();
+  await expect(guideLabels).toHaveText([
+    "A · Wall width",
+    "B · Ceiling height",
+    "C · Built-in depth",
+    "D · Niche width",
+    "E · Niche height"
+  ]);
+  await expect(diagram.locator("[data-dimension-value]")).toHaveText([
+    "120 in",
+    "96 in",
+    "14 in",
+    "96 in",
+    "96 in"
+  ]);
+  await expect(page.locator('[data-measurement-row="wallWidth"] .measurement-code')).toHaveText("A");
+  await expect(page.locator('[data-measurement-row="ceilingHeight"] .measurement-code')).toHaveText("B");
+  await expect(page.locator('[data-measurement-row="desiredDepth"] .measurement-code')).toHaveText("C");
+
+  const guideGeometry = await room.evaluate((element) => {
+    const roomRect = element.getBoundingClientRect();
+    const callouts = [...element.querySelectorAll(".measurement-annotation-copy")].map((callout) => {
+      const rect = callout.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+    });
+    const overlaps = (first, second) => (
+      first.left < second.right
+      && first.right > second.left
+      && first.top < second.bottom
+      && first.bottom > second.top
+    );
+    return {
+      allInsideRoom: callouts.every((rect) => (
+        rect.left >= roomRect.left - 1
+        && rect.right <= roomRect.right + 1
+        && rect.top >= roomRect.top - 1
+        && rect.bottom <= roomRect.bottom + 1
+      )),
+      overlappingPairs: callouts.flatMap((first, index) => (
+        callouts.slice(index + 1).filter((second) => overlaps(first, second))
+      )).length
+    };
+  });
+  expect(guideGeometry.allInsideRoom).toBe(true);
+  expect(guideGeometry.overlappingPairs).toBe(0);
+
+  await page.getByLabel("Wall Width").fill("132");
+  await expect(diagram.locator('[data-dimension-chip="wallWidth"] [data-dimension-value]')).toHaveText("132 in");
+  await page.locator("[data-continue]").click();
+
+  const preview = page.locator('.concept-preview[data-layout="right-niche"]');
+  const metadata = preview.locator(".concept-preview-meta");
+  const context = preview.locator('[data-layout-context="right-niche"]');
+  await expect(context).toContainText("Right Niche");
+  await expect(context.locator(".concept-layout-context-visual")).toHaveCount(0);
+  const previewGeometry = await preview.evaluate((element) => {
+    const meta = element.querySelector(".concept-preview-meta").getBoundingClientRect();
+    const scene = element.querySelector(".concept-scene").getBoundingClientRect();
+    const finish = element.querySelector(".concept-finish-caption").getBoundingClientRect();
+    const contextRect = element.querySelector("[data-layout-context]").getBoundingClientRect();
+    const overlaps = (first, second) => (
+      first.left < second.right
+      && first.right > second.left
+      && first.top < second.bottom
+      && first.bottom > second.top
+    );
+    return {
+      metadataBeforeScene: meta.bottom <= scene.top + 1,
+      contextBeforeScene: contextRect.bottom <= scene.top + 1,
+      labelsOverlap: overlaps(finish, contextRect)
+    };
+  });
+  expect(previewGeometry.metadataBeforeScene).toBe(true);
+  expect(previewGeometry.contextBeforeScene).toBe(true);
+  expect(previewGeometry.labelsOverlap).toBe(false);
+  await expect(metadata).toBeVisible();
+});
+
 test("TV measurement diagram keeps the screen centered and its callouts separate at landscape tablet size", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await openFreshProject(page);
@@ -480,9 +579,15 @@ test("TV measurement diagram keeps the screen centered and its callouts separate
 
   await expect(room).toHaveAttribute("data-feature", "tv");
   await expect(tv).toBeVisible();
-  await expect(diagonal).toContainText("TV diagonal");
-  await expect(height).toContainText("TV height");
-  await expect(diagram.locator(".measurement-annotation-label")).toHaveText(["A", "B", "C", "TV diagonal", "TV height"]);
+  await expect(diagonal).toContainText("D · TV diagonal");
+  await expect(height).toContainText("E · TV height");
+  await expect(diagram.locator(".measurement-annotation-label")).toHaveText([
+    "A · Wall width",
+    "B · Ceiling height",
+    "C · Built-in depth",
+    "D · TV diagonal",
+    "E · TV height"
+  ]);
 
   const geometry = await diagram.evaluate((element) => {
     const bounds = (selector) => {
@@ -557,6 +662,23 @@ test("landscape tablet keeps Steps 1–4 and every navigation action in one scre
       }, [])
   ));
   expect(layoutRows).toHaveLength(2);
+  await expect(page.locator(".layout-illustration--sprite")).toHaveCount(0);
+  const roomImages = page.locator(".layout-grid .layout-illustration img");
+  await expect(roomImages).toHaveCount(10);
+  await expect.poll(() => roomImages.evaluateAll((images) => (
+    images.every((image) => (
+      image.complete
+      && image.naturalWidth > 0
+      && new URL(image.currentSrc).pathname.endsWith(".avif")
+    ))
+  ))).toBe(true);
+  const standaloneRoomPaths = await page.locator([
+    '[data-layout="niche-layout"] img',
+    '[data-layout="left-niche"] img',
+    '[data-layout="right-niche"] img',
+    '[data-layout="fireplace-wall"] img'
+  ].join(",")).evaluateAll((images) => images.map((image) => new URL(image.currentSrc).pathname));
+  expect(new Set(standaloneRoomPaths).size).toBe(4);
 
   await chooseLayout(page, "Clear Wall");
   await page.locator("[data-continue]").click();
@@ -842,23 +964,19 @@ test("desktop, iPad, and phone layouts are overflow-free with usable mobile cont
   expect(Math.min(...productTargets)).toBeGreaterThanOrEqual(44);
   await expect(page.locator(".guided-step-label--mobile")).toHaveText(["Product", "Layout", "Size", "Finish", "Review"]);
   await continueToLayouts(page, "Radiator Cover");
-  const categoryNavigation = await page.evaluate(() => {
+  await expect.poll(() => page.evaluate(() => {
     const navigation = document.querySelector(".guided-category-nav");
     const selected = navigation.querySelector(".guided-category.is-selected");
     const navigationRect = navigation.getBoundingClientRect();
     const selectedRect = selected.getBoundingClientRect();
-    const labelsFit = [...navigation.querySelectorAll(".guided-category > span:last-child")]
-      .every((label) => label.scrollWidth <= label.clientWidth + 1);
-    return {
-      centeredDelta: Math.abs(
-        (selectedRect.left + selectedRect.width / 2)
-        - (navigationRect.left + navigationRect.width / 2)
-      ),
-      labelsFit
-    };
-  });
-  expect(categoryNavigation.centeredDelta).toBeLessThanOrEqual(2);
-  expect(categoryNavigation.labelsFit).toBe(true);
+    return Math.abs(
+      (selectedRect.left + selectedRect.width / 2)
+      - (navigationRect.left + navigationRect.width / 2)
+    );
+  })).toBeLessThanOrEqual(2);
+  expect(await page.locator(".guided-category > span:last-child").evaluateAll((labels) => (
+    labels.every((label) => label.scrollWidth <= label.clientWidth + 1)
+  ))).toBe(true);
   await expect(page.locator(".layout-grid")).toHaveCSS("grid-template-columns", /.+ .+/);
   const cardTargets = await page.locator("[data-layout]").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
   expect(Math.min(...cardTargets)).toBeGreaterThanOrEqual(44);

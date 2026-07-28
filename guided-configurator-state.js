@@ -9,7 +9,7 @@ import {
   getMeasurementFields,
   getStyle,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=layout-aware-20260727c";
+} from "./guided-configurator-data.js?v=ipad-polish-20260728a";
 
 export const GUIDED_PROJECT_SCHEMA_VERSION = 2;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
