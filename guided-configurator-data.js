@@ -170,31 +170,21 @@ const style = (id, label, options = {}) => Object.freeze({
   ...options
 });
 
-const ROOM_LAYOUT_REFERENCE = "assets/photos/configurator/room-layouts/room-layout-reference-v1.png";
-
 export const SHARED_ROOM_LAYOUTS = Object.freeze([
   layout("niche-layout", "Niche Layout", "niche", "recess", ["niche"], {
-    previewAsset: ROOM_LAYOUT_REFERENCE,
-    previewMode: "sprite",
-    previewPosition: "0% 0%"
+    previewAsset: "assets/photos/configurator/room-layouts/room-niche-layout-v1.png"
   }),
   layout("left-niche", "Left Niche", "left-niche", "recess", ["niche"], {
-    previewAsset: ROOM_LAYOUT_REFERENCE,
-    previewMode: "sprite",
-    previewPosition: "100% 0%"
+    previewAsset: "assets/photos/configurator/room-layouts/room-left-niche-v1.png"
   }),
   layout("right-niche", "Right Niche", "right-niche", "recess", ["niche"], {
-    previewAsset: ROOM_LAYOUT_REFERENCE,
-    previewMode: "sprite",
-    previewPosition: "0% 100%"
+    previewAsset: "assets/photos/configurator/room-layouts/room-right-niche-v1.png"
   }),
   layout("clear-wall", "Clear Wall", "clear-wall", "none", [], {
     previewAsset: "assets/photos/configurator/room-layouts/room-clear-wall-v1.png"
   }),
   layout("fireplace-wall", "Fireplace Wall", "clear-wall", "fireplace", ["fireplace"], {
-    previewAsset: ROOM_LAYOUT_REFERENCE,
-    previewMode: "sprite",
-    previewPosition: "100% 100%"
+    previewAsset: "assets/photos/configurator/room-layouts/room-fireplace-wall-v1.png"
   }),
   layout("center-recess", "Center Projection", "clear-wall", "recess", ["niche"], {
     previewAsset: "assets/photos/configurator/room-layouts/room-center-projection-v1.png"

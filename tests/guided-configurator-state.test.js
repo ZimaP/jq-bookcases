@@ -62,6 +62,23 @@ test("all five customer categories use the same ten room conditions", () => {
   );
   assert.equal(new Set(SHARED_ROOM_LAYOUTS.map((layout) => layout.id)).size, 10);
   assert.ok(SHARED_ROOM_LAYOUTS.every((layout) => layout.previewAsset.endsWith(".png")));
+  const standaloneRoomAssets = new Map([
+    ["niche-layout", "room-niche-layout-v1.png"],
+    ["left-niche", "room-left-niche-v1.png"],
+    ["right-niche", "room-right-niche-v1.png"],
+    ["fireplace-wall", "room-fireplace-wall-v1.png"]
+  ]);
+  for (const [layoutId, assetName] of standaloneRoomAssets) {
+    const roomLayout = SHARED_ROOM_LAYOUTS.find((layout) => layout.id === layoutId);
+    assert.equal(roomLayout.previewMode, "image");
+    assert.ok(roomLayout.previewAsset.endsWith(assetName));
+  }
+  assert.equal(
+    new Set([...standaloneRoomAssets.keys()].map((layoutId) => (
+      SHARED_ROOM_LAYOUTS.find((layout) => layout.id === layoutId).previewAsset
+    ))).size,
+    standaloneRoomAssets.size
+  );
   for (const category of CATEGORY_DEFINITIONS) {
     assert.equal(category.layouts, SHARED_ROOM_LAYOUTS);
     assert.deepEqual(category.layouts.map((layout) => layout.id), SHARED_ROOM_LAYOUTS.map((layout) => layout.id));

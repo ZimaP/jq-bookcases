@@ -11,7 +11,7 @@ import {
   getMeasurementFields,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=layout-aware-20260727c";
+} from "./guided-configurator-data.js?v=ipad-polish-20260728a";
 import {
   buildProjectSummary,
   createProject,
@@ -20,7 +20,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=layout-aware-20260727c";
+} from "./guided-configurator-state.js?v=ipad-polish-20260728a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -918,9 +918,9 @@ function selectMeasurementDiagramFields(fields, selectedLayout) {
 function renderMeasurementField(field, warning) {
   const value = project.measurements[field.id];
   const referenceLabels = {
-    wallWidth: "Wall Width (A)",
-    ceilingHeight: "Ceiling Height (B)",
-    desiredDepth: "Desired Depth (C)",
+    wallWidth: "Wall Width",
+    ceilingHeight: "Ceiling Height",
+    desiredDepth: "Desired Built-In Depth",
     leftReturn: "Left Return",
     rightReturn: "Right Return",
     windowWidth: "Window Width",
@@ -966,8 +966,8 @@ function renderMeasurementField(field, warning) {
       <span class="measurement-unit" aria-hidden="true">in</span>
     `;
   const labelMarkup = field.id === "radiatorBelowWindow"
-    ? `<span class="measurement-field-label" id="measurement-label-${field.id}">${escapeHtml(fieldLabel)}</span>`
-    : `<label class="measurement-field-label" for="measurement-${field.id}">${escapeHtml(fieldLabel)}</label>`;
+    ? `<span class="measurement-field-label" id="measurement-label-${field.id}"><span class="measurement-code">${escapeHtml(field.code)}</span><span>${escapeHtml(fieldLabel)}</span></span>`
+    : `<label class="measurement-field-label" for="measurement-${field.id}"><span class="measurement-code">${escapeHtml(field.code)}</span><span>${escapeHtml(fieldLabel)}</span></label>`;
 
   return `
     <div class="measurement-field" data-measurement-row="${field.id}">
@@ -1011,9 +1011,9 @@ function renderMeasurementDiagram(fields, selectedLayout) {
         data-feature="${escapeAttribute(diagramFeature)}"
       >
         ${roomVisual}
-      </div>
-      <div class="dimension-overlay" data-dimension-overlay>
-        ${dimensionFields.map((field, index) => renderDimensionChip(field, index, dimensionFields)).join("")}
+        <div class="dimension-overlay" data-dimension-overlay>
+          ${dimensionFields.map((field, index) => renderDimensionChip(field, index, dimensionFields)).join("")}
+        </div>
       </div>
     </figure>
   `;
@@ -1036,21 +1036,24 @@ function renderDimensionChip(field, index, fields) {
     : value === null || value === undefined ? "Add estimate" : `${formatInches(value)} in`;
   const placement = dimensionPlacement(field, index, fields);
   const referenceLabels = {
-    wallWidth: "A",
-    ceilingHeight: "B",
-    desiredDepth: "C",
-    windowWidth: "Window Width",
-    windowHeight: "Window Height",
+    wallWidth: "Wall width",
+    ceilingHeight: "Ceiling height",
+    desiredDepth: "Built-in depth",
+    windowWidth: "Window width",
+    windowHeight: "Window height",
     tvScreenSize: "TV diagonal",
     tvHeight: "TV height"
   };
-  const annotationLabel = referenceLabels[field.id] || field.label;
+  const annotationName = referenceLabels[field.id] || field.label;
+  const annotationLabel = field.code ? `${field.code} · ${annotationName}` : annotationName;
   const architecturalFieldIds = ["wallWidth", "ceilingHeight", "desiredDepth", "windowWidth", "windowHeight"];
   const supplemental = architecturalFieldIds.includes(field.id) ? "" : " is-supplemental";
   return `
     <span class="dimension-chip measurement-annotation${supplemental}" data-dimension-chip="${field.id}" data-position="${placement.position}" style="${placement.style}">
-      <strong class="measurement-annotation-label">${escapeHtml(annotationLabel)}</strong>
-      <span class="measurement-annotation-value">${escapeHtml(displayValue)}</span>
+      <span class="measurement-annotation-copy">
+        <strong class="measurement-annotation-label">${escapeHtml(annotationLabel)}</strong>
+        <span class="measurement-annotation-value" data-dimension-value>${escapeHtml(displayValue)}</span>
+      </span>
     </span>
   `;
 }
@@ -1306,6 +1309,16 @@ function renderConceptPreview() {
       style="--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)}"
       aria-label="${escapeAttribute(`${selectedStyle.label} for ${layout?.label || category.label} in ${finish.label}`)}"
     >
+      <div class="concept-preview-meta">
+        <div class="concept-finish-caption" aria-live="polite">
+          <span class="concept-finish-caption-swatch" aria-hidden="true"></span>
+          <span>
+            <small>Live finish</small>
+            <strong>${escapeHtml(finish.label)}</strong>
+          </span>
+        </div>
+        ${renderConceptLayoutContext(layout, previewPresentation)}
+      </div>
       <div class="concept-scene" data-concept-scene>
         ${renderOptimizedPicture(previewPresentation.conceptAsset, {
           pictureClass: "concept-photo",
@@ -1321,14 +1334,6 @@ function renderConceptPreview() {
           aria-hidden="true"
         ></div>
       </div>
-      ${renderConceptLayoutContext(layout, previewPresentation)}
-      <figcaption class="concept-finish-caption" aria-live="polite">
-        <span class="concept-finish-caption-swatch" aria-hidden="true"></span>
-        <span>
-          <small>Live finish preview</small>
-          <strong>${escapeHtml(finish.label)}</strong>
-        </span>
-      </figcaption>
       ${renderPreviewControls()}
     </figure>
   `;
@@ -1342,12 +1347,9 @@ function renderConceptLayoutContext(layout, previewPresentation) {
       data-layout-context="${escapeAttribute(layout.id)}"
       data-layout-context-asset="${escapeAttribute(previewPresentation.layoutContextAsset)}"
       data-layout-context-mode="${escapeAttribute(previewPresentation.renderMode)}"
-      role="img"
+      role="note"
       aria-label="${escapeAttribute(`Selected room condition: ${layout.label}`)}"
     >
-      <span class="concept-layout-context-visual" aria-hidden="true">
-        ${renderLayoutPreview(layout)}
-      </span>
       <span class="concept-layout-context-copy">
         <small>Selected room</small>
         <strong>${escapeHtml(layout.label)}</strong>
@@ -1793,7 +1795,7 @@ function updateMeasurementFromControl(control, options = {}) {
 }
 
 function updateDimensionChip(field, value) {
-  const chip = app.querySelector(`[data-dimension-chip="${CSS.escape(field.id)}"] span:last-child`);
+  const chip = app.querySelector(`[data-dimension-chip="${CSS.escape(field.id)}"] [data-dimension-value]`);
   if (!chip) return;
   chip.textContent = field.type === "select"
     ? field.values.find((option) => option.value === value)?.label || "Not sure"
