@@ -213,6 +213,14 @@ export const SHARED_ROOM_LAYOUTS = Object.freeze([
   })
 ]);
 
+const BOOKCASE_LAYOUT_CONCEPT_ASSETS = Object.freeze({
+  "double-opening": Object.freeze({
+    "cabinet-base-shelves": "assets/photos/configurator/concept-cabinets-shelves-between-openings-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/concept-drawers-shelves-between-openings-v1.png",
+    "full-open-shelving": "assets/photos/configurator/concept-full-shelving-between-openings-v1.png"
+  })
+});
+
 export const CATEGORY_DEFINITIONS = Object.freeze([
   Object.freeze({
     id: "bookcase",
@@ -553,20 +561,54 @@ export function getCompatibleDetails(categoryId, styleId) {
   });
 }
 
-export function resolvePreviewAsset(categoryId, styleId, layoutId = null) {
+export function resolvePreviewPresentation(categoryId, styleId, layoutId = null) {
   const selectedLayout = getLayout(categoryId, layoutId);
   const selectedStyle = getStyle(categoryId, styleId);
+  const exactLayoutAsset = categoryId === "bookcase"
+    ? BOOKCASE_LAYOUT_CONCEPT_ASSETS[selectedLayout?.id]?.[selectedStyle.id] || null
+    : null;
+  if (exactLayoutAsset) {
+    return Object.freeze({
+      conceptAsset: exactLayoutAsset,
+      layoutId: selectedLayout.id,
+      layoutLabel: selectedLayout.label,
+      layoutContextAsset: selectedLayout.previewAsset,
+      layoutPreviewMode: selectedLayout.previewMode,
+      layoutPreviewPosition: selectedLayout.previewPosition,
+      renderMode: "integrated"
+    });
+  }
   if (
     categoryId === "bookcase"
     && selectedStyle.id === "cabinet-base-shelves"
     && selectedLayout?.feature === "window"
   ) {
-    return "assets/photos/configurator/concept-window-cabinets-v1.png";
+    return Object.freeze({
+      conceptAsset: "assets/photos/configurator/concept-window-cabinets-v1.png",
+      layoutId: selectedLayout.id,
+      layoutLabel: selectedLayout.label,
+      layoutContextAsset: selectedLayout.previewAsset,
+      layoutPreviewMode: selectedLayout.previewMode,
+      layoutPreviewPosition: selectedLayout.previewPosition,
+      renderMode: "integrated"
+    });
   }
-  if (categoryId === "window-storage") {
-    return "assets/photos/configurator/concept-window-cabinets-v1.png";
-  }
-  return selectedStyle.previewAsset;
+  const conceptAsset = categoryId === "window-storage"
+    ? "assets/photos/configurator/concept-window-cabinets-v1.png"
+    : selectedStyle.previewAsset;
+  return Object.freeze({
+    conceptAsset,
+    layoutId: selectedLayout?.id || null,
+    layoutLabel: selectedLayout?.label || null,
+    layoutContextAsset: selectedLayout?.previewAsset || null,
+    layoutPreviewMode: selectedLayout?.previewMode || "image",
+    layoutPreviewPosition: selectedLayout?.previewPosition || "50% 50%",
+    renderMode: selectedLayout ? "concept-with-room-context" : "concept-only"
+  });
+}
+
+export function resolvePreviewAsset(categoryId, styleId, layoutId = null) {
+  return resolvePreviewPresentation(categoryId, styleId, layoutId).conceptAsset;
 }
 
 export const GUIDED_MEASUREMENT_PROVENANCE = Object.freeze({
