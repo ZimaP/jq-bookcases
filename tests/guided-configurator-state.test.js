@@ -9,7 +9,8 @@ import {
   getCompatibleDetails,
   getLayout,
   getMeasurementFields,
-  resolvePreviewAsset
+  resolvePreviewAsset,
+  resolvePreviewPresentation
 } from "../guided-configurator-data.js";
 import {
   GUIDED_DRAFT_STORAGE_KEY,
@@ -251,6 +252,56 @@ test("bookcase configurations map only to construction-matched concept assets", 
     resolvePreviewAsset("bookcase", "full-open-shelving", "clear-wall"),
     "assets/photos/configurator/concept-full-shelving-v1.png"
   );
+  assert.equal(
+    resolvePreviewAsset("bookcase", "cabinet-base-shelves", "double-opening"),
+    "assets/photos/configurator/concept-cabinets-shelves-between-openings-v1.png"
+  );
+  assert.equal(
+    resolvePreviewAsset("bookcase", "drawer-base-shelves", "double-opening"),
+    "assets/photos/configurator/concept-drawers-shelves-between-openings-v1.png"
+  );
+  assert.equal(
+    resolvePreviewAsset("bookcase", "full-open-shelving", "double-opening"),
+    "assets/photos/configurator/concept-full-shelving-between-openings-v1.png"
+  );
+});
+
+test("preview presentations preserve every selected room condition", () => {
+  for (const layout of SHARED_ROOM_LAYOUTS) {
+    const presentation = resolvePreviewPresentation("bookcase", "cabinet-base-shelves", layout.id);
+    assert.equal(presentation.layoutId, layout.id);
+    assert.equal(presentation.layoutLabel, layout.label);
+    assert.equal(presentation.layoutContextAsset, layout.previewAsset);
+    assert.equal(presentation.layoutPreviewMode, layout.previewMode);
+    assert.equal(presentation.layoutPreviewPosition, layout.previewPosition);
+  }
+
+  const betweenOpenings = resolvePreviewPresentation("bookcase", "full-open-shelving", "double-opening");
+  assert.equal(betweenOpenings.layoutId, "double-opening");
+  assert.equal(betweenOpenings.layoutLabel, "Between Openings");
+  assert.equal(
+    betweenOpenings.layoutContextAsset,
+    "assets/photos/configurator/room-layouts/room-double-opening-v1.png"
+  );
+  assert.equal(
+    betweenOpenings.conceptAsset,
+    "assets/photos/configurator/concept-full-shelving-between-openings-v1.png"
+  );
+  assert.equal(betweenOpenings.renderMode, "integrated");
+  assert.notEqual(
+    betweenOpenings.conceptAsset,
+    resolvePreviewPresentation("bookcase", "full-open-shelving", "clear-wall").conceptAsset
+  );
+
+  const normalized = normalizeProject({
+    ...createProject({ now: 24, random: 0.24 }),
+    productSelected: true,
+    layout: "between-openings",
+    style: "full-open-shelving",
+    finish: "charcoal"
+  }, { now: 25 });
+  assert.equal(normalized.layout, "double-opening");
+  assert.equal(normalized.previewAsset, betweenOpenings.conceptAsset);
 });
 
 test("legacy bookcase style ids migrate to the closest construction family", () => {

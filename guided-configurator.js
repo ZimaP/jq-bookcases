@@ -9,8 +9,9 @@ import {
   getFinish,
   getLayout,
   getMeasurementFields,
-  getStyle
-} from "./guided-configurator-data.js?v=desktop-gallery-20260727a";
+  getStyle,
+  resolvePreviewPresentation
+} from "./guided-configurator-data.js?v=layout-aware-20260727c";
 import {
   buildProjectSummary,
   createProject,
@@ -19,7 +20,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=desktop-gallery-20260727a";
+} from "./guided-configurator-state.js?v=layout-aware-20260727c";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -176,6 +177,60 @@ const CONCEPT_FINISH_MASKS = Object.freeze({
       [126, 738, 326, 24],
       [998, 738, 322, 24],
       [97, 748, 1253, 219]
+    ])
+  }),
+  "concept-cabinets-shelves-between-openings-v1.png": Object.freeze({
+    viewBox: "0 0 1536 1024",
+    width: 1536,
+    height: 1024,
+    rectangles: Object.freeze([
+      [369, 148, 794, 58],
+      [365, 183, 37, 417],
+      [758, 183, 31, 417],
+      [1127, 183, 37, 417],
+      [390, 184, 750, 27],
+      [392, 290, 744, 22],
+      [392, 397, 744, 22],
+      [392, 496, 744, 22],
+      [365, 594, 799, 207],
+      [365, 782, 799, 20]
+    ])
+  }),
+  "concept-drawers-shelves-between-openings-v1.png": Object.freeze({
+    viewBox: "0 0 1536 1024",
+    width: 1536,
+    height: 1024,
+    rectangles: Object.freeze([
+      [389, 147, 756, 58],
+      [389, 187, 33, 431],
+      [746, 187, 31, 431],
+      [1113, 187, 33, 431],
+      [410, 189, 711, 26],
+      [411, 299, 708, 22],
+      [411, 404, 708, 22],
+      [411, 500, 708, 22],
+      [389, 612, 757, 176],
+      [389, 770, 757, 20]
+    ])
+  }),
+  "concept-full-shelving-between-openings-v1.png": Object.freeze({
+    viewBox: "0 0 1536 1024",
+    width: 1536,
+    height: 1024,
+    rectangles: Object.freeze([
+      [324, 168, 885, 50],
+      [332, 198, 34, 594],
+      [620, 198, 31, 594],
+      [890, 198, 31, 594],
+      [1175, 198, 34, 594],
+      [352, 199, 835, 25],
+      [354, 305, 830, 21],
+      [354, 407, 830, 21],
+      [354, 500, 830, 21],
+      [354, 599, 830, 21],
+      [354, 690, 830, 21],
+      [354, 779, 830, 21],
+      [332, 787, 877, 29]
     ])
   }),
   "product-floating-storage-v1.png": Object.freeze({
@@ -704,7 +759,7 @@ function renderLayoutFeature(layout, illustrationId = escapeAttribute(layout.id)
       <path class="layout-recess-cap" d="M88 24H172V31H88Z"></path>
     `;
   }
-  if (layout.id === "between-openings") {
+  if (layout.id === "double-opening") {
     return `${renderDoorFeature(59)}${renderDoorFeature(159)}`;
   }
   if (layout.id === "bay-window") {
@@ -1228,6 +1283,7 @@ function renderConceptPreview() {
   const category = getCategory(project.category);
   const layout = getLayout(project.category, project.layout);
   const selectedStyle = getStyle(project.category, project.style);
+  const previewPresentation = resolvePreviewPresentation(category.id, selectedStyle.id, layout?.id);
   const finish = getFinish(project.finish);
   const finishPreview = finish.preview || {};
   const accentFinish = project.accentFinish === "no-accent" ? finish : getFinish(project.accentFinish);
@@ -1243,19 +1299,21 @@ function renderConceptPreview() {
       data-style="${escapeAttribute(selectedStyle.id)}"
       data-finish="${escapeAttribute(finish.id)}"
       data-finish-family="${escapeAttribute(finish.family)}"
-      data-preview-asset="${escapeAttribute(project.previewAsset)}"
+      data-preview-asset="${escapeAttribute(previewPresentation.conceptAsset)}"
+      data-layout-context-asset="${escapeAttribute(previewPresentation.layoutContextAsset || "")}"
+      data-preview-render-mode="${escapeAttribute(previewPresentation.renderMode)}"
       data-preview-scope="${escapeAttribute(previewScope.id)}"
       style="--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)}"
-      aria-label="${escapeAttribute(`${category.label} concept preview in ${finish.label}`)}"
+      aria-label="${escapeAttribute(`${selectedStyle.label} for ${layout?.label || category.label} in ${finish.label}`)}"
     >
       <div class="concept-scene" data-concept-scene>
-        ${renderOptimizedPicture(project.previewAsset, {
+        ${renderOptimizedPicture(previewPresentation.conceptAsset, {
           pictureClass: "concept-photo",
           imageClass: "concept-photo",
           loading: "eager",
           fetchPriority: "high"
         })}
-        ${renderConceptFinishOverlay(project.previewAsset)}
+        ${renderConceptFinishOverlay(previewPresentation.conceptAsset)}
         <div
           class="concept-unit concept-unit--sentinel"
           data-style="${escapeAttribute(selectedStyle.id)}"
@@ -1263,6 +1321,7 @@ function renderConceptPreview() {
           aria-hidden="true"
         ></div>
       </div>
+      ${renderConceptLayoutContext(layout, previewPresentation)}
       <figcaption class="concept-finish-caption" aria-live="polite">
         <span class="concept-finish-caption-swatch" aria-hidden="true"></span>
         <span>
@@ -1272,6 +1331,28 @@ function renderConceptPreview() {
       </figcaption>
       ${renderPreviewControls()}
     </figure>
+  `;
+}
+
+function renderConceptLayoutContext(layout, previewPresentation) {
+  if (!layout || !previewPresentation.layoutContextAsset) return "";
+  return `
+    <div
+      class="concept-layout-context"
+      data-layout-context="${escapeAttribute(layout.id)}"
+      data-layout-context-asset="${escapeAttribute(previewPresentation.layoutContextAsset)}"
+      data-layout-context-mode="${escapeAttribute(previewPresentation.renderMode)}"
+      role="img"
+      aria-label="${escapeAttribute(`Selected room condition: ${layout.label}`)}"
+    >
+      <span class="concept-layout-context-visual" aria-hidden="true">
+        ${renderLayoutPreview(layout)}
+      </span>
+      <span class="concept-layout-context-copy">
+        <small>Selected room</small>
+        <strong>${escapeHtml(layout.label)}</strong>
+      </span>
+    </div>
   `;
 }
 
@@ -1527,6 +1608,13 @@ function bindAppEvents() {
   });
 
   app.addEventListener("keydown", (event) => {
+    const card = event.target.closest?.("[data-product-style], [data-layout]");
+    if (card && ["Enter", " ", "Spacebar"].includes(event.key)) {
+      event.preventDefault();
+      card.click();
+      return;
+    }
+
     const tab = event.target.closest("[data-customization-tab]");
     if (!tab || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();

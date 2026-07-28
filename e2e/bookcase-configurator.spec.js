@@ -352,6 +352,119 @@ test("measurement fields adapt to the layout, accept fractions, warn gently, and
   await expect(width).toBeFocused();
 });
 
+test("Between Openings remains visible through customization and review", async ({ page }) => {
+  await openFreshProject(page);
+  const fullShelving = page.locator('[data-product-style="full-open-shelving"]');
+  await fullShelving.click();
+  await expect(fullShelving).toHaveAttribute("aria-pressed", "true");
+  await page.locator("[data-continue]").click();
+  await chooseLayout(page, "Between Openings");
+  await page.locator("[data-continue]").click();
+
+  await expect(page.locator(".selected-layout-chip")).toContainText("Between Openings");
+  await expect(page.getByLabel("Left opening clearance")).toBeVisible();
+  await expect(page.getByLabel("Right opening clearance")).toBeVisible();
+  await page.locator("[data-continue]").click();
+
+  const customizationPreview = page.locator('.concept-preview[data-layout="double-opening"]');
+  const customizationContext = customizationPreview.locator('[data-layout-context="double-opening"]');
+  await expect(customizationPreview).toHaveAttribute(
+    "data-preview-asset",
+    "assets/photos/configurator/concept-full-shelving-between-openings-v1.png"
+  );
+  await expect(customizationPreview).toHaveAttribute("data-preview-render-mode", "integrated");
+  await expect(customizationContext).toBeVisible();
+  await expect(customizationContext).toHaveAccessibleName("Selected room condition: Between Openings");
+  await expect(customizationContext).toHaveAttribute(
+    "data-layout-context-asset",
+    "assets/photos/configurator/room-layouts/room-double-opening-v1.png"
+  );
+  await expect.poll(() => customizationPreview.locator("img.concept-photo").evaluate((image) => (
+    image.complete
+      && image.naturalWidth > 0
+      && /concept-full-shelving-between-openings-v1\.(?:avif|png)$/.test(new URL(image.currentSrc).pathname)
+  ))).toBe(true);
+  await expect.poll(() => customizationContext.locator("img").evaluate((image) => (
+    image.complete
+      && image.naturalWidth > 0
+      && /room-double-opening-v1\.(?:avif|png)$/.test(new URL(image.currentSrc).pathname)
+  ))).toBe(true);
+  const contextGeometry = await customizationPreview.evaluate((preview) => {
+    const previewRect = preview.getBoundingClientRect();
+    const contextRect = preview.querySelector("[data-layout-context]").getBoundingClientRect();
+    return {
+      widthRatio: contextRect.width / previewRect.width,
+      heightRatio: contextRect.height / previewRect.height,
+      insidePreview: (
+        contextRect.top >= previewRect.top
+        && contextRect.right <= previewRect.right
+        && contextRect.bottom <= previewRect.bottom
+        && contextRect.left >= previewRect.left
+      )
+    };
+  });
+  expect(contextGeometry.insidePreview).toBe(true);
+  expect(contextGeometry.widthRatio).toBeGreaterThanOrEqual(0.2);
+  expect(contextGeometry.heightRatio).toBeGreaterThanOrEqual(0.12);
+
+  await page.getByRole("button", { name: "Charcoal", exact: true }).click();
+  await expect(customizationPreview).toHaveAttribute("data-finish", "charcoal");
+  await expect(customizationContext).toBeVisible();
+  await page.locator("[data-continue]").click();
+
+  const reviewPreview = page.locator('.concept-preview[data-layout="double-opening"]');
+  await expect(page.locator('[data-summary-value="layout"]')).toHaveText("Between Openings");
+  await expect(reviewPreview).toHaveAttribute(
+    "data-preview-asset",
+    "assets/photos/configurator/concept-full-shelving-between-openings-v1.png"
+  );
+  await expect(reviewPreview).toHaveAttribute("data-finish", "charcoal");
+  await expect(reviewPreview.locator('[data-layout-context="double-opening"]')).toBeVisible();
+  await expect(reviewPreview.locator('[data-layout-context="double-opening"]')).toHaveAccessibleName(
+    "Selected room condition: Between Openings"
+  );
+});
+
+test("Between Openings keeps every bookcase construction in the selected room", async ({ page }) => {
+  const variants = [
+    {
+      style: "cabinet-base-shelves",
+      asset: "assets/photos/configurator/concept-cabinets-shelves-between-openings-v1.png"
+    },
+    {
+      style: "drawer-base-shelves",
+      asset: "assets/photos/configurator/concept-drawers-shelves-between-openings-v1.png"
+    },
+    {
+      style: "full-open-shelving",
+      asset: "assets/photos/configurator/concept-full-shelving-between-openings-v1.png"
+    }
+  ];
+
+  for (const variant of variants) {
+    await openFreshProject(page);
+    await page.locator(`[data-product-style="${variant.style}"]`).click();
+    await page.locator("[data-continue]").click();
+    await chooseLayout(page, "Between Openings");
+    await page.locator("[data-continue]").click();
+    await page.locator("[data-continue]").click();
+
+    const preview = page.locator('.concept-preview[data-layout="double-opening"]');
+    await expect(preview).toHaveAttribute("data-preview-asset", variant.asset);
+    await expect(preview).toHaveAttribute("data-preview-render-mode", "integrated");
+    const expectedAvifPath = variant.asset.replace(/\.png$/, ".avif");
+    await expect.poll(() => preview.locator("img.concept-photo").evaluate((image, expectedPath) => (
+      image.complete
+        && image.naturalWidth === 1536
+        && image.naturalHeight === 1024
+        && new URL(image.currentSrc).pathname.endsWith(expectedPath)
+    ), expectedAvifPath)).toBe(true);
+    await expect(preview.locator('[data-layout-context="double-opening"]')).toHaveAccessibleName(
+      "Selected room condition: Between Openings"
+    );
+  }
+});
+
 test("TV measurement diagram keeps the screen centered and its callouts separate at landscape tablet size", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await openFreshProject(page);
@@ -670,13 +783,18 @@ test("keyboard interaction covers product and layout cards, tabs, completed step
   await openFreshProject(page);
   const firstProduct = page.locator('[data-product-style="cabinet-base-shelves"]');
   await firstProduct.focus();
-  await firstProduct.press("Space");
+  await expect(firstProduct).toBeFocused();
+  await page.keyboard.press("Space");
   await expect(firstProduct).toHaveAttribute("aria-pressed", "true");
   await page.locator("[data-continue]").click();
+  await expect(
+    page.getByRole("heading", { name: "Choose the room condition that matches your space" })
+  ).toBeFocused();
 
   const firstLayout = page.getByRole("button", { name: "Niche Layout", exact: true });
   await firstLayout.focus();
-  await firstLayout.press("Enter");
+  await expect(firstLayout).toBeFocused();
+  await page.keyboard.press("Enter");
   await expect(page.locator('button[data-layout="niche-layout"]')).toHaveAttribute("aria-pressed", "true");
   await page.locator("[data-continue]").click();
   await page.locator("[data-continue]").click();
