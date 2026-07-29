@@ -203,6 +203,312 @@ export const SHARED_ROOM_LAYOUTS = Object.freeze([
   })
 ]);
 
+const dimensionSpan = (fieldId, axis, line, extensions, label, options = {}) => Object.freeze({
+  fieldId,
+  axis,
+  line: Object.freeze(line),
+  extensions: Object.freeze(extensions.map((extension) => Object.freeze(extension))),
+  label: Object.freeze(label),
+  priority: "primary",
+  labelOverride: "",
+  ...options
+});
+
+const BASE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "wallWidth",
+    "horizontal",
+    [145, 86, 870, 86],
+    [[145, 56, 145, 112], [870, 56, 870, 112]],
+    { x: 508, y: 86 },
+    { priority: "perimeter" }
+  ),
+  dimensionSpan(
+    "ceilingHeight",
+    "vertical",
+    [94, 68, 94, 532],
+    [[64, 68, 119, 68], [64, 532, 119, 532]],
+    { x: 104, y: 300 },
+    { priority: "perimeter" }
+  ),
+  dimensionSpan(
+    "desiredDepth",
+    "depth",
+    [824, 518, 964, 608],
+    [[810, 528, 835, 507], [953, 619, 977, 598]],
+    { x: 858, y: 558 },
+    { priority: "perimeter" }
+  )
+]);
+
+const NICHE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "nicheWidth",
+    "horizontal",
+    [238, 200, 762, 200],
+    [[238, 172, 238, 226], [762, 172, 762, 226]],
+    { x: 500, y: 200 }
+  ),
+  dimensionSpan(
+    "nicheHeight",
+    "vertical",
+    [794, 202, 794, 518],
+    [[772, 202, 816, 202], [772, 518, 816, 518]],
+    { x: 794, y: 360 }
+  ),
+  dimensionSpan(
+    "nicheDepth",
+    "depth",
+    [224, 432, 151, 524],
+    [[212, 422, 236, 442], [139, 514, 163, 534]],
+    { x: 220, y: 470 },
+    { priority: "auxiliary" }
+  )
+]);
+
+const LEFT_NICHE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "nicheWidth",
+    "horizontal",
+    [198, 200, 785, 200],
+    [[198, 172, 198, 226], [785, 172, 785, 226]],
+    { x: 492, y: 200 }
+  ),
+  dimensionSpan(
+    "nicheHeight",
+    "vertical",
+    [818, 202, 818, 518],
+    [[796, 202, 840, 202], [796, 518, 840, 518]],
+    { x: 818, y: 360 }
+  ),
+  dimensionSpan(
+    "nicheDepth",
+    "depth",
+    [195, 426, 126, 520],
+    [[183, 416, 207, 436], [114, 510, 138, 530]],
+    { x: 194, y: 468 },
+    { priority: "auxiliary" }
+  )
+]);
+
+const RIGHT_NICHE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "nicheWidth",
+    "horizontal",
+    [215, 200, 802, 200],
+    [[215, 172, 215, 226], [802, 172, 802, 226]],
+    { x: 508, y: 200 }
+  ),
+  dimensionSpan(
+    "nicheHeight",
+    "vertical",
+    [842, 202, 842, 518],
+    [[820, 202, 864, 202], [820, 518, 864, 518]],
+    { x: 842, y: 360 }
+  ),
+  dimensionSpan(
+    "nicheDepth",
+    "depth",
+    [805, 426, 875, 520],
+    [[793, 436, 817, 416], [863, 530, 887, 510]],
+    { x: 806, y: 468 },
+    { priority: "auxiliary" }
+  )
+]);
+
+const CENTER_PROJECTION_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "nicheWidth",
+    "horizontal",
+    [386, 192, 614, 192],
+    [[386, 164, 386, 220], [614, 164, 614, 220]],
+    { x: 500, y: 192 },
+    { labelOverride: "Projection width" }
+  ),
+  dimensionSpan(
+    "nicheHeight",
+    "vertical",
+    [654, 194, 654, 520],
+    [[632, 194, 676, 194], [632, 520, 676, 520]],
+    { x: 654, y: 357 },
+    { labelOverride: "Projection height" }
+  ),
+  dimensionSpan(
+    "nicheDepth",
+    "depth",
+    [615, 436, 692, 520],
+    [[603, 446, 627, 426], [680, 530, 704, 510]],
+    { x: 682, y: 458 },
+    { priority: "auxiliary", labelOverride: "Projection depth" }
+  )
+]);
+
+const FIREPLACE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "fireplaceWidth",
+    "horizontal",
+    [438, 374, 562, 374],
+    [[438, 348, 438, 400], [562, 348, 562, 400]],
+    { x: 500, y: 374 }
+  ),
+  dimensionSpan(
+    "fireplaceHeight",
+    "vertical",
+    [596, 378, 596, 518],
+    [[574, 378, 618, 378], [574, 518, 618, 518]],
+    { x: 596, y: 448 }
+  ),
+  dimensionSpan(
+    "mantelWidth",
+    "horizontal",
+    [408, 318, 592, 318],
+    [[408, 294, 408, 340], [592, 294, 592, 340]],
+    { x: 500, y: 318 },
+    { priority: "auxiliary" }
+  )
+]);
+
+const WINDOW_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "windowWidth",
+    "horizontal",
+    [420, 238, 580, 238],
+    [[420, 212, 420, 266], [580, 212, 580, 266]],
+    { x: 500, y: 238 }
+  ),
+  dimensionSpan(
+    "windowHeight",
+    "vertical",
+    [620, 246, 620, 432],
+    [[598, 246, 642, 246], [598, 432, 642, 432]],
+    { x: 620, y: 339 }
+  ),
+  dimensionSpan(
+    "sillHeight",
+    "vertical",
+    [672, 432, 672, 522],
+    [[650, 432, 694, 432], [650, 522, 694, 522]],
+    { x: 672, y: 477 },
+    { priority: "auxiliary" }
+  )
+]);
+
+const DOOR_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "doorWidth",
+    "horizontal",
+    [444, 230, 556, 230],
+    [[444, 204, 444, 258], [556, 204, 556, 258]],
+    { x: 500, y: 230 }
+  ),
+  dimensionSpan(
+    "doorHeight",
+    "vertical",
+    [598, 240, 598, 520],
+    [[576, 240, 620, 240], [576, 520, 620, 520]],
+    { x: 598, y: 380 }
+  ),
+  dimensionSpan(
+    "doorLeftDistance",
+    "horizontal",
+    [145, 494, 444, 494],
+    [[145, 470, 145, 520], [444, 470, 444, 520]],
+    { x: 294, y: 494 },
+    { priority: "auxiliary" }
+  )
+]);
+
+const CORNER_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "cornerReturn",
+    "horizontal",
+    [548, 252, 850, 252],
+    [[548, 226, 548, 280], [850, 226, 850, 280]],
+    { x: 699, y: 252 },
+    { labelOverride: "Corner wall return" }
+  )
+]);
+
+const DOUBLE_OPENING_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "openingLeftDistance",
+    "horizontal",
+    [118, 478, 302, 478],
+    [[118, 452, 118, 506], [302, 452, 302, 506]],
+    { x: 210, y: 478 }
+  ),
+  dimensionSpan(
+    "openingRightDistance",
+    "horizontal",
+    [698, 478, 882, 478],
+    [[698, 452, 698, 506], [882, 452, 882, 506]],
+    { x: 790, y: 478 }
+  )
+]);
+
+const TV_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "tvScreenSize",
+    "diagonal",
+    [414, 276, 586, 382],
+    [[402, 286, 426, 266], [574, 392, 598, 372]],
+    { x: 438, y: 294 },
+    { labelOverride: "TV diagonal" }
+  ),
+  dimensionSpan(
+    "tvHeight",
+    "vertical",
+    [626, 268, 626, 390],
+    [[604, 268, 648, 268], [604, 390, 648, 390]],
+    { x: 626, y: 329 },
+    { labelOverride: "TV height" }
+  )
+]);
+
+const RADIATOR_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "radiatorWidth",
+    "horizontal",
+    [368, 400, 632, 400],
+    [[368, 374, 368, 428], [632, 374, 632, 428]],
+    { x: 500, y: 400 }
+  ),
+  dimensionSpan(
+    "radiatorHeight",
+    "vertical",
+    [674, 404, 674, 506],
+    [[652, 404, 696, 404], [652, 506, 696, 506]],
+    { x: 674, y: 455 }
+  ),
+  dimensionSpan(
+    "radiatorDepth",
+    "depth",
+    [635, 474, 700, 524],
+    [[625, 484, 645, 464], [690, 534, 710, 514]],
+    { x: 704, y: 488 },
+    { priority: "auxiliary" }
+  )
+]);
+
+const ROOM_MEASUREMENT_DIAGRAM_SPANS = Object.freeze({
+  "niche-layout": NICHE_MEASUREMENT_DIAGRAM_SPANS,
+  "left-niche": LEFT_NICHE_MEASUREMENT_DIAGRAM_SPANS,
+  "right-niche": RIGHT_NICHE_MEASUREMENT_DIAGRAM_SPANS,
+  "clear-wall": Object.freeze([]),
+  "fireplace-wall": FIREPLACE_MEASUREMENT_DIAGRAM_SPANS,
+  "center-recess": CENTER_PROJECTION_MEASUREMENT_DIAGRAM_SPANS,
+  "window-wall": WINDOW_MEASUREMENT_DIAGRAM_SPANS,
+  "door-wall": DOOR_MEASUREMENT_DIAGRAM_SPANS,
+  "corner-wall": CORNER_MEASUREMENT_DIAGRAM_SPANS,
+  "double-opening": DOUBLE_OPENING_MEASUREMENT_DIAGRAM_SPANS
+});
+
+const CLEAR_WALL_PRODUCT_MEASUREMENT_DIAGRAM_SPANS = Object.freeze({
+  "tv-unit": TV_MEASUREMENT_DIAGRAM_SPANS,
+  "window-storage": WINDOW_MEASUREMENT_DIAGRAM_SPANS,
+  "radiator-cover": RADIATOR_MEASUREMENT_DIAGRAM_SPANS
+});
+
 export const PUBLIC_BOOKCASE_STYLE_IDS = Object.freeze([
   "cabinet-base-shelves",
   "drawer-base-shelves",
@@ -687,6 +993,52 @@ export function getMeasurementFields(categoryId, layoutId) {
   }
 
   return fields;
+}
+
+export function getMeasurementDiagramSpec(categoryId, layoutId) {
+  const selectedLayout = getLayout(categoryId, layoutId);
+  const selectedCategory = getCategory(categoryId);
+  const availableFields = new Map(
+    getMeasurementFields(selectedCategory.id, selectedLayout?.id)
+      .filter((field) => field.type === "inches")
+      .map((field) => [field.id, field])
+  );
+  const layoutSpans = ROOM_MEASUREMENT_DIAGRAM_SPANS[selectedLayout?.id] || Object.freeze([]);
+  const productSpans = selectedLayout?.id === "clear-wall"
+    ? CLEAR_WALL_PRODUCT_MEASUREMENT_DIAGRAM_SPANS[selectedCategory.id] || Object.freeze([])
+    : Object.freeze([]);
+  const spans = [...BASE_MEASUREMENT_DIAGRAM_SPANS, ...layoutSpans, ...productSpans]
+    .filter((span) => availableFields.has(span.fieldId))
+    .map((span) => {
+      if (selectedLayout?.id !== "double-opening" || span.fieldId !== "wallWidth") return span;
+      return Object.freeze({
+        ...span,
+        line: Object.freeze([250, 86, 750, 86]),
+        extensions: Object.freeze([
+          Object.freeze([250, 56, 250, 112]),
+          Object.freeze([750, 56, 750, 112])
+        ]),
+        labelOverride: "Available wall width"
+      });
+    });
+
+  const productFeature = selectedLayout?.id === "clear-wall"
+    ? Object.freeze({
+        "tv-unit": "tv",
+        "window-storage": "window",
+        "radiator-cover": "radiator"
+      })[selectedCategory.id] || "none"
+    : "none";
+
+  return Object.freeze({
+    width: 1000,
+    height: 640,
+    layoutId: selectedLayout?.id || "clear-wall",
+    feature: selectedLayout?.feature && selectedLayout.feature !== "none"
+      ? selectedLayout.feature
+      : productFeature,
+    spans: Object.freeze(spans)
+  });
 }
 
 export function getCompatibleDetails(categoryId, styleId) {

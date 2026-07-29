@@ -12,6 +12,7 @@ import {
   SHARED_ROOM_LAYOUTS,
   getCompatibleDetails,
   getLayout,
+  getMeasurementDiagramSpec,
   getMeasurementFields,
   resolvePreviewAsset,
   resolvePreviewPresentation
@@ -109,6 +110,128 @@ test("measurement schemas are derived from category and layout conditions", () =
   assert.ok(tvFields.includes("outletLocation"));
   assert.ok(radiatorFields.includes("radiatorDepth"));
   assert.ok(radiatorFields.includes("valveLocation"));
+});
+
+test("all ten bookcase room diagrams expose ordered architectural dimension geometry", () => {
+  const expectedDimensions = new Map([
+    ["niche-layout", [
+      ["wallWidth", "A"],
+      ["ceilingHeight", "B"],
+      ["desiredDepth", "C"],
+      ["nicheWidth", "D"],
+      ["nicheHeight", "E"],
+      ["nicheDepth", "F"]
+    ]],
+    ["left-niche", [
+      ["wallWidth", "A"],
+      ["ceilingHeight", "B"],
+      ["desiredDepth", "C"],
+      ["nicheWidth", "D"],
+      ["nicheHeight", "E"],
+      ["nicheDepth", "F"]
+    ]],
+    ["right-niche", [
+      ["wallWidth", "A"],
+      ["ceilingHeight", "B"],
+      ["desiredDepth", "C"],
+      ["nicheWidth", "D"],
+      ["nicheHeight", "E"],
+      ["nicheDepth", "F"]
+    ]],
+    ["clear-wall", [
+      ["wallWidth", "A"],
+      ["ceilingHeight", "B"],
+      ["desiredDepth", "C"]
+    ]],
+    ["fireplace-wall", [
+      ["wallWidth", "A"],
+      ["ceilingHeight", "B"],
+      ["desiredDepth", "C"],
+      ["fireplaceWidth", "D"],
+      ["fireplaceHeight", "E"],
+      ["mantelWidth", "F"]
+    ]],
+    ["center-recess", [
+      ["wallWidth", "A"],
+      ["ceilingHeight", "B"],
+      ["desiredDepth", "C"],
+      ["nicheWidth", "D"],
+      ["nicheHeight", "E"],
+      ["nicheDepth", "F"]
+    ]],
+    ["window-wall", [
+      ["wallWidth", "A"],
+      ["ceilingHeight", "B"],
+      ["desiredDepth", "C"],
+      ["windowWidth", "D"],
+      ["windowHeight", "E"],
+      ["sillHeight", "F"]
+    ]],
+    ["door-wall", [
+      ["wallWidth", "A"],
+      ["ceilingHeight", "B"],
+      ["desiredDepth", "C"],
+      ["doorWidth", "D"],
+      ["doorHeight", "E"],
+      ["doorLeftDistance", "F"]
+    ]],
+    ["corner-wall", [
+      ["wallWidth", "A"],
+      ["ceilingHeight", "B"],
+      ["desiredDepth", "C"],
+      ["cornerReturn", "D"]
+    ]],
+    ["double-opening", [
+      ["wallWidth", "A"],
+      ["ceilingHeight", "B"],
+      ["desiredDepth", "C"],
+      ["openingLeftDistance", "D"],
+      ["openingRightDistance", "E"]
+    ]]
+  ]);
+  const validAxes = new Set(["horizontal", "vertical", "depth", "diagonal"]);
+
+  for (const roomLayout of SHARED_ROOM_LAYOUTS) {
+    const spec = getMeasurementDiagramSpec("bookcase", roomLayout.id);
+    const fieldsById = new Map(
+      getMeasurementFields("bookcase", roomLayout.id).map((field) => [field.id, field])
+    );
+    const actualDimensions = spec.spans.map((span) => [
+      span.fieldId,
+      fieldsById.get(span.fieldId)?.code
+    ]);
+    const context = `${roomLayout.label} measurement diagram`;
+
+    assert.equal(spec.layoutId, roomLayout.id, `${context} keeps the selected layout`);
+    assert.ok(Number.isFinite(spec.width) && spec.width > 0, `${context} has a finite width`);
+    assert.ok(Number.isFinite(spec.height) && spec.height > 0, `${context} has a finite height`);
+    assert.deepEqual(actualDimensions, expectedDimensions.get(roomLayout.id), `${context} fields and codes`);
+    assert.equal(new Set(spec.spans.map((span) => span.fieldId)).size, spec.spans.length, `${context} field IDs are unique`);
+    assert.equal(new Set(actualDimensions.map(([, code]) => code)).size, spec.spans.length, `${context} codes are unique`);
+
+    for (const span of spec.spans) {
+      const coordinates = [
+        ...span.line,
+        ...span.extensions.flat(),
+        span.label.x,
+        span.label.y
+      ];
+      assert.ok(validAxes.has(span.axis), `${context} ${span.fieldId} uses a supported axis`);
+      assert.equal(span.line.length, 4, `${context} ${span.fieldId} has two line endpoints`);
+      assert.equal(span.extensions.length, 2, `${context} ${span.fieldId} has two witness lines`);
+      assert.ok(span.extensions.every((extension) => extension.length === 4), `${context} ${span.fieldId} witness endpoints`);
+      assert.ok(coordinates.every(Number.isFinite), `${context} ${span.fieldId} coordinates are finite`);
+      assert.notDeepEqual(span.line.slice(0, 2), span.line.slice(2), `${context} ${span.fieldId} line has length`);
+
+      for (const [index, coordinate] of coordinates.entries()) {
+        const limit = index % 2 === 0 ? spec.width : spec.height;
+        assert.ok(
+          coordinate >= 0 && coordinate <= limit,
+          `${context} ${span.fieldId} coordinate ${coordinate} is inside the normalized drawing`
+        );
+      }
+    }
+  }
 });
 
 test("inch parsing accepts decimals, mixed fractions, hyphenated fractions, and unicode fractions", () => {
