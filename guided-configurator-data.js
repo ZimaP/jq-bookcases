@@ -302,6 +302,46 @@ const DOOR_BASE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
   )
 ]);
 
+const DOUBLE_OPENING_BASE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "wallWidth",
+    "horizontal",
+    [304, 244, 1230, 244],
+    [[304, 214, 304, 274], [1230, 214, 1230, 274]],
+    { x: 767, y: 244 },
+    {
+      priority: "perimeter",
+      labelOverride: "Available wall width",
+      sourceWidth: 1536,
+      sourceHeight: 1024
+    }
+  ),
+  dimensionSpan(
+    "ceilingHeight",
+    "vertical",
+    [330, 150, 330, 785],
+    [[304, 150, 354, 150], [304, 785, 354, 785]],
+    { x: 430, y: 467.5 },
+    {
+      priority: "perimeter",
+      sourceWidth: 1536,
+      sourceHeight: 1024
+    }
+  ),
+  dimensionSpan(
+    "desiredDepth",
+    "depth",
+    [1230, 785, 1310, 828],
+    [[1222, 800, 1238, 770], [1302, 843, 1318, 813]],
+    { x: 1180, y: 752 },
+    {
+      priority: "perimeter",
+      sourceWidth: 1536,
+      sourceHeight: 1024
+    }
+  )
+]);
+
 const NICHE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
   dimensionSpan(
     "nicheWidth",
@@ -500,16 +540,18 @@ const DOUBLE_OPENING_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
   dimensionSpan(
     "openingLeftDistance",
     "horizontal",
-    [118, 478, 302, 478],
-    [[118, 452, 118, 506], [302, 452, 302, 506]],
-    { x: 210, y: 478 }
+    [304, 690, 520, 690],
+    [[304, 662, 304, 718], [520, 662, 520, 718]],
+    { x: 412, y: 690 },
+    { sourceWidth: 1536, sourceHeight: 1024 }
   ),
   dimensionSpan(
     "openingRightDistance",
     "horizontal",
-    [698, 478, 882, 478],
-    [[698, 452, 698, 506], [882, 452, 882, 506]],
-    { x: 790, y: 478 }
+    [1016, 690, 1230, 690],
+    [[1016, 662, 1016, 718], [1230, 662, 1230, 718]],
+    { x: 1123, y: 690 },
+    { sourceWidth: 1536, sourceHeight: 1024 }
   )
 ]);
 
@@ -810,21 +852,114 @@ const NATIVE_PRODUCT_SCENES = Object.freeze({
   })
 });
 
+const PRODUCT_SCENE_ASSET_OVERRIDES = Object.freeze({
+  "tv-unit:framed-tv-wall:double-opening": "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png",
+  "floating-storage:floating-drawer-bank:double-opening": "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/double-opening-v3.png",
+  "window-storage:window-seat-storage:double-opening": "assets/photos/configurator/integrated/window-storage/window-seat-storage/double-opening-v2.png",
+  "radiator-cover:clean-slat-cover:double-opening": "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/double-opening-v2.png"
+});
+
 export const PRODUCT_INTEGRATED_PREVIEW_ASSETS = Object.freeze(Object.fromEntries(
   PRODUCT_CHOICES.map((choice) => [
     choice.id,
     Object.freeze(Object.fromEntries(
       SHARED_ROOM_LAYOUTS.map((roomLayout) => {
+        const previewKey = `${choice.categoryId}:${choice.styleId}:${roomLayout.id}`;
         const bookcaseAsset = choice.categoryId === "bookcase"
           ? BOOKCASE_INTEGRATED_PREVIEW_ASSETS[roomLayout.id]?.[choice.styleId]
           : null;
         const nativeAsset = NATIVE_PRODUCT_SCENES[choice.categoryId]?.[roomLayout.id];
         const integratedAsset = `assets/photos/configurator/integrated/${choice.categoryId}/${choice.styleId}/${roomLayout.id}-v1.png`;
-        return [roomLayout.id, bookcaseAsset || nativeAsset || integratedAsset];
+        return [
+          roomLayout.id,
+          PRODUCT_SCENE_ASSET_OVERRIDES[previewKey] || bookcaseAsset || nativeAsset || integratedAsset
+        ];
       })
     ))
   ])
 ));
+
+const envelope = (x, y, width, height) => Object.freeze({ x, y, width, height });
+
+/**
+ * Normalized installation-wall envelopes keep product photography away from
+ * openings and unrelated room surfaces. They are expressed in scene space
+ * (0–1), so the room and product layers can share one responsive transform.
+ */
+const LAYOUT_INSTALLATION_ENVELOPES = Object.freeze({
+  "niche-layout": envelope(0.13, 0.1, 0.74, 0.78),
+  "left-niche": envelope(0.18, 0.1, 0.72, 0.78),
+  "right-niche": envelope(0.1, 0.1, 0.72, 0.78),
+  "clear-wall": envelope(0.1, 0.08, 0.8, 0.8),
+  "fireplace-wall": envelope(0.08, 0.1, 0.84, 0.78),
+  "center-recess": envelope(0.12, 0.1, 0.76, 0.78),
+  "window-wall": envelope(0.08, 0.1, 0.84, 0.78),
+  "door-wall": envelope(0.08, 0.1, 0.84, 0.78),
+  "corner-wall": envelope(0.04, 0.08, 0.92, 0.82),
+  "double-opening": envelope(0.19, 0.1, 0.62, 0.78)
+});
+
+const PRODUCT_INSTALLATION_ENVELOPES = Object.freeze({
+  bookcase: envelope(0.04, 0.04, 0.92, 0.86),
+  "tv-unit": envelope(0.06, 0.07, 0.88, 0.82),
+  "floating-storage": envelope(0.06, 0.43, 0.88, 0.45),
+  "window-storage": envelope(0.04, 0.14, 0.92, 0.74),
+  "radiator-cover": envelope(0.06, 0.24, 0.88, 0.64)
+});
+
+const INSTALLATION_ENVELOPE_OVERRIDES = Object.freeze({
+  // The v2 scene was authored directly in the canonical Between Openings room.
+  // This padded envelope follows the cabinet perimeter while leaving both
+  // openings, the ceiling, and the foreground floor entirely to the room layer.
+  "tv-unit:framed-tv-wall:double-opening": Object.freeze({
+    id: "tv-unit-double-opening-v2-cabinet",
+    bounds: envelope(0.267, 0.195, 0.466, 0.61)
+  }),
+  "floating-storage:floating-drawer-bank:double-opening": Object.freeze({
+    id: "floating-storage-double-opening-v3-cabinet",
+    bounds: envelope(0.25, 0.493, 0.5, 0.195)
+  }),
+  "window-storage:window-seat-storage:double-opening": Object.freeze({
+    id: "window-storage-double-opening-v2-installation",
+    bounds: envelope(0.232, 0.125, 0.534, 0.713)
+  }),
+  "radiator-cover:clean-slat-cover:double-opening": Object.freeze({
+    id: "radiator-cover-double-opening-v2-installation",
+    bounds: envelope(0.265, 0.568, 0.471, 0.23)
+  })
+});
+
+function intersectInstallationEnvelopes(layoutEnvelope, productEnvelope) {
+  const x = Math.max(layoutEnvelope.x, productEnvelope.x);
+  const y = Math.max(layoutEnvelope.y, productEnvelope.y);
+  const right = Math.min(
+    layoutEnvelope.x + layoutEnvelope.width,
+    productEnvelope.x + productEnvelope.width
+  );
+  const bottom = Math.min(
+    layoutEnvelope.y + layoutEnvelope.height,
+    productEnvelope.y + productEnvelope.height
+  );
+  return envelope(x, y, Math.max(0, right - x), Math.max(0, bottom - y));
+}
+
+function resolveInstallationEnvelope(categoryId, styleId, layoutId) {
+  const previewKey = `${categoryId}:${styleId}:${layoutId}`;
+  const override = INSTALLATION_ENVELOPE_OVERRIDES[previewKey];
+  if (override) {
+    return Object.freeze({
+      id: override.id,
+      bounds: override.bounds
+    });
+  }
+
+  const layoutEnvelope = LAYOUT_INSTALLATION_ENVELOPES[layoutId] || envelope(0.08, 0.08, 0.84, 0.8);
+  const productEnvelope = PRODUCT_INSTALLATION_ENVELOPES[categoryId] || envelope(0.04, 0.04, 0.92, 0.86);
+  return Object.freeze({
+    id: `${layoutId}-${categoryId}-installation-wall`,
+    bounds: intersectInstallationEnvelopes(layoutEnvelope, productEnvelope)
+  });
+}
 
 export function getProductChoice(productId) {
   return PRODUCT_CHOICES.find((choice) => choice.id === productId) || null;
@@ -1101,25 +1236,15 @@ export function getMeasurementDiagramSpec(categoryId, layoutId) {
   );
   const baseSpans = selectedLayout?.id === "door-wall"
     ? DOOR_BASE_MEASUREMENT_DIAGRAM_SPANS
-    : BASE_MEASUREMENT_DIAGRAM_SPANS;
+    : selectedLayout?.id === "double-opening"
+      ? DOUBLE_OPENING_BASE_MEASUREMENT_DIAGRAM_SPANS
+      : BASE_MEASUREMENT_DIAGRAM_SPANS;
   const layoutSpans = ROOM_MEASUREMENT_DIAGRAM_SPANS[selectedLayout?.id] || Object.freeze([]);
   const productSpans = selectedLayout?.id === "clear-wall"
     ? CLEAR_WALL_PRODUCT_MEASUREMENT_DIAGRAM_SPANS[selectedCategory.id] || Object.freeze([])
     : Object.freeze([]);
   const spans = [...baseSpans, ...layoutSpans, ...productSpans]
     .filter((span) => availableFields.has(span.fieldId))
-    .map((span) => {
-      if (selectedLayout?.id !== "double-opening" || span.fieldId !== "wallWidth") return span;
-      return Object.freeze({
-        ...span,
-        line: Object.freeze([250, 86, 750, 86]),
-        extensions: Object.freeze([
-          Object.freeze([250, 56, 250, 112]),
-          Object.freeze([750, 56, 750, 112])
-        ]),
-        labelOverride: "Available wall width"
-      });
-    })
     .map((span) => resolveMeasurementDiagramSpan(span, viewBox));
 
   const productFeature = selectedLayout?.id === "clear-wall"
@@ -1164,9 +1289,16 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
     : null;
 
   if (exactLayoutAsset && selectedLayout) {
+    const installation = resolveInstallationEnvelope(
+      categoryId,
+      selectedStyle.id,
+      selectedLayout.id
+    );
     return Object.freeze({
       previewKey,
       conceptAsset: exactLayoutAsset,
+      roomAsset: selectedLayout.previewAsset,
+      productAsset: exactLayoutAsset,
       categoryId,
       styleId: selectedStyle.id,
       layoutId: selectedLayout.id,
@@ -1175,7 +1307,9 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
       layoutContextAsset: selectedLayout.previewAsset,
       layoutPreviewMode: selectedLayout.previewMode,
       layoutPreviewPosition: selectedLayout.previewPosition,
-      renderMode: "integrated"
+      installationEnvelopeId: installation.id,
+      installationEnvelope: installation.bounds,
+      renderMode: "layered"
     });
   }
 
@@ -1183,6 +1317,8 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
     return Object.freeze({
       previewKey,
       conceptAsset: selectedLayout.previewAsset,
+      roomAsset: selectedLayout.previewAsset,
+      productAsset: null,
       categoryId,
       styleId: selectedStyle.id,
       layoutId: selectedLayout.id,
@@ -1191,6 +1327,8 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
       layoutContextAsset: selectedLayout.previewAsset,
       layoutPreviewMode: selectedLayout.previewMode,
       layoutPreviewPosition: selectedLayout.previewPosition,
+      installationEnvelopeId: null,
+      installationEnvelope: null,
       renderMode: "missing-integrated-scene"
     });
   }
@@ -1201,6 +1339,8 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
   return Object.freeze({
     previewKey,
     conceptAsset,
+    roomAsset: selectedLayout?.previewAsset || null,
+    productAsset: conceptAsset,
     categoryId,
     styleId: selectedStyle.id,
     layoutId: selectedLayout?.id || null,
@@ -1209,6 +1349,8 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
     layoutContextAsset: selectedLayout?.previewAsset || null,
     layoutPreviewMode: selectedLayout?.previewMode || "image",
     layoutPreviewPosition: selectedLayout?.previewPosition || "50% 50%",
+    installationEnvelopeId: null,
+    installationEnvelope: selectedLayout ? envelope(0, 0, 1, 1) : null,
     renderMode: selectedLayout ? "concept-with-room-context" : "concept-only"
   });
 }
