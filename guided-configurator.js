@@ -954,6 +954,7 @@ function renderMeasurementDiagram(fields, selectedLayout) {
           class="dimension-overlay"
           data-dimension-overlay
           data-dimension-count="${dimensions.length}"
+          aria-hidden="true"
         >
           ${renderDimensionDrawing(dimensions, diagramSpec)}
           ${dimensions.map(({ field, span }) => renderDimensionChip(field, span, diagramSpec)).join("")}
@@ -1051,7 +1052,6 @@ function renderDimensionChip(field, span, diagramSpec) {
       data-dimension-code="${escapeAttribute(field.code || "")}"
       data-dimension-priority="${escapeAttribute(span.priority)}"
       style="--dimension-label-x:${labelX.toFixed(3)}%;--dimension-label-y:${labelY.toFixed(3)}%"
-      aria-label="${escapeAttribute(`${field.code ? `${field.code} ` : ""}${annotationName}: ${displayValue}`)}"
     >
       <span class="measurement-annotation-copy">
         <strong class="measurement-annotation-label">
