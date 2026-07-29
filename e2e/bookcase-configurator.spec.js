@@ -29,6 +29,83 @@ const sharedLayouts = [
   { id: "double-opening", label: "Between Openings" }
 ];
 
+const bookcaseMeasurementDimensions = Object.freeze({
+  "niche-layout": [
+    ["wallWidth", "A"],
+    ["ceilingHeight", "B"],
+    ["desiredDepth", "C"],
+    ["nicheWidth", "D"],
+    ["nicheHeight", "E"],
+    ["nicheDepth", "F"]
+  ],
+  "left-niche": [
+    ["wallWidth", "A"],
+    ["ceilingHeight", "B"],
+    ["desiredDepth", "C"],
+    ["nicheWidth", "D"],
+    ["nicheHeight", "E"],
+    ["nicheDepth", "F"]
+  ],
+  "right-niche": [
+    ["wallWidth", "A"],
+    ["ceilingHeight", "B"],
+    ["desiredDepth", "C"],
+    ["nicheWidth", "D"],
+    ["nicheHeight", "E"],
+    ["nicheDepth", "F"]
+  ],
+  "clear-wall": [
+    ["wallWidth", "A"],
+    ["ceilingHeight", "B"],
+    ["desiredDepth", "C"]
+  ],
+  "fireplace-wall": [
+    ["wallWidth", "A"],
+    ["ceilingHeight", "B"],
+    ["desiredDepth", "C"],
+    ["fireplaceWidth", "D"],
+    ["fireplaceHeight", "E"],
+    ["mantelWidth", "F"]
+  ],
+  "center-recess": [
+    ["wallWidth", "A"],
+    ["ceilingHeight", "B"],
+    ["desiredDepth", "C"],
+    ["nicheWidth", "D"],
+    ["nicheHeight", "E"],
+    ["nicheDepth", "F"]
+  ],
+  "window-wall": [
+    ["wallWidth", "A"],
+    ["ceilingHeight", "B"],
+    ["desiredDepth", "C"],
+    ["windowWidth", "D"],
+    ["windowHeight", "E"],
+    ["sillHeight", "F"]
+  ],
+  "door-wall": [
+    ["wallWidth", "A"],
+    ["ceilingHeight", "B"],
+    ["desiredDepth", "C"],
+    ["doorWidth", "D"],
+    ["doorHeight", "E"],
+    ["doorLeftDistance", "F"]
+  ],
+  "corner-wall": [
+    ["wallWidth", "A"],
+    ["ceilingHeight", "B"],
+    ["desiredDepth", "C"],
+    ["cornerReturn", "D"]
+  ],
+  "double-opening": [
+    ["wallWidth", "A"],
+    ["ceilingHeight", "B"],
+    ["desiredDepth", "C"],
+    ["openingLeftDistance", "D"],
+    ["openingRightDistance", "E"]
+  ]
+});
+
 function monitorRuntime(page) {
   const failures = [];
   page.on("pageerror", (error) => failures.push(`pageerror: ${error.message}`));
@@ -292,26 +369,26 @@ test("measurement fields adapt to the layout, accept fractions, warn gently, and
   await chooseLayout(page, "Window Wall");
   await page.locator("[data-continue]").click();
 
-  for (const label of [
-    "Wall Width",
-    "Ceiling Height",
-    "Desired Built-In Depth",
-    "Left Return",
-    "Right Return",
-    "Window Width",
-    "Window Height",
-    "Sill Height",
-    "Radiator Below Window"
+  for (const fieldId of [
+    "wallWidth",
+    "ceilingHeight",
+    "desiredDepth",
+    "leftReturn",
+    "rightReturn",
+    "windowWidth",
+    "windowHeight",
+    "sillHeight",
+    "radiatorBelowWindow"
   ]) {
-    await expect(page.getByLabel(label)).toBeVisible();
+    await expect(page.locator(`[data-measurement-row="${fieldId}"]`)).toBeVisible();
   }
 
-  const width = page.getByLabel("Wall width");
+  const width = page.locator('[data-measurement="wallWidth"]');
   await width.fill("121 1/2");
   await expect(page.locator('[data-dimension-chip="wallWidth"]')).toContainText("121 1/2 in");
   await width.fill("190");
   await expect(page.locator('[data-measurement-row="wallWidth"] .measurement-warning')).toContainText("outside our usual");
-  const optionalWindowWidth = page.getByLabel("Window width");
+  const optionalWindowWidth = page.locator('[data-measurement="windowWidth"]');
   await optionalWindowWidth.fill("about four feet");
   await expect(page.locator('[data-measurement-row="windowWidth"] .measurement-input-error')).toContainText("decimal, or a common fraction");
   await expect(optionalWindowWidth).toHaveAttribute("aria-invalid", "");
@@ -326,8 +403,7 @@ test("measurement fields adapt to the layout, accept fractions, warn gently, and
   await page.locator("[data-back]").click();
   await expect(width).toHaveValue("190");
 
-  await width.selectText();
-  await width.press("Backspace");
+  await width.fill("");
   await expect(width).toHaveValue("");
   await page.locator("[data-continue]").click();
   await expect(page.locator("[data-measurement-error]")).toContainText("approximate wall width");
@@ -344,8 +420,8 @@ test("Between Openings remains visible through customization and review", async 
   await page.locator("[data-continue]").click();
 
   await expect(page.locator(".selected-layout-chip")).toContainText("Between Openings");
-  await expect(page.getByLabel("Left opening clearance")).toBeVisible();
-  await expect(page.getByLabel("Right opening clearance")).toBeVisible();
+  await expect(page.locator('[data-measurement="openingLeftDistance"]')).toBeVisible();
+  await expect(page.locator('[data-measurement="openingRightDistance"]')).toBeVisible();
   await page.locator("[data-continue]").click();
 
   const customizationPreview = page.locator('.concept-preview[data-layout="double-opening"]');
@@ -478,8 +554,8 @@ test("Door Wall keeps the selected drawer construction through customization and
   await chooseLayout(page, "Door Wall");
   await page.locator("[data-continue]").click();
   await expect(page.locator(".selected-layout-chip")).toContainText("Door Wall");
-  await expect(page.getByLabel("Door width")).toBeVisible();
-  await expect(page.getByLabel("Door height")).toBeVisible();
+  await expect(page.locator('[data-measurement="doorWidth"]')).toBeVisible();
+  await expect(page.locator('[data-measurement="doorHeight"]')).toBeVisible();
   await expect.poll(() => finishMaskStatus).toBe(200);
   await page.locator("[data-continue]").click();
 
@@ -533,20 +609,33 @@ test("Right Niche measurement guides explain every visible dimension and keep pr
   const room = diagram.locator(".measurement-room");
   const guideLabels = diagram.locator(".measurement-annotation-label");
   await expect(room.locator(":scope > .dimension-overlay")).toBeVisible();
-  await expect(guideLabels).toHaveText([
-    "A · Wall width",
-    "B · Ceiling height",
-    "C · Built-in depth",
-    "D · Niche width",
-    "E · Niche height"
+  await expect(guideLabels.locator(".measurement-annotation-code")).toHaveText([
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F"
+  ]);
+  await expect(guideLabels.locator(".measurement-annotation-name")).toHaveText([
+    "Wall width",
+    "Ceiling height",
+    "Built-in depth",
+    "Niche width",
+    "Niche height",
+    "Niche depth"
   ]);
   await expect(diagram.locator("[data-dimension-value]")).toHaveText([
     "120 in",
     "96 in",
     "14 in",
     "96 in",
-    "96 in"
+    "96 in",
+    "14 in"
   ]);
+  await expect(diagram.locator("[data-dimension-span]")).toHaveCount(6);
+  await expect(diagram.locator("[data-dimension-line]")).toHaveCount(6);
+  await expect(diagram.locator("[data-dimension-extension]")).toHaveCount(12);
   await expect(page.locator('[data-measurement-row="wallWidth"] .measurement-code')).toHaveText("A");
   await expect(page.locator('[data-measurement-row="ceilingHeight"] .measurement-code')).toHaveText("B");
   await expect(page.locator('[data-measurement-row="desiredDepth"] .measurement-code')).toHaveText("C");
@@ -578,7 +667,7 @@ test("Right Niche measurement guides explain every visible dimension and keep pr
   expect(guideGeometry.allInsideRoom).toBe(true);
   expect(guideGeometry.overlappingPairs).toBe(0);
 
-  await page.getByLabel("Wall Width").fill("132");
+  await page.locator('[data-measurement="wallWidth"]').fill("132");
   await expect(diagram.locator('[data-dimension-chip="wallWidth"] [data-dimension-value]')).toHaveText("132 in");
   await page.locator("[data-continue]").click();
 
@@ -630,15 +719,28 @@ test("TV measurement diagram keeps the screen centered and its callouts separate
 
   await expect(room).toHaveAttribute("data-feature", "tv");
   await expect(tv).toBeVisible();
-  await expect(diagonal).toContainText("D · TV diagonal");
-  await expect(height).toContainText("E · TV height");
-  await expect(diagram.locator(".measurement-annotation-label")).toHaveText([
-    "A · Wall width",
-    "B · Ceiling height",
-    "C · Built-in depth",
-    "D · TV diagonal",
-    "E · TV height"
+  await expect(diagonal.locator(".measurement-annotation-code")).toHaveText("D");
+  await expect(diagonal.locator(".measurement-annotation-name")).toHaveText("TV diagonal");
+  await expect(height.locator(".measurement-annotation-code")).toHaveText("E");
+  await expect(height.locator(".measurement-annotation-name")).toHaveText("TV height");
+  await expect(diagram.locator(".measurement-annotation-code")).toHaveText([
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
   ]);
+  await expect(diagram.locator(".measurement-annotation-name")).toHaveText([
+    "Wall width",
+    "Ceiling height",
+    "Built-in depth",
+    "TV diagonal",
+    "TV height"
+  ]);
+  await expect(diagram.locator('[data-dimension-span="tvScreenSize"]')).toHaveAttribute("data-dimension-axis", "diagonal");
+  await expect(diagram.locator('[data-dimension-span="tvHeight"]')).toHaveAttribute("data-dimension-axis", "vertical");
+  await expect(diagram.locator('[data-dimension-extension="tvScreenSize"]')).toHaveCount(2);
+  await expect(diagram.locator('[data-dimension-extension="tvHeight"]')).toHaveCount(2);
 
   const geometry = await diagram.evaluate((element) => {
     const bounds = (selector) => {
@@ -655,6 +757,19 @@ test("TV measurement diagram keeps the screen centered and its callouts separate
     const tvRect = bounds(".measurement-feature");
     const diagonalRect = bounds('[data-dimension-chip="tvScreenSize"]');
     const heightRect = bounds('[data-dimension-chip="tvHeight"]');
+    const lineLength = (fieldId) => {
+      const line = element.querySelector(`[data-dimension-line="${fieldId}"]`);
+      const matrix = line.getScreenCTM();
+      const point = (x, y) => {
+        const svgPoint = line.ownerSVGElement.createSVGPoint();
+        svgPoint.x = x;
+        svgPoint.y = y;
+        return svgPoint.matrixTransform(matrix);
+      };
+      const start = point(line.x1.baseVal.value, line.y1.baseVal.value);
+      const end = point(line.x2.baseVal.value, line.y2.baseVal.value);
+      return Math.hypot(end.x - start.x, end.y - start.y);
+    };
     const overlaps = (first, second) => (
       first.left < second.right
       && first.right > second.left
@@ -664,8 +779,8 @@ test("TV measurement diagram keeps the screen centered and its callouts separate
     return {
       tvCenterDelta: Math.abs(tvRect.centerX - (diagramRect.left + diagramRect.width / 2)),
       calloutsOverlap: overlaps(diagonalRect, heightRect),
-      diagonalBeforeTv: diagonalRect.right < tvRect.left,
-      heightAfterTv: heightRect.left > tvRect.right,
+      diagonalLineLength: lineLength("tvScreenSize"),
+      heightLineLength: lineLength("tvHeight"),
       allInsideDiagram: [tvRect, diagonalRect, heightRect].every((rect) => (
         rect.left >= diagramRect.left
         && rect.right <= diagramRect.right
@@ -677,9 +792,173 @@ test("TV measurement diagram keeps the screen centered and its callouts separate
 
   expect(geometry.tvCenterDelta).toBeLessThanOrEqual(2);
   expect(geometry.calloutsOverlap).toBe(false);
-  expect(geometry.diagonalBeforeTv).toBe(true);
-  expect(geometry.heightAfterTv).toBe(true);
+  expect(geometry.diagonalLineLength).toBeGreaterThan(20);
+  expect(geometry.heightLineLength).toBeGreaterThan(20);
   expect(geometry.allInsideDiagram).toBe(true);
+});
+
+test("all ten bookcase layouts keep architectural dimension lines and labels valid at desktop and iPad landscape sizes", async ({ page }) => {
+  test.slow();
+
+  for (const viewport of [
+    { width: 1280, height: 720 },
+    { width: 1180, height: 820 }
+  ]) {
+    await page.setViewportSize(viewport);
+    await openFreshProject(page);
+    await continueToLayouts(page);
+
+    for (const roomLayout of sharedLayouts) {
+      const expectedDimensions = bookcaseMeasurementDimensions[roomLayout.id];
+      await chooseLayout(page, roomLayout.label);
+      await page.locator("[data-continue]").click();
+
+      const room = page.locator(`.measurement-room[data-layout="${roomLayout.id}"]`);
+      const drawing = room.locator("[data-dimension-drawing]");
+      const spans = drawing.locator("[data-dimension-span]");
+      const labels = room.locator("[data-dimension-label]");
+      const context = `${viewport.width}x${viewport.height} ${roomLayout.label}`;
+
+      await expect(room, `${context} room`).toBeVisible();
+      await expect(drawing, `${context} drawing`).toBeVisible();
+      await expect(spans, `${context} spans`).toHaveCount(expectedDimensions.length);
+      await expect(labels, `${context} labels`).toHaveCount(expectedDimensions.length);
+      expect(
+        await spans.evaluateAll((elements) => elements.map((element) => [
+          element.dataset.dimensionSpan,
+          element.dataset.dimensionCode
+        ])),
+        `${context} ordered fields and codes`
+      ).toEqual(expectedDimensions);
+      expect(
+        await labels.evaluateAll((elements) => elements.map((element) => [
+          element.dataset.dimensionLabel,
+          element.dataset.dimensionCode
+        ])),
+        `${context} ordered label fields and codes`
+      ).toEqual(expectedDimensions);
+
+      await expect.poll(
+        () => room.locator("img.measurement-room-image").evaluate((image) => (
+          image.complete && image.naturalWidth > 0 && image.naturalHeight > 0
+        )),
+        { message: `${context} room image loaded` }
+      ).toBe(true);
+
+      const geometry = await room.evaluate((element, expectedCount) => {
+        const tolerance = 1;
+        const roomRect = element.getBoundingClientRect();
+        const drawingElement = element.querySelector("[data-dimension-drawing]");
+        const spanElements = [...element.querySelectorAll("[data-dimension-span]")];
+        const visibleLabels = [...element.querySelectorAll("[data-dimension-label] .measurement-annotation-copy")]
+          .filter((label) => {
+            const style = getComputedStyle(label);
+            const rect = label.getBoundingClientRect();
+            return (
+              style.display !== "none"
+              && style.visibility !== "hidden"
+              && Number(style.opacity) > 0
+              && rect.width > 0
+              && rect.height > 0
+            );
+          })
+          .map((label) => {
+            const rect = label.getBoundingClientRect();
+            return {
+              fieldId: label.closest("[data-dimension-label]").dataset.dimensionLabel,
+              left: rect.left,
+              right: rect.right,
+              top: rect.top,
+              bottom: rect.bottom
+            };
+          });
+        const overlaps = (first, second) => (
+          first.left < second.right - tolerance
+          && first.right > second.left + tolerance
+          && first.top < second.bottom - tolerance
+          && first.bottom > second.top + tolerance
+        );
+        const lineLength = (line) => {
+          const matrix = line.getScreenCTM();
+          const point = (x, y) => {
+            const svgPoint = line.ownerSVGElement.createSVGPoint();
+            svgPoint.x = x;
+            svgPoint.y = y;
+            return svgPoint.matrixTransform(matrix);
+          };
+          const start = point(line.x1.baseVal.value, line.y1.baseVal.value);
+          const end = point(line.x2.baseVal.value, line.y2.baseVal.value);
+          return Math.hypot(end.x - start.x, end.y - start.y);
+        };
+        const spanReports = spanElements.map((span) => {
+          const fieldId = span.dataset.dimensionSpan;
+          const line = span.querySelector(`[data-dimension-line="${CSS.escape(fieldId)}"]`);
+          const extensions = [...span.querySelectorAll(`[data-dimension-extension="${CSS.escape(fieldId)}"]`)];
+          const lineStyle = getComputedStyle(line);
+          return {
+            fieldId,
+            lineCount: span.querySelectorAll(`[data-dimension-line="${CSS.escape(fieldId)}"]`).length,
+            extensionCount: extensions.length,
+            ticks: extensions.map((extension) => extension.dataset.dimensionTick),
+            markerStart: line.getAttribute("marker-start"),
+            markerEnd: line.getAttribute("marker-end"),
+            visibleStroke: lineStyle.stroke !== "none" && Number(lineStyle.opacity) > 0,
+            lineLength: lineLength(line)
+          };
+        });
+        const overlappingPairs = visibleLabels.flatMap((first, index) => (
+          visibleLabels.slice(index + 1)
+            .filter((second) => overlaps(first, second))
+            .map((second) => `${first.fieldId}/${second.fieldId}`)
+        ));
+
+        return {
+          expectedCount,
+          drawingInsideRoom: (() => {
+            const rect = drawingElement.getBoundingClientRect();
+            return (
+              rect.left >= roomRect.left - tolerance
+              && rect.right <= roomRect.right + tolerance
+              && rect.top >= roomRect.top - tolerance
+              && rect.bottom <= roomRect.bottom + tolerance
+            );
+          })(),
+          visibleLabelCount: visibleLabels.length,
+          labelsInsideRoom: visibleLabels.every((rect) => (
+            rect.left >= roomRect.left - tolerance
+            && rect.right <= roomRect.right + tolerance
+            && rect.top >= roomRect.top - tolerance
+            && rect.bottom <= roomRect.bottom + tolerance
+          )),
+          overlappingPairs,
+          spanReports,
+          horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
+          verticalOverflow: document.documentElement.scrollHeight - window.innerHeight
+        };
+      }, expectedDimensions.length);
+
+      expect(geometry.drawingInsideRoom, `${context} drawing stays inside room`).toBe(true);
+      expect(geometry.visibleLabelCount, `${context} visible label count`).toBe(expectedDimensions.length);
+      expect(geometry.labelsInsideRoom, `${context} labels stay inside room`).toBe(true);
+      expect(geometry.overlappingPairs, `${context} labels do not overlap`).toEqual([]);
+      expect(geometry.horizontalOverflow, `${context} horizontal overflow`).toBeLessThanOrEqual(1);
+      if (viewport.width === 1280 && viewport.height === 720) {
+        expect(geometry.verticalOverflow, `${context} vertical overflow`).toBeLessThanOrEqual(1);
+      }
+      for (const span of geometry.spanReports) {
+        expect(span.lineCount, `${context} ${span.fieldId} main line`).toBe(1);
+        expect(span.extensionCount, `${context} ${span.fieldId} witness lines`).toBe(2);
+        expect(span.ticks, `${context} ${span.fieldId} witness endpoints`).toEqual(["start", "end"]);
+        expect(span.markerStart, `${context} ${span.fieldId} start arrow`).toMatch(/^url\(#dimension-arrow-/);
+        expect(span.markerEnd, `${context} ${span.fieldId} end arrow`).toMatch(/^url\(#dimension-arrow-/);
+        expect(span.visibleStroke, `${context} ${span.fieldId} stroke`).toBe(true);
+        expect(span.lineLength, `${context} ${span.fieldId} rendered line length`).toBeGreaterThan(10);
+      }
+
+      await page.locator("[data-back]").click();
+      await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
+    }
+  }
 });
 
 test("landscape tablet keeps Steps 1–4 and every navigation action in one screen", async ({ page }) => {
@@ -761,7 +1040,7 @@ test("product, finish, compatibility, preview, and review summary stay synchroni
   await continueToLayouts(page);
   await chooseLayout(page, "Clear Wall");
   await page.locator("[data-continue]").click();
-  await page.getByLabel("Wall width").fill("132.25");
+  await page.locator('[data-measurement="wallWidth"]').fill("132.25");
   await page.locator("[data-continue]").click();
 
   await expect(page.locator(".concept-preview")).toHaveAttribute("data-style", "cabinet-base-shelves");
@@ -813,18 +1092,18 @@ test("automatic draft saving restores the active step and values after refresh",
   await continueToLayouts(page);
   await chooseLayout(page, "Fireplace Wall");
   await page.locator("[data-continue]").click();
-  await page.getByLabel("Wall width").fill("137 3/8");
-  await page.getByLabel("Fireplace opening width").fill("45.5");
+  await page.locator('[data-measurement="wallWidth"]').fill("137 3/8");
+  await page.locator('[data-measurement="fireplaceWidth"]').fill("45.5");
   await page.waitForTimeout(300);
   await page.reload({ waitUntil: "networkidle" });
 
   await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
-  await expect(page.getByLabel("Wall width")).toHaveValue("137.38");
-  await expect(page.getByLabel("Fireplace opening width")).toHaveValue("45.5");
+  await expect(page.locator('[data-measurement="wallWidth"]')).toHaveValue("137.38");
+  await expect(page.locator('[data-measurement="fireplaceWidth"]')).toHaveValue("45.5");
   await page.goBack();
   await expect(page.getByRole("button", { name: /Fireplace Wall/ })).toHaveAttribute("aria-pressed", "true");
   await page.goForward();
-  await expect(page.getByLabel("Fireplace opening width")).toHaveValue("45.5");
+  await expect(page.locator('[data-measurement="fireplaceWidth"]')).toHaveValue("45.5");
 });
 
 test("inspiration presets apply once and then restore edits after refresh", async ({ page }) => {
@@ -834,12 +1113,12 @@ test("inspiration presets apply once and then restore edits after refresh", asyn
   await page.locator("[data-continue]").click();
   await expect(page.locator('button[data-layout="clear-wall"]')).toHaveAttribute("aria-pressed", "true");
   await page.locator("[data-continue]").click();
-  await page.getByLabel("Wall width").fill("129.5");
+  await page.locator('[data-measurement="wallWidth"]').fill("129.5");
   await page.waitForTimeout(250);
   await page.reload({ waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
-  await expect(page.getByLabel("Wall width")).toHaveValue("129.5");
-  await expect(page.getByLabel("TV screen size (diagonal)")).toBeVisible();
+  await expect(page.locator('[data-measurement="wallWidth"]')).toHaveValue("129.5");
+  await expect(page.locator('[data-measurement="tvScreenSize"]')).toBeVisible();
 });
 
 test("saved projects can be renamed, duplicated, deleted, and resumed", async ({ page }) => {
@@ -1042,10 +1321,10 @@ test("desktop, iPad, and phone layouts are overflow-free with usable mobile cont
   expect(Math.min(...cardTargets)).toBeGreaterThanOrEqual(44);
   await chooseLayout(page, "Window Wall");
   await page.locator("[data-continue]").click();
-  await expect(page.locator("[data-dimension-chip]")).toHaveCount(5);
+  await expect(page.locator("[data-dimension-chip]")).toHaveCount(6);
   expect(await page.locator("[data-dimension-chip]").evaluateAll((chips) => (
     chips.map((chip) => chip.dataset.dimensionChip)
-  ))).toEqual(["wallWidth", "ceilingHeight", "desiredDepth", "windowWidth", "windowHeight"]);
+  ))).toEqual(["wallWidth", "ceilingHeight", "desiredDepth", "windowWidth", "windowHeight", "sillHeight"]);
   const mobileOrder = await page.evaluate(() => {
     const diagram = document.querySelector(".measurement-diagram-card").getBoundingClientRect();
     const form = document.querySelector(".measurement-panel").getBoundingClientRect();

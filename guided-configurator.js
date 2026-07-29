@@ -9,12 +9,13 @@ import {
   getCompatibleDetails,
   getFinish,
   getLayout,
+  getMeasurementDiagramSpec,
   getMeasurementFields,
   getProductChoice,
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=unified-products-20260728a";
+} from "./guided-configurator-data.js?v=architectural-dimensions-20260729a";
 import {
   buildProjectSummary,
   createProject,
@@ -23,7 +24,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=unified-products-20260728a";
+} from "./guided-configurator-state.js?v=architectural-dimensions-20260729a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -32,19 +33,6 @@ const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 4, label: "Customization", mobileLabel: "Finish", title: "Refine your concept", description: "Choose the finish, hardware, and lighting for the design you selected." }),
   Object.freeze({ id: 5, label: "Review & Details", mobileLabel: "Review", title: "Review your custom concept", description: "Check your selections and request a quote or save the project for later." })
 ]);
-
-const MEASUREMENT_DIAGRAM_BASE_FIELDS = Object.freeze(["wallWidth", "ceilingHeight", "desiredDepth"]);
-const MEASUREMENT_DIAGRAM_FEATURE_FIELDS = Object.freeze({
-  niche: Object.freeze(["nicheWidth", "nicheHeight"]),
-  recess: Object.freeze(["nicheWidth", "nicheHeight"]),
-  window: Object.freeze(["windowWidth", "windowHeight"]),
-  door: Object.freeze(["doorWidth", "doorHeight"]),
-  fireplace: Object.freeze(["fireplaceWidth", "fireplaceHeight"]),
-  tv: Object.freeze(["tvScreenSize", "tvHeight"]),
-  radiator: Object.freeze(["radiatorWidth", "radiatorHeight"]),
-  corner: Object.freeze(["cornerReturn"]),
-  opening: Object.freeze(["openingLeftDistance", "openingRightDistance"])
-});
 
 const LEGACY_PRESET_MAP = Object.freeze({
   "media-wall": Object.freeze({ category: "tv-unit", layout: "clear-wall", style: "library-media" }),
@@ -853,34 +841,9 @@ function renderMeasurementStep() {
 
 function selectMeasurementDiagramFields(fields, selectedLayout) {
   const fieldsById = new Map(fields.map((field) => [field.id, field]));
-  const diagramFieldIds = [...MEASUREMENT_DIAGRAM_BASE_FIELDS];
-  const featureKeys = [
-    selectedLayout?.feature,
-    ...(selectedLayout?.tags || [])
-  ].filter(Boolean);
-
-  let featureFieldIds = [];
-  for (const key of featureKeys) {
-    const candidateIds = MEASUREMENT_DIAGRAM_FEATURE_FIELDS[key] || [];
-    const availableIds = candidateIds.filter((fieldId) => fieldsById.has(fieldId));
-    if (availableIds.length) {
-      featureFieldIds = availableIds.slice(0, 2);
-      break;
-    }
-  }
-
-  if (!featureFieldIds.length) {
-    for (const candidateIds of Object.values(MEASUREMENT_DIAGRAM_FEATURE_FIELDS)) {
-      const availableIds = candidateIds.filter((fieldId) => fieldsById.has(fieldId));
-      if (availableIds.length) {
-        featureFieldIds = availableIds.slice(0, 2);
-        break;
-      }
-    }
-  }
-
-  return [...diagramFieldIds, ...featureFieldIds]
-    .map((fieldId) => fieldsById.get(fieldId))
+  return getMeasurementDiagramSpec(project.category, selectedLayout?.id)
+    .spans
+    .map((span) => fieldsById.get(span.fieldId))
     .filter(Boolean);
 }
 
@@ -954,59 +917,121 @@ function renderMeasurementField(field, warning, showDiagramCode = true) {
 }
 
 function renderMeasurementDiagram(fields, selectedLayout) {
-  const dimensionFields = fields.filter((field) => field.type === "inches");
-  const usesApprovedWindowReference = selectedLayout?.feature === "window";
-  const diagramFeature = resolveMeasurementDiagramFeature(dimensionFields, selectedLayout);
-  const roomVisual = usesApprovedWindowReference
-    ? `
-        ${renderOptimizedPicture("assets/photos/configurator/guided-measurement-room-v2.png", {
-          pictureClass: "measurement-room-image",
-          imageClass: "measurement-room-image",
-          loading: "eager",
-          fetchPriority: "high"
-        })}
-      `
-    : `
-        <span
-          class="measurement-room-reference"
-          aria-hidden="true"
-          style="background-image:url('${escapeAttribute(optimizedImageAsset(selectedLayout?.previewAsset))}');background-position:${escapeAttribute(selectedLayout?.previewPosition || "50% 50%")};background-size:${selectedLayout?.previewMode === "sprite" ? "200% auto" : "cover"}"
-        ></span>
-        ${["tv", "radiator"].includes(diagramFeature) ? '<span class="measurement-feature"></span>' : ""}
-      `;
+  const diagramSpec = getMeasurementDiagramSpec(project.category, selectedLayout?.id);
+  const fieldsById = new Map(
+    fields
+      .filter((field) => field.type === "inches")
+      .map((field) => [field.id, field])
+  );
+  const dimensions = diagramSpec.spans
+    .map((span) => ({ span, field: fieldsById.get(span.fieldId) }))
+    .filter(({ field }) => Boolean(field));
+  const roomVisual = renderOptimizedPicture(
+    selectedLayout?.previewAsset || getLayout(project.category, "clear-wall")?.previewAsset,
+    {
+      pictureClass: "measurement-room-image",
+      imageClass: "measurement-room-image",
+      loading: "eager",
+      fetchPriority: "high"
+    }
+  );
+  const syntheticFeature = (
+    selectedLayout?.id === "clear-wall"
+    && ["tv", "window", "radiator"].includes(diagramSpec.feature)
+  ) ? '<span class="measurement-feature" aria-hidden="true"></span>' : "";
+
   return `
     <figure class="measurement-diagram-card" aria-label="Measurement diagram for ${escapeAttribute(selectedLayout?.label || "selected layout")}">
       <div
-        class="measurement-room${usesApprovedWindowReference ? " measurement-room--photo" : " measurement-room--reference"}"
+        class="measurement-room measurement-room--photo"
         data-layout="${escapeAttribute(selectedLayout?.id || "clear-wall")}"
         data-condition="${escapeAttribute(selectedLayout?.condition || "clear-wall")}"
-        data-feature="${escapeAttribute(diagramFeature)}"
+        data-feature="${escapeAttribute(diagramSpec.feature)}"
       >
         ${roomVisual}
-        <div class="dimension-overlay" data-dimension-overlay>
-          ${dimensionFields.map((field, index) => renderDimensionChip(field, index, dimensionFields)).join("")}
+        ${syntheticFeature}
+        <div
+          class="dimension-overlay"
+          data-dimension-overlay
+          data-dimension-count="${dimensions.length}"
+          aria-hidden="true"
+        >
+          ${renderDimensionDrawing(dimensions, diagramSpec)}
+          ${dimensions.map(({ field, span }) => renderDimensionChip(field, span, diagramSpec)).join("")}
         </div>
       </div>
     </figure>
   `;
 }
 
-function resolveMeasurementDiagramFeature(fields, selectedLayout) {
-  if (selectedLayout?.feature && selectedLayout.feature !== "none") {
-    return selectedLayout.feature;
-  }
-  if (fields.some((field) => ["tvScreenSize", "tvHeight"].includes(field.id))) {
-    return "tv";
-  }
-  return "none";
+function renderDimensionDrawing(dimensions, diagramSpec) {
+  const markerId = `dimension-arrow-${diagramSpec.layoutId}`;
+  return `
+    <svg
+      class="measurement-dimension-drawing"
+      data-dimension-drawing
+      viewBox="0 0 ${diagramSpec.width} ${diagramSpec.height}"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <marker
+          id="${escapeAttribute(markerId)}"
+          viewBox="0 0 8 8"
+          refX="4"
+          refY="4"
+          markerWidth="8"
+          markerHeight="8"
+          markerUnits="userSpaceOnUse"
+          orient="auto-start-reverse"
+        >
+          <path class="measurement-dimension-arrow" d="M8 0L0 4L8 8Z"></path>
+        </marker>
+      </defs>
+      ${dimensions.map(({ field, span }) => {
+        const [x1, y1, x2, y2] = span.line;
+        return `
+          <g
+            class="measurement-dimension-span"
+            data-dimension-span="${escapeAttribute(field.id)}"
+            data-dimension-code="${escapeAttribute(field.code || "")}"
+            data-dimension-axis="${escapeAttribute(span.axis)}"
+            data-dimension-priority="${escapeAttribute(span.priority)}"
+          >
+            ${span.extensions.map(([extensionX1, extensionY1, extensionX2, extensionY2], index) => `
+              <line
+                class="measurement-dimension-extension"
+                data-dimension-extension="${escapeAttribute(field.id)}"
+                data-dimension-tick="${index === 0 ? "start" : "end"}"
+                x1="${extensionX1}"
+                y1="${extensionY1}"
+                x2="${extensionX2}"
+                y2="${extensionY2}"
+              ></line>
+            `).join("")}
+            <line
+              class="measurement-dimension-line"
+              data-dimension-line="${escapeAttribute(field.id)}"
+              x1="${x1}"
+              y1="${y1}"
+              x2="${x2}"
+              y2="${y2}"
+              marker-start="url(#${escapeAttribute(markerId)})"
+              marker-end="url(#${escapeAttribute(markerId)})"
+            ></line>
+          </g>
+        `;
+      }).join("")}
+    </svg>
+  `;
 }
 
-function renderDimensionChip(field, index, fields) {
+function renderDimensionChip(field, span, diagramSpec) {
   const value = project.measurements[field.id];
-  const displayValue = field.type === "select"
-    ? field.values.find((option) => option.value === value)?.label || "Not sure"
-    : value === null || value === undefined ? "Add estimate" : `${formatInches(value)} in`;
-  const placement = dimensionPlacement(field, index, fields);
+  const displayValue = value === null || value === undefined
+    ? "Add estimate"
+    : `${formatInches(value)} in`;
   const referenceLabels = {
     wallWidth: "Wall width",
     ceilingHeight: "Ceiling height",
@@ -1016,41 +1041,27 @@ function renderDimensionChip(field, index, fields) {
     tvScreenSize: "TV diagonal",
     tvHeight: "TV height"
   };
-  const annotationName = referenceLabels[field.id] || field.label;
-  const annotationLabel = field.code ? `${field.code} · ${annotationName}` : annotationName;
-  const architecturalFieldIds = ["wallWidth", "ceilingHeight", "desiredDepth", "windowWidth", "windowHeight"];
-  const supplemental = architecturalFieldIds.includes(field.id) ? "" : " is-supplemental";
+  const annotationName = span.labelOverride || referenceLabels[field.id] || field.label;
+  const labelX = (span.label.x / diagramSpec.width) * 100;
+  const labelY = (span.label.y / diagramSpec.height) * 100;
   return `
-    <span class="dimension-chip measurement-annotation${supplemental}" data-dimension-chip="${field.id}" data-position="${placement.position}" style="${placement.style}">
+    <span
+      class="dimension-chip measurement-annotation"
+      data-dimension-chip="${escapeAttribute(field.id)}"
+      data-dimension-label="${escapeAttribute(field.id)}"
+      data-dimension-code="${escapeAttribute(field.code || "")}"
+      data-dimension-priority="${escapeAttribute(span.priority)}"
+      style="--dimension-label-x:${labelX.toFixed(3)}%;--dimension-label-y:${labelY.toFixed(3)}%"
+    >
       <span class="measurement-annotation-copy">
-        <strong class="measurement-annotation-label">${escapeHtml(annotationLabel)}</strong>
+        <strong class="measurement-annotation-label">
+          ${field.code ? `<span class="measurement-annotation-code">${escapeHtml(field.code)}</span>` : ""}
+          <span class="measurement-annotation-name">${escapeHtml(annotationName)}</span>
+        </strong>
         <span class="measurement-annotation-value" data-dimension-value>${escapeHtml(displayValue)}</span>
       </span>
     </span>
   `;
-}
-
-function dimensionPlacement(field, index, fields) {
-  if (field.position) {
-    const repeatedBefore = fields
-      .slice(0, index)
-      .filter((candidate) => candidate.position === field.position)
-      .length;
-    if (!repeatedBefore) return { position: field.position, style: "" };
-    if (field.position === "feature-left" || field.position === "feature-right") {
-      return { position: field.position, style: `top:${27 + repeatedBefore * 16}%` };
-    }
-    if (field.position === "lower-left" || field.position === "lower-right") {
-      return { position: field.position, style: `bottom:${17 + repeatedBefore * 14}%` };
-    }
-    return { position: field.position, style: "" };
-  }
-  if (index === 0) return { position: "top", style: "" };
-  if (index === 1) return { position: "left", style: "" };
-  if (index === 2) return { position: "bottom", style: "" };
-  const side = index % 2 === 0 ? "custom-left" : "custom-right";
-  const row = Math.floor((index - 3) / 2);
-  return { position: side, style: `top:${Math.min(78, 12 + row * 17)}%` };
 }
 
 function renderCustomizationStep() {
