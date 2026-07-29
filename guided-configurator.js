@@ -15,7 +15,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=architectural-dimensions-20260729b";
+} from "./guided-configurator-data.js?v=room-scene-continuity-20260729a";
 import {
   buildProjectSummary,
   createProject,
@@ -24,7 +24,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=architectural-dimensions-20260729b";
+} from "./guided-configurator-state.js?v=room-scene-continuity-20260729a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -243,6 +243,45 @@ const CONCEPT_FINISH_MASKS = Object.freeze({
     rectangles: Object.freeze([
       [113, 389, 1307, 31],
       [126, 414, 1277, 426]
+    ])
+  }),
+  "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png": Object.freeze({
+    viewBox: "0 0 1536 1024",
+    width: 1536,
+    height: 1024,
+    rectangles: Object.freeze([
+      [420, 205, 696, 611]
+    ]),
+    cutouts: Object.freeze([
+      [590, 349, 355, 216]
+    ])
+  }),
+  "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/double-opening-v3.png": Object.freeze({
+    viewBox: "0 0 1536 1024",
+    width: 1536,
+    height: 1024,
+    rectangles: Object.freeze([
+      [390, 510, 751, 194]
+    ])
+  }),
+  "assets/photos/configurator/integrated/window-storage/window-seat-storage/double-opening-v2.png": Object.freeze({
+    viewBox: "0 0 1536 1024",
+    width: 1536,
+    height: 1024,
+    rectangles: Object.freeze([
+      [357, 128, 819, 52],
+      [375, 165, 785, 42],
+      [375, 172, 170, 660],
+      [990, 172, 170, 660],
+      [375, 696, 785, 162]
+    ])
+  }),
+  "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/double-opening-v2.png": Object.freeze({
+    viewBox: "0 0 1536 1024",
+    width: 1536,
+    height: 1024,
+    rectangles: Object.freeze([
+      [408, 582, 723, 235]
     ])
   })
 });
@@ -1290,6 +1329,27 @@ function renderConceptPreview() {
   const hardware = DETAIL_OPTIONS.hardware.find((option) => option.id === project.hardware);
   const doorCount = category.id === "floating-storage" ? 5 : category.id === "window-storage" ? 6 : 4;
   const previewScope = conceptPreviewScope(category, layout, selectedStyle, previewPresentation);
+  const roomAsset = previewPresentation.roomAsset || (
+    previewPresentation.productAsset ? null : previewPresentation.conceptAsset
+  );
+  const productAsset = previewPresentation.productAsset;
+  const installationEnvelope = previewPresentation.installationEnvelope;
+  const installationEnvelopeValue = installationEnvelope
+    ? [
+        installationEnvelope.x,
+        installationEnvelope.y,
+        installationEnvelope.width,
+        installationEnvelope.height
+      ].join(",")
+    : "";
+  const installationEnvelopeStyle = installationEnvelope
+    ? [
+        `--installation-top:${installationEnvelope.y * 100}%`,
+        `--installation-right:${(1 - installationEnvelope.x - installationEnvelope.width) * 100}%`,
+        `--installation-bottom:${(1 - installationEnvelope.y - installationEnvelope.height) * 100}%`,
+        `--installation-left:${installationEnvelope.x * 100}%`
+      ].join(";")
+    : "";
 
   return `
     <figure
@@ -1301,10 +1361,12 @@ function renderConceptPreview() {
       data-finish="${escapeAttribute(finish.id)}"
       data-finish-family="${escapeAttribute(finish.family)}"
       data-preview-asset="${escapeAttribute(previewPresentation.conceptAsset)}"
+      data-room-asset="${escapeAttribute(roomAsset || "")}"
+      data-product-asset="${escapeAttribute(productAsset || "")}"
       data-layout-context-asset="${escapeAttribute(previewPresentation.layoutContextAsset || "")}"
       data-preview-render-mode="${escapeAttribute(previewPresentation.renderMode)}"
       data-preview-scope="${escapeAttribute(previewScope.id)}"
-      style="--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)}"
+      style="--scene-object-position:${escapeAttribute(previewPresentation.layoutPreviewPosition || "50% 50%")};--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)}"
       aria-label="${escapeAttribute(`${selectedProduct?.label || selectedStyle.label} for ${layout?.label || category.label} in ${finish.label}`)}"
     >
       <div class="concept-preview-meta">
@@ -1317,26 +1379,53 @@ function renderConceptPreview() {
         </div>
         ${renderConceptLayoutContext(layout, previewPresentation)}
       </div>
-      <div class="concept-scene" data-concept-scene>
-        ${renderOptimizedPicture(previewPresentation.conceptAsset, {
-          pictureClass: "concept-photo",
-          imageClass: "concept-photo",
-          loading: "eager",
-          fetchPriority: "high"
-        })}
-        ${renderConceptFinishOverlay(previewPresentation.conceptAsset)}
-        ${previewPresentation.renderMode === "missing-integrated-scene" ? `
-          <div class="concept-preview-unavailable" role="status">
-            <strong>Room-specific concept in preparation</strong>
-            <span>We will not substitute an unrelated room for ${escapeHtml(layout?.label || "this layout")}.</span>
-          </div>
-        ` : ""}
-        <div
-          class="concept-unit concept-unit--sentinel"
-          data-style="${escapeAttribute(selectedStyle.id)}"
-          style="display:none;--unit-finish:${escapeAttribute(finish.color)};--accent-finish:${escapeAttribute(accentFinish.color)};--hardware-color:${escapeAttribute(hardware?.color || "#302d2a")};--door-count:${doorCount}"
-          aria-hidden="true"
-        ></div>
+      <div class="concept-scene-shell">
+        <div class="concept-scene" data-concept-scene data-scene-fit="cover">
+          ${roomAsset ? `
+            <div
+              class="concept-room-layer"
+              data-room-layer
+              data-room-asset="${escapeAttribute(roomAsset)}"
+            >
+              ${renderOptimizedPicture(roomAsset, {
+                pictureClass: "concept-layer-picture concept-room-picture",
+                imageClass: "concept-layer-image concept-room-image",
+                loading: "eager",
+                fetchPriority: "high"
+              })}
+            </div>
+          ` : ""}
+          ${productAsset ? `
+            <div
+              class="concept-product-layer"
+              data-product-layer
+              data-product-asset="${escapeAttribute(productAsset)}"
+              data-installation-envelope-id="${escapeAttribute(previewPresentation.installationEnvelopeId || "full-scene")}"
+              data-installation-envelope="${escapeAttribute(installationEnvelopeValue)}"
+              style="${escapeAttribute(installationEnvelopeStyle)}"
+            >
+              ${renderOptimizedPicture(productAsset, {
+                pictureClass: "concept-photo concept-layer-picture concept-product-picture",
+                imageClass: "concept-photo concept-layer-image concept-product-image",
+                loading: "eager",
+                fetchPriority: "high"
+              })}
+              ${renderConceptFinishOverlay(productAsset)}
+            </div>
+          ` : ""}
+          ${previewPresentation.renderMode === "missing-integrated-scene" ? `
+            <div class="concept-preview-unavailable" role="status">
+              <strong>Room-specific concept in preparation</strong>
+              <span>We will not substitute an unrelated room for ${escapeHtml(layout?.label || "this layout")}.</span>
+            </div>
+          ` : ""}
+          <div
+            class="concept-unit concept-unit--sentinel"
+            data-style="${escapeAttribute(selectedStyle.id)}"
+            style="display:none;--unit-finish:${escapeAttribute(finish.color)};--accent-finish:${escapeAttribute(accentFinish.color)};--hardware-color:${escapeAttribute(hardware?.color || "#302d2a")};--door-count:${doorCount}"
+            aria-hidden="true"
+          ></div>
+        </div>
       </div>
       ${renderPreviewControls()}
     </figure>
@@ -1364,7 +1453,9 @@ function renderConceptLayoutContext(layout, previewPresentation) {
 
 function renderConceptFinishOverlay(previewAsset) {
   const assetName = String(previewAsset || "").split("/").pop();
-  const definition = CONCEPT_FINISH_MASKS[assetName] || resolveGeneratedIntegratedFinishMask(previewAsset);
+  const definition = CONCEPT_FINISH_MASKS[previewAsset]
+    || CONCEPT_FINISH_MASKS[assetName]
+    || resolveGeneratedIntegratedFinishMask(previewAsset);
   if (!definition) return "";
 
   const maskId = `concept-finish-mask-${String(previewAsset).replace(/[^a-z0-9]+/gi, "-")}`;
@@ -1386,12 +1477,15 @@ function renderConceptFinishOverlay(previewAsset) {
       ${(definition.polygons || []).map((points) => (
         `<polygon points="${points}" fill="#fff"></polygon>`
       )).join("")}
+      ${(definition.cutouts || []).map(([x, y, width, height]) => (
+        `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="2" fill="#000"></rect>`
+      )).join("")}
     `;
   return `
     <svg
       class="concept-finish-overlay"
       viewBox="${definition.viewBox || "0 0 1536 1024"}"
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
       focusable="false"
     >
@@ -1426,8 +1520,22 @@ function renderConceptFinishOverlay(previewAsset) {
 }
 
 function resolveGeneratedIntegratedFinishMask(previewAsset) {
+  const explicitMaskAssets = Object.freeze({
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png":
+      "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-finish-mask-v1.png"
+  });
+  const explicitMaskAsset = explicitMaskAssets[String(previewAsset || "")];
+  if (explicitMaskAsset) {
+    return Object.freeze({
+      viewBox: "0 0 1536 1024",
+      width: 1536,
+      height: 1024,
+      maskAsset: explicitMaskAsset
+    });
+  }
+
   const match = String(previewAsset || "").match(
-    /integrated\/([^/]+)\/([^/]+)\/([^/]+)-v1\.png$/
+    /integrated\/([^/]+)\/([^/]+)\/([^/]+)-v\d+\.png$/
   );
   if (!match) return null;
 
@@ -1435,12 +1543,12 @@ function resolveGeneratedIntegratedFinishMask(previewAsset) {
     viewBox: "0 0 1536 1024",
     width: 1536,
     height: 1024,
-    maskAsset: String(previewAsset).replace(/-v1\.png$/, "-finish-mask-v1.png")
+    maskAsset: String(previewAsset).replace(/-v\d+\.png$/, "-finish-mask-v1.png")
   });
 }
 
 function conceptPreviewScope(category, layout, selectedStyle, previewPresentation) {
-  if (previewPresentation.renderMode === "integrated") {
+  if (previewPresentation.renderMode === "layered") {
     return { id: "layout-and-configuration", label: "Layout + configuration reference" };
   }
   if (previewPresentation.renderMode === "missing-integrated-scene") {
