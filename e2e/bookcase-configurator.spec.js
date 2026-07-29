@@ -476,6 +476,59 @@ test("Between Openings keeps every bookcase construction in the selected room", 
   }
 });
 
+test("Door Wall keeps the selected drawer construction through customization and review", async ({ page }) => {
+  const asset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/door-wall-v1.png";
+  const avifAsset = asset.replace(/\.png$/, ".avif");
+
+  await openFreshProject(page);
+  await page.locator('[data-product-style="drawer-base-shelves"]').click();
+  await page.locator("[data-continue]").click();
+  await chooseLayout(page, "Door Wall");
+  await page.locator("[data-continue]").click();
+  await expect(page.locator(".selected-layout-chip")).toContainText("Door Wall");
+  await expect(page.getByLabel("Door width")).toBeVisible();
+  await expect(page.getByLabel("Door height")).toBeVisible();
+  await page.locator("[data-continue]").click();
+
+  const customizationPreview = page.locator('.concept-preview[data-layout="door-wall"]');
+  await expect(customizationPreview).toHaveAttribute(
+    "data-preview-key",
+    "bookcase:drawer-base-shelves:door-wall"
+  );
+  await expect(customizationPreview).toHaveAttribute("data-style", "drawer-base-shelves");
+  await expect(customizationPreview).toHaveAttribute("data-preview-asset", asset);
+  await expect(customizationPreview).toHaveAttribute("data-preview-render-mode", "integrated");
+  await expect(customizationPreview.locator('[data-layout-context="door-wall"]')).toHaveAccessibleName(
+    "Selected room condition: Door Wall"
+  );
+  await expect.poll(() => customizationPreview.locator("img.concept-photo").evaluate((image, expectedPath) => (
+    image.complete
+      && image.naturalWidth === 1536
+      && image.naturalHeight === 1024
+      && new URL(image.currentSrc).pathname.endsWith(expectedPath)
+  ), avifAsset)).toBe(true);
+
+  await page.getByRole("tab", { name: "Finish" }).click();
+  await page.getByRole("button", { name: "Charcoal", exact: true }).click();
+  await expect(customizationPreview).toHaveAttribute("data-finish", "charcoal");
+  await expect(customizationPreview.locator(".concept-finish-overlay")).toBeVisible();
+  const customizationImageSource = await customizationPreview.locator("img.concept-photo").evaluate(
+    (image) => new URL(image.currentSrc).pathname
+  );
+
+  await page.locator("[data-continue]").click();
+  const reviewPreview = page.locator('.concept-preview[data-layout="door-wall"]');
+  await expect(page.locator('[data-summary-value="layout"]')).toHaveText("Door Wall");
+  await expect(page.locator('[data-summary-value="style"]')).toHaveText("Drawers + Shelves");
+  await expect(reviewPreview).toHaveAttribute("data-preview-key", "bookcase:drawer-base-shelves:door-wall");
+  await expect(reviewPreview).toHaveAttribute("data-preview-asset", asset);
+  await expect(reviewPreview).toHaveAttribute("data-preview-render-mode", "integrated");
+  const reviewImageSource = await reviewPreview.locator("img.concept-photo").evaluate(
+    (image) => new URL(image.currentSrc).pathname
+  );
+  expect(reviewImageSource).toBe(customizationImageSource);
+});
+
 test("Right Niche measurement guides explain every visible dimension and keep preview metadata off the furniture", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await openFreshProject(page);
@@ -539,6 +592,11 @@ test("Right Niche measurement guides explain every visible dimension and keep pr
   const preview = page.locator('.concept-preview[data-layout="right-niche"]');
   const metadata = preview.locator(".concept-preview-meta");
   const context = preview.locator('[data-layout-context="right-niche"]');
+  await expect(preview).toHaveAttribute(
+    "data-preview-asset",
+    "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/right-niche-v1.png"
+  );
+  await expect(preview).toHaveAttribute("data-preview-render-mode", "integrated");
   await expect(context).toContainText("Right Niche");
   await expect(context.locator(".concept-layout-context-visual")).toHaveCount(0);
   const previewGeometry = await preview.evaluate((element) => {

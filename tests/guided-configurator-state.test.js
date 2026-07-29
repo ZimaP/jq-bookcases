@@ -2,9 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
+  BOOKCASE_INTEGRATED_PREVIEW_ASSETS,
   CATEGORY_DEFINITIONS,
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
+  PUBLIC_BOOKCASE_STYLE_IDS,
   SHARED_ROOM_LAYOUTS,
   getCompatibleDetails,
   getLayout,
@@ -245,7 +247,7 @@ test("project summaries reflect normalized measurements and curated selections",
   assert.equal(summarySteps.notes, 5);
 });
 
-test("bookcase configurations map only to construction-matched concept assets", () => {
+test("every public Bookcase construction maps to the selected room scene", async () => {
   const bookcaseStyles = categoryById("bookcase").styles;
   assert.deepEqual(
     bookcaseStyles.map((style) => style.id),
@@ -253,44 +255,69 @@ test("bookcase configurations map only to construction-matched concept assets", 
   );
   assert.ok(bookcaseStyles.every((style) => style.drawingRef));
   assert.ok(bookcaseStyles.every((style) => style.previewAsset.startsWith("assets/photos/configurator/concept-")));
-  assert.equal(
-    resolvePreviewAsset("bookcase", "cabinet-base-shelves", "window-wall"),
-    "assets/photos/configurator/concept-window-cabinets-v1.png"
+  assert.deepEqual(
+    PUBLIC_BOOKCASE_STYLE_IDS,
+    ["cabinet-base-shelves", "drawer-base-shelves", "full-open-shelving"]
   );
+
+  const resolvedAssets = new Set();
+  for (const layout of SHARED_ROOM_LAYOUTS) {
+    const layoutAssets = BOOKCASE_INTEGRATED_PREVIEW_ASSETS[layout.id];
+    assert.ok(layoutAssets, `missing Bookcase preview matrix row for ${layout.id}`);
+    assert.deepEqual(Object.keys(layoutAssets).sort(), [...PUBLIC_BOOKCASE_STYLE_IDS].sort());
+
+    for (const styleId of PUBLIC_BOOKCASE_STYLE_IDS) {
+      const expectedAsset = layoutAssets[styleId];
+      const presentation = resolvePreviewPresentation("bookcase", styleId, layout.id);
+      const previewKey = `bookcase:${styleId}:${layout.id}`;
+
+      assert.equal(resolvePreviewAsset("bookcase", styleId, layout.id), expectedAsset);
+      assert.equal(presentation.previewKey, previewKey);
+      assert.equal(presentation.categoryId, "bookcase");
+      assert.equal(presentation.styleId, styleId);
+      assert.equal(presentation.layoutId, layout.id);
+      assert.equal(presentation.integratedLayoutId, layout.id);
+      assert.equal(presentation.renderMode, "integrated");
+      assert.equal(presentation.conceptAsset, expectedAsset);
+      assert.notEqual(expectedAsset, layout.previewAsset);
+
+      const png = await readFile(new URL(`../${expectedAsset}`, import.meta.url));
+      const avif = await readFile(new URL(`../${expectedAsset.replace(/\.png$/, ".avif")}`, import.meta.url));
+      assert.ok(png.byteLength > 10_000, `${previewKey} PNG is empty`);
+      assert.ok(avif.byteLength > 10_000, `${previewKey} AVIF is empty`);
+      if (expectedAsset.includes("/integrated/")) {
+        const finishMask = await readFile(
+          new URL(`../${expectedAsset.replace(/-v1\.png$/, "-finish-mask-v1.png")}`, import.meta.url)
+        );
+        assert.ok(finishMask.byteLength > 1_000, `${previewKey} finish mask is empty`);
+      }
+      resolvedAssets.add(expectedAsset);
+    }
+  }
+
+  assert.equal(resolvedAssets.size, PUBLIC_BOOKCASE_STYLE_IDS.length * SHARED_ROOM_LAYOUTS.length);
+
+  const legacyMediaPreview = resolvePreviewPresentation("bookcase", "tv-wall-cabinets", "door-wall");
+  assert.equal(legacyMediaPreview.renderMode, "missing-integrated-scene");
+  assert.equal(legacyMediaPreview.integratedLayoutId, null);
   assert.equal(
-    resolvePreviewAsset("bookcase", "drawer-base-shelves", "window-wall"),
-    "assets/photos/configurator/concept-drawers-shelves-v1.png"
-  );
-  assert.equal(
-    resolvePreviewAsset("bookcase", "tv-wall-cabinets", "clear-wall"),
-    "assets/photos/configurator/concept-tv-wall-v1.png"
-  );
-  assert.equal(
-    resolvePreviewAsset("bookcase", "full-open-shelving", "clear-wall"),
-    "assets/photos/configurator/concept-full-shelving-v1.png"
-  );
-  assert.equal(
-    resolvePreviewAsset("bookcase", "cabinet-base-shelves", "double-opening"),
-    "assets/photos/configurator/concept-cabinets-shelves-between-openings-v1.png"
-  );
-  assert.equal(
-    resolvePreviewAsset("bookcase", "drawer-base-shelves", "double-opening"),
-    "assets/photos/configurator/concept-drawers-shelves-between-openings-v1.png"
-  );
-  assert.equal(
-    resolvePreviewAsset("bookcase", "full-open-shelving", "double-opening"),
-    "assets/photos/configurator/concept-full-shelving-between-openings-v1.png"
+    legacyMediaPreview.conceptAsset,
+    "assets/photos/configurator/room-layouts/room-door-wall-v1.png"
   );
 });
 
 test("preview presentations preserve every selected room condition", () => {
-  for (const layout of SHARED_ROOM_LAYOUTS) {
-    const presentation = resolvePreviewPresentation("bookcase", "cabinet-base-shelves", layout.id);
-    assert.equal(presentation.layoutId, layout.id);
-    assert.equal(presentation.layoutLabel, layout.label);
-    assert.equal(presentation.layoutContextAsset, layout.previewAsset);
-    assert.equal(presentation.layoutPreviewMode, layout.previewMode);
-    assert.equal(presentation.layoutPreviewPosition, layout.previewPosition);
+  for (const styleId of PUBLIC_BOOKCASE_STYLE_IDS) {
+    for (const layout of SHARED_ROOM_LAYOUTS) {
+      const presentation = resolvePreviewPresentation("bookcase", styleId, layout.id);
+      assert.equal(presentation.layoutId, layout.id);
+      assert.equal(presentation.integratedLayoutId, layout.id);
+      assert.equal(presentation.layoutLabel, layout.label);
+      assert.equal(presentation.layoutContextAsset, layout.previewAsset);
+      assert.equal(presentation.layoutPreviewMode, layout.previewMode);
+      assert.equal(presentation.layoutPreviewPosition, layout.previewPosition);
+      assert.equal(presentation.renderMode, "integrated");
+    }
   }
 
   const betweenOpenings = resolvePreviewPresentation("bookcase", "full-open-shelving", "double-opening");
@@ -321,14 +348,18 @@ test("preview presentations preserve every selected room condition", () => {
   assert.equal(normalized.previewAsset, betweenOpenings.conceptAsset);
 });
 
-test("legacy bookcase style ids migrate to the closest construction family", () => {
+test("legacy hidden Bookcase styles migrate without inventing an integrated room scene", () => {
   const migrated = normalizeProject({
     ...createProject({ now: 30, random: 0.31 }),
     layout: "clear-wall",
     style: "display-shelving"
   }, { now: 31 });
   assert.equal(migrated.style, "tv-wall-cabinets");
-  assert.equal(migrated.previewAsset, "assets/photos/configurator/concept-tv-wall-v1.png");
+  assert.equal(migrated.previewAsset, "assets/photos/configurator/room-layouts/room-clear-wall-v1.png");
+  assert.equal(
+    resolvePreviewPresentation("bookcase", migrated.style, migrated.layout).renderMode,
+    "missing-integrated-scene"
+  );
 });
 
 test("project store supports drafts, multiple saves, rename, duplicate, resume, and delete", () => {
