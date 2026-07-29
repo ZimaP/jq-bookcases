@@ -849,6 +849,7 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
         const tolerance = 1;
         const roomRect = element.getBoundingClientRect();
         const drawingElement = element.querySelector("[data-dimension-drawing]");
+        const imageElement = element.querySelector("img.measurement-room-image");
         const spanElements = [...element.querySelectorAll("[data-dimension-span]")];
         const visibleLabels = [...element.querySelectorAll("[data-dimension-label] .measurement-annotation-copy")]
           .filter((label) => {
@@ -897,11 +898,13 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
           const lineStyle = getComputedStyle(line);
           return {
             fieldId,
+            endStyle: span.dataset.dimensionEndStyle,
             lineCount: span.querySelectorAll(`[data-dimension-line="${CSS.escape(fieldId)}"]`).length,
             extensionCount: extensions.length,
             ticks: extensions.map((extension) => extension.dataset.dimensionTick),
-            markerStart: line.getAttribute("marker-start"),
-            markerEnd: line.getAttribute("marker-end"),
+            endTickCount: extensions.filter((extension) => extension.classList.contains("is-end-tick")).length,
+            arrowCount: span.querySelectorAll("[data-dimension-end]").length,
+            nestedLabelCount: span.querySelectorAll(":scope [data-dimension-label]").length,
             visibleStroke: lineStyle.stroke !== "none" && Number(lineStyle.opacity) > 0,
             lineLength: lineLength(line)
           };
@@ -923,6 +926,23 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
               && rect.bottom <= roomRect.bottom + tolerance
             );
           })(),
+          oneResponsiveOverlay: element.querySelectorAll(":scope > svg[data-dimension-overlay]").length === 1,
+          viewBoxMatchesImage: (() => {
+            const viewBox = drawingElement.viewBox.baseVal;
+            return Math.abs(
+              (viewBox.width / viewBox.height)
+              - (imageElement.naturalWidth / imageElement.naturalHeight)
+            ) < 0.000001;
+          })(),
+          coverTransformsMatch: (
+            drawingElement.getAttribute("preserveAspectRatio") === "xMidYMid slice"
+            && getComputedStyle(imageElement).objectFit === "cover"
+            && getComputedStyle(imageElement).objectPosition === "50% 50%"
+          ),
+          pointerEventsDisabled: (
+            getComputedStyle(drawingElement).pointerEvents === "none"
+            && spanElements.every((span) => getComputedStyle(span).pointerEvents === "none")
+          ),
           visibleLabelCount: visibleLabels.length,
           labelsInsideRoom: visibleLabels.every((rect) => (
             rect.left >= roomRect.left - tolerance
@@ -938,6 +958,10 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
       }, expectedDimensions.length);
 
       expect(geometry.drawingInsideRoom, `${context} drawing stays inside room`).toBe(true);
+      expect(geometry.oneResponsiveOverlay, `${context} uses one SVG overlay`).toBe(true);
+      expect(geometry.viewBoxMatchesImage, `${context} SVG ratio matches the room image`).toBe(true);
+      expect(geometry.coverTransformsMatch, `${context} image and SVG share one cover transform`).toBe(true);
+      expect(geometry.pointerEventsDisabled, `${context} overlay ignores pointer events`).toBe(true);
       expect(geometry.visibleLabelCount, `${context} visible label count`).toBe(expectedDimensions.length);
       expect(geometry.labelsInsideRoom, `${context} labels stay inside room`).toBe(true);
       expect(geometry.overlappingPairs, `${context} labels do not overlap`).toEqual([]);
@@ -949,14 +973,176 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
         expect(span.lineCount, `${context} ${span.fieldId} main line`).toBe(1);
         expect(span.extensionCount, `${context} ${span.fieldId} witness lines`).toBe(2);
         expect(span.ticks, `${context} ${span.fieldId} witness endpoints`).toEqual(["start", "end"]);
-        expect(span.markerStart, `${context} ${span.fieldId} start arrow`).toMatch(/^url\(#dimension-arrow-/);
-        expect(span.markerEnd, `${context} ${span.fieldId} end arrow`).toMatch(/^url\(#dimension-arrow-/);
+        expect(span.nestedLabelCount, `${context} ${span.fieldId} nested label`).toBe(1);
+        if (span.endStyle === "tick") {
+          expect(span.endTickCount, `${context} ${span.fieldId} architectural end ticks`).toBe(2);
+          expect(span.arrowCount, `${context} ${span.fieldId} omits arrowheads`).toBe(0);
+        } else {
+          expect(span.endStyle, `${context} ${span.fieldId} arrow end style`).toBe("arrow");
+          expect(span.arrowCount, `${context} ${span.fieldId} arrowheads`).toBe(2);
+        }
         expect(span.visibleStroke, `${context} ${span.fieldId} stroke`).toBe(true);
         expect(span.lineLength, `${context} ${span.fieldId} rendered line length`).toBeGreaterThan(10);
       }
 
       await page.locator("[data-back]").click();
       await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
+    }
+  }
+});
+
+test("Door Wall dimension overlay stays on the measured architecture at desktop and iPad landscape sizes", async ({ page }) => {
+  for (const viewport of [
+    { width: 1280, height: 720 },
+    { width: 1180, height: 820 }
+  ]) {
+    await page.setViewportSize(viewport);
+    await openFreshProject(page);
+    await continueToLayouts(page);
+    await chooseLayout(page, "Door Wall");
+    await page.locator("[data-continue]").click();
+
+    const room = page.locator('.measurement-room[data-layout="door-wall"]');
+    const drawing = room.locator("svg[data-dimension-overlay]");
+    const context = `${viewport.width}x${viewport.height} Door Wall`;
+    await expect(drawing, `${context} overlay`).toHaveCount(1);
+    await expect(drawing).toHaveAttribute("viewBox", "0 0 1536 1024");
+    await expect(drawing).toHaveAttribute("preserveAspectRatio", "xMidYMid slice");
+    await expect(room.locator(":scope > [data-dimension-label]")).toHaveCount(0);
+
+    const geometry = await room.evaluate((element) => {
+      const svg = element.querySelector("svg[data-dimension-overlay]");
+      const roomRect = element.getBoundingClientRect();
+      const sourcePoint = (x, y) => {
+        const point = svg.createSVGPoint();
+        point.x = x;
+        point.y = y;
+        const screenPoint = point.matrixTransform(svg.getScreenCTM());
+        return { x: screenPoint.x, y: screenPoint.y };
+      };
+      const lineReport = (fieldId) => {
+        const line = svg.querySelector(`[data-dimension-line="${CSS.escape(fieldId)}"]`);
+        const start = sourcePoint(line.x1.baseVal.value, line.y1.baseVal.value);
+        const end = sourcePoint(line.x2.baseVal.value, line.y2.baseVal.value);
+        return {
+          source: [
+            line.x1.baseVal.value,
+            line.y1.baseVal.value,
+            line.x2.baseVal.value,
+            line.y2.baseVal.value
+          ],
+          start,
+          end,
+          dx: end.x - start.x,
+          dy: end.y - start.y
+        };
+      };
+      const labels = [...svg.querySelectorAll("[data-dimension-label]")].map((label) => {
+        const rect = label.querySelector(".measurement-annotation-card").getBoundingClientRect();
+        return {
+          fieldId: label.dataset.dimensionLabel,
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom
+        };
+      });
+      const overlaps = (first, second) => (
+        first.left < second.right - 1
+        && first.right > second.left + 1
+        && first.top < second.bottom - 1
+        && first.bottom > second.top + 1
+      );
+      const openingTopLeft = sourcePoint(659, 279);
+      const openingBottomRight = sourcePoint(880, 758);
+      const doorOpening = {
+        left: openingTopLeft.x,
+        right: openingBottomRight.x,
+        top: openingTopLeft.y,
+        bottom: openingBottomRight.y
+      };
+      const rightFloorCorner = sourcePoint(1295, 758);
+
+      return {
+        lines: {
+          wallWidth: lineReport("wallWidth"),
+          ceilingHeight: lineReport("ceilingHeight"),
+          desiredDepth: lineReport("desiredDepth"),
+          doorWidth: lineReport("doorWidth"),
+          doorHeight: lineReport("doorHeight"),
+          doorLeftDistance: lineReport("doorLeftDistance")
+        },
+        labelsInsideRoom: labels.every((label) => (
+          label.left >= roomRect.left - 1
+          && label.right <= roomRect.right + 1
+          && label.top >= roomRect.top - 1
+          && label.bottom <= roomRect.bottom + 1
+        )),
+        labelOverlaps: labels.flatMap((first, index) => (
+          labels.slice(index + 1)
+            .filter((second) => overlaps(first, second))
+            .map((second) => `${first.fieldId}/${second.fieldId}`)
+        )),
+        labelsOverDoor: labels
+          .filter((label) => overlaps(label, doorOpening))
+          .map((label) => label.fieldId),
+        rightFloorCorner,
+        depthEndStyle: svg.querySelector('[data-dimension-span="desiredDepth"]').dataset.dimensionEndStyle,
+        depthTickCount: svg.querySelectorAll(
+          '[data-dimension-span="desiredDepth"] .measurement-dimension-extension.is-end-tick'
+        ).length,
+        depthArrowCount: svg.querySelectorAll(
+          '[data-dimension-span="desiredDepth"] [data-dimension-end]'
+        ).length,
+        trimDimensionCount: svg.querySelectorAll('[data-dimension-span="doorTrimWidth"]').length,
+        swingDimensionCount: svg.querySelectorAll('[data-dimension-span="doorSwing"]').length
+      };
+    });
+
+    expect(geometry.lines.wallWidth.source, `${context} wall-width source anchors`).toEqual([240, 178, 1295, 178]);
+    expect(geometry.lines.ceilingHeight.source, `${context} ceiling-height source anchors`).toEqual([270, 157, 270, 758]);
+    expect(geometry.lines.desiredDepth.source, `${context} depth source anchors`).toEqual([1295, 758, 1452, 840]);
+    expect(geometry.lines.doorWidth.source, `${context} door-width jamb anchors`).toEqual([659, 232, 880, 232]);
+    expect(geometry.lines.doorHeight.source, `${context} door-height opening anchors`).toEqual([940, 279, 940, 758]);
+    expect(geometry.lines.doorLeftDistance.source, `${context} left-distance trim anchors`).toEqual([240, 638, 639, 638]);
+    expect(Math.abs(geometry.lines.wallWidth.dy), `${context} wall width is horizontal`).toBeLessThan(0.01);
+    expect(Math.abs(geometry.lines.ceilingHeight.dx), `${context} ceiling height is vertical`).toBeLessThan(0.01);
+    expect(Math.abs(geometry.lines.doorWidth.dy), `${context} door width is horizontal`).toBeLessThan(0.01);
+    expect(Math.abs(geometry.lines.doorHeight.dx), `${context} door height is vertical`).toBeLessThan(0.01);
+    expect(Math.abs(geometry.lines.doorLeftDistance.dy), `${context} left distance is horizontal`).toBeLessThan(0.01);
+    expect(geometry.lines.desiredDepth.dx, `${context} depth moves forward`).toBeGreaterThan(0);
+    expect(geometry.lines.desiredDepth.dy, `${context} depth follows floor perspective`).toBeGreaterThan(0);
+    expect(
+      Math.abs(geometry.lines.desiredDepth.start.x - geometry.rightFloorCorner.x),
+      `${context} depth begins at the back-wall face`
+    ).toBeLessThan(0.01);
+    expect(
+      Math.abs(geometry.lines.desiredDepth.start.y - geometry.rightFloorCorner.y),
+      `${context} depth begins at the right wall-floor junction`
+    ).toBeLessThan(0.01);
+    expect(geometry.labelsInsideRoom, `${context} cards remain inside the room`).toBe(true);
+    expect(geometry.labelOverlaps, `${context} cards do not overlap`).toEqual([]);
+    expect(geometry.labelsOverDoor, `${context} cards do not cover the door opening`).toEqual([]);
+    expect(geometry.depthEndStyle, `${context} depth uses ticks`).toBe("tick");
+    expect(geometry.depthTickCount, `${context} depth endpoint ticks`).toBe(2);
+    expect(geometry.depthArrowCount, `${context} depth has no linear arrows`).toBe(0);
+    expect(geometry.trimDimensionCount, `${context} trim is not a long wall dimension`).toBe(0);
+    expect(geometry.swingDimensionCount, `${context} swing is not a linear dimension`).toBe(0);
+
+    const updates = new Map([
+      ["wallWidth", ["132", "132 in"]],
+      ["ceilingHeight", ["101", "101 in"]],
+      ["desiredDepth", ["16", "16 in"]],
+      ["doorWidth", ["38", "38 in"]],
+      ["doorHeight", ["84", "84 in"]],
+      ["doorLeftDistance", ["27", "27 in"]]
+    ]);
+    for (const [fieldId, [inputValue, expectedValue]] of updates) {
+      await page.locator(`[data-measurement="${fieldId}"]`).fill(inputValue);
+      await expect(
+        drawing.locator(`[data-dimension-label="${fieldId}"] [data-dimension-value]`),
+        `${context} ${fieldId} value`
+      ).toHaveText(expectedValue);
     }
   }
 });

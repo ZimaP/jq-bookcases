@@ -10,7 +10,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=architectural-dimensions-20260729a";
+} from "./guided-configurator-data.js?v=architectural-dimensions-20260729b";
 
 export const GUIDED_PROJECT_SCHEMA_VERSION = 2;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
