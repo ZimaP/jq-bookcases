@@ -11,7 +11,7 @@ import {
   getMeasurementFields,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=truthful-layouts-20260728a";
+} from "./guided-configurator-data.js?v=truthful-layouts-20260728b";
 import {
   buildProjectSummary,
   createProject,
@@ -20,7 +20,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=truthful-layouts-20260728a";
+} from "./guided-configurator-state.js?v=truthful-layouts-20260728b";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -437,11 +437,21 @@ function centerSelectedCategory() {
 }
 
 function preloadPreviewAsset(asset) {
-  if (!asset || previewPreloadCache.has(asset)) return;
-  previewPreloadCache.add(asset);
-  const image = new Image();
-  image.decoding = "async";
-  image.src = optimizedImageAsset(asset);
+  if (!asset) return;
+
+  const generatedFinishMask = resolveGeneratedBookcaseFinishMask(asset)?.maskAsset;
+  const sources = [
+    optimizedImageAsset(asset),
+    generatedFinishMask
+  ].filter(Boolean);
+
+  for (const source of sources) {
+    if (previewPreloadCache.has(source)) continue;
+    previewPreloadCache.add(source);
+    const image = new Image();
+    image.decoding = "async";
+    image.src = source;
+  }
 }
 
 function optimizedImageAsset(asset) {

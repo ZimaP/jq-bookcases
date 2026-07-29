@@ -9,7 +9,7 @@ import {
   getMeasurementFields,
   getStyle,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=truthful-layouts-20260728a";
+} from "./guided-configurator-data.js?v=truthful-layouts-20260728b";
 
 export const GUIDED_PROJECT_SCHEMA_VERSION = 2;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
