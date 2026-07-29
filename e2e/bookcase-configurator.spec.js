@@ -1,11 +1,19 @@
 import { test, expect } from "@playwright/test";
+import {
+  PRODUCT_CHOICES,
+  PRODUCT_INTEGRATED_PREVIEW_ASSETS,
+  SHARED_ROOM_LAYOUTS,
+  resolvePreviewPresentation
+} from "../guided-configurator-data.js";
 
 const products = [
-  { id: "bookcase", label: "Bookcase", style: "cabinet-base-shelves" },
-  { id: "tv-unit", label: "TV Unit", style: "framed-tv-wall" },
-  { id: "floating-storage", label: "Floating Storage", style: "floating-drawer-bank" },
-  { id: "window-storage", label: "Window Storage", style: "window-seat-storage" },
-  { id: "radiator-cover", label: "Radiator Cover", style: "clean-slat-cover" }
+  { id: "cabinet-shelves", label: "Cabinets + Shelves", category: "bookcase", style: "cabinet-base-shelves" },
+  { id: "drawer-shelves", label: "Drawers + Shelves", category: "bookcase", style: "drawer-base-shelves" },
+  { id: "open-shelving", label: "Full Open Shelving", category: "bookcase", style: "full-open-shelving" },
+  { id: "tv-unit", label: "TV Unit", category: "tv-unit", style: "framed-tv-wall" },
+  { id: "floating-storage", label: "Floating Storage", category: "floating-storage", style: "floating-drawer-bank" },
+  { id: "window-storage", label: "Window Storage", category: "window-storage", style: "window-seat-storage" },
+  { id: "radiator-cover", label: "Radiator Cover", category: "radiator-cover", style: "clean-slat-cover" }
 ];
 
 const sharedLayouts = [
@@ -40,23 +48,19 @@ function monitorRuntime(page) {
 
 async function openFreshProject(page) {
   await page.goto("/configurator.html?start=new", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: "Choose your bookcase design" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What would you like us to build?" })).toBeVisible();
   await expect(page).toHaveURL(/configurator\.html#step-1$/);
 }
 
-async function chooseProduct(page, label = "Bookcase") {
+async function chooseProduct(page, label = "Cabinets + Shelves") {
   const product = products.find((candidate) => candidate.label === label);
   if (!product) throw new Error(`Unknown product: ${label}`);
-  const category = page.locator(`[data-category="${product.id}"]`);
-  if (await category.getAttribute("aria-pressed") !== "true") {
-    await category.click();
-  }
-  const card = page.locator(`[data-product-style="${product.style}"]`);
+  const card = page.locator(`[data-product-choice="${product.id}"]`);
   await card.click();
   await expect(card).toHaveAttribute("aria-pressed", "true");
 }
 
-async function continueToLayouts(page, product = "Bookcase") {
+async function continueToLayouts(page, product = "Cabinets + Shelves") {
   await chooseProduct(page, product);
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
@@ -102,7 +106,7 @@ async function expectOneScreenFit(page, selectors) {
   }
 }
 
-async function continueToReview(page, layout = "Clear Wall", product = "Bookcase") {
+async function continueToReview(page, layout = "Clear Wall", product = "Cabinets + Shelves") {
   await continueToLayouts(page, product);
   await chooseLayout(page, layout);
   await page.locator("[data-continue]").click();
@@ -157,16 +161,19 @@ test("public route is the lightweight five-step configurator and excludes the 3D
 
   await expect(page.locator("[data-guided-app]")).toHaveCount(1);
   await expect(page.getByRole("navigation", { name: "Project steps" }).getByRole("button")).toHaveCount(5);
-  await expect(page.locator("[data-category]")).toHaveCount(5);
-  await expect(page.locator("[data-product-style]")).toHaveCount(3);
-  await expect(page.locator("[data-product-style] .product-card-title")).toHaveText([
+  await expect(page.locator(".guided-category-nav")).toHaveCount(0);
+  await expect(page.locator("[data-product-choice]")).toHaveCount(7);
+  await expect(page.locator("[data-product-choice] .product-card-title")).toHaveText([
     "Cabinets + Shelves",
     "Drawers + Shelves",
-    "Full Open Shelving"
+    "Full Open Shelving",
+    "TV Unit",
+    "Floating Storage",
+    "Window Storage",
+    "Radiator Cover"
   ]);
-  await expect(page.locator(".product-card-reference")).toHaveText(["Drawing 7", "Drawings 5–6", "Drawings 1–2"]);
-  await expect(page.locator("[data-product-style] picture source[type='image/avif']")).toHaveCount(3);
-  await expect.poll(() => page.locator("[data-product-style] img").evaluateAll((images) => (
+  await expect(page.locator("[data-product-choice] picture source[type='image/avif']")).toHaveCount(7);
+  await expect.poll(() => page.locator("[data-product-choice] img").evaluateAll((images) => (
     images.every((image) => image.complete && image.naturalWidth > 0 && image.currentSrc.endsWith(".avif"))
   ))).toBe(true);
   await expect(page.locator("canvas, [data-3d-viewer], model-viewer")).toHaveCount(0);
@@ -174,19 +181,62 @@ test("public route is the lightweight five-step configurator and excludes the 3D
   expect(runtime).toEqual([]);
 });
 
-test("wide desktop keeps every Step 1 bookcase card readable and fully visible", async ({ page }) => {
+test("wide desktop keeps all seven product cards readable and fully visible", async ({ page }) => {
   await page.setViewportSize({ width: 2491, height: 1146 });
   await openFreshProject(page);
 
-  const cards = page.locator("[data-product-style]");
-  await expect(cards).toHaveCount(3);
+  const cards = page.locator("[data-product-choice]");
+  await expect(cards).toHaveCount(7);
   await expect.poll(() => cards.locator("img").evaluateAll((images) => (
     images.every((image) => image.complete && image.naturalWidth > 0)
   ))).toBe(true);
 
   const geometry = await page.evaluate(() => {
     const tolerance = 1;
-    const bounds = (element) => {
+    const grid = document.querySelector(".product-grid--catalog").getBoundingClientRect();
+    const cardReports = [...document.querySelectorAll("[data-product-choice]")].map((card) => {
+      const cardRect = bounds(card);
+      const imageRect = bounds(card.querySelector(".product-card-image"));
+      const titleRect = bounds(card.querySelector(".product-card-title"));
+      return {
+        card: cardRect,
+        image: imageRect,
+        title: titleRect,
+        insideViewport: (
+          cardRect.top >= -tolerance
+          && cardRect.left >= -tolerance
+          && cardRect.right <= window.innerWidth + tolerance
+          && cardRect.bottom <= window.innerHeight + tolerance
+        ),
+        insideGrid: (
+          cardRect.top >= grid.top - tolerance
+          && cardRect.right <= grid.right + tolerance
+          && cardRect.bottom <= grid.bottom + tolerance
+          && cardRect.left >= grid.left - tolerance
+        ),
+        noInternalOverflow: (
+          card.scrollWidth <= card.clientWidth + tolerance
+          && card.scrollHeight <= card.clientHeight + tolerance
+        )
+      };
+    });
+    const widths = cardReports.map(({ card }) => card.width);
+    const rowTops = cardReports
+      .map(({ card }) => card.top)
+      .sort((a, b) => a - b)
+      .reduce((rows, top) => {
+        if (!rows.some((rowTop) => Math.abs(rowTop - top) <= 2)) rows.push(top);
+        return rows;
+      }, []);
+    return {
+      horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
+      verticalOverflow: document.documentElement.scrollHeight - window.innerHeight,
+      widthSpread: Math.max(...widths) - Math.min(...widths),
+      rowTops,
+      cards: cardReports
+    };
+
+    function bounds(element) {
       const rect = element.getBoundingClientRect();
       return {
         top: rect.top,
@@ -196,96 +246,28 @@ test("wide desktop keeps every Step 1 bookcase card readable and fully visible",
         width: rect.width,
         height: rect.height
       };
-    };
-    const contains = (outer, inner) => (
-      inner.top >= outer.top - tolerance
-      && inner.right <= outer.right + tolerance
-      && inner.bottom <= outer.bottom + tolerance
-      && inner.left >= outer.left - tolerance
-    );
-    const textMetrics = (element, cardRect, copyRect) => {
-      const range = document.createRange();
-      range.selectNodeContents(element);
-      const textRect = bounds(range);
-      const style = getComputedStyle(element);
-      const lineHeight = Number.parseFloat(style.lineHeight);
-      return {
-        insideCard: contains(cardRect, textRect),
-        insideCopy: contains(copyRect, textRect),
-        lineCount: Number.isFinite(lineHeight) && lineHeight > 0
-          ? textRect.height / lineHeight
-          : Number.POSITIVE_INFINITY
-      };
-    };
-    const grid = bounds(document.querySelector(".product-grid--concepts"));
-    const cardReports = [...document.querySelectorAll("[data-product-style]")].map((card) => {
-      const image = card.querySelector(".product-card-image");
-      const copy = card.querySelector(".product-card-copy");
-      const reference = card.querySelector(".product-card-reference");
-      const title = card.querySelector(".product-card-title");
-      const description = card.querySelector(".product-card-description");
-      const cardRect = bounds(card);
-      const imageRect = bounds(image);
-      const copyRect = bounds(copy);
-      return {
-        card: cardRect,
-        image: imageRect,
-        copy: copyRect,
-        insideViewport: (
-          cardRect.top >= -tolerance
-          && cardRect.left >= -tolerance
-          && cardRect.right <= window.innerWidth + tolerance
-          && cardRect.bottom <= window.innerHeight + tolerance
-        ),
-        insideGrid: contains(grid, cardRect),
-        noInternalOverflow: (
-          card.scrollWidth <= card.clientWidth + tolerance
-          && card.scrollHeight <= card.clientHeight + tolerance
-          && copy.scrollWidth <= copy.clientWidth + tolerance
-          && copy.scrollHeight <= copy.clientHeight + tolerance
-        ),
-        reference: textMetrics(reference, cardRect, copyRect),
-        title: textMetrics(title, cardRect, copyRect),
-        description: textMetrics(description, cardRect, copyRect)
-      };
-    });
-    const widths = cardReports.map(({ card }) => card.width);
-    const tops = cardReports.map(({ card }) => card.top);
-    return {
-      horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
-      verticalOverflow: document.documentElement.scrollHeight - window.innerHeight,
-      widthSpread: Math.max(...widths) - Math.min(...widths),
-      topSpread: Math.max(...tops) - Math.min(...tops),
-      cards: cardReports
-    };
+    }
   });
 
   expect(geometry.horizontalOverflow).toBeLessThanOrEqual(1);
   expect(geometry.verticalOverflow).toBeLessThanOrEqual(1);
   expect(geometry.widthSpread).toBeLessThanOrEqual(2);
-  expect(geometry.topSpread).toBeLessThanOrEqual(2);
+  expect(geometry.rowTops).toHaveLength(2);
   for (const [index, card] of geometry.cards.entries()) {
-    const label = `bookcase card ${index + 1}`;
+    const label = `product card ${index + 1}`;
     expect(card.insideViewport, `${label} inside viewport`).toBe(true);
     expect(card.insideGrid, `${label} inside grid`).toBe(true);
     expect(card.noInternalOverflow, `${label} internal overflow`).toBe(true);
-    expect(card.card.width, `${label} width`).toBeGreaterThanOrEqual(320);
-    expect(card.card.height, `${label} height`).toBeGreaterThanOrEqual(220);
-    expect(card.image.width, `${label} image width`).toBeGreaterThanOrEqual(170);
-    expect(card.copy.width, `${label} copy width`).toBeGreaterThanOrEqual(170);
-    expect(card.reference.insideCard, `${label} reference inside card`).toBe(true);
-    expect(card.reference.insideCopy, `${label} reference inside copy`).toBe(true);
-    expect(card.reference.lineCount, `${label} reference lines`).toBeLessThanOrEqual(1.25);
-    expect(card.title.insideCard, `${label} title inside card`).toBe(true);
-    expect(card.title.insideCopy, `${label} title inside copy`).toBe(true);
-    expect(card.title.lineCount, `${label} title lines`).toBeLessThanOrEqual(2.25);
-    expect(card.description.insideCard, `${label} description inside card`).toBe(true);
-    expect(card.description.insideCopy, `${label} description inside copy`).toBe(true);
+    expect(card.card.width, `${label} width`).toBeGreaterThanOrEqual(250);
+    expect(card.card.height, `${label} height`).toBeGreaterThanOrEqual(180);
+    expect(card.image.width, `${label} image width`).toBeGreaterThanOrEqual(240);
+    expect(card.title.left, `${label} title left`).toBeGreaterThanOrEqual(card.card.left - 1);
+    expect(card.title.right, `${label} title right`).toBeLessThanOrEqual(card.card.right + 1);
   }
 
   await chooseProduct(page);
   await expect(page.locator("[data-continue]")).toBeEnabled();
-  await expectOneScreenFit(page, [".product-grid--concepts", ".guided-info", ".guided-actions"]);
+  await expectOneScreenFit(page, [".product-grid--catalog", ".guided-actions"]);
 });
 
 test("Continue requires explicit choices and every product uses the same ten room layouts", async ({ page }) => {
@@ -354,7 +336,7 @@ test("measurement fields adapt to the layout, accept fractions, warn gently, and
 
 test("Between Openings remains visible through customization and review", async ({ page }) => {
   await openFreshProject(page);
-  const fullShelving = page.locator('[data-product-style="full-open-shelving"]');
+  const fullShelving = page.locator('[data-product-choice="open-shelving"]');
   await fullShelving.click();
   await expect(fullShelving).toHaveAttribute("aria-pressed", "true");
   await page.locator("[data-continue]").click();
@@ -439,14 +421,17 @@ test("Between Openings remains visible through customization and review", async 
 test("Between Openings keeps every bookcase construction in the selected room", async ({ page }) => {
   const variants = [
     {
+      product: "cabinet-shelves",
       style: "cabinet-base-shelves",
       asset: "assets/photos/configurator/concept-cabinets-shelves-between-openings-v1.png"
     },
     {
+      product: "drawer-shelves",
       style: "drawer-base-shelves",
       asset: "assets/photos/configurator/concept-drawers-shelves-between-openings-v1.png"
     },
     {
+      product: "open-shelving",
       style: "full-open-shelving",
       asset: "assets/photos/configurator/concept-full-shelving-between-openings-v1.png"
     }
@@ -454,7 +439,7 @@ test("Between Openings keeps every bookcase construction in the selected room", 
 
   for (const variant of variants) {
     await openFreshProject(page);
-    await page.locator(`[data-product-style="${variant.style}"]`).click();
+    await page.locator(`[data-product-choice="${variant.product}"]`).click();
     await page.locator("[data-continue]").click();
     await chooseLayout(page, "Between Openings");
     await page.locator("[data-continue]").click();
@@ -488,7 +473,7 @@ test("Door Wall keeps the selected drawer construction through customization and
   });
 
   await openFreshProject(page);
-  await page.locator('[data-product-style="drawer-base-shelves"]').click();
+  await page.locator('[data-product-choice="drawer-shelves"]').click();
   await page.locator("[data-continue]").click();
   await chooseLayout(page, "Door Wall");
   await page.locator("[data-continue]").click();
@@ -527,7 +512,7 @@ test("Door Wall keeps the selected drawer construction through customization and
   await page.locator("[data-continue]").click();
   const reviewPreview = page.locator('.concept-preview[data-layout="door-wall"]');
   await expect(page.locator('[data-summary-value="layout"]')).toHaveText("Door Wall");
-  await expect(page.locator('[data-summary-value="style"]')).toHaveText("Drawers + Shelves");
+  await expect(page.locator('[data-summary-value="product"]')).toHaveText("Drawers + Shelves");
   await expect(reviewPreview).toHaveAttribute("data-preview-key", "bookcase:drawer-base-shelves:door-wall");
   await expect(reviewPreview).toHaveAttribute("data-preview-asset", asset);
   await expect(reviewPreview).toHaveAttribute("data-preview-render-mode", "integrated");
@@ -704,15 +689,12 @@ test("landscape tablet keeps Steps 1–4 and every navigation action in one scre
   await expectOneScreenFit(page, [
     ".guided-header",
     ".guided-stepper",
-    ".guided-category-nav",
-    ".product-grid",
-    ".guided-info",
+    ".product-grid--catalog",
     ".guided-actions"
   ]);
 
   await page.locator("[data-continue]").click();
   await expectOneScreenFit(page, [
-    ".guided-category-nav",
     ".selected-product-banner",
     ".layout-grid",
     ".guided-info",
@@ -749,7 +731,6 @@ test("landscape tablet keeps Steps 1–4 and every navigation action in one scre
   await chooseLayout(page, "Clear Wall");
   await page.locator("[data-continue]").click();
   await expectOneScreenFit(page, [
-    ".guided-category-nav",
     ".measurement-panel",
     ".measurement-diagram-card",
     ".guided-info",
@@ -758,14 +739,13 @@ test("landscape tablet keeps Steps 1–4 and every navigation action in one scre
 
   await page.locator("[data-continue]").click();
   await expectOneScreenFit(page, [
-    ".guided-category-nav",
     ".customization-panel",
     ".concept-preview",
     ".customization-actions"
   ]);
   await expect(page.locator("img.concept-photo")).toHaveCSS("object-fit", "contain");
 
-  for (const tab of ["Details", "Design", "Finish"]) {
+  for (const tab of ["Details", "Finish"]) {
     await page.getByRole("tab", { name: tab }).click();
     const contentFit = await page.locator(".customization-content").evaluate((element) => ({
       scrollHeight: element.scrollHeight,
@@ -776,7 +756,7 @@ test("landscape tablet keeps Steps 1–4 and every navigation action in one scre
   }
 });
 
-test("style, finish, compatibility, preview, and review summary stay synchronized", async ({ page }) => {
+test("product, finish, compatibility, preview, and review summary stay synchronized", async ({ page }) => {
   await openFreshProject(page);
   await continueToLayouts(page);
   await chooseLayout(page, "Clear Wall");
@@ -784,17 +764,6 @@ test("style, finish, compatibility, preview, and review summary stay synchronize
   await page.getByLabel("Wall width").fill("132.25");
   await page.locator("[data-continue]").click();
 
-  await page.getByRole("tab", { name: "Design" }).click();
-  await expect.poll(() => page.locator(".style-thumb img").evaluateAll((images) => (
-    images.length === 3
-      && images.every((image) => image.complete && image.naturalWidth > 0 && image.currentSrc.endsWith(".avif"))
-  ))).toBe(true);
-  await page.locator('button[data-style="drawer-base-shelves"]').click();
-  await expect(page.locator(".concept-preview")).toHaveAttribute(
-    "data-preview-asset",
-    "assets/photos/configurator/concept-drawers-shelves-v1.png"
-  );
-  await page.locator('button[data-style="cabinet-base-shelves"]').click();
   await expect(page.locator(".concept-preview")).toHaveAttribute("data-style", "cabinet-base-shelves");
   await expect(page.locator(".concept-preview")).toHaveAttribute(
     "data-preview-asset",
@@ -860,8 +829,7 @@ test("automatic draft saving restores the active step and values after refresh",
 
 test("inspiration presets apply once and then restore edits after refresh", async ({ page }) => {
   await page.goto("/configurator.html?preset=media-wall", { waitUntil: "networkidle" });
-  await expect(page.locator('[data-category="tv-unit"]')).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator('[data-product-style="library-media"]')).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('[data-product-choice="tv-unit"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page).toHaveURL(/configurator\.html#step-1$/);
   await page.locator("[data-continue]").click();
   await expect(page.locator('button[data-layout="clear-wall"]')).toHaveAttribute("aria-pressed", "true");
@@ -969,7 +937,7 @@ test("a failed connected quote request keeps the project and reports an honest e
 
 test("keyboard interaction covers product and layout cards, tabs, completed steps, and menu dismissal", async ({ page }) => {
   await openFreshProject(page);
-  const firstProduct = page.locator('[data-product-style="cabinet-base-shelves"]');
+  const firstProduct = page.locator('[data-product-choice="cabinet-shelves"]');
   await firstProduct.focus();
   await expect(firstProduct).toBeFocused();
   await page.keyboard.press("Space");
@@ -987,10 +955,10 @@ test("keyboard interaction covers product and layout cards, tabs, completed step
   await page.locator("[data-continue]").click();
   await page.locator("[data-continue]").click();
 
-  const styleTab = page.getByRole("tab", { name: "Design" });
-  await styleTab.focus();
-  await styleTab.press("ArrowRight");
-  await expect(page.getByRole("tab", { name: "Finish" })).toHaveAttribute("aria-selected", "true");
+  const finishTab = page.getByRole("tab", { name: "Finish" });
+  await finishTab.focus();
+  await finishTab.press("ArrowRight");
+  await expect(page.getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("button", { name: /Choose Layout, completed/ }).click();
   await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
 
@@ -1011,6 +979,44 @@ test("one complete guided flow works for every product category", async ({ page 
   }
 });
 
+test("all seventy product and room combinations keep the selected scene through customization", async ({ page }) => {
+  const runtime = monitorRuntime(page);
+
+  for (const product of PRODUCT_CHOICES) {
+    await openFreshProject(page);
+    await page.locator(`[data-product-choice="${product.id}"]`).click();
+    await page.locator("[data-continue]").click();
+
+    for (const layout of SHARED_ROOM_LAYOUTS) {
+      const expected = resolvePreviewPresentation(product.categoryId, product.styleId, layout.id);
+      const expectedAsset = PRODUCT_INTEGRATED_PREVIEW_ASSETS[product.id][layout.id];
+
+      await page.locator(`[data-layout="${layout.id}"]`).click();
+      await page.locator("[data-continue]").click();
+      await page.locator("[data-continue]").click();
+
+      const preview = page.locator(".concept-preview");
+      await expect(preview).toHaveAttribute("data-category", product.categoryId);
+      await expect(preview).toHaveAttribute("data-style", product.styleId);
+      await expect(preview).toHaveAttribute("data-layout", layout.id);
+      await expect(preview).toHaveAttribute("data-preview-key", expected.previewKey);
+      await expect(preview).toHaveAttribute("data-preview-render-mode", "integrated");
+      await expect(preview).toHaveAttribute("data-preview-asset", expectedAsset);
+      await expect(preview.locator(".concept-finish-overlay")).toBeVisible();
+      await expect.poll(() => preview.locator("img.concept-photo").evaluate((image, avifAsset) => (
+        image.complete
+          && image.naturalWidth > 0
+          && image.naturalHeight > 0
+          && new URL(image.currentSrc).pathname.endsWith(avifAsset)
+      ), expectedAsset.replace(/\.png$/, ".avif"))).toBe(true);
+
+      await page.getByRole("button", { name: /Choose Layout, completed/ }).click();
+    }
+  }
+
+  expect(runtime.filter((failure) => !failure.includes("net::ERR_ABORTED"))).toEqual([]);
+});
+
 test("desktop, iPad, and phone layouts are overflow-free with usable mobile controls", async ({ page }) => {
   for (const viewport of [
     { width: 1920, height: 1080 },
@@ -1026,23 +1032,11 @@ test("desktop, iPad, and phone layouts are overflow-free with usable mobile cont
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), `${viewport.width}x${viewport.height}`).toBeLessThanOrEqual(1);
   }
 
-  const productTargets = await page.locator("[data-product-style]").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
+  const productTargets = await page.locator("[data-product-choice]").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
   expect(Math.min(...productTargets)).toBeGreaterThanOrEqual(44);
   await expect(page.locator(".guided-step-label--mobile")).toHaveText(["Product", "Layout", "Size", "Finish", "Review"]);
   await continueToLayouts(page, "Radiator Cover");
-  await expect.poll(() => page.evaluate(() => {
-    const navigation = document.querySelector(".guided-category-nav");
-    const selected = navigation.querySelector(".guided-category.is-selected");
-    const navigationRect = navigation.getBoundingClientRect();
-    const selectedRect = selected.getBoundingClientRect();
-    return Math.abs(
-      (selectedRect.left + selectedRect.width / 2)
-      - (navigationRect.left + navigationRect.width / 2)
-    );
-  })).toBeLessThanOrEqual(2);
-  expect(await page.locator(".guided-category > span:last-child").evaluateAll((labels) => (
-    labels.every((label) => label.scrollWidth <= label.clientWidth + 1)
-  ))).toBe(true);
+  await expect(page.locator(".guided-category-nav")).toHaveCount(0);
   await expect(page.locator(".layout-grid")).toHaveCSS("grid-template-columns", /.+ .+/);
   const cardTargets = await page.locator("[data-layout]").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
   expect(Math.min(...cardTargets)).toBeGreaterThanOrEqual(44);
