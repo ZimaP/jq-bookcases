@@ -5807,8 +5807,8 @@ body.guided-page {
 }
 
 /* Architectural measurement drawing
-   Keep this final override after every legacy viewport rule: the diagram now
-   uses one photographic room, an SVG dimension layer, and HTML value cards. */
+   Keep this final override after every legacy viewport rule. The room photo
+   and its single SVG overlay share the same cover transform and viewBox ratio. */
 
 .measurement-room.measurement-room--photo {
   position: absolute;
@@ -5858,14 +5858,15 @@ body.guided-page {
 }
 
 .measurement-dimension-drawing {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
-  overflow: hidden;
   shape-rendering: geometricPrecision;
+  pointer-events: none;
+}
+
+.measurement-dimension-span,
+.measurement-dimension-span * {
   pointer-events: none;
 }
 
@@ -5889,141 +5890,113 @@ body.guided-page {
   opacity: 0.78;
 }
 
+.measurement-dimension-extension.is-end-tick {
+  stroke-width: 1.35;
+  stroke-dasharray: none;
+  stroke-linecap: square;
+  opacity: 0.98;
+}
+
 .measurement-dimension-arrow {
   fill: var(--measurement-dimension-bronze);
   stroke: none;
+  opacity: 0.98;
 }
 
-/* Reset every old per-field position and pseudo-line. The normalized x/y
-   coordinates supplied by the renderer are the sole source of placement. */
-.dimension-overlay > .measurement-annotation[data-dimension-label] {
-  position: absolute;
-  z-index: 3;
-  top: var(--dimension-label-y);
-  right: auto;
-  bottom: auto;
-  left: var(--dimension-label-x);
+.measurement-dimension-span .measurement-annotation[data-dimension-label] {
   display: block;
-  width: max-content;
+  position: static;
+  inset: auto;
+  width: auto;
   min-width: 0;
-  max-width: min(176px, 31%);
+  max-width: none;
   height: auto;
   min-height: 0;
   margin: 0;
   padding: 0;
-  transform: translate(-50%, -50%);
+  transform: none;
   border: 0;
   border-radius: 0;
-  color: #24201c;
   background: transparent;
   box-shadow: none;
   text-align: center;
 }
 
-.dimension-overlay > .measurement-annotation[data-dimension-label]::before,
-.dimension-overlay > .measurement-annotation[data-dimension-label]::after,
-.dimension-overlay > .measurement-annotation[data-dimension-label] > .measurement-annotation-copy::before,
-.dimension-overlay > .measurement-annotation[data-dimension-label] > .measurement-annotation-copy::after {
-  display: none !important;
-  content: none !important;
-}
-
-.dimension-overlay > .measurement-annotation[data-dimension-label] > .measurement-annotation-copy {
+.measurement-dimension-span
+  .measurement-annotation[data-dimension-label]
+  .measurement-annotation-copy {
   position: static;
-  display: grid;
-  width: max-content;
-  min-width: 108px;
-  max-width: 176px;
-  gap: 2px;
-  padding: 6px 10px 5px;
-  transform: none;
-  border: 1px solid var(--measurement-dimension-card-border);
-  border-radius: 8px;
-  color: #24201c;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow:
-    0 4px 12px rgba(55, 42, 29, 0.11),
-    0 1px 2px rgba(55, 42, 29, 0.08);
-  text-align: center;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-}
-
-.dimension-overlay > .measurement-annotation[data-dimension-label] .measurement-annotation-label {
-  position: static;
-  display: flex;
+  inset: auto;
+  display: block;
+  width: auto;
   min-width: 0;
-  align-items: baseline;
-  justify-content: center;
-  gap: 5px;
+  max-width: none;
+  height: auto;
+  min-height: 0;
   margin: 0;
   padding: 0;
-  color: #27221d;
+  transform: none;
+  border: 0;
+  border-radius: 0;
   background: transparent;
-  font-family: var(--guided-sans);
-  font-size: 0.69rem;
-  font-weight: 700;
-  letter-spacing: 0;
-  line-height: 1.08;
-  white-space: nowrap;
+  box-shadow: none;
+  filter:
+    drop-shadow(0 var(--dimension-shadow-y) var(--dimension-shadow-blur) rgba(55, 42, 29, 0.11))
+    drop-shadow(0 1px 1px rgba(55, 42, 29, 0.08));
 }
 
-.dimension-overlay > .measurement-annotation[data-dimension-label] .measurement-annotation-code {
-  flex: 0 0 auto;
+.measurement-dimension-span
+  .measurement-annotation[data-dimension-label]::before,
+.measurement-dimension-span
+  .measurement-annotation[data-dimension-label]::after {
+  display: none;
+  content: none;
+}
+
+.measurement-annotation-card {
+  fill: rgba(255, 255, 255, 0.97);
+  stroke: var(--measurement-dimension-card-border);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.measurement-annotation-label,
+.measurement-annotation-value {
+  font-family: var(--guided-sans);
+  letter-spacing: 0;
+  text-rendering: geometricPrecision;
+}
+
+.measurement-annotation-label {
+  fill: #27221d;
+  font-size: var(--dimension-label-font-size);
+  font-weight: 700;
+}
+
+.measurement-annotation-code {
+  fill: var(--measurement-dimension-bronze-dark);
   color: var(--measurement-dimension-bronze-dark);
-  font-size: 0.72rem;
   font-weight: 800;
 }
 
-.dimension-overlay > .measurement-annotation[data-dimension-label] .measurement-annotation-name {
-  min-width: 0;
-  overflow: hidden;
-  color: #27221d;
-  text-overflow: ellipsis;
+.measurement-annotation-separator {
+  fill: #837363;
+  font-weight: 600;
 }
 
-.dimension-overlay > .measurement-annotation[data-dimension-label] .measurement-annotation-value {
-  position: static;
-  display: block;
-  width: auto;
-  height: auto;
-  margin: 0;
-  overflow: visible;
-  color: #554c42;
-  font-family: var(--guided-sans);
-  font-size: 0.63rem;
+.measurement-annotation-name {
+  fill: #27221d;
+}
+
+.measurement-annotation-value {
+  fill: #554c42;
+  font-size: var(--dimension-value-font-size);
   font-weight: 600;
-  letter-spacing: 0;
-  line-height: 1.08;
-  white-space: nowrap;
-  clip: auto;
 }
 
 @media (min-width: 901px) and (max-height: 900px) {
   .guided-shell--step-3 .measurement-room.measurement-room--photo {
     inset: 0;
-  }
-
-  .guided-shell--step-3
-    .dimension-overlay
-    > .measurement-annotation[data-dimension-label]
-    > .measurement-annotation-copy {
-    min-width: 100px;
-    padding: 5px 8px 4px;
-  }
-
-  .guided-shell--step-3
-    .dimension-overlay
-    > .measurement-annotation[data-dimension-label]
-    .measurement-annotation-label {
-    font-size: 0.64rem;
-  }
-
-  .guided-shell--step-3
-    .dimension-overlay
-    > .measurement-annotation[data-dimension-label]
-    .measurement-annotation-value {
-    font-size: 0.59rem;
   }
 }
 
@@ -6031,56 +6004,11 @@ body.guided-page {
   .measurement-room.measurement-room--photo {
     inset: 0;
   }
-
-  .dimension-overlay > .measurement-annotation[data-dimension-label] {
-    max-width: min(158px, 34%);
-  }
-
-  .dimension-overlay > .measurement-annotation[data-dimension-label] > .measurement-annotation-copy {
-    min-width: 98px;
-    max-width: 158px;
-    padding: 5px 8px 4px;
-  }
-
-  .dimension-overlay > .measurement-annotation[data-dimension-label] .measurement-annotation-label {
-    font-size: 0.62rem;
-  }
-
-  .dimension-overlay > .measurement-annotation[data-dimension-label] .measurement-annotation-value {
-    font-size: 0.57rem;
-  }
 }
 
 @media (max-width: 680px) {
-  .measurement-dimension-span[data-dimension-priority="auxiliary"],
-  .dimension-overlay > .measurement-annotation[data-dimension-priority="auxiliary"] {
+  .measurement-dimension-span[data-dimension-priority="auxiliary"] {
     display: none;
-  }
-
-  .dimension-overlay > .measurement-annotation[data-dimension-label] {
-    left: clamp(49px, var(--dimension-label-x), calc(100% - 49px));
-    max-width: min(132px, 38%);
-  }
-
-  .dimension-overlay > .measurement-annotation[data-dimension-label] > .measurement-annotation-copy {
-    min-width: 92px;
-    max-width: 132px;
-    gap: 1px;
-    padding: 4px 6px;
-    border-radius: 6px;
-  }
-
-  .dimension-overlay > .measurement-annotation[data-dimension-label] .measurement-annotation-label {
-    gap: 3px;
-    font-size: 0.56rem;
-  }
-
-  .dimension-overlay > .measurement-annotation[data-dimension-label] .measurement-annotation-code {
-    font-size: 0.59rem;
-  }
-
-  .dimension-overlay > .measurement-annotation[data-dimension-label] .measurement-annotation-value {
-    font-size: 0.52rem;
   }
 
   .measurement-dimension-line {
@@ -6090,5 +6018,10 @@ body.guided-page {
   .measurement-dimension-extension {
     stroke-width: 0.95;
     stroke-dasharray: 4 3;
+  }
+
+  .measurement-dimension-extension.is-end-tick {
+    stroke-width: 1.2;
+    stroke-dasharray: none;
   }
 }

@@ -203,6 +203,24 @@ export const SHARED_ROOM_LAYOUTS = Object.freeze([
   })
 ]);
 
+const MEASUREMENT_DIAGRAM_AUTHORING_SIZE = Object.freeze({
+  width: 1000,
+  height: 640
+});
+
+const ROOM_MEASUREMENT_DIAGRAM_VIEWBOXES = Object.freeze({
+  "niche-layout": Object.freeze({ width: 627, height: 627, drawingTop: 160, drawingHeight: 307 }),
+  "left-niche": Object.freeze({ width: 627, height: 627, drawingTop: 160, drawingHeight: 307 }),
+  "right-niche": Object.freeze({ width: 627, height: 627, drawingTop: 160, drawingHeight: 307 }),
+  "clear-wall": Object.freeze({ width: 1536, height: 1024, drawingTop: 145, drawingHeight: 734 }),
+  "fireplace-wall": Object.freeze({ width: 627, height: 627, drawingTop: 160, drawingHeight: 307 }),
+  "center-recess": Object.freeze({ width: 1536, height: 1024, drawingTop: 145, drawingHeight: 734 }),
+  "window-wall": Object.freeze({ width: 1536, height: 1024, drawingTop: 145, drawingHeight: 734 }),
+  "door-wall": Object.freeze({ width: 1536, height: 1024, drawingTop: 145, drawingHeight: 734 }),
+  "corner-wall": Object.freeze({ width: 1536, height: 1024, drawingTop: 145, drawingHeight: 734 }),
+  "double-opening": Object.freeze({ width: 1536, height: 1024, drawingTop: 145, drawingHeight: 734 })
+});
+
 const dimensionSpan = (fieldId, axis, line, extensions, label, options = {}) => Object.freeze({
   fieldId,
   axis,
@@ -211,6 +229,10 @@ const dimensionSpan = (fieldId, axis, line, extensions, label, options = {}) => 
   label: Object.freeze(label),
   priority: "primary",
   labelOverride: "",
+  endStyle: axis === "depth" ? "tick" : "arrow",
+  extensionRole: axis === "depth" ? "tick" : "witness",
+  sourceWidth: MEASUREMENT_DIAGRAM_AUTHORING_SIZE.width,
+  sourceHeight: MEASUREMENT_DIAGRAM_AUTHORING_SIZE.height,
   ...options
 });
 
@@ -228,7 +250,7 @@ const BASE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
     "vertical",
     [94, 68, 94, 532],
     [[64, 68, 119, 68], [64, 532, 119, 532]],
-    { x: 104, y: 300 },
+    { x: 130, y: 300 },
     { priority: "perimeter" }
   ),
   dimensionSpan(
@@ -238,6 +260,45 @@ const BASE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
     [[810, 528, 835, 507], [953, 619, 977, 598]],
     { x: 858, y: 558 },
     { priority: "perimeter" }
+  )
+]);
+
+const DOOR_BASE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
+  dimensionSpan(
+    "wallWidth",
+    "horizontal",
+    [240, 178, 1295, 178],
+    [[240, 157, 240, 204], [1295, 157, 1295, 204]],
+    { x: 767.5, y: 178 },
+    {
+      priority: "perimeter",
+      sourceWidth: 1536,
+      sourceHeight: 1024
+    }
+  ),
+  dimensionSpan(
+    "ceilingHeight",
+    "vertical",
+    [270, 157, 270, 758],
+    [[240, 157, 292, 157], [240, 758, 292, 758]],
+    { x: 382, y: 457.5 },
+    {
+      priority: "perimeter",
+      sourceWidth: 1536,
+      sourceHeight: 1024
+    }
+  ),
+  dimensionSpan(
+    "desiredDepth",
+    "depth",
+    [1295, 758, 1452, 840],
+    [[1287, 773, 1303, 743], [1444, 855, 1460, 825]],
+    { x: 1352, y: 690 },
+    {
+      priority: "perimeter",
+      sourceWidth: 1536,
+      sourceHeight: 1024
+    }
   )
 ]);
 
@@ -397,24 +458,30 @@ const DOOR_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
   dimensionSpan(
     "doorWidth",
     "horizontal",
-    [444, 230, 556, 230],
-    [[444, 204, 444, 258], [556, 204, 556, 258]],
-    { x: 500, y: 230 }
+    [659, 232, 880, 232],
+    [[659, 208, 659, 279], [880, 208, 880, 279]],
+    { x: 769.5, y: 232 },
+    { sourceWidth: 1536, sourceHeight: 1024 }
   ),
   dimensionSpan(
     "doorHeight",
     "vertical",
-    [598, 240, 598, 520],
-    [[576, 240, 620, 240], [576, 520, 620, 520]],
-    { x: 598, y: 380 }
+    [940, 279, 940, 758],
+    [[880, 279, 960, 279], [880, 758, 960, 758]],
+    { x: 1048, y: 518.5 },
+    { sourceWidth: 1536, sourceHeight: 1024 }
   ),
   dimensionSpan(
     "doorLeftDistance",
     "horizontal",
-    [145, 494, 444, 494],
-    [[145, 470, 145, 520], [444, 470, 444, 520]],
-    { x: 294, y: 494 },
-    { priority: "auxiliary" }
+    [240, 638, 639, 638],
+    [[240, 610, 240, 666], [639, 610, 639, 666]],
+    { x: 439.5, y: 638 },
+    {
+      priority: "auxiliary",
+      sourceWidth: 1536,
+      sourceHeight: 1024
+    }
   )
 ]);
 
@@ -995,19 +1062,51 @@ export function getMeasurementFields(categoryId, layoutId) {
   return fields;
 }
 
+function resolveMeasurementDiagramSpan(span, viewBox) {
+  const sourceWidth = span.sourceWidth || MEASUREMENT_DIAGRAM_AUTHORING_SIZE.width;
+  const sourceHeight = span.sourceHeight || MEASUREMENT_DIAGRAM_AUTHORING_SIZE.height;
+  const drawingTop = sourceWidth === MEASUREMENT_DIAGRAM_AUTHORING_SIZE.width
+    ? viewBox.drawingTop || 0
+    : 0;
+  const drawingHeight = sourceWidth === MEASUREMENT_DIAGRAM_AUTHORING_SIZE.width
+    ? viewBox.drawingHeight || viewBox.height
+    : viewBox.height;
+  const scaleCoordinates = (coordinates) => Object.freeze(coordinates.map((coordinate, index) => (
+    index % 2 === 0
+      ? (coordinate / sourceWidth) * viewBox.width
+      : drawingTop + (coordinate / sourceHeight) * drawingHeight
+  )));
+  return Object.freeze({
+    ...span,
+    line: scaleCoordinates(span.line),
+    extensions: Object.freeze(span.extensions.map((extension) => (
+      scaleCoordinates(extension)
+    ))),
+    label: Object.freeze({
+      x: (span.label.x / sourceWidth) * viewBox.width,
+      y: drawingTop + (span.label.y / sourceHeight) * drawingHeight
+    })
+  });
+}
+
 export function getMeasurementDiagramSpec(categoryId, layoutId) {
   const selectedLayout = getLayout(categoryId, layoutId);
   const selectedCategory = getCategory(categoryId);
+  const viewBox = ROOM_MEASUREMENT_DIAGRAM_VIEWBOXES[selectedLayout?.id]
+    || ROOM_MEASUREMENT_DIAGRAM_VIEWBOXES["clear-wall"];
   const availableFields = new Map(
     getMeasurementFields(selectedCategory.id, selectedLayout?.id)
       .filter((field) => field.type === "inches")
       .map((field) => [field.id, field])
   );
+  const baseSpans = selectedLayout?.id === "door-wall"
+    ? DOOR_BASE_MEASUREMENT_DIAGRAM_SPANS
+    : BASE_MEASUREMENT_DIAGRAM_SPANS;
   const layoutSpans = ROOM_MEASUREMENT_DIAGRAM_SPANS[selectedLayout?.id] || Object.freeze([]);
   const productSpans = selectedLayout?.id === "clear-wall"
     ? CLEAR_WALL_PRODUCT_MEASUREMENT_DIAGRAM_SPANS[selectedCategory.id] || Object.freeze([])
     : Object.freeze([]);
-  const spans = [...BASE_MEASUREMENT_DIAGRAM_SPANS, ...layoutSpans, ...productSpans]
+  const spans = [...baseSpans, ...layoutSpans, ...productSpans]
     .filter((span) => availableFields.has(span.fieldId))
     .map((span) => {
       if (selectedLayout?.id !== "double-opening" || span.fieldId !== "wallWidth") return span;
@@ -1020,7 +1119,8 @@ export function getMeasurementDiagramSpec(categoryId, layoutId) {
         ]),
         labelOverride: "Available wall width"
       });
-    });
+    })
+    .map((span) => resolveMeasurementDiagramSpan(span, viewBox));
 
   const productFeature = selectedLayout?.id === "clear-wall"
     ? Object.freeze({
@@ -1031,8 +1131,8 @@ export function getMeasurementDiagramSpec(categoryId, layoutId) {
     : "none";
 
   return Object.freeze({
-    width: 1000,
-    height: 640,
+    width: viewBox.width,
+    height: viewBox.height,
     layoutId: selectedLayout?.id || "clear-wall",
     feature: selectedLayout?.feature && selectedLayout.feature !== "none"
       ? selectedLayout.feature

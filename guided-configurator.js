@@ -15,7 +15,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=architectural-dimensions-20260729a";
+} from "./guided-configurator-data.js?v=architectural-dimensions-20260729b";
 import {
   buildProjectSummary,
   createProject,
@@ -24,7 +24,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=architectural-dimensions-20260729a";
+} from "./guided-configurator-state.js?v=architectural-dimensions-20260729b";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -950,47 +950,41 @@ function renderMeasurementDiagram(fields, selectedLayout) {
       >
         ${roomVisual}
         ${syntheticFeature}
-        <div
-          class="dimension-overlay"
-          data-dimension-overlay
-          data-dimension-count="${dimensions.length}"
-          aria-hidden="true"
-        >
-          ${renderDimensionDrawing(dimensions, diagramSpec)}
-          ${dimensions.map(({ field, span }) => renderDimensionChip(field, span, diagramSpec)).join("")}
-        </div>
+        ${renderDimensionDrawing(dimensions, diagramSpec)}
       </div>
     </figure>
   `;
 }
 
 function renderDimensionDrawing(dimensions, diagramSpec) {
-  const markerId = `dimension-arrow-${diagramSpec.layoutId}`;
   return `
     <svg
-      class="measurement-dimension-drawing"
+      class="dimension-overlay measurement-dimension-drawing"
+      data-dimension-overlay
       data-dimension-drawing
+      data-dimension-count="${dimensions.length}"
       viewBox="0 0 ${diagramSpec.width} ${diagramSpec.height}"
-      preserveAspectRatio="none"
+      preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
       focusable="false"
     >
-      <defs>
-        <marker
-          id="${escapeAttribute(markerId)}"
-          viewBox="0 0 8 8"
-          refX="4"
-          refY="4"
-          markerWidth="8"
-          markerHeight="8"
-          markerUnits="userSpaceOnUse"
-          orient="auto-start-reverse"
-        >
-          <path class="measurement-dimension-arrow" d="M8 0L0 4L8 8Z"></path>
-        </marker>
-      </defs>
       ${dimensions.map(({ field, span }) => {
         const [x1, y1, x2, y2] = span.line;
+        const value = project.measurements[field.id];
+        const displayValue = value === null || value === undefined
+          ? "Add estimate"
+          : `${formatInches(value)} in`;
+        const annotationName = getDimensionAnnotationName(field, span);
+        const labelScale = diagramSpec.width / 1000;
+        const labelWidth = Math.min(
+          190,
+          Math.max(
+            112,
+            annotationName.length * 4.8 + (field.code ? 34 : 0) + 20
+          )
+        ) * labelScale;
+        const labelHeight = 32 * labelScale;
+        const labelRadius = 8 * labelScale;
         return `
           <g
             class="measurement-dimension-span"
@@ -998,10 +992,11 @@ function renderDimensionDrawing(dimensions, diagramSpec) {
             data-dimension-code="${escapeAttribute(field.code || "")}"
             data-dimension-axis="${escapeAttribute(span.axis)}"
             data-dimension-priority="${escapeAttribute(span.priority)}"
+            data-dimension-end-style="${escapeAttribute(span.endStyle)}"
           >
             ${span.extensions.map(([extensionX1, extensionY1, extensionX2, extensionY2], index) => `
               <line
-                class="measurement-dimension-extension"
+                class="measurement-dimension-extension${span.extensionRole === "tick" ? " is-end-tick" : ""}"
                 data-dimension-extension="${escapeAttribute(field.id)}"
                 data-dimension-tick="${index === 0 ? "start" : "end"}"
                 x1="${extensionX1}"
@@ -1017,9 +1012,52 @@ function renderDimensionDrawing(dimensions, diagramSpec) {
               y1="${y1}"
               x2="${x2}"
               y2="${y2}"
-              marker-start="url(#${escapeAttribute(markerId)})"
-              marker-end="url(#${escapeAttribute(markerId)})"
             ></line>
+            ${span.endStyle === "arrow"
+              ? renderDimensionArrowheads(span.line, diagramSpec.width)
+              : ""}
+            <g
+              class="measurement-annotation-anchor"
+              transform="translate(${span.label.x} ${span.label.y})"
+            >
+              <g
+                class="dimension-chip measurement-annotation"
+                data-dimension-chip="${escapeAttribute(field.id)}"
+                data-dimension-label="${escapeAttribute(field.id)}"
+                data-dimension-code="${escapeAttribute(field.code || "")}"
+                data-dimension-priority="${escapeAttribute(span.priority)}"
+                style="--dimension-label-font-size:${11 * labelScale}px;--dimension-value-font-size:${9.5 * labelScale}px;--dimension-shadow-y:${3 * labelScale}px;--dimension-shadow-blur:${6 * labelScale}px"
+              >
+                <g class="measurement-annotation-copy">
+                  <rect
+                    class="measurement-annotation-card"
+                    x="${-labelWidth / 2}"
+                    y="${-labelHeight / 2}"
+                    width="${labelWidth}"
+                    height="${labelHeight}"
+                    rx="${labelRadius}"
+                    ry="${labelRadius}"
+                  ></rect>
+                  <text
+                    class="measurement-annotation-label"
+                    text-anchor="middle"
+                    x="0"
+                    y="${-3 * labelScale}"
+                  >
+                    ${field.code ? `<tspan class="measurement-annotation-code">${escapeHtml(field.code)}</tspan>` : ""}
+                    ${field.code ? `<tspan class="measurement-annotation-separator" dx="${4 * labelScale}">·</tspan>` : ""}
+                    <tspan class="measurement-annotation-name"${field.code ? ` dx="${4 * labelScale}"` : ""}>${escapeHtml(annotationName)}</tspan>
+                  </text>
+                  <text
+                    class="measurement-annotation-value"
+                    data-dimension-value
+                    text-anchor="middle"
+                    x="0"
+                    y="${13 * labelScale}"
+                  >${escapeHtml(displayValue)}</text>
+                </g>
+              </g>
+            </g>
           </g>
         `;
       }).join("")}
@@ -1027,11 +1065,7 @@ function renderDimensionDrawing(dimensions, diagramSpec) {
   `;
 }
 
-function renderDimensionChip(field, span, diagramSpec) {
-  const value = project.measurements[field.id];
-  const displayValue = value === null || value === undefined
-    ? "Add estimate"
-    : `${formatInches(value)} in`;
+function getDimensionAnnotationName(field, span) {
   const referenceLabels = {
     wallWidth: "Wall width",
     ceilingHeight: "Ceiling height",
@@ -1041,26 +1075,42 @@ function renderDimensionChip(field, span, diagramSpec) {
     tvScreenSize: "TV diagonal",
     tvHeight: "TV height"
   };
-  const annotationName = span.labelOverride || referenceLabels[field.id] || field.label;
-  const labelX = (span.label.x / diagramSpec.width) * 100;
-  const labelY = (span.label.y / diagramSpec.height) * 100;
+  return span.labelOverride || referenceLabels[field.id] || field.label;
+}
+
+function renderDimensionArrowheads(line, diagramWidth) {
+  const [x1, y1, x2, y2] = line;
+  const deltaX = x2 - x1;
+  const deltaY = y2 - y1;
+  const length = Math.hypot(deltaX, deltaY);
+  if (!length) return "";
+  const unitX = deltaX / length;
+  const unitY = deltaY / length;
+  const normalX = -unitY;
+  const normalY = unitX;
+  const arrowScale = diagramWidth / 1000;
+  const arrowLength = 9 * arrowScale;
+  const arrowHalfWidth = 4.25 * arrowScale;
+  const startBaseX = x1 + unitX * arrowLength;
+  const startBaseY = y1 + unitY * arrowLength;
+  const endBaseX = x2 - unitX * arrowLength;
+  const endBaseY = y2 - unitY * arrowLength;
+  const arrowPath = (tipX, tipY, baseX, baseY) => (
+    `M${tipX} ${tipY}`
+    + `L${baseX + normalX * arrowHalfWidth} ${baseY + normalY * arrowHalfWidth}`
+    + `L${baseX - normalX * arrowHalfWidth} ${baseY - normalY * arrowHalfWidth}Z`
+  );
   return `
-    <span
-      class="dimension-chip measurement-annotation"
-      data-dimension-chip="${escapeAttribute(field.id)}"
-      data-dimension-label="${escapeAttribute(field.id)}"
-      data-dimension-code="${escapeAttribute(field.code || "")}"
-      data-dimension-priority="${escapeAttribute(span.priority)}"
-      style="--dimension-label-x:${labelX.toFixed(3)}%;--dimension-label-y:${labelY.toFixed(3)}%"
-    >
-      <span class="measurement-annotation-copy">
-        <strong class="measurement-annotation-label">
-          ${field.code ? `<span class="measurement-annotation-code">${escapeHtml(field.code)}</span>` : ""}
-          <span class="measurement-annotation-name">${escapeHtml(annotationName)}</span>
-        </strong>
-        <span class="measurement-annotation-value" data-dimension-value>${escapeHtml(displayValue)}</span>
-      </span>
-    </span>
+    <path
+      class="measurement-dimension-arrow"
+      data-dimension-end="start"
+      d="${arrowPath(x1, y1, startBaseX, startBaseY)}"
+    ></path>
+    <path
+      class="measurement-dimension-arrow"
+      data-dimension-end="end"
+      d="${arrowPath(x2, y2, endBaseX, endBaseY)}"
+    ></path>
   `;
 }
 

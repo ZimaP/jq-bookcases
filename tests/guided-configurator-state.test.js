@@ -234,6 +234,57 @@ test("all ten bookcase room diagrams expose ordered architectural dimension geom
   }
 });
 
+test("room diagrams use native image ratios and Door Wall dimensions anchor to real architectural edges", () => {
+  const expectedViewBoxes = new Map([
+    ["niche-layout", [627, 627]],
+    ["left-niche", [627, 627]],
+    ["right-niche", [627, 627]],
+    ["clear-wall", [1536, 1024]],
+    ["fireplace-wall", [627, 627]],
+    ["center-recess", [1536, 1024]],
+    ["window-wall", [1536, 1024]],
+    ["door-wall", [1536, 1024]],
+    ["corner-wall", [1536, 1024]],
+    ["double-opening", [1536, 1024]]
+  ]);
+
+  for (const [layoutId, expectedViewBox] of expectedViewBoxes) {
+    const spec = getMeasurementDiagramSpec("bookcase", layoutId);
+    assert.deepEqual([spec.width, spec.height], expectedViewBox, `${layoutId} native image viewBox`);
+  }
+
+  const doorSpec = getMeasurementDiagramSpec("bookcase", "door-wall");
+  const doorSpans = new Map(doorSpec.spans.map((span) => [span.fieldId, span]));
+  assert.deepEqual(doorSpans.get("wallWidth").line, [240, 178, 1295, 178]);
+  assert.deepEqual(doorSpans.get("wallWidth").extensions, [
+    [240, 157, 240, 204],
+    [1295, 157, 1295, 204]
+  ]);
+  assert.deepEqual(doorSpans.get("ceilingHeight").line, [270, 157, 270, 758]);
+  assert.deepEqual(doorSpans.get("desiredDepth").line, [1295, 758, 1452, 840]);
+  assert.equal(doorSpans.get("desiredDepth").endStyle, "tick");
+  assert.equal(doorSpans.get("desiredDepth").extensionRole, "tick");
+  assert.deepEqual(doorSpans.get("doorWidth").line, [659, 232, 880, 232]);
+  assert.deepEqual(doorSpans.get("doorWidth").extensions, [
+    [659, 208, 659, 279],
+    [880, 208, 880, 279]
+  ]);
+  assert.deepEqual(doorSpans.get("doorHeight").line, [940, 279, 940, 758]);
+  assert.deepEqual(doorSpans.get("doorHeight").extensions, [
+    [880, 279, 960, 279],
+    [880, 758, 960, 758]
+  ]);
+  assert.deepEqual(doorSpans.get("doorLeftDistance").line, [240, 638, 639, 638]);
+  assert.ok(!doorSpans.has("doorTrimWidth"), "trim remains a small local field, not a long wall dimension");
+  assert.ok(!doorSpans.has("doorSwing"), "door swing remains directional data, not a linear dimension");
+
+  const [depthX1, depthY1, depthX2, depthY2] = doorSpans.get("desiredDepth").line;
+  assert.ok(
+    Math.abs(((depthY2 - depthY1) / (depthX2 - depthX1)) - (82 / 157)) < 0.000001,
+    "built-in depth follows the right wall-floor perspective"
+  );
+});
+
 test("inch parsing accepts decimals, mixed fractions, hyphenated fractions, and unicode fractions", () => {
   assert.equal(parseInches(42.5), 42.5);
   assert.equal(parseInches("42.5 in"), 42.5);
