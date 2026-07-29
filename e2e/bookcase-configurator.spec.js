@@ -479,6 +479,13 @@ test("Between Openings keeps every bookcase construction in the selected room", 
 test("Door Wall keeps the selected drawer construction through customization and review", async ({ page }) => {
   const asset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/door-wall-v1.png";
   const avifAsset = asset.replace(/\.png$/, ".avif");
+  const finishMaskAsset = asset.replace(/-v1\.png$/, "-finish-mask-v1.png");
+  let finishMaskStatus = 0;
+  page.on("response", (response) => {
+    if (new URL(response.url()).pathname.endsWith(finishMaskAsset)) {
+      finishMaskStatus = response.status();
+    }
+  });
 
   await openFreshProject(page);
   await page.locator('[data-product-style="drawer-base-shelves"]').click();
@@ -488,6 +495,7 @@ test("Door Wall keeps the selected drawer construction through customization and
   await expect(page.locator(".selected-layout-chip")).toContainText("Door Wall");
   await expect(page.getByLabel("Door width")).toBeVisible();
   await expect(page.getByLabel("Door height")).toBeVisible();
+  await expect.poll(() => finishMaskStatus).toBe(200);
   await page.locator("[data-continue]").click();
 
   const customizationPreview = page.locator('.concept-preview[data-layout="door-wall"]');
