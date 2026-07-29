@@ -11,7 +11,7 @@ import {
   getMeasurementFields,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=ipad-polish-20260728a";
+} from "./guided-configurator-data.js?v=truthful-layouts-20260728a";
 import {
   buildProjectSummary,
   createProject,
@@ -20,7 +20,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=ipad-polish-20260728a";
+} from "./guided-configurator-state.js?v=truthful-layouts-20260728a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -1292,7 +1292,7 @@ function renderConceptPreview() {
   const accentFinish = project.accentFinish === "no-accent" ? finish : getFinish(project.accentFinish);
   const hardware = DETAIL_OPTIONS.hardware.find((option) => option.id === project.hardware);
   const doorCount = category.id === "floating-storage" ? 5 : category.id === "window-storage" ? 6 : 4;
-  const previewScope = conceptPreviewScope(category, layout, selectedStyle);
+  const previewScope = conceptPreviewScope(category, layout, selectedStyle, previewPresentation);
 
   return `
     <figure
@@ -1300,6 +1300,7 @@ function renderConceptPreview() {
       data-category="${escapeAttribute(category.id)}"
       data-layout="${escapeAttribute(layout?.id || "unselected")}"
       data-style="${escapeAttribute(selectedStyle.id)}"
+      data-preview-key="${escapeAttribute(previewPresentation.previewKey)}"
       data-finish="${escapeAttribute(finish.id)}"
       data-finish-family="${escapeAttribute(finish.family)}"
       data-preview-asset="${escapeAttribute(previewPresentation.conceptAsset)}"
@@ -1327,6 +1328,12 @@ function renderConceptPreview() {
           fetchPriority: "high"
         })}
         ${renderConceptFinishOverlay(previewPresentation.conceptAsset)}
+        ${previewPresentation.renderMode === "missing-integrated-scene" ? `
+          <div class="concept-preview-unavailable" role="status">
+            <strong>Room-specific concept in preparation</strong>
+            <span>We will not substitute an unrelated room for ${escapeHtml(layout?.label || "this layout")}.</span>
+          </div>
+        ` : ""}
         <div
           class="concept-unit concept-unit--sentinel"
           data-style="${escapeAttribute(selectedStyle.id)}"
@@ -1360,54 +1367,87 @@ function renderConceptLayoutContext(layout, previewPresentation) {
 
 function renderConceptFinishOverlay(previewAsset) {
   const assetName = String(previewAsset || "").split("/").pop();
-  const definition = CONCEPT_FINISH_MASKS[assetName];
+  const definition = CONCEPT_FINISH_MASKS[assetName] || resolveGeneratedBookcaseFinishMask(previewAsset);
   if (!definition) return "";
 
-  const maskId = `concept-finish-mask-${assetName.replace(/[^a-z0-9]+/gi, "-")}`;
+  const maskId = `concept-finish-mask-${String(previewAsset).replace(/[^a-z0-9]+/gi, "-")}`;
+  const maskContents = definition.maskAsset
+    ? `
+      <image
+        href="${escapeAttribute(definition.maskAsset)}"
+        x="0"
+        y="0"
+        width="${definition.width || 1536}"
+        height="${definition.height || 1024}"
+        preserveAspectRatio="none"
+      ></image>
+    `
+    : `
+      ${(definition.rectangles || []).map(([x, y, width, height]) => (
+        `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="2" fill="#fff"></rect>`
+      )).join("")}
+      ${(definition.polygons || []).map((points) => (
+        `<polygon points="${points}" fill="#fff"></polygon>`
+      )).join("")}
+    `;
   return `
     <svg
       class="concept-finish-overlay"
-      viewBox="${definition.viewBox}"
+      viewBox="${definition.viewBox || "0 0 1536 1024"}"
       preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
       focusable="false"
     >
       <defs>
-        <mask id="${maskId}" maskUnits="userSpaceOnUse" x="0" y="0" width="${definition.width}" height="${definition.height}">
-          ${definition.rectangles.map(([x, y, width, height]) => (
-            `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="2" fill="#fff"></rect>`
-          )).join("")}
+        <mask
+          id="${maskId}"
+          maskUnits="userSpaceOnUse"
+          maskContentUnits="userSpaceOnUse"
+          x="0"
+          y="0"
+          width="${definition.width || 1536}"
+          height="${definition.height || 1024}"
+          style="mask-type: luminance"
+        >
+          ${maskContents}
         </mask>
       </defs>
       <rect
         class="concept-finish-overlay-tint"
-        width="${definition.width}"
-        height="${definition.height}"
+        width="${definition.width || 1536}"
+        height="${definition.height || 1024}"
         mask="url(#${maskId})"
       ></rect>
       <rect
         class="concept-finish-overlay-tone"
-        width="${definition.width}"
-        height="${definition.height}"
+        width="${definition.width || 1536}"
+        height="${definition.height || 1024}"
         mask="url(#${maskId})"
       ></rect>
     </svg>
   `;
 }
 
-function conceptPreviewScope(category, layout, selectedStyle) {
-  if (
-    category.id === "bookcase"
-    && selectedStyle.id === "cabinet-base-shelves"
-    && layout?.feature === "window"
-  ) {
+function resolveGeneratedBookcaseFinishMask(previewAsset) {
+  const match = String(previewAsset || "").match(
+    /integrated\/bookcase\/([^/]+)\/([^/]+)-v1\.png$/
+  );
+  if (!match) return null;
+
+  return Object.freeze({
+    viewBox: "0 0 1536 1024",
+    width: 1536,
+    height: 1024,
+    maskAsset: String(previewAsset).replace(/-v1\.png$/, "-finish-mask-v1.png")
+  });
+}
+
+function conceptPreviewScope(category, layout, selectedStyle, previewPresentation) {
+  if (category.id === "bookcase" && previewPresentation.renderMode === "integrated") {
     return { id: "layout-and-configuration", label: "Layout + configuration reference" };
   }
-  if (category.id === "bookcase" && ["door", "fireplace"].includes(layout?.feature)) {
-    return { id: "configuration-room-feature-pending", label: "Configuration reference · opening adapted next" };
-  }
   if (category.id === "bookcase") {
-    return { id: "configuration", label: "Construction-matched concept" };
+    return { id: "missing-integrated-scene", label: `${selectedStyle.label} · ${layout?.label || "room"} render unavailable` };
   }
   return { id: "category", label: "Curated concept reference" };
 }

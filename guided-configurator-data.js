@@ -203,7 +203,66 @@ export const SHARED_ROOM_LAYOUTS = Object.freeze([
   })
 ]);
 
-const BOOKCASE_LAYOUT_CONCEPT_ASSETS = Object.freeze({
+export const PUBLIC_BOOKCASE_STYLE_IDS = Object.freeze([
+  "cabinet-base-shelves",
+  "drawer-base-shelves",
+  "full-open-shelving"
+]);
+
+/**
+ * Customer-facing Bookcase previews are a strict construction × room matrix.
+ *
+ * Once a room is selected, a style-only photograph is not an acceptable
+ * fallback: the selected room topology must be part of the rendered scene.
+ * Every style exposed by the new-project Bookcase UI therefore has an exact
+ * asset for every shared room condition.
+ */
+export const BOOKCASE_INTEGRATED_PREVIEW_ASSETS = Object.freeze({
+  "niche-layout": Object.freeze({
+    "cabinet-base-shelves": "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/niche-layout-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/niche-layout-v1.png",
+    "full-open-shelving": "assets/photos/configurator/integrated/bookcase/full-open-shelving/niche-layout-v1.png"
+  }),
+  "left-niche": Object.freeze({
+    "cabinet-base-shelves": "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/left-niche-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/left-niche-v1.png",
+    "full-open-shelving": "assets/photos/configurator/integrated/bookcase/full-open-shelving/left-niche-v1.png"
+  }),
+  "right-niche": Object.freeze({
+    "cabinet-base-shelves": "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/right-niche-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-v1.png",
+    "full-open-shelving": "assets/photos/configurator/integrated/bookcase/full-open-shelving/right-niche-v1.png"
+  }),
+  "clear-wall": Object.freeze({
+    "cabinet-base-shelves": "assets/photos/configurator/concept-cabinets-shelves-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/concept-drawers-shelves-v1.png",
+    "full-open-shelving": "assets/photos/configurator/concept-full-shelving-v1.png"
+  }),
+  "fireplace-wall": Object.freeze({
+    "cabinet-base-shelves": "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/fireplace-wall-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/fireplace-wall-v1.png",
+    "full-open-shelving": "assets/photos/configurator/integrated/bookcase/full-open-shelving/fireplace-wall-v1.png"
+  }),
+  "center-recess": Object.freeze({
+    "cabinet-base-shelves": "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/center-recess-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/center-recess-v1.png",
+    "full-open-shelving": "assets/photos/configurator/integrated/bookcase/full-open-shelving/center-recess-v1.png"
+  }),
+  "window-wall": Object.freeze({
+    "cabinet-base-shelves": "assets/photos/configurator/concept-window-cabinets-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/window-wall-v1.png",
+    "full-open-shelving": "assets/photos/configurator/integrated/bookcase/full-open-shelving/window-wall-v1.png"
+  }),
+  "door-wall": Object.freeze({
+    "cabinet-base-shelves": "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/door-wall-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/door-wall-v1.png",
+    "full-open-shelving": "assets/photos/configurator/integrated/bookcase/full-open-shelving/door-wall-v1.png"
+  }),
+  "corner-wall": Object.freeze({
+    "cabinet-base-shelves": "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/corner-wall-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/corner-wall-v1.png",
+    "full-open-shelving": "assets/photos/configurator/integrated/bookcase/full-open-shelving/corner-wall-v1.png"
+  }),
   "double-opening": Object.freeze({
     "cabinet-base-shelves": "assets/photos/configurator/concept-cabinets-shelves-between-openings-v1.png",
     "drawer-base-shelves": "assets/photos/configurator/concept-drawers-shelves-between-openings-v1.png",
@@ -554,13 +613,21 @@ export function getCompatibleDetails(categoryId, styleId) {
 export function resolvePreviewPresentation(categoryId, styleId, layoutId = null) {
   const selectedLayout = getLayout(categoryId, layoutId);
   const selectedStyle = getStyle(categoryId, styleId);
-  const exactLayoutAsset = categoryId === "bookcase"
-    ? BOOKCASE_LAYOUT_CONCEPT_ASSETS[selectedLayout?.id]?.[selectedStyle.id] || null
+  const previewKey = selectedLayout
+    ? `${categoryId}:${selectedStyle.id}:${selectedLayout.id}`
+    : `${categoryId}:${selectedStyle.id}`;
+  const exactLayoutAsset = categoryId === "bookcase" && selectedLayout
+    ? BOOKCASE_INTEGRATED_PREVIEW_ASSETS[selectedLayout.id]?.[selectedStyle.id] || null
     : null;
-  if (exactLayoutAsset) {
+
+  if (exactLayoutAsset && selectedLayout) {
     return Object.freeze({
+      previewKey,
       conceptAsset: exactLayoutAsset,
+      categoryId,
+      styleId: selectedStyle.id,
       layoutId: selectedLayout.id,
+      integratedLayoutId: selectedLayout.id,
       layoutLabel: selectedLayout.label,
       layoutContextAsset: selectedLayout.previewAsset,
       layoutPreviewMode: selectedLayout.previewMode,
@@ -568,27 +635,33 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
       renderMode: "integrated"
     });
   }
-  if (
-    categoryId === "bookcase"
-    && selectedStyle.id === "cabinet-base-shelves"
-    && selectedLayout?.feature === "window"
-  ) {
+
+  if (categoryId === "bookcase" && selectedLayout) {
     return Object.freeze({
-      conceptAsset: "assets/photos/configurator/concept-window-cabinets-v1.png",
+      previewKey,
+      conceptAsset: selectedLayout.previewAsset,
+      categoryId,
+      styleId: selectedStyle.id,
       layoutId: selectedLayout.id,
+      integratedLayoutId: null,
       layoutLabel: selectedLayout.label,
       layoutContextAsset: selectedLayout.previewAsset,
       layoutPreviewMode: selectedLayout.previewMode,
       layoutPreviewPosition: selectedLayout.previewPosition,
-      renderMode: "integrated"
+      renderMode: "missing-integrated-scene"
     });
   }
+
   const conceptAsset = categoryId === "window-storage"
     ? "assets/photos/configurator/concept-window-cabinets-v1.png"
     : selectedStyle.previewAsset;
   return Object.freeze({
+    previewKey,
     conceptAsset,
+    categoryId,
+    styleId: selectedStyle.id,
     layoutId: selectedLayout?.id || null,
+    integratedLayoutId: null,
     layoutLabel: selectedLayout?.label || null,
     layoutContextAsset: selectedLayout?.previewAsset || null,
     layoutPreviewMode: selectedLayout?.previewMode || "image",
