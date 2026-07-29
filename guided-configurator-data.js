@@ -91,10 +91,10 @@ const CONDITION_MEASUREMENTS = Object.freeze({
     measurement("doorLeftDistance", "Distance from left wall", "F", { min: 0, max: 144, defaultValue: 24, position: "lower-left" }),
     measurement("doorTrimWidth", "Trim width", "G", { min: 1, max: 12, defaultValue: 3.5, position: "feature-bottom" }),
     selectMeasurement("doorSwing", "Door swing direction", "H", Object.freeze([
-      Object.freeze({ value: "left-in", label: "Left hinge · swings in" }),
-      Object.freeze({ value: "right-in", label: "Right hinge · swings in" }),
-      Object.freeze({ value: "left-out", label: "Left hinge · swings out" }),
-      Object.freeze({ value: "right-out", label: "Right hinge · swings out" })
+      Object.freeze({ value: "left-in", label: "Left hinge / in" }),
+      Object.freeze({ value: "right-in", label: "Right hinge / in" }),
+      Object.freeze({ value: "left-out", label: "Left hinge / out" }),
+      Object.freeze({ value: "right-out", label: "Right hinge / out" })
     ]), { position: "lower-right" })
   ]),
   fireplace: Object.freeze([
@@ -375,6 +375,96 @@ export const CATEGORY_DEFINITIONS = Object.freeze([
   })
 ]);
 
+const productChoice = (id, categoryId, styleId, label, options = {}) => Object.freeze({
+  id,
+  categoryId,
+  styleId,
+  label,
+  shortLabel: label,
+  drawingRef: "",
+  description: "",
+  ...options
+});
+
+/**
+ * The seven products shown on the first step.
+ *
+ * These are deliberately individual choices rather than category tabs. A
+ * choice owns both the product family and its construction style so the same
+ * identity can be carried through the room, measurement, customization, and
+ * review steps without a later style substitution.
+ */
+export const PRODUCT_CHOICES = Object.freeze([
+  productChoice("cabinet-shelves", "bookcase", "cabinet-base-shelves", "Cabinets + Shelves", {
+    drawingRef: "Drawing 7",
+    description: "Open shelving with concealed lower cabinets."
+  }),
+  productChoice("drawer-shelves", "bookcase", "drawer-base-shelves", "Drawers + Shelves", {
+    drawingRef: "Drawings 5–6",
+    description: "Open shelving with a six-drawer base."
+  }),
+  productChoice("open-shelving", "bookcase", "full-open-shelving", "Full Open Shelving", {
+    drawingRef: "Drawings 1–2",
+    description: "Full-height display shelving without lower storage."
+  }),
+  productChoice("tv-unit", "tv-unit", "framed-tv-wall", "TV Unit", {
+    drawingRef: "Drawing 4",
+    description: "A fitted media wall with display and concealed storage."
+  }),
+  productChoice("floating-storage", "floating-storage", "floating-drawer-bank", "Floating Storage", {
+    description: "Wall-mounted storage with a clean open floor line."
+  }),
+  productChoice("window-storage", "window-storage", "window-seat-storage", "Window Storage", {
+    description: "Storage and seating designed around natural light."
+  }),
+  productChoice("radiator-cover", "radiator-cover", "clean-slat-cover", "Radiator Cover", {
+    description: "A fitted ventilated cover with a finished display ledge."
+  })
+]);
+
+const NATIVE_PRODUCT_SCENES = Object.freeze({
+  "tv-unit": Object.freeze({
+    "clear-wall": "assets/photos/configurator/concept-tv-wall-v1.png"
+  }),
+  "floating-storage": Object.freeze({
+    "clear-wall": "assets/photos/configurator/product-floating-storage-v1.png"
+  }),
+  "window-storage": Object.freeze({
+    "window-wall": "assets/photos/configurator/concept-window-cabinets-v1.png"
+  }),
+  "radiator-cover": Object.freeze({
+    "window-wall": "assets/photos/configurator/product-radiator-cover-v1.png"
+  })
+});
+
+export const PRODUCT_INTEGRATED_PREVIEW_ASSETS = Object.freeze(Object.fromEntries(
+  PRODUCT_CHOICES.map((choice) => [
+    choice.id,
+    Object.freeze(Object.fromEntries(
+      SHARED_ROOM_LAYOUTS.map((roomLayout) => {
+        const bookcaseAsset = choice.categoryId === "bookcase"
+          ? BOOKCASE_INTEGRATED_PREVIEW_ASSETS[roomLayout.id]?.[choice.styleId]
+          : null;
+        const nativeAsset = NATIVE_PRODUCT_SCENES[choice.categoryId]?.[roomLayout.id];
+        const integratedAsset = `assets/photos/configurator/integrated/${choice.categoryId}/${choice.styleId}/${roomLayout.id}-v1.png`;
+        return [roomLayout.id, bookcaseAsset || nativeAsset || integratedAsset];
+      })
+    ))
+  ])
+));
+
+export function getProductChoice(productId) {
+  return PRODUCT_CHOICES.find((choice) => choice.id === productId) || null;
+}
+
+export function getProductChoiceForSelection(categoryId, styleId) {
+  const category = getCategory(categoryId);
+  const selectedStyle = getStyle(category.id, styleId);
+  return PRODUCT_CHOICES.find((choice) => (
+    choice.categoryId === category.id && choice.styleId === selectedStyle.id
+  )) || null;
+}
+
 const finishOption = (id, label, family, color, preview) => Object.freeze({
   id,
   label,
@@ -613,11 +703,12 @@ export function getCompatibleDetails(categoryId, styleId) {
 export function resolvePreviewPresentation(categoryId, styleId, layoutId = null) {
   const selectedLayout = getLayout(categoryId, layoutId);
   const selectedStyle = getStyle(categoryId, styleId);
+  const selectedProduct = getProductChoiceForSelection(categoryId, selectedStyle.id);
   const previewKey = selectedLayout
     ? `${categoryId}:${selectedStyle.id}:${selectedLayout.id}`
     : `${categoryId}:${selectedStyle.id}`;
-  const exactLayoutAsset = categoryId === "bookcase" && selectedLayout
-    ? BOOKCASE_INTEGRATED_PREVIEW_ASSETS[selectedLayout.id]?.[selectedStyle.id] || null
+  const exactLayoutAsset = selectedProduct && selectedLayout
+    ? PRODUCT_INTEGRATED_PREVIEW_ASSETS[selectedProduct.id]?.[selectedLayout.id] || null
     : null;
 
   if (exactLayoutAsset && selectedLayout) {
@@ -636,7 +727,7 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
     });
   }
 
-  if (categoryId === "bookcase" && selectedLayout) {
+  if ((selectedProduct || categoryId === "bookcase") && selectedLayout) {
     return Object.freeze({
       previewKey,
       conceptAsset: selectedLayout.previewAsset,

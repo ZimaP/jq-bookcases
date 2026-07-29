@@ -7,9 +7,10 @@ import {
   getFinish,
   getLayout,
   getMeasurementFields,
+  getProductChoiceForSelection,
   getStyle,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=truthful-layouts-20260728b";
+} from "./guided-configurator-data.js?v=unified-products-20260728a";
 
 export const GUIDED_PROJECT_SCHEMA_VERSION = 2;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
@@ -142,9 +143,28 @@ export function normalizeProject(candidate, options = {}) {
   const now = Number(options.now) || Date.now();
   const source = candidate && typeof candidate === "object" ? candidate : {};
   const sourceSchemaVersion = Math.max(1, Number(source.schemaVersion) || 1);
-  const category = getCategory(source.category);
+  let category = getCategory(source.category);
   const layout = getLayout(category.id, source.layout);
-  const selectedStyle = getStyle(category.id, source.style);
+  let selectedStyle = getStyle(category.id, source.style);
+  const sourceProductSelected = typeof source.productSelected === "boolean"
+    ? source.productSelected
+    : sourceSchemaVersion < GUIDED_PROJECT_SCHEMA_VERSION && Boolean(source.category);
+  if (sourceProductSelected && !getProductChoiceForSelection(category.id, selectedStyle.id)) {
+    const preferredSelection = category.id === "bookcase" && selectedStyle.id === "tv-wall-cabinets"
+      ? { categoryId: "tv-unit", styleId: "framed-tv-wall" }
+      : {
+          categoryId: category.id,
+          styleId: {
+            "bookcase": "cabinet-base-shelves",
+            "tv-unit": "framed-tv-wall",
+            "floating-storage": "floating-drawer-bank",
+            "window-storage": "window-seat-storage",
+            "radiator-cover": "clean-slat-cover"
+          }[category.id]
+        };
+    category = getCategory(preferredSelection.categoryId);
+    selectedStyle = getStyle(category.id, preferredSelection.styleId);
+  }
   const compatible = getCompatibleDetails(category.id, selectedStyle.id);
   const fallback = createProject({
     now,
@@ -182,9 +202,7 @@ export function normalizeProject(candidate, options = {}) {
     migratedCurrentStep,
     migrateStep(source.maxVisitedStep || source.currentStep)
   );
-  const productSelected = typeof source.productSelected === "boolean"
-    ? source.productSelected
-    : sourceSchemaVersion < GUIDED_PROJECT_SCHEMA_VERSION && Boolean(source.category);
+  const productSelected = sourceProductSelected;
 
   const normalized = {
     ...fallback,
@@ -293,9 +311,11 @@ export function buildProjectSummary(project) {
   const category = getCategory(normalized.category);
   const layout = getLayout(normalized.category, normalized.layout);
   const selectedStyle = getStyle(normalized.category, normalized.style);
+  const selectedProduct = getProductChoiceForSelection(normalized.category, normalized.style);
   const fields = getMeasurementFields(normalized.category, normalized.layout);
   const rows = [
-    { key: "category", label: "Category", value: category.label, step: 1 },
+    { key: "product", label: "Product", value: selectedProduct?.label || selectedStyle.label, step: 1 },
+    { key: "category", label: "Family", value: category.label, step: 1 },
     { key: "layout", label: "Layout", value: layout?.label || "Not selected", step: 2 }
   ];
 
@@ -309,7 +329,6 @@ export function buildProjectSummary(project) {
   }
 
   rows.push(
-    { key: "style", label: "Style", value: selectedStyle.label, step: 4 },
     { key: "finish", label: "Finish", value: getFinish(normalized.finish).label, step: 4 },
     { key: "accentFinish", label: "Accent / interior", value: getFinish(normalized.accentFinish).label, step: 4 }
   );
