@@ -3,7 +3,6 @@ import {
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
   PRODUCT_CHOICES,
-  PRODUCT_INTEGRATED_PREVIEW_ASSETS,
   SHARED_ROOM_LAYOUTS,
   getCategory,
   getCompatibleDetails,
@@ -15,7 +14,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=architectural-dimensions-20260729b";
+} from "./guided-configurator-data.js?v=unified-guided-scene-20260729c";
 import {
   buildProjectSummary,
   createProject,
@@ -23,8 +22,9 @@ import {
   formatInches,
   normalizeProject,
   parseInches,
+  prepareMeasurementsForLayout,
   validateMeasurements
-} from "./guided-configurator-state.js?v=architectural-dimensions-20260729b";
+} from "./guided-configurator-state.js?v=unified-guided-scene-20260729c";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -260,6 +260,10 @@ let toastTimer = 0;
 let draftTimer = 0;
 let storageWarningShown = false;
 const previewPreloadCache = new Set();
+let guidedSceneController = null;
+let guidedSceneImportPromise = null;
+let guidedSceneSyncToken = 0;
+let guidedSceneMeasurementTimer = 0;
 
 if (app) {
   initializeStaticShell();
@@ -267,6 +271,12 @@ if (app) {
   bindAppEvents();
   bindDialogEvents();
   bindHistory();
+  window.addEventListener("pagehide", (event) => {
+    if (event.persisted) return;
+    window.clearTimeout(guidedSceneMeasurementTimer);
+    guidedSceneController?.dispose?.();
+    guidedSceneController = null;
+  });
 }
 
 function initializeProject() {
@@ -359,8 +369,9 @@ function closeMenu() {
 
 function renderApp(options = {}) {
   if (!app) return;
+  window.clearTimeout(guidedSceneMeasurementTimer);
+  guidedSceneMeasurementTimer = 0;
   const step = STEP_DEFINITIONS[project.currentStep - 1];
-  if (project.currentStep >= 2) preloadPreviewAsset(project.previewAsset);
   app.innerHTML = `
     <div class="guided-shell guided-shell--step-${project.currentStep}">
       ${renderStepper()}
@@ -377,6 +388,7 @@ function renderApp(options = {}) {
   `;
   mountIcons(app);
   applyPreviewScale();
+  syncGuidedScene();
   scheduleDraftSave();
   scheduleLikelyNextStepImages();
 
@@ -389,14 +401,6 @@ function scheduleLikelyNextStepImages() {
   let assets = [];
   if (project.currentStep === 1 && project.productSelected) {
     assets = SHARED_ROOM_LAYOUTS.map((layout) => layout.previewAsset);
-  } else if ([2, 3].includes(project.currentStep)) {
-    const category = getCategory(project.category);
-    const selectedProduct = getProductChoiceForSelection(project.category, project.style);
-    assets = [
-      ...Object.values(PRODUCT_INTEGRATED_PREVIEW_ASSETS[selectedProduct?.id] || {}),
-      category.productPreviewAsset,
-      "assets/photos/configurator/concept-window-cabinets-v1.png"
-    ];
   }
 
   if (!assets.length) return;
@@ -436,13 +440,20 @@ function renderOptimizedPicture(asset, options = {}) {
   const loading = options.loading === "eager" ? "eager" : "lazy";
   const fetchPriority = options.fetchPriority ? ` fetchpriority="${escapeAttribute(options.fetchPriority)}"` : "";
   const style = options.style ? ` style="${escapeAttribute(options.style)}"` : "";
+  const deferredFallback = options.deferredFallback === true;
+  const sourceAttribute = deferredFallback
+    ? `data-fallback-srcset="${escapeAttribute(optimizedSource)}"`
+    : `srcset="${escapeAttribute(optimizedSource)}"`;
+  const imageSourceAttributes = deferredFallback
+    ? `src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" data-fallback-src="${escapeAttribute(source)}"`
+    : `src="${escapeAttribute(source)}"`;
 
   return `
     <picture class="${escapeAttribute(pictureClass)}" aria-hidden="true">
-      <source type="image/avif" srcset="${escapeAttribute(optimizedSource)}">
+      <source type="image/avif" ${sourceAttribute}>
       <img
         class="${escapeAttribute(imageClass)}"
-        src="${escapeAttribute(source)}"
+        ${imageSourceAttributes}
         alt=""
         loading="${loading}"
         decoding="async"
@@ -931,8 +942,7 @@ function renderMeasurementDiagram(fields, selectedLayout) {
     {
       pictureClass: "measurement-room-image",
       imageClass: "measurement-room-image",
-      loading: "eager",
-      fetchPriority: "high"
+      deferredFallback: true
     }
   );
   const syntheticFeature = (
@@ -951,6 +961,12 @@ function renderMeasurementDiagram(fields, selectedLayout) {
         ${roomVisual}
         ${syntheticFeature}
         ${renderDimensionDrawing(dimensions, diagramSpec)}
+        <div
+          class="guided-3d-mount guided-3d-mount--measurements"
+          data-guided-3d-mount
+          data-guided-3d-mode="measurements"
+          aria-label="Interactive three-dimensional room measurement preview"
+        ></div>
       </div>
     </figure>
   `;
@@ -1321,10 +1337,9 @@ function renderConceptPreview() {
         ${renderOptimizedPicture(previewPresentation.conceptAsset, {
           pictureClass: "concept-photo",
           imageClass: "concept-photo",
-          loading: "eager",
-          fetchPriority: "high"
+          deferredFallback: true
         })}
-        ${renderConceptFinishOverlay(previewPresentation.conceptAsset)}
+        ${renderConceptFinishOverlay(previewPresentation.conceptAsset, { deferredFallback: true })}
         ${previewPresentation.renderMode === "missing-integrated-scene" ? `
           <div class="concept-preview-unavailable" role="status">
             <strong>Room-specific concept in preparation</strong>
@@ -1336,6 +1351,12 @@ function renderConceptPreview() {
           data-style="${escapeAttribute(selectedStyle.id)}"
           style="display:none;--unit-finish:${escapeAttribute(finish.color)};--accent-finish:${escapeAttribute(accentFinish.color)};--hardware-color:${escapeAttribute(hardware?.color || "#302d2a")};--door-count:${doorCount}"
           aria-hidden="true"
+        ></div>
+        <div
+          class="guided-3d-mount guided-3d-mount--concept"
+          data-guided-3d-mount
+          data-guided-3d-mode="concept"
+          aria-label="${escapeAttribute(`Interactive three-dimensional ${selectedProduct?.label || selectedStyle.label} preview in the selected ${layout?.label || "room"}`)}"
         ></div>
       </div>
       ${renderPreviewControls()}
@@ -1362,7 +1383,7 @@ function renderConceptLayoutContext(layout, previewPresentation) {
   `;
 }
 
-function renderConceptFinishOverlay(previewAsset) {
+function renderConceptFinishOverlay(previewAsset, options = {}) {
   const assetName = String(previewAsset || "").split("/").pop();
   const definition = CONCEPT_FINISH_MASKS[assetName] || resolveGeneratedIntegratedFinishMask(previewAsset);
   if (!definition) return "";
@@ -1371,7 +1392,9 @@ function renderConceptFinishOverlay(previewAsset) {
   const maskContents = definition.maskAsset
     ? `
       <image
-        href="${escapeAttribute(definition.maskAsset)}"
+        ${options.deferredFallback
+          ? `data-fallback-href="${escapeAttribute(definition.maskAsset)}"`
+          : `href="${escapeAttribute(definition.maskAsset)}"`}
         x="0"
         y="0"
         width="${definition.width || 1536}"
@@ -1698,7 +1721,9 @@ function selectLayout(layoutId) {
   project = normalizeProject({
     ...project,
     layout: layoutId,
-    measurements: project.measurements,
+    measurements: project.layout === layoutId
+      ? project.measurements
+      : prepareMeasurementsForLayout(project, layoutId),
     updatedAt: new Date().toISOString()
   });
   renderApp();
@@ -1792,14 +1817,7 @@ function updateMeasurementFromControl(control, options = {}) {
     control.setAttribute("aria-describedby", describedBy.join(" "));
   }
 
-  const existingWarning = row?.querySelector(".measurement-warning");
-  if (field.type === "inches" && value !== null && (value < field.min || value > field.max)) {
-    const message = `${field.label} is outside our usual ${formatInches(field.min)}–${formatInches(field.max)} in range. You can continue and our team will review it.`;
-    if (existingWarning) existingWarning.textContent = message;
-    else row?.insertAdjacentHTML("beforeend", `<small class="measurement-warning">${escapeHtml(message)}</small>`);
-  } else {
-    existingWarning?.remove();
-  }
+  syncMeasurementWarnings();
 
   if (control.type === "radio") {
     row?.querySelectorAll(".measurement-toggle label").forEach((label) => {
@@ -1810,6 +1828,62 @@ function updateMeasurementFromControl(control, options = {}) {
   const errorBox = app.querySelector("[data-measurement-error]");
   if (errorBox && validateMeasurements(project).valid) errorBox.hidden = true;
   if (options.finalize && field.type === "inches" && value !== null) control.value = formatInches(value, { decimal: true });
+  scheduleMeasurementSceneUpdate({ immediate: options.finalize });
+}
+
+function syncMeasurementWarnings() {
+  const warningsByField = new Map();
+  for (const warning of validateMeasurements(project).warnings) {
+    if (!warningsByField.has(warning.field)) warningsByField.set(warning.field, []);
+    warningsByField.get(warning.field).push(warning.message);
+  }
+
+  app.querySelectorAll("[data-measurement-row]").forEach((row) => {
+    const fieldId = row.dataset.measurementRow;
+    const warningId = `measurement-warning-${fieldId}`;
+    const messages = warningsByField.get(fieldId) || [];
+    const controls = row.querySelectorAll("[data-measurement]");
+    let warning = row.querySelector(".measurement-warning");
+
+    if (messages.length) {
+      if (!warning) {
+        warning = document.createElement("small");
+        warning.className = "measurement-warning";
+        row.appendChild(warning);
+      }
+      warning.id = warningId;
+      warning.textContent = messages.join(" ");
+      controls.forEach((control) => {
+        const describedBy = new Set(
+          (control.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean)
+        );
+        describedBy.add(warningId);
+        control.setAttribute("aria-describedby", [...describedBy].join(" "));
+      });
+      return;
+    }
+
+    warning?.remove();
+    controls.forEach((control) => {
+      const describedBy = (control.getAttribute("aria-describedby") || "")
+        .split(/\s+/)
+        .filter((id) => id && id !== warningId);
+      control.setAttribute("aria-describedby", describedBy.join(" "));
+    });
+  });
+}
+
+function scheduleMeasurementSceneUpdate(options = {}) {
+  window.clearTimeout(guidedSceneMeasurementTimer);
+  const update = () => {
+    guidedSceneMeasurementTimer = 0;
+    guidedSceneController?.update(project, getGuidedSceneOptions());
+  };
+  if (options.immediate) {
+    update();
+    return;
+  }
+  guidedSceneMeasurementTimer = window.setTimeout(update, 120);
 }
 
 function updateDimensionChip(field, value) {
@@ -1832,13 +1906,70 @@ function updatePreviewScale(action) {
   if (action === "in") previewScale = Math.min(1.2, previewScale + 0.1);
   else if (action === "out") previewScale = Math.max(0.8, previewScale - 0.1);
   else previewScale = 1;
+  guidedSceneController?.zoom(action);
   applyPreviewScale();
 }
 
 function applyPreviewScale() {
   app?.querySelectorAll("[data-concept-scene]").forEach((scene) => {
-    scene.style.setProperty("--preview-scale", String(previewScale));
+    scene.style.setProperty(
+      "--preview-scale",
+      scene.dataset.guided3dState === "ready" ? "1" : String(previewScale)
+    );
   });
+}
+
+function getGuidedSceneOptions() {
+  return {
+    showDimensions: project.currentStep === 3,
+    showProduct: project.currentStep >= 4
+  };
+}
+
+function updateGuidedSceneState(state) {
+  const mount = app?.querySelector("[data-guided-3d-mount]");
+  const scene = mount?.closest(".measurement-room, .concept-scene");
+  if (!scene) return;
+  if (state === "fallback") activateGuidedFallbackAssets(scene);
+  scene.dataset.guided3dState = state;
+  applyPreviewScale();
+}
+
+function activateGuidedFallbackAssets(scene) {
+  scene.querySelectorAll("source[data-fallback-srcset]").forEach((source) => {
+    source.srcset = source.dataset.fallbackSrcset;
+  });
+  scene.querySelectorAll("img[data-fallback-src]").forEach((image) => {
+    image.src = image.dataset.fallbackSrc;
+  });
+  scene.querySelectorAll("image[data-fallback-href]").forEach((image) => {
+    image.setAttribute("href", image.dataset.fallbackHref);
+  });
+}
+
+function syncGuidedScene() {
+  const mount = app?.querySelector("[data-guided-3d-mount]");
+  const token = ++guidedSceneSyncToken;
+
+  if (!mount) {
+    guidedSceneController?.unmount?.();
+    return;
+  }
+
+  updateGuidedSceneState("loading");
+  guidedSceneImportPromise ||= import("./guided-configurator-3d.js?v=unified-guided-scene-20260729d");
+  guidedSceneImportPromise
+    .then(({ createGuidedSceneController }) => {
+      if (token !== guidedSceneSyncToken || !mount.isConnected) return;
+      guidedSceneController ||= createGuidedSceneController({
+        onStateChange: updateGuidedSceneState
+      });
+      guidedSceneController.mount(mount);
+      guidedSceneController.update(project, getGuidedSceneOptions());
+    })
+    .catch(() => {
+      if (token === guidedSceneSyncToken) updateGuidedSceneState("fallback");
+    });
 }
 
 function scheduleDraftSave() {

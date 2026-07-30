@@ -26,6 +26,7 @@ import {
   formatInches,
   normalizeProject,
   parseInches,
+  prepareMeasurementsForLayout,
   validateMeasurements
 } from "../guided-configurator-state.js";
 
@@ -298,6 +299,36 @@ test("inch parsing accepts decimals, mixed fractions, hyphenated fractions, and 
   assert.equal(formatInches(42.5), "42 1/2");
   assert.equal(formatInches(0.875), "7/8");
   assert.equal(formatInches(42.5, { decimal: true }), "42.5");
+});
+
+test("niche layout selection derives distinct left, centered, and right returns from the room envelope", () => {
+  const project = createProject();
+  project.measurements = {
+    wallWidth: 120,
+    ceilingHeight: 96,
+    desiredDepth: 14,
+    nicheWidth: 96
+  };
+
+  assert.deepEqual(
+    pickReturns(prepareMeasurementsForLayout(project, "left-niche")),
+    { leftReturn: 0, rightReturn: 24 }
+  );
+  assert.deepEqual(
+    pickReturns(prepareMeasurementsForLayout(project, "niche-layout")),
+    { leftReturn: 12, rightReturn: 12 }
+  );
+  assert.deepEqual(
+    pickReturns(prepareMeasurementsForLayout(project, "right-niche")),
+    { leftReturn: 24, rightReturn: 0 }
+  );
+
+  function pickReturns(measurements) {
+    return {
+      leftReturn: measurements.leftReturn,
+      rightReturn: measurements.rightReturn
+    };
+  }
 });
 
 test("core measurements are required while unusual values remain non-blocking warnings", () => {
@@ -667,18 +698,22 @@ test("project store reports blocked writes instead of fabricating save success",
   assert.equal(projects.deleteProject(project.projectId), false);
 });
 
-test("the public configurator route and deployment exclude the legacy 3D runtime", async () => {
-  const [html, guidedUi, guidedState, workflow] = await Promise.all([
+test("the public configurator lazily ships its unified guided 3D scene without the legacy workspace runtime", async () => {
+  const [html, guidedUi, guidedState, guidedScene, workflow] = await Promise.all([
     readFile(new URL("../configurator.html", import.meta.url), "utf8"),
     readFile(new URL("../guided-configurator.js", import.meta.url), "utf8"),
     readFile(new URL("../guided-configurator-state.js", import.meta.url), "utf8"),
+    readFile(new URL("../guided-configurator-3d.js", import.meta.url), "utf8"),
     readFile(new URL("../.github/workflows/deploy-pages-production.yml", import.meta.url), "utf8")
   ]);
 
   assert.match(html, /guided-configurator\.js/);
-  assert.doesNotMatch(html, /configurator-3d|three\.module|cabinet-ar|direct-hardware/);
-  assert.doesNotMatch(`${guidedUi}\n${guidedState}`, /configurator-3d|three\.module|bookcase-engine|cabinet-ar/);
+  assert.doesNotMatch(html, /assets\/vendor\/three\.module|src=["']configurator-3d|cabinet-ar|direct-hardware/);
+  assert.match(guidedUi, /import\(["']\.\/guided-configurator-3d\.js/);
+  assert.match(guidedScene, /assets\/vendor\/three\.module\.js/);
+  assert.doesNotMatch(`${guidedUi}\n${guidedState}`, /bookcase-engine|cabinet-ar/);
   assert.match(workflow, /test ! -e _site\/configurator-3d\.js/);
-  assert.match(workflow, /test ! -e _site\/assets\/vendor\/three\.module\.js/);
-  assert.doesNotMatch(workflow, /test -f _site\/assets\/vendor\/three\.module\.js/);
+  assert.match(workflow, /test -f _site\/guided-configurator-3d\.js/);
+  assert.match(workflow, /test -f _site\/guided-scene-plan\.js/);
+  assert.match(workflow, /test -f _site\/assets\/vendor\/three\.module\.js/);
 });

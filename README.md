@@ -20,17 +20,16 @@ Premium static website and parametric 3D configurator for JQ Bookcases — Built
 `request-quote.html`. The shared header, footer, navigation, icons, tokens, and
 responsive primitives are owned by `site.js` and `styles.css`.
 
-The accepted configurator is one bright, CAD-like reference workspace: seven
-directly reachable stages (Space, Layout, Storage, Finish, Hardware, Lighting,
-and Preview), one persistent selectable 3D model, one fixed contextual
-Properties inspector, a section organizer with exact total-width status, a
-global history/display/tool toolbar, and a shared estimate footer. The seven
-stages project the existing nine canonical control groups; they are
-organizational, non-linear, and never create a second product engine. Model or
-organizer selection routes the same accepted transaction into Properties—no
-second floating editor is mounted. Pure configuration, stage, tab, selection,
-organizer, and history rules live in `configurator-experience.js`; controller
-and renderer integration remain in `configurator-3d.js`.
+`configurator.html` hosts the five-step public guided project flow. Steps 3–5
+share one persistent, code-native Three.js concept scene: measurements reshape
+the room and its world-space callouts, then the selected product joins that same
+scene, camera, depth buffer, lighting, and shadow system. Approved static photos
+are graceful fallback assets only.
+
+The guided concept renderer is intentionally separate from the accepted-design
+renderer and the physical layout, BOM, and pricing engines. Its architecture
+and boundaries are documented in `GUIDED-3D-SCENE.md`. The separate accepted
+CAD-like workspace remains documented in `CONFIGURATOR-ARCHITECTURE.md`.
 
 ## Run Locally
 
@@ -54,7 +53,7 @@ Pull requests and pushes to `main` validate without publishing. The manual-only
 production procedure and its exact confirmation contract are documented in
 `RELEASE.md`.
 
-The parametric model architecture is documented in
+The accepted parametric model architecture is documented in
 `CONFIGURATOR-ARCHITECTURE.md`. Repeatable desktop, tablet, phone, short-
 landscape, preset, and geometry checks are listed in `CONFIGURATOR-QA.md`.
 
