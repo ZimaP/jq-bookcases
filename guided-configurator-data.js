@@ -221,6 +221,46 @@ const ROOM_MEASUREMENT_DIAGRAM_VIEWBOXES = Object.freeze({
   "double-opening": Object.freeze({ width: 1536, height: 1024, drawingTop: 145, drawingHeight: 734 })
 });
 
+const roomPerimeterAnchors = (
+  wallLeft,
+  wallRight,
+  ceiling,
+  floor,
+  options = {}
+) => Object.freeze({
+  wallLeft,
+  wallRight,
+  ceiling,
+  floor,
+  widthLine: ceiling + (floor - ceiling) * 0.1,
+  heightLine: wallLeft + (wallRight - wallLeft) * 0.045,
+  ...options
+});
+
+/*
+ * Normalized anchors keep the two perimeter dimensions attached to the room
+ * photograph itself. They are resolved into each asset's native viewBox, so
+ * the photo and SVG retain one coordinate system at every viewport size.
+ */
+const ROOM_PERIMETER_MEASUREMENT_ANCHORS = Object.freeze({
+  "niche-layout": roomPerimeterAnchors(0.155, 0.829, 0.141, 0.66, { widthLine: 0.19 }),
+  "left-niche": roomPerimeterAnchors(0.155, 0.877, 0.141, 0.66, { widthLine: 0.19 }),
+  "right-niche": roomPerimeterAnchors(0.116, 0.829, 0.141, 0.66, { widthLine: 0.19 }),
+  "clear-wall": roomPerimeterAnchors(0.076, 0.923, 0.102, 0.67, { widthLine: 0.16 }),
+  "fireplace-wall": roomPerimeterAnchors(0.155, 0.829, 0.141, 0.66, { widthLine: 0.19 }),
+  "center-recess": roomPerimeterAnchors(0.067, 0.936, 0.123, 0.744, {
+    widthLine: 0.19,
+    heightLine: 0.106
+  }),
+  "window-wall": roomPerimeterAnchors(0.189, 0.805, 0.164, 0.758, { widthLine: 0.19 }),
+  "door-wall": roomPerimeterAnchors(0.156, 0.843, 0.153, 0.741, { widthLine: 0.195 }),
+  "corner-wall": roomPerimeterAnchors(0.02, 0.526, 0.053, 0.75, {
+    widthLine: 0.215,
+    heightLine: 0.09
+  }),
+  "double-opening": roomPerimeterAnchors(0.198, 0.801, 0.146, 0.767, { widthLine: 0.19 })
+});
+
 const dimensionSpan = (fieldId, axis, line, extensions, label, options = {}) => Object.freeze({
   fieldId,
   axis,
@@ -235,6 +275,59 @@ const dimensionSpan = (fieldId, axis, line, extensions, label, options = {}) => 
   sourceHeight: MEASUREMENT_DIAGRAM_AUTHORING_SIZE.height,
   ...options
 });
+
+function createPerimeterMeasurementSpans(layoutId, viewBox) {
+  const anchors = ROOM_PERIMETER_MEASUREMENT_ANCHORS[layoutId]
+    || ROOM_PERIMETER_MEASUREMENT_ANCHORS["clear-wall"];
+  const x = (value) => value * viewBox.width;
+  const y = (value) => value * viewBox.height;
+  const extensionLength = viewBox.height * 0.018;
+  const widthLeft = x(anchors.wallLeft);
+  const widthRight = x(anchors.wallRight);
+  const widthY = y(anchors.widthLine);
+  const heightX = x(anchors.heightLine);
+  const ceilingY = y(anchors.ceiling);
+  const floorY = y(anchors.floor);
+  const heightLabelX = Math.min(
+    widthRight - viewBox.width * 0.1,
+    heightX + viewBox.width * 0.1
+  );
+
+  return Object.freeze([
+    dimensionSpan(
+      "wallWidth",
+      "horizontal",
+      [widthLeft, widthY, widthRight, widthY],
+      [
+        [widthLeft, widthY - extensionLength, widthLeft, widthY + extensionLength],
+        [widthRight, widthY - extensionLength, widthRight, widthY + extensionLength]
+      ],
+      { x: (widthLeft + widthRight) / 2, y: widthY },
+      {
+        priority: "perimeter",
+        extensionRole: "tick",
+        sourceWidth: viewBox.width,
+        sourceHeight: viewBox.height
+      }
+    ),
+    dimensionSpan(
+      "ceilingHeight",
+      "vertical",
+      [heightX, ceilingY, heightX, floorY],
+      [
+        [heightX - extensionLength, ceilingY, heightX + extensionLength, ceilingY],
+        [heightX - extensionLength, floorY, heightX + extensionLength, floorY]
+      ],
+      { x: heightLabelX, y: (ceilingY + floorY) / 2 },
+      {
+        priority: "perimeter",
+        extensionRole: "tick",
+        sourceWidth: viewBox.width,
+        sourceHeight: viewBox.height
+      }
+    )
+  ]);
+}
 
 const BASE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
   dimensionSpan(
@@ -879,88 +972,6 @@ export const PRODUCT_INTEGRATED_PREVIEW_ASSETS = Object.freeze(Object.fromEntrie
   ])
 ));
 
-const envelope = (x, y, width, height) => Object.freeze({ x, y, width, height });
-
-/**
- * Normalized installation-wall envelopes keep product photography away from
- * openings and unrelated room surfaces. They are expressed in scene space
- * (0–1), so the room and product layers can share one responsive transform.
- */
-const LAYOUT_INSTALLATION_ENVELOPES = Object.freeze({
-  "niche-layout": envelope(0.13, 0.1, 0.74, 0.78),
-  "left-niche": envelope(0.18, 0.1, 0.72, 0.78),
-  "right-niche": envelope(0.1, 0.1, 0.72, 0.78),
-  "clear-wall": envelope(0.1, 0.08, 0.8, 0.8),
-  "fireplace-wall": envelope(0.08, 0.1, 0.84, 0.78),
-  "center-recess": envelope(0.12, 0.1, 0.76, 0.78),
-  "window-wall": envelope(0.08, 0.1, 0.84, 0.78),
-  "door-wall": envelope(0.08, 0.1, 0.84, 0.78),
-  "corner-wall": envelope(0.04, 0.08, 0.92, 0.82),
-  "double-opening": envelope(0.19, 0.1, 0.62, 0.78)
-});
-
-const PRODUCT_INSTALLATION_ENVELOPES = Object.freeze({
-  bookcase: envelope(0.04, 0.04, 0.92, 0.86),
-  "tv-unit": envelope(0.06, 0.07, 0.88, 0.82),
-  "floating-storage": envelope(0.06, 0.43, 0.88, 0.45),
-  "window-storage": envelope(0.04, 0.14, 0.92, 0.74),
-  "radiator-cover": envelope(0.06, 0.24, 0.88, 0.64)
-});
-
-const INSTALLATION_ENVELOPE_OVERRIDES = Object.freeze({
-  // The v2 scene was authored directly in the canonical Between Openings room.
-  // This padded envelope follows the cabinet perimeter while leaving both
-  // openings, the ceiling, and the foreground floor entirely to the room layer.
-  "tv-unit:framed-tv-wall:double-opening": Object.freeze({
-    id: "tv-unit-double-opening-v2-cabinet",
-    bounds: envelope(0.267, 0.195, 0.466, 0.61)
-  }),
-  "floating-storage:floating-drawer-bank:double-opening": Object.freeze({
-    id: "floating-storage-double-opening-v3-cabinet",
-    bounds: envelope(0.25, 0.493, 0.5, 0.195)
-  }),
-  "window-storage:window-seat-storage:double-opening": Object.freeze({
-    id: "window-storage-double-opening-v2-installation",
-    bounds: envelope(0.232, 0.125, 0.534, 0.713)
-  }),
-  "radiator-cover:clean-slat-cover:double-opening": Object.freeze({
-    id: "radiator-cover-double-opening-v2-installation",
-    bounds: envelope(0.265, 0.568, 0.471, 0.23)
-  })
-});
-
-function intersectInstallationEnvelopes(layoutEnvelope, productEnvelope) {
-  const x = Math.max(layoutEnvelope.x, productEnvelope.x);
-  const y = Math.max(layoutEnvelope.y, productEnvelope.y);
-  const right = Math.min(
-    layoutEnvelope.x + layoutEnvelope.width,
-    productEnvelope.x + productEnvelope.width
-  );
-  const bottom = Math.min(
-    layoutEnvelope.y + layoutEnvelope.height,
-    productEnvelope.y + productEnvelope.height
-  );
-  return envelope(x, y, Math.max(0, right - x), Math.max(0, bottom - y));
-}
-
-function resolveInstallationEnvelope(categoryId, styleId, layoutId) {
-  const previewKey = `${categoryId}:${styleId}:${layoutId}`;
-  const override = INSTALLATION_ENVELOPE_OVERRIDES[previewKey];
-  if (override) {
-    return Object.freeze({
-      id: override.id,
-      bounds: override.bounds
-    });
-  }
-
-  const layoutEnvelope = LAYOUT_INSTALLATION_ENVELOPES[layoutId] || envelope(0.08, 0.08, 0.84, 0.8);
-  const productEnvelope = PRODUCT_INSTALLATION_ENVELOPES[categoryId] || envelope(0.04, 0.04, 0.92, 0.86);
-  return Object.freeze({
-    id: `${layoutId}-${categoryId}-installation-wall`,
-    bounds: intersectInstallationEnvelopes(layoutEnvelope, productEnvelope)
-  });
-}
-
 export function getProductChoice(productId) {
   return PRODUCT_CHOICES.find((choice) => choice.id === productId) || null;
 }
@@ -1262,7 +1273,8 @@ export function getMeasurementDiagramSpec(categoryId, layoutId) {
     feature: selectedLayout?.feature && selectedLayout.feature !== "none"
       ? selectedLayout.feature
       : productFeature,
-    spans: Object.freeze(spans)
+    spans: Object.freeze(spans),
+    perimeterSpans: createPerimeterMeasurementSpans(selectedLayout?.id || "clear-wall", viewBox)
   });
 }
 
@@ -1289,16 +1301,9 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
     : null;
 
   if (exactLayoutAsset && selectedLayout) {
-    const installation = resolveInstallationEnvelope(
-      categoryId,
-      selectedStyle.id,
-      selectedLayout.id
-    );
     return Object.freeze({
       previewKey,
       conceptAsset: exactLayoutAsset,
-      roomAsset: selectedLayout.previewAsset,
-      productAsset: exactLayoutAsset,
       categoryId,
       styleId: selectedStyle.id,
       layoutId: selectedLayout.id,
@@ -1307,9 +1312,7 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
       layoutContextAsset: selectedLayout.previewAsset,
       layoutPreviewMode: selectedLayout.previewMode,
       layoutPreviewPosition: selectedLayout.previewPosition,
-      installationEnvelopeId: installation.id,
-      installationEnvelope: installation.bounds,
-      renderMode: "layered"
+      renderMode: "integrated"
     });
   }
 
@@ -1317,8 +1320,6 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
     return Object.freeze({
       previewKey,
       conceptAsset: selectedLayout.previewAsset,
-      roomAsset: selectedLayout.previewAsset,
-      productAsset: null,
       categoryId,
       styleId: selectedStyle.id,
       layoutId: selectedLayout.id,
@@ -1327,8 +1328,6 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
       layoutContextAsset: selectedLayout.previewAsset,
       layoutPreviewMode: selectedLayout.previewMode,
       layoutPreviewPosition: selectedLayout.previewPosition,
-      installationEnvelopeId: null,
-      installationEnvelope: null,
       renderMode: "missing-integrated-scene"
     });
   }
@@ -1339,8 +1338,6 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
   return Object.freeze({
     previewKey,
     conceptAsset,
-    roomAsset: selectedLayout?.previewAsset || null,
-    productAsset: conceptAsset,
     categoryId,
     styleId: selectedStyle.id,
     layoutId: selectedLayout?.id || null,
@@ -1349,8 +1346,6 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
     layoutContextAsset: selectedLayout?.previewAsset || null,
     layoutPreviewMode: selectedLayout?.previewMode || "image",
     layoutPreviewPosition: selectedLayout?.previewPosition || "50% 50%",
-    installationEnvelopeId: null,
-    installationEnvelope: selectedLayout ? envelope(0, 0, 1, 1) : null,
     renderMode: selectedLayout ? "concept-with-room-context" : "concept-only"
   });
 }
