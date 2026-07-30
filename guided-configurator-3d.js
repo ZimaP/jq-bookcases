@@ -1,5 +1,8 @@
 import * as THREE from "./assets/vendor/three.module.js";
-import { createGuidedScenePlan } from "./guided-scene-plan.js?v=unified-guided-scene-20260729d";
+import {
+  createGuidedScenePlan,
+  resolveGuidedDimensionCallouts
+} from "./guided-scene-plan.js?v=canonical-room-scenes-20260729a";
 
 const INCH_TO_SCENE = 1 / 12;
 const MAX_DEVICE_PIXEL_RATIO = 2;
@@ -12,6 +15,8 @@ const ARCHITECTURAL_CLEARANCE = 2.5;
 const DIMENSION_LABEL_GAP = 6;
 const DIMENSION_LABEL_VIEWPORT_PADDING = 8;
 const DIMENSION_LABEL_BOTTOM_RESERVE = 44;
+const DIMENSION_LEADER_MIN_LENGTH = 8;
+const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 
 let guidedSceneInstanceSequence = 0;
 
@@ -59,8 +64,13 @@ export class GuidedSceneController {
     this.plan = null;
     this.options = Object.freeze({ showProduct: false, showDimensions: false });
     this.sceneSignature = "";
+    this.roomSignature = "";
+    this.cameraSignature = "";
     this.topologySignature = "";
     this.userAdjustedCamera = false;
+    this.renderGeneration = 0;
+    this.readyGeneration = 0;
+    this.readyWaiters = new Set();
 
     this.cameraTarget = new THREE.Vector3();
     this.defaultCameraTarget = new THREE.Vector3();
@@ -141,7 +151,10 @@ export class GuidedSceneController {
       this.plan = plan;
       this.options = nextOptions;
       this.sceneSignature = createSceneSignature(plan);
+      this.roomSignature = createRoomSignature(plan);
+      this.cameraSignature = createCameraSignature(plan, this.roomSignature);
       this.topologySignature = nextTopologySignature;
+      this.renderGeneration += 1;
       this.failed = false;
       this.runtime.hidden = false;
       delete this.runtime.dataset.rendered;
@@ -179,9 +192,53 @@ export class GuidedSceneController {
     return true;
   }
 
+  whenReady() {
+    if (this.disposed) {
+      return Promise.reject(new Error("The guided 3D scene controller has been disposed."));
+    }
+    if (this.failed || this.state === "fallback") {
+      return Promise.reject(new Error("The guided 3D scene is using its fallback presentation."));
+    }
+    const generation = this.plan
+      ? this.renderGeneration
+      : this.renderGeneration + 1;
+    if (this.state === "ready" && this.readyGeneration >= generation) {
+      return Promise.resolve(this);
+    }
+    return new Promise((resolve, reject) => {
+      this.readyWaiters.add({ generation, resolve, reject });
+    });
+  }
+
+  captureDataUrl(type = "image/png", quality) {
+    if (this.disposed) {
+      throw new Error("The guided 3D scene controller has been disposed.");
+    }
+    if (this.failed || !this.plan || !this.renderer || !this.camera || !this.canvas) {
+      throw new Error("The guided 3D scene must be ready before it can be captured.");
+    }
+    if (typeof this.canvas.toDataURL !== "function") {
+      throw new Error("This browser cannot capture the guided 3D canvas.");
+    }
+
+    this.cancelScheduledRender();
+    this.resize();
+    this.cancelScheduledRender();
+    this.rendering = true;
+    try {
+      this.renderCurrentFrame();
+      return Number.isFinite(Number(quality))
+        ? this.canvas.toDataURL(type, Number(quality))
+        : this.canvas.toDataURL(type);
+    } finally {
+      this.rendering = false;
+    }
+  }
+
   dispose() {
     if (this.disposed) return;
     this.disposed = true;
+    this.rejectReadyWaiters(new Error("The guided 3D scene controller was disposed."));
     this.cancelScheduledRender();
     this.cancelScheduledResize();
     this.resizeObserver?.disconnect();
@@ -270,7 +327,8 @@ export class GuidedSceneController {
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: false,
-      powerPreference: "high-performance"
+      powerPreference: "high-performance",
+      preserveDrawingBuffer: true
     });
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -586,7 +644,7 @@ export class GuidedSceneController {
     if (this.options.showDimensions) {
       renderDimensionCallouts(
         dimensions,
-        this.plan.dimensionCallouts,
+        this.plan,
         this.labelLayer,
         this.dimensionLabels
       );
@@ -596,6 +654,10 @@ export class GuidedSceneController {
   configureCamera({ preserveAdjustedCamera = false } = {}) {
     const frame = getPlanCameraFrame(this.plan, this.camera?.aspect || 1);
     const previousScale = this.baseRadius > 0 ? this.radius / this.baseRadius : 1;
+    this.camera.fov = frame.fieldOfViewDegrees;
+    this.camera.near = CAMERA_NEAR;
+    this.camera.far = CAMERA_FAR;
+    this.camera.updateProjectionMatrix();
     this.defaultCameraTarget.copy(frame.target);
     this.baseRadius = frame.radius;
     this.minRadius = frame.radius * 0.46;
@@ -663,13 +725,7 @@ export class GuidedSceneController {
       if (this.disposed || this.failed || !this.runtime?.isConnected) return;
       this.rendering = true;
       try {
-        this.renderer.render(this.scene, this.camera);
-        this.updateDimensionLabelPositions();
-        if (this.plan) {
-          this.runtime.dataset.rendered = "true";
-          this.canvas.dataset.rendered = "true";
-          if (this.state !== "ready") this.notifyState("ready");
-        }
+        this.renderCurrentFrame();
       } catch (error) {
         this.fail(error);
       } finally {
@@ -684,6 +740,33 @@ export class GuidedSceneController {
       || globalThis.cancelAnimationFrame?.bind(globalThis);
     cancel?.(this.animationFrame);
     this.animationFrame = null;
+  }
+
+  renderCurrentFrame() {
+    this.renderer.render(this.scene, this.camera);
+    this.updateDimensionLabelPositions();
+    if (!this.plan) return;
+    this.runtime.dataset.rendered = "true";
+    this.canvas.dataset.rendered = "true";
+    this.readyGeneration = this.renderGeneration;
+    this.resolveReadyWaiters();
+    if (this.state !== "ready") this.notifyState("ready");
+  }
+
+  resolveReadyWaiters() {
+    this.readyWaiters.forEach((waiter) => {
+      if (waiter.generation > this.readyGeneration) return;
+      this.readyWaiters.delete(waiter);
+      waiter.resolve(this);
+    });
+  }
+
+  rejectReadyWaiters(error) {
+    const reason = error instanceof Error
+      ? error
+      : new Error(String(error || "The guided 3D scene could not be rendered."));
+    this.readyWaiters.forEach((waiter) => waiter.reject(reason));
+    this.readyWaiters.clear();
   }
 
   updateDimensionLabelPositions() {
@@ -703,7 +786,10 @@ export class GuidedSceneController {
         && projected.y >= -1.16
         && projected.y <= 1.16;
       descriptor.element.hidden = !visible;
-      if (!visible) return;
+      if (!visible) {
+        setDimensionLeaderVisible(descriptor, false);
+        return;
+      }
       const x = (projected.x * 0.5 + 0.5) * width;
       const y = (-projected.y * 0.5 + 0.5) * height;
       projectedLabels.push({
@@ -724,7 +810,9 @@ export class GuidedSceneController {
       sceneLayout: this.plan?.room?.layoutId || "",
       showProduct: String(this.options.showProduct === true),
       showDimensions: String(this.options.showDimensions === true),
-      sceneSignature: this.sceneSignature || ""
+      sceneSignature: this.sceneSignature || "",
+      roomSignature: this.roomSignature || "",
+      cameraSignature: this.cameraSignature || ""
     };
     [this.runtime, this.canvas].filter(Boolean).forEach((element) => {
       Object.assign(element.dataset, values);
@@ -745,6 +833,7 @@ export class GuidedSceneController {
   fail(error) {
     this.failed = true;
     this.cancelScheduledRender();
+    this.rejectReadyWaiters(error);
     if (this.runtime) {
       this.runtime.dataset.state = "fallback";
       this.runtime.hidden = true;
@@ -802,9 +891,20 @@ function positionDimensionLabels(labels, viewportWidth, viewportHeight) {
       label.descriptor.element.style.transform = (
         `translate3d(${best.x}px, ${best.y}px, 0) translate(-50%, -50%)`
       );
-      label.descriptor.element.dataset.collisionAdjusted = String(best.overlap === 0 && (
+      const collisionAdjusted = (
         Math.abs(best.x - label.x) > 0.5 || Math.abs(best.y - label.y) > 0.5
-      ));
+      );
+      label.descriptor.element.dataset.collisionAdjusted = String(collisionAdjusted);
+      positionDimensionLeader(
+        label.descriptor,
+        label.x,
+        label.y,
+        best.x,
+        best.y,
+        label.width,
+        label.height,
+        collisionAdjusted
+      );
     });
 }
 
@@ -842,9 +942,55 @@ function getRectOverlapArea(first, second) {
   return width * height;
 }
 
+function positionDimensionLeader(
+  descriptor,
+  anchorX,
+  anchorY,
+  labelX,
+  labelY,
+  labelWidth,
+  labelHeight,
+  adjusted
+) {
+  const distance = Math.hypot(labelX - anchorX, labelY - anchorY);
+  const deltaX = anchorX - labelX;
+  const deltaY = anchorY - labelY;
+  const halfWidth = Math.max(1, labelWidth / 2);
+  const halfHeight = Math.max(1, labelHeight / 2);
+  const anchorOutsideLabel = Math.abs(deltaX) > halfWidth || Math.abs(deltaY) > halfHeight;
+  if (!adjusted || !anchorOutsideLabel || distance <= DIMENSION_LEADER_MIN_LENGTH) {
+    setDimensionLeaderVisible(descriptor, false);
+    return;
+  }
+
+  const edgeScale = 1 / Math.max(
+    Math.abs(deltaX) / halfWidth,
+    Math.abs(deltaY) / halfHeight,
+    Number.EPSILON
+  );
+  const labelEdgeX = labelX + deltaX * edgeScale;
+  const labelEdgeY = labelY + deltaY * edgeScale;
+
+  [descriptor.leaderHalo, descriptor.leaderLine].filter(Boolean).forEach((line) => {
+    line.setAttribute("x1", String(anchorX));
+    line.setAttribute("y1", String(anchorY));
+    line.setAttribute("x2", String(labelEdgeX));
+    line.setAttribute("y2", String(labelEdgeY));
+  });
+  setDimensionLeaderVisible(descriptor, true);
+}
+
+function setDimensionLeaderVisible(descriptor, visible) {
+  [descriptor?.leaderHalo, descriptor?.leaderLine].filter(Boolean).forEach((line) => {
+    line.style.display = visible ? "" : "none";
+  });
+  if (descriptor?.element) {
+    descriptor.element.dataset.leaderVisible = String(visible);
+  }
+}
+
 function createRenderReadyScenePlan(sourcePlan) {
   const plan = JSON.parse(JSON.stringify(sourcePlan));
-  const finalized = [];
   const hiddenDimensionGroups = new Set();
   const finalizeFeatures = (matcher, resolver, dimensionGroup) => {
     plan.room.features
@@ -859,7 +1005,6 @@ function createRenderReadyScenePlan(sourcePlan) {
         }
         feature.bounds = createBounds(resolvedBounds.min, resolvedBounds.max);
         feature.renderAdjusted = !boundsNearlyEqual(authoredBounds, feature.bounds);
-        finalized.push(feature);
       });
   };
 
@@ -885,13 +1030,34 @@ function createRenderReadyScenePlan(sourcePlan) {
     syncRadiatorCoverTargetZone(plan, radiatorFeature.bounds);
   }
 
-  finalized.forEach((feature) => syncFeatureDimensionCallouts(plan, feature));
+  plan.dimensionCallouts = resolveGuidedDimensionCallouts(plan);
   if (hiddenDimensionGroups.size) {
     plan.dimensionCallouts = plan.dimensionCallouts.filter((callout) => (
-      !hiddenDimensionGroups.has(getDimensionGroup(callout?.fieldId))
+      !hiddenDimensionGroups.has(getCanonicalDimensionFeatureGroup(callout))
     ));
   }
+  normalizeRendererDimensionSemantics(plan);
   return plan;
+}
+
+function normalizeRendererDimensionSemantics(plan) {
+  const layoutId = plan.room?.layoutId;
+  const labels = layoutId === "center-recess"
+    ? {
+        nicheWidth: "Projection width",
+        nicheHeight: "Projection height",
+        nicheDepth: "Projection depth"
+      }
+    : layoutId === "double-opening"
+      ? {
+          openingLeftDistance: "Left opening width",
+          openingRightDistance: "Right opening width"
+        }
+      : null;
+  if (!labels) return;
+  plan.dimensionCallouts.forEach((callout) => {
+    if (labels[callout.fieldId]) callout.label = labels[callout.fieldId];
+  });
 }
 
 function syncWindowStorageTargetZones(plan, windowBounds) {
@@ -1019,96 +1185,6 @@ function createBackWallTargetZone(template, id, role, bounds) {
   };
 }
 
-function syncFeatureDimensionCallouts(plan, feature) {
-  const kind = getSemanticKind(feature);
-  const bounds = feature.bounds;
-  const room = plan.room.bounds;
-  plan.dimensionCallouts.forEach((callout) => {
-    const fieldId = String(callout?.fieldId || "");
-    const z = finiteOr(callout?.start?.z, bounds.min.z - 5);
-    let endpoints = null;
-
-    if (/window/.test(kind)) {
-      if (fieldId === "windowWidth") {
-        endpoints = {
-          axis: "width",
-          start: { x: bounds.min.x, y: bounds.max.y + 4, z },
-          end: { x: bounds.max.x, y: bounds.max.y + 4, z }
-        };
-      } else if (fieldId === "windowHeight") {
-        endpoints = {
-          axis: "height",
-          start: { x: bounds.max.x + 5, y: bounds.min.y, z },
-          end: { x: bounds.max.x + 5, y: bounds.max.y, z }
-        };
-      } else if (fieldId === "sillHeight") {
-        endpoints = {
-          axis: "height",
-          start: { x: bounds.min.x - 5, y: room.min.y, z },
-          end: { x: bounds.min.x - 5, y: bounds.min.y, z }
-        };
-      } else if (fieldId === "windowLeftDistance") {
-        endpoints = {
-          axis: "width",
-          start: { x: bounds.max.x, y: finiteOr(callout.start?.y, 7), z },
-          end: { x: room.max.x, y: finiteOr(callout.end?.y, 7), z }
-        };
-      } else if (fieldId === "windowRightDistance") {
-        endpoints = {
-          axis: "width",
-          start: { x: room.min.x, y: finiteOr(callout.start?.y, 7), z },
-          end: { x: bounds.min.x, y: finiteOr(callout.end?.y, 7), z }
-        };
-      }
-    } else if (/radiator/.test(kind)) {
-      if (fieldId === "radiatorWidth") {
-        endpoints = {
-          axis: "width",
-          start: { x: bounds.min.x, y: bounds.max.y + 4, z },
-          end: { x: bounds.max.x, y: bounds.max.y + 4, z }
-        };
-      } else if (fieldId === "radiatorHeight") {
-        endpoints = {
-          axis: "height",
-          start: { x: bounds.max.x + 5, y: bounds.min.y, z },
-          end: { x: bounds.max.x + 5, y: bounds.max.y, z }
-        };
-      } else if (fieldId === "radiatorDepth") {
-        endpoints = {
-          axis: "depth",
-          start: { x: bounds.max.x + 7, y: 4, z: bounds.min.z },
-          end: { x: bounds.max.x + 7, y: 4, z: bounds.max.z }
-        };
-      }
-    } else if (isScreenFeatureKind(kind)) {
-      if (fieldId === "tvScreenSize") {
-        endpoints = {
-          axis: "diagonal",
-          start: { x: bounds.min.x, y: bounds.min.y, z },
-          end: { x: bounds.max.x, y: bounds.max.y, z }
-        };
-      } else if (fieldId === "tvHeight") {
-        endpoints = {
-          axis: "height",
-          start: { x: bounds.max.x + 5, y: bounds.min.y, z },
-          end: { x: bounds.max.x + 5, y: bounds.max.y, z }
-        };
-      }
-    }
-    if (endpoints) updateDimensionCallout(callout, endpoints);
-  });
-}
-
-function updateDimensionCallout(callout, endpoints) {
-  callout.axis = endpoints.axis;
-  callout.start = endpoints.start;
-  callout.end = endpoints.end;
-  callout.value = Number(distanceBetweenPoints(endpoints.start, endpoints.end).toFixed(4));
-  const entered = Number(callout.enteredValue);
-  callout.adjusted = Number.isFinite(entered)
-    && Math.abs(entered - callout.value) > 0.005;
-}
-
 function distanceBetweenPoints(start, end) {
   return Math.hypot(
     Number(end.x) - Number(start.x),
@@ -1117,11 +1193,9 @@ function distanceBetweenPoints(start, end) {
   );
 }
 
-function getDimensionGroup(fieldId) {
-  if (/^window|^sillHeight$/.test(String(fieldId || ""))) return "window";
-  if (/^radiator/.test(String(fieldId || ""))) return "radiator";
-  if (/^tv/.test(String(fieldId || ""))) return "screen";
-  return "";
+function getCanonicalDimensionFeatureGroup(callout) {
+  const feature = String(callout?.semantic?.line?.feature || "");
+  return ["window", "radiator", "screen"].includes(feature) ? feature : "";
 }
 
 function boundsNearlyEqual(first, second, epsilon = 0.005) {
@@ -2034,20 +2108,31 @@ function renderScreen(group, bounds, material, userData = {}) {
   return screen;
 }
 
-function renderDimensionCallouts(group, callouts, labelLayer, labels) {
+function renderDimensionCallouts(group, plan, labelLayer, labels) {
+  const callouts = plan.dimensionCallouts;
   const lineMaterial = new THREE.LineBasicMaterial({
     color: 0x9c6d2e,
     transparent: true,
     opacity: 0.94,
-    depthTest: true
+    depthTest: true,
+    depthWrite: false
   });
   const haloMaterial = new THREE.LineBasicMaterial({
     color: 0xfff8ed,
     transparent: true,
     opacity: 0.55,
-    depthTest: false
+    depthTest: false,
+    depthWrite: false
   });
-  group.userData.materials = { lineMaterial, haloMaterial };
+  const witnessMaterial = new THREE.LineBasicMaterial({
+    color: 0x9c6d2e,
+    transparent: true,
+    opacity: 0.68,
+    depthTest: false,
+    depthWrite: false
+  });
+  group.userData.materials = { lineMaterial, haloMaterial, witnessMaterial };
+  const leaderLayer = createDimensionLeaderLayer(labelLayer);
 
   callouts.forEach((callout) => {
     if (!isPoint(callout?.start) || !isPoint(callout?.end)) return;
@@ -2057,17 +2142,34 @@ function renderDimensionCallouts(group, callouts, labelLayer, labels) {
     if (direction.lengthSq() < 1e-8) return;
     const midpoint = start.clone().lerp(end, 0.5);
     const perpendicular = getCalloutTickDirection(direction).multiplyScalar(toSceneLength(2.25));
+    const witnessPairs = resolveDimensionWitnessPairs(callout).filter(({
+      anchor,
+      endpoint
+    }) => (
+      pointToScene(anchor).distanceToSquared(pointToScene(endpoint)) >= 1e-8
+    ));
 
-    addSceneLine(group, [start, end], haloMaterial);
-    addSceneLine(group, [start, end], lineMaterial);
-    addSceneLine(group, [
+    addDimensionSceneLine(group, [start, end], haloMaterial, callout, "halo");
+    addDimensionSceneLine(group, [start, end], lineMaterial, callout, "dimension");
+    witnessPairs.forEach(({ anchor, endpoint }, index) => {
+      const witnessStart = pointToScene(anchor);
+      const witnessEnd = pointToScene(endpoint);
+      addDimensionSceneLine(
+        group,
+        [witnessStart, witnessEnd],
+        witnessMaterial,
+        callout,
+        index === 0 ? "witness-start" : "witness-end"
+      );
+    });
+    addDimensionSceneLine(group, [
       start.clone().sub(perpendicular),
       start.clone().add(perpendicular)
-    ], lineMaterial);
-    addSceneLine(group, [
+    ], lineMaterial, callout, "tick-start");
+    addDimensionSceneLine(group, [
       end.clone().sub(perpendicular),
       end.clone().add(perpendicular)
-    ], lineMaterial);
+    ], lineMaterial, callout, "tick-end");
 
     const label = labelLayer.ownerDocument.createElement("span");
     label.className = "guided-3d-dimension-label";
@@ -2077,6 +2179,30 @@ function renderDimensionCallouts(group, callouts, labelLayer, labels) {
     label.style.display = "grid";
     label.dataset.dimensionField = String(callout.fieldId || "");
     label.dataset.dimensionCode = String(callout.code || "");
+    label.dataset.dimensionAxis = formatDimensionDiagnosticAxis(callout.axis);
+    label.dataset.dimensionStart = serializeDimensionPoint(callout.start);
+    label.dataset.dimensionEnd = serializeDimensionPoint(callout.end);
+    label.dataset.dimensionLength = String(
+      Number(distanceBetweenPoints(callout.start, callout.end).toFixed(4))
+    );
+    label.dataset.dimensionWitnessCount = String(witnessPairs.length);
+    const lineRoles = [
+      "dimension",
+      "tick-start",
+      "tick-end",
+      ...witnessPairs.map((pair, index) => (
+        index === 0 ? "witness-start" : "witness-end"
+      ))
+    ];
+    label.dataset.dimensionLineCount = String(lineRoles.length);
+    label.dataset.dimensionLineRoles = lineRoles.join(" ");
+    const semantics = callout.semantic;
+    if (semantics?.startAnchor) {
+      label.dataset.dimensionStartAnchor = semantics.startAnchor;
+    }
+    if (semantics?.endAnchor) {
+      label.dataset.dimensionEndAnchor = semantics.endAnchor;
+    }
     const title = labelLayer.ownerDocument.createElement("strong");
     if (callout.code) {
       const code = labelLayer.ownerDocument.createElement("b");
@@ -2090,8 +2216,89 @@ function renderDimensionCallouts(group, callouts, labelLayer, labels) {
     value.textContent = formatDimensionValue(callout);
     label.append(title, value);
     labelLayer.appendChild(label);
-    labels.push({ element: label, anchor: midpoint, callout });
+    const leader = createDimensionLeader(leaderLayer, callout);
+    labels.push({
+      element: label,
+      anchor: midpoint,
+      callout,
+      leaderHalo: leader?.halo || null,
+      leaderLine: leader?.line || null
+    });
   });
+}
+
+function createDimensionLeaderLayer(labelLayer) {
+  if (typeof labelLayer.ownerDocument?.createElementNS !== "function") return null;
+  const svg = labelLayer.ownerDocument.createElementNS(SVG_NAMESPACE, "svg");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("data-guided-3d-dimension-leaders", "");
+  Object.assign(svg.style, {
+    position: "absolute",
+    inset: "0",
+    width: "100%",
+    height: "100%",
+    overflow: "hidden",
+    pointerEvents: "none"
+  });
+  labelLayer.appendChild(svg);
+  return svg;
+}
+
+function createDimensionLeader(layer, callout) {
+  if (!layer) return null;
+  const fieldId = String(callout.fieldId || "");
+  const createLine = (stroke, width, opacity, role) => {
+    const line = layer.ownerDocument.createElementNS(SVG_NAMESPACE, "line");
+    line.setAttribute(
+      role === "leader" ? "data-dimension-leader" : "data-dimension-leader-halo",
+      fieldId
+    );
+    line.setAttribute("stroke", stroke);
+    line.setAttribute("stroke-width", String(width));
+    line.setAttribute("stroke-linecap", "round");
+    line.setAttribute("vector-effect", "non-scaling-stroke");
+    line.setAttribute("opacity", String(opacity));
+    line.style.display = "none";
+    layer.appendChild(line);
+    return line;
+  };
+  return {
+    halo: createLine("#fff8ed", 4, 0.76, "halo"),
+    line: createLine("#9c6d2e", 1.2, 0.9, "leader")
+  };
+}
+
+function addDimensionSceneLine(group, points, material, callout, role) {
+  const line = addSceneLine(group, points, material);
+  const fieldId = String(callout.fieldId || "dimension");
+  line.name = `guided-dimension-${fieldId}-${role}`;
+  Object.assign(line.userData, {
+    dimensionField: fieldId,
+    dimensionRole: role
+  });
+  return line;
+}
+
+function resolveDimensionWitnessPairs(callout) {
+  const start = callout.witnesses?.start?.point;
+  const end = callout.witnesses?.end?.point;
+  if (!isPoint(start) || !isPoint(end)) return [];
+  return [
+    { anchor: start, endpoint: callout.start },
+    { anchor: end, endpoint: callout.end }
+  ];
+}
+
+function serializeDimensionPoint(point) {
+  return ["x", "y", "z"].map((axis) => (
+    String(Number(Number(point[axis]).toFixed(4)))
+  )).join(",");
+}
+
+function formatDimensionDiagnosticAxis(axis) {
+  if (axis === "width") return "horizontal";
+  if (axis === "height") return "vertical";
+  return String(axis || "");
 }
 
 function getCalloutTickDirection(direction) {
@@ -3482,48 +3689,80 @@ function visualFrameThickness(width, height) {
 }
 
 function getPlanCameraFrame(plan, aspect) {
-  const bounds = collectPlanBounds(plan);
+  const definition = resolvePlanCameraDefinition(plan);
+  const bounds = collectCameraFrameBounds(plan);
   const width = Math.max(1, getBoundsWidth(bounds) * INCH_TO_SCENE);
   const height = Math.max(1, getBoundsHeight(bounds) * INCH_TO_SCENE);
   const depth = Math.max(0.5, getBoundsDepth(bounds) * INCH_TO_SCENE);
-  const targetBounds = plan.targetZones.length
-    ? unionBounds(plan.targetZones.map((zone) => zone.bounds))
-    : plan.room.bounds;
-  const wallTargetZ = Number.isFinite(targetBounds?.min?.z)
-    ? (targetBounds.min.z + targetBounds.max.z) / 2
-    : getBackWallZ(plan.room);
+  const roomBounds = plan.room.bounds;
+  const wallTargetZ = getBackWallZ(plan.room);
   const target = new THREE.Vector3(
     toSceneLength(
-      (bounds.min.x + bounds.max.x) / 2
-      + (plan.room.layoutId === "corner-wall" ? 24 : 0)
+      roomBounds.min.x
+      + getBoundsWidth(roomBounds) * definition.normalizedTarget.x
     ),
-    toSceneLength(bounds.min.y + getBoundsHeight(bounds) * 0.45),
+    toSceneLength(
+      roomBounds.min.y
+      + getBoundsHeight(roomBounds) * definition.normalizedTarget.y
+    ),
     toSceneLength(wallTargetZ)
   );
 
-  const verticalFov = THREE.MathUtils.degToRad(CAMERA_FOV);
+  const verticalFov = THREE.MathUtils.degToRad(definition.fieldOfViewDegrees);
   const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * Math.max(0.35, aspect));
-  const verticalDistance = (height * 0.58) / Math.tan(verticalFov / 2);
-  const horizontalDistance = (width * 0.56) / Math.tan(horizontalFov / 2);
+  const framingScale = 1 + definition.breathingRoom;
+  const verticalDistance = (height * 0.5 * framingScale) / Math.tan(verticalFov / 2);
+  const horizontalDistance = (width * 0.5 * framingScale) / Math.tan(horizontalFov / 2);
   const baseRadius = clamp(
     Math.max(verticalDistance, horizontalDistance) + depth * 0.22,
     7,
     58
   );
-  const radius = plan.room.layoutId === "corner-wall"
-    ? clamp(baseRadius * 1.15, 7, 58)
-    : baseRadius;
+  const radius = clamp(baseRadius * definition.radiusScale, 7, 58);
 
   return {
     target,
     radius,
-    theta: plan.room.layoutId === "corner-wall" ? -0.34 : -0.08,
-    phi: 0.115,
+    theta: THREE.MathUtils.degToRad(definition.yawDegrees),
+    phi: THREE.MathUtils.degToRad(definition.pitchDegrees),
+    fieldOfViewDegrees: definition.fieldOfViewDegrees,
     shadowExtent: Math.max(width, height) * 0.7
   };
 }
 
-function collectPlanBounds(plan) {
+function resolvePlanCameraDefinition(plan) {
+  const authored = plan.room?.camera || {};
+  const defaultYaw = plan.room?.layoutId === "corner-wall"
+    ? THREE.MathUtils.radToDeg(-0.34)
+    : THREE.MathUtils.radToDeg(-0.08);
+  return {
+    mode: String(authored.mode || "renderer-default"),
+    projection: String(authored.projection || "perspective"),
+    frameWidth: Math.max(1, finiteOr(authored.frameWidth, 3)),
+    frameHeight: Math.max(1, finiteOr(authored.frameHeight, 2)),
+    aspectRatio: clamp(finiteOr(authored.aspectRatio, 3 / 2), 0.35, 4),
+    fit: String(authored.fit || "contain"),
+    fieldOfViewDegrees: clamp(
+      finiteOr(authored.fieldOfViewDegrees, CAMERA_FOV),
+      15,
+      70
+    ),
+    yawDegrees: finiteOr(authored.yawDegrees, defaultYaw),
+    pitchDegrees: clamp(
+      finiteOr(authored.pitchDegrees, THREE.MathUtils.radToDeg(0.115)),
+      -35,
+      35
+    ),
+    breathingRoom: clamp(finiteOr(authored.breathingRoom, 0.1), 0, 0.5),
+    normalizedTarget: {
+      x: clamp(finiteOr(authored.normalizedTarget?.x, 0.5), 0, 1),
+      y: clamp(finiteOr(authored.normalizedTarget?.y, 0.45), 0, 1)
+    },
+    radiusScale: plan.room?.layoutId === "corner-wall" ? 1.15 : 1
+  };
+}
+
+function collectCameraFrameBounds(plan) {
   const calloutBounds = plan.dimensionCallouts.map((callout) => {
     if (!isPoint(callout?.start) || !isPoint(callout?.end)) return null;
     return createBounds(
@@ -3543,7 +3782,6 @@ function collectPlanBounds(plan) {
     plan.room.bounds,
     ...plan.room.surfaces.map((surface) => surface?.bounds),
     ...plan.room.features.map((feature) => feature?.renderHidden ? null : feature?.bounds),
-    ...plan.targetZones.map((zone) => zone?.bounds),
     ...calloutBounds
   ].filter(isBounds);
   return unionBounds(candidates) || plan.room.bounds;
@@ -3733,13 +3971,44 @@ function createSceneSignature(plan) {
     targetZones: plan.targetZones,
     dimensionCallouts: plan.dimensionCallouts
   };
-  const source = stableStringify(signatureInput);
+  return createStableSignature("g3d-v1", signatureInput);
+}
+
+function createRoomSignature(plan) {
+  return createStableSignature("g3d-room-v1", {
+    version: plan.version,
+    units: plan.units,
+    room: {
+      layoutId: plan.room.layoutId,
+      buildDepth: plan.room.buildDepth,
+      bounds: plan.room.bounds,
+      surfaces: plan.room.surfaces,
+      features: plan.room.features
+    }
+  });
+}
+
+function createCameraSignature(plan, roomSignature) {
+  const definition = resolvePlanCameraDefinition(plan);
+  return createStableSignature("g3d-camera-v1", {
+    roomSignature,
+    definition,
+    frameBounds: collectCameraFrameBounds(plan),
+    clipping: {
+      near: CAMERA_NEAR,
+      far: CAMERA_FAR
+    }
+  });
+}
+
+function createStableSignature(prefix, value) {
+  const source = stableStringify(value);
   let hash = 0x811c9dc5;
   for (let index = 0; index < source.length; index += 1) {
     hash ^= source.charCodeAt(index);
     hash = Math.imul(hash, 0x01000193);
   }
-  return `g3d-v1-${(hash >>> 0).toString(36)}`;
+  return `${prefix}-${(hash >>> 0).toString(36)}`;
 }
 
 function stableStringify(value) {

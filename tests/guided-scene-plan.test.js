@@ -3,9 +3,13 @@ import assert from "node:assert/strict";
 
 import {
   PRODUCT_CHOICES,
-  SHARED_ROOM_LAYOUTS
+  SHARED_ROOM_LAYOUTS,
+  getCanonicalRoomScene
 } from "../guided-configurator-data.js";
-import { createGuidedScenePlan } from "../guided-scene-plan.js";
+import {
+  createGuidedScenePlan,
+  resolveGuidedDimensionCallouts
+} from "../guided-scene-plan.js";
 
 const baseMeasurements = Object.freeze({
   wallWidth: 120,
@@ -93,6 +97,48 @@ test("all 70 public product and room combinations create finite spatial plans", 
         assert.equal(plan.room.features.some((feature) => feature.kind === "radiator"), true);
       }
       plan.dimensionCallouts.forEach((callout) => {
+        const canonicalSemantic = plan.room.measurementSemantics.find((semantic) => (
+          semantic.fieldId === callout.fieldId
+        ));
+        assert.ok(canonicalSemantic, `${product.id}/${layout.id}/${callout.fieldId} canonical semantic`);
+        assert.equal(callout.semantic, canonicalSemantic);
+        assert.equal(callout.witnesses.start.anchor, canonicalSemantic.startAnchor);
+        assert.equal(callout.witnesses.end.anchor, canonicalSemantic.endAnchor);
+        assertFinite(
+          callout.witnesses.start.point,
+          `${product.id}/${layout.id}/${callout.fieldId}.witnesses.start`
+        );
+        assertFinite(
+          callout.witnesses.end.point,
+          `${product.id}/${layout.id}/${callout.fieldId}.witnesses.end`
+        );
+        if (canonicalSemantic.axis === "width") {
+          assert.equal(callout.start.x, callout.witnesses.start.point.x);
+          assert.equal(callout.end.x, callout.witnesses.end.point.x);
+        } else if (canonicalSemantic.axis === "height") {
+          assert.equal(callout.start.y, callout.witnesses.start.point.y);
+          assert.equal(callout.end.y, callout.witnesses.end.point.y);
+        } else if (canonicalSemantic.axis === "depth") {
+          assert.equal(callout.start.z, callout.witnesses.start.point.z);
+          assert.equal(callout.end.z, callout.witnesses.end.point.z);
+        } else if (canonicalSemantic.axis === "diagonal") {
+          assert.deepEqual(
+            [callout.start.x, callout.start.y],
+            [callout.witnesses.start.point.x, callout.witnesses.start.point.y]
+          );
+          assert.deepEqual(
+            [callout.end.x, callout.end.y],
+            [callout.witnesses.end.point.x, callout.witnesses.end.point.y]
+          );
+        }
+        for (const witness of [callout.witnesses.start, callout.witnesses.end]) {
+          if (witness.anchor === "visual-left-wall-boundary") {
+            assert.equal(witness.point.x, plan.room.bounds.max.x, "+X is customer visual-left");
+          }
+          if (witness.anchor === "visual-right-wall-boundary") {
+            assert.equal(witness.point.x, plan.room.bounds.min.x, "-X is customer visual-right");
+          }
+        }
         const spatialLength = Math.hypot(
           callout.end.x - callout.start.x,
           callout.end.y - callout.start.y,
@@ -110,6 +156,147 @@ test("all 70 public product and room combinations create finite spatial plans", 
       });
     }
   }
+});
+
+test("Clear Wall resolves category-specific TV, window, and radiator callouts from canonical anchors", () => {
+  const clearWall = SHARED_ROOM_LAYOUTS.find((layout) => layout.id === "clear-wall");
+  const expected = new Map([
+    ["tv-unit", ["tvScreenSize", "tvHeight"]],
+    ["window-storage", ["windowWidth", "windowHeight", "sillHeight"]],
+    ["radiator-cover", ["radiatorWidth", "radiatorHeight", "radiatorDepth"]]
+  ]);
+
+  for (const [categoryId, categoryFields] of expected) {
+    const product = PRODUCT_CHOICES.find((candidate) => candidate.categoryId === categoryId);
+    const plan = createGuidedScenePlan(projectFor(product, clearWall));
+    const callouts = new Map(plan.dimensionCallouts.map((candidate) => [candidate.fieldId, candidate]));
+    for (const fieldId of categoryFields) {
+      const callout = callouts.get(fieldId);
+      assert.ok(callout, `${categoryId}/${fieldId} callout`);
+      assert.equal(callout.semantic.fieldId, fieldId);
+      assert.equal(callout.witnesses.start.anchor, callout.semantic.startAnchor);
+      assert.equal(callout.witnesses.end.anchor, callout.semantic.endAnchor);
+      assertFinite(callout.start, `${categoryId}/${fieldId}.start`);
+      assertFinite(callout.end, `${categoryId}/${fieldId}.end`);
+      assertFinite(callout.witnesses, `${categoryId}/${fieldId}.witnesses`);
+    }
+  }
+});
+
+test("the shared semantic resolver recomputes adjusted feature endpoints and witnesses", () => {
+  const product = PRODUCT_CHOICES.find((candidate) => candidate.categoryId === "window-storage");
+  const clearWall = SHARED_ROOM_LAYOUTS.find((layout) => layout.id === "clear-wall");
+  const source = createGuidedScenePlan(projectFor(product, clearWall));
+  const adjusted = JSON.parse(JSON.stringify(source));
+  const windowFeature = adjusted.room.features.find((feature) => feature.kind === "window");
+  windowFeature.bounds.min.x -= 7;
+  windowFeature.bounds.max.x += 5;
+  windowFeature.bounds.max.y += 3;
+  adjusted.dimensionCallouts = resolveGuidedDimensionCallouts(adjusted);
+
+  const width = adjusted.dimensionCallouts.find((callout) => callout.fieldId === "windowWidth");
+  const height = adjusted.dimensionCallouts.find((callout) => callout.fieldId === "windowHeight");
+  assert.deepEqual(
+    [width.start.x, width.end.x, width.start.y],
+    [windowFeature.bounds.min.x, windowFeature.bounds.max.x, windowFeature.bounds.max.y + 4]
+  );
+  assert.deepEqual(
+    [width.witnesses.start.point.x, width.witnesses.end.point.x],
+    [windowFeature.bounds.min.x, windowFeature.bounds.max.x]
+  );
+  assert.equal(height.start.y, windowFeature.bounds.min.y);
+  assert.equal(height.end.y, windowFeature.bounds.max.y);
+  assert.equal(height.witnesses.end.point.y, windowFeature.bounds.max.y);
+});
+
+test("canonical start/end ordering preserves the existing world-space endpoint convention", () => {
+  const product = PRODUCT_CHOICES.find((candidate) => candidate.categoryId === "bookcase");
+  const planFor = (layoutId, overrides = {}) => createGuidedScenePlan(projectFor(
+    product,
+    SHARED_ROOM_LAYOUTS.find((layout) => layout.id === layoutId),
+    overrides
+  ));
+  const endpoints = (plan, fieldId) => {
+    const callout = plan.dimensionCallouts.find((candidate) => candidate.fieldId === fieldId);
+    return [callout.start, callout.end];
+  };
+
+  const clearWall = planFor("clear-wall");
+  assert.deepEqual(
+    endpoints(clearWall, "desiredDepth").map((point) => point.z),
+    [-14, 0],
+    "depth remains product-front to wall-face"
+  );
+
+  const doorWall = planFor("door-wall", { doorWidth: 36, doorLeftDistance: 24 });
+  assert.deepEqual(
+    endpoints(doorWall, "doorLeftDistance").map((point) => point.x),
+    [36, 60],
+    "door clearance runs from the door visual-left edge toward +X visual-left wall"
+  );
+
+  const projection = planFor("center-recess", { nicheDepth: 14 });
+  assert.deepEqual(
+    endpoints(projection, "nicheDepth").map((point) => point.z),
+    [-14, 0],
+    "projection depth remains front-face to back-wall"
+  );
+
+  const openings = planFor("double-opening", {
+    openingLeftDistance: 24,
+    openingRightDistance: 24
+  });
+  assert.deepEqual(
+    endpoints(openings, "openingLeftDistance").map((point) => point.x),
+    [36, 60],
+    "left opening ends at the +X customer visual-left boundary"
+  );
+  assert.deepEqual(
+    endpoints(openings, "openingRightDistance").map((point) => point.x),
+    [-60, -36],
+    "right opening starts at the -X customer visual-right boundary"
+  );
+});
+
+test("the planner consumes canonical scene metadata and resolves supported aliases", () => {
+  const product = PRODUCT_CHOICES.find((candidate) => candidate.id === "cabinet-shelves");
+  const baseProject = projectFor(product, SHARED_ROOM_LAYOUTS[0]);
+  const aliases = new Map([
+    ["niche-left", "left-niche"],
+    ["niche-right", "right-niche"],
+    ["center-projection", "center-recess"],
+    ["between-openings", "double-opening"]
+  ]);
+
+  for (const [alias, canonicalId] of aliases) {
+    const scene = getCanonicalRoomScene(alias);
+    const plan = createGuidedScenePlan({ ...baseProject, layout: alias });
+    assert.equal(plan.room.layoutId, canonicalId);
+    assert.deepEqual(plan.room.camera, scene.camera);
+    assert.deepEqual(plan.room.measurementSemantics, scene.measurementSemantics);
+    assert.deepEqual(plan.room.geometryPlacement, scene.geometry);
+    assert.equal(plan.room.camera.aspectRatio, 1.5);
+  }
+});
+
+test("the planner rejects missing and unknown room IDs instead of rendering clear wall", () => {
+  const product = PRODUCT_CHOICES.find((candidate) => candidate.id === "cabinet-shelves");
+  const project = projectFor(product, SHARED_ROOM_LAYOUTS[0]);
+
+  assert.throws(
+    () => createGuidedScenePlan({ ...project, layout: "not-a-room" }),
+    {
+      name: "RangeError",
+      message: /Unknown guided room layout: not-a-room/
+    }
+  );
+  assert.throws(
+    () => createGuidedScenePlan({ ...project, layout: null }),
+    {
+      name: "RangeError",
+      message: /Unknown guided room layout: \(missing\)/
+    }
+  );
 });
 
 test("room measurements reshape geometry and world-space dimension anchors", () => {

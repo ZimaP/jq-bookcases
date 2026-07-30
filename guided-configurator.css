@@ -2996,52 +2996,6 @@ body.guided-page {
   transition: opacity 220ms ease, transform 220ms ease;
 }
 
-.concept-room-layer,
-.concept-product-layer {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.concept-room-layer {
-  z-index: 0;
-  background: #e9e4dc;
-}
-
-.concept-product-layer {
-  z-index: 1;
-  clip-path: inset(
-    var(--installation-top, 0%)
-    var(--installation-right, 0%)
-    var(--installation-bottom, 0%)
-    var(--installation-left, 0%)
-  );
-}
-
-.concept-layer-picture,
-.concept-layer-image {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.concept-layer-picture {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-
-.concept-layer-image {
-  object-fit: cover;
-  object-position: var(--scene-object-position, 50% 50%);
-}
-
-.concept-product-picture,
-.concept-product-image {
-  background: #e9e4dc;
-}
-
 .concept-preview-unavailable {
   position: absolute;
   z-index: 4;
@@ -5115,16 +5069,18 @@ body.guided-page {
 
 @media (max-width: 680px) {
   .guided-3d-dimension-label {
-    min-width: 82px;
-    padding: 5px 7px;
+    width: min(106px, calc(100% - 12px));
+    min-width: 0;
+    padding: 4px 6px;
   }
 
   .guided-3d-dimension-label strong {
-    font-size: 0.6rem;
+    font-size: 0.58rem;
+    white-space: normal;
   }
 
   .guided-3d-dimension-label small {
-    font-size: 0.52rem;
+    font-size: 0.5rem;
   }
 
   .guided-3d-hint {
@@ -6274,4 +6230,95 @@ body.guided-page {
    children. Keep the real scene runtime mounted above that fallback layer. */
 .measurement-room.measurement-room--photo > .guided-3d-mount {
   display: block;
+}
+
+/* Canonical room-scene frame
+   Every step renders the shared room camera into the same 3:2 aperture.
+   Wider or taller hosts expose only this neutral surround; they never crop or
+   stretch the room to fill a step-specific container. */
+.layout-illustration--canonical {
+  aspect-ratio: 3 / 2;
+  background: #e9e4dc;
+}
+
+.layout-illustration--canonical::after {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 34%,
+    rgba(255, 255, 255, 0.44) 48%,
+    transparent 62%
+  );
+  content: "";
+  pointer-events: none;
+  transform: translateX(-110%);
+}
+
+.layout-illustration--canonical[data-layout-thumbnail-state="loading"]::after {
+  opacity: 1;
+  animation: canonical-room-thumbnail-loading 1.15s ease-in-out infinite;
+}
+
+.layout-illustration--canonical[data-layout-thumbnail-state="fallback"]::after {
+  display: none;
+}
+
+.layout-illustration--canonical > .layout-3d-thumbnail {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: cover;
+  object-position: 50% 50%;
+}
+
+@keyframes canonical-room-thumbnail-loading {
+  to {
+    transform: translateX(110%);
+  }
+}
+
+.measurement-diagram-card,
+.concept-scene-shell {
+  container-type: size;
+  background: #e9e4dc;
+}
+
+.guided-shell--step-3 .measurement-diagram-card > .measurement-room.measurement-room--photo,
+.concept-scene-shell > .concept-scene {
+  position: absolute;
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: min(100cqw, 150cqh);
+  height: min(100cqh, 66.6666667cqw);
+  aspect-ratio: 3 / 2;
+  transform: translate(-50%, -50%);
+}
+
+.concept-scene-shell > .concept-scene {
+  transform: translate(-50%, -50%) scale(var(--preview-scale, 1));
+}
+
+.measurement-room.measurement-room--photo > picture.measurement-room-image > img.measurement-room-image,
+.measurement-room.measurement-room--photo > img.measurement-room-image,
+.concept-scene > picture.concept-photo > img.concept-photo,
+.concept-scene > img.concept-photo {
+  object-fit: var(--canonical-scene-fit, contain);
+  object-position: var(--canonical-scene-focal, 50% 50%);
+}
+
+.layout-illustration--canonical > picture > img {
+  object-fit: var(--canonical-scene-fit, contain);
+  object-position: var(--canonical-scene-focal, 50% 50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layout-illustration--canonical::after {
+    animation: none;
+  }
 }

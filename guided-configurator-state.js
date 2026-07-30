@@ -10,7 +10,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=unified-guided-scene-20260729c";
+} from "./guided-configurator-data.js?v=canonical-room-scenes-20260729a";
 
 export const GUIDED_PROJECT_SCHEMA_VERSION = 2;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";

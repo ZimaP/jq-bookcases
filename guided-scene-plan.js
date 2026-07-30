@@ -1,14 +1,14 @@
 import {
   FINISH_OPTIONS,
-  SHARED_ROOM_LAYOUTS,
   getCategory,
+  getCanonicalRoomScene,
+  getCanonicalRoomMeasurementSemantics,
   getFinish,
   getLayout,
-  getMeasurementDiagramSpec,
   getMeasurementFields,
   getProductChoiceForSelection,
   getStyle
-} from "./guided-configurator-data.js?v=unified-guided-scene-20260729c";
+} from "./guided-configurator-data.js?v=canonical-room-scenes-20260729a";
 
 const DEFAULTS = Object.freeze({
   wallWidth: 120,
@@ -57,14 +57,18 @@ const Z_AXIS = Object.freeze({ x: 0, y: 0, z: 1 });
 export function createGuidedScenePlan(project = {}) {
   const category = getCategory(project.category);
   const style = getStyle(category.id, project.style);
-  const layout = getLayout(category.id, project.layout)
-    || SHARED_ROOM_LAYOUTS.find((candidate) => candidate.id === "clear-wall");
+  const sceneDefinition = getCanonicalRoomScene(project.layout);
+  if (!sceneDefinition) {
+    throw new RangeError(`Unknown guided room layout: ${String(project.layout ?? "") || "(missing)"}.`);
+  }
+  const layout = getLayout(category.id, sceneDefinition.id);
+  if (!layout) {
+    throw new RangeError(`Canonical guided room layout is unavailable: ${sceneDefinition.id}.`);
+  }
   const fields = getMeasurementFields(category.id, layout.id);
-  const diagramFieldIds = new Set(
-    getMeasurementDiagramSpec(category.id, layout.id).spans.map((span) => span.fieldId)
-  );
+  const measurementSemantics = getCanonicalRoomMeasurementSemantics(category.id, layout.id);
   const measurements = resolveMeasurements(project.measurements, fields);
-  const context = createRoomContext(category.id, layout, measurements);
+  const context = createRoomContext(category.id, layout, sceneDefinition, measurements);
   const topology = buildRoomTopology(context);
   addCategoryFeatures(context, topology);
 
@@ -78,24 +82,24 @@ export function createGuidedScenePlan(project = {}) {
       layoutId: layout.id,
       label: layout.label,
       condition: layout.condition,
+      camera: sceneDefinition.camera,
+      measurementSemantics,
+      geometryPlacement: sceneDefinition.geometry,
       buildDepth: context.desiredDepth,
       bounds: topology.roomBounds,
       surfaces: topology.surfaces,
       features: topology.features
     },
     targetZones: buildTargetZones(context, topology),
-    dimensionCallouts: buildDimensionCallouts(
-      context,
-      topology,
-      fields.filter((field) => diagramFieldIds.has(field.id))
-    )
+    dimensionCallouts: buildDimensionCallouts(measurements, fields, measurementSemantics)
   };
+  plan.dimensionCallouts = resolveGuidedDimensionCallouts(plan);
 
   assertFinitePlan(plan);
   return deepFreeze(plan);
 }
 
-function createRoomContext(categoryId, layout, measurements) {
+function createRoomContext(categoryId, layout, sceneDefinition, measurements) {
   const wallWidth = positive(measurements.wallWidth, DEFAULTS.wallWidth);
   const ceilingHeight = positive(measurements.ceilingHeight, DEFAULTS.ceilingHeight);
   const desiredDepth = positive(measurements.desiredDepth, DEFAULTS.desiredDepth);
@@ -106,6 +110,7 @@ function createRoomContext(categoryId, layout, measurements) {
   return {
     categoryId,
     layout,
+    sceneDefinition,
     measurements,
     wallWidth,
     ceilingHeight,
@@ -118,7 +123,7 @@ function createRoomContext(categoryId, layout, measurements) {
 
 function buildRoomTopology(context) {
   const {
-    layout,
+    sceneDefinition,
     wallLeft,
     wallRight,
     wallWidth,
@@ -126,6 +131,7 @@ function buildRoomTopology(context) {
     desiredDepth,
     floorDepth
   } = context;
+  const geometryStrategy = sceneDefinition.geometry.strategy;
   const surfaces = [
     surface("room-floor", "floor", box(
       wallLeft - 24,
@@ -156,7 +162,7 @@ function buildRoomTopology(context) {
   const landmarks = {};
   let roomMaxZ = 1.2;
 
-  if (["niche-layout", "left-niche", "right-niche"].includes(layout.id)) {
+  if (geometryStrategy === "recess") {
     const niche = resolveNicheBounds(context);
     landmarks.niche = niche;
     roomMaxZ = Math.max(roomMaxZ, niche.max.z + 1);
@@ -179,20 +185,20 @@ function buildRoomTopology(context) {
     )));
   }
 
-  if (layout.id === "center-recess") {
+  if (geometryStrategy === "center-projection") {
     const projection = resolveProjectionBounds(context);
     landmarks.projection = projection;
     addProjectionSurfaces(surfaces, projection);
     features.push(feature("center-projection", "projection", projection));
   }
 
-  if (layout.id === "window-wall") {
+  if (geometryStrategy === "window-wall") {
     const windowBounds = resolveWindowBounds(context);
     landmarks.window = windowBounds;
     features.push(feature("room-window", "window", windowBounds));
   }
 
-  if (layout.id === "door-wall") {
+  if (geometryStrategy === "door-wall") {
     const doorBounds = resolveDoorBounds(context);
     landmarks.door = doorBounds;
     features.push(feature("room-door", "door", doorBounds, {
@@ -203,7 +209,7 @@ function buildRoomTopology(context) {
     }));
   }
 
-  if (layout.id === "fireplace-wall") {
+  if (geometryStrategy === "fireplace-wall") {
     const fireplaceBounds = resolveFireplaceBounds(context);
     landmarks.fireplace = fireplaceBounds;
     features.push(feature("room-fireplace", "fireplace", fireplaceBounds, {
@@ -214,7 +220,7 @@ function buildRoomTopology(context) {
     }));
   }
 
-  if (layout.id === "corner-wall") {
+  if (geometryStrategy === "corner-wall") {
     const returnDepth = clamp(
       measurementsNumber(context, "cornerReturn"),
       12,
@@ -231,7 +237,7 @@ function buildRoomTopology(context) {
     )));
   }
 
-  if (layout.id === "double-opening") {
+  if (geometryStrategy === "between-openings") {
     const openings = resolveOpeningBounds(context);
     landmarks.openingLeft = openings.left;
     landmarks.openingRight = openings.right;
@@ -422,13 +428,14 @@ function addCategoryFeatures(context, topology) {
 
 function buildTargetZones(context, topology) {
   const {
-    layout,
+    sceneDefinition,
     categoryId,
     wallLeft,
     wallRight,
     ceilingHeight,
     desiredDepth
   } = context;
+  const productPlacement = sceneDefinition.geometry.productPlacement;
   const productHeight = Math.max(24, ceilingHeight - 3);
   const exclusions = topology.features.map((candidate) => candidate.id);
 
@@ -517,7 +524,7 @@ function buildTargetZones(context, topology) {
     )];
   }
 
-  if (layout.id === "corner-wall") {
+  if (productPlacement === "corner-wrap") {
     const returnWidth = topology.landmarks.cornerReturn || 48;
     const backZone = backWallZone(
       "product-corner-back",
@@ -553,7 +560,7 @@ function buildTargetZones(context, topology) {
     return [backZone, returnZone];
   }
 
-  if (layout.id === "double-opening") {
+  if (productPlacement === "between-openings") {
     const left = topology.landmarks.openingLeft;
     const right = topology.landmarks.openingRight;
     const start = right ? right.max.x + 1 : wallLeft + 1;
@@ -584,48 +591,20 @@ function buildTargetZones(context, topology) {
   )];
 }
 
-function buildDimensionCallouts(context, topology, fields) {
+function buildDimensionCallouts(measurements, fields, semantics) {
   const fieldById = new Map(fields.map((field) => [field.id, field]));
-  const callouts = [];
-  for (const field of fields) {
-    if (field.type !== "inches") continue;
-    const value = Number(context.measurements[field.id]);
-    if (!Number.isFinite(value)) continue;
-    const endpoints = resolveCalloutEndpoints(field.id, context, topology);
-    if (!endpoints) continue;
-    callouts.push(buildDimensionCallout(field, value, endpoints));
-  }
-
-  for (const requiredId of ["wallWidth", "ceilingHeight", "desiredDepth"]) {
-    if (callouts.some((candidate) => candidate.fieldId === requiredId)) continue;
-    const field = fieldById.get(requiredId);
-    const endpoints = resolveCalloutEndpoints(requiredId, context, topology);
-    callouts.push(buildDimensionCallout(
-      field || { id: requiredId, code: "", label: requiredId },
-      context.measurements[requiredId],
-      endpoints
-    ));
-  }
-  return callouts;
-}
-
-function buildDimensionCallout(field, enteredValue, endpoints) {
-  const shownValue = distanceBetween(endpoints.start, endpoints.end);
-  const adjusted = (
-    Number.isFinite(Number(enteredValue))
-    && Math.abs(shownValue - Number(enteredValue)) > SPATIAL_VALUE_EPSILON
-  );
-  return {
-    fieldId: field.id,
-    code: field.code,
-    label: field.label,
-    value: Number(shownValue.toFixed(4)),
-    enteredValue: Number.isFinite(Number(enteredValue)) ? Number(enteredValue) : null,
-    adjusted,
-    axis: endpoints.axis,
-    start: endpoints.start,
-    end: endpoints.end
-  };
+  return semantics.flatMap((semantic) => {
+    const field = fieldById.get(semantic.fieldId);
+    const enteredValue = Number(measurements[semantic.fieldId]);
+    if (!field || field.type !== "inches" || !Number.isFinite(enteredValue)) return [];
+    return [{
+      fieldId: field.id,
+      code: field.code,
+      label: field.label,
+      enteredValue,
+      semantic
+    }];
+  });
 }
 
 const SPATIAL_VALUE_EPSILON = 0.01;
@@ -638,121 +617,324 @@ function distanceBetween(start, end) {
   );
 }
 
-function resolveCalloutEndpoints(fieldId, context, topology) {
-  const {
-    wallLeft,
-    wallRight,
-    wallWidth,
-    ceilingHeight,
-    desiredDepth,
-    measurements
-  } = context;
-  const frontZ = -Math.max(desiredDepth, 10) - 5;
-  const niche = topology.landmarks.niche || topology.landmarks.projection;
-  const windowBounds = topology.landmarks.window;
-  const door = topology.landmarks.door;
-  const fireplace = topology.landmarks.fireplace;
-  const tv = topology.landmarks.tv;
-  const radiator = topology.landmarks.radiator;
-  const horizontal = (minX, maxX, y, z = frontZ) => ({
-    axis: "width",
-    start: point(minX, y, z),
-    end: point(maxX, y, z)
+/**
+ * Resolve every Step 3 callout from the canonical semantic descriptors carried
+ * by the plan. The renderer calls this same function after its safety-fit pass,
+ * so there is no second field-ID-to-anchor implementation.
+ */
+export function resolveGuidedDimensionCallouts(plan) {
+  const semanticsByField = new Map(
+    (plan.room?.measurementSemantics || []).map((semantic) => [semantic.fieldId, semantic])
+  );
+  return (plan.dimensionCallouts || []).flatMap((callout) => {
+    const semantic = callout.semantic || semanticsByField.get(callout.fieldId);
+    if (!semantic) return [];
+    const resolved = resolveCanonicalDimensionGeometry(plan, semantic);
+    if (!resolved) {
+      return isFinitePoint(callout.start) && isFinitePoint(callout.end)
+        ? [{ ...callout, semantic }]
+        : [];
+    }
+    const shownValue = distanceBetween(resolved.start, resolved.end);
+    const enteredValue = Number(callout.enteredValue);
+    return [{
+      ...callout,
+      semantic,
+      axis: semantic.axis,
+      start: resolved.start,
+      end: resolved.end,
+      witnesses: resolved.witnesses,
+      value: Number(shownValue.toFixed(4)),
+      enteredValue: Number.isFinite(enteredValue) ? enteredValue : null,
+      adjusted: (
+        Number.isFinite(enteredValue)
+        && Math.abs(shownValue - enteredValue) > SPATIAL_VALUE_EPSILON
+      )
+    }];
   });
-  const vertical = (x, minY, maxY, z = frontZ) => ({
-    axis: "height",
-    start: point(x, minY, z),
-    end: point(x, maxY, z)
+}
+
+function resolveCanonicalDimensionGeometry(plan, semantic) {
+  const line = semantic.line;
+  if (!line?.strategy) {
+    throw new TypeError(`Canonical measurement ${semantic.fieldId} is missing a line strategy.`);
+  }
+  const featureBounds = resolveSemanticFeatureBounds(plan, semantic);
+  if (line.feature && !featureBounds) return null;
+  const context = {
+    plan,
+    semantic,
+    line,
+    featureBounds,
+    roomBounds: plan.room.bounds,
+    wallZ: resolvePlanBackWallZ(plan.room)
+  };
+  const startWitness = resolveCanonicalAnchorPoint(semantic.startAnchor, context);
+  const endWitness = resolveCanonicalAnchorPoint(semantic.endAnchor, context);
+  const endpoints = resolveCanonicalDimensionLine(context, startWitness, endWitness);
+  return {
+    ...endpoints,
+    witnesses: {
+      start: { anchor: semantic.startAnchor, point: startWitness },
+      end: { anchor: semantic.endAnchor, point: endWitness }
+    }
+  };
+}
+
+function resolveSemanticFeatureBounds(plan, semantic) {
+  const featureKey = semantic.line?.feature;
+  if (!featureKey) return null;
+  const features = (plan.room?.features || []).filter((candidate) => (
+    !candidate.renderHidden && candidate.bounds
+  ));
+  const matchers = {
+    niche: (feature) => /recess|projection/.test(`${feature.kind} ${feature.id}`),
+    window: (feature) => /window/.test(`${feature.kind} ${feature.id}`),
+    door: (feature) => /door/.test(`${feature.kind} ${feature.id}`),
+    fireplace: (feature) => /fireplace/.test(`${feature.kind} ${feature.id}`),
+    screen: (feature) => /screen|television|tv-/.test(`${feature.kind} ${feature.id}`),
+    radiator: (feature) => /radiator/.test(`${feature.kind} ${feature.id}`),
+    "opening-left": (feature) => feature.id === "room-opening-left",
+    "opening-right": (feature) => feature.id === "room-opening-right"
+  };
+  const feature = features.find(matchers[featureKey] || (() => false));
+  if (feature?.bounds) return feature.bounds;
+  if (featureKey === "opening-left" || featureKey === "opening-right") {
+    return resolveVirtualOpeningBounds(plan, semantic, featureKey);
+  }
+  return null;
+}
+
+function resolveVirtualOpeningBounds(plan, semantic, featureKey) {
+  const room = plan.room.bounds;
+  const roomWidth = room.max.x - room.min.x;
+  const width = clamp(
+    Number(plan.measurements?.[semantic.fieldId]) || 0,
+    0,
+    roomWidth * 0.42
+  );
+  const height = (room.max.y - room.min.y) * 0.88;
+  if (featureKey === "opening-left") {
+    return box(room.max.x - width, room.min.y, -8, room.max.x, room.min.y + height, 0);
+  }
+  return box(room.min.x, room.min.y, -8, room.min.x + width, room.min.y + height, 0);
+}
+
+function resolveCanonicalAnchorPoint(anchor, context) {
+  const { plan, semantic, line, featureBounds: bounds, roomBounds: room, wallZ } = context;
+  const frontZ = bounds?.min.z ?? wallZ;
+  const elevation = Number(line.elevation) || 0;
+  const featureDepthX = resolveFeatureDepthLineX(bounds, line);
+  const featureVisualLeftX = bounds?.max.x;
+  const featureVisualRightX = bounds?.min.x;
+  const featureHeightX = line.strategy === "feature-height-visual-right"
+    ? featureVisualRightX
+    : featureVisualLeftX;
+  const mantelWidth = clamp(
+    positive(plan.measurements?.mantelWidth, DEFAULTS.mantelWidth),
+    1,
+    room.max.x - room.min.x
+  );
+  const mantelHeight = clamp(
+    positive(plan.measurements?.mantelHeight, DEFAULTS.mantelHeight),
+    room.min.y,
+    room.max.y
+  );
+  const trimWidth = positive(plan.measurements?.doorTrimWidth, DEFAULTS.doorTrimWidth);
+  const at = (x, y, z) => point(x, y, z);
+
+  switch (anchor) {
+    case "wall-left-boundary":
+      return at(room.min.x, room.max.y, wallZ);
+    case "wall-right-boundary":
+      return at(room.max.x, room.max.y, wallZ);
+    case "visual-left-wall-boundary":
+      return line.strategy === "opening-width"
+        ? at(room.max.x, elevation, frontZ)
+        : at(room.max.x, room.min.y, wallZ);
+    case "visual-right-wall-boundary":
+      return line.strategy === "opening-width"
+        ? at(room.min.x, elevation, frontZ)
+        : at(room.min.x, room.min.y, wallZ);
+    case "finished-floor":
+      return at(
+        Number.isFinite(featureHeightX) ? featureHeightX : room.min.x,
+        room.min.y,
+        bounds ? frontZ : wallZ
+      );
+    case "ceiling-plane":
+      return at(room.min.x, room.max.y, wallZ);
+    case "wall-face":
+      return bounds
+        ? at(featureDepthX, elevation, bounds.max.z)
+        : at(room.max.x, room.min.y, 0);
+    case "product-front-plane":
+      return at(room.max.x, room.min.y, -plan.room.buildDepth);
+    case "niche-left-jamb":
+    case "projection-left-edge":
+    case "window-left-jamb":
+    case "door-left-jamb":
+    case "fireplace-left-jamb":
+    case "radiator-left-edge":
+      return at(bounds.min.x, bounds.max.y, frontZ);
+    case "niche-right-jamb":
+    case "projection-right-edge":
+    case "window-right-jamb":
+    case "door-right-jamb":
+    case "fireplace-right-jamb":
+    case "radiator-right-edge":
+      return at(bounds.max.x, bounds.max.y, frontZ);
+    case "niche-floor":
+    case "door-threshold":
+    case "fireplace-hearth":
+    case "screen-bottom-edge":
+      return at(featureHeightX, bounds.min.y, frontZ);
+    case "niche-head":
+    case "projection-head":
+    case "window-head":
+    case "door-head":
+    case "fireplace-head":
+    case "screen-top-edge":
+    case "radiator-top-edge":
+      return at(featureHeightX, bounds.max.y, frontZ);
+    case "window-sill":
+      return at(featureHeightX, bounds.min.y, frontZ);
+    case "front-wall-plane":
+      return at(featureDepthX, elevation, bounds.min.z);
+    case "niche-back-wall":
+      return at(featureDepthX, elevation, bounds.max.z);
+    case "back-wall-plane":
+      return bounds
+        ? at(featureDepthX, elevation, bounds.max.z)
+        : at(room.max.x, room.min.y, 0);
+    case "projection-front-face":
+    case "fireplace-front-face":
+    case "radiator-front-face":
+      return at(featureDepthX, elevation, bounds.min.z);
+    case "niche-visual-left-edge":
+    case "projection-visual-left-edge":
+    case "window-visual-left-edge":
+    case "door-visual-left-edge":
+    case "fireplace-visual-left-edge":
+      return at(featureVisualLeftX, room.min.y, wallZ);
+    case "niche-visual-right-edge":
+    case "projection-visual-right-edge":
+    case "window-visual-right-edge":
+    case "fireplace-visual-right-edge":
+      return at(featureVisualRightX, room.min.y, wallZ);
+    case "door-jamb":
+      return at(bounds.min.x, bounds.max.y, frontZ);
+    case "door-trim-outer-edge":
+      return at(Math.min(bounds.max.x, bounds.min.x + trimWidth), bounds.max.y, frontZ);
+    case "mantel-left-edge":
+      return at(-mantelWidth / 2, mantelHeight, frontZ);
+    case "mantel-right-edge":
+      return at(mantelWidth / 2, mantelHeight, frontZ);
+    case "mantel-top":
+      return at(bounds.max.x, mantelHeight, frontZ);
+    case "screen-bottom-left":
+      return at(bounds.min.x, bounds.min.y, frontZ);
+    case "screen-top-right":
+      return at(bounds.max.x, bounds.max.y, frontZ);
+    case "corner-return-front-edge":
+      return at(room.max.x, room.min.y, -Math.max(0, Number(plan.measurements?.cornerReturn) || 0));
+    case "left-opening-inner-jamb":
+      return at(bounds.min.x, elevation, frontZ);
+    case "right-opening-inner-jamb":
+      return at(bounds.max.x, elevation, frontZ);
+    default:
+      throw new RangeError(
+        `Unknown canonical measurement anchor ${anchor} for ${semantic.fieldId}.`
+      );
+  }
+}
+
+function resolveCanonicalDimensionLine(context, startWitness, endWitness) {
+  const { plan, line, featureBounds: bounds, roomBounds: room } = context;
+  const frontZ = -Math.max(plan.room.buildDepth, 10) - 5;
+  const offset = Number(line.offset) || 0;
+  const elevation = Number(line.elevation) || 0;
+  const horizontal = (y, z) => ({
+    start: point(startWitness.x, y, z),
+    end: point(endWitness.x, y, z)
   });
-  const depth = (x, y, minZ, maxZ) => ({
-    axis: "depth",
-    start: point(x, y, minZ),
-    end: point(x, y, maxZ)
+  const vertical = (x, z) => ({
+    start: point(x, startWitness.y, z),
+    end: point(x, endWitness.y, z)
+  });
+  const depth = (x, y) => ({
+    start: point(x, y, startWitness.z),
+    end: point(x, y, endWitness.z)
   });
 
-  switch (fieldId) {
-    case "wallWidth":
-      return horizontal(wallLeft, wallRight, ceilingHeight + 7);
-    case "ceilingHeight":
-      return vertical(wallLeft - 8, 0, ceilingHeight);
-    case "desiredDepth":
-      return depth(wallRight + 8, 4, -desiredDepth, 0);
-    case "nicheWidth":
-      return niche && horizontal(niche.min.x, niche.max.x, Math.min(ceilingHeight + 3, niche.max.y + 5), niche.min.z - 2);
-    case "nicheHeight":
-      return niche && vertical(niche.max.x + 5, niche.min.y, niche.max.y, niche.min.z - 2);
-    case "nicheDepth":
-      return niche && depth(niche.min.x + 6, 5, niche.min.z, niche.max.z);
-    case "leftReturn":
-      return niche && horizontal(niche.max.x, wallRight, 7, frontZ + 2);
-    case "rightReturn":
-      return niche && horizontal(wallLeft, niche.min.x, 7, frontZ + 2);
-    case "windowWidth":
-      return windowBounds && horizontal(windowBounds.min.x, windowBounds.max.x, windowBounds.max.y + 4);
-    case "windowHeight":
-      return windowBounds && vertical(windowBounds.max.x + 5, windowBounds.min.y, windowBounds.max.y);
-    case "sillHeight":
-      return windowBounds && vertical(windowBounds.min.x - 5, 0, windowBounds.min.y);
-    case "windowLeftDistance":
-      return windowBounds && horizontal(windowBounds.max.x, wallRight, 7);
-    case "windowRightDistance":
-      return windowBounds && horizontal(wallLeft, windowBounds.min.x, 7);
-    case "doorWidth":
-      return door && horizontal(door.min.x, door.max.x, door.max.y + 4);
-    case "doorHeight":
-      return door && vertical(door.max.x + 5, door.min.y, door.max.y);
-    case "doorLeftDistance":
-      return door && horizontal(door.max.x, wallRight, 7);
-    case "doorTrimWidth":
-      return door && horizontal(door.min.x, Math.min(door.max.x, door.min.x + positive(measurements.doorTrimWidth, 3.5)), door.max.y + 9);
-    case "fireplaceWidth":
-      return fireplace && horizontal(fireplace.min.x, fireplace.max.x, fireplace.max.y + 4);
-    case "fireplaceHeight":
-      return fireplace && vertical(fireplace.max.x + 5, fireplace.min.y, fireplace.max.y);
-    case "mantelWidth": {
-      if (!fireplace) return null;
-      const width = clamp(positive(measurements.mantelWidth, 60), 1, wallWidth);
-      return horizontal(-width / 2, width / 2, clamp(positive(measurements.mantelHeight, 48), 0, ceilingHeight));
-    }
-    case "mantelHeight":
-      return vertical((fireplace?.max.x || 0) + 10, 0, clamp(positive(measurements.mantelHeight, 48), 0, ceilingHeight));
-    case "fireplaceDepth":
-      return fireplace && depth(fireplace.max.x + 8, 5, fireplace.min.z, fireplace.max.z);
-    case "fireplaceLeftWidth":
-      return fireplace && horizontal(fireplace.max.x, wallRight, 10);
-    case "fireplaceRightWidth":
-      return fireplace && horizontal(wallLeft, fireplace.min.x, 10);
-    case "tvScreenSize":
-      return tv && {
-        axis: "diagonal",
-        start: point(tv.min.x, tv.min.y, frontZ),
-        end: point(tv.max.x, tv.max.y, frontZ)
+  switch (line.strategy) {
+    case "room-width-overhead":
+      return horizontal(room.max.y + offset, frontZ);
+    case "room-height-visual-right":
+      return vertical(room.min.x - offset, frontZ);
+    case "room-depth-visual-left":
+      return depth(room.max.x + offset, elevation);
+    case "recess-width-overhead":
+      return horizontal(
+        Math.min(room.max.y + Number(line.ceilingOffset || 0), bounds.max.y + offset),
+        bounds.min.z - Number(line.depthOffset || 0)
+      );
+    case "recess-height-visual-left":
+      return vertical(
+        bounds.max.x + offset,
+        bounds.min.z - Number(line.depthOffset || 0)
+      );
+    case "feature-width-overhead":
+      return horizontal(bounds.max.y + offset, frontZ);
+    case "feature-height-visual-left":
+      return vertical(bounds.max.x + offset, frontZ);
+    case "feature-height-visual-right":
+      return vertical(bounds.min.x - offset, frontZ);
+    case "feature-depth":
+      return depth(resolveFeatureDepthLineX(bounds, line), elevation);
+    case "low-width":
+      return horizontal(elevation, frontZ + Number(line.frontOffset || 0));
+    case "mantel-width":
+      return horizontal(startWitness.y, frontZ);
+    case "mantel-height":
+      return vertical(bounds.max.x + offset, frontZ);
+    case "screen-diagonal":
+      return {
+        start: point(startWitness.x, startWitness.y, frontZ),
+        end: point(endWitness.x, endWitness.y, frontZ)
       };
-    case "tvHeight":
-      return tv && vertical(tv.max.x + 5, tv.min.y, tv.max.y);
-    case "radiatorWidth":
-      return radiator && horizontal(radiator.min.x, radiator.max.x, radiator.max.y + 4);
-    case "radiatorHeight":
-      return radiator && vertical(radiator.max.x + 5, radiator.min.y, radiator.max.y);
-    case "radiatorDepth":
-      return radiator && depth(radiator.max.x + 7, 4, radiator.min.z, radiator.max.z);
-    case "cornerReturn":
-      return depth(wallRight + 5, 5, -(topology.landmarks.cornerReturn || measurements.cornerReturn), 0);
-    case "openingLeftDistance":
-      return topology.landmarks.openingLeft && horizontal(
-        topology.landmarks.openingLeft.min.x,
-        topology.landmarks.openingLeft.max.x,
-        8
-      );
-    case "openingRightDistance":
-      return topology.landmarks.openingRight && horizontal(
-        topology.landmarks.openingRight.min.x,
-        topology.landmarks.openingRight.max.x,
-        8
-      );
+    case "corner-depth":
+      return depth(room.max.x + offset, elevation);
+    case "opening-width":
+      return horizontal(elevation, frontZ);
     default:
-      return null;
+      throw new RangeError(
+        `Unknown canonical line strategy ${line.strategy} for ${context.semantic.fieldId}.`
+      );
   }
+}
+
+function resolveFeatureDepthLineX(bounds, line) {
+  if (!bounds) return 0;
+  return line.side === "geometric-left"
+    ? bounds.min.x + Number(line.offset || 0)
+    : bounds.max.x + Number(line.offset || 0);
+}
+
+function resolvePlanBackWallZ(room) {
+  const surface = (room.surfaces || []).find((candidate) => (
+    /back-wall|recess-back|projection-face/.test(`${candidate.kind} ${candidate.id}`)
+  ));
+  return surface?.bounds
+    ? (surface.bounds.min.z + surface.bounds.max.z) / 2
+    : room.bounds.max.z;
+}
+
+function isFinitePoint(value) {
+  return Boolean(
+    value
+    && ["x", "y", "z"].every((axis) => Number.isFinite(Number(value[axis])))
+  );
 }
 
 function resolveNicheBounds(context) {
@@ -766,9 +948,10 @@ function resolveNicheBounds(context) {
   // visual left. Keep semantic left/right aligned with what they see.
   const fromVisualLeft = context.wallRight - leftReturn - width;
   const fromVisualRight = context.wallLeft + rightReturn;
-  const requestedStart = context.layout.id === "left-niche"
+  const alignment = context.sceneDefinition.geometry.alignment;
+  const requestedStart = alignment === "visual-left"
     ? fromVisualLeft
-    : context.layout.id === "right-niche"
+    : alignment === "visual-right"
       ? fromVisualRight
       : centered;
   const minX = clamp(requestedStart, context.wallLeft, context.wallRight - width);
