@@ -234,6 +234,54 @@ test("public route is the lightweight five-step configurator and excludes the 3D
   expect(runtime).toEqual([]);
 });
 
+test("Step 1 product cards show every full composition without changing room-card fitting", async ({ page }) => {
+  for (const viewport of [
+    { name: "desktop", width: 1280, height: 720 },
+    { name: "iPad landscape", width: 1024, height: 768 }
+  ]) {
+    await test.step(viewport.name, async () => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await openFreshProject(page);
+
+      const images = page.locator(".guided-shell--step-1 .product-grid--catalog [data-product-choice] img");
+      await expect(images).toHaveCount(products.length);
+      await expect.poll(() => images.evaluateAll((elements) => elements.every((image) => (
+        image.complete
+        && image.naturalWidth > 0
+        && image.naturalHeight > 0
+        && getComputedStyle(image).objectFit === "contain"
+        && getComputedStyle(image).objectPosition === "50% 50%"
+        && getComputedStyle(image).transform === "none"
+      )))).toBe(true);
+
+      const geometry = await page.locator("[data-product-choice]").evaluateAll((cards) => cards.map((card) => {
+        const cardRect = card.getBoundingClientRect();
+        const mediaRect = card.querySelector(".product-card-image").getBoundingClientRect();
+        return {
+          cardWidth: cardRect.width,
+          cardHeight: cardRect.height,
+          mediaWidth: mediaRect.width,
+          mediaHeight: mediaRect.height
+        };
+      }));
+      expect(geometry.every(({ cardWidth, cardHeight, mediaWidth, mediaHeight }) => (
+        cardWidth > 0
+        && cardHeight > 0
+        && Math.abs(mediaWidth - cardWidth) <= 2
+        && mediaHeight > 0
+        && mediaHeight < cardHeight
+      ))).toBe(true);
+    });
+  }
+
+  await continueToLayouts(page);
+  const layoutImages = page.locator(".layout-grid .layout-illustration img");
+  await expect(layoutImages).toHaveCount(sharedLayouts.length);
+  await expect.poll(() => layoutImages.evaluateAll((images) => (
+    images.every((image) => getComputedStyle(image).objectFit === "cover")
+  ))).toBe(true);
+});
+
 test("wide desktop keeps all seven product cards readable and fully visible", async ({ page }) => {
   await page.setViewportSize({ width: 2491, height: 1146 });
   await openFreshProject(page);
