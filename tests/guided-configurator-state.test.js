@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   BOOKCASE_INTEGRATED_PREVIEW_ASSETS,
+  CANONICAL_ROOM_SCENES,
   CATEGORY_DEFINITIONS,
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
@@ -10,7 +11,10 @@ import {
   PRODUCT_INTEGRATED_PREVIEW_ASSETS,
   PUBLIC_BOOKCASE_STYLE_IDS,
   SHARED_ROOM_LAYOUTS,
+  canonicalizeRoomLayoutId,
   getCompatibleDetails,
+  getCanonicalRoomMeasurementSemantics,
+  getCanonicalRoomScene,
   getLayout,
   getMeasurementDiagramSpec,
   getMeasurementFields,
@@ -26,6 +30,7 @@ import {
   formatInches,
   normalizeProject,
   parseInches,
+  prepareMeasurementsForLayout,
   validateMeasurements
 } from "../guided-configurator-state.js";
 
@@ -55,38 +60,6 @@ class ToggleStorage extends MemoryStorage {
 }
 
 const categoryById = (id) => CATEGORY_DEFINITIONS.find((category) => category.id === id);
-
-function assertNormalizedEnvelope(envelope, previewKey) {
-  assert.ok(envelope, `${previewKey} is missing its installation envelope`);
-  for (const key of ["x", "y", "width", "height"]) {
-    assert.equal(
-      Number.isFinite(envelope[key]),
-      true,
-      `${previewKey} installation envelope ${key} must be finite`
-    );
-    assert.ok(
-      envelope[key] >= 0 && envelope[key] <= 1,
-      `${previewKey} installation envelope ${key} must be normalized`
-    );
-  }
-  assert.ok(envelope.width > 0, `${previewKey} installation envelope must have width`);
-  assert.ok(envelope.height > 0, `${previewKey} installation envelope must have height`);
-  assert.ok(envelope.x + envelope.width <= 1, `${previewKey} installation envelope exceeds room width`);
-  assert.ok(envelope.y + envelope.height <= 1, `${previewKey} installation envelope exceeds room height`);
-  assert.ok(
-    envelope.width * envelope.height <= 0.76,
-    `${previewKey} installation envelope is too broad to preserve the selected room`
-  );
-  assert.ok(
-    Math.min(
-      envelope.x,
-      envelope.y,
-      1 - envelope.x - envelope.width,
-      1 - envelope.y - envelope.height
-    ) >= 0.039,
-    `${previewKey} installation envelope must leave the canonical room visible on every edge`
-  );
-}
 
 test("all five customer categories use the same ten room conditions", () => {
   assert.deepEqual(
@@ -123,17 +96,113 @@ test("all five customer categories use the same ten room conditions", () => {
   }
 });
 
+test("canonical room scenes own aliases, assets, camera framing, measurements, and placement", () => {
+  assert.equal(CANONICAL_ROOM_SCENES.length, 10);
+  assert.equal(Object.isFrozen(CANONICAL_ROOM_SCENES), true);
+  assert.deepEqual(
+    CANONICAL_ROOM_SCENES.map(({ id, label }) => ({ id, label })),
+    SHARED_ROOM_LAYOUTS.map(({ id, label }) => ({ id, label }))
+  );
+
+  const allAliases = new Set();
+  for (const scene of CANONICAL_ROOM_SCENES) {
+    assert.equal(Object.isFrozen(scene), true, `${scene.id} definition is immutable`);
+    assert.equal(Object.isFrozen(scene.aliases), true, `${scene.id} aliases are immutable`);
+    assert.equal(scene.asset.src.endsWith(".png"), true, `${scene.id} has a PNG fallback`);
+    assert.equal(scene.asset.optimizedSrc.endsWith(".avif"), true, `${scene.id} has an AVIF source`);
+    assert.ok(scene.asset.width > 0 && scene.asset.height > 0, `${scene.id} has source dimensions`);
+    assert.equal(scene.asset.aspectRatio, scene.asset.width / scene.asset.height);
+    assert.equal(scene.asset.opaque, true);
+    assert.equal(scene.asset.fit, "contain");
+    assert.deepEqual(scene.asset.focalPoint, { x: 0.5, y: 0.5 });
+
+    assert.equal(scene.camera.mode, "canonical-fixed");
+    assert.equal(scene.camera.projection, "perspective");
+    assert.equal(scene.camera.frameWidth, 3);
+    assert.equal(scene.camera.frameHeight, 2);
+    assert.equal(scene.camera.aspectRatio, 1.5);
+    assert.equal(scene.camera.fit, "contain");
+    assert.ok(scene.camera.breathingRoom >= 0.08 && scene.camera.breathingRoom <= 0.12);
+
+    const availableFields = new Set(
+      getMeasurementFields("bookcase", scene.id).map((field) => field.id)
+    );
+    const semanticIds = scene.measurementSemantics.map((semantic) => semantic.fieldId);
+    assert.equal(new Set(semanticIds).size, semanticIds.length, `${scene.id} semantics are unique`);
+    for (const semantic of scene.measurementSemantics) {
+      assert.equal(availableFields.has(semantic.fieldId), true, `${scene.id}/${semantic.fieldId} is a real field`);
+      assert.ok(["width", "height", "depth"].includes(semantic.axis));
+      assert.ok(semantic.startAnchor && semantic.endAnchor);
+      assert.ok(semantic.line?.strategy, `${scene.id}/${semantic.fieldId} has a canonical line strategy`);
+      assert.equal(Object.isFrozen(semantic.line), true);
+    }
+
+    assert.ok(scene.geometry.strategy);
+    assert.ok(scene.geometry.alignment);
+    assert.ok(scene.geometry.productPlacement);
+    const publicLayout = getLayout("bookcase", scene.id);
+    assert.equal(publicLayout.previewAsset, scene.asset.src);
+    assert.equal(publicLayout.previewFit, scene.asset.fit);
+    assert.equal(publicLayout.previewPosition, "50% 50%");
+    assert.equal(publicLayout.condition, scene.condition);
+    assert.equal(publicLayout.feature, scene.feature);
+
+    for (const alias of scene.aliases) {
+      assert.equal(allAliases.has(alias), false, `${alias} belongs to one canonical scene`);
+      allAliases.add(alias);
+      assert.equal(canonicalizeRoomLayoutId(alias), scene.id);
+      assert.equal(getCanonicalRoomScene(alias), scene);
+      assert.equal(getLayout("bookcase", alias)?.id, scene.id);
+    }
+  }
+
+  assert.equal(canonicalizeRoomLayoutId("niche-right"), "right-niche");
+  assert.equal(canonicalizeRoomLayoutId("niche-left"), "left-niche");
+  assert.equal(canonicalizeRoomLayoutId("center-projection"), "center-recess");
+  assert.equal(canonicalizeRoomLayoutId("between-openings"), "double-opening");
+  assert.equal(canonicalizeRoomLayoutId("RIGHT-NICHE"), "right-niche");
+  assert.equal(canonicalizeRoomLayoutId("unknown-room"), null);
+  assert.equal(getCanonicalRoomScene("unknown-room"), null);
+  assert.equal(getLayout("bookcase", "unknown-room"), null);
+});
+
 test("measurement schemas are derived from category and layout conditions", () => {
-  const windowFields = getMeasurementFields("bookcase", "window-wall").map((field) => field.id);
+  const windowFields = getMeasurementFields("bookcase", "window-wall");
+  const windowFieldIds = windowFields.map((field) => field.id);
   const doorFields = getMeasurementFields("bookcase", "door-wall").map((field) => field.id);
   const fireplaceFields = getMeasurementFields("bookcase", "fireplace-wall").map((field) => field.id);
   const tvFields = getMeasurementFields("tv-unit", "clear-wall").map((field) => field.id);
   const radiatorFields = getMeasurementFields("radiator-cover", "clear-wall").map((field) => field.id);
 
-  assert.deepEqual(windowFields.slice(0, 3), ["wallWidth", "ceilingHeight", "desiredDepth"]);
-  assert.ok(windowFields.includes("windowWidth"));
-  assert.ok(windowFields.includes("radiatorBelowWindow"));
-  assert.ok(!windowFields.includes("doorSwing"));
+  assert.deepEqual(windowFieldIds.slice(0, 3), ["wallWidth", "ceilingHeight", "desiredDepth"]);
+  assert.ok(windowFieldIds.includes("windowWidth"));
+  assert.ok(windowFieldIds.includes("leftReturn"));
+  assert.ok(windowFieldIds.includes("rightReturn"));
+  assert.ok(windowFieldIds.includes("windowLeftDistance"));
+  assert.ok(windowFieldIds.includes("windowRightDistance"));
+  assert.ok(windowFieldIds.includes("radiatorBelowWindow"));
+  assert.ok(!windowFieldIds.includes("doorSwing"));
+  assert.deepEqual(
+    windowFields.map(({ id, code }) => [id, code]),
+    [
+      ["wallWidth", "A"],
+      ["ceilingHeight", "B"],
+      ["desiredDepth", "C"],
+      ["windowWidth", "D"],
+      ["windowHeight", "E"],
+      ["sillHeight", "F"],
+      ["windowLeftDistance", "G"],
+      ["windowRightDistance", "H"],
+      ["leftReturn", "I"],
+      ["rightReturn", "J"],
+      ["radiatorBelowWindow", "K"]
+    ]
+  );
+  assert.equal(new Set(windowFields.map((field) => field.code)).size, windowFields.length);
+  assert.equal(windowFields.find((field) => field.id === "leftReturn")?.label, "Left built-in return width");
+  assert.equal(windowFields.find((field) => field.id === "rightReturn")?.label, "Right built-in return width");
+  assert.equal(windowFields.find((field) => field.id === "windowLeftDistance")?.label, "Window distance from left wall");
+  assert.equal(windowFields.find((field) => field.id === "windowRightDistance")?.label, "Window distance from right wall");
   assert.ok(doorFields.includes("doorWidth"));
   assert.ok(doorFields.includes("doorSwing"));
   assert.ok(fireplaceFields.includes("mantelHeight"));
@@ -144,6 +213,58 @@ test("measurement schemas are derived from category and layout conditions", () =
   assert.ok(radiatorFields.includes("valveLocation"));
 });
 
+test("Window Wall normalization and layout preparation preserve returns and window distances", () => {
+  const source = {
+    ...createProject({ now: 3, random: 0.15, productSelected: true }),
+    layout: "window-wall",
+    measurements: {
+      wallWidth: 132,
+      ceilingHeight: 102,
+      desiredDepth: 16,
+      windowWidth: 52,
+      windowHeight: 46,
+      sillHeight: 31,
+      windowLeftDistance: "27 1/2",
+      windowRightDistance: 52.5,
+      leftReturn: "8 3/4",
+      rightReturn: 10.25,
+      radiatorBelowWindow: "yes"
+    }
+  };
+
+  const normalized = normalizeProject(source, { now: 4 });
+  assert.deepEqual(
+    {
+      windowLeftDistance: normalized.measurements.windowLeftDistance,
+      windowRightDistance: normalized.measurements.windowRightDistance,
+      leftReturn: normalized.measurements.leftReturn,
+      rightReturn: normalized.measurements.rightReturn
+    },
+    {
+      windowLeftDistance: 27.5,
+      windowRightDistance: 52.5,
+      leftReturn: 8.75,
+      rightReturn: 10.25
+    }
+  );
+
+  const prepared = prepareMeasurementsForLayout(normalized, "window-wall");
+  assert.deepEqual(
+    {
+      windowLeftDistance: prepared.windowLeftDistance,
+      windowRightDistance: prepared.windowRightDistance,
+      leftReturn: prepared.leftReturn,
+      rightReturn: prepared.rightReturn
+    },
+    {
+      windowLeftDistance: 27.5,
+      windowRightDistance: 52.5,
+      leftReturn: 8.75,
+      rightReturn: 10.25
+    }
+  );
+});
+
 test("all ten bookcase room diagrams expose ordered architectural dimension geometry", () => {
   const expectedDimensions = new Map([
     ["niche-layout", [
@@ -152,7 +273,9 @@ test("all ten bookcase room diagrams expose ordered architectural dimension geom
       ["desiredDepth", "C"],
       ["nicheWidth", "D"],
       ["nicheHeight", "E"],
-      ["nicheDepth", "F"]
+      ["nicheDepth", "F"],
+      ["leftReturn", "G"],
+      ["rightReturn", "H"]
     ]],
     ["left-niche", [
       ["wallWidth", "A"],
@@ -160,7 +283,9 @@ test("all ten bookcase room diagrams expose ordered architectural dimension geom
       ["desiredDepth", "C"],
       ["nicheWidth", "D"],
       ["nicheHeight", "E"],
-      ["nicheDepth", "F"]
+      ["nicheDepth", "F"],
+      ["leftReturn", "G"],
+      ["rightReturn", "H"]
     ]],
     ["right-niche", [
       ["wallWidth", "A"],
@@ -168,7 +293,9 @@ test("all ten bookcase room diagrams expose ordered architectural dimension geom
       ["desiredDepth", "C"],
       ["nicheWidth", "D"],
       ["nicheHeight", "E"],
-      ["nicheDepth", "F"]
+      ["nicheDepth", "F"],
+      ["leftReturn", "G"],
+      ["rightReturn", "H"]
     ]],
     ["clear-wall", [
       ["wallWidth", "A"],
@@ -181,7 +308,11 @@ test("all ten bookcase room diagrams expose ordered architectural dimension geom
       ["desiredDepth", "C"],
       ["fireplaceWidth", "D"],
       ["fireplaceHeight", "E"],
-      ["mantelWidth", "F"]
+      ["mantelWidth", "F"],
+      ["mantelHeight", "G"],
+      ["fireplaceDepth", "H"],
+      ["fireplaceLeftWidth", "I"],
+      ["fireplaceRightWidth", "J"]
     ]],
     ["center-recess", [
       ["wallWidth", "A"],
@@ -189,7 +320,9 @@ test("all ten bookcase room diagrams expose ordered architectural dimension geom
       ["desiredDepth", "C"],
       ["nicheWidth", "D"],
       ["nicheHeight", "E"],
-      ["nicheDepth", "F"]
+      ["nicheDepth", "F"],
+      ["leftReturn", "G"],
+      ["rightReturn", "H"]
     ]],
     ["window-wall", [
       ["wallWidth", "A"],
@@ -197,7 +330,9 @@ test("all ten bookcase room diagrams expose ordered architectural dimension geom
       ["desiredDepth", "C"],
       ["windowWidth", "D"],
       ["windowHeight", "E"],
-      ["sillHeight", "F"]
+      ["sillHeight", "F"],
+      ["windowLeftDistance", "G"],
+      ["windowRightDistance", "H"]
     ]],
     ["door-wall", [
       ["wallWidth", "A"],
@@ -205,7 +340,8 @@ test("all ten bookcase room diagrams expose ordered architectural dimension geom
       ["desiredDepth", "C"],
       ["doorWidth", "D"],
       ["doorHeight", "E"],
-      ["doorLeftDistance", "F"]
+      ["doorLeftDistance", "F"],
+      ["doorTrimWidth", "G"]
     ]],
     ["corner-wall", [
       ["wallWidth", "A"],
@@ -221,7 +357,7 @@ test("all ten bookcase room diagrams expose ordered architectural dimension geom
       ["openingRightDistance", "E"]
     ]]
   ]);
-  const validAxes = new Set(["horizontal", "vertical", "depth", "diagonal"]);
+  const validAxes = new Set(["width", "height", "depth", "diagonal"]);
 
   for (const roomLayout of SHARED_ROOM_LAYOUTS) {
     const spec = getMeasurementDiagramSpec("bookcase", roomLayout.id);
@@ -242,32 +378,16 @@ test("all ten bookcase room diagrams expose ordered architectural dimension geom
     assert.equal(new Set(actualDimensions.map(([, code]) => code)).size, spec.spans.length, `${context} codes are unique`);
 
     for (const span of spec.spans) {
-      const coordinates = [
-        ...span.line,
-        ...span.extensions.flat(),
-        span.label.x,
-        span.label.y
-      ];
       assert.ok(validAxes.has(span.axis), `${context} ${span.fieldId} uses a supported axis`);
-      assert.equal(span.line.length, 4, `${context} ${span.fieldId} has two line endpoints`);
-      assert.equal(span.extensions.length, 2, `${context} ${span.fieldId} has two witness lines`);
-      assert.ok(span.extensions.every((extension) => extension.length === 4), `${context} ${span.fieldId} witness endpoints`);
-      assert.ok(coordinates.every(Number.isFinite), `${context} ${span.fieldId} coordinates are finite`);
-      assert.notDeepEqual(span.line.slice(0, 2), span.line.slice(2), `${context} ${span.fieldId} line has length`);
-
-      for (const [index, coordinate] of coordinates.entries()) {
-        const limit = index % 2 === 0 ? spec.width : spec.height;
-        assert.ok(
-          coordinate >= 0 && coordinate <= limit,
-          `${context} ${span.fieldId} coordinate ${coordinate} is inside the normalized drawing`
-        );
-      }
+      assert.match(span.startAnchor, /^[a-z][a-z0-9-]+$/, `${context} ${span.fieldId} start anchor`);
+      assert.match(span.endAnchor, /^[a-z][a-z0-9-]+$/, `${context} ${span.fieldId} end anchor`);
+      assert.notEqual(span.startAnchor, span.endAnchor, `${context} ${span.fieldId} spans two landmarks`);
     }
   }
 });
 
-test("room diagrams use native image ratios and Door Wall dimensions anchor to real architectural edges", () => {
-  const expectedViewBoxes = new Map([
+test("room scenes retain source metadata while every rendered camera uses the canonical 3:2 frame", () => {
+  const expectedAssetSizes = new Map([
     ["niche-layout", [627, 627]],
     ["left-niche", [627, 627]],
     ["right-niche", [627, 627]],
@@ -280,51 +400,75 @@ test("room diagrams use native image ratios and Door Wall dimensions anchor to r
     ["double-opening", [1536, 1024]]
   ]);
 
-  for (const [layoutId, expectedViewBox] of expectedViewBoxes) {
+  for (const [layoutId, expectedAssetSize] of expectedAssetSizes) {
+    const scene = getCanonicalRoomScene(layoutId);
     const spec = getMeasurementDiagramSpec("bookcase", layoutId);
-    assert.deepEqual([spec.width, spec.height], expectedViewBox, `${layoutId} native image viewBox`);
+    assert.deepEqual(
+      [scene.asset.width, scene.asset.height],
+      expectedAssetSize,
+      `${layoutId} fallback asset metadata`
+    );
+    assert.deepEqual([spec.width, spec.height], [3, 2], `${layoutId} canonical render frame`);
+    assert.deepEqual(spec.camera, scene.camera, `${layoutId} shares its one camera descriptor`);
   }
 
   const doorSpec = getMeasurementDiagramSpec("bookcase", "door-wall");
   const doorSpans = new Map(doorSpec.spans.map((span) => [span.fieldId, span]));
-  assert.deepEqual(doorSpans.get("wallWidth").line, [240, 178, 1295, 178]);
-  assert.deepEqual(doorSpans.get("wallWidth").extensions, [
-    [240, 157, 240, 204],
-    [1295, 157, 1295, 204]
-  ]);
-  assert.deepEqual(doorSpans.get("ceilingHeight").line, [270, 157, 270, 758]);
-  assert.deepEqual(doorSpans.get("desiredDepth").line, [1295, 758, 1452, 840]);
-  assert.equal(doorSpans.get("desiredDepth").endStyle, "tick");
-  assert.equal(doorSpans.get("desiredDepth").extensionRole, "tick");
-  assert.deepEqual(doorSpans.get("doorWidth").line, [659, 232, 880, 232]);
-  assert.deepEqual(doorSpans.get("doorWidth").extensions, [
-    [659, 208, 659, 279],
-    [880, 208, 880, 279]
-  ]);
-  assert.deepEqual(doorSpans.get("doorHeight").line, [940, 279, 940, 758]);
-  assert.deepEqual(doorSpans.get("doorHeight").extensions, [
-    [880, 279, 960, 279],
-    [880, 758, 960, 758]
-  ]);
-  assert.deepEqual(doorSpans.get("doorLeftDistance").line, [240, 638, 639, 638]);
-  assert.ok(!doorSpans.has("doorTrimWidth"), "trim remains a small local field, not a long wall dimension");
+  assert.equal(doorSpans.get("doorWidth").startAnchor, "door-left-jamb");
+  assert.equal(doorSpans.get("doorWidth").endAnchor, "door-right-jamb");
+  assert.equal(doorSpans.get("doorHeight").startAnchor, "door-threshold");
+  assert.equal(doorSpans.get("doorHeight").endAnchor, "door-head");
+  assert.equal(doorSpans.get("doorLeftDistance").startAnchor, "door-visual-left-edge");
+  assert.equal(doorSpans.get("doorLeftDistance").endAnchor, "visual-left-wall-boundary");
+  assert.equal(doorSpans.get("doorTrimWidth").startAnchor, "door-jamb");
+  assert.equal(doorSpans.get("doorTrimWidth").endAnchor, "door-trim-outer-edge");
   assert.ok(!doorSpans.has("doorSwing"), "door swing remains directional data, not a linear dimension");
 
   const doubleOpeningSpec = getMeasurementDiagramSpec("tv-unit", "double-opening");
   const doubleOpeningSpans = new Map(
     doubleOpeningSpec.spans.map((span) => [span.fieldId, span])
   );
-  assert.deepEqual(doubleOpeningSpans.get("wallWidth").line, [304, 244, 1230, 244]);
-  assert.deepEqual(doubleOpeningSpans.get("ceilingHeight").line, [330, 150, 330, 785]);
-  assert.deepEqual(doubleOpeningSpans.get("desiredDepth").line, [1230, 785, 1310, 828]);
-  assert.deepEqual(doubleOpeningSpans.get("openingLeftDistance").line, [304, 690, 520, 690]);
-  assert.deepEqual(doubleOpeningSpans.get("openingRightDistance").line, [1016, 690, 1230, 690]);
-
-  const [depthX1, depthY1, depthX2, depthY2] = doorSpans.get("desiredDepth").line;
-  assert.ok(
-    Math.abs(((depthY2 - depthY1) / (depthX2 - depthX1)) - (82 / 157)) < 0.000001,
-    "built-in depth follows the right wall-floor perspective"
+  assert.equal(
+    doubleOpeningSpans.get("openingLeftDistance").startAnchor,
+    "left-opening-inner-jamb"
   );
+  assert.equal(
+    doubleOpeningSpans.get("openingLeftDistance").endAnchor,
+    "visual-left-wall-boundary"
+  );
+  assert.equal(
+    doubleOpeningSpans.get("openingRightDistance").startAnchor,
+    "visual-right-wall-boundary"
+  );
+  assert.equal(
+    doubleOpeningSpans.get("openingRightDistance").endAnchor,
+    "right-opening-inner-jamb"
+  );
+});
+
+test("Clear Wall category callouts extend the canonical room semantics", () => {
+  const expectedCategoryFields = new Map([
+    ["bookcase", []],
+    ["tv-unit", ["tvScreenSize", "tvHeight"]],
+    ["window-storage", ["windowWidth", "windowHeight", "sillHeight"]],
+    ["radiator-cover", ["radiatorWidth", "radiatorHeight", "radiatorDepth"]]
+  ]);
+  const baseFields = ["wallWidth", "ceilingHeight", "desiredDepth"];
+
+  for (const [categoryId, categoryFields] of expectedCategoryFields) {
+    const semantics = getCanonicalRoomMeasurementSemantics(categoryId, "clear-wall");
+    assert.deepEqual(
+      semantics.map((semantic) => semantic.fieldId),
+      [...baseFields, ...categoryFields],
+      `${categoryId} Clear Wall canonical fields`
+    );
+    for (const semantic of semantics) {
+      assert.ok(semantic.startAnchor && semantic.endAnchor);
+      assert.ok(semantic.line?.strategy);
+      assert.equal(Object.isFrozen(semantic), true);
+      assert.equal(Object.isFrozen(semantic.line), true);
+    }
+  }
 });
 
 test("inch parsing accepts decimals, mixed fractions, hyphenated fractions, and unicode fractions", () => {
@@ -340,6 +484,36 @@ test("inch parsing accepts decimals, mixed fractions, hyphenated fractions, and 
   assert.equal(formatInches(42.5), "42 1/2");
   assert.equal(formatInches(0.875), "7/8");
   assert.equal(formatInches(42.5, { decimal: true }), "42.5");
+});
+
+test("niche layout selection derives distinct left, centered, and right returns from the room envelope", () => {
+  const project = createProject();
+  project.measurements = {
+    wallWidth: 120,
+    ceilingHeight: 96,
+    desiredDepth: 14,
+    nicheWidth: 96
+  };
+
+  assert.deepEqual(
+    pickReturns(prepareMeasurementsForLayout(project, "left-niche")),
+    { leftReturn: 0, rightReturn: 24 }
+  );
+  assert.deepEqual(
+    pickReturns(prepareMeasurementsForLayout(project, "niche-layout")),
+    { leftReturn: 12, rightReturn: 12 }
+  );
+  assert.deepEqual(
+    pickReturns(prepareMeasurementsForLayout(project, "right-niche")),
+    { leftReturn: 24, rightReturn: 0 }
+  );
+
+  function pickReturns(measurements) {
+    return {
+      leftReturn: measurements.leftReturn,
+      rightReturn: measurements.rightReturn
+    };
+  }
 });
 
 test("core measurements are required while unusual values remain non-blocking warnings", () => {
@@ -496,12 +670,11 @@ test("every public Bookcase construction maps to the selected room scene", async
       assert.equal(presentation.styleId, styleId);
       assert.equal(presentation.layoutId, layout.id);
       assert.equal(presentation.integratedLayoutId, layout.id);
-      assert.equal(presentation.renderMode, "layered");
-      assert.equal(presentation.roomAsset, layout.previewAsset);
-      assert.equal(presentation.productAsset, expectedAsset);
+      assert.equal(presentation.renderMode, "integrated");
+      assert.equal(presentation.roomAsset, null);
+      assert.equal(presentation.productAsset, null);
       assert.equal(presentation.conceptAsset, expectedAsset);
-      assert.notEqual(presentation.productAsset, presentation.roomAsset);
-      assertNormalizedEnvelope(presentation.installationEnvelope, previewKey);
+      assert.equal(presentation.installationEnvelope, null);
 
       const png = await readFile(new URL(`../${expectedAsset}`, import.meta.url));
       const avif = await readFile(new URL(`../${expectedAsset.replace(/\.png$/, ".avif")}`, import.meta.url));
@@ -564,12 +737,11 @@ test("the seven product cards resolve to seventy exact product and room scenes",
       assert.equal(presentation.styleId, choice.styleId);
       assert.equal(presentation.layoutId, layout.id);
       assert.equal(presentation.integratedLayoutId, layout.id);
-      assert.equal(presentation.renderMode, "layered");
-      assert.equal(presentation.roomAsset, layout.previewAsset);
-      assert.equal(presentation.productAsset, expectedAsset);
+      assert.equal(presentation.renderMode, "integrated");
+      assert.equal(presentation.roomAsset, null);
+      assert.equal(presentation.productAsset, null);
       assert.equal(presentation.conceptAsset, expectedAsset);
-      assert.notEqual(presentation.productAsset, presentation.roomAsset);
-      assertNormalizedEnvelope(presentation.installationEnvelope, previewKey);
+      assert.equal(presentation.installationEnvelope, null);
 
       const png = await readFile(new URL(`../${expectedAsset}`, import.meta.url));
       const avif = await readFile(new URL(`../${expectedAsset.replace(/\.png$/, ".avif")}`, import.meta.url));
@@ -593,49 +765,40 @@ test("the seven product cards resolve to seventy exact product and room scenes",
   assert.equal(exactAssets.size, 69);
 });
 
-test("preview presentations preserve the canonical room as a separate layer for all seventy selections", () => {
+test("fallback previews use one sole integrated room scene for all seventy selections", () => {
   for (const choice of PRODUCT_CHOICES) {
     for (const layout of SHARED_ROOM_LAYOUTS) {
       const presentation = resolvePreviewPresentation(choice.categoryId, choice.styleId, layout.id);
       assert.equal(presentation.layoutId, layout.id);
       assert.equal(presentation.integratedLayoutId, layout.id);
       assert.equal(presentation.layoutLabel, layout.label);
-      assert.equal(presentation.roomAsset, layout.previewAsset);
+      assert.equal(presentation.roomAsset, null);
       assert.equal(presentation.layoutContextAsset, layout.previewAsset);
+      assert.equal(presentation.productAsset, null);
       assert.equal(
-        presentation.productAsset,
+        presentation.conceptAsset,
         PRODUCT_INTEGRATED_PREVIEW_ASSETS[choice.id][layout.id]
       );
-      assert.notEqual(presentation.productAsset, presentation.roomAsset);
       assert.equal(presentation.layoutPreviewMode, layout.previewMode);
+      assert.equal(presentation.layoutPreviewFit, layout.previewFit);
       assert.equal(presentation.layoutPreviewPosition, layout.previewPosition);
-      assert.equal(presentation.renderMode, "layered");
-      assertNormalizedEnvelope(presentation.installationEnvelope, presentation.previewKey);
+      assert.equal(presentation.renderMode, "integrated");
+      assert.equal(presentation.installationEnvelope, null);
     }
   }
 
   const betweenOpenings = resolvePreviewPresentation("tv-unit", "framed-tv-wall", "double-opening");
   assert.equal(betweenOpenings.layoutId, "double-opening");
   assert.equal(betweenOpenings.layoutLabel, "Between Openings");
+  assert.equal(betweenOpenings.roomAsset, null);
+  assert.equal(betweenOpenings.productAsset, null);
   assert.equal(
-    betweenOpenings.roomAsset,
-    "assets/photos/configurator/room-layouts/room-double-opening-v1.png"
-  );
-  assert.equal(
-    betweenOpenings.productAsset,
+    betweenOpenings.conceptAsset,
     "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png"
   );
-  assert.equal(betweenOpenings.conceptAsset, betweenOpenings.productAsset);
-  assert.equal(betweenOpenings.installationEnvelopeId, "tv-unit-double-opening-v2-cabinet");
-  assert.deepEqual(
-    betweenOpenings.installationEnvelope,
-    { x: 0.267, y: 0.195, width: 0.466, height: 0.61 }
-  );
-  assert.equal(betweenOpenings.renderMode, "layered");
-  assert.notEqual(
-    betweenOpenings.productAsset,
-    betweenOpenings.roomAsset
-  );
+  assert.equal(betweenOpenings.installationEnvelopeId, null);
+  assert.equal(betweenOpenings.installationEnvelope, null);
+  assert.equal(betweenOpenings.renderMode, "integrated");
 
   const normalized = normalizeProject({
     ...createProject({ now: 24, random: 0.24 }),
@@ -646,7 +809,7 @@ test("preview presentations preserve the canonical room as a separate layer for 
     finish: "charcoal"
   }, { now: 25 });
   assert.equal(normalized.layout, "double-opening");
-  assert.equal(normalized.previewAsset, betweenOpenings.productAsset);
+  assert.equal(normalized.previewAsset, betweenOpenings.conceptAsset);
 });
 
 test("legacy hidden Bookcase styles migrate without inventing an integrated room scene", () => {
@@ -729,18 +892,28 @@ test("project store reports blocked writes instead of fabricating save success",
   assert.equal(projects.deleteProject(project.projectId), false);
 });
 
-test("the public configurator route and deployment exclude the legacy 3D runtime", async () => {
-  const [html, guidedUi, guidedState, workflow] = await Promise.all([
+test("the public configurator lazily ships its unified guided 3D scene without the legacy workspace runtime", async () => {
+  const [html, guidedUi, guidedState, guidedScene, workflow] = await Promise.all([
     readFile(new URL("../configurator.html", import.meta.url), "utf8"),
     readFile(new URL("../guided-configurator.js", import.meta.url), "utf8"),
     readFile(new URL("../guided-configurator-state.js", import.meta.url), "utf8"),
+    readFile(new URL("../guided-configurator-3d.js", import.meta.url), "utf8"),
     readFile(new URL("../.github/workflows/deploy-pages-production.yml", import.meta.url), "utf8")
   ]);
 
   assert.match(html, /guided-configurator\.js/);
-  assert.doesNotMatch(html, /configurator-3d|three\.module|cabinet-ar|direct-hardware/);
-  assert.doesNotMatch(`${guidedUi}\n${guidedState}`, /configurator-3d|three\.module|bookcase-engine|cabinet-ar/);
+  assert.doesNotMatch(html, /assets\/vendor\/three\.module|src=["']configurator-3d|cabinet-ar|direct-hardware/);
+  assert.match(guidedUi, /import\(["']\.\/guided-configurator-3d\.js/);
+  assert.match(guidedScene, /assets\/vendor\/three\.module\.js/);
+  assert.match(guidedScene, /resolveGuidedDimensionCallouts\(plan\)/);
+  assert.match(guidedScene, /callout\?\.semantic\?\.line\?\.feature/);
+  assert.doesNotMatch(
+    guidedScene,
+    /syncFeatureDimensionCallouts|resolveDimensionWitnessAnchors|getDimensionGroup\(callout\?\.fieldId\)/
+  );
+  assert.doesNotMatch(`${guidedUi}\n${guidedState}`, /bookcase-engine|cabinet-ar/);
   assert.match(workflow, /test ! -e _site\/configurator-3d\.js/);
-  assert.match(workflow, /test ! -e _site\/assets\/vendor\/three\.module\.js/);
-  assert.doesNotMatch(workflow, /test -f _site\/assets\/vendor\/three\.module\.js/);
+  assert.match(workflow, /test -f _site\/guided-configurator-3d\.js/);
+  assert.match(workflow, /test -f _site\/guided-scene-plan\.js/);
+  assert.match(workflow, /test -f _site\/assets\/vendor\/three\.module\.js/);
 });

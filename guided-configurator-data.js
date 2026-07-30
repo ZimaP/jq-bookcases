@@ -76,14 +76,14 @@ const CONDITION_MEASUREMENTS = Object.freeze({
     measurement("rightReturn", "Right return", "H", { min: 0, max: 48, defaultValue: 12, position: "lower-right" })
   ]),
   window: Object.freeze([
-    measurement("leftReturn", "Left Return", "G", { min: 0, max: 48, defaultValue: 12, position: "lower-left", group: "Room & built-in" }),
-    measurement("rightReturn", "Right Return", "H", { min: 0, max: 48, defaultValue: 12, position: "lower-right", group: "Room & built-in" }),
     measurement("windowWidth", "Window width", "D", { min: 12, max: 144, defaultValue: 48, position: "feature-left" }),
     measurement("windowHeight", "Window height", "E", { min: 12, max: 96, defaultValue: 42, position: "feature-right" }),
     measurement("sillHeight", "Sill height", "F", { min: 12, max: 72, defaultValue: 30, position: "feature-bottom" }),
-    measurement("windowLeftDistance", "Distance from left wall", "G", { min: 0, max: 144, defaultValue: null, position: "lower-left" }),
-    measurement("windowRightDistance", "Distance from right wall", "H", { min: 0, max: 144, defaultValue: null, position: "lower-right" }),
-    selectMeasurement("radiatorBelowWindow", "Radiator below window", "I", yesNo, { defaultValue: "no", position: "feature-right" })
+    measurement("windowLeftDistance", "Window distance from left wall", "G", { min: 0, max: 144, defaultValue: null, position: "lower-left" }),
+    measurement("windowRightDistance", "Window distance from right wall", "H", { min: 0, max: 144, defaultValue: null, position: "lower-right" }),
+    measurement("leftReturn", "Left built-in return width", "I", { min: 0, max: 48, defaultValue: 12, position: "lower-left" }),
+    measurement("rightReturn", "Right built-in return width", "J", { min: 0, max: 48, defaultValue: 12, position: "lower-right" }),
+    selectMeasurement("radiatorBelowWindow", "Radiator below window", "K", yesNo, { defaultValue: "no", position: "feature-right" })
   ]),
   door: Object.freeze([
     measurement("doorWidth", "Door width", "D", { min: 24, max: 72, defaultValue: 36, position: "feature-left" }),
@@ -156,6 +156,399 @@ const layout = (id, label, condition, feature, tags = [], options = {}) => Objec
   ...options
 });
 
+const sceneAsset = (src, width, height, options = {}) => Object.freeze({
+  src,
+  optimizedSrc: src.replace(/\.png$/i, ".avif"),
+  width,
+  height,
+  aspectRatio: width / height,
+  opaque: true,
+  fit: "contain",
+  focalPoint: Object.freeze({ x: 0.5, y: 0.5 }),
+  ...options
+});
+
+const sceneCamera = (options = {}) => Object.freeze({
+  mode: "canonical-fixed",
+  projection: "perspective",
+  frameWidth: 3,
+  frameHeight: 2,
+  aspectRatio: 3 / 2,
+  fit: "contain",
+  fieldOfViewDegrees: 32,
+  yawDegrees: -4.6,
+  pitchDegrees: 6.6,
+  breathingRoom: 0.1,
+  normalizedTarget: Object.freeze({ x: 0.5, y: 0.45 }),
+  ...options
+});
+
+const measurementSemantic = (
+  fieldId,
+  axis,
+  startAnchor,
+  endAnchor,
+  line
+) => Object.freeze({
+  fieldId,
+  axis,
+  startAnchor,
+  endAnchor,
+  line: Object.freeze({ ...line })
+});
+
+const BASE_ROOM_MEASUREMENT_SEMANTICS = Object.freeze([
+  measurementSemantic(
+    "wallWidth",
+    "width",
+    "wall-left-boundary",
+    "wall-right-boundary",
+    { strategy: "room-width-overhead", offset: 7 }
+  ),
+  measurementSemantic(
+    "ceilingHeight",
+    "height",
+    "finished-floor",
+    "ceiling-plane",
+    { strategy: "room-height-visual-right", offset: 8 }
+  ),
+  measurementSemantic(
+    "desiredDepth",
+    "depth",
+    "product-front-plane",
+    "wall-face",
+    { strategy: "room-depth-visual-left", offset: 8, elevation: 4 }
+  )
+]);
+
+const roomScene = (id, label, condition, feature, tags, options) => Object.freeze({
+  id,
+  label,
+  aliases: Object.freeze(options.aliases || []),
+  condition,
+  feature,
+  tags: Object.freeze(tags),
+  asset: options.asset,
+  camera: options.camera || sceneCamera(),
+  measurementSemantics: Object.freeze([
+    ...BASE_ROOM_MEASUREMENT_SEMANTICS,
+    ...(options.measurementSemantics || [])
+  ]),
+  geometry: Object.freeze(options.geometry)
+});
+
+/**
+ * Canonical room-scene definitions shared by room selection, measurements,
+ * concept visualization, and persistence. Public layout records below are
+ * projections of these definitions rather than a second source of truth.
+ */
+export const CANONICAL_ROOM_SCENES = Object.freeze([
+  roomScene("niche-layout", "Niche Layout", "niche", "recess", ["niche"], {
+    aliases: ["tv-niche", "wall-to-wall-floating", "wall-to-wall-cover", "radiator-side-storage"],
+    asset: sceneAsset(
+      "assets/photos/configurator/room-layouts/room-niche-layout-v1.png",
+      627,
+      627
+    ),
+    measurementSemantics: [
+      measurementSemantic("nicheWidth", "width", "niche-left-jamb", "niche-right-jamb", {
+        strategy: "recess-width-overhead", feature: "niche", offset: 5, ceilingOffset: 3, depthOffset: 2
+      }),
+      measurementSemantic("nicheHeight", "height", "niche-floor", "niche-head", {
+        strategy: "recess-height-visual-left", feature: "niche", offset: 5, depthOffset: 2
+      }),
+      measurementSemantic("nicheDepth", "depth", "front-wall-plane", "niche-back-wall", {
+        strategy: "feature-depth", feature: "niche", side: "geometric-left", offset: 6, elevation: 5
+      }),
+      measurementSemantic("leftReturn", "width", "niche-visual-left-edge", "visual-left-wall-boundary", {
+        strategy: "low-width", feature: "niche", elevation: 7, frontOffset: 2
+      }),
+      measurementSemantic("rightReturn", "width", "visual-right-wall-boundary", "niche-visual-right-edge", {
+        strategy: "low-width", feature: "niche", elevation: 7, frontOffset: 2
+      })
+    ],
+    geometry: {
+      strategy: "recess",
+      alignment: "center",
+      productPlacement: "inside-recess"
+    }
+  }),
+  roomScene("left-niche", "Left Niche", "left-niche", "recess", ["niche"], {
+    aliases: ["niche-left"],
+    asset: sceneAsset(
+      "assets/photos/configurator/room-layouts/room-left-niche-v1.png",
+      627,
+      627
+    ),
+    measurementSemantics: [
+      measurementSemantic("nicheWidth", "width", "niche-left-jamb", "niche-right-jamb", {
+        strategy: "recess-width-overhead", feature: "niche", offset: 5, ceilingOffset: 3, depthOffset: 2
+      }),
+      measurementSemantic("nicheHeight", "height", "niche-floor", "niche-head", {
+        strategy: "recess-height-visual-left", feature: "niche", offset: 5, depthOffset: 2
+      }),
+      measurementSemantic("nicheDepth", "depth", "front-wall-plane", "niche-back-wall", {
+        strategy: "feature-depth", feature: "niche", side: "geometric-left", offset: 6, elevation: 5
+      }),
+      measurementSemantic("leftReturn", "width", "niche-visual-left-edge", "visual-left-wall-boundary", {
+        strategy: "low-width", feature: "niche", elevation: 7, frontOffset: 2
+      }),
+      measurementSemantic("rightReturn", "width", "visual-right-wall-boundary", "niche-visual-right-edge", {
+        strategy: "low-width", feature: "niche", elevation: 7, frontOffset: 2
+      })
+    ],
+    geometry: {
+      strategy: "recess",
+      alignment: "visual-left",
+      productPlacement: "inside-recess"
+    }
+  }),
+  roomScene("right-niche", "Right Niche", "right-niche", "recess", ["niche"], {
+    aliases: ["niche-right"],
+    asset: sceneAsset(
+      "assets/photos/configurator/room-layouts/room-right-niche-v1.png",
+      627,
+      627
+    ),
+    measurementSemantics: [
+      measurementSemantic("nicheWidth", "width", "niche-left-jamb", "niche-right-jamb", {
+        strategy: "recess-width-overhead", feature: "niche", offset: 5, ceilingOffset: 3, depthOffset: 2
+      }),
+      measurementSemantic("nicheHeight", "height", "niche-floor", "niche-head", {
+        strategy: "recess-height-visual-left", feature: "niche", offset: 5, depthOffset: 2
+      }),
+      measurementSemantic("nicheDepth", "depth", "front-wall-plane", "niche-back-wall", {
+        strategy: "feature-depth", feature: "niche", side: "geometric-left", offset: 6, elevation: 5
+      }),
+      measurementSemantic("leftReturn", "width", "niche-visual-left-edge", "visual-left-wall-boundary", {
+        strategy: "low-width", feature: "niche", elevation: 7, frontOffset: 2
+      }),
+      measurementSemantic("rightReturn", "width", "visual-right-wall-boundary", "niche-visual-right-edge", {
+        strategy: "low-width", feature: "niche", elevation: 7, frontOffset: 2
+      })
+    ],
+    geometry: {
+      strategy: "recess",
+      alignment: "visual-right",
+      productPlacement: "inside-recess"
+    }
+  }),
+  roomScene("clear-wall", "Clear Wall", "clear-wall", "none", [], {
+    aliases: ["clear-tv-wall", "floating-clear-wall", "standalone-radiator", "radiator-upper-shelving"],
+    asset: sceneAsset(
+      "assets/photos/configurator/room-layouts/room-clear-wall-v1.png",
+      1536,
+      1024
+    ),
+    geometry: {
+      strategy: "flat-wall",
+      alignment: "center",
+      productPlacement: "main-wall"
+    }
+  }),
+  roomScene("fireplace-wall", "Fireplace Wall", "clear-wall", "fireplace", ["fireplace"], {
+    aliases: ["fireplace-tv"],
+    asset: sceneAsset(
+      "assets/photos/configurator/room-layouts/room-fireplace-wall-v1.png",
+      627,
+      627
+    ),
+    measurementSemantics: [
+      measurementSemantic("fireplaceWidth", "width", "fireplace-left-jamb", "fireplace-right-jamb", {
+        strategy: "feature-width-overhead", feature: "fireplace", offset: 4
+      }),
+      measurementSemantic("fireplaceHeight", "height", "fireplace-hearth", "fireplace-head", {
+        strategy: "feature-height-visual-left", feature: "fireplace", offset: 5
+      }),
+      measurementSemantic("mantelWidth", "width", "mantel-left-edge", "mantel-right-edge", {
+        strategy: "mantel-width", feature: "fireplace"
+      }),
+      measurementSemantic("mantelHeight", "height", "finished-floor", "mantel-top", {
+        strategy: "mantel-height", feature: "fireplace", offset: 10
+      }),
+      measurementSemantic("fireplaceDepth", "depth", "fireplace-front-face", "wall-face", {
+        strategy: "feature-depth", feature: "fireplace", side: "visual-left", offset: 8, elevation: 5
+      }),
+      measurementSemantic("fireplaceLeftWidth", "width", "fireplace-visual-left-edge", "visual-left-wall-boundary", {
+        strategy: "low-width", feature: "fireplace", elevation: 10, frontOffset: 0
+      }),
+      measurementSemantic("fireplaceRightWidth", "width", "visual-right-wall-boundary", "fireplace-visual-right-edge", {
+        strategy: "low-width", feature: "fireplace", elevation: 10, frontOffset: 0
+      })
+    ],
+    geometry: {
+      strategy: "fireplace-wall",
+      alignment: "center",
+      productPlacement: "main-wall-around-feature"
+    }
+  }),
+  roomScene("center-recess", "Center Projection", "clear-wall", "recess", ["niche"], {
+    aliases: ["center-projection"],
+    asset: sceneAsset(
+      "assets/photos/configurator/room-layouts/room-center-projection-v1.png",
+      1536,
+      1024
+    ),
+    measurementSemantics: [
+      measurementSemantic("nicheWidth", "width", "projection-left-edge", "projection-right-edge", {
+        strategy: "recess-width-overhead", feature: "niche", offset: 5, ceilingOffset: 3, depthOffset: 2
+      }),
+      measurementSemantic("nicheHeight", "height", "finished-floor", "projection-head", {
+        strategy: "recess-height-visual-left", feature: "niche", offset: 5, depthOffset: 2
+      }),
+      measurementSemantic("nicheDepth", "depth", "projection-front-face", "back-wall-plane", {
+        strategy: "feature-depth", feature: "niche", side: "geometric-left", offset: 6, elevation: 5
+      }),
+      measurementSemantic("leftReturn", "width", "projection-visual-left-edge", "visual-left-wall-boundary", {
+        strategy: "low-width", feature: "niche", elevation: 7, frontOffset: 2
+      }),
+      measurementSemantic("rightReturn", "width", "visual-right-wall-boundary", "projection-visual-right-edge", {
+        strategy: "low-width", feature: "niche", elevation: 7, frontOffset: 2
+      })
+    ],
+    geometry: {
+      strategy: "center-projection",
+      alignment: "center",
+      productPlacement: "main-wall-around-feature"
+    }
+  }),
+  roomScene("window-wall", "Window Wall", "clear-wall", "window", ["window"], {
+    aliases: [
+      "window-side-tv",
+      "floating-under-window",
+      "single-window",
+      "wide-window",
+      "bay-window",
+      "window-side-bookcases",
+      "window-radiator",
+      "radiator-below-window"
+    ],
+    asset: sceneAsset(
+      "assets/photos/configurator/room-layouts/room-window-wall-v1.png",
+      1536,
+      1024
+    ),
+    measurementSemantics: [
+      measurementSemantic("windowWidth", "width", "window-left-jamb", "window-right-jamb", {
+        strategy: "feature-width-overhead", feature: "window", offset: 4
+      }),
+      measurementSemantic("windowHeight", "height", "window-sill", "window-head", {
+        strategy: "feature-height-visual-left", feature: "window", offset: 5
+      }),
+      measurementSemantic("sillHeight", "height", "finished-floor", "window-sill", {
+        strategy: "feature-height-visual-right", feature: "window", offset: 5
+      }),
+      measurementSemantic("windowLeftDistance", "width", "window-visual-left-edge", "visual-left-wall-boundary", {
+        strategy: "low-width", feature: "window", elevation: 7, frontOffset: 0
+      }),
+      measurementSemantic("windowRightDistance", "width", "visual-right-wall-boundary", "window-visual-right-edge", {
+        strategy: "low-width", feature: "window", elevation: 7, frontOffset: 0
+      })
+    ],
+    geometry: {
+      strategy: "window-wall",
+      alignment: "measured-or-center",
+      productPlacement: "main-wall-around-feature"
+    }
+  }),
+  roomScene("door-wall", "Door Wall", "clear-wall", "door", ["door"], {
+    aliases: [],
+    asset: sceneAsset(
+      "assets/photos/configurator/room-layouts/room-door-wall-v1.png",
+      1536,
+      1024
+    ),
+    measurementSemantics: [
+      measurementSemantic("doorWidth", "width", "door-left-jamb", "door-right-jamb", {
+        strategy: "feature-width-overhead", feature: "door", offset: 4
+      }),
+      measurementSemantic("doorHeight", "height", "door-threshold", "door-head", {
+        strategy: "feature-height-visual-left", feature: "door", offset: 5
+      }),
+      measurementSemantic("doorLeftDistance", "width", "door-visual-left-edge", "visual-left-wall-boundary", {
+        strategy: "low-width", feature: "door", elevation: 7, frontOffset: 0
+      }),
+      measurementSemantic("doorTrimWidth", "width", "door-jamb", "door-trim-outer-edge", {
+        strategy: "feature-width-overhead", feature: "door", offset: 9
+      })
+    ],
+    geometry: {
+      strategy: "door-wall",
+      alignment: "measured-from-visual-left",
+      productPlacement: "main-wall-around-feature"
+    }
+  }),
+  roomScene("corner-wall", "Corner Wall", "corner", "none", ["corner"], {
+    aliases: ["corner-tv-wall", "floating-corner"],
+    asset: sceneAsset(
+      "assets/photos/configurator/room-layouts/room-corner-v1.png",
+      1536,
+      1024
+    ),
+    camera: sceneCamera({
+      yawDegrees: -19.5,
+      normalizedTarget: Object.freeze({ x: 0.58, y: 0.45 })
+    }),
+    measurementSemantics: [
+      measurementSemantic("cornerReturn", "depth", "corner-return-front-edge", "back-wall-plane", {
+        strategy: "corner-depth", offset: 5, elevation: 5
+      })
+    ],
+    geometry: {
+      strategy: "corner-wall",
+      alignment: "visual-right-return",
+      productPlacement: "corner-wrap"
+    }
+  }),
+  roomScene("double-opening", "Between Openings", "clear-wall", "opening", ["opening"], {
+    aliases: ["between-openings"],
+    asset: sceneAsset(
+      "assets/photos/configurator/room-layouts/room-double-opening-v1.png",
+      1536,
+      1024
+    ),
+    measurementSemantics: [
+      measurementSemantic("openingLeftDistance", "width", "left-opening-inner-jamb", "visual-left-wall-boundary", {
+        strategy: "opening-width", feature: "opening-left", elevation: 8
+      }),
+      measurementSemantic("openingRightDistance", "width", "visual-right-wall-boundary", "right-opening-inner-jamb", {
+        strategy: "opening-width", feature: "opening-right", elevation: 8
+      })
+    ],
+    geometry: {
+      strategy: "between-openings",
+      alignment: "center",
+      productPlacement: "between-openings"
+    }
+  })
+]);
+
+const CANONICAL_ROOM_SCENE_BY_ID = new Map(
+  CANONICAL_ROOM_SCENES.map((scene) => [scene.id, scene])
+);
+const CANONICAL_ROOM_SCENE_ID_BY_ALIAS = new Map();
+
+for (const scene of CANONICAL_ROOM_SCENES) {
+  for (const alias of [scene.id, ...scene.aliases]) {
+    if (CANONICAL_ROOM_SCENE_ID_BY_ALIAS.has(alias)) {
+      throw new TypeError(`Duplicate canonical room-scene alias: ${alias}`);
+    }
+    CANONICAL_ROOM_SCENE_ID_BY_ALIAS.set(alias, scene.id);
+  }
+}
+
+export function canonicalizeRoomLayoutId(layoutId) {
+  if (typeof layoutId !== "string") return null;
+  const normalized = layoutId.trim().toLowerCase();
+  if (!normalized) return null;
+  return CANONICAL_ROOM_SCENE_ID_BY_ALIAS.get(normalized) || null;
+}
+
+export function getCanonicalRoomScene(layoutId) {
+  const canonicalId = canonicalizeRoomLayoutId(layoutId);
+  return canonicalId ? CANONICAL_ROOM_SCENE_BY_ID.get(canonicalId) || null : null;
+}
+
 const style = (id, label, options = {}) => Object.freeze({
   id,
   label,
@@ -170,453 +563,14 @@ const style = (id, label, options = {}) => Object.freeze({
   ...options
 });
 
-export const SHARED_ROOM_LAYOUTS = Object.freeze([
-  layout("niche-layout", "Niche Layout", "niche", "recess", ["niche"], {
-    previewAsset: "assets/photos/configurator/room-layouts/room-niche-layout-v1.png"
-  }),
-  layout("left-niche", "Left Niche", "left-niche", "recess", ["niche"], {
-    previewAsset: "assets/photos/configurator/room-layouts/room-left-niche-v1.png"
-  }),
-  layout("right-niche", "Right Niche", "right-niche", "recess", ["niche"], {
-    previewAsset: "assets/photos/configurator/room-layouts/room-right-niche-v1.png"
-  }),
-  layout("clear-wall", "Clear Wall", "clear-wall", "none", [], {
-    previewAsset: "assets/photos/configurator/room-layouts/room-clear-wall-v1.png"
-  }),
-  layout("fireplace-wall", "Fireplace Wall", "clear-wall", "fireplace", ["fireplace"], {
-    previewAsset: "assets/photos/configurator/room-layouts/room-fireplace-wall-v1.png"
-  }),
-  layout("center-recess", "Center Projection", "clear-wall", "recess", ["niche"], {
-    previewAsset: "assets/photos/configurator/room-layouts/room-center-projection-v1.png"
-  }),
-  layout("window-wall", "Window Wall", "clear-wall", "window", ["window"], {
-    previewAsset: "assets/photos/configurator/room-layouts/room-window-wall-v1.png"
-  }),
-  layout("door-wall", "Door Wall", "clear-wall", "door", ["door"], {
-    previewAsset: "assets/photos/configurator/room-layouts/room-door-wall-v1.png"
-  }),
-  layout("corner-wall", "Corner Wall", "corner", "none", ["corner"], {
-    previewAsset: "assets/photos/configurator/room-layouts/room-corner-v1.png"
-  }),
-  layout("double-opening", "Between Openings", "clear-wall", "opening", ["opening"], {
-    previewAsset: "assets/photos/configurator/room-layouts/room-double-opening-v1.png"
+export const SHARED_ROOM_LAYOUTS = Object.freeze(CANONICAL_ROOM_SCENES.map((scene) => (
+  layout(scene.id, scene.label, scene.condition, scene.feature, scene.tags, {
+    previewAsset: scene.asset.src,
+    previewMode: "image",
+    previewFit: scene.asset.fit,
+    previewPosition: `${scene.asset.focalPoint.x * 100}% ${scene.asset.focalPoint.y * 100}%`
   })
-]);
-
-const MEASUREMENT_DIAGRAM_AUTHORING_SIZE = Object.freeze({
-  width: 1000,
-  height: 640
-});
-
-const ROOM_MEASUREMENT_DIAGRAM_VIEWBOXES = Object.freeze({
-  "niche-layout": Object.freeze({ width: 627, height: 627, drawingTop: 160, drawingHeight: 307 }),
-  "left-niche": Object.freeze({ width: 627, height: 627, drawingTop: 160, drawingHeight: 307 }),
-  "right-niche": Object.freeze({ width: 627, height: 627, drawingTop: 160, drawingHeight: 307 }),
-  "clear-wall": Object.freeze({ width: 1536, height: 1024, drawingTop: 145, drawingHeight: 734 }),
-  "fireplace-wall": Object.freeze({ width: 627, height: 627, drawingTop: 160, drawingHeight: 307 }),
-  "center-recess": Object.freeze({ width: 1536, height: 1024, drawingTop: 145, drawingHeight: 734 }),
-  "window-wall": Object.freeze({ width: 1536, height: 1024, drawingTop: 145, drawingHeight: 734 }),
-  "door-wall": Object.freeze({ width: 1536, height: 1024, drawingTop: 145, drawingHeight: 734 }),
-  "corner-wall": Object.freeze({ width: 1536, height: 1024, drawingTop: 145, drawingHeight: 734 }),
-  "double-opening": Object.freeze({ width: 1536, height: 1024, drawingTop: 145, drawingHeight: 734 })
-});
-
-const dimensionSpan = (fieldId, axis, line, extensions, label, options = {}) => Object.freeze({
-  fieldId,
-  axis,
-  line: Object.freeze(line),
-  extensions: Object.freeze(extensions.map((extension) => Object.freeze(extension))),
-  label: Object.freeze(label),
-  priority: "primary",
-  labelOverride: "",
-  endStyle: axis === "depth" ? "tick" : "arrow",
-  extensionRole: axis === "depth" ? "tick" : "witness",
-  sourceWidth: MEASUREMENT_DIAGRAM_AUTHORING_SIZE.width,
-  sourceHeight: MEASUREMENT_DIAGRAM_AUTHORING_SIZE.height,
-  ...options
-});
-
-const BASE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "wallWidth",
-    "horizontal",
-    [145, 86, 870, 86],
-    [[145, 56, 145, 112], [870, 56, 870, 112]],
-    { x: 508, y: 86 },
-    { priority: "perimeter" }
-  ),
-  dimensionSpan(
-    "ceilingHeight",
-    "vertical",
-    [94, 68, 94, 532],
-    [[64, 68, 119, 68], [64, 532, 119, 532]],
-    { x: 130, y: 300 },
-    { priority: "perimeter" }
-  ),
-  dimensionSpan(
-    "desiredDepth",
-    "depth",
-    [824, 518, 964, 608],
-    [[810, 528, 835, 507], [953, 619, 977, 598]],
-    { x: 858, y: 558 },
-    { priority: "perimeter" }
-  )
-]);
-
-const DOOR_BASE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "wallWidth",
-    "horizontal",
-    [240, 178, 1295, 178],
-    [[240, 157, 240, 204], [1295, 157, 1295, 204]],
-    { x: 767.5, y: 178 },
-    {
-      priority: "perimeter",
-      sourceWidth: 1536,
-      sourceHeight: 1024
-    }
-  ),
-  dimensionSpan(
-    "ceilingHeight",
-    "vertical",
-    [270, 157, 270, 758],
-    [[240, 157, 292, 157], [240, 758, 292, 758]],
-    { x: 382, y: 457.5 },
-    {
-      priority: "perimeter",
-      sourceWidth: 1536,
-      sourceHeight: 1024
-    }
-  ),
-  dimensionSpan(
-    "desiredDepth",
-    "depth",
-    [1295, 758, 1452, 840],
-    [[1287, 773, 1303, 743], [1444, 855, 1460, 825]],
-    { x: 1352, y: 690 },
-    {
-      priority: "perimeter",
-      sourceWidth: 1536,
-      sourceHeight: 1024
-    }
-  )
-]);
-
-const DOUBLE_OPENING_BASE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "wallWidth",
-    "horizontal",
-    [304, 244, 1230, 244],
-    [[304, 214, 304, 274], [1230, 214, 1230, 274]],
-    { x: 767, y: 244 },
-    {
-      priority: "perimeter",
-      labelOverride: "Available wall width",
-      sourceWidth: 1536,
-      sourceHeight: 1024
-    }
-  ),
-  dimensionSpan(
-    "ceilingHeight",
-    "vertical",
-    [330, 150, 330, 785],
-    [[304, 150, 354, 150], [304, 785, 354, 785]],
-    { x: 430, y: 467.5 },
-    {
-      priority: "perimeter",
-      sourceWidth: 1536,
-      sourceHeight: 1024
-    }
-  ),
-  dimensionSpan(
-    "desiredDepth",
-    "depth",
-    [1230, 785, 1310, 828],
-    [[1222, 800, 1238, 770], [1302, 843, 1318, 813]],
-    { x: 1180, y: 752 },
-    {
-      priority: "perimeter",
-      sourceWidth: 1536,
-      sourceHeight: 1024
-    }
-  )
-]);
-
-const NICHE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "nicheWidth",
-    "horizontal",
-    [238, 200, 762, 200],
-    [[238, 172, 238, 226], [762, 172, 762, 226]],
-    { x: 500, y: 200 }
-  ),
-  dimensionSpan(
-    "nicheHeight",
-    "vertical",
-    [794, 202, 794, 518],
-    [[772, 202, 816, 202], [772, 518, 816, 518]],
-    { x: 794, y: 360 }
-  ),
-  dimensionSpan(
-    "nicheDepth",
-    "depth",
-    [224, 432, 151, 524],
-    [[212, 422, 236, 442], [139, 514, 163, 534]],
-    { x: 220, y: 470 },
-    { priority: "auxiliary" }
-  )
-]);
-
-const LEFT_NICHE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "nicheWidth",
-    "horizontal",
-    [198, 200, 785, 200],
-    [[198, 172, 198, 226], [785, 172, 785, 226]],
-    { x: 492, y: 200 }
-  ),
-  dimensionSpan(
-    "nicheHeight",
-    "vertical",
-    [818, 202, 818, 518],
-    [[796, 202, 840, 202], [796, 518, 840, 518]],
-    { x: 818, y: 360 }
-  ),
-  dimensionSpan(
-    "nicheDepth",
-    "depth",
-    [195, 426, 126, 520],
-    [[183, 416, 207, 436], [114, 510, 138, 530]],
-    { x: 194, y: 468 },
-    { priority: "auxiliary" }
-  )
-]);
-
-const RIGHT_NICHE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "nicheWidth",
-    "horizontal",
-    [215, 200, 802, 200],
-    [[215, 172, 215, 226], [802, 172, 802, 226]],
-    { x: 508, y: 200 }
-  ),
-  dimensionSpan(
-    "nicheHeight",
-    "vertical",
-    [842, 202, 842, 518],
-    [[820, 202, 864, 202], [820, 518, 864, 518]],
-    { x: 842, y: 360 }
-  ),
-  dimensionSpan(
-    "nicheDepth",
-    "depth",
-    [805, 426, 875, 520],
-    [[793, 436, 817, 416], [863, 530, 887, 510]],
-    { x: 806, y: 468 },
-    { priority: "auxiliary" }
-  )
-]);
-
-const CENTER_PROJECTION_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "nicheWidth",
-    "horizontal",
-    [386, 192, 614, 192],
-    [[386, 164, 386, 220], [614, 164, 614, 220]],
-    { x: 500, y: 192 },
-    { labelOverride: "Projection width" }
-  ),
-  dimensionSpan(
-    "nicheHeight",
-    "vertical",
-    [654, 194, 654, 520],
-    [[632, 194, 676, 194], [632, 520, 676, 520]],
-    { x: 654, y: 357 },
-    { labelOverride: "Projection height" }
-  ),
-  dimensionSpan(
-    "nicheDepth",
-    "depth",
-    [615, 436, 692, 520],
-    [[603, 446, 627, 426], [680, 530, 704, 510]],
-    { x: 682, y: 458 },
-    { priority: "auxiliary", labelOverride: "Projection depth" }
-  )
-]);
-
-const FIREPLACE_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "fireplaceWidth",
-    "horizontal",
-    [438, 374, 562, 374],
-    [[438, 348, 438, 400], [562, 348, 562, 400]],
-    { x: 500, y: 374 }
-  ),
-  dimensionSpan(
-    "fireplaceHeight",
-    "vertical",
-    [596, 378, 596, 518],
-    [[574, 378, 618, 378], [574, 518, 618, 518]],
-    { x: 596, y: 448 }
-  ),
-  dimensionSpan(
-    "mantelWidth",
-    "horizontal",
-    [408, 318, 592, 318],
-    [[408, 294, 408, 340], [592, 294, 592, 340]],
-    { x: 500, y: 318 },
-    { priority: "auxiliary" }
-  )
-]);
-
-const WINDOW_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "windowWidth",
-    "horizontal",
-    [420, 238, 580, 238],
-    [[420, 212, 420, 266], [580, 212, 580, 266]],
-    { x: 500, y: 238 }
-  ),
-  dimensionSpan(
-    "windowHeight",
-    "vertical",
-    [620, 246, 620, 432],
-    [[598, 246, 642, 246], [598, 432, 642, 432]],
-    { x: 620, y: 339 }
-  ),
-  dimensionSpan(
-    "sillHeight",
-    "vertical",
-    [672, 432, 672, 522],
-    [[650, 432, 694, 432], [650, 522, 694, 522]],
-    { x: 672, y: 477 },
-    { priority: "auxiliary" }
-  )
-]);
-
-const DOOR_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "doorWidth",
-    "horizontal",
-    [659, 232, 880, 232],
-    [[659, 208, 659, 279], [880, 208, 880, 279]],
-    { x: 769.5, y: 232 },
-    { sourceWidth: 1536, sourceHeight: 1024 }
-  ),
-  dimensionSpan(
-    "doorHeight",
-    "vertical",
-    [940, 279, 940, 758],
-    [[880, 279, 960, 279], [880, 758, 960, 758]],
-    { x: 1048, y: 518.5 },
-    { sourceWidth: 1536, sourceHeight: 1024 }
-  ),
-  dimensionSpan(
-    "doorLeftDistance",
-    "horizontal",
-    [240, 638, 639, 638],
-    [[240, 610, 240, 666], [639, 610, 639, 666]],
-    { x: 439.5, y: 638 },
-    {
-      priority: "auxiliary",
-      sourceWidth: 1536,
-      sourceHeight: 1024
-    }
-  )
-]);
-
-const CORNER_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "cornerReturn",
-    "horizontal",
-    [548, 252, 850, 252],
-    [[548, 226, 548, 280], [850, 226, 850, 280]],
-    { x: 699, y: 252 },
-    { labelOverride: "Corner wall return" }
-  )
-]);
-
-const DOUBLE_OPENING_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "openingLeftDistance",
-    "horizontal",
-    [304, 690, 520, 690],
-    [[304, 662, 304, 718], [520, 662, 520, 718]],
-    { x: 412, y: 690 },
-    { sourceWidth: 1536, sourceHeight: 1024 }
-  ),
-  dimensionSpan(
-    "openingRightDistance",
-    "horizontal",
-    [1016, 690, 1230, 690],
-    [[1016, 662, 1016, 718], [1230, 662, 1230, 718]],
-    { x: 1123, y: 690 },
-    { sourceWidth: 1536, sourceHeight: 1024 }
-  )
-]);
-
-const TV_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "tvScreenSize",
-    "diagonal",
-    [414, 276, 586, 382],
-    [[402, 286, 426, 266], [574, 392, 598, 372]],
-    { x: 438, y: 294 },
-    { labelOverride: "TV diagonal" }
-  ),
-  dimensionSpan(
-    "tvHeight",
-    "vertical",
-    [626, 268, 626, 390],
-    [[604, 268, 648, 268], [604, 390, 648, 390]],
-    { x: 626, y: 329 },
-    { labelOverride: "TV height" }
-  )
-]);
-
-const RADIATOR_MEASUREMENT_DIAGRAM_SPANS = Object.freeze([
-  dimensionSpan(
-    "radiatorWidth",
-    "horizontal",
-    [368, 400, 632, 400],
-    [[368, 374, 368, 428], [632, 374, 632, 428]],
-    { x: 500, y: 400 }
-  ),
-  dimensionSpan(
-    "radiatorHeight",
-    "vertical",
-    [674, 404, 674, 506],
-    [[652, 404, 696, 404], [652, 506, 696, 506]],
-    { x: 674, y: 455 }
-  ),
-  dimensionSpan(
-    "radiatorDepth",
-    "depth",
-    [635, 474, 700, 524],
-    [[625, 484, 645, 464], [690, 534, 710, 514]],
-    { x: 704, y: 488 },
-    { priority: "auxiliary" }
-  )
-]);
-
-const ROOM_MEASUREMENT_DIAGRAM_SPANS = Object.freeze({
-  "niche-layout": NICHE_MEASUREMENT_DIAGRAM_SPANS,
-  "left-niche": LEFT_NICHE_MEASUREMENT_DIAGRAM_SPANS,
-  "right-niche": RIGHT_NICHE_MEASUREMENT_DIAGRAM_SPANS,
-  "clear-wall": Object.freeze([]),
-  "fireplace-wall": FIREPLACE_MEASUREMENT_DIAGRAM_SPANS,
-  "center-recess": CENTER_PROJECTION_MEASUREMENT_DIAGRAM_SPANS,
-  "window-wall": WINDOW_MEASUREMENT_DIAGRAM_SPANS,
-  "door-wall": DOOR_MEASUREMENT_DIAGRAM_SPANS,
-  "corner-wall": CORNER_MEASUREMENT_DIAGRAM_SPANS,
-  "double-opening": DOUBLE_OPENING_MEASUREMENT_DIAGRAM_SPANS
-});
-
-const CLEAR_WALL_PRODUCT_MEASUREMENT_DIAGRAM_SPANS = Object.freeze({
-  "tv-unit": TV_MEASUREMENT_DIAGRAM_SPANS,
-  "window-storage": WINDOW_MEASUREMENT_DIAGRAM_SPANS,
-  "radiator-cover": RADIATOR_MEASUREMENT_DIAGRAM_SPANS
-});
+)));
 
 export const PUBLIC_BOOKCASE_STYLE_IDS = Object.freeze([
   "cabinet-base-shelves",
@@ -879,88 +833,6 @@ export const PRODUCT_INTEGRATED_PREVIEW_ASSETS = Object.freeze(Object.fromEntrie
   ])
 ));
 
-const envelope = (x, y, width, height) => Object.freeze({ x, y, width, height });
-
-/**
- * Normalized installation-wall envelopes keep product photography away from
- * openings and unrelated room surfaces. They are expressed in scene space
- * (0–1), so the room and product layers can share one responsive transform.
- */
-const LAYOUT_INSTALLATION_ENVELOPES = Object.freeze({
-  "niche-layout": envelope(0.13, 0.1, 0.74, 0.78),
-  "left-niche": envelope(0.18, 0.1, 0.72, 0.78),
-  "right-niche": envelope(0.1, 0.1, 0.72, 0.78),
-  "clear-wall": envelope(0.1, 0.08, 0.8, 0.8),
-  "fireplace-wall": envelope(0.08, 0.1, 0.84, 0.78),
-  "center-recess": envelope(0.12, 0.1, 0.76, 0.78),
-  "window-wall": envelope(0.08, 0.1, 0.84, 0.78),
-  "door-wall": envelope(0.08, 0.1, 0.84, 0.78),
-  "corner-wall": envelope(0.04, 0.08, 0.92, 0.82),
-  "double-opening": envelope(0.19, 0.1, 0.62, 0.78)
-});
-
-const PRODUCT_INSTALLATION_ENVELOPES = Object.freeze({
-  bookcase: envelope(0.04, 0.04, 0.92, 0.86),
-  "tv-unit": envelope(0.06, 0.07, 0.88, 0.82),
-  "floating-storage": envelope(0.06, 0.43, 0.88, 0.45),
-  "window-storage": envelope(0.04, 0.14, 0.92, 0.74),
-  "radiator-cover": envelope(0.06, 0.24, 0.88, 0.64)
-});
-
-const INSTALLATION_ENVELOPE_OVERRIDES = Object.freeze({
-  // The v2 scene was authored directly in the canonical Between Openings room.
-  // This padded envelope follows the cabinet perimeter while leaving both
-  // openings, the ceiling, and the foreground floor entirely to the room layer.
-  "tv-unit:framed-tv-wall:double-opening": Object.freeze({
-    id: "tv-unit-double-opening-v2-cabinet",
-    bounds: envelope(0.267, 0.195, 0.466, 0.61)
-  }),
-  "floating-storage:floating-drawer-bank:double-opening": Object.freeze({
-    id: "floating-storage-double-opening-v3-cabinet",
-    bounds: envelope(0.25, 0.493, 0.5, 0.195)
-  }),
-  "window-storage:window-seat-storage:double-opening": Object.freeze({
-    id: "window-storage-double-opening-v2-installation",
-    bounds: envelope(0.232, 0.125, 0.534, 0.713)
-  }),
-  "radiator-cover:clean-slat-cover:double-opening": Object.freeze({
-    id: "radiator-cover-double-opening-v2-installation",
-    bounds: envelope(0.265, 0.568, 0.471, 0.23)
-  })
-});
-
-function intersectInstallationEnvelopes(layoutEnvelope, productEnvelope) {
-  const x = Math.max(layoutEnvelope.x, productEnvelope.x);
-  const y = Math.max(layoutEnvelope.y, productEnvelope.y);
-  const right = Math.min(
-    layoutEnvelope.x + layoutEnvelope.width,
-    productEnvelope.x + productEnvelope.width
-  );
-  const bottom = Math.min(
-    layoutEnvelope.y + layoutEnvelope.height,
-    productEnvelope.y + productEnvelope.height
-  );
-  return envelope(x, y, Math.max(0, right - x), Math.max(0, bottom - y));
-}
-
-function resolveInstallationEnvelope(categoryId, styleId, layoutId) {
-  const previewKey = `${categoryId}:${styleId}:${layoutId}`;
-  const override = INSTALLATION_ENVELOPE_OVERRIDES[previewKey];
-  if (override) {
-    return Object.freeze({
-      id: override.id,
-      bounds: override.bounds
-    });
-  }
-
-  const layoutEnvelope = LAYOUT_INSTALLATION_ENVELOPES[layoutId] || envelope(0.08, 0.08, 0.84, 0.8);
-  const productEnvelope = PRODUCT_INSTALLATION_ENVELOPES[categoryId] || envelope(0.04, 0.04, 0.92, 0.86);
-  return Object.freeze({
-    id: `${layoutId}-${categoryId}-installation-wall`,
-    bounds: intersectInstallationEnvelopes(layoutEnvelope, productEnvelope)
-  });
-}
-
 export function getProductChoice(productId) {
   return PRODUCT_CHOICES.find((choice) => choice.id === productId) || null;
 }
@@ -1127,33 +999,43 @@ const BOOKCASE_STYLE_ALIASES = Object.freeze({
   "floating-lower-storage": "drawer-base-shelves"
 });
 
-const LEGACY_LAYOUT_ALIASES = Object.freeze({
-  "clear-tv-wall": "clear-wall",
-  "tv-niche": "niche-layout",
-  "fireplace-tv": "fireplace-wall",
-  "window-side-tv": "window-wall",
-  "corner-tv-wall": "corner-wall",
-  "floating-clear-wall": "clear-wall",
-  "floating-under-window": "window-wall",
-  "between-openings": "double-opening",
-  "wall-to-wall-floating": "niche-layout",
-  "floating-corner": "corner-wall",
-  "single-window": "window-wall",
-  "wide-window": "window-wall",
-  "bay-window": "window-wall",
-  "window-side-bookcases": "window-wall",
-  "window-radiator": "window-wall",
-  "standalone-radiator": "clear-wall",
-  "radiator-below-window": "window-wall",
-  "wall-to-wall-cover": "niche-layout",
-  "radiator-side-storage": "niche-layout",
-  "radiator-upper-shelving": "clear-wall"
-});
-
 const CATEGORY_MEASUREMENT_TAGS = Object.freeze({
   "tv-unit": Object.freeze(["tv"]),
   "window-storage": Object.freeze(["window"]),
   "radiator-cover": Object.freeze(["radiator"])
+});
+
+const CLEAR_WALL_CATEGORY_MEASUREMENT_SEMANTICS = Object.freeze({
+  "tv-unit": Object.freeze([
+    measurementSemantic("tvScreenSize", "diagonal", "screen-bottom-left", "screen-top-right", {
+      strategy: "screen-diagonal", feature: "screen"
+    }),
+    measurementSemantic("tvHeight", "height", "screen-bottom-edge", "screen-top-edge", {
+      strategy: "feature-height-visual-left", feature: "screen", offset: 5
+    })
+  ]),
+  "window-storage": Object.freeze([
+    measurementSemantic("windowWidth", "width", "window-left-jamb", "window-right-jamb", {
+      strategy: "feature-width-overhead", feature: "window", offset: 4
+    }),
+    measurementSemantic("windowHeight", "height", "window-sill", "window-head", {
+      strategy: "feature-height-visual-left", feature: "window", offset: 5
+    }),
+    measurementSemantic("sillHeight", "height", "finished-floor", "window-sill", {
+      strategy: "feature-height-visual-right", feature: "window", offset: 5
+    })
+  ]),
+  "radiator-cover": Object.freeze([
+    measurementSemantic("radiatorWidth", "width", "radiator-left-edge", "radiator-right-edge", {
+      strategy: "feature-width-overhead", feature: "radiator", offset: 4
+    }),
+    measurementSemantic("radiatorHeight", "height", "finished-floor", "radiator-top-edge", {
+      strategy: "feature-height-visual-left", feature: "radiator", offset: 5
+    }),
+    measurementSemantic("radiatorDepth", "depth", "radiator-front-face", "wall-face", {
+      strategy: "feature-depth", feature: "radiator", side: "visual-left", offset: 7, elevation: 4
+    })
+  ])
 });
 
 export function getCategory(categoryId) {
@@ -1161,8 +1043,10 @@ export function getCategory(categoryId) {
 }
 
 export function getLayout(categoryId, layoutId) {
-  const normalizedLayoutId = LEGACY_LAYOUT_ALIASES[layoutId] || layoutId;
-  return SHARED_ROOM_LAYOUTS.find((candidate) => candidate.id === normalizedLayoutId) || null;
+  const canonicalId = canonicalizeRoomLayoutId(layoutId);
+  return canonicalId
+    ? SHARED_ROOM_LAYOUTS.find((candidate) => candidate.id === canonicalId) || null
+    : null;
 }
 
 export function getStyle(categoryId, styleId) {
@@ -1197,71 +1081,43 @@ export function getMeasurementFields(categoryId, layoutId) {
   return fields;
 }
 
-function resolveMeasurementDiagramSpan(span, viewBox) {
-  const sourceWidth = span.sourceWidth || MEASUREMENT_DIAGRAM_AUTHORING_SIZE.width;
-  const sourceHeight = span.sourceHeight || MEASUREMENT_DIAGRAM_AUTHORING_SIZE.height;
-  const drawingTop = sourceWidth === MEASUREMENT_DIAGRAM_AUTHORING_SIZE.width
-    ? viewBox.drawingTop || 0
-    : 0;
-  const drawingHeight = sourceWidth === MEASUREMENT_DIAGRAM_AUTHORING_SIZE.width
-    ? viewBox.drawingHeight || viewBox.height
-    : viewBox.height;
-  const scaleCoordinates = (coordinates) => Object.freeze(coordinates.map((coordinate, index) => (
-    index % 2 === 0
-      ? (coordinate / sourceWidth) * viewBox.width
-      : drawingTop + (coordinate / sourceHeight) * drawingHeight
-  )));
-  return Object.freeze({
-    ...span,
-    line: scaleCoordinates(span.line),
-    extensions: Object.freeze(span.extensions.map((extension) => (
-      scaleCoordinates(extension)
-    ))),
-    label: Object.freeze({
-      x: (span.label.x / sourceWidth) * viewBox.width,
-      y: drawingTop + (span.label.y / sourceHeight) * drawingHeight
-    })
-  });
+export function getCanonicalRoomMeasurementSemantics(categoryId, layoutId) {
+  const scene = getCanonicalRoomScene(layoutId);
+  if (!scene) return Object.freeze([]);
+  const categorySemantics = scene.id === "clear-wall"
+    ? CLEAR_WALL_CATEGORY_MEASUREMENT_SEMANTICS[getCategory(categoryId).id] || []
+    : [];
+  return Object.freeze([...scene.measurementSemantics, ...categorySemantics]);
+}
+
+export function getCanonicalRoomMeasurementFieldIds(categoryId, layoutId) {
+  return Object.freeze(
+    getCanonicalRoomMeasurementSemantics(categoryId, layoutId)
+      .map((semantic) => semantic.fieldId)
+  );
 }
 
 export function getMeasurementDiagramSpec(categoryId, layoutId) {
-  const selectedLayout = getLayout(categoryId, layoutId);
-  const selectedCategory = getCategory(categoryId);
-  const viewBox = ROOM_MEASUREMENT_DIAGRAM_VIEWBOXES[selectedLayout?.id]
-    || ROOM_MEASUREMENT_DIAGRAM_VIEWBOXES["clear-wall"];
-  const availableFields = new Map(
-    getMeasurementFields(selectedCategory.id, selectedLayout?.id)
-      .filter((field) => field.type === "inches")
-      .map((field) => [field.id, field])
+  const scene = getCanonicalRoomScene(layoutId);
+  if (!scene) return null;
+  const fieldsById = new Map(
+    getMeasurementFields(categoryId, scene.id).map((field) => [field.id, field])
   );
-  const baseSpans = selectedLayout?.id === "door-wall"
-    ? DOOR_BASE_MEASUREMENT_DIAGRAM_SPANS
-    : selectedLayout?.id === "double-opening"
-      ? DOUBLE_OPENING_BASE_MEASUREMENT_DIAGRAM_SPANS
-      : BASE_MEASUREMENT_DIAGRAM_SPANS;
-  const layoutSpans = ROOM_MEASUREMENT_DIAGRAM_SPANS[selectedLayout?.id] || Object.freeze([]);
-  const productSpans = selectedLayout?.id === "clear-wall"
-    ? CLEAR_WALL_PRODUCT_MEASUREMENT_DIAGRAM_SPANS[selectedCategory.id] || Object.freeze([])
-    : Object.freeze([]);
-  const spans = [...baseSpans, ...layoutSpans, ...productSpans]
-    .filter((span) => availableFields.has(span.fieldId))
-    .map((span) => resolveMeasurementDiagramSpan(span, viewBox));
-
-  const productFeature = selectedLayout?.id === "clear-wall"
-    ? Object.freeze({
-        "tv-unit": "tv",
-        "window-storage": "window",
-        "radiator-cover": "radiator"
-      })[selectedCategory.id] || "none"
-    : "none";
+  const spans = getCanonicalRoomMeasurementSemantics(categoryId, scene.id).map((semantic) => {
+    const field = fieldsById.get(semantic.fieldId);
+    return Object.freeze({
+      ...semantic,
+      code: field?.code || "",
+      label: field?.label || semantic.fieldId
+    });
+  });
 
   return Object.freeze({
-    width: viewBox.width,
-    height: viewBox.height,
-    layoutId: selectedLayout?.id || "clear-wall",
-    feature: selectedLayout?.feature && selectedLayout.feature !== "none"
-      ? selectedLayout.feature
-      : productFeature,
+    width: scene.camera.frameWidth,
+    height: scene.camera.frameHeight,
+    layoutId: scene.id,
+    feature: scene.feature,
+    camera: scene.camera,
     spans: Object.freeze(spans)
   });
 }
@@ -1289,16 +1145,11 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
     : null;
 
   if (exactLayoutAsset && selectedLayout) {
-    const installation = resolveInstallationEnvelope(
-      categoryId,
-      selectedStyle.id,
-      selectedLayout.id
-    );
     return Object.freeze({
       previewKey,
       conceptAsset: exactLayoutAsset,
-      roomAsset: selectedLayout.previewAsset,
-      productAsset: exactLayoutAsset,
+      roomAsset: null,
+      productAsset: null,
       categoryId,
       styleId: selectedStyle.id,
       layoutId: selectedLayout.id,
@@ -1306,10 +1157,11 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
       layoutLabel: selectedLayout.label,
       layoutContextAsset: selectedLayout.previewAsset,
       layoutPreviewMode: selectedLayout.previewMode,
+      layoutPreviewFit: selectedLayout.previewFit,
       layoutPreviewPosition: selectedLayout.previewPosition,
-      installationEnvelopeId: installation.id,
-      installationEnvelope: installation.bounds,
-      renderMode: "layered"
+      installationEnvelopeId: null,
+      installationEnvelope: null,
+      renderMode: "integrated"
     });
   }
 
@@ -1326,6 +1178,7 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
       layoutLabel: selectedLayout.label,
       layoutContextAsset: selectedLayout.previewAsset,
       layoutPreviewMode: selectedLayout.previewMode,
+      layoutPreviewFit: selectedLayout.previewFit,
       layoutPreviewPosition: selectedLayout.previewPosition,
       installationEnvelopeId: null,
       installationEnvelope: null,
@@ -1348,9 +1201,10 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
     layoutLabel: selectedLayout?.label || null,
     layoutContextAsset: selectedLayout?.previewAsset || null,
     layoutPreviewMode: selectedLayout?.previewMode || "image",
+    layoutPreviewFit: selectedLayout?.previewFit || "contain",
     layoutPreviewPosition: selectedLayout?.previewPosition || "50% 50%",
     installationEnvelopeId: null,
-    installationEnvelope: selectedLayout ? envelope(0, 0, 1, 1) : null,
+    installationEnvelope: null,
     renderMode: selectedLayout ? "concept-with-room-context" : "concept-only"
   });
 }

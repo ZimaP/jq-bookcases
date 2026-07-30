@@ -3,19 +3,18 @@ import {
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
   PRODUCT_CHOICES,
-  PRODUCT_INTEGRATED_PREVIEW_ASSETS,
   SHARED_ROOM_LAYOUTS,
   getCategory,
+  getCanonicalRoomMeasurementFieldIds,
   getCompatibleDetails,
   getFinish,
   getLayout,
-  getMeasurementDiagramSpec,
   getMeasurementFields,
   getProductChoice,
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=room-scene-continuity-20260729a";
+} from "./guided-configurator-data.js?v=canonical-room-scenes-20260729a";
 import {
   buildProjectSummary,
   createProject,
@@ -23,8 +22,9 @@ import {
   formatInches,
   normalizeProject,
   parseInches,
+  prepareMeasurementsForLayout,
   validateMeasurements
-} from "./guided-configurator-state.js?v=room-scene-continuity-20260729a";
+} from "./guided-configurator-state.js?v=canonical-room-scenes-20260729a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -299,6 +299,14 @@ let toastTimer = 0;
 let draftTimer = 0;
 let storageWarningShown = false;
 const previewPreloadCache = new Set();
+let guidedSceneController = null;
+let guidedSceneImportPromise = null;
+let guidedSceneSyncToken = 0;
+let guidedSceneMeasurementTimer = 0;
+const layoutSceneThumbnailCache = new Map();
+let layoutSceneThumbnailController = null;
+let layoutSceneThumbnailHost = null;
+let layoutSceneThumbnailSyncToken = 0;
 
 if (app) {
   initializeStaticShell();
@@ -306,6 +314,13 @@ if (app) {
   bindAppEvents();
   bindDialogEvents();
   bindHistory();
+  window.addEventListener("pagehide", (event) => {
+    if (event.persisted) return;
+    window.clearTimeout(guidedSceneMeasurementTimer);
+    guidedSceneController?.dispose?.();
+    guidedSceneController = null;
+    disposeLayoutSceneThumbnailRenderer();
+  });
 }
 
 function initializeProject() {
@@ -398,8 +413,9 @@ function closeMenu() {
 
 function renderApp(options = {}) {
   if (!app) return;
+  window.clearTimeout(guidedSceneMeasurementTimer);
+  guidedSceneMeasurementTimer = 0;
   const step = STEP_DEFINITIONS[project.currentStep - 1];
-  if (project.currentStep >= 2) preloadPreviewAsset(project.previewAsset);
   app.innerHTML = `
     <div class="guided-shell guided-shell--step-${project.currentStep}">
       ${renderStepper()}
@@ -416,6 +432,8 @@ function renderApp(options = {}) {
   `;
   mountIcons(app);
   applyPreviewScale();
+  syncGuidedScene();
+  syncLayoutSceneThumbnails();
   scheduleDraftSave();
   scheduleLikelyNextStepImages();
 
@@ -428,14 +446,6 @@ function scheduleLikelyNextStepImages() {
   let assets = [];
   if (project.currentStep === 1 && project.productSelected) {
     assets = SHARED_ROOM_LAYOUTS.map((layout) => layout.previewAsset);
-  } else if ([2, 3].includes(project.currentStep)) {
-    const category = getCategory(project.category);
-    const selectedProduct = getProductChoiceForSelection(project.category, project.style);
-    assets = [
-      ...Object.values(PRODUCT_INTEGRATED_PREVIEW_ASSETS[selectedProduct?.id] || {}),
-      category.productPreviewAsset,
-      "assets/photos/configurator/concept-window-cabinets-v1.png"
-    ];
   }
 
   if (!assets.length) return;
@@ -475,13 +485,20 @@ function renderOptimizedPicture(asset, options = {}) {
   const loading = options.loading === "eager" ? "eager" : "lazy";
   const fetchPriority = options.fetchPriority ? ` fetchpriority="${escapeAttribute(options.fetchPriority)}"` : "";
   const style = options.style ? ` style="${escapeAttribute(options.style)}"` : "";
+  const deferredFallback = options.deferredFallback === true;
+  const sourceAttribute = deferredFallback
+    ? `data-fallback-srcset="${escapeAttribute(optimizedSource)}"`
+    : `srcset="${escapeAttribute(optimizedSource)}"`;
+  const imageSourceAttributes = deferredFallback
+    ? `src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" data-fallback-src="${escapeAttribute(source)}"`
+    : `src="${escapeAttribute(source)}"`;
 
   return `
     <picture class="${escapeAttribute(pictureClass)}" aria-hidden="true">
-      <source type="image/avif" srcset="${escapeAttribute(optimizedSource)}">
+      <source type="image/avif" ${sourceAttribute}>
       <img
         class="${escapeAttribute(imageClass)}"
-        src="${escapeAttribute(source)}"
+        ${imageSourceAttributes}
         alt=""
         loading="${loading}"
         decoding="async"
@@ -658,177 +675,35 @@ function renderLayoutStep() {
 }
 
 function renderLayoutPreview(layout) {
-  if (layout.previewMode === "sprite") {
-    const optimizedAsset = optimizedImageAsset(layout.previewAsset);
-    return `
-      <span
-        class="layout-illustration layout-illustration--photo layout-illustration--sprite"
-        aria-hidden="true"
-        style="background-image:url('${escapeAttribute(layout.previewAsset)}');background-image:image-set(url('${escapeAttribute(optimizedAsset)}') type('image/avif'),url('${escapeAttribute(layout.previewAsset)}') type('image/png'));background-position:${escapeAttribute(layout.previewPosition)}"
-      ></span>
-    `;
-  }
   return `
-    <span class="layout-illustration layout-illustration--photo" aria-hidden="true">
+    <span
+      class="layout-illustration layout-illustration--photo layout-illustration--canonical"
+      data-layout-thumbnail="${escapeAttribute(layout.id)}"
+      data-layout-thumbnail-state="loading"
+      data-room-scene-id="${escapeAttribute(layout.id)}"
+      style="--canonical-scene-fit:${escapeAttribute(layout.previewFit || "contain")};--canonical-scene-focal:${escapeAttribute(layout.previewPosition || "50% 50%")}"
+      aria-hidden="true"
+    >
       ${renderOptimizedPicture(layout.previewAsset, {
-        loading: "eager",
-        style: `object-position:${layout.previewPosition || "50% 50%"}`
+        loading: "lazy",
+        deferredFallback: true
       })}
+      <img
+        class="layout-3d-thumbnail"
+        data-layout-3d-thumbnail
+        alt=""
+        decoding="async"
+        hidden
+      >
     </span>
-  `;
-}
-
-function renderLayoutIllustration(layout) {
-  const leftReturn = ["niche", "left-niche"].includes(layout.condition);
-  const rightReturn = ["niche", "right-niche"].includes(layout.condition);
-  const isCorner = layout.condition === "corner";
-  const illustrationId = escapeAttribute(layout.id);
-  return `
-    <span class="layout-illustration layout-illustration--architectural" data-layout-variant="${escapeAttribute(layout.id)}" data-condition="${escapeAttribute(layout.condition)}" data-feature="${escapeAttribute(layout.feature)}" aria-hidden="true">
-      <svg class="layout-architectural-svg" viewBox="0 0 260 166" focusable="false">
-        <defs>
-          <linearGradient id="layout-wall-${illustrationId}" x1="0" y1="0" x2="0.85" y2="1">
-            <stop offset="0" stop-color="#f8f7f5"></stop>
-            <stop offset="0.55" stop-color="#efeeec"></stop>
-            <stop offset="1" stop-color="#e7e5e2"></stop>
-          </linearGradient>
-          <linearGradient id="layout-left-return-${illustrationId}" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="#d8d8d7"></stop>
-            <stop offset="1" stop-color="#efefee"></stop>
-          </linearGradient>
-          <linearGradient id="layout-right-return-${illustrationId}" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="#f1f1f0"></stop>
-            <stop offset="1" stop-color="#d2d2d1"></stop>
-          </linearGradient>
-          <linearGradient id="layout-floor-${illustrationId}" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stop-color="#d4bc9c"></stop>
-            <stop offset="1" stop-color="#bb9670"></stop>
-          </linearGradient>
-          <pattern id="layout-planks-${illustrationId}" width="56" height="12" patternUnits="userSpaceOnUse">
-            <rect width="56" height="12" fill="transparent"></rect>
-            <path d="M0 .5H56M0 11.5H56M18 0V12M46 0V12" fill="none" stroke="#8e6a47" stroke-opacity=".2" stroke-width=".7"></path>
-            <path d="M5 4c9-2 19-2 29 0M25 8c8-1 16-.8 25 .5" fill="none" stroke="#8e6a47" stroke-opacity=".12" stroke-width=".65"></path>
-          </pattern>
-          <radialGradient id="layout-fire-${illustrationId}" cx=".5" cy=".7" r=".7">
-            <stop offset="0" stop-color="#ffd16a"></stop>
-            <stop offset=".45" stop-color="#db6b20"></stop>
-            <stop offset="1" stop-color="#48150c"></stop>
-          </radialGradient>
-          <filter id="layout-shadow-${illustrationId}" x="-20%" y="-20%" width="140%" height="160%">
-            <feDropShadow dx="0" dy="2" stdDeviation="2.2" flood-color="#6e665d" flood-opacity=".17"></feDropShadow>
-          </filter>
-        </defs>
-        <rect width="260" height="166" fill="#fbfaf8"></rect>
-        <ellipse class="layout-room-shadow" cx="130" cy="153" rx="115" ry="7"></ellipse>
-        <path class="layout-drawing-wall" d="M29 24H231V116H29Z" fill="url(#layout-wall-${illustrationId})" filter="url(#layout-shadow-${illustrationId})"></path>
-        <path class="layout-drawing-floor" d="M29 116H231L252 156H8Z" fill="url(#layout-floor-${illustrationId})"></path>
-        <path class="layout-floor-texture" d="M29 116H231L252 156H8Z" fill="url(#layout-planks-${illustrationId})"></path>
-        <path class="layout-floor-board" d="M19 137H241M74 116L68 156M126 116L126 156M180 116L187 156"></path>
-        ${leftReturn
-    ? `<path class="layout-drawing-return layout-drawing-return--left" d="M29 24L9 36V137L29 116Z" fill="url(#layout-left-return-${illustrationId})"></path>`
-    : `<path class="layout-drawing-return layout-drawing-return--edge-left" d="M29 24L22 30V126L29 116Z" fill="url(#layout-left-return-${illustrationId})"></path>`}
-        ${rightReturn
-    ? `<path class="layout-drawing-return layout-drawing-return--right" d="M231 24L251 36V137L231 116Z" fill="url(#layout-right-return-${illustrationId})"></path>`
-    : `<path class="layout-drawing-return layout-drawing-return--edge-right" d="M231 24L238 30V126L231 116Z" fill="url(#layout-right-return-${illustrationId})"></path>`}
-        ${isCorner ? `<path class="layout-drawing-return layout-drawing-return--corner" d="M174 24L231 36V137L174 116Z" fill="url(#layout-right-return-${illustrationId})"></path><path class="layout-corner-line" d="M174 24V116"></path>` : ""}
-        <path class="layout-baseboard" d="M29 111H231V116H29Z"></path>
-        ${renderLayoutFeature(layout, illustrationId)}
-      </svg>
-    </span>
-  `;
-}
-
-function renderLayoutFeature(layout, illustrationId = escapeAttribute(layout.id)) {
-  if (layout.id === "center-recess") {
-    return `
-      <path class="layout-recess-side" d="M92 28L101 36V116H92Z"></path>
-      <path class="layout-recess-side layout-recess-side--right" d="M168 28L159 36V116H168Z"></path>
-      <path class="layout-recess-shadow" d="M92 28H168V116H92Z"></path>
-      <path class="layout-recess-cap" d="M88 24H172V31H88Z"></path>
-    `;
-  }
-  if (layout.id === "double-opening") {
-    return `${renderDoorFeature(59)}${renderDoorFeature(159)}`;
-  }
-  if (layout.id === "bay-window") {
-    return `
-      <path class="layout-window-frame" d="M91 51L108 44H152L169 51V102L152 108H108L91 102Z"></path>
-      <path class="layout-window-line" d="M108 44V108M152 44V108M130 44V108M91 76H169"></path>
-    `;
-  }
-
-  let markup = "";
-  if (layout.feature === "window") {
-    const wide = ["wide-window", "window-side-bookcases"].includes(layout.id);
-    const x = wide ? 82 : 99;
-    const width = wide ? 96 : 62;
-    const innerX = x + 6;
-    const innerWidth = width - 12;
-    markup += `
-      <rect class="layout-window-trim" x="${x}" y="43" width="${width}" height="67" rx="1"></rect>
-      <rect class="layout-window-frame" x="${innerX}" y="49" width="${innerWidth}" height="55" rx=".5"></rect>
-      <path class="layout-window-line" d="M${innerX + innerWidth / 3} 49V104M${innerX + (innerWidth * 2) / 3} 49V104M${innerX} 76.5H${innerX + innerWidth}"></path>
-      <path class="layout-window-sill" d="M${x - 5} 111H${x + width + 5}"></path>
-    `;
-  } else if (layout.feature === "door") {
-    markup += renderDoorFeature(107);
-  } else if (layout.feature === "fireplace") {
-    markup += `
-      <path class="layout-chimney-side" d="M105 29L112 35V116H105Z"></path>
-      <path class="layout-chimney-side layout-chimney-side--right" d="M155 29L148 35V116H155Z"></path>
-      <rect class="layout-chimney-front" x="105" y="29" width="50" height="87"></rect>
-      <path class="layout-chimney-cap" d="M100 25H160V32H100Z"></path>
-      <path class="layout-mantel" d="M98 80H162V88H98Z"></path>
-      <rect class="layout-fireplace-surround" x="108" y="88" width="44" height="28"></rect>
-      <rect class="layout-firebox" x="114" y="94" width="32" height="22" fill="url(#layout-fire-${illustrationId})"></rect>
-      <path class="layout-fire" d="M120 115C118 107 124 103 127 97C130 104 136 105 136 113C140 110 142 106 143 103C148 109 147 114 145 116Z"></path>
-    `;
-  } else if (layout.feature === "tv") {
-    markup += `
-      <rect class="layout-tv-screen" x="91" y="52" width="78" height="42" rx="1"></rect>
-      <path class="layout-tv-glint" d="M98 58L119 58"></path>
-      <path class="layout-tv-console" d="M80 103H180V114H80Z"></path>
-    `;
-  } else if (layout.feature === "radiator") {
-    markup += renderRadiatorFeature();
-  }
-
-  if (layout.id === "fireplace-tv") {
-    markup += '<rect class="layout-tv-screen" x="105" y="39" width="50" height="29" rx="1"></rect>';
-  }
-  if (["window-radiator", "radiator-below-window"].includes(layout.id)) {
-    markup += renderRadiatorFeature(112);
-  }
-  if (layout.id === "window-side-tv") {
-    markup += '<rect class="layout-tv-screen layout-tv-screen--side" x="49" y="61" width="43" height="27" rx="1"></rect>';
-  }
-  return markup;
-}
-
-function renderDoorFeature(x) {
-  return `
-    <rect class="layout-door-trim" x="${x - 4}" y="39" width="54" height="77"></rect>
-    <rect class="layout-door-frame" x="${x}" y="43" width="46" height="73"></rect>
-    <path class="layout-door-panel" d="M${x + 7} 51H${x + 39}V76H${x + 7}ZM${x + 7} 83H${x + 39}V108H${x + 7}Z"></path>
-    <circle class="layout-door-knob" cx="${x + 37}" cy="80" r="1.8"></circle>
-  `;
-}
-
-function renderRadiatorFeature(y = 81) {
-  return `
-    <rect class="layout-radiator-frame" x="99" y="${y}" width="62" height="27" rx="3"></rect>
-    <path class="layout-radiator-fins" d="M107 ${y + 5}V${y + 22}M116 ${y + 5}V${y + 22}M125 ${y + 5}V${y + 22}M134 ${y + 5}V${y + 22}M143 ${y + 5}V${y + 22}M152 ${y + 5}V${y + 22}"></path>
   `;
 }
 
 function renderMeasurementStep() {
   const selectedLayout = getLayout(project.category, project.layout);
-  const diagramFields = getMeasurementFields(project.category, project.layout);
-  const fields = selectedLayout?.feature === "window"
-    ? diagramFields.filter((field) => !["windowLeftDistance", "windowRightDistance"].includes(field.id))
-    : diagramFields;
-  const diagramFieldIds = new Set(
-    selectMeasurementDiagramFields(fields, selectedLayout).map((field) => field.id)
+  const fields = getMeasurementFields(project.category, project.layout);
+  const calloutFieldIds = new Set(
+    getCanonicalRoomMeasurementFieldIds(project.category, selectedLayout?.id)
   );
   const denseMeasurements = fields.length > 9;
   const validation = validateMeasurements(project);
@@ -840,7 +715,7 @@ function renderMeasurementStep() {
       ? `<h2 class="measurement-group-title">${escapeHtml(field.group)}</h2>`
       : "";
     previousGroup = field.group;
-    return `${groupHeading}${renderMeasurementField(field, warning, diagramFieldIds.has(field.id))}`;
+    return `${groupHeading}${renderMeasurementField(field, warning, calloutFieldIds.has(field.id))}`;
   }).join("");
 
   return `
@@ -861,7 +736,7 @@ function renderMeasurementStep() {
           ${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}
         </p>
       </section>
-      ${renderMeasurementDiagram(selectMeasurementDiagramFields(fields, selectedLayout), selectedLayout)}
+      ${renderMeasurementDiagram(selectedLayout)}
     </div>
     <aside class="guided-info">
       <i data-icon="information" aria-hidden="true"></i>
@@ -878,22 +753,12 @@ function renderMeasurementStep() {
   `;
 }
 
-function selectMeasurementDiagramFields(fields, selectedLayout) {
-  const fieldsById = new Map(fields.map((field) => [field.id, field]));
-  return getMeasurementDiagramSpec(project.category, selectedLayout?.id)
-    .spans
-    .map((span) => fieldsById.get(span.fieldId))
-    .filter(Boolean);
-}
-
 function renderMeasurementField(field, warning, showDiagramCode = true) {
   const value = project.measurements[field.id];
   const referenceLabels = {
     wallWidth: "Wall Width",
     ceilingHeight: "Ceiling Height",
     desiredDepth: "Desired Built-In Depth",
-    leftReturn: "Left Return",
-    rightReturn: "Right Return",
     windowWidth: "Window Width",
     windowHeight: "Window Height",
     sillHeight: "Sill Height",
@@ -955,29 +820,15 @@ function renderMeasurementField(field, warning, showDiagramCode = true) {
   `;
 }
 
-function renderMeasurementDiagram(fields, selectedLayout) {
-  const diagramSpec = getMeasurementDiagramSpec(project.category, selectedLayout?.id);
-  const fieldsById = new Map(
-    fields
-      .filter((field) => field.type === "inches")
-      .map((field) => [field.id, field])
-  );
-  const dimensions = diagramSpec.spans
-    .map((span) => ({ span, field: fieldsById.get(span.fieldId) }))
-    .filter(({ field }) => Boolean(field));
+function renderMeasurementDiagram(selectedLayout) {
   const roomVisual = renderOptimizedPicture(
     selectedLayout?.previewAsset || getLayout(project.category, "clear-wall")?.previewAsset,
     {
       pictureClass: "measurement-room-image",
       imageClass: "measurement-room-image",
-      loading: "eager",
-      fetchPriority: "high"
+      deferredFallback: true
     }
   );
-  const syntheticFeature = (
-    selectedLayout?.id === "clear-wall"
-    && ["tv", "window", "radiator"].includes(diagramSpec.feature)
-  ) ? '<span class="measurement-feature" aria-hidden="true"></span>' : "";
 
   return `
     <figure class="measurement-diagram-card" aria-label="Measurement diagram for ${escapeAttribute(selectedLayout?.label || "selected layout")}">
@@ -985,171 +836,18 @@ function renderMeasurementDiagram(fields, selectedLayout) {
         class="measurement-room measurement-room--photo"
         data-layout="${escapeAttribute(selectedLayout?.id || "clear-wall")}"
         data-condition="${escapeAttribute(selectedLayout?.condition || "clear-wall")}"
-        data-feature="${escapeAttribute(diagramSpec.feature)}"
+        data-feature="${escapeAttribute(selectedLayout?.feature || "none")}"
+        style="--canonical-scene-fit:${escapeAttribute(selectedLayout?.previewFit || "contain")};--canonical-scene-focal:${escapeAttribute(selectedLayout?.previewPosition || "50% 50%")}"
       >
         ${roomVisual}
-        ${syntheticFeature}
-        ${renderDimensionDrawing(dimensions, diagramSpec)}
+        <div
+          class="guided-3d-mount guided-3d-mount--measurements"
+          data-guided-3d-mount
+          data-guided-3d-mode="measurements"
+          aria-label="Interactive three-dimensional room measurement preview"
+        ></div>
       </div>
     </figure>
-  `;
-}
-
-function renderDimensionDrawing(dimensions, diagramSpec) {
-  return `
-    <svg
-      class="dimension-overlay measurement-dimension-drawing"
-      data-dimension-overlay
-      data-dimension-drawing
-      data-dimension-count="${dimensions.length}"
-      viewBox="0 0 ${diagramSpec.width} ${diagramSpec.height}"
-      preserveAspectRatio="xMidYMid slice"
-      aria-hidden="true"
-      focusable="false"
-    >
-      ${dimensions.map(({ field, span }) => {
-        const [x1, y1, x2, y2] = span.line;
-        const value = project.measurements[field.id];
-        const displayValue = value === null || value === undefined
-          ? "Add estimate"
-          : `${formatInches(value)} in`;
-        const annotationName = getDimensionAnnotationName(field, span);
-        const labelScale = diagramSpec.width / 1000;
-        const labelWidth = Math.min(
-          190,
-          Math.max(
-            112,
-            annotationName.length * 4.8 + (field.code ? 34 : 0) + 20
-          )
-        ) * labelScale;
-        const labelHeight = 32 * labelScale;
-        const labelRadius = 8 * labelScale;
-        return `
-          <g
-            class="measurement-dimension-span"
-            data-dimension-span="${escapeAttribute(field.id)}"
-            data-dimension-code="${escapeAttribute(field.code || "")}"
-            data-dimension-axis="${escapeAttribute(span.axis)}"
-            data-dimension-priority="${escapeAttribute(span.priority)}"
-            data-dimension-end-style="${escapeAttribute(span.endStyle)}"
-          >
-            ${span.extensions.map(([extensionX1, extensionY1, extensionX2, extensionY2], index) => `
-              <line
-                class="measurement-dimension-extension${span.extensionRole === "tick" ? " is-end-tick" : ""}"
-                data-dimension-extension="${escapeAttribute(field.id)}"
-                data-dimension-tick="${index === 0 ? "start" : "end"}"
-                x1="${extensionX1}"
-                y1="${extensionY1}"
-                x2="${extensionX2}"
-                y2="${extensionY2}"
-              ></line>
-            `).join("")}
-            <line
-              class="measurement-dimension-line"
-              data-dimension-line="${escapeAttribute(field.id)}"
-              x1="${x1}"
-              y1="${y1}"
-              x2="${x2}"
-              y2="${y2}"
-            ></line>
-            ${span.endStyle === "arrow"
-              ? renderDimensionArrowheads(span.line, diagramSpec.width)
-              : ""}
-            <g
-              class="measurement-annotation-anchor"
-              transform="translate(${span.label.x} ${span.label.y})"
-            >
-              <g
-                class="dimension-chip measurement-annotation"
-                data-dimension-chip="${escapeAttribute(field.id)}"
-                data-dimension-label="${escapeAttribute(field.id)}"
-                data-dimension-code="${escapeAttribute(field.code || "")}"
-                data-dimension-priority="${escapeAttribute(span.priority)}"
-                style="--dimension-label-font-size:${11 * labelScale}px;--dimension-value-font-size:${9.5 * labelScale}px;--dimension-shadow-y:${3 * labelScale}px;--dimension-shadow-blur:${6 * labelScale}px"
-              >
-                <g class="measurement-annotation-copy">
-                  <rect
-                    class="measurement-annotation-card"
-                    x="${-labelWidth / 2}"
-                    y="${-labelHeight / 2}"
-                    width="${labelWidth}"
-                    height="${labelHeight}"
-                    rx="${labelRadius}"
-                    ry="${labelRadius}"
-                  ></rect>
-                  <text
-                    class="measurement-annotation-label"
-                    text-anchor="middle"
-                    x="0"
-                    y="${-3 * labelScale}"
-                  >
-                    ${field.code ? `<tspan class="measurement-annotation-code">${escapeHtml(field.code)}</tspan>` : ""}
-                    ${field.code ? `<tspan class="measurement-annotation-separator" dx="${4 * labelScale}">·</tspan>` : ""}
-                    <tspan class="measurement-annotation-name"${field.code ? ` dx="${4 * labelScale}"` : ""}>${escapeHtml(annotationName)}</tspan>
-                  </text>
-                  <text
-                    class="measurement-annotation-value"
-                    data-dimension-value
-                    text-anchor="middle"
-                    x="0"
-                    y="${13 * labelScale}"
-                  >${escapeHtml(displayValue)}</text>
-                </g>
-              </g>
-            </g>
-          </g>
-        `;
-      }).join("")}
-    </svg>
-  `;
-}
-
-function getDimensionAnnotationName(field, span) {
-  const referenceLabels = {
-    wallWidth: "Wall width",
-    ceilingHeight: "Ceiling height",
-    desiredDepth: "Built-in depth",
-    windowWidth: "Window width",
-    windowHeight: "Window height",
-    tvScreenSize: "TV diagonal",
-    tvHeight: "TV height"
-  };
-  return span.labelOverride || referenceLabels[field.id] || field.label;
-}
-
-function renderDimensionArrowheads(line, diagramWidth) {
-  const [x1, y1, x2, y2] = line;
-  const deltaX = x2 - x1;
-  const deltaY = y2 - y1;
-  const length = Math.hypot(deltaX, deltaY);
-  if (!length) return "";
-  const unitX = deltaX / length;
-  const unitY = deltaY / length;
-  const normalX = -unitY;
-  const normalY = unitX;
-  const arrowScale = diagramWidth / 1000;
-  const arrowLength = 9 * arrowScale;
-  const arrowHalfWidth = 4.25 * arrowScale;
-  const startBaseX = x1 + unitX * arrowLength;
-  const startBaseY = y1 + unitY * arrowLength;
-  const endBaseX = x2 - unitX * arrowLength;
-  const endBaseY = y2 - unitY * arrowLength;
-  const arrowPath = (tipX, tipY, baseX, baseY) => (
-    `M${tipX} ${tipY}`
-    + `L${baseX + normalX * arrowHalfWidth} ${baseY + normalY * arrowHalfWidth}`
-    + `L${baseX - normalX * arrowHalfWidth} ${baseY - normalY * arrowHalfWidth}Z`
-  );
-  return `
-    <path
-      class="measurement-dimension-arrow"
-      data-dimension-end="start"
-      d="${arrowPath(x1, y1, startBaseX, startBaseY)}"
-    ></path>
-    <path
-      class="measurement-dimension-arrow"
-      data-dimension-end="end"
-      d="${arrowPath(x2, y2, endBaseX, endBaseY)}"
-    ></path>
   `;
 }
 
@@ -1329,27 +1027,6 @@ function renderConceptPreview() {
   const hardware = DETAIL_OPTIONS.hardware.find((option) => option.id === project.hardware);
   const doorCount = category.id === "floating-storage" ? 5 : category.id === "window-storage" ? 6 : 4;
   const previewScope = conceptPreviewScope(category, layout, selectedStyle, previewPresentation);
-  const roomAsset = previewPresentation.roomAsset || (
-    previewPresentation.productAsset ? null : previewPresentation.conceptAsset
-  );
-  const productAsset = previewPresentation.productAsset;
-  const installationEnvelope = previewPresentation.installationEnvelope;
-  const installationEnvelopeValue = installationEnvelope
-    ? [
-        installationEnvelope.x,
-        installationEnvelope.y,
-        installationEnvelope.width,
-        installationEnvelope.height
-      ].join(",")
-    : "";
-  const installationEnvelopeStyle = installationEnvelope
-    ? [
-        `--installation-top:${installationEnvelope.y * 100}%`,
-        `--installation-right:${(1 - installationEnvelope.x - installationEnvelope.width) * 100}%`,
-        `--installation-bottom:${(1 - installationEnvelope.y - installationEnvelope.height) * 100}%`,
-        `--installation-left:${installationEnvelope.x * 100}%`
-      ].join(";")
-    : "";
 
   return `
     <figure
@@ -1361,12 +1038,10 @@ function renderConceptPreview() {
       data-finish="${escapeAttribute(finish.id)}"
       data-finish-family="${escapeAttribute(finish.family)}"
       data-preview-asset="${escapeAttribute(previewPresentation.conceptAsset)}"
-      data-room-asset="${escapeAttribute(roomAsset || "")}"
-      data-product-asset="${escapeAttribute(productAsset || "")}"
       data-layout-context-asset="${escapeAttribute(previewPresentation.layoutContextAsset || "")}"
       data-preview-render-mode="${escapeAttribute(previewPresentation.renderMode)}"
       data-preview-scope="${escapeAttribute(previewScope.id)}"
-      style="--scene-object-position:${escapeAttribute(previewPresentation.layoutPreviewPosition || "50% 50%")};--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)}"
+      style="--canonical-scene-fit:${escapeAttribute(previewPresentation.layoutPreviewFit || "contain")};--canonical-scene-focal:${escapeAttribute(previewPresentation.layoutPreviewPosition || "50% 50%")};--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)}"
       aria-label="${escapeAttribute(`${selectedProduct?.label || selectedStyle.label} for ${layout?.label || category.label} in ${finish.label}`)}"
     >
       <div class="concept-preview-meta">
@@ -1380,39 +1055,16 @@ function renderConceptPreview() {
         ${renderConceptLayoutContext(layout, previewPresentation)}
       </div>
       <div class="concept-scene-shell">
-        <div class="concept-scene" data-concept-scene data-scene-fit="cover">
-          ${roomAsset ? `
-            <div
-              class="concept-room-layer"
-              data-room-layer
-              data-room-asset="${escapeAttribute(roomAsset)}"
-            >
-              ${renderOptimizedPicture(roomAsset, {
-                pictureClass: "concept-layer-picture concept-room-picture",
-                imageClass: "concept-layer-image concept-room-image",
-                loading: "eager",
-                fetchPriority: "high"
-              })}
-            </div>
-          ` : ""}
-          ${productAsset ? `
-            <div
-              class="concept-product-layer"
-              data-product-layer
-              data-product-asset="${escapeAttribute(productAsset)}"
-              data-installation-envelope-id="${escapeAttribute(previewPresentation.installationEnvelopeId || "full-scene")}"
-              data-installation-envelope="${escapeAttribute(installationEnvelopeValue)}"
-              style="${escapeAttribute(installationEnvelopeStyle)}"
-            >
-              ${renderOptimizedPicture(productAsset, {
-                pictureClass: "concept-photo concept-layer-picture concept-product-picture",
-                imageClass: "concept-photo concept-layer-image concept-product-image",
-                loading: "eager",
-                fetchPriority: "high"
-              })}
-              ${renderConceptFinishOverlay(productAsset)}
-            </div>
-          ` : ""}
+        <div class="concept-scene" data-concept-scene>
+          ${renderOptimizedPicture(previewPresentation.conceptAsset, {
+            pictureClass: "concept-photo",
+            imageClass: "concept-photo",
+            deferredFallback: true
+          })}
+          ${renderConceptFinishOverlay(previewPresentation.conceptAsset, {
+            deferredFallback: true,
+            fit: previewPresentation.layoutPreviewFit
+          })}
           ${previewPresentation.renderMode === "missing-integrated-scene" ? `
             <div class="concept-preview-unavailable" role="status">
               <strong>Room-specific concept in preparation</strong>
@@ -1424,6 +1076,12 @@ function renderConceptPreview() {
             data-style="${escapeAttribute(selectedStyle.id)}"
             style="display:none;--unit-finish:${escapeAttribute(finish.color)};--accent-finish:${escapeAttribute(accentFinish.color)};--hardware-color:${escapeAttribute(hardware?.color || "#302d2a")};--door-count:${doorCount}"
             aria-hidden="true"
+          ></div>
+          <div
+            class="guided-3d-mount guided-3d-mount--concept"
+            data-guided-3d-mount
+            data-guided-3d-mode="concept"
+            aria-label="${escapeAttribute(`Interactive three-dimensional ${selectedProduct?.label || selectedStyle.label} preview in the selected ${layout?.label || "room"}`)}"
           ></div>
         </div>
       </div>
@@ -1451,7 +1109,7 @@ function renderConceptLayoutContext(layout, previewPresentation) {
   `;
 }
 
-function renderConceptFinishOverlay(previewAsset) {
+function renderConceptFinishOverlay(previewAsset, options = {}) {
   const assetName = String(previewAsset || "").split("/").pop();
   const definition = CONCEPT_FINISH_MASKS[previewAsset]
     || CONCEPT_FINISH_MASKS[assetName]
@@ -1462,7 +1120,9 @@ function renderConceptFinishOverlay(previewAsset) {
   const maskContents = definition.maskAsset
     ? `
       <image
-        href="${escapeAttribute(definition.maskAsset)}"
+        ${options.deferredFallback
+          ? `data-fallback-href="${escapeAttribute(definition.maskAsset)}"`
+          : `href="${escapeAttribute(definition.maskAsset)}"`}
         x="0"
         y="0"
         width="${definition.width || 1536}"
@@ -1485,7 +1145,7 @@ function renderConceptFinishOverlay(previewAsset) {
     <svg
       class="concept-finish-overlay"
       viewBox="${definition.viewBox || "0 0 1536 1024"}"
-      preserveAspectRatio="xMidYMid slice"
+      preserveAspectRatio="xMidYMid ${options.fit === "cover" ? "slice" : "meet"}"
       aria-hidden="true"
       focusable="false"
     >
@@ -1806,7 +1466,9 @@ function selectLayout(layoutId) {
   project = normalizeProject({
     ...project,
     layout: layoutId,
-    measurements: project.measurements,
+    measurements: project.layout === layoutId
+      ? project.measurements
+      : prepareMeasurementsForLayout(project, layoutId),
     updatedAt: new Date().toISOString()
   });
   renderApp();
@@ -1878,7 +1540,6 @@ function updateMeasurementFromControl(control, options = {}) {
   project.measurements[field.id] = value;
   project.updatedAt = new Date().toISOString();
   scheduleDraftSave();
-  updateDimensionChip(field, value);
 
   const row = control.closest("[data-measurement-row]");
   const formatErrorId = `measurement-format-error-${field.id}`;
@@ -1900,14 +1561,7 @@ function updateMeasurementFromControl(control, options = {}) {
     control.setAttribute("aria-describedby", describedBy.join(" "));
   }
 
-  const existingWarning = row?.querySelector(".measurement-warning");
-  if (field.type === "inches" && value !== null && (value < field.min || value > field.max)) {
-    const message = `${field.label} is outside our usual ${formatInches(field.min)}–${formatInches(field.max)} in range. You can continue and our team will review it.`;
-    if (existingWarning) existingWarning.textContent = message;
-    else row?.insertAdjacentHTML("beforeend", `<small class="measurement-warning">${escapeHtml(message)}</small>`);
-  } else {
-    existingWarning?.remove();
-  }
+  syncMeasurementWarnings();
 
   if (control.type === "radio") {
     row?.querySelectorAll(".measurement-toggle label").forEach((label) => {
@@ -1918,14 +1572,62 @@ function updateMeasurementFromControl(control, options = {}) {
   const errorBox = app.querySelector("[data-measurement-error]");
   if (errorBox && validateMeasurements(project).valid) errorBox.hidden = true;
   if (options.finalize && field.type === "inches" && value !== null) control.value = formatInches(value, { decimal: true });
+  scheduleMeasurementSceneUpdate({ immediate: options.finalize });
 }
 
-function updateDimensionChip(field, value) {
-  const chip = app.querySelector(`[data-dimension-chip="${CSS.escape(field.id)}"] [data-dimension-value]`);
-  if (!chip) return;
-  chip.textContent = field.type === "select"
-    ? field.values.find((option) => option.value === value)?.label || "Not sure"
-    : value === null ? "Add estimate" : `${formatInches(value)} in`;
+function syncMeasurementWarnings() {
+  const warningsByField = new Map();
+  for (const warning of validateMeasurements(project).warnings) {
+    if (!warningsByField.has(warning.field)) warningsByField.set(warning.field, []);
+    warningsByField.get(warning.field).push(warning.message);
+  }
+
+  app.querySelectorAll("[data-measurement-row]").forEach((row) => {
+    const fieldId = row.dataset.measurementRow;
+    const warningId = `measurement-warning-${fieldId}`;
+    const messages = warningsByField.get(fieldId) || [];
+    const controls = row.querySelectorAll("[data-measurement]");
+    let warning = row.querySelector(".measurement-warning");
+
+    if (messages.length) {
+      if (!warning) {
+        warning = document.createElement("small");
+        warning.className = "measurement-warning";
+        row.appendChild(warning);
+      }
+      warning.id = warningId;
+      warning.textContent = messages.join(" ");
+      controls.forEach((control) => {
+        const describedBy = new Set(
+          (control.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean)
+        );
+        describedBy.add(warningId);
+        control.setAttribute("aria-describedby", [...describedBy].join(" "));
+      });
+      return;
+    }
+
+    warning?.remove();
+    controls.forEach((control) => {
+      const describedBy = (control.getAttribute("aria-describedby") || "")
+        .split(/\s+/)
+        .filter((id) => id && id !== warningId);
+      control.setAttribute("aria-describedby", describedBy.join(" "));
+    });
+  });
+}
+
+function scheduleMeasurementSceneUpdate(options = {}) {
+  window.clearTimeout(guidedSceneMeasurementTimer);
+  const update = () => {
+    guidedSceneMeasurementTimer = 0;
+    guidedSceneController?.update(project, getGuidedSceneOptions());
+  };
+  if (options.immediate) {
+    update();
+    return;
+  }
+  guidedSceneMeasurementTimer = window.setTimeout(update, 120);
 }
 
 function updateProject(patch) {
@@ -1940,13 +1642,218 @@ function updatePreviewScale(action) {
   if (action === "in") previewScale = Math.min(1.2, previewScale + 0.1);
   else if (action === "out") previewScale = Math.max(0.8, previewScale - 0.1);
   else previewScale = 1;
+  guidedSceneController?.zoom(action);
   applyPreviewScale();
 }
 
 function applyPreviewScale() {
   app?.querySelectorAll("[data-concept-scene]").forEach((scene) => {
-    scene.style.setProperty("--preview-scale", String(previewScale));
+    scene.style.setProperty(
+      "--preview-scale",
+      scene.dataset.guided3dState === "ready" ? "1" : String(previewScale)
+    );
   });
+}
+
+function getGuidedSceneOptions() {
+  return {
+    showDimensions: project.currentStep === 3,
+    showProduct: project.currentStep >= 4
+  };
+}
+
+function updateGuidedSceneState(state) {
+  const mount = app?.querySelector("[data-guided-3d-mount]");
+  const scene = mount?.closest(".measurement-room, .concept-scene");
+  if (!scene) return;
+  if (state === "fallback") activateGuidedFallbackAssets(scene);
+  scene.dataset.guided3dState = state;
+  if (state === "ready") {
+    const runtime = mount.querySelector("[data-guided-3d-instance]");
+    if (runtime) {
+      scene.dataset.roomSceneId = runtime.dataset.sceneLayout || project.layout || "";
+      scene.dataset.roomSignature = runtime.dataset.roomSignature || "";
+      scene.dataset.cameraSignature = runtime.dataset.cameraSignature || "";
+    }
+  }
+  applyPreviewScale();
+}
+
+function activateGuidedFallbackAssets(scene) {
+  scene.querySelectorAll("source[data-fallback-srcset]").forEach((source) => {
+    source.srcset = source.dataset.fallbackSrcset;
+  });
+  scene.querySelectorAll("img[data-fallback-src]").forEach((image) => {
+    image.src = image.dataset.fallbackSrc;
+  });
+  scene.querySelectorAll("image[data-fallback-href]").forEach((image) => {
+    image.setAttribute("href", image.dataset.fallbackHref);
+  });
+}
+
+function syncGuidedScene() {
+  const mount = app?.querySelector("[data-guided-3d-mount]");
+  const token = ++guidedSceneSyncToken;
+
+  if (!mount) {
+    guidedSceneController?.unmount?.();
+    return;
+  }
+
+  updateGuidedSceneState("loading");
+  guidedSceneImportPromise ||= import("./guided-configurator-3d.js?v=canonical-room-scenes-20260729a");
+  guidedSceneImportPromise
+    .then(({ createGuidedSceneController }) => {
+      if (token !== guidedSceneSyncToken || !mount.isConnected) return;
+      guidedSceneController ||= createGuidedSceneController({
+        onStateChange: updateGuidedSceneState
+      });
+      guidedSceneController.mount(mount);
+      guidedSceneController.update(project, getGuidedSceneOptions());
+    })
+    .catch(() => {
+      if (token === guidedSceneSyncToken) updateGuidedSceneState("fallback");
+    });
+}
+
+function syncLayoutSceneThumbnails() {
+  const token = ++layoutSceneThumbnailSyncToken;
+  const mounts = [...(app?.querySelectorAll("[data-layout-thumbnail]") || [])];
+
+  if (project.currentStep !== 2 || !mounts.length) {
+    disposeLayoutSceneThumbnailRenderer();
+    return;
+  }
+
+  const pending = [];
+  for (const mount of mounts) {
+    const layoutId = mount.dataset.layoutThumbnail;
+    const thumbnailProject = createLayoutThumbnailProject(layoutId);
+    const cacheKey = getLayoutThumbnailCacheKey(thumbnailProject);
+    const cached = layoutSceneThumbnailCache.get(cacheKey);
+    if (cached) {
+      applyLayoutSceneThumbnail(mount, cached);
+      continue;
+    }
+    pending.push({ mount, layoutId, thumbnailProject, cacheKey });
+  }
+  if (!pending.length) return;
+
+  disposeLayoutSceneThumbnailRenderer();
+  guidedSceneImportPromise ||= import("./guided-configurator-3d.js?v=canonical-room-scenes-20260729a");
+  guidedSceneImportPromise
+    .then(async ({ createGuidedSceneController }) => {
+      if (token !== layoutSceneThumbnailSyncToken || project.currentStep !== 2) return;
+
+      const host = document.createElement("div");
+      host.className = "layout-scene-thumbnail-renderer";
+      host.setAttribute("aria-hidden", "true");
+      Object.assign(host.style, {
+        position: "fixed",
+        top: "0",
+        left: "-10000px",
+        width: "480px",
+        height: "320px",
+        overflow: "hidden",
+        pointerEvents: "none",
+        visibility: "hidden"
+      });
+      document.body.appendChild(host);
+
+      const controller = createGuidedSceneController();
+      layoutSceneThumbnailHost = host;
+      layoutSceneThumbnailController = controller;
+      if (!controller.mount(host)) throw new Error("Unable to mount canonical room thumbnail renderer.");
+      if (controller.canvas) {
+        controller.canvas.tabIndex = -1;
+        controller.canvas.setAttribute("aria-hidden", "true");
+        controller.canvas.setAttribute("role", "presentation");
+      }
+
+      for (const item of pending) {
+        if (
+          token !== layoutSceneThumbnailSyncToken
+          || project.currentStep !== 2
+          || controller.disposed
+        ) return;
+        if (!controller.update(item.thumbnailProject, {
+          showDimensions: false,
+          showProduct: false
+        })) {
+          throw new Error(`Unable to render canonical ${item.layoutId} thumbnail.`);
+        }
+        const dataUrl = controller.captureDataUrl?.("image/png");
+        if (!dataUrl) throw new Error(`Unable to capture canonical ${item.layoutId} thumbnail.`);
+        const record = Object.freeze({
+          dataUrl,
+          sceneId: controller.runtime?.dataset.sceneLayout || item.layoutId,
+          roomSignature: controller.runtime?.dataset.roomSignature || "",
+          cameraSignature: controller.runtime?.dataset.cameraSignature || ""
+        });
+        layoutSceneThumbnailCache.set(item.cacheKey, record);
+        const currentMount = app?.querySelector(
+          `[data-layout-thumbnail="${CSS.escape(item.layoutId)}"]`
+        );
+        if (currentMount) applyLayoutSceneThumbnail(currentMount, record);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+    })
+    .catch(() => {
+      if (token !== layoutSceneThumbnailSyncToken || project.currentStep !== 2) return;
+      app?.querySelectorAll("[data-layout-thumbnail]").forEach(activateLayoutThumbnailFallback);
+    })
+    .finally(() => {
+      if (token === layoutSceneThumbnailSyncToken) disposeLayoutSceneThumbnailRenderer();
+    });
+}
+
+function createLayoutThumbnailProject(layoutId) {
+  const measurementSeed = { ...project, measurements: project.measurements || {} };
+  return {
+    ...project,
+    layout: layoutId,
+    measurements: prepareMeasurementsForLayout(measurementSeed, layoutId)
+  };
+}
+
+function getLayoutThumbnailCacheKey(thumbnailProject) {
+  return JSON.stringify({
+    category: thumbnailProject.category,
+    style: thumbnailProject.style,
+    layout: thumbnailProject.layout,
+    measurements: thumbnailProject.measurements
+  });
+}
+
+function applyLayoutSceneThumbnail(mount, record) {
+  const image = mount.querySelector("[data-layout-3d-thumbnail]");
+  if (!image) return;
+  image.src = record.dataUrl;
+  image.hidden = false;
+  mount.querySelector("picture")?.remove();
+  mount.dataset.layoutThumbnailState = "ready";
+  mount.dataset.roomSceneId = record.sceneId;
+  mount.dataset.roomSignature = record.roomSignature;
+  mount.dataset.cameraSignature = record.cameraSignature;
+  const card = mount.closest("[data-layout]");
+  if (card) {
+    card.dataset.roomSceneId = record.sceneId;
+    card.dataset.roomSignature = record.roomSignature;
+    card.dataset.cameraSignature = record.cameraSignature;
+  }
+}
+
+function activateLayoutThumbnailFallback(mount) {
+  mount.querySelector("[data-layout-3d-thumbnail]")?.remove();
+  activateGuidedFallbackAssets(mount);
+  mount.dataset.layoutThumbnailState = "fallback";
+}
+
+function disposeLayoutSceneThumbnailRenderer() {
+  layoutSceneThumbnailController?.dispose?.();
+  layoutSceneThumbnailHost?.remove();
+  layoutSceneThumbnailController = null;
+  layoutSceneThumbnailHost = null;
 }
 
 function scheduleDraftSave() {
