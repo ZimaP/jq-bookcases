@@ -5637,9 +5637,9 @@ body.guided-page {
   min-height: 0;
 }
 
-.product-grid--catalog .product-card-image img {
-  object-fit: cover;
-  object-position: 50% 48%;
+.guided-shell--step-1 .product-grid--catalog .product-card-image img {
+  object-fit: contain;
+  object-position: 50% 50%;
 }
 
 .product-grid--catalog .product-card-copy {
