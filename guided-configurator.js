@@ -15,7 +15,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=room-scene-continuity-20260729a";
+} from "./guided-configurator-data.js?v=room-preview-fix-20260730a";
 import {
   buildProjectSummary,
   createProject,
@@ -24,7 +24,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=room-scene-continuity-20260729a";
+} from "./guided-configurator-state.js?v=room-preview-fix-20260730a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -962,7 +962,7 @@ function renderMeasurementDiagram(fields, selectedLayout) {
       .filter((field) => field.type === "inches")
       .map((field) => [field.id, field])
   );
-  const dimensions = diagramSpec.spans
+  const dimensions = diagramSpec.perimeterSpans
     .map((span) => ({ span, field: fieldsById.get(span.fieldId) }))
     .filter(({ field }) => Boolean(field));
   const roomVisual = renderOptimizedPicture(
@@ -1003,7 +1003,7 @@ function renderDimensionDrawing(dimensions, diagramSpec) {
       data-dimension-drawing
       data-dimension-count="${dimensions.length}"
       viewBox="0 0 ${diagramSpec.width} ${diagramSpec.height}"
-      preserveAspectRatio="xMidYMid slice"
+      preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
       focusable="false"
     >
@@ -1014,12 +1014,12 @@ function renderDimensionDrawing(dimensions, diagramSpec) {
           ? "Add estimate"
           : `${formatInches(value)} in`;
         const annotationName = getDimensionAnnotationName(field, span);
-        const labelScale = diagramSpec.width / 1000;
+        const labelScale = diagramSpec.height / 480;
         const labelWidth = Math.min(
           190,
           Math.max(
             112,
-            annotationName.length * 4.8 + (field.code ? 34 : 0) + 20
+            annotationName.length * 4.8 + 20
           )
         ) * labelScale;
         const labelHeight = 32 * labelScale;
@@ -1083,9 +1083,7 @@ function renderDimensionDrawing(dimensions, diagramSpec) {
                     x="0"
                     y="${-3 * labelScale}"
                   >
-                    ${field.code ? `<tspan class="measurement-annotation-code">${escapeHtml(field.code)}</tspan>` : ""}
-                    ${field.code ? `<tspan class="measurement-annotation-separator" dx="${4 * labelScale}">·</tspan>` : ""}
-                    <tspan class="measurement-annotation-name"${field.code ? ` dx="${4 * labelScale}"` : ""}>${escapeHtml(annotationName)}</tspan>
+                    <tspan class="measurement-annotation-name">${escapeHtml(annotationName)}</tspan>
                   </text>
                   <text
                     class="measurement-annotation-value"
@@ -1329,27 +1327,6 @@ function renderConceptPreview() {
   const hardware = DETAIL_OPTIONS.hardware.find((option) => option.id === project.hardware);
   const doorCount = category.id === "floating-storage" ? 5 : category.id === "window-storage" ? 6 : 4;
   const previewScope = conceptPreviewScope(category, layout, selectedStyle, previewPresentation);
-  const roomAsset = previewPresentation.roomAsset || (
-    previewPresentation.productAsset ? null : previewPresentation.conceptAsset
-  );
-  const productAsset = previewPresentation.productAsset;
-  const installationEnvelope = previewPresentation.installationEnvelope;
-  const installationEnvelopeValue = installationEnvelope
-    ? [
-        installationEnvelope.x,
-        installationEnvelope.y,
-        installationEnvelope.width,
-        installationEnvelope.height
-      ].join(",")
-    : "";
-  const installationEnvelopeStyle = installationEnvelope
-    ? [
-        `--installation-top:${installationEnvelope.y * 100}%`,
-        `--installation-right:${(1 - installationEnvelope.x - installationEnvelope.width) * 100}%`,
-        `--installation-bottom:${(1 - installationEnvelope.y - installationEnvelope.height) * 100}%`,
-        `--installation-left:${installationEnvelope.x * 100}%`
-      ].join(";")
-    : "";
 
   return `
     <figure
@@ -1361,12 +1338,10 @@ function renderConceptPreview() {
       data-finish="${escapeAttribute(finish.id)}"
       data-finish-family="${escapeAttribute(finish.family)}"
       data-preview-asset="${escapeAttribute(previewPresentation.conceptAsset)}"
-      data-room-asset="${escapeAttribute(roomAsset || "")}"
-      data-product-asset="${escapeAttribute(productAsset || "")}"
       data-layout-context-asset="${escapeAttribute(previewPresentation.layoutContextAsset || "")}"
       data-preview-render-mode="${escapeAttribute(previewPresentation.renderMode)}"
       data-preview-scope="${escapeAttribute(previewScope.id)}"
-      style="--scene-object-position:${escapeAttribute(previewPresentation.layoutPreviewPosition || "50% 50%")};--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)}"
+      style="--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)}"
       aria-label="${escapeAttribute(`${selectedProduct?.label || selectedStyle.label} for ${layout?.label || category.label} in ${finish.label}`)}"
     >
       <div class="concept-preview-meta">
@@ -1379,53 +1354,26 @@ function renderConceptPreview() {
         </div>
         ${renderConceptLayoutContext(layout, previewPresentation)}
       </div>
-      <div class="concept-scene-shell">
-        <div class="concept-scene" data-concept-scene data-scene-fit="cover">
-          ${roomAsset ? `
-            <div
-              class="concept-room-layer"
-              data-room-layer
-              data-room-asset="${escapeAttribute(roomAsset)}"
-            >
-              ${renderOptimizedPicture(roomAsset, {
-                pictureClass: "concept-layer-picture concept-room-picture",
-                imageClass: "concept-layer-image concept-room-image",
-                loading: "eager",
-                fetchPriority: "high"
-              })}
-            </div>
-          ` : ""}
-          ${productAsset ? `
-            <div
-              class="concept-product-layer"
-              data-product-layer
-              data-product-asset="${escapeAttribute(productAsset)}"
-              data-installation-envelope-id="${escapeAttribute(previewPresentation.installationEnvelopeId || "full-scene")}"
-              data-installation-envelope="${escapeAttribute(installationEnvelopeValue)}"
-              style="${escapeAttribute(installationEnvelopeStyle)}"
-            >
-              ${renderOptimizedPicture(productAsset, {
-                pictureClass: "concept-photo concept-layer-picture concept-product-picture",
-                imageClass: "concept-photo concept-layer-image concept-product-image",
-                loading: "eager",
-                fetchPriority: "high"
-              })}
-              ${renderConceptFinishOverlay(productAsset)}
-            </div>
-          ` : ""}
-          ${previewPresentation.renderMode === "missing-integrated-scene" ? `
-            <div class="concept-preview-unavailable" role="status">
-              <strong>Room-specific concept in preparation</strong>
-              <span>We will not substitute an unrelated room for ${escapeHtml(layout?.label || "this layout")}.</span>
-            </div>
-          ` : ""}
-          <div
-            class="concept-unit concept-unit--sentinel"
-            data-style="${escapeAttribute(selectedStyle.id)}"
-            style="display:none;--unit-finish:${escapeAttribute(finish.color)};--accent-finish:${escapeAttribute(accentFinish.color)};--hardware-color:${escapeAttribute(hardware?.color || "#302d2a")};--door-count:${doorCount}"
-            aria-hidden="true"
-          ></div>
-        </div>
+      <div class="concept-scene" data-concept-scene>
+        ${renderOptimizedPicture(previewPresentation.conceptAsset, {
+          pictureClass: "concept-photo",
+          imageClass: "concept-photo",
+          loading: "eager",
+          fetchPriority: "high"
+        })}
+        ${renderConceptFinishOverlay(previewPresentation.conceptAsset)}
+        ${previewPresentation.renderMode === "missing-integrated-scene" ? `
+          <div class="concept-preview-unavailable" role="status">
+            <strong>Room-specific concept in preparation</strong>
+            <span>We will not substitute an unrelated room for ${escapeHtml(layout?.label || "this layout")}.</span>
+          </div>
+        ` : ""}
+        <div
+          class="concept-unit concept-unit--sentinel"
+          data-style="${escapeAttribute(selectedStyle.id)}"
+          style="display:none;--unit-finish:${escapeAttribute(finish.color)};--accent-finish:${escapeAttribute(accentFinish.color)};--hardware-color:${escapeAttribute(hardware?.color || "#302d2a")};--door-count:${doorCount}"
+          aria-hidden="true"
+        ></div>
       </div>
       ${renderPreviewControls()}
     </figure>
@@ -1485,7 +1433,7 @@ function renderConceptFinishOverlay(previewAsset) {
     <svg
       class="concept-finish-overlay"
       viewBox="${definition.viewBox || "0 0 1536 1024"}"
-      preserveAspectRatio="xMidYMid slice"
+      preserveAspectRatio="xMidYMid meet"
       aria-hidden="true"
       focusable="false"
     >
@@ -1548,7 +1496,7 @@ function resolveGeneratedIntegratedFinishMask(previewAsset) {
 }
 
 function conceptPreviewScope(category, layout, selectedStyle, previewPresentation) {
-  if (previewPresentation.renderMode === "layered") {
+  if (previewPresentation.renderMode === "integrated") {
     return { id: "layout-and-configuration", label: "Layout + configuration reference" };
   }
   if (previewPresentation.renderMode === "missing-integrated-scene") {

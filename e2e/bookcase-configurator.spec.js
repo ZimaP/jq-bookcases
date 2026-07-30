@@ -29,82 +29,7 @@ const sharedLayouts = [
   { id: "double-opening", label: "Between Openings" }
 ];
 
-const bookcaseMeasurementDimensions = Object.freeze({
-  "niche-layout": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["nicheWidth", "D"],
-    ["nicheHeight", "E"],
-    ["nicheDepth", "F"]
-  ],
-  "left-niche": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["nicheWidth", "D"],
-    ["nicheHeight", "E"],
-    ["nicheDepth", "F"]
-  ],
-  "right-niche": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["nicheWidth", "D"],
-    ["nicheHeight", "E"],
-    ["nicheDepth", "F"]
-  ],
-  "clear-wall": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"]
-  ],
-  "fireplace-wall": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["fireplaceWidth", "D"],
-    ["fireplaceHeight", "E"],
-    ["mantelWidth", "F"]
-  ],
-  "center-recess": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["nicheWidth", "D"],
-    ["nicheHeight", "E"],
-    ["nicheDepth", "F"]
-  ],
-  "window-wall": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["windowWidth", "D"],
-    ["windowHeight", "E"],
-    ["sillHeight", "F"]
-  ],
-  "door-wall": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["doorWidth", "D"],
-    ["doorHeight", "E"],
-    ["doorLeftDistance", "F"]
-  ],
-  "corner-wall": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["cornerReturn", "D"]
-  ],
-  "double-opening": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["openingLeftDistance", "D"],
-    ["openingRightDistance", "E"]
-  ]
-});
+const visibleMeasurementDimensions = Object.freeze(["wallWidth", "ceilingHeight"]);
 
 function monitorRuntime(page) {
   const failures = [];
@@ -149,6 +74,57 @@ async function chooseLayout(page, label) {
   const layoutId = await card.getAttribute("data-layout");
   await card.click();
   await expect(page.locator(`[data-layout="${layoutId}"]`)).toHaveAttribute("aria-pressed", "true");
+}
+
+async function expectIntegratedPreview(preview, expectedAsset) {
+  await expect(preview).toHaveAttribute("data-preview-render-mode", "integrated");
+  await expect(preview).toHaveAttribute("data-preview-asset", expectedAsset);
+  expect(
+    await preview.evaluate((element) => (
+      ["data-room-asset", "data-product-asset"]
+        .filter((attribute) => element.hasAttribute(attribute))
+    ))
+  ).toEqual([]);
+  await expect(preview.locator("[data-room-layer], [data-product-layer]")).toHaveCount(0);
+  await expect(
+    preview.locator("[data-installation-envelope], [data-installation-envelope-id]")
+  ).toHaveCount(0);
+
+  const picture = preview.locator("picture.concept-photo");
+  await expect(picture).toHaveCount(1);
+  await expect(picture).toBeVisible();
+  const image = picture.locator("img");
+  await expect(image).toHaveCount(1);
+  await expect(image).toBeVisible();
+  await expect(image).toHaveCSS("object-fit", "contain");
+  await expect.poll(() => image.evaluate((element, asset) => (
+    element.complete
+      && element.naturalWidth > 0
+      && element.naturalHeight > 0
+      && new URL(element.currentSrc).pathname.endsWith(asset.replace(/\.png$/, ".avif"))
+  ), expectedAsset)).toBe(true);
+  const finishOverlay = preview.locator("svg.concept-finish-overlay");
+  await expect(finishOverlay).toBeVisible();
+  await expect(finishOverlay).toHaveAttribute("preserveAspectRatio", "xMidYMid meet");
+  return image;
+}
+
+async function readConceptImageGeometry(image) {
+  return image.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return {
+      currentSrc: element.currentSrc,
+      naturalWidth: element.naturalWidth,
+      naturalHeight: element.naturalHeight,
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+      objectFit: style.objectFit,
+      objectPosition: style.objectPosition
+    };
+  });
 }
 
 async function expectOneScreenFit(page, selectors) {
@@ -427,41 +403,18 @@ test("Between Openings remains visible through customization and review", async 
   const customizationPreview = page.locator('.concept-preview[data-layout="double-opening"]');
   const customizationContext = customizationPreview.locator('[data-layout-context="double-opening"]');
   const roomAsset = "assets/photos/configurator/room-layouts/room-double-opening-v1.png";
-  const productAsset = "assets/photos/configurator/concept-full-shelving-between-openings-v1.png";
-  await expect(customizationPreview).toHaveAttribute(
-    "data-preview-asset",
-    productAsset
-  );
-  await expect(customizationPreview).toHaveAttribute("data-room-asset", roomAsset);
-  await expect(customizationPreview).toHaveAttribute("data-product-asset", productAsset);
-  await expect(customizationPreview).toHaveAttribute("data-preview-render-mode", "layered");
+  const conceptAsset = "assets/photos/configurator/concept-full-shelving-between-openings-v1.png";
+  await expectIntegratedPreview(customizationPreview, conceptAsset);
   await expect(customizationContext).toBeVisible();
   await expect(customizationContext).toHaveAccessibleName("Selected room condition: Between Openings");
   await expect(customizationContext).toHaveAttribute("data-layout-context-asset", roomAsset);
-  const roomLayer = customizationPreview.locator("[data-room-layer]");
-  const productLayer = customizationPreview.locator("[data-product-layer]");
-  await expect(roomLayer).toBeVisible();
-  await expect(productLayer).toBeVisible();
-  await expect(productLayer).toHaveAttribute("data-installation-envelope", /.+/);
-  await expect.poll(() => roomLayer.locator("img").evaluate((image) => (
-    image.complete
-      && image.naturalWidth > 0
-      && /room-double-opening-v1\.(?:avif|png)$/.test(new URL(image.currentSrc).pathname)
-  ))).toBe(true);
-  await expect.poll(() => productLayer.locator("img").evaluate((image) => (
-    image.complete
-      && image.naturalWidth > 0
-      && /concept-full-shelving-between-openings-v1\.(?:avif|png)$/.test(new URL(image.currentSrc).pathname)
-  ))).toBe(true);
   const contextGeometry = await customizationPreview.evaluate((preview) => {
     const previewRect = preview.getBoundingClientRect();
     const metaRect = preview.querySelector(".concept-preview-meta").getBoundingClientRect();
     const sceneRect = preview.querySelector(".concept-scene").getBoundingClientRect();
     const finishRect = preview.querySelector(".concept-finish-caption").getBoundingClientRect();
     const contextRect = preview.querySelector("[data-layout-context]").getBoundingClientRect();
-    const roomRect = preview.querySelector("[data-room-layer]").getBoundingClientRect();
-    const productRect = preview.querySelector("[data-product-layer]").getBoundingClientRect();
-    const productStyle = getComputedStyle(preview.querySelector("[data-product-layer]"));
+    const pictureRect = preview.querySelector("picture.concept-photo").getBoundingClientRect();
     const overlaps = (first, second) => (
       first.left < second.right
       && first.right > second.left
@@ -474,19 +427,12 @@ test("Between Openings remains visible through customization and review", async 
       metaBeforeScene: metaRect.bottom <= sceneRect.top + 1,
       contextBeforeScene: contextRect.bottom <= sceneRect.top + 1,
       controlsDoNotOverlap: !overlaps(finishRect, contextRect),
-      roomFillsScene: (
-        Math.abs(roomRect.left - sceneRect.left) <= 1
-        && Math.abs(roomRect.top - sceneRect.top) <= 1
-        && Math.abs(roomRect.right - sceneRect.right) <= 1
-        && Math.abs(roomRect.bottom - sceneRect.bottom) <= 1
+      pictureFillsScene: (
+        Math.abs(pictureRect.left - sceneRect.left) <= 1
+        && Math.abs(pictureRect.top - sceneRect.top) <= 1
+        && Math.abs(pictureRect.right - sceneRect.right) <= 1
+        && Math.abs(pictureRect.bottom - sceneRect.bottom) <= 1
       ),
-      productInsideScene: (
-        productRect.left >= sceneRect.left - 1
-        && productRect.top >= sceneRect.top - 1
-        && productRect.right <= sceneRect.right + 1
-        && productRect.bottom <= sceneRect.bottom + 1
-      ),
-      productIsConstrained: productStyle.clipPath !== "none" || productStyle.maskImage !== "none",
       insidePreview: (
         contextRect.top >= previewRect.top
         && contextRect.right <= previewRect.right
@@ -501,9 +447,7 @@ test("Between Openings remains visible through customization and review", async 
   expect(contextGeometry.metaBeforeScene).toBe(true);
   expect(contextGeometry.contextBeforeScene).toBe(true);
   expect(contextGeometry.controlsDoNotOverlap).toBe(true);
-  expect(contextGeometry.roomFillsScene).toBe(true);
-  expect(contextGeometry.productInsideScene).toBe(true);
-  expect(contextGeometry.productIsConstrained).toBe(true);
+  expect(contextGeometry.pictureFillsScene).toBe(true);
 
   await page.getByRole("button", { name: "Charcoal", exact: true }).click();
   await expect(customizationPreview).toHaveAttribute("data-finish", "charcoal");
@@ -512,21 +456,16 @@ test("Between Openings remains visible through customization and review", async 
 
   const reviewPreview = page.locator('.concept-preview[data-layout="double-opening"]');
   await expect(page.locator('[data-summary-value="layout"]')).toHaveText("Between Openings");
-  await expect(reviewPreview).toHaveAttribute("data-preview-asset", productAsset);
-  await expect(reviewPreview).toHaveAttribute("data-room-asset", roomAsset);
-  await expect(reviewPreview).toHaveAttribute("data-product-asset", productAsset);
+  await expectIntegratedPreview(reviewPreview, conceptAsset);
   await expect(reviewPreview).toHaveAttribute("data-finish", "charcoal");
-  await expect(reviewPreview.locator("[data-room-layer]")).toBeVisible();
-  await expect(reviewPreview.locator("[data-product-layer]")).toBeVisible();
   await expect(reviewPreview.locator('[data-layout-context="double-opening"]')).toBeVisible();
   await expect(reviewPreview.locator('[data-layout-context="double-opening"]')).toHaveAccessibleName(
     "Selected room condition: Between Openings"
   );
 });
 
-test("TV Unit keeps the exact Between Openings room through customization, review, and reload", async ({ page }) => {
-  const roomAsset = "assets/photos/configurator/room-layouts/room-double-opening-v1.png";
-  const productAsset = "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png";
+test("TV Unit keeps one exact Between Openings composite through customization, review, and reload", async ({ page }) => {
+  const conceptAsset = "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png";
   const viewports = [
     { name: "desktop", width: 1180, height: 820 },
     { name: "iPad landscape", width: 1280, height: 720 }
@@ -549,7 +488,6 @@ test("TV Unit keeps the exact Between Openings room through customization, revie
           && image.naturalWidth > 0
           && /room-double-opening-v1\.(?:avif|png)$/.test(new URL(image.currentSrc).pathname)
       ))).toBe(true);
-      const stepThreeRoomSource = await stepThreeRoom.evaluate((image) => image.currentSrc);
 
       await page.locator("[data-continue]").click();
       await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
@@ -557,55 +495,21 @@ test("TV Unit keeps the exact Between Openings room through customization, revie
       const customizationPreview = page.locator(
         '.concept-preview[data-category="tv-unit"][data-layout="double-opening"]'
       );
-      const customizationRoom = customizationPreview.locator("[data-room-layer] img");
-      const customizationProduct = customizationPreview.locator("[data-product-layer]");
-      await expect(customizationPreview).toHaveAttribute("data-preview-render-mode", "layered");
-      await expect(customizationPreview).toHaveAttribute("data-room-asset", roomAsset);
-      await expect(customizationPreview).toHaveAttribute("data-product-asset", productAsset);
-      await expect(customizationProduct).toHaveAttribute(
-        "data-installation-envelope-id",
-        "tv-unit-double-opening-v2-cabinet"
-      );
-      await expect(customizationProduct).toHaveAttribute(
-        "data-installation-envelope",
-        "0.267,0.195,0.466,0.61"
-      );
-      await expect.poll(() => customizationRoom.evaluate((image) => (
-        image.complete && image.naturalWidth > 0 ? image.currentSrc : ""
-      ))).toBe(stepThreeRoomSource);
-      await expect.poll(() => customizationProduct.locator("img").evaluate((image) => (
-        image.complete
-          && image.naturalWidth > 0
-          && /double-opening-v2\.(?:avif|png)$/.test(new URL(image.currentSrc).pathname)
-      ))).toBe(true);
+      await expectIntegratedPreview(customizationPreview, conceptAsset);
 
       const customizationLayers = await customizationPreview.evaluate((preview) => {
         const scene = preview.querySelector("[data-concept-scene]").getBoundingClientRect();
-        const room = preview.querySelector("[data-room-layer]").getBoundingClientRect();
-        const product = preview.querySelector("[data-product-layer]");
-        const productRect = product.getBoundingClientRect();
-        const productStyle = getComputedStyle(product);
+        const picture = preview.querySelector("picture.concept-photo").getBoundingClientRect();
         return {
-          roomFillsScene: (
-            Math.abs(room.left - scene.left) <= 1
-            && Math.abs(room.top - scene.top) <= 1
-            && Math.abs(room.right - scene.right) <= 1
-            && Math.abs(room.bottom - scene.bottom) <= 1
-          ),
-          productInsideScene: (
-            productRect.left >= scene.left - 1
-            && productRect.top >= scene.top - 1
-            && productRect.right <= scene.right + 1
-            && productRect.bottom <= scene.bottom + 1
-          ),
-          productIsConstrained: productStyle.clipPath !== "none" || productStyle.maskImage !== "none"
+          pictureFillsScene: (
+            Math.abs(picture.left - scene.left) <= 1
+            && Math.abs(picture.top - scene.top) <= 1
+            && Math.abs(picture.right - scene.right) <= 1
+            && Math.abs(picture.bottom - scene.bottom) <= 1
+          )
         };
       });
-      expect(customizationLayers).toEqual({
-        roomFillsScene: true,
-        productInsideScene: true,
-        productIsConstrained: true
-      });
+      expect(customizationLayers).toEqual({ pictureFillsScene: true });
 
       await page.getByRole("button", { name: "Charcoal", exact: true }).click();
       await expect(customizationPreview).toHaveAttribute("data-finish", "charcoal");
@@ -615,15 +519,7 @@ test("TV Unit keeps the exact Between Openings room through customization, revie
       const reviewPreview = page.locator(
         '.concept-preview[data-category="tv-unit"][data-layout="double-opening"]'
       );
-      await expect(reviewPreview).toHaveAttribute("data-room-asset", roomAsset);
-      await expect(reviewPreview).toHaveAttribute("data-product-asset", productAsset);
-      await expect(reviewPreview.locator("[data-product-layer]")).toHaveAttribute(
-        "data-installation-envelope",
-        /.+/
-      );
-      await expect.poll(() => reviewPreview.locator("[data-room-layer] img").evaluate((image) => (
-        image.complete && image.naturalWidth > 0 ? image.currentSrc : ""
-      ))).toBe(stepThreeRoomSource);
+      await expectIntegratedPreview(reviewPreview, conceptAsset);
 
       await page.reload({ waitUntil: "networkidle" });
       await expect(page).toHaveURL(/configurator\.html#step-4$/);
@@ -631,22 +527,14 @@ test("TV Unit keeps the exact Between Openings room through customization, revie
       const reloadedCustomizationPreview = page.locator(
         '.concept-preview[data-category="tv-unit"][data-layout="double-opening"]'
       );
-      await expect(reloadedCustomizationPreview).toHaveAttribute("data-room-asset", roomAsset);
-      await expect(reloadedCustomizationPreview).toHaveAttribute("data-product-asset", productAsset);
-      await expect.poll(() => reloadedCustomizationPreview.locator("[data-room-layer] img").evaluate((image) => (
-        image.complete && image.naturalWidth > 0 ? image.currentSrc : ""
-      ))).toBe(stepThreeRoomSource);
+      await expectIntegratedPreview(reloadedCustomizationPreview, conceptAsset);
 
       await page.locator("[data-continue]").click();
       await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
       const reloadedPreview = page.locator(
         '.concept-preview[data-category="tv-unit"][data-layout="double-opening"]'
       );
-      await expect(reloadedPreview).toHaveAttribute("data-room-asset", roomAsset);
-      await expect(reloadedPreview).toHaveAttribute("data-product-asset", productAsset);
-      await expect.poll(() => reloadedPreview.locator("[data-room-layer] img").evaluate((image) => (
-        image.complete && image.naturalWidth > 0 ? image.currentSrc : ""
-      ))).toBe(stepThreeRoomSource);
+      await expectIntegratedPreview(reloadedPreview, conceptAsset);
     });
   }
 });
@@ -679,25 +567,10 @@ test("Between Openings keeps every bookcase construction in the selected room", 
     await page.locator("[data-continue]").click();
 
     const preview = page.locator('.concept-preview[data-layout="double-opening"]');
-    const roomAsset = "assets/photos/configurator/room-layouts/room-double-opening-v1.png";
-    await expect(preview).toHaveAttribute("data-preview-asset", variant.asset);
-    await expect(preview).toHaveAttribute("data-room-asset", roomAsset);
-    await expect(preview).toHaveAttribute("data-product-asset", variant.asset);
-    await expect(preview).toHaveAttribute("data-preview-render-mode", "layered");
-    await expect(preview.locator("[data-product-layer]")).toHaveAttribute("data-installation-envelope", /.+/);
-    await expect.poll(() => preview.locator("[data-room-layer] img").evaluate((image) => (
-      image.complete
-        && image.naturalWidth === 1536
-        && image.naturalHeight === 1024
-        && /room-double-opening-v1\.(?:avif|png)$/.test(new URL(image.currentSrc).pathname)
+    const image = await expectIntegratedPreview(preview, variant.asset);
+    await expect.poll(() => image.evaluate((element) => (
+      element.naturalWidth === 1536 && element.naturalHeight === 1024
     ))).toBe(true);
-    const expectedAvifPath = variant.asset.replace(/\.png$/, ".avif");
-    await expect.poll(() => preview.locator("[data-product-layer] img").evaluate((image, expectedPath) => (
-      image.complete
-        && image.naturalWidth === 1536
-        && image.naturalHeight === 1024
-        && new URL(image.currentSrc).pathname.endsWith(expectedPath)
-    ), expectedAvifPath)).toBe(true);
     await expect(preview.locator('[data-layout-context="double-opening"]')).toHaveAccessibleName(
       "Selected room condition: Between Openings"
     );
@@ -732,55 +605,42 @@ test("Door Wall keeps the selected drawer construction through customization and
     "bookcase:drawer-base-shelves:door-wall"
   );
   await expect(customizationPreview).toHaveAttribute("data-style", "drawer-base-shelves");
-  await expect(customizationPreview).toHaveAttribute("data-preview-asset", asset);
-  await expect(customizationPreview).toHaveAttribute(
-    "data-room-asset",
-    "assets/photos/configurator/room-layouts/room-door-wall-v1.png"
-  );
-  await expect(customizationPreview).toHaveAttribute("data-product-asset", asset);
-  await expect(customizationPreview).toHaveAttribute("data-preview-render-mode", "layered");
+  const customizationImage = await expectIntegratedPreview(customizationPreview, asset);
   await expect(customizationPreview.locator('[data-layout-context="door-wall"]')).toHaveAccessibleName(
     "Selected room condition: Door Wall"
   );
-  await expect(customizationPreview.locator("[data-room-layer]")).toBeVisible();
-  await expect(customizationPreview.locator("[data-product-layer]")).toHaveAttribute(
-    "data-installation-envelope",
-    /.+/
-  );
-  await expect.poll(() => customizationPreview.locator("[data-product-layer] img").evaluate((image, expectedPath) => (
-    image.complete
-      && image.naturalWidth === 1536
+  await expect.poll(() => customizationImage.evaluate((image, expectedPath) => (
+    image.naturalWidth === 1536
       && image.naturalHeight === 1024
       && new URL(image.currentSrc).pathname.endsWith(expectedPath)
   ), avifAsset)).toBe(true);
+  const beforeFinish = await readConceptImageGeometry(customizationImage);
 
   await page.getByRole("tab", { name: "Finish" }).click();
   await page.getByRole("button", { name: "Charcoal", exact: true }).click();
   await expect(customizationPreview).toHaveAttribute("data-finish", "charcoal");
-  await expect(customizationPreview.locator("[data-product-layer] .concept-finish-overlay")).toBeVisible();
-  const customizationImageSource = await customizationPreview.locator("[data-product-layer] img").evaluate(
-    (image) => new URL(image.currentSrc).pathname
-  );
+  const updatedCustomizationImage = await expectIntegratedPreview(customizationPreview, asset);
+  const afterFinish = await readConceptImageGeometry(updatedCustomizationImage);
+  expect(afterFinish.currentSrc).toBe(beforeFinish.currentSrc);
+  expect(afterFinish.naturalWidth).toBe(beforeFinish.naturalWidth);
+  expect(afterFinish.naturalHeight).toBe(beforeFinish.naturalHeight);
+  expect(afterFinish.objectFit).toBe(beforeFinish.objectFit);
+  expect(afterFinish.objectPosition).toBe(beforeFinish.objectPosition);
+  for (const key of ["left", "top", "width", "height"]) {
+    expect(afterFinish[key], `finish preserves ${key}`).toBeCloseTo(beforeFinish[key], 1);
+  }
 
   await page.locator("[data-continue]").click();
   const reviewPreview = page.locator('.concept-preview[data-layout="door-wall"]');
   await expect(page.locator('[data-summary-value="layout"]')).toHaveText("Door Wall");
   await expect(page.locator('[data-summary-value="product"]')).toHaveText("Drawers + Shelves");
   await expect(reviewPreview).toHaveAttribute("data-preview-key", "bookcase:drawer-base-shelves:door-wall");
-  await expect(reviewPreview).toHaveAttribute("data-preview-asset", asset);
-  await expect(reviewPreview).toHaveAttribute(
-    "data-room-asset",
-    "assets/photos/configurator/room-layouts/room-door-wall-v1.png"
-  );
-  await expect(reviewPreview).toHaveAttribute("data-product-asset", asset);
-  await expect(reviewPreview).toHaveAttribute("data-preview-render-mode", "layered");
-  const reviewImageSource = await reviewPreview.locator("[data-product-layer] img").evaluate(
-    (image) => new URL(image.currentSrc).pathname
-  );
-  expect(reviewImageSource).toBe(customizationImageSource);
+  const reviewImage = await expectIntegratedPreview(reviewPreview, asset);
+  const reviewImageSource = await reviewImage.evaluate((image) => image.currentSrc);
+  expect(reviewImageSource).toBe(afterFinish.currentSrc);
 });
 
-test("Right Niche measurement guides explain every visible dimension and keep preview metadata off the furniture", async ({ page }) => {
+test("Right Niche shows only room perimeter dimensions and one integrated preview", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await openFreshProject(page);
   await continueToLayouts(page);
@@ -791,33 +651,23 @@ test("Right Niche measurement guides explain every visible dimension and keep pr
   const room = diagram.locator(".measurement-room");
   const guideLabels = diagram.locator(".measurement-annotation-label");
   await expect(room.locator(":scope > .dimension-overlay")).toBeVisible();
-  await expect(guideLabels.locator(".measurement-annotation-code")).toHaveText([
-    "A",
-    "B",
-    "C",
-    "D",
-    "E",
-    "F"
-  ]);
+  await expect(guideLabels.locator(".measurement-annotation-code")).toHaveCount(0);
   await expect(guideLabels.locator(".measurement-annotation-name")).toHaveText([
     "Wall width",
-    "Ceiling height",
-    "Built-in depth",
-    "Niche width",
-    "Niche height",
-    "Niche depth"
+    "Ceiling height"
   ]);
   await expect(diagram.locator("[data-dimension-value]")).toHaveText([
     "120 in",
-    "96 in",
-    "14 in",
-    "96 in",
-    "96 in",
-    "14 in"
+    "96 in"
   ]);
-  await expect(diagram.locator("[data-dimension-span]")).toHaveCount(6);
-  await expect(diagram.locator("[data-dimension-line]")).toHaveCount(6);
-  await expect(diagram.locator("[data-dimension-extension]")).toHaveCount(12);
+  await expect(diagram.locator("[data-dimension-span]")).toHaveCount(2);
+  await expect(diagram.locator("[data-dimension-line]")).toHaveCount(2);
+  await expect(diagram.locator("[data-dimension-extension]")).toHaveCount(4);
+  await expect(diagram.locator("[data-dimension-end]")).toHaveCount(4);
+  await expect(diagram.locator('[data-dimension-span="desiredDepth"]')).toHaveCount(0);
+  await expect(diagram.locator('[data-dimension-span="nicheWidth"]')).toHaveCount(0);
+  await expect(diagram.locator('[data-dimension-span="nicheHeight"]')).toHaveCount(0);
+  await expect(diagram.locator('[data-dimension-span="nicheDepth"]')).toHaveCount(0);
   await expect(page.locator('[data-measurement-row="wallWidth"] .measurement-code')).toHaveText("A");
   await expect(page.locator('[data-measurement-row="ceilingHeight"] .measurement-code')).toHaveText("B");
   await expect(page.locator('[data-measurement-row="desiredDepth"] .measurement-code')).toHaveText("C");
@@ -860,18 +710,11 @@ test("Right Niche measurement guides explain every visible dimension and keep pr
     "data-preview-asset",
     "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/right-niche-v1.png"
   );
-  await expect(preview).toHaveAttribute(
-    "data-room-asset",
-    "assets/photos/configurator/room-layouts/room-right-niche-v1.png"
-  );
-  await expect(preview).toHaveAttribute(
-    "data-product-asset",
+  await expectIntegratedPreview(
+    preview,
     "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/right-niche-v1.png"
   );
-  await expect(preview).toHaveAttribute("data-preview-render-mode", "layered");
   await expect(context).toContainText("Right Niche");
-  await expect(preview.locator("[data-room-layer]")).toBeVisible();
-  await expect(preview.locator("[data-product-layer]")).toBeVisible();
   const previewGeometry = await preview.evaluate((element) => {
     const meta = element.querySelector(".concept-preview-meta").getBoundingClientRect();
     const scene = element.querySelector(".concept-scene").getBoundingClientRect();
@@ -895,7 +738,7 @@ test("Right Niche measurement guides explain every visible dimension and keep pr
   await expect(metadata).toBeVisible();
 });
 
-test("TV measurement diagram keeps the screen centered and its callouts separate at landscape tablet size", async ({ page }) => {
+test("TV room keeps its feature while the overlay shows only wall width and ceiling height", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await openFreshProject(page);
   await continueToLayouts(page, "TV Unit");
@@ -905,33 +748,19 @@ test("TV measurement diagram keeps the screen centered and its callouts separate
   const diagram = page.locator(".measurement-diagram-card");
   const room = diagram.locator(".measurement-room");
   const tv = room.locator(".measurement-feature");
-  const diagonal = diagram.locator('[data-dimension-chip="tvScreenSize"]');
-  const height = diagram.locator('[data-dimension-chip="tvHeight"]');
 
   await expect(room).toHaveAttribute("data-feature", "tv");
   await expect(tv).toBeVisible();
-  await expect(diagonal.locator(".measurement-annotation-code")).toHaveText("D");
-  await expect(diagonal.locator(".measurement-annotation-name")).toHaveText("TV diagonal");
-  await expect(height.locator(".measurement-annotation-code")).toHaveText("E");
-  await expect(height.locator(".measurement-annotation-name")).toHaveText("TV height");
-  await expect(diagram.locator(".measurement-annotation-code")).toHaveText([
-    "A",
-    "B",
-    "C",
-    "D",
-    "E"
-  ]);
+  await expect(diagram.locator(".measurement-annotation-code")).toHaveCount(0);
   await expect(diagram.locator(".measurement-annotation-name")).toHaveText([
     "Wall width",
-    "Ceiling height",
-    "Built-in depth",
-    "TV diagonal",
-    "TV height"
+    "Ceiling height"
   ]);
-  await expect(diagram.locator('[data-dimension-span="tvScreenSize"]')).toHaveAttribute("data-dimension-axis", "diagonal");
-  await expect(diagram.locator('[data-dimension-span="tvHeight"]')).toHaveAttribute("data-dimension-axis", "vertical");
-  await expect(diagram.locator('[data-dimension-extension="tvScreenSize"]')).toHaveCount(2);
-  await expect(diagram.locator('[data-dimension-extension="tvHeight"]')).toHaveCount(2);
+  await expect(diagram.locator("[data-dimension-span]")).toHaveCount(2);
+  await expect(diagram.locator('[data-dimension-span="tvScreenSize"]')).toHaveCount(0);
+  await expect(diagram.locator('[data-dimension-span="tvHeight"]')).toHaveCount(0);
+  await expect(page.locator('[data-measurement-row="tvScreenSize"] .measurement-code')).toHaveText("D");
+  await expect(page.locator('[data-measurement-row="tvHeight"] .measurement-code')).toHaveText("E");
 
   const geometry = await diagram.evaluate((element) => {
     const bounds = (selector) => {
@@ -946,8 +775,9 @@ test("TV measurement diagram keeps the screen centered and its callouts separate
     };
     const diagramRect = element.getBoundingClientRect();
     const tvRect = bounds(".measurement-feature");
-    const diagonalRect = bounds('[data-dimension-chip="tvScreenSize"]');
-    const heightRect = bounds('[data-dimension-chip="tvHeight"]');
+    const labels = [...element.querySelectorAll("[data-dimension-label]")].map((label) => (
+      bounds(`[data-dimension-label="${CSS.escape(label.dataset.dimensionLabel)}"]`)
+    ));
     const lineLength = (fieldId) => {
       const line = element.querySelector(`[data-dimension-line="${fieldId}"]`);
       const matrix = line.getScreenCTM();
@@ -969,10 +799,10 @@ test("TV measurement diagram keeps the screen centered and its callouts separate
     );
     return {
       tvCenterDelta: Math.abs(tvRect.centerX - (diagramRect.left + diagramRect.width / 2)),
-      calloutsOverlap: overlaps(diagonalRect, heightRect),
-      diagonalLineLength: lineLength("tvScreenSize"),
-      heightLineLength: lineLength("tvHeight"),
-      allInsideDiagram: [tvRect, diagonalRect, heightRect].every((rect) => (
+      calloutsOverlap: overlaps(labels[0], labels[1]),
+      widthLineLength: lineLength("wallWidth"),
+      heightLineLength: lineLength("ceilingHeight"),
+      allInsideDiagram: [tvRect, ...labels].every((rect) => (
         rect.left >= diagramRect.left
         && rect.right <= diagramRect.right
         && rect.top >= diagramRect.top
@@ -983,12 +813,12 @@ test("TV measurement diagram keeps the screen centered and its callouts separate
 
   expect(geometry.tvCenterDelta).toBeLessThanOrEqual(2);
   expect(geometry.calloutsOverlap).toBe(false);
-  expect(geometry.diagonalLineLength).toBeGreaterThan(20);
+  expect(geometry.widthLineLength).toBeGreaterThan(20);
   expect(geometry.heightLineLength).toBeGreaterThan(20);
   expect(geometry.allInsideDiagram).toBe(true);
 });
 
-test("all ten bookcase layouts keep architectural dimension lines and labels valid at desktop and iPad landscape sizes", async ({ page }) => {
+test("all ten bookcase layouts render one responsive two-dimension perimeter overlay", async ({ page }) => {
   test.slow();
 
   for (const viewport of [
@@ -1000,7 +830,6 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
     await continueToLayouts(page);
 
     for (const roomLayout of sharedLayouts) {
-      const expectedDimensions = bookcaseMeasurementDimensions[roomLayout.id];
       await chooseLayout(page, roomLayout.label);
       await page.locator("[data-continue]").click();
 
@@ -1012,22 +841,22 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
 
       await expect(room, `${context} room`).toBeVisible();
       await expect(drawing, `${context} drawing`).toBeVisible();
-      await expect(spans, `${context} spans`).toHaveCount(expectedDimensions.length);
-      await expect(labels, `${context} labels`).toHaveCount(expectedDimensions.length);
+      await expect(drawing, `${context} count metadata`).toHaveAttribute("data-dimension-count", "2");
+      await expect(spans, `${context} spans`).toHaveCount(2);
+      await expect(labels, `${context} labels`).toHaveCount(2);
       expect(
-        await spans.evaluateAll((elements) => elements.map((element) => [
-          element.dataset.dimensionSpan,
-          element.dataset.dimensionCode
-        ])),
-        `${context} ordered fields and codes`
-      ).toEqual(expectedDimensions);
+        await spans.evaluateAll((elements) => elements.map((element) => element.dataset.dimensionSpan)),
+        `${context} ordered perimeter fields`
+      ).toEqual(visibleMeasurementDimensions);
       expect(
-        await labels.evaluateAll((elements) => elements.map((element) => [
-          element.dataset.dimensionLabel,
-          element.dataset.dimensionCode
-        ])),
-        `${context} ordered label fields and codes`
-      ).toEqual(expectedDimensions);
+        await labels.evaluateAll((elements) => elements.map((element) => element.dataset.dimensionLabel)),
+        `${context} ordered perimeter labels`
+      ).toEqual(visibleMeasurementDimensions);
+      await expect(drawing.locator(".measurement-annotation-code"), `${context} image codes`).toHaveCount(0);
+      await expect(drawing.locator("[data-dimension-line]"), `${context} main lines`).toHaveCount(2);
+      await expect(drawing.locator("[data-dimension-extension]"), `${context} endpoint extensions`).toHaveCount(4);
+      await expect(drawing.locator("[data-dimension-end]"), `${context} arrowheads`).toHaveCount(4);
+      await expect(drawing.locator('[data-dimension-span="desiredDepth"]'), `${context} no depth`).toHaveCount(0);
 
       await expect.poll(
         () => room.locator("img.measurement-room-image").evaluate((image) => (
@@ -1036,7 +865,7 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
         { message: `${context} room image loaded` }
       ).toBe(true);
 
-      const geometry = await room.evaluate((element, expectedCount) => {
+      const geometry = await room.evaluate((element) => {
         const tolerance = 1;
         const roomRect = element.getBoundingClientRect();
         const drawingElement = element.querySelector("[data-dimension-drawing]");
@@ -1107,7 +936,6 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
         ));
 
         return {
-          expectedCount,
           drawingInsideRoom: (() => {
             const rect = drawingElement.getBoundingClientRect();
             return (
@@ -1125,9 +953,9 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
               - (imageElement.naturalWidth / imageElement.naturalHeight)
             ) < 0.000001;
           })(),
-          coverTransformsMatch: (
-            drawingElement.getAttribute("preserveAspectRatio") === "xMidYMid slice"
-            && getComputedStyle(imageElement).objectFit === "cover"
+          containTransformsMatch: (
+            drawingElement.getAttribute("preserveAspectRatio") === "xMidYMid meet"
+            && getComputedStyle(imageElement).objectFit === "contain"
             && getComputedStyle(imageElement).objectPosition === "50% 50%"
           ),
           pointerEventsDisabled: (
@@ -1146,14 +974,14 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
           horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
           verticalOverflow: document.documentElement.scrollHeight - window.innerHeight
         };
-      }, expectedDimensions.length);
+      });
 
       expect(geometry.drawingInsideRoom, `${context} drawing stays inside room`).toBe(true);
       expect(geometry.oneResponsiveOverlay, `${context} uses one SVG overlay`).toBe(true);
       expect(geometry.viewBoxMatchesImage, `${context} SVG ratio matches the room image`).toBe(true);
-      expect(geometry.coverTransformsMatch, `${context} image and SVG share one cover transform`).toBe(true);
+      expect(geometry.containTransformsMatch, `${context} image and SVG share one contain transform`).toBe(true);
       expect(geometry.pointerEventsDisabled, `${context} overlay ignores pointer events`).toBe(true);
-      expect(geometry.visibleLabelCount, `${context} visible label count`).toBe(expectedDimensions.length);
+      expect(geometry.visibleLabelCount, `${context} visible label count`).toBe(2);
       expect(geometry.labelsInsideRoom, `${context} labels stay inside room`).toBe(true);
       expect(geometry.overlappingPairs, `${context} labels do not overlap`).toEqual([]);
       expect(geometry.horizontalOverflow, `${context} horizontal overflow`).toBeLessThanOrEqual(1);
@@ -1165,13 +993,9 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
         expect(span.extensionCount, `${context} ${span.fieldId} witness lines`).toBe(2);
         expect(span.ticks, `${context} ${span.fieldId} witness endpoints`).toEqual(["start", "end"]);
         expect(span.nestedLabelCount, `${context} ${span.fieldId} nested label`).toBe(1);
-        if (span.endStyle === "tick") {
-          expect(span.endTickCount, `${context} ${span.fieldId} architectural end ticks`).toBe(2);
-          expect(span.arrowCount, `${context} ${span.fieldId} omits arrowheads`).toBe(0);
-        } else {
-          expect(span.endStyle, `${context} ${span.fieldId} arrow end style`).toBe("arrow");
-          expect(span.arrowCount, `${context} ${span.fieldId} arrowheads`).toBe(2);
-        }
+        expect(span.endStyle, `${context} ${span.fieldId} arrow end style`).toBe("arrow");
+        expect(span.endTickCount, `${context} ${span.fieldId} short endpoint extensions`).toBe(2);
+        expect(span.arrowCount, `${context} ${span.fieldId} arrowheads`).toBe(2);
         expect(span.visibleStroke, `${context} ${span.fieldId} stroke`).toBe(true);
         expect(span.lineLength, `${context} ${span.fieldId} rendered line length`).toBeGreaterThan(10);
       }
@@ -1182,7 +1006,7 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
   }
 });
 
-test("dense iPad Room & Size keeps every Between Openings dimension card readable", async ({ page }) => {
+test("dense iPad Room & Size keeps both Between Openings perimeter cards readable", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 960 });
   await openFreshProject(page);
   await continueToLayouts(page, "TV Unit");
@@ -1194,7 +1018,8 @@ test("dense iPad Room & Size keeps every Between Openings dimension card readabl
   const drawing = room.locator("svg[data-dimension-overlay]");
   await expect(layout).toBeVisible();
   await expect(drawing).toHaveAttribute("viewBox", "0 0 1536 1024");
-  await expect(drawing).toHaveAttribute("preserveAspectRatio", "xMidYMid slice");
+  await expect(drawing).toHaveAttribute("preserveAspectRatio", "xMidYMid meet");
+  await expect(drawing.locator("[data-dimension-span]")).toHaveCount(2);
 
   const geometry = await page.evaluate(() => {
     const layoutElement = document.querySelector(".measurement-layout--dense");
@@ -1233,10 +1058,7 @@ test("dense iPad Room & Size keeps every Between Openings dimension card readabl
       diagramWidth: diagram.getBoundingClientRect().width,
       lineSources: {
         wallWidth: lineSource("wallWidth"),
-        ceilingHeight: lineSource("ceilingHeight"),
-        desiredDepth: lineSource("desiredDepth"),
-        openingLeftDistance: lineSource("openingLeftDistance"),
-        openingRightDistance: lineSource("openingRightDistance")
+        ceilingHeight: lineSource("ceilingHeight")
       },
       clippedLabels: labels
         .filter((label) => (
@@ -1257,13 +1079,12 @@ test("dense iPad Room & Size keeps every Between Openings dimension card readabl
   expect(geometry.panelWidth).toBeGreaterThanOrEqual(450);
   expect(geometry.panelWidth).toBeLessThanOrEqual(475);
   expect(geometry.diagramWidth).toBeGreaterThanOrEqual(700);
-  expect(geometry.lineSources).toEqual({
-    wallWidth: [304, 244, 1230, 244],
-    ceilingHeight: [330, 150, 330, 785],
-    desiredDepth: [1230, 785, 1310, 828],
-    openingLeftDistance: [304, 690, 520, 690],
-    openingRightDistance: [1016, 690, 1230, 690]
-  });
+  expect(Math.abs(geometry.lineSources.wallWidth[0] - 304), "left wall boundary").toBeLessThan(1);
+  expect(Math.abs(geometry.lineSources.wallWidth[2] - 1230), "right wall boundary").toBeLessThan(1);
+  expect(geometry.lineSources.wallWidth[1]).toBe(geometry.lineSources.wallWidth[3]);
+  expect(Math.abs(geometry.lineSources.ceilingHeight[1] - 150), "ceiling boundary").toBeLessThan(1);
+  expect(Math.abs(geometry.lineSources.ceilingHeight[3] - 785), "finished floor boundary").toBeLessThan(1);
+  expect(geometry.lineSources.ceilingHeight[0]).toBe(geometry.lineSources.ceilingHeight[2]);
   expect(geometry.clippedLabels).toEqual([]);
   expect(geometry.labelOverlaps).toEqual([]);
 });
@@ -1284,7 +1105,10 @@ test("Door Wall dimension overlay stays on the measured architecture at desktop 
     const context = `${viewport.width}x${viewport.height} Door Wall`;
     await expect(drawing, `${context} overlay`).toHaveCount(1);
     await expect(drawing).toHaveAttribute("viewBox", "0 0 1536 1024");
-    await expect(drawing).toHaveAttribute("preserveAspectRatio", "xMidYMid slice");
+    await expect(drawing).toHaveAttribute("preserveAspectRatio", "xMidYMid meet");
+    await expect(drawing.locator("[data-dimension-span]")).toHaveCount(2);
+    await expect(drawing.locator("[data-dimension-extension]")).toHaveCount(4);
+    await expect(drawing.locator("[data-dimension-end]")).toHaveCount(4);
     await expect(room.locator(":scope > [data-dimension-label]")).toHaveCount(0);
 
     const geometry = await room.evaluate((element) => {
@@ -1338,16 +1162,10 @@ test("Door Wall dimension overlay stays on the measured architecture at desktop 
         top: openingTopLeft.y,
         bottom: openingBottomRight.y
       };
-      const rightFloorCorner = sourcePoint(1295, 758);
-
       return {
         lines: {
           wallWidth: lineReport("wallWidth"),
-          ceilingHeight: lineReport("ceilingHeight"),
-          desiredDepth: lineReport("desiredDepth"),
-          doorWidth: lineReport("doorWidth"),
-          doorHeight: lineReport("doorHeight"),
-          doorLeftDistance: lineReport("doorLeftDistance")
+          ceilingHeight: lineReport("ceilingHeight")
         },
         labelsInsideRoom: labels.every((label) => (
           label.left >= roomRect.left - 1
@@ -1363,56 +1181,35 @@ test("Door Wall dimension overlay stays on the measured architecture at desktop 
         labelsOverDoor: labels
           .filter((label) => overlaps(label, doorOpening))
           .map((label) => label.fieldId),
-        rightFloorCorner,
-        depthEndStyle: svg.querySelector('[data-dimension-span="desiredDepth"]').dataset.dimensionEndStyle,
-        depthTickCount: svg.querySelectorAll(
-          '[data-dimension-span="desiredDepth"] .measurement-dimension-extension.is-end-tick'
-        ).length,
-        depthArrowCount: svg.querySelectorAll(
-          '[data-dimension-span="desiredDepth"] [data-dimension-end]'
+        renderedFields: [...svg.querySelectorAll("[data-dimension-span]")]
+          .map((span) => span.dataset.dimensionSpan),
+        depthDimensionCount: svg.querySelectorAll('[data-dimension-span="desiredDepth"]').length,
+        doorDimensionCount: svg.querySelectorAll(
+          '[data-dimension-span="doorWidth"], [data-dimension-span="doorHeight"], [data-dimension-span="doorLeftDistance"]'
         ).length,
         trimDimensionCount: svg.querySelectorAll('[data-dimension-span="doorTrimWidth"]').length,
         swingDimensionCount: svg.querySelectorAll('[data-dimension-span="doorSwing"]').length
       };
     });
 
-    expect(geometry.lines.wallWidth.source, `${context} wall-width source anchors`).toEqual([240, 178, 1295, 178]);
-    expect(geometry.lines.ceilingHeight.source, `${context} ceiling-height source anchors`).toEqual([270, 157, 270, 758]);
-    expect(geometry.lines.desiredDepth.source, `${context} depth source anchors`).toEqual([1295, 758, 1452, 840]);
-    expect(geometry.lines.doorWidth.source, `${context} door-width jamb anchors`).toEqual([659, 232, 880, 232]);
-    expect(geometry.lines.doorHeight.source, `${context} door-height opening anchors`).toEqual([940, 279, 940, 758]);
-    expect(geometry.lines.doorLeftDistance.source, `${context} left-distance trim anchors`).toEqual([240, 638, 639, 638]);
+    expect(Math.abs(geometry.lines.wallWidth.source[0] - 240), `${context} left wall anchor`).toBeLessThan(1);
+    expect(Math.abs(geometry.lines.wallWidth.source[2] - 1295), `${context} right wall anchor`).toBeLessThan(1);
+    expect(Math.abs(geometry.lines.ceilingHeight.source[1] - 157), `${context} ceiling anchor`).toBeLessThan(1);
+    expect(Math.abs(geometry.lines.ceilingHeight.source[3] - 758), `${context} floor anchor`).toBeLessThan(1);
     expect(Math.abs(geometry.lines.wallWidth.dy), `${context} wall width is horizontal`).toBeLessThan(0.01);
     expect(Math.abs(geometry.lines.ceilingHeight.dx), `${context} ceiling height is vertical`).toBeLessThan(0.01);
-    expect(Math.abs(geometry.lines.doorWidth.dy), `${context} door width is horizontal`).toBeLessThan(0.01);
-    expect(Math.abs(geometry.lines.doorHeight.dx), `${context} door height is vertical`).toBeLessThan(0.01);
-    expect(Math.abs(geometry.lines.doorLeftDistance.dy), `${context} left distance is horizontal`).toBeLessThan(0.01);
-    expect(geometry.lines.desiredDepth.dx, `${context} depth moves forward`).toBeGreaterThan(0);
-    expect(geometry.lines.desiredDepth.dy, `${context} depth follows floor perspective`).toBeGreaterThan(0);
-    expect(
-      Math.abs(geometry.lines.desiredDepth.start.x - geometry.rightFloorCorner.x),
-      `${context} depth begins at the back-wall face`
-    ).toBeLessThan(0.01);
-    expect(
-      Math.abs(geometry.lines.desiredDepth.start.y - geometry.rightFloorCorner.y),
-      `${context} depth begins at the right wall-floor junction`
-    ).toBeLessThan(0.01);
     expect(geometry.labelsInsideRoom, `${context} cards remain inside the room`).toBe(true);
     expect(geometry.labelOverlaps, `${context} cards do not overlap`).toEqual([]);
     expect(geometry.labelsOverDoor, `${context} cards do not cover the door opening`).toEqual([]);
-    expect(geometry.depthEndStyle, `${context} depth uses ticks`).toBe("tick");
-    expect(geometry.depthTickCount, `${context} depth endpoint ticks`).toBe(2);
-    expect(geometry.depthArrowCount, `${context} depth has no linear arrows`).toBe(0);
+    expect(geometry.renderedFields, `${context} visible dimensions`).toEqual(visibleMeasurementDimensions);
+    expect(geometry.depthDimensionCount, `${context} omits depth`).toBe(0);
+    expect(geometry.doorDimensionCount, `${context} omits door feature dimensions`).toBe(0);
     expect(geometry.trimDimensionCount, `${context} trim is not a long wall dimension`).toBe(0);
     expect(geometry.swingDimensionCount, `${context} swing is not a linear dimension`).toBe(0);
 
     const updates = new Map([
       ["wallWidth", ["132", "132 in"]],
-      ["ceilingHeight", ["101", "101 in"]],
-      ["desiredDepth", ["16", "16 in"]],
-      ["doorWidth", ["38", "38 in"]],
-      ["doorHeight", ["84", "84 in"]],
-      ["doorLeftDistance", ["27", "27 in"]]
+      ["ceilingHeight", ["101", "101 in"]]
     ]);
     for (const [fieldId, [inputValue, expectedValue]] of updates) {
       await page.locator(`[data-measurement="${fieldId}"]`).fill(inputValue);
@@ -1485,8 +1282,10 @@ test("landscape tablet keeps Steps 1–4 and every navigation action in one scre
     ".concept-preview",
     ".customization-actions"
   ]);
-  await expect(page.locator("[data-room-layer] img")).toHaveCSS("object-fit", "cover");
-  await expect(page.locator("[data-product-layer] img")).toHaveCSS("object-fit", "cover");
+  await expectIntegratedPreview(
+    page.locator(".concept-preview"),
+    "assets/photos/configurator/concept-cabinets-shelves-v1.png"
+  );
 
   for (const tab of ["Details", "Finish"]) {
     await page.getByRole("tab", { name: tab }).click();
@@ -1722,7 +1521,7 @@ test("one complete guided flow works for every product category", async ({ page 
   }
 });
 
-test("all seventy product and room combinations preserve the Room & Size room through customization", async ({ page }) => {
+test("all seventy product and room combinations render one exact full-room composite", async ({ page }) => {
   const runtime = monitorRuntime(page);
 
   for (const product of PRODUCT_CHOICES) {
@@ -1740,7 +1539,6 @@ test("all seventy product and room combinations preserve the Room & Size room th
       await expect.poll(() => measurementRoom.evaluate((image) => (
         image.complete && image.naturalWidth > 0 ? image.currentSrc : ""
       ))).not.toBe("");
-      const measurementRoomSource = await measurementRoom.evaluate((image) => image.currentSrc);
       await page.locator("[data-continue]").click();
 
       const preview = page.locator(".concept-preview");
@@ -1748,46 +1546,9 @@ test("all seventy product and room combinations preserve the Room & Size room th
       await expect(preview).toHaveAttribute("data-style", product.styleId);
       await expect(preview).toHaveAttribute("data-layout", layout.id);
       await expect(preview).toHaveAttribute("data-preview-key", expected.previewKey);
-      await expect(preview).toHaveAttribute("data-preview-render-mode", "layered");
-      await expect(preview).toHaveAttribute("data-preview-asset", expectedAsset);
-      await expect(preview).toHaveAttribute("data-room-asset", layout.previewAsset);
-      await expect(preview).toHaveAttribute("data-product-asset", expectedAsset);
-      await expect(preview.locator("[data-room-layer]")).toBeVisible();
-      await expect(preview.locator("[data-product-layer]")).toBeVisible();
-      await expect(preview.locator("[data-product-layer]")).toHaveAttribute(
-        "data-installation-envelope",
-        /.+/
-      );
-      await expect(preview.locator("[data-product-layer]")).toHaveAttribute(
-        "data-installation-envelope-id",
-        /.+/
-      );
-      const [envelopeX, envelopeY, envelopeWidth, envelopeHeight] = (
-        await preview.locator("[data-product-layer]").getAttribute("data-installation-envelope")
-      ).split(",").map(Number);
-      expect(
-        envelopeWidth * envelopeHeight,
-        `${product.id}/${layout.id} product layer stays local to the installation`
-      ).toBeLessThanOrEqual(0.76);
-      expect(
-        Math.min(
-          envelopeX,
-          envelopeY,
-          1 - envelopeX - envelopeWidth,
-          1 - envelopeY - envelopeHeight
-        ),
-        `${product.id}/${layout.id} leaves canonical room pixels visible on every edge`
-      ).toBeGreaterThanOrEqual(0.039);
-      await expect(preview.locator("[data-product-layer] .concept-finish-overlay")).toBeVisible();
-      await expect.poll(() => preview.locator("[data-room-layer] img").evaluate((image) => (
-        image.complete && image.naturalWidth > 0 ? image.currentSrc : ""
-      ))).toBe(measurementRoomSource);
-      await expect.poll(() => preview.locator("[data-product-layer] img").evaluate((image, avifAsset) => (
-        image.complete
-          && image.naturalWidth > 0
-          && image.naturalHeight > 0
-          && new URL(image.currentSrc).pathname.endsWith(avifAsset)
-      ), expectedAsset.replace(/\.png$/, ".avif"))).toBe(true);
+      expect(expected.renderMode, `${product.id}/${layout.id} presentation mode`).toBe("integrated");
+      expect(expected.conceptAsset, `${product.id}/${layout.id} presentation asset`).toBe(expectedAsset);
+      await expectIntegratedPreview(preview, expectedAsset);
 
       await page.getByRole("button", { name: /Choose Layout, completed/ }).click();
     }
@@ -1821,10 +1582,10 @@ test("desktop, iPad, and phone layouts are overflow-free with usable mobile cont
   expect(Math.min(...cardTargets)).toBeGreaterThanOrEqual(44);
   await chooseLayout(page, "Window Wall");
   await page.locator("[data-continue]").click();
-  await expect(page.locator("[data-dimension-chip]")).toHaveCount(6);
+  await expect(page.locator("[data-dimension-chip]")).toHaveCount(2);
   expect(await page.locator("[data-dimension-chip]").evaluateAll((chips) => (
     chips.map((chip) => chip.dataset.dimensionChip)
-  ))).toEqual(["wallWidth", "ceilingHeight", "desiredDepth", "windowWidth", "windowHeight", "sillHeight"]);
+  ))).toEqual(["wallWidth", "ceilingHeight"]);
   const mobileOrder = await page.evaluate(() => {
     const diagram = document.querySelector(".measurement-diagram-card").getBoundingClientRect();
     const form = document.querySelector(".measurement-panel").getBoundingClientRect();
