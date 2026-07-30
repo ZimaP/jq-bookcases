@@ -329,6 +329,90 @@ test("Step 1 product cards use one edge-to-edge 13:10 media format without chang
   ))).toBe(true);
 });
 
+test("Step 1 centers the three-card bottom row without selected-state geometry shifts", async ({ page }) => {
+  const readLayout = () => page.evaluate(() => {
+    const grid = document.querySelector(".guided-shell--step-1 .product-grid--catalog");
+    const gridRect = grid.getBoundingClientRect();
+    const cards = [...grid.querySelectorAll("[data-product-choice]")].map((card) => {
+      const rect = card.getBoundingClientRect();
+      return {
+        id: card.dataset.productChoice,
+        left: rect.left - gridRect.left,
+        right: rect.right - gridRect.left,
+        top: rect.top - gridRect.top,
+        width: rect.width,
+        height: rect.height
+      };
+    });
+    return {
+      gridWidth: gridRect.width,
+      columnGap: parseFloat(getComputedStyle(grid).columnGap),
+      cards
+    };
+  });
+
+  for (const viewport of [
+    { name: "desktop", width: 1280, height: 720 },
+    { name: "iPad landscape", width: 1024, height: 768 }
+  ]) {
+    await test.step(viewport.name, async () => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await openFreshProject(page);
+
+      const beforeSelection = await readLayout();
+      const topRow = beforeSelection.cards.slice(0, 4);
+      const bottomRow = beforeSelection.cards.slice(4);
+      const spread = (values) => Math.max(...values) - Math.min(...values);
+      const gaps = (cards) => cards.slice(1).map((card, index) => (
+        card.left - cards[index].right
+      ));
+
+      expect(topRow.map(({ id }) => id)).toEqual([
+        "cabinet-shelves",
+        "drawer-shelves",
+        "open-shelving",
+        "tv-unit"
+      ]);
+      expect(bottomRow.map(({ id }) => id)).toEqual([
+        "floating-storage",
+        "window-storage",
+        "radiator-cover"
+      ]);
+      expect(spread(topRow.map(({ top }) => top))).toBeLessThanOrEqual(1);
+      expect(spread(bottomRow.map(({ top }) => top))).toBeLessThanOrEqual(1);
+      expect(spread(beforeSelection.cards.map(({ width }) => width))).toBeLessThanOrEqual(1);
+      expect(spread(beforeSelection.cards.map(({ height }) => height))).toBeLessThanOrEqual(1);
+      expect(topRow[0].left).toBeLessThanOrEqual(1);
+      expect(Math.abs(topRow[3].right - beforeSelection.gridWidth)).toBeLessThanOrEqual(1);
+      for (const gap of gaps(topRow)) {
+        expect(Math.abs(gap - beforeSelection.columnGap)).toBeLessThanOrEqual(1);
+      }
+      for (const gap of gaps(bottomRow)) {
+        expect(Math.abs(gap - beforeSelection.columnGap)).toBeLessThanOrEqual(1);
+      }
+      expect(Math.abs(bottomRow[0].left - (
+        beforeSelection.gridWidth - bottomRow[2].right
+      ))).toBeLessThanOrEqual(1);
+
+      const radiator = page.locator('[data-product-choice="radiator-cover"]');
+      await radiator.focus();
+      await radiator.press("Space");
+      await expect(radiator).toHaveAttribute("aria-pressed", "true");
+      await expect(radiator).toHaveClass(/is-selected/);
+      await expect(radiator).toHaveCSS("border-left-width", "1px");
+      await expect(radiator).toHaveCSS("border-right-width", "1px");
+
+      const afterSelection = await readLayout();
+      for (const cardBefore of beforeSelection.cards) {
+        const cardAfter = afterSelection.cards.find(({ id }) => id === cardBefore.id);
+        for (const property of ["left", "right", "top", "width", "height"]) {
+          expect(Math.abs(cardAfter[property] - cardBefore[property])).toBeLessThanOrEqual(1);
+        }
+      }
+    });
+  }
+});
+
 test("wide desktop keeps all seven product cards equal and horizontally contained", async ({ page }) => {
   await page.setViewportSize({ width: 2491, height: 1146 });
   await openFreshProject(page);

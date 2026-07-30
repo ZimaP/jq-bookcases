@@ -5621,15 +5621,15 @@ body.guided-page {
   grid-template-rows: auto 82px;
 }
 
-.product-grid--catalog .product-card:nth-child(5) {
+.guided-shell--step-1 .product-grid--catalog .product-card:nth-child(5) {
   grid-column: 2 / span 2;
 }
 
-.product-grid--catalog .product-card:nth-child(6) {
+.guided-shell--step-1 .product-grid--catalog .product-card:nth-child(6) {
   grid-column: 4 / span 2;
 }
 
-.product-grid--catalog .product-card:nth-child(7) {
+.guided-shell--step-1 .product-grid--catalog .product-card:nth-child(7) {
   grid-column: 6 / span 2;
 }
 
