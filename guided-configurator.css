@@ -5769,7 +5769,7 @@ body.guided-page {
     grid-template-rows: auto 72px;
   }
 
-  .product-grid--catalog .product-card:nth-child(7) {
+  .guided-shell--step-1 .product-grid--catalog .product-card:nth-child(7) {
     grid-column: 1 / -1;
     width: calc(50% - 7px);
     justify-self: center;
@@ -5788,6 +5788,10 @@ body.guided-page {
   .guided-shell--step-1 .product-grid--catalog .product-card:nth-child(7) {
     height: auto;
     grid-template-rows: auto 62px;
+  }
+
+  .guided-shell--step-1 .product-grid--catalog .product-card:nth-child(7) {
+    width: calc(50% - 5px);
   }
 
   .product-grid--catalog .product-card-copy {

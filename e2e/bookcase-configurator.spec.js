@@ -237,7 +237,8 @@ test("public route is the lightweight five-step configurator and excludes the 3D
 test("Step 1 product cards use one edge-to-edge 13:10 media format without changing room-card fitting", async ({ page }) => {
   for (const viewport of [
     { name: "desktop", width: 1280, height: 720 },
-    { name: "iPad landscape", width: 1024, height: 768 }
+    { name: "iPad landscape", width: 1024, height: 768 },
+    { name: "phone", width: 390, height: 844 }
   ]) {
     await test.step(viewport.name, async () => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
