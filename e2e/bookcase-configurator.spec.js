@@ -521,6 +521,9 @@ test("TV Unit keeps one exact Between Openings composite through customization, 
       );
       await expectIntegratedPreview(reviewPreview, conceptAsset);
 
+      await page.locator('[data-step="4"]').click();
+      await expect(page).toHaveURL(/configurator\.html#step-4$/);
+      await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
       await page.reload({ waitUntil: "networkidle" });
       await expect(page).toHaveURL(/configurator\.html#step-4$/);
       await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
