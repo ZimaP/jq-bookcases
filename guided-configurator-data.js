@@ -743,7 +743,7 @@ export const BOOKCASE_INTEGRATED_PREVIEW_ASSETS = Object.freeze({
   }),
   "clear-wall": Object.freeze({
     "cabinet-base-shelves": "assets/photos/configurator/concept-cabinets-shelves-v1.png",
-    "drawer-base-shelves": "assets/photos/configurator/concept-drawers-shelves-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/clear-wall-v1.png",
     "full-open-shelving": "assets/photos/configurator/concept-full-shelving-v1.png"
   }),
   "fireplace-wall": Object.freeze({
@@ -947,6 +947,8 @@ const NATIVE_PRODUCT_SCENES = Object.freeze({
 });
 
 const PRODUCT_SCENE_ASSET_OVERRIDES = Object.freeze({
+  "window-storage:window-seat-storage:clear-wall":
+    "assets/photos/configurator/integrated/window-storage/window-seat-storage/clear-wall-v2.png",
   "tv-unit:framed-tv-wall:double-opening": "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png",
   "floating-storage:floating-drawer-bank:double-opening": "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/double-opening-v3.png",
   "window-storage:window-seat-storage:double-opening": "assets/photos/configurator/integrated/window-storage/window-seat-storage/double-opening-v2.png",
@@ -972,6 +974,86 @@ export const PRODUCT_INTEGRATED_PREVIEW_ASSETS = Object.freeze(Object.fromEntrie
     ))
   ])
 ));
+
+/*
+ * Concept media is rendered from one opaque, room-correct composite. The
+ * descriptor below is the shared contract used by the photograph and its
+ * finish mask. Integrated assets are authored at 1536 × 1024; only the three
+ * approved legacy concepts below use a different native canvas.
+ */
+const PREVIEW_MEDIA_OVERRIDES = Object.freeze({
+  "assets/photos/configurator/concept-cabinets-shelves-v1.png": Object.freeze({
+    width: 1254,
+    height: 1254
+  }),
+  "assets/photos/configurator/concept-drawers-shelves-v1.png": Object.freeze({
+    width: 1448,
+    height: 1086
+  }),
+  "assets/photos/configurator/concept-window-cabinets-v1.png": Object.freeze({
+    width: 1448,
+    height: 1086
+  })
+});
+
+const PREVIEW_FINISH_MASK_ASSET_OVERRIDES = Object.freeze({
+  "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png":
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-finish-mask-v1.png",
+  "assets/photos/configurator/integrated/window-storage/window-seat-storage/clear-wall-v2.png":
+    "assets/photos/configurator/integrated/window-storage/window-seat-storage/clear-wall-finish-mask-v2.png"
+});
+
+/*
+ * Generic concept filenames do not encode the room topology they were
+ * authored for. Keep that truth explicit so the resolver cannot relabel an
+ * unrelated photograph as the selected room.
+ */
+const GENERIC_PREVIEW_AUTHORED_LAYOUTS = Object.freeze({
+  "assets/photos/configurator/concept-cabinets-shelves-v1.png": "clear-wall",
+  "assets/photos/configurator/concept-drawers-shelves-v1.png": "niche-layout",
+  "assets/photos/configurator/concept-full-shelving-v1.png": "clear-wall",
+  "assets/photos/configurator/concept-tv-wall-v1.png": "clear-wall",
+  "assets/photos/configurator/product-floating-storage-v1.png": "clear-wall",
+  "assets/photos/configurator/concept-window-cabinets-v1.png": "window-wall",
+  "assets/photos/configurator/product-radiator-cover-v1.png": "window-wall",
+  "assets/photos/configurator/concept-cabinets-shelves-between-openings-v1.png": "double-opening",
+  "assets/photos/configurator/concept-drawers-shelves-between-openings-v1.png": "double-opening",
+  "assets/photos/configurator/concept-full-shelving-between-openings-v1.png": "double-opening"
+});
+
+function resolveAuthoredLayoutId(previewAsset) {
+  const explicitLayoutId = GENERIC_PREVIEW_AUTHORED_LAYOUTS[previewAsset];
+  if (explicitLayoutId) return explicitLayoutId;
+
+  return SHARED_ROOM_LAYOUTS.find((roomLayout) => (
+    new RegExp(`/${roomLayout.id}-v\\d+\\.png$`).test(previewAsset)
+  ))?.id || null;
+}
+
+function resolvePreviewMediaContract(previewAsset) {
+  const mediaSize = PREVIEW_MEDIA_OVERRIDES[previewAsset] || Object.freeze({
+    width: 1536,
+    height: 1024
+  });
+  const usesAssetMask = previewAsset.includes("/integrated/");
+  const finishMaskAsset = usesAssetMask
+    ? PREVIEW_FINISH_MASK_ASSET_OVERRIDES[previewAsset]
+      || previewAsset.replace(/-v\d+\.png$/, "-finish-mask-v1.png")
+    : null;
+  return Object.freeze({
+    mediaFit: "cover",
+    mediaWidth: mediaSize.width,
+    mediaHeight: mediaSize.height,
+    mediaAspectRatio: `${mediaSize.width} / ${mediaSize.height}`,
+    mediaObjectPosition: "50% 50%",
+    mediaSvgPreserveAspectRatio: "xMidYMid slice",
+    finishMaskMode: usesAssetMask ? "asset" : "inline",
+    finishMaskAsset,
+    finishMaskWidth: mediaSize.width,
+    finishMaskHeight: mediaSize.height,
+    finishMaskViewBox: `0 0 ${mediaSize.width} ${mediaSize.height}`
+  });
+}
 
 export function getProductChoice(productId) {
   return PRODUCT_CHOICES.find((choice) => choice.id === productId) || null;
@@ -1259,21 +1341,17 @@ export function getMeasurementDiagramSpec(categoryId, layoutId) {
     .filter((span) => availableFields.has(span.fieldId))
     .map((span) => resolveMeasurementDiagramSpan(span, viewBox));
 
-  const productFeature = selectedLayout?.id === "clear-wall"
-    ? Object.freeze({
-        "tv-unit": "tv",
-        "window-storage": "window",
-        "radiator-cover": "radiator"
-      })[selectedCategory.id] || "none"
-    : "none";
+  const mediaAlignLeft = selectedLayout?.id === "corner-wall";
 
   return Object.freeze({
     width: viewBox.width,
     height: viewBox.height,
     layoutId: selectedLayout?.id || "clear-wall",
-    feature: selectedLayout?.feature && selectedLayout.feature !== "none"
-      ? selectedLayout.feature
-      : productFeature,
+    feature: selectedLayout?.feature || "none",
+    mediaFit: "cover",
+    mediaAspectRatio: "4 / 3",
+    mediaObjectPosition: mediaAlignLeft ? "0% 50%" : "50% 50%",
+    mediaSvgPreserveAspectRatio: mediaAlignLeft ? "xMinYMid slice" : "xMidYMid slice",
     spans: Object.freeze(spans),
     perimeterSpans: createPerimeterMeasurementSpans(selectedLayout?.id || "clear-wall", viewBox)
   });
@@ -1300,54 +1378,71 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
   const exactLayoutAsset = selectedProduct && selectedLayout
     ? PRODUCT_INTEGRATED_PREVIEW_ASSETS[selectedProduct.id]?.[selectedLayout.id] || null
     : null;
+  const authoredLayoutId = exactLayoutAsset
+    ? resolveAuthoredLayoutId(exactLayoutAsset)
+    : null;
 
-  if (exactLayoutAsset && selectedLayout) {
+  if (exactLayoutAsset && selectedLayout && authoredLayoutId === selectedLayout.id) {
     return Object.freeze({
       previewKey,
       conceptAsset: exactLayoutAsset,
       categoryId,
       styleId: selectedStyle.id,
       layoutId: selectedLayout.id,
-      integratedLayoutId: selectedLayout.id,
+      authoredLayoutId,
+      integratedLayoutId: authoredLayoutId,
       layoutLabel: selectedLayout.label,
       layoutContextAsset: selectedLayout.previewAsset,
       layoutPreviewMode: selectedLayout.previewMode,
       layoutPreviewPosition: selectedLayout.previewPosition,
-      renderMode: "integrated"
+      renderMode: "integrated",
+      ...resolvePreviewMediaContract(exactLayoutAsset)
     });
   }
 
   if ((selectedProduct || categoryId === "bookcase") && selectedLayout) {
+    const roomMedia = ROOM_MEASUREMENT_DIAGRAM_VIEWBOXES[selectedLayout.id]
+      || ROOM_MEASUREMENT_DIAGRAM_VIEWBOXES["clear-wall"];
     return Object.freeze({
       previewKey,
       conceptAsset: selectedLayout.previewAsset,
       categoryId,
       styleId: selectedStyle.id,
       layoutId: selectedLayout.id,
+      authoredLayoutId: selectedLayout.id,
       integratedLayoutId: null,
       layoutLabel: selectedLayout.label,
       layoutContextAsset: selectedLayout.previewAsset,
       layoutPreviewMode: selectedLayout.previewMode,
       layoutPreviewPosition: selectedLayout.previewPosition,
-      renderMode: "missing-integrated-scene"
+      renderMode: "missing-integrated-scene",
+      mediaFit: "cover",
+      mediaWidth: roomMedia.width,
+      mediaHeight: roomMedia.height,
+      mediaAspectRatio: `${roomMedia.width} / ${roomMedia.height}`,
+      mediaObjectPosition: selectedLayout.previewPosition,
+      mediaSvgPreserveAspectRatio: "xMidYMid slice"
     });
   }
 
   const conceptAsset = categoryId === "window-storage"
     ? "assets/photos/configurator/concept-window-cabinets-v1.png"
     : selectedStyle.previewAsset;
+  const conceptMedia = resolvePreviewMediaContract(conceptAsset);
   return Object.freeze({
     previewKey,
     conceptAsset,
     categoryId,
     styleId: selectedStyle.id,
     layoutId: selectedLayout?.id || null,
+    authoredLayoutId: resolveAuthoredLayoutId(conceptAsset),
     integratedLayoutId: null,
     layoutLabel: selectedLayout?.label || null,
     layoutContextAsset: selectedLayout?.previewAsset || null,
     layoutPreviewMode: selectedLayout?.previewMode || "image",
     layoutPreviewPosition: selectedLayout?.previewPosition || "50% 50%",
-    renderMode: selectedLayout ? "concept-with-room-context" : "concept-only"
+    renderMode: selectedLayout ? "concept-with-room-context" : "concept-only",
+    ...conceptMedia
   });
 }
 

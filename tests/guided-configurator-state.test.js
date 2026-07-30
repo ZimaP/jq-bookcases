@@ -59,6 +59,68 @@ const categoryById = (id) => CATEGORY_DEFINITIONS.find((category) => category.id
 function assertIntegratedPresentation(presentation, expectedAsset, previewKey) {
   assert.equal(presentation.conceptAsset, expectedAsset, `${previewKey} full-room composite`);
   assert.equal(presentation.renderMode, "integrated", `${previewKey} integrated render mode`);
+  assert.equal(
+    presentation.authoredLayoutId,
+    presentation.layoutId,
+    `${previewKey} authored room topology matches the selected layout`
+  );
+  assert.equal(
+    presentation.integratedLayoutId,
+    presentation.layoutId,
+    `${previewKey} integrated room topology matches the selected layout`
+  );
+  assert.equal(presentation.mediaFit, "cover", `${previewKey} media fills the scene`);
+  assert.ok(
+    Number.isFinite(presentation.mediaWidth) && presentation.mediaWidth > 0,
+    `${previewKey} media width`
+  );
+  assert.ok(
+    Number.isFinite(presentation.mediaHeight) && presentation.mediaHeight > 0,
+    `${previewKey} media height`
+  );
+  assert.equal(
+    presentation.mediaAspectRatio,
+    `${presentation.mediaWidth} / ${presentation.mediaHeight}`,
+    `${previewKey} media aspect ratio is derived from the authored canvas`
+  );
+  assert.match(
+    presentation.mediaObjectPosition,
+    /^(?:0|50|100)% (?:0|50|100)%$/,
+    `${previewKey} has a deterministic focal position`
+  );
+  assert.match(
+    presentation.mediaSvgPreserveAspectRatio,
+    /^x(?:Min|Mid|Max)Y(?:Min|Mid|Max) slice$/,
+    `${previewKey} mask uses the same edge-filling alignment`
+  );
+  assert.ok(
+    ["asset", "inline"].includes(presentation.finishMaskMode),
+    `${previewKey} declares how its finish mask is rendered`
+  );
+  assert.equal(
+    presentation.finishMaskViewBox,
+    `0 0 ${presentation.finishMaskWidth} ${presentation.finishMaskHeight}`,
+    `${previewKey} finish mask has an explicit source coordinate system`
+  );
+  assert.equal(
+    presentation.finishMaskWidth,
+    presentation.mediaWidth,
+    `${previewKey} finish mask width matches the photograph`
+  );
+  assert.equal(
+    presentation.finishMaskHeight,
+    presentation.mediaHeight,
+    `${previewKey} finish mask height matches the photograph`
+  );
+  if (presentation.finishMaskMode === "asset") {
+    assert.match(
+      presentation.finishMaskAsset,
+      /-finish-mask-v\d+\.png$/,
+      `${previewKey} references an authored finish mask`
+    );
+  } else {
+    assert.equal(presentation.finishMaskAsset, null, `${previewKey} uses its inline finish mask`);
+  }
   for (const field of [
     "roomAsset",
     "productAsset",
@@ -275,7 +337,56 @@ test("room diagrams use native image ratios and perimeter dimensions anchor to r
 
   for (const [layoutId, expectedViewBox] of expectedViewBoxes) {
     const spec = getMeasurementDiagramSpec("bookcase", layoutId);
+    const [positionX, positionY] = spec.mediaObjectPosition
+      .split(" ")
+      .map((value) => Number.parseFloat(value) / 100);
+    const [viewportWidth, viewportHeight] = spec.mediaAspectRatio
+      .split("/")
+      .map((value) => Number.parseFloat(value.trim()));
+    const viewportRatio = viewportWidth / viewportHeight;
+    const sourceRatio = spec.width / spec.height;
+    const visibleWidth = sourceRatio > viewportRatio
+      ? spec.height * viewportRatio
+      : spec.width;
+    const visibleHeight = sourceRatio < viewportRatio
+      ? spec.width / viewportRatio
+      : spec.height;
+    const visibleSource = {
+      left: (spec.width - visibleWidth) * positionX,
+      right: (spec.width - visibleWidth) * positionX + visibleWidth,
+      top: (spec.height - visibleHeight) * positionY,
+      bottom: (spec.height - visibleHeight) * positionY + visibleHeight
+    };
+
     assert.deepEqual([spec.width, spec.height], expectedViewBox, `${layoutId} native image viewBox`);
+    assert.equal(spec.mediaFit, "cover", `${layoutId} room photograph fills its media frame`);
+    assert.equal(spec.mediaAspectRatio, "4 / 3", `${layoutId} uses the shared measurement viewport`);
+    assert.match(
+      spec.mediaSvgPreserveAspectRatio,
+      /^x(?:Min|Mid|Max)Y(?:Min|Mid|Max) slice$/,
+      `${layoutId} SVG shares the photograph's cover alignment`
+    );
+    for (const span of spec.perimeterSpans) {
+      const sourcePoints = [
+        span.line.slice(0, 2),
+        span.line.slice(2, 4),
+        ...span.extensions.flatMap((extension) => [
+          extension.slice(0, 2),
+          extension.slice(2, 4)
+        ]),
+        [span.label.x, span.label.y]
+      ];
+      for (const [x, y] of sourcePoints) {
+        assert.ok(
+          x >= visibleSource.left && x <= visibleSource.right,
+          `${layoutId} ${span.fieldId} x=${x} remains inside the visible cover crop`
+        );
+        assert.ok(
+          y >= visibleSource.top && y <= visibleSource.bottom,
+          `${layoutId} ${span.fieldId} y=${y} remains inside the visible cover crop`
+        );
+      }
+    }
   }
 
   const doorSpec = getMeasurementDiagramSpec("bookcase", "door-wall");
@@ -479,9 +590,9 @@ test("every public Bookcase construction maps to the selected room scene", async
       const avif = await readFile(new URL(`../${expectedAsset.replace(/\.png$/, ".avif")}`, import.meta.url));
       assert.ok(png.byteLength > 10_000, `${previewKey} PNG is empty`);
       assert.ok(avif.byteLength > 10_000, `${previewKey} AVIF is empty`);
-      if (expectedAsset.includes("/integrated/")) {
+      if (presentation.finishMaskMode === "asset") {
         const finishMask = await readFile(
-          new URL(`../${expectedAsset.replace(/-v1\.png$/, "-finish-mask-v1.png")}`, import.meta.url)
+          new URL(`../${presentation.finishMaskAsset}`, import.meta.url)
         );
         assert.ok(finishMask.byteLength > 1_000, `${previewKey} finish mask is empty`);
       }
@@ -494,10 +605,21 @@ test("every public Bookcase construction maps to the selected room scene", async
   const legacyMediaPreview = resolvePreviewPresentation("bookcase", "tv-wall-cabinets", "door-wall");
   assert.equal(legacyMediaPreview.renderMode, "missing-integrated-scene");
   assert.equal(legacyMediaPreview.integratedLayoutId, null);
+  assert.equal(legacyMediaPreview.authoredLayoutId, "door-wall");
   assert.equal(
     legacyMediaPreview.conceptAsset,
     "assets/photos/configurator/room-layouts/room-door-wall-v1.png"
   );
+
+  const drawerConcept = resolvePreviewPresentation("bookcase", "drawer-base-shelves");
+  assert.equal(drawerConcept.authoredLayoutId, "niche-layout");
+  assert.equal(drawerConcept.mediaWidth, 1448);
+  assert.equal(drawerConcept.mediaHeight, 1086);
+
+  const radiatorConcept = resolvePreviewPresentation("radiator-cover", "clean-slat-cover");
+  assert.equal(radiatorConcept.authoredLayoutId, "window-wall");
+  assert.equal(radiatorConcept.mediaWidth, 1536);
+  assert.equal(radiatorConcept.mediaHeight, 1024);
 });
 
 test("the seven product cards resolve to seventy exact product and room scenes", async () => {
@@ -543,9 +665,10 @@ test("the seven product cards resolve to seventy exact product and room scenes",
       assert.ok(png.byteLength > 10_000, `${previewKey} PNG is empty`);
       assert.ok(avif.byteLength > 10_000, `${previewKey} AVIF is empty`);
 
-      if (expectedAsset.includes("/integrated/")) {
-        const maskAsset = expectedAsset.replace(/-v1\.png$/, "-finish-mask-v1.png");
-        const finishMask = await readFile(new URL(`../${maskAsset}`, import.meta.url));
+      if (presentation.finishMaskMode === "asset") {
+        const finishMask = await readFile(
+          new URL(`../${presentation.finishMaskAsset}`, import.meta.url)
+        );
         assert.ok(finishMask.byteLength > 1_000, `${previewKey} finish mask is empty`);
       }
 
