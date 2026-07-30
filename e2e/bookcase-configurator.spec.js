@@ -234,7 +234,7 @@ test("public route is the lightweight five-step configurator and excludes the 3D
   expect(runtime).toEqual([]);
 });
 
-test("Step 1 product cards show every full composition without changing room-card fitting", async ({ page }) => {
+test("Step 1 product cards use one edge-to-edge 13:10 media format without changing room-card fitting", async ({ page }) => {
   for (const viewport of [
     { name: "desktop", width: 1280, height: 720 },
     { name: "iPad landscape", width: 1024, height: 768 }
@@ -249,28 +249,74 @@ test("Step 1 product cards show every full composition without changing room-car
         image.complete
         && image.naturalWidth > 0
         && image.naturalHeight > 0
-        && getComputedStyle(image).objectFit === "contain"
-        && getComputedStyle(image).objectPosition === "50% 50%"
-        && getComputedStyle(image).transform === "none"
+        && getComputedStyle(image).objectFit === "cover"
       )))).toBe(true);
 
       const geometry = await page.locator("[data-product-choice]").evaluateAll((cards) => cards.map((card) => {
         const cardRect = card.getBoundingClientRect();
         const mediaRect = card.querySelector(".product-card-image").getBoundingClientRect();
+        const copyRect = card.querySelector(".product-card-copy").getBoundingClientRect();
+        const image = card.querySelector("img");
+        const imageRect = image.getBoundingClientRect();
+        const scale = Math.max(
+          mediaRect.width / image.naturalWidth,
+          mediaRect.height / image.naturalHeight
+        );
         return {
           cardWidth: cardRect.width,
           cardHeight: cardRect.height,
           mediaWidth: mediaRect.width,
-          mediaHeight: mediaRect.height
+          mediaHeight: mediaRect.height,
+          copyHeight: copyRect.height,
+          imageEdges: {
+            left: Math.abs(imageRect.left - mediaRect.left),
+            top: Math.abs(imageRect.top - mediaRect.top),
+            right: Math.abs(imageRect.right - mediaRect.right),
+            bottom: Math.abs(imageRect.bottom - mediaRect.bottom)
+          },
+          paintedWidth: image.naturalWidth * scale,
+          paintedHeight: image.naturalHeight * scale,
+          objectPosition: getComputedStyle(image).objectPosition
         };
       }));
-      expect(geometry.every(({ cardWidth, cardHeight, mediaWidth, mediaHeight }) => (
+
+      const spread = (values) => Math.max(...values) - Math.min(...values);
+      expect(spread(geometry.map(({ cardWidth }) => cardWidth))).toBeLessThanOrEqual(1);
+      expect(spread(geometry.map(({ cardHeight }) => cardHeight))).toBeLessThanOrEqual(1);
+      expect(spread(geometry.map(({ mediaWidth }) => mediaWidth))).toBeLessThanOrEqual(1);
+      expect(spread(geometry.map(({ mediaHeight }) => mediaHeight))).toBeLessThanOrEqual(1);
+      expect(spread(geometry.map(({ copyHeight }) => copyHeight))).toBeLessThanOrEqual(1);
+      expect(geometry.every(({
+        cardWidth,
+        cardHeight,
+        mediaWidth,
+        mediaHeight,
+        imageEdges,
+        paintedWidth,
+        paintedHeight
+      }) => (
         cardWidth > 0
         && cardHeight > 0
+        && Math.abs(mediaWidth / mediaHeight - 1.3) <= 0.01
         && Math.abs(mediaWidth - cardWidth) <= 2
         && mediaHeight > 0
         && mediaHeight < cardHeight
+        && Object.values(imageEdges).every((edge) => edge <= 1)
+        && paintedWidth >= mediaWidth - 1
+        && paintedHeight >= mediaHeight - 1
       ))).toBe(true);
+      expect(geometry.map(({ objectPosition }) => objectPosition)).toEqual([
+        "50% 25%",
+        "50% 50%",
+        "50% 50%",
+        "50% 50%",
+        "50% 50%",
+        "50% 50%",
+        "50% 50%"
+      ]);
+      expect(await page.evaluate(() => (
+        document.documentElement.scrollWidth - window.innerWidth
+      ))).toBeLessThanOrEqual(1);
     });
   }
 
@@ -282,7 +328,7 @@ test("Step 1 product cards show every full composition without changing room-car
   ))).toBe(true);
 });
 
-test("wide desktop keeps all seven product cards readable and fully visible", async ({ page }) => {
+test("wide desktop keeps all seven product cards equal and horizontally contained", async ({ page }) => {
   await page.setViewportSize({ width: 2491, height: 1146 });
   await openFreshProject(page);
 
@@ -303,12 +349,6 @@ test("wide desktop keeps all seven product cards readable and fully visible", as
         card: cardRect,
         image: imageRect,
         title: titleRect,
-        insideViewport: (
-          cardRect.top >= -tolerance
-          && cardRect.left >= -tolerance
-          && cardRect.right <= window.innerWidth + tolerance
-          && cardRect.bottom <= window.innerHeight + tolerance
-        ),
         insideGrid: (
           cardRect.top >= grid.top - tolerance
           && cardRect.right <= grid.right + tolerance
@@ -351,12 +391,11 @@ test("wide desktop keeps all seven product cards readable and fully visible", as
   });
 
   expect(geometry.horizontalOverflow).toBeLessThanOrEqual(1);
-  expect(geometry.verticalOverflow).toBeLessThanOrEqual(1);
+  expect(geometry.verticalOverflow).toBeGreaterThanOrEqual(0);
   expect(geometry.widthSpread).toBeLessThanOrEqual(2);
   expect(geometry.rowTops).toHaveLength(2);
   for (const [index, card] of geometry.cards.entries()) {
     const label = `product card ${index + 1}`;
-    expect(card.insideViewport, `${label} inside viewport`).toBe(true);
     expect(card.insideGrid, `${label} inside grid`).toBe(true);
     expect(card.noInternalOverflow, `${label} internal overflow`).toBe(true);
     expect(card.card.width, `${label} width`).toBeGreaterThanOrEqual(250);
@@ -368,7 +407,8 @@ test("wide desktop keeps all seven product cards readable and fully visible", as
 
   await chooseProduct(page);
   await expect(page.locator("[data-continue]")).toBeEnabled();
-  await expectOneScreenFit(page, [".product-grid--catalog", ".guided-actions"]);
+  await page.locator("[data-continue]").scrollIntoViewIfNeeded();
+  await expect(page.locator("[data-continue]")).toBeVisible();
 });
 
 test("Continue requires explicit choices and every product uses the same ten room layouts", async ({ page }) => {
@@ -1272,16 +1312,16 @@ test("Door Wall dimension overlay stays on the measured architecture at desktop 
   }
 });
 
-test("landscape tablet keeps Steps 1–4 and every navigation action in one screen", async ({ page }) => {
+test("landscape tablet lets Step 1 scroll naturally and keeps Steps 2–4 in one screen", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await openFreshProject(page);
   await chooseProduct(page);
-  await expectOneScreenFit(page, [
-    ".guided-header",
-    ".guided-stepper",
-    ".product-grid--catalog",
-    ".guided-actions"
-  ]);
+  const stepOneOverflow = await page.evaluate(() => ({
+    horizontal: document.documentElement.scrollWidth - window.innerWidth,
+    vertical: document.documentElement.scrollHeight - window.innerHeight
+  }));
+  expect(stepOneOverflow.horizontal).toBeLessThanOrEqual(1);
+  expect(stepOneOverflow.vertical).toBeGreaterThan(0);
 
   await page.locator("[data-continue]").click();
   await expectOneScreenFit(page, [
