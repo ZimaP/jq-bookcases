@@ -553,9 +553,6 @@ test("manual production release uses an allowlisted Pages artifact", () => {
   for (const runtimeAsset of [
     "_site/guided-configurator.js",
     "_site/guided-configurator.css",
-    "_site/guided-scene-plan.js",
-    "_site/guided-configurator-3d.js",
-    "_site/assets/vendor/three.module.js",
     "_site/data/generated/benjamin-moore-colors.json",
   ]) {
     assert.match(
@@ -565,6 +562,7 @@ test("manual production release uses an allowlisted Pages artifact", () => {
     );
   }
   assert.match(productionWorkflowSource, /test ! -e _site\/configurator-3d\.js/);
+  assert.match(productionWorkflowSource, /test ! -e _site\/assets\/vendor\/three\.module\.js/);
 });
 
 test("browser QA screenshots stay in ignored test output", () => {

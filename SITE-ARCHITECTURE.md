@@ -31,24 +31,17 @@ or separate quote drawer.
   FAQ behavior, validated saved-design quote prefill, and local quote-preview
   feedback. Contact fields are never persisted by the preview.
 - `styles.css` owns brand tokens and all shared marketing/interior components.
-- `guided-configurator-data.js` owns the public product, room, measurement,
-  finish, and detail catalog.
-- `guided-configurator-state.js` owns guided project normalization, approximate
-  measurement validation, summaries, and local persistence.
-- `guided-scene-plan.js` translates guided project state into an inch-based,
-  renderer-neutral room and concept-product scene plan.
-- `guided-configurator.js` owns the five-step public workflow and keeps one
-  guided scene controller across steps 3–5.
-- `guided-configurator-3d.js` owns the code-native Three.js concept scene,
-  shared room/product rendering, world-space callouts, camera, and interaction.
-- `configurator-experience.js`, `configurator-3d.js`, and the associated
-  configurator styles own the separate accepted-design workspace.
+- `configurator.css` owns only the dense configurator application layout.
+- `configurator-experience.css` owns the two-mode configurator presentation and
+  responsive overrides.
+- `configurator-experience.js` owns the pure Guided/All workflow, mappings,
+  applicability, validation, summaries, preset transitions, and action
+  contracts.
+- `configurator-3d.js` owns the single configurator controller, shared shell,
+  browser events, persistent viewer, and 3D interaction.
 - `bookcase-config.js`, `bookcase-layout.js`, `bookcase-billable.js`, and
   `bookcase-pricing.js` remain the shared product-data, geometry,
   generated-quantity, and estimate sources of truth.
-
-The guided concept scene contract and its separation from physical design,
-BOM, and pricing are documented in `GUIDED-3D-SCENE.md`.
 
 ## Visual system
 
@@ -71,10 +64,10 @@ Every public page must include:
 Run `npm test` after changing navigation, routes, cache tokens, or page shell
 markup. `tests/site-integrity.test.js` enforces these contracts.
 
-The public guided configurator uses one persistent concept scene for
-measurement, customization, and review. Guided drafts remain approximate
-project briefs; rendering them does not promote them to accepted physical
-designs or create manufacturing, BOM, or pricing authority.
+The configurator has one permanent preview subtree outside both presentation
+modes. Guided/All mode preferences are local UI preferences; physical saved
+designs remain normalized schema-4 accepted snapshots. Customized designs are mapped back
+to their structural layout when prefilled into the quote page.
 
 ## Local-preview limitation
 
