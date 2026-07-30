@@ -329,6 +329,104 @@ test("Step 1 product cards use one edge-to-edge 13:10 media format without chang
   ))).toBe(true);
 });
 
+test("Step 2 room cards use one edge-to-edge 4:3 media format without selected-state shifts", async ({ page }) => {
+  const readGeometry = () => page.locator("[data-layout]").evaluateAll((cards) => cards.map((card) => {
+    const cardRect = card.getBoundingClientRect();
+    const mediaRect = card.querySelector(".layout-illustration").getBoundingClientRect();
+    const image = card.querySelector("img");
+    const imageRect = image.getBoundingClientRect();
+    const scale = Math.max(
+      mediaRect.width / image.naturalWidth,
+      mediaRect.height / image.naturalHeight
+    );
+    return {
+      id: card.dataset.layout,
+      offsetLeft: card.offsetLeft,
+      offsetTop: card.offsetTop,
+      cardWidth: cardRect.width,
+      cardHeight: cardRect.height,
+      mediaWidth: mediaRect.width,
+      mediaHeight: mediaRect.height,
+      imageEdges: {
+        left: Math.abs(imageRect.left - mediaRect.left),
+        top: Math.abs(imageRect.top - mediaRect.top),
+        right: Math.abs(imageRect.right - mediaRect.right),
+        bottom: Math.abs(imageRect.bottom - mediaRect.bottom)
+      },
+      objectFit: getComputedStyle(image).objectFit,
+      visibleWidthFraction: mediaRect.width / (image.naturalWidth * scale),
+      visibleHeightFraction: mediaRect.height / (image.naturalHeight * scale)
+    };
+  }));
+
+  for (const viewport of [
+    { name: "desktop", width: 1280, height: 720 },
+    { name: "iPad landscape", width: 1024, height: 768 }
+  ]) {
+    await test.step(viewport.name, async () => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await openFreshProject(page);
+      await continueToLayouts(page);
+
+      const cards = page.locator("[data-layout]");
+      const images = cards.locator(".layout-illustration img");
+      await expect(cards).toHaveCount(sharedLayouts.length);
+      await expect.poll(() => images.evaluateAll((elements) => elements.every((image) => (
+        image.complete
+        && image.naturalWidth > 0
+        && image.naturalHeight > 0
+      )))).toBe(true);
+
+      const beforeSelection = await readGeometry();
+      const spread = (values) => Math.max(...values) - Math.min(...values);
+      expect(beforeSelection.map(({ id }) => id)).toEqual(sharedLayouts.map(({ id }) => id));
+      expect(spread(beforeSelection.map(({ cardWidth }) => cardWidth))).toBeLessThanOrEqual(1);
+      expect(spread(beforeSelection.map(({ cardHeight }) => cardHeight))).toBeLessThanOrEqual(1);
+      expect(spread(beforeSelection.map(({ mediaWidth }) => mediaWidth))).toBeLessThanOrEqual(1);
+      expect(spread(beforeSelection.map(({ mediaHeight }) => mediaHeight))).toBeLessThanOrEqual(1);
+      expect(beforeSelection.every(({
+        mediaWidth,
+        mediaHeight,
+        imageEdges,
+        objectFit,
+        visibleWidthFraction,
+        visibleHeightFraction
+      }) => (
+        Math.abs(mediaWidth / mediaHeight - (4 / 3)) <= 0.01
+        && Object.values(imageEdges).every((edge) => edge <= 1)
+        && objectFit === "cover"
+        && visibleWidthFraction >= 0.74
+        && visibleHeightFraction >= 0.74
+      ))).toBe(true);
+      expect(await page.evaluate(() => (
+        document.documentElement.scrollWidth - window.innerWidth
+      ))).toBeLessThanOrEqual(1);
+
+      const selectedCard = page.locator('[data-layout="double-opening"]');
+      await selectedCard.focus();
+      await selectedCard.press("Space");
+      await expect(selectedCard).toHaveAttribute("aria-pressed", "true");
+      await expect(selectedCard).toHaveCSS("border-left-width", "1px");
+      await expect(selectedCard).toHaveCSS("border-right-width", "1px");
+
+      const afterSelection = await readGeometry();
+      for (const cardBefore of beforeSelection) {
+        const cardAfter = afterSelection.find(({ id }) => id === cardBefore.id);
+        for (const property of [
+          "offsetLeft",
+          "offsetTop",
+          "cardWidth",
+          "cardHeight",
+          "mediaWidth",
+          "mediaHeight"
+        ]) {
+          expect(Math.abs(cardAfter[property] - cardBefore[property])).toBeLessThanOrEqual(1);
+        }
+      }
+    });
+  }
+});
+
 test("Step 1 centers the three-card bottom row without selected-state geometry shifts", async ({ page }) => {
   const readLayout = () => page.evaluate(() => {
     const grid = document.querySelector(".guided-shell--step-1 .product-grid--catalog");
@@ -1397,7 +1495,7 @@ test("Door Wall dimension overlay stays on the measured architecture at desktop 
   }
 });
 
-test("landscape tablet lets Step 1 scroll naturally and keeps Steps 2–4 in one screen", async ({ page }) => {
+test("landscape tablet lets Steps 1–2 scroll naturally and keeps Steps 3–4 in one screen", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await openFreshProject(page);
   await chooseProduct(page);
@@ -1409,12 +1507,12 @@ test("landscape tablet lets Step 1 scroll naturally and keeps Steps 2–4 in one
   expect(stepOneOverflow.vertical).toBeGreaterThan(0);
 
   await page.locator("[data-continue]").click();
-  await expectOneScreenFit(page, [
-    ".selected-product-banner",
-    ".layout-grid",
-    ".guided-info",
-    ".guided-actions"
-  ]);
+  const stepTwoOverflow = await page.evaluate(() => ({
+    horizontal: document.documentElement.scrollWidth - window.innerWidth,
+    vertical: document.documentElement.scrollHeight - window.innerHeight
+  }));
+  expect(stepTwoOverflow.horizontal).toBeLessThanOrEqual(1);
+  expect(stepTwoOverflow.vertical).toBeGreaterThan(0);
   const layoutRows = await page.locator("[data-layout]").evaluateAll((cards) => (
     cards
       .map((card) => card.getBoundingClientRect().top)
