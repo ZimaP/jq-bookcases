@@ -15,7 +15,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=step1-media-ratio-20260730a";
+} from "./guided-configurator-data.js?v=room-media-truth-20260730a";
 import {
   buildProjectSummary,
   createProject,
@@ -24,7 +24,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=step1-media-ratio-20260730a";
+} from "./guided-configurator-state.js?v=room-media-truth-20260730a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -980,7 +980,14 @@ function renderMeasurementDiagram(fields, selectedLayout) {
   ) ? '<span class="measurement-feature" aria-hidden="true"></span>' : "";
 
   return `
-    <figure class="measurement-diagram-card" aria-label="Measurement diagram for ${escapeAttribute(selectedLayout?.label || "selected layout")}">
+    <figure
+      class="measurement-diagram-card"
+      data-media-fit="${escapeAttribute(diagramSpec.mediaFit)}"
+      data-media-aspect-ratio="${escapeAttribute(diagramSpec.mediaAspectRatio)}"
+      data-media-position="${escapeAttribute(diagramSpec.mediaObjectPosition)}"
+      style="--measurement-media-aspect-ratio:${escapeAttribute(diagramSpec.mediaAspectRatio)};--measurement-media-position:${escapeAttribute(diagramSpec.mediaObjectPosition)}"
+      aria-label="Measurement diagram for ${escapeAttribute(selectedLayout?.label || "selected layout")}"
+    >
       <div
         class="measurement-room measurement-room--photo"
         data-layout="${escapeAttribute(selectedLayout?.id || "clear-wall")}"
@@ -1003,7 +1010,7 @@ function renderDimensionDrawing(dimensions, diagramSpec) {
       data-dimension-drawing
       data-dimension-count="${dimensions.length}"
       viewBox="0 0 ${diagramSpec.width} ${diagramSpec.height}"
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio="${escapeAttribute(diagramSpec.mediaSvgPreserveAspectRatio)}"
       aria-hidden="true"
       focusable="false"
     >
@@ -1338,10 +1345,16 @@ function renderConceptPreview() {
       data-finish="${escapeAttribute(finish.id)}"
       data-finish-family="${escapeAttribute(finish.family)}"
       data-preview-asset="${escapeAttribute(previewPresentation.conceptAsset)}"
+      data-authored-layout="${escapeAttribute(previewPresentation.authoredLayoutId || "")}"
       data-layout-context-asset="${escapeAttribute(previewPresentation.layoutContextAsset || "")}"
       data-preview-render-mode="${escapeAttribute(previewPresentation.renderMode)}"
       data-preview-scope="${escapeAttribute(previewScope.id)}"
-      style="--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)}"
+      data-media-fit="${escapeAttribute(previewPresentation.mediaFit)}"
+      data-media-aspect-ratio="${escapeAttribute(previewPresentation.mediaAspectRatio)}"
+      data-media-position="${escapeAttribute(previewPresentation.mediaObjectPosition)}"
+      data-finish-mask-mode="${escapeAttribute(previewPresentation.finishMaskMode || "none")}"
+      data-finish-mask-asset="${escapeAttribute(previewPresentation.finishMaskAsset || "")}"
+      style="--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)};--concept-media-aspect-ratio:${escapeAttribute(previewPresentation.mediaAspectRatio)};--concept-media-position:${escapeAttribute(previewPresentation.mediaObjectPosition)}"
       aria-label="${escapeAttribute(`${selectedProduct?.label || selectedStyle.label} for ${layout?.label || category.label} in ${finish.label}`)}"
     >
       <div class="concept-preview-meta">
@@ -1354,14 +1367,19 @@ function renderConceptPreview() {
         </div>
         ${renderConceptLayoutContext(layout, previewPresentation)}
       </div>
-      <div class="concept-scene" data-concept-scene>
+      <div
+        class="concept-scene"
+        data-concept-scene
+        data-media-width="${escapeAttribute(previewPresentation.mediaWidth)}"
+        data-media-height="${escapeAttribute(previewPresentation.mediaHeight)}"
+      >
         ${renderOptimizedPicture(previewPresentation.conceptAsset, {
           pictureClass: "concept-photo",
           imageClass: "concept-photo",
           loading: "eager",
           fetchPriority: "high"
         })}
-        ${renderConceptFinishOverlay(previewPresentation.conceptAsset)}
+        ${renderConceptFinishOverlay(previewPresentation)}
         ${previewPresentation.renderMode === "missing-integrated-scene" ? `
           <div class="concept-preview-unavailable" role="status">
             <strong>Room-specific concept in preparation</strong>
@@ -1399,9 +1417,20 @@ function renderConceptLayoutContext(layout, previewPresentation) {
   `;
 }
 
-function renderConceptFinishOverlay(previewAsset) {
+function renderConceptFinishOverlay(previewPresentation) {
+  const previewAsset = previewPresentation.conceptAsset;
   const assetName = String(previewAsset || "").split("/").pop();
-  const definition = CONCEPT_FINISH_MASKS[previewAsset]
+  const contractDefinition = previewPresentation.finishMaskMode === "asset"
+    && previewPresentation.finishMaskAsset
+    ? Object.freeze({
+        viewBox: previewPresentation.finishMaskViewBox,
+        width: previewPresentation.finishMaskWidth,
+        height: previewPresentation.finishMaskHeight,
+        maskAsset: previewPresentation.finishMaskAsset
+      })
+    : null;
+  const definition = contractDefinition
+    || CONCEPT_FINISH_MASKS[previewAsset]
     || CONCEPT_FINISH_MASKS[assetName]
     || resolveGeneratedIntegratedFinishMask(previewAsset);
   if (!definition) return "";
@@ -1433,7 +1462,7 @@ function renderConceptFinishOverlay(previewAsset) {
     <svg
       class="concept-finish-overlay"
       viewBox="${definition.viewBox || "0 0 1536 1024"}"
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio="${escapeAttribute(previewPresentation.mediaSvgPreserveAspectRatio)}"
       aria-hidden="true"
       focusable="false"
     >
@@ -1470,7 +1499,9 @@ function renderConceptFinishOverlay(previewAsset) {
 function resolveGeneratedIntegratedFinishMask(previewAsset) {
   const explicitMaskAssets = Object.freeze({
     "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png":
-      "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-finish-mask-v1.png"
+      "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-finish-mask-v1.png",
+    "assets/photos/configurator/integrated/window-storage/window-seat-storage/clear-wall-v2.png":
+      "assets/photos/configurator/integrated/window-storage/window-seat-storage/clear-wall-finish-mask-v2.png"
   });
   const explicitMaskAsset = explicitMaskAssets[String(previewAsset || "")];
   if (explicitMaskAsset) {
@@ -1886,7 +1917,7 @@ function updateProject(patch) {
 
 function updatePreviewScale(action) {
   if (action === "in") previewScale = Math.min(1.2, previewScale + 0.1);
-  else if (action === "out") previewScale = Math.max(0.8, previewScale - 0.1);
+  else if (action === "out") previewScale = Math.max(1, previewScale - 0.1);
   else previewScale = 1;
   applyPreviewScale();
 }
@@ -1894,6 +1925,14 @@ function updatePreviewScale(action) {
 function applyPreviewScale() {
   app?.querySelectorAll("[data-concept-scene]").forEach((scene) => {
     scene.style.setProperty("--preview-scale", String(previewScale));
+  });
+  app?.querySelectorAll("[data-preview-zoom]").forEach((button) => {
+    const action = button.dataset.previewZoom;
+    button.disabled = (
+      (action === "out" && previewScale <= 1)
+      || (action === "in" && previewScale >= 1.2)
+      || (action === "reset" && previewScale === 1)
+    );
   });
 }
 
