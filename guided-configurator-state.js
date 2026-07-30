@@ -10,7 +10,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=room-scene-continuity-20260729a";
+} from "./guided-configurator-data.js?v=unified-guided-scene-20260729c";
 
 export const GUIDED_PROJECT_SCHEMA_VERSION = 2;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
@@ -123,6 +123,41 @@ export function parseInches(rawValue) {
   return Number.isFinite(decimal) && decimal >= 0 ? decimal : null;
 }
 
+export function prepareMeasurementsForLayout(project = {}, layoutId) {
+  const category = getCategory(project.category);
+  const layout = getLayout(category.id, layoutId);
+  const current = project.measurements && typeof project.measurements === "object"
+    ? project.measurements
+    : {};
+  const fields = getMeasurementFields(category.id, layout?.id);
+  const next = Object.fromEntries(fields.map((field) => [
+    field.id,
+    Object.hasOwn(current, field.id) ? current[field.id] : field.defaultValue
+  ]));
+
+  if (!["niche-layout", "left-niche", "right-niche"].includes(layout?.id)) return next;
+
+  const wallField = fields.find((field) => field.id === "wallWidth");
+  const nicheField = fields.find((field) => field.id === "nicheWidth");
+  const wallWidth = parseInches(next.wallWidth) ?? wallField?.defaultValue ?? 0;
+  const nicheWidth = parseInches(next.nicheWidth) ?? nicheField?.defaultValue ?? 0;
+  const availableReturn = Number(Math.max(0, wallWidth - nicheWidth).toFixed(4));
+
+  if (layout.id === "left-niche") {
+    next.leftReturn = 0;
+    next.rightReturn = availableReturn;
+  } else if (layout.id === "right-niche") {
+    next.leftReturn = availableReturn;
+    next.rightReturn = 0;
+  } else {
+    const centeredReturn = Number((availableReturn / 2).toFixed(4));
+    next.leftReturn = centeredReturn;
+    next.rightReturn = Number((availableReturn - centeredReturn).toFixed(4));
+  }
+
+  return next;
+}
+
 export function formatInches(rawValue, options = {}) {
   const value = parseInches(rawValue);
   if (value === null) return options.empty || "—";
@@ -137,6 +172,147 @@ export function formatInches(rawValue, options = {}) {
   const numerator = remainder / divisor;
   const denominator = 16 / divisor;
   return whole ? `${whole} ${numerator}/${denominator}` : `${numerator}/${denominator}`;
+}
+
+const SPATIAL_COMPARISON_EPSILON = 1e-6;
+
+export function validateSpatialRelationships(measurements = {}) {
+  const source = measurements && typeof measurements === "object" ? measurements : {};
+  const valueFor = (fieldId) => parseInches(source[fieldId]);
+  const allKnown = (...values) => values.every((value) => value !== null);
+  const exceeds = (extent, envelope) => extent - envelope > SPATIAL_COMPARISON_EPSILON;
+  const differs = (first, second) => Math.abs(first - second) > SPATIAL_COMPARISON_EPSILON;
+  const warnings = [];
+  const continueMessage = "You can continue and our team will confirm these approximate measurements.";
+  const addWarning = (field, message) => {
+    warnings.push({ field, message: `${message} ${continueMessage}` });
+  };
+
+  const wallWidth = valueFor("wallWidth");
+  const ceilingHeight = valueFor("ceilingHeight");
+
+  const nicheHeight = valueFor("nicheHeight");
+  if (allKnown(nicheHeight, ceilingHeight) && exceeds(nicheHeight, ceilingHeight)) {
+    addWarning(
+      "nicheHeight",
+      `Niche height (${formatInches(nicheHeight)} in) exceeds the ceiling height (${formatInches(ceilingHeight)} in).`
+    );
+  }
+
+  const nicheWidth = valueFor("nicheWidth");
+  const leftReturn = valueFor("leftReturn");
+  const rightReturn = valueFor("rightReturn");
+  if (allKnown(nicheWidth, leftReturn, rightReturn, wallWidth)) {
+    const nicheEnvelope = nicheWidth + leftReturn + rightReturn;
+    if (differs(nicheEnvelope, wallWidth)) {
+      addWarning(
+        "nicheWidth",
+        `Niche width plus the left and right returns total ${formatInches(nicheEnvelope)} in, which does not match the ${formatInches(wallWidth)} in wall width.`
+      );
+    }
+  }
+
+  const doorWidth = valueFor("doorWidth");
+  const doorLeftDistance = valueFor("doorLeftDistance");
+  if (allKnown(doorWidth, wallWidth)) {
+    const doorExtent = doorWidth + (doorLeftDistance ?? 0);
+    if (exceeds(doorExtent, wallWidth)) {
+      const extentDescription = doorLeftDistance === null
+        ? `Door width (${formatInches(doorWidth)} in)`
+        : `The door's extent from the left wall (${formatInches(doorExtent)} in)`;
+      addWarning(
+        "doorWidth",
+        `${extentDescription} exceeds the ${formatInches(wallWidth)} in wall width.`
+      );
+    }
+  }
+
+  const doorHeight = valueFor("doorHeight");
+  if (allKnown(doorHeight, ceilingHeight) && exceeds(doorHeight, ceilingHeight)) {
+    addWarning(
+      "doorHeight",
+      `Door height (${formatInches(doorHeight)} in) exceeds the ceiling height (${formatInches(ceilingHeight)} in).`
+    );
+  }
+
+  const windowWidth = valueFor("windowWidth");
+  const windowLeftDistance = valueFor("windowLeftDistance");
+  const windowRightDistance = valueFor("windowRightDistance");
+  if (allKnown(windowWidth, wallWidth)) {
+    const knownWindowDistances = [windowLeftDistance, windowRightDistance]
+      .filter((value) => value !== null);
+    const windowExtent = knownWindowDistances.reduce((total, value) => total + value, windowWidth);
+    if (exceeds(windowExtent, wallWidth)) {
+      const extentDescription = knownWindowDistances.length
+        ? `Window width plus the known wall distance${knownWindowDistances.length === 1 ? "" : "s"} total ${formatInches(windowExtent)} in`
+        : `Window width (${formatInches(windowWidth)} in)`;
+      addWarning(
+        "windowWidth",
+        `${extentDescription}, exceeding the ${formatInches(wallWidth)} in wall width.`
+      );
+    }
+  }
+
+  const windowHeight = valueFor("windowHeight");
+  const sillHeight = valueFor("sillHeight");
+  if (allKnown(windowHeight, sillHeight, ceilingHeight)) {
+    const windowTop = sillHeight + windowHeight;
+    if (exceeds(windowTop, ceilingHeight)) {
+      addWarning(
+        "windowHeight",
+        `Sill height plus window height reaches ${formatInches(windowTop)} in, exceeding the ${formatInches(ceilingHeight)} in ceiling height.`
+      );
+    }
+  }
+
+  const fireplaceWidth = valueFor("fireplaceWidth");
+  if (allKnown(fireplaceWidth, wallWidth) && exceeds(fireplaceWidth, wallWidth)) {
+    addWarning(
+      "fireplaceWidth",
+      `Fireplace opening width (${formatInches(fireplaceWidth)} in) exceeds the ${formatInches(wallWidth)} in wall width.`
+    );
+  }
+
+  const fireplaceHeight = valueFor("fireplaceHeight");
+  if (allKnown(fireplaceHeight, ceilingHeight) && exceeds(fireplaceHeight, ceilingHeight)) {
+    addWarning(
+      "fireplaceHeight",
+      `Fireplace opening height (${formatInches(fireplaceHeight)} in) exceeds the ${formatInches(ceilingHeight)} in ceiling height.`
+    );
+  }
+
+  const mantelWidth = valueFor("mantelWidth");
+  if (allKnown(mantelWidth, wallWidth) && exceeds(mantelWidth, wallWidth)) {
+    addWarning(
+      "mantelWidth",
+      `Mantel width (${formatInches(mantelWidth)} in) exceeds the ${formatInches(wallWidth)} in wall width.`
+    );
+  }
+
+  const mantelHeight = valueFor("mantelHeight");
+  if (allKnown(mantelHeight, ceilingHeight) && exceeds(mantelHeight, ceilingHeight)) {
+    addWarning(
+      "mantelHeight",
+      `Mantel height (${formatInches(mantelHeight)} in) exceeds the ${formatInches(ceilingHeight)} in ceiling height.`
+    );
+  }
+
+  const fireplaceLeftWidth = valueFor("fireplaceLeftWidth");
+  const fireplaceRightWidth = valueFor("fireplaceRightWidth");
+  if (
+    allKnown(fireplaceLeftWidth, fireplaceWidth, fireplaceRightWidth, wallWidth)
+    && !exceeds(fireplaceWidth, wallWidth)
+  ) {
+    const fireplaceEnvelope = fireplaceLeftWidth + fireplaceWidth + fireplaceRightWidth;
+    if (exceeds(fireplaceEnvelope, wallWidth)) {
+      addWarning(
+        "fireplaceWidth",
+        `Available widths on both sides plus the fireplace opening total ${formatInches(fireplaceEnvelope)} in, exceeding the ${formatInches(wallWidth)} in wall width.`
+      );
+    }
+  }
+
+  return warnings;
 }
 
 export function normalizeProject(candidate, options = {}) {
@@ -295,6 +471,8 @@ export function validateMeasurements(project) {
       });
     }
   }
+
+  warnings.push(...validateSpatialRelationships(values));
 
   return {
     valid: errors.length === 0,

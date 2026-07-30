@@ -4965,6 +4965,197 @@ body.guided-page {
   }
 }
 
+/* Unified guided 3D scene
+   The photographic room/concept remains only as a WebGL failure fallback. */
+.guided-3d-mount {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 50% 28%, #f8f5ef 0, #e9e2d8 62%, #d6cdc1 100%);
+  transition: opacity 220ms ease;
+}
+
+.measurement-room[data-guided3d-state="ready"] > .guided-3d-mount,
+.concept-scene[data-guided3d-state="ready"] > .guided-3d-mount {
+  opacity: 1;
+}
+
+.measurement-room > :is(
+    picture.measurement-room-image,
+    .measurement-feature,
+    .dimension-overlay
+  ),
+.concept-scene > :is(
+    picture.concept-photo,
+    .concept-finish-overlay,
+    .concept-preview-unavailable,
+    .concept-unit
+  ) {
+  transition:
+    opacity 180ms ease;
+}
+
+.measurement-room[data-guided3d-state="ready"] > :is(
+    picture.measurement-room-image,
+    .measurement-feature,
+    .dimension-overlay
+  ),
+.concept-scene[data-guided3d-state="ready"] > :is(
+    picture.concept-photo,
+    .concept-finish-overlay,
+    .concept-preview-unavailable,
+    .concept-unit
+  ) {
+  opacity: 0;
+}
+
+.guided-3d-runtime,
+.guided-3d-canvas,
+.guided-3d-label-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.guided-3d-runtime {
+  isolation: isolate;
+  background: #ece6de;
+}
+
+.guided-3d-canvas {
+  z-index: 1;
+  display: block;
+  outline: none;
+  cursor: grab;
+  touch-action: none;
+}
+
+.guided-3d-canvas[data-interacting="true"] {
+  cursor: grabbing;
+}
+
+.guided-3d-canvas:focus-visible {
+  outline: 3px solid rgba(166, 117, 52, 0.82);
+  outline-offset: -4px;
+}
+
+.guided-3d-label-layer {
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.guided-3d-dimension-label {
+  position: absolute;
+  display: grid;
+  min-width: 98px;
+  gap: 1px;
+  padding: 6px 9px;
+  color: #28231e;
+  font-family: var(--guided-sans);
+  line-height: 1.12;
+  text-align: center;
+  border: 1px solid rgba(116, 90, 61, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 4px 14px rgba(56, 42, 29, 0.12);
+  transform: translate(-50%, -50%);
+  backdrop-filter: blur(8px);
+}
+
+.guided-3d-dimension-label strong {
+  font-size: 0.68rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.guided-3d-dimension-label small {
+  color: #796a5a;
+  font-size: 0.58rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.guided-3d-dimension-label b {
+  margin-right: 3px;
+  color: #815118;
+}
+
+.guided-3d-hint {
+  position: absolute;
+  z-index: 3;
+  right: 50%;
+  bottom: 14px;
+  display: flex;
+  gap: 12px;
+  padding: 7px 11px;
+  color: #4f473e;
+  font-size: 0.59rem;
+  font-weight: 650;
+  letter-spacing: 0.035em;
+  line-height: 1;
+  border: 1px solid rgba(104, 84, 64, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 5px 18px rgba(55, 43, 31, 0.09);
+  transform: translateX(50%);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.guided-3d-hint span + span::before {
+  margin-right: 12px;
+  color: #9a7a55;
+  content: "·";
+}
+
+@media (max-width: 680px) {
+  .guided-3d-dimension-label {
+    min-width: 82px;
+    padding: 5px 7px;
+  }
+
+  .guided-3d-dimension-label strong {
+    font-size: 0.6rem;
+  }
+
+  .guided-3d-dimension-label small {
+    font-size: 0.52rem;
+  }
+
+  .guided-3d-hint {
+    bottom: 10px;
+    gap: 8px;
+    padding: 6px 9px;
+    font-size: 0.52rem;
+  }
+
+  .guided-3d-hint span + span::before {
+    margin-right: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guided-3d-mount,
+  .measurement-room > :is(
+      picture.measurement-room-image,
+      .measurement-feature,
+      .dimension-overlay
+    ),
+  .concept-scene > :is(
+      picture.concept-photo,
+      .concept-finish-overlay,
+      .concept-preview-unavailable,
+      .concept-unit
+    ) {
+    transition: none;
+  }
+}
+
 @media (max-width: 360px) {
   .layout-grid {
     grid-template-columns: 1fr;
@@ -6077,4 +6268,10 @@ body.guided-page {
     stroke-width: 1.2;
     stroke-dasharray: none;
   }
+}
+
+/* The photographic diagram's compatibility rule hides unrecognized direct
+   children. Keep the real scene runtime mounted above that fallback layer. */
+.measurement-room.measurement-room--photo > .guided-3d-mount {
+  display: block;
 }
