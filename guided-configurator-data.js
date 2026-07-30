@@ -905,7 +905,8 @@ const productChoice = (id, categoryId, styleId, label, options = {}) => Object.f
 export const PRODUCT_CHOICES = Object.freeze([
   productChoice("cabinet-shelves", "bookcase", "cabinet-base-shelves", "Cabinets + Shelves", {
     drawingRef: "Drawing 7",
-    description: "Open shelving with concealed lower cabinets."
+    description: "Open shelving with concealed lower cabinets.",
+    previewPosition: "50% 25%"
   }),
   productChoice("drawer-shelves", "bookcase", "drawer-base-shelves", "Drawers + Shelves", {
     drawingRef: "Drawings 5–6",

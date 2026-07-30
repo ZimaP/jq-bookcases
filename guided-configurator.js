@@ -15,7 +15,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=room-preview-fix-20260730a";
+} from "./guided-configurator-data.js?v=step1-media-ratio-20260730a";
 import {
   buildProjectSummary,
   createProject,
@@ -24,7 +24,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=room-preview-fix-20260730a";
+} from "./guided-configurator-state.js?v=step1-media-ratio-20260730a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -584,7 +584,7 @@ function renderProductStep() {
               ${renderOptimizedPicture(style.previewAsset || category.productPreviewAsset, {
                 loading: "eager",
                 fetchPriority: index === 0 ? "high" : "low",
-                style: "object-position:50% 50%"
+                style: `object-position:${choice.previewPosition || "50% 50%"}`
               })}
             </span>
             <span class="product-card-copy">
