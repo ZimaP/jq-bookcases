@@ -1297,10 +1297,23 @@ test("Clear Wall topology has approved room and furniture visual snapshots", asy
     const selectedRoomAsset = await measurementRoom.getAttribute("data-room-asset");
     expect(selectedRoomAsset).toBe("assets/photos/configurator/room-layouts/room-clear-wall-v1.png");
     if (product.styleId === "full-open-shelving") {
-      await expect(measurementRoom).toHaveScreenshot(
+      // The overlay contract is asserted structurally elsewhere. Hide it here so
+      // platform-specific SVG text anti-aliasing cannot obscure a room-topology
+      // regression in the painted photograph.
+      const measurementOverlay = measurementRoom.locator("[data-dimension-overlay]");
+      await measurementOverlay.evaluate((element) => {
+        element.style.visibility = "hidden";
+      });
+      const measurementRoomPhoto = measurementRoom.locator(
+        ":scope > picture.measurement-room-image"
+      );
+      await expect(measurementRoomPhoto).toHaveScreenshot(
         "clear-wall-full-open-step3-1024x768.png",
         { animations: "disabled", maxDiffPixelRatio: 0.001 }
       );
+      await measurementOverlay.evaluate((element) => {
+        element.style.removeProperty("visibility");
+      });
     }
 
     await page.locator("[data-continue]").click();
