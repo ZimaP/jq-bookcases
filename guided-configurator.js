@@ -14,7 +14,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=clear-wall-continuity-20260730a";
+} from "./guided-configurator-data.js?v=guided-viewport-framing-20260730a";
 import {
   buildProjectSummary,
   createProject,
@@ -23,7 +23,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=clear-wall-continuity-20260730a";
+} from "./guided-configurator-state.js?v=guided-viewport-framing-20260730a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -867,7 +867,7 @@ function renderMeasurementStep() {
   const diagramFieldIds = new Set(
     selectMeasurementDiagramFields(fields, selectedLayout).map((field) => field.id)
   );
-  const denseMeasurements = fields.length > 9;
+  const denseMeasurements = fields.length > 8;
   const validation = validateMeasurements(project);
   let previousGroup = "";
 
@@ -882,35 +882,39 @@ function renderMeasurementStep() {
 
   return `
     <div class="measurement-layout${denseMeasurements ? " measurement-layout--dense" : ""}">
-      <section
-        class="measurement-panel${denseMeasurements ? " measurement-panel--dense" : ""}"
-        data-measurement-field-count="${fields.length}"
-        aria-label="Approximate room measurements"
-      >
-        <h2 class="measurement-panel-title">Selected Layout</h2>
-        <p class="selected-layout-chip">
-          ${renderCategoryIcon(getCategory(project.category).icon)}
-          <span>${escapeHtml(selectedLayout?.label || "Select a layout")}</span>
-        </p>
-        <p class="measurement-format-hint visually-hidden">Use inches. Decimals and common fractions are welcome.</p>
-        <div class="measurement-fields">${fieldMarkup}</div>
-        <p class="measurement-error" data-measurement-error role="alert" ${validation.errors.length ? "" : "hidden"}>
-          ${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}
-        </p>
-      </section>
-      ${renderMeasurementDiagram(selectMeasurementDiagramFields(fields, selectedLayout), selectedLayout)}
-    </div>
-    <aside class="guided-info">
-      <i data-icon="information" aria-hidden="true"></i>
-      <span>Don’t worry if your measurements are approximate — our team can confirm detail before production.</span>
-    </aside>
-    <div class="guided-actions">
-      <button class="guided-button guided-button-secondary" type="button" data-back>
-        <i data-icon="chevron-left" aria-hidden="true"></i> Back
-      </button>
-      <button class="guided-button guided-button-primary" type="button" data-continue>
-        Continue <i data-icon="arrow-right" aria-hidden="true"></i>
-      </button>
+      <div class="measurement-controls-column">
+        <section
+          class="measurement-panel${denseMeasurements ? " measurement-panel--dense" : ""}"
+          data-measurement-field-count="${fields.length}"
+          aria-label="Approximate room measurements"
+        >
+          <h2 class="measurement-panel-title">Selected Layout</h2>
+          <p class="selected-layout-chip">
+            ${renderCategoryIcon(getCategory(project.category).icon)}
+            <span>${escapeHtml(selectedLayout?.label || "Select a layout")}</span>
+          </p>
+          <p class="measurement-format-hint visually-hidden">Use inches. Decimals and common fractions are welcome.</p>
+          <div class="measurement-fields">${fieldMarkup}</div>
+          <p class="measurement-error" data-measurement-error role="alert" ${validation.errors.length ? "" : "hidden"}>
+            ${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}
+          </p>
+        </section>
+        <aside class="guided-info">
+          <i data-icon="information" aria-hidden="true"></i>
+          <span>Don’t worry if your measurements are approximate — our team can confirm detail before production.</span>
+        </aside>
+        <div class="guided-actions">
+          <button class="guided-button guided-button-secondary" type="button" data-back>
+            <i data-icon="chevron-left" aria-hidden="true"></i> Back
+          </button>
+          <button class="guided-button guided-button-primary" type="button" data-continue>
+            Continue <i data-icon="arrow-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      <div class="measurement-diagram-column">
+        ${renderMeasurementDiagram(selectMeasurementDiagramFields(fields, selectedLayout), selectedLayout)}
+      </div>
     </div>
   `;
 }

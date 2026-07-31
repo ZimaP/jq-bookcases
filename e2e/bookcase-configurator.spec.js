@@ -408,6 +408,273 @@ async function expectNoHorizontalOverflow(page, selectors) {
   }
 }
 
+async function expectOneScreenWorkspace(page, selectors, context) {
+  const report = await page.evaluate((targets) => {
+    const isRendered = (element) => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return (
+        style.display !== "none"
+        && style.visibility !== "hidden"
+        && Number(style.opacity) > 0
+        && rect.width > 0
+        && rect.height > 0
+      );
+    };
+    return {
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
+      verticalOverflow: document.documentElement.scrollHeight - window.innerHeight,
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+      groups: targets.map((selector) => ({
+        selector,
+        elements: [...document.querySelectorAll(selector)]
+          .filter(isRendered)
+          .map((element, index) => {
+            const rect = element.getBoundingClientRect();
+            return {
+              index,
+              left: rect.left,
+              right: rect.right,
+              top: rect.top,
+              bottom: rect.bottom,
+              width: rect.width,
+              height: rect.height
+            };
+          })
+      }))
+    };
+  }, selectors);
+
+  expect(report.horizontalOverflow, `${context} horizontal document overflow`).toBeLessThanOrEqual(1);
+  expect(report.verticalOverflow, `${context} vertical document overflow`).toBeLessThanOrEqual(1);
+  expect(report.scrollX, `${context} horizontal scroll position`).toBe(0);
+  expect(report.scrollY, `${context} vertical scroll position`).toBe(0);
+  for (const group of report.groups) {
+    expect(group.elements.length, `${context} ${group.selector} rendered`).toBeGreaterThan(0);
+    for (const element of group.elements) {
+      const label = `${context} ${group.selector}[${element.index}]`;
+      expect(element.left, `${label} left`).toBeGreaterThanOrEqual(-1);
+      expect(element.right, `${label} right`).toBeLessThanOrEqual(report.viewportWidth + 1);
+      expect(element.top, `${label} top`).toBeGreaterThanOrEqual(-1);
+      expect(element.bottom, `${label} bottom`).toBeLessThanOrEqual(report.viewportHeight + 1);
+    }
+  }
+  return report;
+}
+
+async function expectMeasurementWorkspaceInOneScreen(page, context) {
+  const report = await expectOneScreenWorkspace(page, [
+    ".guided-header",
+    ".guided-stepper",
+    ".guided-content-head",
+    ".measurement-panel",
+    ".measurement-panel [data-measurement-row]",
+    ".measurement-panel [data-measurement]",
+    ".guided-info",
+    ".guided-actions",
+    ".guided-actions .guided-button",
+    ".measurement-diagram-card"
+  ], context);
+
+  const geometry = await page.evaluate(() => {
+    const panelElement = document.querySelector(".measurement-panel");
+    const rect = (selector) => document.querySelector(selector).getBoundingClientRect();
+    const panel = panelElement.getBoundingClientRect();
+    const information = rect(".guided-info");
+    const actions = rect(".guided-actions");
+    const diagram = rect(".measurement-diagram-card");
+    const overlap = (first, second) => (
+      first.left < second.right - 1
+      && first.right > second.left + 1
+      && first.top < second.bottom - 1
+      && first.bottom > second.top + 1
+    );
+    return {
+      panelBeforeInformation: panel.bottom <= information.top + 1,
+      informationBeforeActions: information.bottom <= actions.top + 1,
+      controlsClearDiagram: (
+        !overlap(panel, diagram)
+        && !overlap(information, diagram)
+        && !overlap(actions, diagram)
+      ),
+      panelHasNoClippedOverflow: panelElement.scrollHeight <= panelElement.clientHeight + 1,
+      fieldsInsidePanel: [
+        ...panelElement.querySelectorAll("[data-measurement-row], .measurement-input-wrap")
+      ].every((element) => {
+        const elementRect = element.getBoundingClientRect();
+        return (
+          elementRect.left >= panel.left - 1
+          && elementRect.right <= panel.right + 1
+          && elementRect.top >= panel.top - 1
+          && elementRect.bottom <= panel.bottom + 1
+        );
+      }),
+      diagramRatio: diagram.width / diagram.height,
+      buttonHeights: [...document.querySelectorAll(".guided-actions .guided-button")]
+        .map((button) => button.getBoundingClientRect().height),
+      controlHeights: [...document.querySelectorAll(
+        '.measurement-panel input:not([type="radio"]), .measurement-panel select, .measurement-panel .measurement-toggle'
+      )]
+        .filter((control) => getComputedStyle(control).display !== "none")
+        .map((control) => control.getBoundingClientRect().height)
+    };
+  });
+
+  expect(geometry.panelBeforeInformation, `${context} panel precedes note`).toBe(true);
+  expect(geometry.informationBeforeActions, `${context} note precedes actions`).toBe(true);
+  expect(geometry.controlsClearDiagram, `${context} controls do not overlap diagram`).toBe(true);
+  expect(geometry.panelHasNoClippedOverflow, `${context} panel has no clipped fields`).toBe(true);
+  expect(geometry.fieldsInsidePanel, `${context} fields stay inside panel`).toBe(true);
+  expect(geometry.diagramRatio, `${context} height-first diagram ratio`).toBeCloseTo(4 / 3, 2);
+  expect(Math.min(...geometry.buttonHeights), `${context} action target height`).toBeGreaterThanOrEqual(43);
+  expect(Math.min(...geometry.controlHeights), `${context} measurement control height`).toBeGreaterThanOrEqual(35);
+  return report;
+}
+
+async function expectCustomizationWorkspaceInOneScreen(page, context) {
+  return expectOneScreenWorkspace(page, [
+    ".guided-header",
+    ".guided-stepper",
+    ".guided-content-head",
+    ".customization-panel",
+    ".customization-actions",
+    ".customization-actions .guided-button",
+    ".concept-preview",
+    ".concept-preview-meta",
+    ".concept-scene",
+    ".preview-controls"
+  ], context);
+}
+
+async function expectDrawersRightNicheComposition(preview, context) {
+  const conceptAsset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-v2.png";
+  const finishMaskAsset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v2.png";
+  await expectIntegratedPreview(preview, conceptAsset);
+  await expect(preview).toHaveAttribute("data-preview-key", "bookcase:drawer-base-shelves:right-niche");
+  await expect(preview).toHaveAttribute("data-authored-layout", "right-niche");
+  const layoutContext = preview.locator('[data-layout-context="right-niche"]');
+  await expect(layoutContext).toBeVisible();
+  await expect(layoutContext).toHaveAccessibleName("Selected room condition: Right Niche");
+  const maskElement = preview.locator("svg.concept-finish-overlay mask image");
+  await expect(maskElement).toHaveCount(1);
+  await expect(maskElement).toHaveAttribute("href", finishMaskAsset);
+
+  const geometry = await preview.evaluate(async (element, expectedMaskAsset) => {
+    const scene = element.querySelector("[data-concept-scene]");
+    const image = scene.querySelector("img.concept-photo");
+    const overlay = scene.querySelector("svg.concept-finish-overlay");
+    const maskNode = overlay.querySelector("mask image");
+    const sceneRect = scene.getBoundingClientRect();
+    const imageStyle = getComputedStyle(image);
+    const objectPosition = imageStyle.objectPosition
+      .split(" ")
+      .map((value) => Number.parseFloat(value) / 100);
+    const maskImage = new Image();
+    maskImage.src = new URL(maskNode.getAttribute("href"), window.location.href).href;
+    await maskImage.decode();
+    const canvas = document.createElement("canvas");
+    canvas.width = maskImage.naturalWidth;
+    canvas.height = maskImage.naturalHeight;
+    const context2d = canvas.getContext("2d", { willReadFrequently: true });
+    context2d.drawImage(maskImage, 0, 0);
+    const pixels = context2d.getImageData(0, 0, canvas.width, canvas.height).data;
+    let minX = canvas.width;
+    let minY = canvas.height;
+    let maxX = -1;
+    let maxY = -1;
+    let nonzeroPixels = 0;
+    for (let y = 0; y < canvas.height; y += 1) {
+      for (let x = 0; x < canvas.width; x += 1) {
+        const offset = (y * canvas.width + x) * 4;
+        const luminance = Math.max(pixels[offset], pixels[offset + 1], pixels[offset + 2]);
+        if (luminance <= 8 || pixels[offset + 3] <= 8) continue;
+        nonzeroPixels += 1;
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+    const sourceBounds = {
+      left: minX,
+      top: minY,
+      right: maxX + 1,
+      bottom: maxY + 1,
+      width: maxX - minX + 1,
+      height: maxY - minY + 1
+    };
+    const coverScale = Math.max(
+      sceneRect.width / image.naturalWidth,
+      sceneRect.height / image.naturalHeight
+    );
+    const paintedWidth = image.naturalWidth * coverScale;
+    const paintedHeight = image.naturalHeight * coverScale;
+    const paintedLeft = sceneRect.left - (paintedWidth - sceneRect.width) * objectPosition[0];
+    const paintedTop = sceneRect.top - (paintedHeight - sceneRect.height) * objectPosition[1];
+    const paintedBounds = {
+      left: paintedLeft + sourceBounds.left * coverScale,
+      top: paintedTop + sourceBounds.top * coverScale,
+      right: paintedLeft + sourceBounds.right * coverScale,
+      bottom: paintedTop + sourceBounds.bottom * coverScale
+    };
+    return {
+      maskAsset: maskNode.getAttribute("href"),
+      sourceWidth: canvas.width,
+      sourceHeight: canvas.height,
+      nonzeroPixels,
+      sourceBounds,
+      sourceMargins: {
+        left: sourceBounds.left,
+        top: sourceBounds.top,
+        right: canvas.width - sourceBounds.right,
+        bottom: canvas.height - sourceBounds.bottom
+      },
+      paintedMargins: {
+        left: paintedBounds.left - sceneRect.left,
+        top: paintedBounds.top - sceneRect.top,
+        right: sceneRect.right - paintedBounds.right,
+        bottom: sceneRect.bottom - paintedBounds.bottom
+      },
+      fullyVisible: (
+        paintedBounds.left >= sceneRect.left - 1
+        && paintedBounds.top >= sceneRect.top - 1
+        && paintedBounds.right <= sceneRect.right + 1
+        && paintedBounds.bottom <= sceneRect.bottom + 1
+      ),
+      resetScale: Number.parseFloat(getComputedStyle(scene).getPropertyValue("--preview-scale")) || 1,
+      expectedMaskUrlMatches: new URL(maskImage.src).pathname.endsWith(expectedMaskAsset)
+    };
+  }, finishMaskAsset);
+
+  expect(geometry.maskAsset, `${context} mask asset`).toBe(finishMaskAsset);
+  expect(geometry.expectedMaskUrlMatches, `${context} decoded mask asset`).toBe(true);
+  expect([geometry.sourceWidth, geometry.sourceHeight], `${context} authored dimensions`).toEqual([1536, 1024]);
+  expect(geometry.nonzeroPixels, `${context} useful furniture mask`).toBeGreaterThan(100_000);
+  expect(geometry.sourceBounds, `${context} complete authored furniture bounds`).toEqual({
+    left: 338,
+    top: 136,
+    right: 1199,
+    bottom: 856,
+    width: 861,
+    height: 720
+  });
+  expect(geometry.sourceBounds.width / geometry.sourceWidth, `${context} furniture width`).toBeGreaterThan(0.5);
+  expect(geometry.sourceBounds.height / geometry.sourceHeight, `${context} furniture height`).toBeGreaterThan(0.65);
+  expect(geometry.sourceMargins.left, `${context} complete left side`).toBeGreaterThanOrEqual(0.18 * geometry.sourceWidth);
+  expect(geometry.sourceMargins.right, `${context} complete right side`).toBeGreaterThanOrEqual(0.18 * geometry.sourceWidth);
+  expect(geometry.sourceMargins.top, `${context} crown and wall above`).toBeGreaterThanOrEqual(0.1 * geometry.sourceHeight);
+  expect(geometry.sourceMargins.bottom, `${context} base and floor below`).toBeGreaterThanOrEqual(0.14 * geometry.sourceHeight);
+  expect(geometry.fullyVisible, `${context} complete furniture survives the active cover crop`).toBe(true);
+  for (const [side, margin] of Object.entries(geometry.paintedMargins)) {
+    expect(margin, `${context} visible ${side} breathing room`).toBeGreaterThanOrEqual(8);
+  }
+  expect(geometry.resetScale, `${context} semantic crop is measured at reset`).toBe(1);
+  return geometry;
+}
+
 async function continueToReview(page, layout = "Clear Wall", product = "Cabinets + Shelves") {
   await continueToLayouts(page, product);
   await chooseLayout(page, layout);
@@ -1260,6 +1527,10 @@ test("Drawers + Shelves keeps a truthful Clear Wall through review, navigation, 
   await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
   await expectClearWallPreview();
 
+  await expect.poll(() => page.evaluate(() => {
+    const rawDraft = localStorage.getItem("jqGuidedConfiguratorDraftV1");
+    return rawDraft ? JSON.parse(rawDraft).currentStep : null;
+  })).toBe(5);
   await page.reload({ waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
   await expectClearWallPreview();
@@ -1578,6 +1849,149 @@ test("Right Niche shows only room perimeter dimensions and one integrated previe
   await expect(metadata).toBeVisible();
 });
 
+test("Drawers + Shelves Right Niche stays one-screen and completely framed through every preview state", async ({ page }) => {
+  test.slow();
+  const runtime = monitorRuntime(page);
+  const expectedFields = [
+    "wallWidth",
+    "ceilingHeight",
+    "desiredDepth",
+    "nicheWidth",
+    "nicheHeight",
+    "nicheDepth",
+    "leftReturn",
+    "rightReturn"
+  ];
+
+  for (const viewport of [
+    { width: 1366, height: 900 },
+    { width: 1280, height: 720 },
+    { width: 1024, height: 768 },
+    { width: 1440, height: 900 }
+  ]) {
+    const viewportContext = `${viewport.width}x${viewport.height} Drawers + Shelves / Right Niche`;
+    await test.step(viewportContext, async () => {
+      await page.setViewportSize(viewport);
+      await openFreshProject(page);
+      await continueToLayouts(page, "Drawers + Shelves");
+      await chooseLayout(page, "Right Niche");
+      await page.locator("[data-continue]").click();
+
+      await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+      await expect(page.locator(".selected-layout-chip")).toContainText("Right Niche");
+      expect(
+        await page.locator("[data-measurement-row]").evaluateAll((rows) => (
+          rows.map((row) => row.dataset.measurementRow)
+        )),
+        `${viewportContext} exact measurement fields`
+      ).toEqual(expectedFields);
+      for (const fieldId of expectedFields) {
+        await expect(
+          page.locator(`[data-measurement-row="${fieldId}"]`),
+          `${viewportContext} ${fieldId} row`
+        ).toBeVisible();
+        await expect(
+          page.locator(`[data-measurement="${fieldId}"]`),
+          `${viewportContext} ${fieldId} control`
+        ).toBeVisible();
+      }
+      await expect(page.locator(".guided-info")).toContainText(
+        "Don’t worry if your measurements are approximate"
+      );
+      await expect(page.getByRole("button", { name: "Back" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Continue" })).toBeVisible();
+      await expectMeasurementWorkspaceInOneScreen(page, `${viewportContext} Room & Size`);
+
+      await page.locator("[data-continue]").click();
+      await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+      await expectCustomizationWorkspaceInOneScreen(page, `${viewportContext} Customization`);
+
+      let preview = page.locator(
+        '.concept-preview[data-category="bookcase"][data-style="drawer-base-shelves"][data-layout="right-niche"]'
+      );
+      await expectDrawersRightNicheComposition(preview, `${viewportContext} initial`);
+
+      await page.getByRole("button", { name: "Charcoal", exact: true }).click();
+      preview = page.locator(
+        '.concept-preview[data-category="bookcase"][data-style="drawer-base-shelves"][data-layout="right-niche"]'
+      );
+      await expect(preview).toHaveAttribute("data-finish", "charcoal");
+      await expectDrawersRightNicheComposition(preview, `${viewportContext} Charcoal`);
+
+      await page.getByRole("tab", { name: "Details" }).click();
+      preview = page.locator(
+        '.concept-preview[data-category="bookcase"][data-style="drawer-base-shelves"][data-layout="right-niche"]'
+      );
+      await expectDrawersRightNicheComposition(preview, `${viewportContext} Details tab`);
+      await page.getByRole("tab", { name: "Finish" }).click();
+      preview = page.locator(
+        '.concept-preview[data-category="bookcase"][data-style="drawer-base-shelves"][data-layout="right-niche"]'
+      );
+      await expectDrawersRightNicheComposition(preview, `${viewportContext} Finish tab`);
+      await expectCustomizationWorkspaceInOneScreen(page, `${viewportContext} Finish tab`);
+
+      await page.getByRole("button", { name: "Zoom in" }).click();
+      await expect(preview.locator("[data-concept-scene]")).toHaveCSS("--preview-scale", "1.1");
+      await expect(preview).toHaveAttribute(
+        "data-preview-asset",
+        "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-v2.png"
+      );
+      await expect(preview.locator("svg.concept-finish-overlay mask image")).toHaveAttribute(
+        "href",
+        "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v2.png"
+      );
+      await page.getByRole("button", { name: "Reset preview" }).click();
+      await expect(preview.locator("[data-concept-scene]")).toHaveCSS("--preview-scale", "1");
+      await expectDrawersRightNicheComposition(preview, `${viewportContext} zoom reset`);
+
+      await page.locator("[data-continue]").click();
+      await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+      await expect(page.locator('[data-summary-value="product"]')).toHaveText("Drawers + Shelves");
+      await expect(page.locator('[data-summary-value="layout"]')).toHaveText("Right Niche");
+      preview = page.locator(
+        '.concept-preview[data-category="bookcase"][data-style="drawer-base-shelves"][data-layout="right-niche"]'
+      );
+      await expectDrawersRightNicheComposition(preview, `${viewportContext} Review`);
+
+      await page.locator('[data-step="4"]').click();
+      await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+      preview = page.locator(
+        '.concept-preview[data-category="bookcase"][data-style="drawer-base-shelves"][data-layout="right-niche"]'
+      );
+      await expectDrawersRightNicheComposition(preview, `${viewportContext} Review back to Customization`);
+      await expectCustomizationWorkspaceInOneScreen(
+        page,
+        `${viewportContext} Review back to Customization`
+      );
+
+      await expect.poll(() => page.evaluate(() => {
+        const rawDraft = localStorage.getItem("jqGuidedConfiguratorDraftV1");
+        if (!rawDraft) return null;
+        const draft = JSON.parse(rawDraft);
+        return {
+          currentStep: draft.currentStep,
+          finish: draft.finish,
+          layout: draft.layout
+        };
+      })).toEqual({
+        currentStep: 4,
+        finish: "charcoal",
+        layout: "right-niche"
+      });
+      await page.reload({ waitUntil: "networkidle" });
+      await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+      preview = page.locator(
+        '.concept-preview[data-category="bookcase"][data-style="drawer-base-shelves"][data-layout="right-niche"]'
+      );
+      await expect(preview).toHaveAttribute("data-finish", "charcoal");
+      await expectDrawersRightNicheComposition(preview, `${viewportContext} reload`);
+      await expectCustomizationWorkspaceInOneScreen(page, `${viewportContext} reload`);
+    });
+  }
+
+  expect(runtime.filter((failure) => !failure.includes("net::ERR_ABORTED"))).toEqual([]);
+});
+
 test("TV Unit keeps the selected Clear Wall photo free of synthetic room features", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await openFreshProject(page);
@@ -1658,13 +2072,13 @@ test("all ten bookcase layouts render one responsive two-dimension perimeter ove
   test.slow();
 
   for (const viewport of [
+    { width: 1366, height: 900 },
     { width: 1280, height: 720 },
-    { width: 1024, height: 768 },
-    { width: 1180, height: 820 }
+    { width: 1024, height: 768 }
   ]) {
     await page.setViewportSize(viewport);
     await openFreshProject(page);
-    await continueToLayouts(page);
+    await continueToLayouts(page, "Drawers + Shelves");
 
     for (const roomLayout of sharedLayouts) {
       await chooseLayout(page, roomLayout.label);
@@ -1909,7 +2323,8 @@ test("all ten bookcase layouts render one responsive two-dimension perimeter ove
       expect(geometry.labelsInsideRoom, `${context} labels stay inside room`).toBe(true);
       expect(geometry.overlappingPairs, `${context} labels do not overlap`).toEqual([]);
       expect(geometry.horizontalOverflow, `${context} horizontal overflow`).toBeLessThanOrEqual(1);
-      expect(geometry.verticalOverflow, `${context} may use normal document scrolling`).toBeGreaterThanOrEqual(0);
+      expect(geometry.verticalOverflow, `${context} vertical overflow`).toBeLessThanOrEqual(1);
+      await expectMeasurementWorkspaceInOneScreen(page, context);
       for (const span of geometry.spanReports) {
         expect(span.lineCount, `${context} ${span.fieldId} main line`).toBe(1);
         expect(span.extensionCount, `${context} ${span.fieldId} witness lines`).toBe(2);
@@ -2143,7 +2558,7 @@ test("Door Wall dimension overlay stays on the measured architecture at desktop 
   }
 });
 
-test("landscape tablet keeps every step horizontally contained while truthful media scrolls naturally", async ({ page }) => {
+test("landscape tablet lets selection steps scroll while Room & Size and Customization fit one screen", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await openFreshProject(page);
   await chooseProduct(page);
@@ -2191,19 +2606,14 @@ test("landscape tablet keeps every step horizontally contained while truthful me
 
   await chooseLayout(page, "Clear Wall");
   await page.locator("[data-continue]").click();
-  await expectNoHorizontalOverflow(page, [
-    ".measurement-panel",
-    ".measurement-diagram-card",
-    ".guided-info",
-    ".guided-actions"
-  ]);
+  await expectMeasurementWorkspaceInOneScreen(page, "1280x720 Clear Wall Room & Size");
 
   await page.locator("[data-continue]").click();
-  await expectNoHorizontalOverflow(page, [
+  await expectOneScreenWorkspace(page, [
     ".customization-panel",
     ".concept-preview",
     ".customization-actions"
-  ]);
+  ], "1280x720 Clear Wall Customization");
   await expectRoomPlusFurniturePreview(
     page.locator(".concept-preview"),
     resolvePreviewPresentation("bookcase", "cabinet-base-shelves", "clear-wall"),
@@ -2212,11 +2622,11 @@ test("landscape tablet keeps every step horizontally contained while truthful me
 
   for (const tab of ["Details", "Finish"]) {
     await page.getByRole("tab", { name: tab }).click();
-    await expectNoHorizontalOverflow(page, [
+    await expectOneScreenWorkspace(page, [
       ".customization-panel",
       ".concept-preview",
       ".customization-actions"
-    ]);
+    ], `1280x720 Clear Wall ${tab} tab`);
   }
 });
 
@@ -2572,7 +2982,20 @@ test("desktop, iPad, and phone layouts are overflow-free with usable mobile cont
   expect(mobileOrder.actionsPosition).toBe("static");
   expect(mobileOrder.actionsBottom).toBe("auto");
   expect(mobileOrder.actionsFollowContent).toBe(true);
+  await expectNoHorizontalOverflow(page, [
+    ".measurement-panel",
+    ".measurement-diagram-card",
+    ".guided-info",
+    ".guided-actions"
+  ]);
   await page.screenshot({ path: "test-results/guided-configurator-phone.png", fullPage: true });
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+  await expectNoHorizontalOverflow(page, [
+    ".customization-panel",
+    ".concept-preview",
+    ".customization-actions"
+  ]);
 
   await page.setViewportSize({ width: 1280, height: 720 });
   await openFreshProject(page);

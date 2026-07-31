@@ -10,7 +10,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=clear-wall-continuity-20260730a";
+} from "./guided-configurator-data.js?v=guided-viewport-framing-20260730a";
 
 export const GUIDED_PROJECT_SCHEMA_VERSION = 2;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
