@@ -14,7 +14,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=guided-viewport-framing-20260730a";
+} from "./guided-configurator-data.js?v=clear-wall-installation-20260731a";
 import {
   buildProjectSummary,
   createProject,
@@ -23,7 +23,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=guided-viewport-framing-20260730a";
+} from "./guided-configurator-state.js?v=clear-wall-installation-20260731a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),

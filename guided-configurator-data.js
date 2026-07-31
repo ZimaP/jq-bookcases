@@ -721,23 +721,26 @@ export const PUBLIC_BOOKCASE_STYLE_IDS = Object.freeze([
  * Clear Wall keeps the exact selected room photograph as an immutable base.
  * These full-canvas PNGs contain cabinetry pixels only; transparent pixels
  * reveal the same room used by the measurement step. The normalized envelope
- * documents the authored furniture bounds for rendering and visual QA.
+ * documents the authored furniture bounds for rendering and visual QA. The v2
+ * layers are uniform-scale rebuilds from the approved front-on concept sources:
+ * their crowns meet the rear-wall ceiling plane, their proportions stay natural,
+ * and their bases retain only a shallow built-in floor projection.
  */
 export const CLEAR_WALL_BOOKCASE_FURNITURE_PRESENTATIONS = Object.freeze({
   "cabinet-base-shelves": Object.freeze({
-    furnitureAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-furniture-v1.png",
-    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v1.png",
-    installationEnvelope: Object.freeze({ x: 0.2461, y: 0.0977, width: 0.5085, height: 0.7422 })
+    furnitureAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-furniture-v2.png",
+    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v2.png",
+    installationEnvelope: Object.freeze({ x: 0.259765625, y: 0.10546875, width: 0.48046875, height: 0.58984375 })
   }),
   "drawer-base-shelves": Object.freeze({
-    furnitureAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-furniture-v1.png",
-    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v1.png",
-    installationEnvelope: Object.freeze({ x: 0.2044, y: 0.0977, width: 0.5911, height: 0.7422 })
+    furnitureAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-furniture-v2.png",
+    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v2.png",
+    installationEnvelope: Object.freeze({ x: 0.2682291666666667, y: 0.10546875, width: 0.462890625, height: 0.58984375 })
   }),
   "full-open-shelving": Object.freeze({
-    furnitureAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-furniture-v1.png",
-    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v1.png",
-    installationEnvelope: Object.freeze({ x: 0.1706, y: 0.0977, width: 0.6589, height: 0.7422 })
+    furnitureAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-furniture-v2.png",
+    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v2.png",
+    installationEnvelope: Object.freeze({ x: 0.23177083333333334, y: 0.10546875, width: 0.537109375, height: 0.58984375 })
   })
 });
 
