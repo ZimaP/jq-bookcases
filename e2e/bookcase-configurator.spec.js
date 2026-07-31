@@ -1283,6 +1283,28 @@ test("Clear Wall topology has approved room and furniture visual snapshots", asy
   test.slow();
   await page.setViewportSize({ width: 1024, height: 768 });
 
+  const expectTopologyScreenshot = async (preview, snapshotName) => {
+    const scene = preview.locator("[data-concept-scene]");
+    const controls = preview.locator(".preview-controls");
+    const toast = page.locator("[data-guided-toast]");
+    await controls.evaluate((element) => {
+      element.style.visibility = "hidden";
+    });
+    await toast.evaluate((element) => {
+      element.style.visibility = "hidden";
+    });
+    await expect(scene).toHaveScreenshot(snapshotName, {
+      animations: "disabled",
+      maxDiffPixelRatio: 0.001
+    });
+    await controls.evaluate((element) => {
+      element.style.removeProperty("visibility");
+    });
+    await toast.evaluate((element) => {
+      element.style.removeProperty("visibility");
+    });
+  };
+
   for (const product of [
     { label: "Full Open Shelving", styleId: "full-open-shelving", snapshotId: "full-open" },
     { label: "Drawers + Shelves", styleId: "drawer-base-shelves", snapshotId: "drawers" },
@@ -1301,7 +1323,11 @@ test("Clear Wall topology has approved room and furniture visual snapshots", asy
       // platform-specific SVG text anti-aliasing cannot obscure a room-topology
       // regression in the painted photograph.
       const measurementOverlay = measurementRoom.locator("[data-dimension-overlay]");
+      const toast = page.locator("[data-guided-toast]");
       await measurementOverlay.evaluate((element) => {
+        element.style.visibility = "hidden";
+      });
+      await toast.evaluate((element) => {
         element.style.visibility = "hidden";
       });
       const measurementRoomPhoto = measurementRoom.locator(
@@ -1314,6 +1340,9 @@ test("Clear Wall topology has approved room and furniture visual snapshots", asy
       await measurementOverlay.evaluate((element) => {
         element.style.removeProperty("visibility");
       });
+      await toast.evaluate((element) => {
+        element.style.removeProperty("visibility");
+      });
     }
 
     await page.locator("[data-continue]").click();
@@ -1322,9 +1351,9 @@ test("Clear Wall topology has approved room and furniture visual snapshots", asy
       `.concept-preview[data-layout="clear-wall"][data-style="${product.styleId}"]`
     );
     await expectRoomPlusFurniturePreview(preview, presentation, selectedRoomAsset);
-    await expect(preview.locator("[data-concept-scene]")).toHaveScreenshot(
-      `clear-wall-${product.snapshotId}-step4-1024x768.png`,
-      { animations: "disabled", maxDiffPixelRatio: 0.001 }
+    await expectTopologyScreenshot(
+      preview,
+      `clear-wall-${product.snapshotId}-step4-1024x768.png`
     );
 
     if (product.styleId === "full-open-shelving") {
@@ -1333,10 +1362,7 @@ test("Clear Wall topology has approved room and furniture visual snapshots", asy
         '.concept-preview[data-layout="clear-wall"][data-style="full-open-shelving"]'
       );
       await expectRoomPlusFurniturePreview(reviewPreview, presentation, selectedRoomAsset);
-      await expect(reviewPreview.locator("[data-concept-scene]")).toHaveScreenshot(
-        "clear-wall-review-step5-1024x768.png",
-        { animations: "disabled", maxDiffPixelRatio: 0.001 }
-      );
+      await expectTopologyScreenshot(reviewPreview, "clear-wall-review-step5-1024x768.png");
     }
   }
 });
