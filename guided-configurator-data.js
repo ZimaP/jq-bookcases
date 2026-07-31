@@ -754,17 +754,17 @@ export const CLEAR_WALL_BOOKCASE_FURNITURE_PRESENTATIONS = Object.freeze({
 export const BOOKCASE_INTEGRATED_PREVIEW_ASSETS = Object.freeze({
   "niche-layout": Object.freeze({
     "cabinet-base-shelves": "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/niche-layout-v1.png",
-    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/niche-layout-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/niche-layout-v2.png",
     "full-open-shelving": "assets/photos/configurator/integrated/bookcase/full-open-shelving/niche-layout-v1.png"
   }),
   "left-niche": Object.freeze({
     "cabinet-base-shelves": "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/left-niche-v1.png",
-    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/left-niche-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/left-niche-v2.png",
     "full-open-shelving": "assets/photos/configurator/integrated/bookcase/full-open-shelving/left-niche-v1.png"
   }),
   "right-niche": Object.freeze({
     "cabinet-base-shelves": "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/right-niche-v1.png",
-    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-v1.png",
+    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-v2.png",
     "full-open-shelving": "assets/photos/configurator/integrated/bookcase/full-open-shelving/right-niche-v1.png"
   }),
   "clear-wall": Object.freeze({
@@ -1023,6 +1023,12 @@ const PREVIEW_MEDIA_OVERRIDES = Object.freeze({
 });
 
 const PREVIEW_FINISH_MASK_ASSET_OVERRIDES = Object.freeze({
+  "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/niche-layout-v2.png":
+    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/niche-layout-finish-mask-v2.png",
+  "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/left-niche-v2.png":
+    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/left-niche-finish-mask-v2.png",
+  "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-v2.png":
+    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v2.png",
   "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png":
     "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-finish-mask-v1.png",
   "assets/photos/configurator/integrated/window-storage/window-seat-storage/clear-wall-v2.png":

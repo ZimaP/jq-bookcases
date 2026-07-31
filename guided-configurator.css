@@ -1580,6 +1580,21 @@ body.guided-page {
   align-items: stretch;
 }
 
+.measurement-controls-column {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  grid-template-rows: auto auto auto;
+  align-content: start;
+}
+
+.measurement-diagram-column {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  place-items: stretch;
+}
+
 .measurement-panel,
 .customization-panel,
 .project-summary-card {
@@ -4393,6 +4408,14 @@ body.guided-page {
     grid-template-columns: 1fr;
   }
 
+  .measurement-controls-column {
+    display: contents;
+  }
+
+  .measurement-diagram-column {
+    order: -1;
+  }
+
   .measurement-panel,
   .customization-panel,
   .review-layout .project-summary-card {
@@ -6188,13 +6211,362 @@ body.guided-page {
 }
 
 /*
- * The short-landscape composition previously clipped every step to one
- * viewport. Truthful 4:3 and source-ratio media are allowed to use normal
- * vertical scrolling on Steps 3–5; Step 1 and Step 2 remain unchanged.
+ * Room & Size and Customization are one-screen workspaces on landscape
+ * tablets and desktops. Their working grids consume the available height;
+ * controls remain structural and media never drives document height.
  */
-@media (min-width: 1181px) and (max-width: 1350px), (min-width: 1181px) and (max-height: 900px) {
+@media (min-width: 901px) {
   body.guided-page:has(.guided-shell--step-3),
-  body.guided-page:has(.guided-shell--step-4),
+  body.guided-page:has(.guided-shell--step-4) {
+    height: calc(100dvh - 8px);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .guided-app:has(> .guided-shell--step-3),
+  .guided-app:has(> .guided-shell--step-4) {
+    height: calc(100dvh - var(--guided-header-height) - 8px);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .guided-shell--step-3,
+  .guided-shell--step-4 {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .guided-shell--step-3 .guided-stepper,
+  .guided-shell--step-4 .guided-stepper,
+  .guided-shell--step-3 .guided-content-head,
+  .guided-shell--step-4 .guided-content-head {
+    flex: 0 0 auto;
+  }
+
+  .guided-shell--step-3 .guided-workspace,
+  .guided-shell--step-4 .guided-workspace {
+    height: auto;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+
+  .guided-shell--step-3 .guided-main,
+  .guided-shell--step-4 .guided-main {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .guided-shell--step-3 .measurement-layout,
+  .guided-shell--step-4 .customization-layout {
+    height: auto;
+    min-height: 0;
+    flex: 1 1 auto;
+    align-items: stretch;
+    overflow: hidden;
+  }
+
+  .guided-shell--step-3 .measurement-controls-column {
+    display: grid;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    align-content: stretch;
+    gap: 7px;
+  }
+
+  .guided-shell--step-3 .measurement-panel {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .guided-shell--step-3 .guided-info {
+    min-height: 44px;
+    margin: 0;
+  }
+
+  .guided-shell--step-3 .guided-actions {
+    display: grid;
+    min-height: 44px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin: 0;
+    transform: none;
+  }
+
+  .guided-shell--step-3 .guided-actions .guided-button {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+
+  .guided-shell--step-3 .measurement-diagram-column {
+    container-type: size;
+    place-items: center;
+  }
+
+  .guided-shell--step-3 .measurement-diagram-card {
+    width: min(100cqw, calc(100cqh * 4 / 3));
+    max-width: none;
+    height: min(100cqh, calc(100cqw * 3 / 4));
+    max-height: none;
+    justify-self: center;
+    align-self: center;
+  }
+
+  .guided-shell--step-4 .customization-controls-column {
+    display: grid;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr) 44px;
+    gap: 7px;
+  }
+
+  .guided-shell--step-4 .customization-panel,
+  .guided-shell--step-4 .concept-preview {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .guided-shell--step-4 .customization-actions {
+    height: 44px;
+    grid-template-columns: 1fr 1.18fr;
+    gap: 7px;
+    margin: 0;
+  }
+
+  .guided-shell--step-4 .customization-actions .guided-button {
+    min-height: 44px;
+  }
+
+  .guided-shell--step-4 .concept-preview {
+    width: 100%;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-self: stretch;
+  }
+
+  .guided-shell--step-4 .concept-scene {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    aspect-ratio: auto;
+  }
+}
+
+@media (min-width: 901px) and (max-height: 900px) {
+  body.guided-page:has(.guided-shell--step-3),
+  body.guided-page:has(.guided-shell--step-4) {
+    --guided-header-height: 64px;
+  }
+
+  body.guided-page:has(.guided-shell--step-3) .guided-header,
+  body.guided-page:has(.guided-shell--step-4) .guided-header {
+    min-height: var(--guided-header-height);
+    padding-inline: 27px 22px;
+  }
+
+  body.guided-page:has(.guided-shell--step-3) .guided-brand,
+  body.guided-page:has(.guided-shell--step-4) .guided-brand {
+    gap: 13px;
+    min-height: 42px;
+  }
+
+  body.guided-page:has(.guided-shell--step-3) .guided-brand-mark,
+  body.guided-page:has(.guided-shell--step-4) .guided-brand-mark {
+    font-size: 2.35rem;
+  }
+
+  body.guided-page:has(.guided-shell--step-3) .guided-brand-copy,
+  body.guided-page:has(.guided-shell--step-4) .guided-brand-copy {
+    font-size: 1.15rem;
+  }
+
+  body.guided-page:has(.guided-shell--step-3) .guided-header-actions,
+  body.guided-page:has(.guided-shell--step-4) .guided-header-actions {
+    gap: 15px;
+  }
+
+  .guided-shell--step-3,
+  .guided-shell--step-4 {
+    padding: 7px 28px 8px;
+  }
+
+  .guided-shell--step-3 .guided-stepper,
+  .guided-shell--step-4 .guided-stepper {
+    height: 47px;
+    grid-template-columns: repeat(5, minmax(0, 148px));
+    margin: 0 auto 6px;
+  }
+
+  .guided-shell--step-3 .guided-step,
+  .guided-shell--step-4 .guided-step {
+    min-height: 47px;
+    gap: 3px;
+    padding-inline: 5px;
+  }
+
+  .guided-shell--step-3 .guided-step::after,
+  .guided-shell--step-4 .guided-step::after {
+    top: 14px;
+    left: calc(50% + 21px);
+    width: calc(100% - 42px);
+  }
+
+  .guided-shell--step-3 .guided-step-number,
+  .guided-shell--step-4 .guided-step-number {
+    width: 29px;
+    height: 29px;
+    font-size: 0.78rem;
+  }
+
+  .guided-shell--step-3 .guided-step-label,
+  .guided-shell--step-4 .guided-step-label {
+    font-size: 0.68rem;
+  }
+
+  .guided-shell--step-3 .guided-content-head,
+  .guided-shell--step-4 .guided-content-head {
+    margin: 0 0 7px;
+  }
+
+  .guided-shell--step-3 .guided-content-head h1,
+  .guided-shell--step-4 .guided-content-head h1 {
+    max-width: none;
+    margin-bottom: 2px;
+    font-size: 1.78rem;
+    line-height: 1.03;
+  }
+
+  .guided-shell--step-3 .guided-content-head p,
+  .guided-shell--step-4 .guided-content-head p {
+    font-size: 0.74rem;
+    line-height: 1.3;
+  }
+
+  .guided-shell--step-3 .measurement-layout {
+    grid-template-columns: minmax(290px, 330px) minmax(0, 1fr);
+    gap: 17px;
+  }
+
+  .guided-shell--step-3 .measurement-layout--dense {
+    grid-template-columns: minmax(390px, 430px) minmax(0, 1fr);
+  }
+
+  .guided-shell--step-3 .measurement-panel {
+    padding: 8px 11px;
+  }
+
+  .guided-shell--step-3 .measurement-panel-title {
+    margin-bottom: 4px;
+    font-size: 0.75rem;
+  }
+
+  .guided-shell--step-3 .selected-layout-chip {
+    min-height: 28px;
+    margin-bottom: 5px;
+    padding: 3px 7px;
+    font-size: 0.72rem;
+  }
+
+  .guided-shell--step-3 .measurement-fields {
+    gap: 3px;
+  }
+
+  .guided-shell--step-3 .measurement-group-title {
+    margin: 2px 0 0;
+    padding-top: 4px;
+    font-size: 0.72rem;
+  }
+
+  .guided-shell--step-3 .measurement-field {
+    min-height: 36px;
+    grid-template-columns: minmax(0, 1fr) 110px;
+    gap: 8px;
+  }
+
+  .guided-shell--step-3 .measurement-layout--dense .measurement-field {
+    grid-template-columns: minmax(0, 1fr) 92px;
+  }
+
+  .guided-shell--step-3 .measurement-field-label {
+    font-size: 0.74rem;
+    line-height: 1.14;
+  }
+
+  .guided-shell--step-3 :is(
+    .measurement-input-wrap input,
+    .measurement-input-wrap select,
+    .measurement-toggle
+  ) {
+    height: 36px;
+    min-height: 36px;
+    padding-block: 3px;
+    font-size: 0.74rem;
+  }
+
+  .guided-shell--step-3 .measurement-toggle span,
+  .guided-shell--step-3 .measurement-unit {
+    font-size: 0.66rem;
+  }
+
+  .guided-shell--step-3 .guided-info {
+    gap: 9px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+
+  .guided-shell--step-3 .guided-info [data-icon] {
+    --icon-size: 24px;
+    min-width: 24px;
+    padding: 6px;
+  }
+
+  .guided-shell--step-3 .guided-button,
+  .guided-shell--step-4 .guided-button {
+    min-width: 0;
+    min-height: 44px;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+  }
+
+  .guided-shell--step-4 .customization-layout {
+    grid-template-columns: minmax(280px, 310px) minmax(0, 1fr);
+    gap: 17px;
+  }
+
+  .guided-shell--step-4 .customization-tabs {
+    min-height: 36px;
+  }
+
+  .guided-shell--step-4 .customization-tab {
+    min-height: 36px;
+    padding: 5px;
+    font-size: 0.72rem;
+  }
+
+  .guided-shell--step-4 .customization-content {
+    padding: 8px 10px;
+  }
+
+  .guided-shell--step-4 .concept-preview {
+    grid-template-rows: 50px minmax(0, 1fr);
+  }
+
+  .guided-shell--step-4 .concept-preview-meta {
+    min-height: 50px;
+    padding: 6px 9px;
+  }
+}
+
+/* Review retains its existing natural-document behavior in short landscape. */
+@media (min-width: 1181px) and (max-width: 1350px), (min-width: 1181px) and (max-height: 900px) {
   body.guided-page:has(.guided-shell--step-5) {
     height: auto;
     min-height: 100dvh;
@@ -6202,17 +6574,9 @@ body.guided-page {
     overflow-y: auto;
   }
 
-  .guided-app:has(.guided-shell--step-3),
-  .guided-app:has(.guided-shell--step-4),
   .guided-app:has(.guided-shell--step-5),
-  .guided-shell--step-3,
-  .guided-shell--step-4,
   .guided-shell--step-5,
-  .guided-shell--step-3 .guided-workspace,
-  .guided-shell--step-4 .guided-workspace,
   .guided-shell--step-5 .guided-workspace,
-  .guided-shell--step-3 .guided-main,
-  .guided-shell--step-4 .guided-main,
   .guided-shell--step-5 .guided-main {
     height: auto;
     min-height: 0;
