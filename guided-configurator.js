@@ -3,7 +3,6 @@ import {
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
   PRODUCT_CHOICES,
-  PRODUCT_INTEGRATED_PREVIEW_ASSETS,
   SHARED_ROOM_LAYOUTS,
   getCategory,
   getCompatibleDetails,
@@ -15,7 +14,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=room-media-truth-20260730a";
+} from "./guided-configurator-data.js?v=clear-wall-continuity-20260730a";
 import {
   buildProjectSummary,
   createProject,
@@ -24,7 +23,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=room-media-truth-20260730a";
+} from "./guided-configurator-state.js?v=clear-wall-continuity-20260730a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -431,8 +430,16 @@ function scheduleLikelyNextStepImages() {
   } else if ([2, 3].includes(project.currentStep)) {
     const category = getCategory(project.category);
     const selectedProduct = getProductChoiceForSelection(project.category, project.style);
+    const presentations = SHARED_ROOM_LAYOUTS.map((layout) => (
+      resolvePreviewPresentation(project.category, project.style, layout.id)
+    ));
     assets = [
-      ...Object.values(PRODUCT_INTEGRATED_PREVIEW_ASSETS[selectedProduct?.id] || {}),
+      ...presentations.flatMap((presentation) => [
+        presentation.conceptAsset,
+        presentation.roomAsset,
+        presentation.furnitureAsset,
+        presentation.finishMaskAsset
+      ]),
       category.productPreviewAsset,
       "assets/photos/configurator/concept-window-cabinets-v1.png"
     ];
@@ -447,9 +454,14 @@ function scheduleLikelyNextStepImages() {
 function preloadPreviewAsset(asset) {
   if (!asset) return;
 
-  const generatedFinishMask = resolveGeneratedIntegratedFinishMask(asset)?.maskAsset;
+  const generatedFinishMask = String(asset).includes("-finish-mask-")
+    ? null
+    : resolveGeneratedIntegratedFinishMask(asset)?.maskAsset;
+  const optimizedSource = assetSupportsOptimizedVersion(asset)
+    ? optimizedImageAsset(asset)
+    : asset;
   const sources = [
-    optimizedImageAsset(asset),
+    optimizedSource,
     generatedFinishMask
   ].filter(Boolean);
 
@@ -460,6 +472,13 @@ function preloadPreviewAsset(asset) {
     image.decoding = "async";
     image.src = source;
   }
+}
+
+function assetSupportsOptimizedVersion(asset) {
+  const source = String(asset || "");
+  return source.endsWith(".png")
+    && !source.includes("/furniture/")
+    && !source.includes("-finish-mask-");
 }
 
 function optimizedImageAsset(asset) {
@@ -488,6 +507,24 @@ function renderOptimizedPicture(asset, options = {}) {
         ${fetchPriority}${style}
       >
     </picture>
+  `;
+}
+
+function renderPngImage(asset, options = {}) {
+  const imageClass = ["guided-picture-image", options.imageClass].filter(Boolean).join(" ");
+  const loading = options.loading === "eager" ? "eager" : "lazy";
+  const fetchPriority = options.fetchPriority ? ` fetchpriority="${escapeAttribute(options.fetchPriority)}"` : "";
+
+  return `
+    <img
+      class="${escapeAttribute(imageClass)}"
+      src="${escapeAttribute(asset)}"
+      alt=""
+      loading="${loading}"
+      decoding="async"
+      ${fetchPriority}
+      aria-hidden="true"
+    >
   `;
 }
 
@@ -957,6 +994,8 @@ function renderMeasurementField(field, warning, showDiagramCode = true) {
 
 function renderMeasurementDiagram(fields, selectedLayout) {
   const diagramSpec = getMeasurementDiagramSpec(project.category, selectedLayout?.id);
+  const roomAsset = selectedLayout?.previewAsset
+    || getLayout(project.category, "clear-wall")?.previewAsset;
   const fieldsById = new Map(
     fields
       .filter((field) => field.type === "inches")
@@ -965,15 +1004,12 @@ function renderMeasurementDiagram(fields, selectedLayout) {
   const dimensions = diagramSpec.perimeterSpans
     .map((span) => ({ span, field: fieldsById.get(span.fieldId) }))
     .filter(({ field }) => Boolean(field));
-  const roomVisual = renderOptimizedPicture(
-    selectedLayout?.previewAsset || getLayout(project.category, "clear-wall")?.previewAsset,
-    {
-      pictureClass: "measurement-room-image",
-      imageClass: "measurement-room-image",
-      loading: "eager",
-      fetchPriority: "high"
-    }
-  );
+  const roomVisual = renderOptimizedPicture(roomAsset, {
+    pictureClass: "measurement-room-image",
+    imageClass: "measurement-room-image",
+    loading: "eager",
+    fetchPriority: "high"
+  });
   const syntheticFeature = (
     selectedLayout?.id === "clear-wall"
     && ["tv", "window", "radiator"].includes(diagramSpec.feature)
@@ -993,6 +1029,7 @@ function renderMeasurementDiagram(fields, selectedLayout) {
         data-layout="${escapeAttribute(selectedLayout?.id || "clear-wall")}"
         data-condition="${escapeAttribute(selectedLayout?.condition || "clear-wall")}"
         data-feature="${escapeAttribute(diagramSpec.feature)}"
+        data-room-asset="${escapeAttribute(roomAsset)}"
       >
         ${roomVisual}
         ${syntheticFeature}
@@ -1334,6 +1371,17 @@ function renderConceptPreview() {
   const hardware = DETAIL_OPTIONS.hardware.find((option) => option.id === project.hardware);
   const doorCount = category.id === "floating-storage" ? 5 : category.id === "window-storage" ? 6 : 4;
   const previewScope = conceptPreviewScope(category, layout, selectedStyle, previewPresentation);
+  const layeredRoomPresentation = previewPresentation.renderMode === "room-plus-furniture";
+  const installationEnvelope = previewPresentation.installationEnvelope
+    ? JSON.stringify(previewPresentation.installationEnvelope)
+    : "";
+  const layeredDataAttributes = layeredRoomPresentation
+    ? `
+      data-room-asset="${escapeAttribute(previewPresentation.roomAsset)}"
+      data-furniture-asset="${escapeAttribute(previewPresentation.furnitureAsset)}"
+      data-installation-envelope="${escapeAttribute(installationEnvelope)}"
+    `
+    : "";
 
   return `
     <figure
@@ -1345,6 +1393,7 @@ function renderConceptPreview() {
       data-finish="${escapeAttribute(finish.id)}"
       data-finish-family="${escapeAttribute(finish.family)}"
       data-preview-asset="${escapeAttribute(previewPresentation.conceptAsset)}"
+      ${layeredDataAttributes}
       data-authored-layout="${escapeAttribute(previewPresentation.authoredLayoutId || "")}"
       data-layout-context-asset="${escapeAttribute(previewPresentation.layoutContextAsset || "")}"
       data-preview-render-mode="${escapeAttribute(previewPresentation.renderMode)}"
@@ -1373,12 +1422,26 @@ function renderConceptPreview() {
         data-media-width="${escapeAttribute(previewPresentation.mediaWidth)}"
         data-media-height="${escapeAttribute(previewPresentation.mediaHeight)}"
       >
-        ${renderOptimizedPicture(previewPresentation.conceptAsset, {
-          pictureClass: "concept-photo",
-          imageClass: "concept-photo",
-          loading: "eager",
-          fetchPriority: "high"
-        })}
+        ${layeredRoomPresentation
+          ? `
+            ${renderOptimizedPicture(previewPresentation.roomAsset, {
+              pictureClass: "concept-photo concept-room-photo",
+              imageClass: "concept-photo concept-room-photo",
+              loading: "eager",
+              fetchPriority: "high"
+            })}
+            ${renderPngImage(previewPresentation.furnitureAsset, {
+              imageClass: "concept-furniture-photo",
+              loading: "eager",
+              fetchPriority: "high"
+            })}
+          `
+          : renderOptimizedPicture(previewPresentation.conceptAsset, {
+              pictureClass: "concept-photo",
+              imageClass: "concept-photo",
+              loading: "eager",
+              fetchPriority: "high"
+            })}
         ${renderConceptFinishOverlay(previewPresentation)}
         ${previewPresentation.renderMode === "missing-integrated-scene" ? `
           <div class="concept-preview-unavailable" role="status">
@@ -1418,7 +1481,7 @@ function renderConceptLayoutContext(layout, previewPresentation) {
 }
 
 function renderConceptFinishOverlay(previewPresentation) {
-  const previewAsset = previewPresentation.conceptAsset;
+  const previewAsset = previewPresentation.furnitureAsset || previewPresentation.conceptAsset;
   const assetName = String(previewAsset || "").split("/").pop();
   const contractDefinition = previewPresentation.finishMaskMode === "asset"
     && previewPresentation.finishMaskAsset
@@ -1527,7 +1590,7 @@ function resolveGeneratedIntegratedFinishMask(previewAsset) {
 }
 
 function conceptPreviewScope(category, layout, selectedStyle, previewPresentation) {
-  if (previewPresentation.renderMode === "integrated") {
+  if (["integrated", "room-plus-furniture"].includes(previewPresentation.renderMode)) {
     return { id: "layout-and-configuration", label: "Layout + configuration reference" };
   }
   if (previewPresentation.renderMode === "missing-integrated-scene") {

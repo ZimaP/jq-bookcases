@@ -717,13 +717,39 @@ export const PUBLIC_BOOKCASE_STYLE_IDS = Object.freeze([
   "full-open-shelving"
 ]);
 
+/*
+ * Clear Wall keeps the exact selected room photograph as an immutable base.
+ * These full-canvas PNGs contain cabinetry pixels only; transparent pixels
+ * reveal the same room used by the measurement step. The normalized envelope
+ * documents the authored furniture bounds for rendering and visual QA.
+ */
+export const CLEAR_WALL_BOOKCASE_FURNITURE_PRESENTATIONS = Object.freeze({
+  "cabinet-base-shelves": Object.freeze({
+    furnitureAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-furniture-v1.png",
+    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v1.png",
+    installationEnvelope: Object.freeze({ x: 0.2461, y: 0.0977, width: 0.5085, height: 0.7422 })
+  }),
+  "drawer-base-shelves": Object.freeze({
+    furnitureAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-furniture-v1.png",
+    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v1.png",
+    installationEnvelope: Object.freeze({ x: 0.2044, y: 0.0977, width: 0.5911, height: 0.7422 })
+  }),
+  "full-open-shelving": Object.freeze({
+    furnitureAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-furniture-v1.png",
+    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v1.png",
+    installationEnvelope: Object.freeze({ x: 0.1706, y: 0.0977, width: 0.6589, height: 0.7422 })
+  })
+});
+
 /**
  * Customer-facing Bookcase previews are a strict construction × room matrix.
  *
  * Once a room is selected, a style-only photograph is not an acceptable
  * fallback: the selected room topology must be part of the rendered scene.
  * Every style exposed by the new-project Bookcase UI therefore has an exact
- * asset for every shared room condition.
+ * asset for every shared room condition. Clear Wall is the deliberate layered
+ * exception: this matrix stores its transparent furniture asset, while
+ * resolvePreviewPresentation() supplies the selected room as the base layer.
  */
 export const BOOKCASE_INTEGRATED_PREVIEW_ASSETS = Object.freeze({
   "niche-layout": Object.freeze({
@@ -742,9 +768,9 @@ export const BOOKCASE_INTEGRATED_PREVIEW_ASSETS = Object.freeze({
     "full-open-shelving": "assets/photos/configurator/integrated/bookcase/full-open-shelving/right-niche-v1.png"
   }),
   "clear-wall": Object.freeze({
-    "cabinet-base-shelves": "assets/photos/configurator/concept-cabinets-shelves-v1.png",
-    "drawer-base-shelves": "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/clear-wall-v1.png",
-    "full-open-shelving": "assets/photos/configurator/concept-full-shelving-v1.png"
+    "cabinet-base-shelves": CLEAR_WALL_BOOKCASE_FURNITURE_PRESENTATIONS["cabinet-base-shelves"].furnitureAsset,
+    "drawer-base-shelves": CLEAR_WALL_BOOKCASE_FURNITURE_PRESENTATIONS["drawer-base-shelves"].furnitureAsset,
+    "full-open-shelving": CLEAR_WALL_BOOKCASE_FURNITURE_PRESENTATIONS["full-open-shelving"].furnitureAsset
   }),
   "fireplace-wall": Object.freeze({
     "cabinet-base-shelves": "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/fireplace-wall-v1.png",
@@ -1009,9 +1035,7 @@ const PREVIEW_FINISH_MASK_ASSET_OVERRIDES = Object.freeze({
  * unrelated photograph as the selected room.
  */
 const GENERIC_PREVIEW_AUTHORED_LAYOUTS = Object.freeze({
-  "assets/photos/configurator/concept-cabinets-shelves-v1.png": "clear-wall",
   "assets/photos/configurator/concept-drawers-shelves-v1.png": "niche-layout",
-  "assets/photos/configurator/concept-full-shelving-v1.png": "clear-wall",
   "assets/photos/configurator/concept-tv-wall-v1.png": "clear-wall",
   "assets/photos/configurator/product-floating-storage-v1.png": "clear-wall",
   "assets/photos/configurator/concept-window-cabinets-v1.png": "window-wall",
@@ -1378,9 +1402,45 @@ export function resolvePreviewPresentation(categoryId, styleId, layoutId = null)
   const exactLayoutAsset = selectedProduct && selectedLayout
     ? PRODUCT_INTEGRATED_PREVIEW_ASSETS[selectedProduct.id]?.[selectedLayout.id] || null
     : null;
+  const clearWallFurniture = categoryId === "bookcase" && selectedLayout?.id === "clear-wall"
+    ? CLEAR_WALL_BOOKCASE_FURNITURE_PRESENTATIONS[selectedStyle.id] || null
+    : null;
   const authoredLayoutId = exactLayoutAsset
     ? resolveAuthoredLayoutId(exactLayoutAsset)
     : null;
+
+  if (clearWallFurniture && selectedLayout) {
+    const roomMedia = ROOM_MEASUREMENT_DIAGRAM_VIEWBOXES[selectedLayout.id]
+      || ROOM_MEASUREMENT_DIAGRAM_VIEWBOXES["clear-wall"];
+    return Object.freeze({
+      previewKey,
+      conceptAsset: selectedLayout.previewAsset,
+      roomAsset: selectedLayout.previewAsset,
+      furnitureAsset: clearWallFurniture.furnitureAsset,
+      categoryId,
+      styleId: selectedStyle.id,
+      layoutId: selectedLayout.id,
+      authoredLayoutId: selectedLayout.id,
+      integratedLayoutId: selectedLayout.id,
+      layoutLabel: selectedLayout.label,
+      layoutContextAsset: selectedLayout.previewAsset,
+      layoutPreviewMode: selectedLayout.previewMode,
+      layoutPreviewPosition: selectedLayout.previewPosition,
+      installationEnvelope: clearWallFurniture.installationEnvelope,
+      renderMode: "room-plus-furniture",
+      mediaFit: "cover",
+      mediaWidth: roomMedia.width,
+      mediaHeight: roomMedia.height,
+      mediaAspectRatio: `${roomMedia.width} / ${roomMedia.height}`,
+      mediaObjectPosition: selectedLayout.previewPosition,
+      mediaSvgPreserveAspectRatio: "xMidYMid slice",
+      finishMaskMode: "asset",
+      finishMaskAsset: clearWallFurniture.finishMaskAsset,
+      finishMaskWidth: roomMedia.width,
+      finishMaskHeight: roomMedia.height,
+      finishMaskViewBox: `0 0 ${roomMedia.width} ${roomMedia.height}`
+    });
+  }
 
   if (exactLayoutAsset && selectedLayout && authoredLayoutId === selectedLayout.id) {
     return Object.freeze({

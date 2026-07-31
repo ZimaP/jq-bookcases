@@ -71,3 +71,70 @@ test("the guided project flow works through review and refresh", async ({ page }
   await expect(page.locator(".project-summary-card")).toContainText("126 1/2 in");
   expect(failures).toEqual([]);
 });
+
+test("layered Bookcase Clear Wall remains aligned through finish, review, and reload", async ({ page }) => {
+  const failures = monitorRuntime(page);
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto("/configurator.html?start=new", { waitUntil: "networkidle" });
+  await page.locator('[data-product-choice="open-shelving"]').click();
+  await page.locator("[data-continue]").click();
+  await page.locator('[data-layout="clear-wall"]').click();
+  await page.locator("[data-continue]").click();
+
+  const measurementRoom = page.locator('.measurement-room[data-layout="clear-wall"]');
+  await expect(measurementRoom).toBeVisible();
+  const roomAsset = await measurementRoom.getAttribute("data-room-asset");
+  expect(roomAsset).toBe("assets/photos/configurator/room-layouts/room-clear-wall-v1.png");
+  await page.locator("[data-continue]").click();
+
+  const preview = page.locator(
+    '.concept-preview[data-layout="clear-wall"][data-style="full-open-shelving"]'
+  );
+  const roomImage = preview.locator("img.concept-room-photo");
+  const furnitureImage = preview.locator("img.concept-furniture-photo");
+  const finishOverlay = preview.locator("svg.concept-finish-overlay");
+  await expect(preview).toHaveAttribute("data-preview-render-mode", "room-plus-furniture");
+  await expect(preview).toHaveAttribute("data-room-asset", roomAsset);
+  await expect(roomImage).toBeVisible();
+  await expect(furnitureImage).toBeVisible();
+  await expect(finishOverlay).toBeVisible();
+  await expect(roomImage).toHaveCSS("object-fit", "cover");
+  await expect(furnitureImage).toHaveCSS("object-fit", "cover");
+  await expect(finishOverlay).toHaveAttribute("preserveAspectRatio", "xMidYMid slice");
+
+  const alignedLayers = await preview.evaluate((element) => {
+    const scene = element.querySelector("[data-concept-scene]");
+    const layers = [
+      element.querySelector("img.concept-room-photo"),
+      element.querySelector("img.concept-furniture-photo"),
+      element.querySelector("svg.concept-finish-overlay")
+    ];
+    const sceneRect = scene.getBoundingClientRect();
+    const tolerance = 1;
+    return layers.every((layer) => {
+      const rect = layer.getBoundingClientRect();
+      return Math.abs(rect.left - sceneRect.left) <= tolerance
+        && Math.abs(rect.top - sceneRect.top) <= tolerance
+        && Math.abs(rect.right - sceneRect.right) <= tolerance
+        && Math.abs(rect.bottom - sceneRect.bottom) <= tolerance;
+    });
+  });
+  expect(alignedLayers).toBe(true);
+
+  await page.getByRole("button", { name: "Charcoal", exact: true }).click();
+  await expect(preview).toHaveAttribute("data-finish", "charcoal");
+  await page.locator("[data-continue]").click();
+  await expect(page.locator(".project-summary-card")).toContainText("Clear Wall");
+  await expect(page.locator(".project-summary-card")).toContainText("Charcoal");
+  await expect(page.locator(".concept-preview")).toHaveAttribute(
+    "data-preview-render-mode",
+    "room-plus-furniture"
+  );
+  await expect.poll(() => page.evaluate(() => (
+    JSON.parse(localStorage.getItem("jqGuidedConfiguratorDraftV1") || "null")?.currentStep
+  ))).toBe(5);
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.locator(".concept-preview")).toHaveAttribute("data-room-asset", roomAsset);
+  await expect(page.locator(".concept-preview img.concept-furniture-photo")).toBeVisible();
+  expect(failures).toEqual([]);
+});
