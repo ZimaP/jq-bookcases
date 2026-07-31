@@ -198,6 +198,173 @@ async function expectIntegratedPreview(preview, expectedAsset) {
   return image;
 }
 
+async function expectRoomPlusFurniturePreview(preview, presentation, expectedRoomAsset = null) {
+  await expect(preview).toHaveAttribute("data-preview-render-mode", "room-plus-furniture");
+  await expect(preview).toHaveAttribute("data-preview-asset", presentation.roomAsset);
+  await expect(preview).toHaveAttribute("data-room-asset", presentation.roomAsset);
+  await expect(preview).toHaveAttribute("data-furniture-asset", presentation.furnitureAsset);
+  await expect(preview).toHaveAttribute("data-authored-layout", presentation.layoutId);
+  await expect(preview).toHaveAttribute("data-media-fit", "cover");
+  if (expectedRoomAsset) {
+    expect(presentation.roomAsset).toBe(expectedRoomAsset);
+  }
+
+  const roomPicture = preview.locator("picture.concept-room-photo");
+  const roomImage = roomPicture.locator("img.concept-room-photo");
+  const furnitureImage = preview.locator("img.concept-furniture-photo");
+  const finishOverlay = preview.locator("svg.concept-finish-overlay");
+  await expect(roomPicture).toHaveCount(1);
+  await expect(roomImage).toHaveCount(1);
+  await expect(furnitureImage).toHaveCount(1);
+  await expect(roomImage).toBeVisible();
+  await expect(furnitureImage).toBeVisible();
+  await expect(finishOverlay).toBeVisible();
+  await expect(roomImage).toHaveCSS("object-fit", "cover");
+  await expect(furnitureImage).toHaveCSS("object-fit", "cover");
+  await expect(finishOverlay).toHaveAttribute("preserveAspectRatio", "xMidYMid slice");
+  await expect.poll(() => roomImage.evaluate((image, asset) => (
+    image.complete
+      && image.naturalWidth === 1536
+      && image.naturalHeight === 1024
+      && new URL(image.currentSrc).pathname.endsWith(asset.replace(/\.png$/, ".avif"))
+  ), presentation.roomAsset)).toBe(true);
+  await expect.poll(() => furnitureImage.evaluate((image, asset) => (
+    image.complete
+      && image.naturalWidth === 1536
+      && image.naturalHeight === 1024
+      && new URL(image.currentSrc).pathname.endsWith(asset)
+  ), presentation.furnitureAsset)).toBe(true);
+
+  const media = await preview.evaluate(async (element, contract) => {
+    const tolerance = 1;
+    const scene = element.querySelector("[data-concept-scene]");
+    const roomPictureElement = scene.querySelector(":scope > picture.concept-room-photo");
+    const roomImageElement = roomPictureElement.querySelector(":scope > img.concept-room-photo");
+    const furnitureImageElement = scene.querySelector(":scope > img.concept-furniture-photo");
+    const overlay = scene.querySelector(":scope > svg.concept-finish-overlay");
+    const sceneRect = scene.getBoundingClientRect();
+    const roomPictureRect = roomPictureElement.getBoundingClientRect();
+    const roomRect = roomImageElement.getBoundingClientRect();
+    const furnitureRect = furnitureImageElement.getBoundingClientRect();
+    const overlayRect = overlay.getBoundingClientRect();
+    const roomStyle = getComputedStyle(roomImageElement);
+    const furnitureStyle = getComputedStyle(furnitureImageElement);
+    const sameRect = (first, second) => (
+      Math.abs(first.left - second.left) <= tolerance
+      && Math.abs(first.top - second.top) <= tolerance
+      && Math.abs(first.right - second.right) <= tolerance
+      && Math.abs(first.bottom - second.bottom) <= tolerance
+    );
+
+    const canvas = document.createElement("canvas");
+    canvas.width = furnitureImageElement.naturalWidth;
+    canvas.height = furnitureImageElement.naturalHeight;
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    context.drawImage(furnitureImageElement, 0, 0);
+    const furniturePixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+
+    const maskImage = new Image();
+    maskImage.src = new URL(contract.finishMaskAsset, window.location.href).href;
+    await maskImage.decode();
+    const maskCanvas = document.createElement("canvas");
+    maskCanvas.width = canvas.width;
+    maskCanvas.height = canvas.height;
+    const maskContext = maskCanvas.getContext("2d", { willReadFrequently: true });
+    maskContext.drawImage(maskImage, 0, 0);
+    const maskPixels = maskContext.getImageData(0, 0, canvas.width, canvas.height).data;
+
+    const envelope = contract.installationEnvelope;
+    const minX = envelope.x * canvas.width - 2;
+    const minY = envelope.y * canvas.height - 2;
+    const maxX = (envelope.x + envelope.width) * canvas.width + 2;
+    const maxY = (envelope.y + envelope.height) * canvas.height + 2;
+    let opaqueSamples = 0;
+    let transparentSamples = 0;
+    let opaqueOutsideEnvelope = 0;
+    let maskOutsideFurniture = 0;
+    for (let y = 0; y < canvas.height; y += 1) {
+      for (let x = 0; x < canvas.width; x += 1) {
+        const offset = (y * canvas.width + x) * 4;
+        const alpha = furniturePixels[offset + 3];
+        const maskLuminance = Math.max(
+          maskPixels[offset],
+          maskPixels[offset + 1],
+          maskPixels[offset + 2]
+        );
+        if (alpha >= 224) opaqueSamples += 1;
+        if (alpha <= 8) transparentSamples += 1;
+        if (
+          alpha > 16
+          && (x < minX || x > maxX || y < minY || y > maxY)
+        ) {
+          opaqueOutsideEnvelope += 1;
+        }
+        if (maskLuminance > 0 && alpha === 0) maskOutsideFurniture += 1;
+      }
+    }
+
+    const roomScale = Math.max(
+      sceneRect.width / roomImageElement.naturalWidth,
+      sceneRect.height / roomImageElement.naturalHeight
+    );
+    const furnitureScale = Math.max(
+      sceneRect.width / furnitureImageElement.naturalWidth,
+      sceneRect.height / furnitureImageElement.naturalHeight
+    );
+    return {
+      roomAsset: element.dataset.roomAsset,
+      furnitureAsset: element.dataset.furnitureAsset,
+      roomObjectFit: roomStyle.objectFit,
+      furnitureObjectFit: furnitureStyle.objectFit,
+      roomObjectPosition: roomStyle.objectPosition,
+      furnitureObjectPosition: furnitureStyle.objectPosition,
+      layersShareViewport: (
+        sameRect(sceneRect, roomPictureRect)
+        && sameRect(sceneRect, roomRect)
+        && sameRect(sceneRect, furnitureRect)
+        && sameRect(sceneRect, overlayRect)
+      ),
+      roomPaintedWidth: roomImageElement.naturalWidth * roomScale,
+      roomPaintedHeight: roomImageElement.naturalHeight * roomScale,
+      furniturePaintedWidth: furnitureImageElement.naturalWidth * furnitureScale,
+      furniturePaintedHeight: furnitureImageElement.naturalHeight * furnitureScale,
+      viewportWidth: sceneRect.width,
+      viewportHeight: sceneRect.height,
+      cornersTransparent: [
+        3,
+        (canvas.width - 1) * 4 + 3,
+        ((canvas.height - 1) * canvas.width) * 4 + 3,
+        ((canvas.height * canvas.width) - 1) * 4 + 3
+      ].every((offset) => furniturePixels[offset] === 0),
+      opaqueSamples,
+      transparentSamples,
+      opaqueOutsideEnvelope,
+      maskOutsideFurniture,
+      maskWidth: maskImage.naturalWidth,
+      maskHeight: maskImage.naturalHeight
+    };
+  }, presentation);
+
+  expect(media.roomAsset).toBe(presentation.roomAsset);
+  expect(media.furnitureAsset).toBe(presentation.furnitureAsset);
+  expect(media.roomObjectFit).toBe("cover");
+  expect(media.furnitureObjectFit).toBe("cover");
+  expect(media.roomObjectPosition).toBe(media.furnitureObjectPosition);
+  expect(media.layersShareViewport).toBe(true);
+  expect(media.roomPaintedWidth).toBeGreaterThanOrEqual(media.viewportWidth - 0.5);
+  expect(media.roomPaintedHeight).toBeGreaterThanOrEqual(media.viewportHeight - 0.5);
+  expect(media.furniturePaintedWidth).toBeGreaterThanOrEqual(media.viewportWidth - 0.5);
+  expect(media.furniturePaintedHeight).toBeGreaterThanOrEqual(media.viewportHeight - 0.5);
+  expect(media.cornersTransparent).toBe(true);
+  expect(media.opaqueSamples).toBeGreaterThan(10_000);
+  expect(media.transparentSamples).toBeGreaterThan(10_000);
+  expect(media.opaqueOutsideEnvelope).toBe(0);
+  expect(media.maskOutsideFurniture).toBe(0);
+  expect(media.maskWidth).toBe(1536);
+  expect(media.maskHeight).toBe(1024);
+  return { roomImage, furnitureImage };
+}
+
 async function readConceptImageGeometry(image) {
   return image.evaluate((element) => {
     const rect = element.getBoundingClientRect();
@@ -1000,8 +1167,10 @@ test("Door Wall keeps the selected drawer construction through customization and
 
 test("Drawers + Shelves keeps a truthful Clear Wall through review, navigation, reload, and resume", async ({ page }) => {
   const runtime = monitorRuntime(page);
-  const conceptAsset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/clear-wall-v1.png";
+  const presentation = resolvePreviewPresentation("bookcase", "drawer-base-shelves", "clear-wall");
+  const conceptAsset = "assets/photos/configurator/room-layouts/room-clear-wall-v1.png";
   const previewKey = "bookcase:drawer-base-shelves:clear-wall";
+  let selectedRoomAsset = null;
   const expectClearWallPreview = async () => {
     const preview = page.locator(
       '.concept-preview[data-category="bookcase"][data-style="drawer-base-shelves"][data-layout="clear-wall"]'
@@ -1013,7 +1182,7 @@ test("Drawers + Shelves keeps a truthful Clear Wall through review, navigation, 
     expect(await preview.getAttribute("data-preview-asset")).not.toMatch(
       /(?:niche-layout|left-niche|right-niche|recess)/
     );
-    await expectIntegratedPreview(preview, conceptAsset);
+    await expectRoomPlusFurniturePreview(preview, presentation, selectedRoomAsset || conceptAsset);
     return preview;
   };
   const expectPersistedClearWall = async () => {
@@ -1049,6 +1218,8 @@ test("Drawers + Shelves keeps a truthful Clear Wall through review, navigation, 
     "preserveAspectRatio",
     "xMidYMid slice"
   );
+  selectedRoomAsset = await measurementRoom.getAttribute("data-room-asset");
+  expect(selectedRoomAsset).toBe(conceptAsset);
   await expect(page.locator(".selected-layout-chip")).toContainText("Clear Wall");
   await expectPersistedClearWall();
 
@@ -1060,10 +1231,10 @@ test("Drawers + Shelves keeps a truthful Clear Wall through review, navigation, 
   await expect(page.locator("[data-concept-scene]")).toHaveCSS("--preview-scale", "1.1");
   await expect(page.getByRole("button", { name: "Zoom out" })).toBeEnabled();
   await expect(page.getByRole("button", { name: "Reset preview" })).toBeEnabled();
-  await expectIntegratedPreview(preview, conceptAsset);
+  await expectRoomPlusFurniturePreview(preview, presentation, conceptAsset);
   await page.getByRole("button", { name: "Reset preview" }).click();
   await expect(page.locator("[data-concept-scene]")).toHaveCSS("--preview-scale", "1");
-  await expectIntegratedPreview(preview, conceptAsset);
+  await expectRoomPlusFurniturePreview(preview, presentation, conceptAsset);
   await expect(page.getByRole("button", { name: "Zoom out" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Reset preview" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Zoom in" })).toBeEnabled();
@@ -1108,10 +1279,99 @@ test("Drawers + Shelves keeps a truthful Clear Wall through review, navigation, 
   expect(runtime.filter((failure) => !failure.includes("net::ERR_ABORTED"))).toEqual([]);
 });
 
+test("Clear Wall topology has approved room and furniture visual snapshots", async ({ page }) => {
+  test.slow();
+  await page.setViewportSize({ width: 1024, height: 768 });
+
+  const expectTopologyScreenshot = async (preview, snapshotName) => {
+    const scene = preview.locator("[data-concept-scene]");
+    const controls = preview.locator(".preview-controls");
+    const toast = page.locator("[data-guided-toast]");
+    await controls.evaluate((element) => {
+      element.style.visibility = "hidden";
+    });
+    await toast.evaluate((element) => {
+      element.style.visibility = "hidden";
+    });
+    await expect(scene).toHaveScreenshot(snapshotName, {
+      animations: "disabled",
+      maxDiffPixelRatio: 0.001
+    });
+    await controls.evaluate((element) => {
+      element.style.removeProperty("visibility");
+    });
+    await toast.evaluate((element) => {
+      element.style.removeProperty("visibility");
+    });
+  };
+
+  for (const product of [
+    { label: "Full Open Shelving", styleId: "full-open-shelving", snapshotId: "full-open" },
+    { label: "Drawers + Shelves", styleId: "drawer-base-shelves", snapshotId: "drawers" },
+    { label: "Cabinets + Shelves", styleId: "cabinet-base-shelves", snapshotId: "cabinets" }
+  ]) {
+    await openFreshProject(page);
+    await continueToLayouts(page, product.label);
+    await chooseLayout(page, "Clear Wall");
+    await page.locator("[data-continue]").click();
+
+    const measurementRoom = page.locator('.measurement-room[data-layout="clear-wall"]');
+    const selectedRoomAsset = await measurementRoom.getAttribute("data-room-asset");
+    expect(selectedRoomAsset).toBe("assets/photos/configurator/room-layouts/room-clear-wall-v1.png");
+    if (product.styleId === "full-open-shelving") {
+      // The overlay contract is asserted structurally elsewhere. Hide it here so
+      // platform-specific SVG text anti-aliasing cannot obscure a room-topology
+      // regression in the painted photograph.
+      const measurementOverlay = measurementRoom.locator("[data-dimension-overlay]");
+      const toast = page.locator("[data-guided-toast]");
+      await measurementOverlay.evaluate((element) => {
+        element.style.visibility = "hidden";
+      });
+      await toast.evaluate((element) => {
+        element.style.visibility = "hidden";
+      });
+      const measurementRoomPhoto = measurementRoom.locator(
+        ":scope > picture.measurement-room-image"
+      );
+      await expect(measurementRoomPhoto).toHaveScreenshot(
+        "clear-wall-full-open-step3-1024x768.png",
+        { animations: "disabled", maxDiffPixelRatio: 0.001 }
+      );
+      await measurementOverlay.evaluate((element) => {
+        element.style.removeProperty("visibility");
+      });
+      await toast.evaluate((element) => {
+        element.style.removeProperty("visibility");
+      });
+    }
+
+    await page.locator("[data-continue]").click();
+    const presentation = resolvePreviewPresentation("bookcase", product.styleId, "clear-wall");
+    const preview = page.locator(
+      `.concept-preview[data-layout="clear-wall"][data-style="${product.styleId}"]`
+    );
+    await expectRoomPlusFurniturePreview(preview, presentation, selectedRoomAsset);
+    await expectTopologyScreenshot(
+      preview,
+      `clear-wall-${product.snapshotId}-step4-1024x768.png`
+    );
+
+    if (product.styleId === "full-open-shelving") {
+      await page.locator("[data-continue]").click();
+      const reviewPreview = page.locator(
+        '.concept-preview[data-layout="clear-wall"][data-style="full-open-shelving"]'
+      );
+      await expectRoomPlusFurniturePreview(reviewPreview, presentation, selectedRoomAsset);
+      await expectTopologyScreenshot(reviewPreview, "clear-wall-review-step5-1024x768.png");
+    }
+  }
+});
+
 test("Clear Wall room and concept media remain edge-filling at every acceptance viewport", async ({ page }) => {
   test.slow();
   const runtime = monitorRuntime(page);
-  const conceptAsset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/clear-wall-v1.png";
+  const presentation = resolvePreviewPresentation("bookcase", "drawer-base-shelves", "clear-wall");
+  const conceptAsset = "assets/photos/configurator/room-layouts/room-clear-wall-v1.png";
 
   for (const viewport of [
     { width: 1280, height: 720 },
@@ -1195,7 +1455,7 @@ test("Clear Wall room and concept media remain edge-filling at every acceptance 
 
     await page.locator("[data-continue]").click();
     const preview = page.locator('.concept-preview[data-layout="clear-wall"]');
-    await expectIntegratedPreview(preview, conceptAsset);
+    await expectRoomPlusFurniturePreview(preview, presentation, conceptAsset);
     const customization = await preview.evaluate((element) => {
       const previewRect = element.getBoundingClientRect();
       const metaRect = element.querySelector(".concept-preview-meta").getBoundingClientRect();
@@ -1944,9 +2204,10 @@ test("landscape tablet keeps every step horizontally contained while truthful me
     ".concept-preview",
     ".customization-actions"
   ]);
-  await expectIntegratedPreview(
+  await expectRoomPlusFurniturePreview(
     page.locator(".concept-preview"),
-    "assets/photos/configurator/concept-cabinets-shelves-v1.png"
+    resolvePreviewPresentation("bookcase", "cabinet-base-shelves", "clear-wall"),
+    "assets/photos/configurator/room-layouts/room-clear-wall-v1.png"
   );
 
   for (const tab of ["Details", "Finish"]) {
@@ -1970,7 +2231,7 @@ test("product, finish, compatibility, preview, and review summary stay synchroni
   await expect(page.locator(".concept-preview")).toHaveAttribute("data-style", "cabinet-base-shelves");
   await expect(page.locator(".concept-preview")).toHaveAttribute(
     "data-preview-asset",
-    "assets/photos/configurator/concept-cabinets-shelves-v1.png"
+    "assets/photos/configurator/room-layouts/room-clear-wall-v1.png"
   );
   await page.getByRole("tab", { name: "Finish" }).click();
   await page.getByRole("button", { name: "Charcoal", exact: true }).click();
@@ -2182,7 +2443,7 @@ test("one complete guided flow works for every product category", async ({ page 
   }
 });
 
-test("all seventy product and room combinations render one exact full-room composite", async ({ page }) => {
+test("all seventy product and room combinations render one exact truthful presentation", async ({ page }) => {
   test.slow();
   const runtime = monitorRuntime(page);
 
@@ -2212,8 +2473,14 @@ test("all seventy product and room combinations render one exact full-room compo
       await expect(preview).toHaveAttribute("data-media-fit", expected.mediaFit);
       await expect(preview).toHaveAttribute("data-media-aspect-ratio", expected.mediaAspectRatio);
       await expect(preview).toHaveAttribute("data-media-position", expected.mediaObjectPosition);
-      expect(expected.renderMode, `${product.id}/${layout.id} presentation mode`).toBe("integrated");
-      expect(expected.conceptAsset, `${product.id}/${layout.id} presentation asset`).toBe(expectedAsset);
+      const layeredClearWall = product.categoryId === "bookcase" && layout.id === "clear-wall";
+      expect(expected.renderMode, `${product.id}/${layout.id} presentation mode`).toBe(
+        layeredClearWall ? "room-plus-furniture" : "integrated"
+      );
+      expect(
+        layeredClearWall ? expected.furnitureAsset : expected.conceptAsset,
+        `${product.id}/${layout.id} presentation asset`
+      ).toBe(expectedAsset);
       expect(expected.authoredLayoutId, `${product.id}/${layout.id} authored topology`).toBe(layout.id);
       expect(expected.integratedLayoutId, `${product.id}/${layout.id} integrated topology`).toBe(layout.id);
       expect(expected.mediaFit, `${product.id}/${layout.id} media fit`).toBe("cover");
@@ -2237,7 +2504,11 @@ test("all seventy product and room combinations render one exact full-room compo
       expect(expected.finishMaskHeight, `${product.id}/${layout.id} finish mask height`).toBe(
         expected.mediaHeight
       );
-      await expectIntegratedPreview(preview, expectedAsset);
+      if (layeredClearWall) {
+        await expectRoomPlusFurniturePreview(preview, expected, layout.previewAsset);
+      } else {
+        await expectIntegratedPreview(preview, expectedAsset);
+      }
       const maskImage = preview.locator("svg.concept-finish-overlay mask image");
       if (expected.finishMaskMode === "asset") {
         await expect(maskImage).toHaveCount(1);
