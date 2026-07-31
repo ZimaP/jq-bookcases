@@ -282,6 +282,10 @@ async function expectRoomPlusFurniturePreview(preview, presentation, expectedRoo
     let transparentSamples = 0;
     let opaqueOutsideEnvelope = 0;
     let maskOutsideFurniture = 0;
+    let alphaMinX = canvas.width;
+    let alphaMinY = canvas.height;
+    let alphaMaxX = -1;
+    let alphaMaxY = -1;
     for (let y = 0; y < canvas.height; y += 1) {
       for (let x = 0; x < canvas.width; x += 1) {
         const offset = (y * canvas.width + x) * 4;
@@ -293,6 +297,12 @@ async function expectRoomPlusFurniturePreview(preview, presentation, expectedRoo
         );
         if (alpha >= 224) opaqueSamples += 1;
         if (alpha <= 8) transparentSamples += 1;
+        if (alpha > 8) {
+          alphaMinX = Math.min(alphaMinX, x);
+          alphaMinY = Math.min(alphaMinY, y);
+          alphaMaxX = Math.max(alphaMaxX, x);
+          alphaMaxY = Math.max(alphaMaxY, y);
+        }
         if (
           alpha > 16
           && (x < minX || x > maxX || y < minY || y > maxY)
@@ -311,6 +321,20 @@ async function expectRoomPlusFurniturePreview(preview, presentation, expectedRoo
       sceneRect.width / furnitureImageElement.naturalWidth,
       sceneRect.height / furnitureImageElement.naturalHeight
     );
+    const alphaBounds = {
+      left: alphaMinX,
+      top: alphaMinY,
+      right: alphaMaxX + 1,
+      bottom: alphaMaxY + 1,
+      width: alphaMaxX - alphaMinX + 1,
+      height: alphaMaxY - alphaMinY + 1
+    };
+    const clearWallPlane = {
+      leftX: 0.0755 * canvas.width,
+      rightX: 0.9245 * canvas.width,
+      ceilingY: 0.102 * canvas.height,
+      floorY: 0.67 * canvas.height
+    };
     return {
       roomAsset: element.dataset.roomAsset,
       furnitureAsset: element.dataset.furnitureAsset,
@@ -340,6 +364,16 @@ async function expectRoomPlusFurniturePreview(preview, presentation, expectedRoo
       transparentSamples,
       opaqueOutsideEnvelope,
       maskOutsideFurniture,
+      alphaBounds,
+      clearWallPlane,
+      crownGap: alphaBounds.top - clearWallPlane.ceilingY,
+      frontBaseProjection: alphaBounds.bottom - 1 - clearWallPlane.floorY,
+      installedHeightRatio: alphaBounds.height / (
+        clearWallPlane.floorY - clearWallPlane.ceilingY
+      ),
+      installedWallOccupancy: alphaBounds.width / (
+        clearWallPlane.rightX - clearWallPlane.leftX
+      ),
       maskWidth: maskImage.naturalWidth,
       maskHeight: maskImage.naturalHeight
     };
@@ -360,9 +394,45 @@ async function expectRoomPlusFurniturePreview(preview, presentation, expectedRoo
   expect(media.transparentSamples).toBeGreaterThan(10_000);
   expect(media.opaqueOutsideEnvelope).toBe(0);
   expect(media.maskOutsideFurniture).toBe(0);
+  expect(
+    media.installedWallOccupancy,
+    "Clear Wall furniture occupies an intentional share of the rear wall"
+  ).toBeGreaterThanOrEqual(0.53);
+  expect(
+    media.installedWallOccupancy,
+    "Clear Wall furniture leaves the room condition legible around the installation"
+  ).toBeLessThanOrEqual(0.68);
+  expect(
+    Math.abs((media.alphaBounds.left + media.alphaBounds.right) / 2 - media.maskWidth / 2),
+    "Clear Wall millwork remains centered on the back wall"
+  ).toBeLessThanOrEqual(2);
+  expect(
+    media.crownGap,
+    "Clear Wall crown starts at the rear-wall ceiling plane"
+  ).toBeGreaterThanOrEqual(-0.008 * media.maskHeight);
+  expect(
+    media.crownGap,
+    "Clear Wall crown stays close to the rear-wall ceiling plane"
+  ).toBeLessThanOrEqual(0.012 * media.maskHeight);
+  expect(
+    media.frontBaseProjection,
+    "Clear Wall base reaches the floor/wall contact"
+  ).toBeGreaterThanOrEqual(0);
+  expect(
+    media.frontBaseProjection,
+    "Clear Wall base has only a shallow built-in projection beyond the rear wall"
+  ).toBeLessThanOrEqual(0.03 * media.maskHeight);
+  expect(
+    media.installedHeightRatio,
+    "Clear Wall furniture height matches the available back-wall plane"
+  ).toBeGreaterThanOrEqual(0.95);
+  expect(
+    media.installedHeightRatio,
+    "Clear Wall furniture does not project toward the camera"
+  ).toBeLessThanOrEqual(1.06);
   expect(media.maskWidth).toBe(1536);
   expect(media.maskHeight).toBe(1024);
-  return { roomImage, furnitureImage };
+  return { roomImage, furnitureImage, media };
 }
 
 async function readConceptImageGeometry(image) {
@@ -1550,7 +1620,7 @@ test("Drawers + Shelves keeps a truthful Clear Wall through review, navigation, 
   expect(runtime.filter((failure) => !failure.includes("net::ERR_ABORTED"))).toEqual([]);
 });
 
-test("Clear Wall topology has approved room and furniture visual snapshots", async ({ page }) => {
+test("Clear Wall bookcase installations stay on the rear wall plane and match approved visual snapshots", async ({ page }) => {
   test.slow();
   await page.setViewportSize({ width: 1024, height: 768 });
 
@@ -1577,9 +1647,33 @@ test("Clear Wall topology has approved room and furniture visual snapshots", asy
   };
 
   for (const product of [
-    { label: "Full Open Shelving", styleId: "full-open-shelving", snapshotId: "full-open" },
-    { label: "Drawers + Shelves", styleId: "drawer-base-shelves", snapshotId: "drawers" },
-    { label: "Cabinets + Shelves", styleId: "cabinet-base-shelves", snapshotId: "cabinets" }
+    {
+      label: "Full Open Shelving",
+      styleId: "full-open-shelving",
+      snapshotId: "full-open",
+      furnitureAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-furniture-v2.png",
+      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v2.png",
+      sourceAspectRatio: 885 / 648,
+      alphaBounds: { left: 356, top: 108, right: 1181, bottom: 712, width: 825, height: 604 }
+    },
+    {
+      label: "Drawers + Shelves",
+      styleId: "drawer-base-shelves",
+      snapshotId: "drawers",
+      furnitureAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-furniture-v2.png",
+      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v2.png",
+      sourceAspectRatio: 757 / 643,
+      alphaBounds: { left: 412, top: 108, right: 1123, bottom: 712, width: 711, height: 604 }
+    },
+    {
+      label: "Cabinets + Shelves",
+      styleId: "cabinet-base-shelves",
+      snapshotId: "cabinets",
+      furnitureAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-furniture-v2.png",
+      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v2.png",
+      sourceAspectRatio: 799 / 654,
+      alphaBounds: { left: 399, top: 108, right: 1137, bottom: 712, width: 738, height: 604 }
+    }
   ]) {
     await openFreshProject(page);
     await continueToLayouts(page, product.label);
@@ -1618,10 +1712,21 @@ test("Clear Wall topology has approved room and furniture visual snapshots", asy
 
     await page.locator("[data-continue]").click();
     const presentation = resolvePreviewPresentation("bookcase", product.styleId, "clear-wall");
+    expect(presentation.furnitureAsset).toBe(product.furnitureAsset);
+    expect(presentation.finishMaskAsset).toBe(product.finishMaskAsset);
     const preview = page.locator(
       `.concept-preview[data-layout="clear-wall"][data-style="${product.styleId}"]`
     );
-    await expectRoomPlusFurniturePreview(preview, presentation, selectedRoomAsset);
+    const rendered = await expectRoomPlusFurniturePreview(
+      preview,
+      presentation,
+      selectedRoomAsset
+    );
+    expect(rendered.media.alphaBounds).toEqual(product.alphaBounds);
+    expect(
+      rendered.media.alphaBounds.width / rendered.media.alphaBounds.height,
+      "Clear Wall furniture keeps the approved source proportions"
+    ).toBeCloseTo(product.sourceAspectRatio, 2);
     await expectTopologyScreenshot(
       preview,
       `clear-wall-${product.snapshotId}-step4-1024x768.png`
