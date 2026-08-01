@@ -1,0 +1,333 @@
+{
+  "schemaVersion": 1,
+  "coordinateSpace": {
+    "width": 1536,
+    "height": 1024,
+    "origin": "top-left",
+    "rectangles": "[x, y, width, height] with inclusive painted extent x..x+width-1 and y..y+height-1",
+    "polygons": "inclusive source-image vertices"
+  },
+  "contract": {
+    "operation": "intersect the neutral-wood candidate with the union of rectangles and polygons",
+    "outsideEnvelopeMustBeZero": true,
+    "purpose": "Keep the radiator-cover top, frame, doors, slats, base rails, and side panels while making room surfaces, toe cavities, cast shadows, foreground upholstery, and top decor spatially impossible to tint.",
+    "excludedMaterials": [
+      "wall",
+      "floor",
+      "baseboard",
+      "toe-cavity shadow",
+      "foreground upholstery",
+      "plants and flowers",
+      "vases and bowls",
+      "books",
+      "lamps",
+      "hardware"
+    ]
+  },
+  "entries": {
+    "integrated/radiator-cover/clean-slat-cover/niche-layout-v1.png": {
+      "installationBounds": [337, 576, 1216, 855],
+      "rectangles": [
+        {"label": "top surface left of vase", "xywh": [337, 576, 90, 6]},
+        {"label": "top surface between vase and bowl", "xywh": [497, 576, 538, 6]},
+        {"label": "top surface right of bowl", "xywh": [1121, 576, 96, 6]},
+        {"label": "unobstructed top front edge", "xywh": [337, 581, 880, 17]},
+        {"label": "upper cabinet case above foreground sofa and toe cavity", "xywh": [340, 597, 874, 135]},
+        {"label": "visible cabinet case below foreground sofa top", "xywh": [366, 732, 848, 106]},
+        {"label": "visible lower-left cabinet and base beside sofa", "xywh": [366, 838, 143, 18]},
+        {"label": "visible lower-right cabinet and base", "xywh": [1047, 838, 167, 18]}
+      ],
+      "polygons": [],
+      "insideWoodProbes": {
+        "top front edge": [800, 590],
+        "left door": [430, 700],
+        "grille slat": [700, 680],
+        "right door": [1120, 700],
+        "right base": [1100, 850]
+      },
+      "outsideZeroProbes": {
+        "vase": [465, 560],
+        "bowl": [1080, 565],
+        "foreground sofa": [350, 780],
+        "toe cavity": [800, 848],
+        "floor": [800, 875]
+      }
+    },
+    "integrated/radiator-cover/clean-slat-cover/left-niche-v1.png": {
+      "installationBounds": [524, 567, 1384, 845],
+      "rectangles": [
+        {"label": "top surface left of bowl and vase", "xywh": [524, 567, 568, 10]},
+        {"label": "top surface right of vase", "xywh": [1277, 567, 108, 10]},
+        {"label": "unobstructed top front edge", "xywh": [524, 577, 861, 13]},
+        {"label": "cabinet case above toe cavity", "xywh": [526, 589, 858, 235]},
+        {"label": "lower-left foot", "xywh": [526, 824, 23, 22]},
+        {"label": "lower-right side cabinet and foot", "xywh": [1254, 824, 130, 22]}
+      ],
+      "polygons": [],
+      "insideWoodProbes": {
+        "top front edge": [900, 582],
+        "grille slat": [900, 700],
+        "right side panel": [1320, 700],
+        "right base": [1320, 840]
+      },
+      "outsideZeroProbes": {
+        "bowl": [1130, 565],
+        "vase": [1220, 550],
+        "left wall return": [510, 700],
+        "toe cavity": [900, 837],
+        "floor": [900, 860]
+      }
+    },
+    "integrated/radiator-cover/clean-slat-cover/right-niche-v1.png": {
+      "installationBounds": [174, 566, 1010, 892],
+      "rectangles": [
+        {"label": "top surface left of vase", "xywh": [174, 566, 64, 9]},
+        {"label": "top surface between vase and bowl", "xywh": [338, 566, 507, 9]},
+        {"label": "top surface right of bowl", "xywh": [955, 566, 56, 9]},
+        {"label": "unobstructed top front edge", "xywh": [174, 575, 837, 16]},
+        {"label": "cabinet case above toe cavity", "xywh": [176, 590, 833, 269]},
+        {"label": "lower-left foot", "xywh": [176, 859, 34, 34]},
+        {"label": "lower-right side cabinet and foot", "xywh": [862, 859, 147, 34]}
+      ],
+      "polygons": [],
+      "insideWoodProbes": {
+        "top front edge": [600, 580],
+        "grille slat": [300, 680],
+        "right side panel": [950, 700],
+        "right base": [950, 880]
+      },
+      "outsideZeroProbes": {
+        "vase": [285, 545],
+        "bowl": [900, 565],
+        "right wall": [1100, 700],
+        "toe cavity": [500, 866],
+        "floor": [600, 910]
+      }
+    },
+    "integrated/radiator-cover/clean-slat-cover/clear-wall-v1.png": {
+      "installationBounds": [264, 552, 1267, 799],
+      "rectangles": [
+        {"label": "top surface left of vase", "xywh": [264, 552, 46, 7]},
+        {"label": "top surface between vase and bowl", "xywh": [370, 552, 772, 7]},
+        {"label": "top surface right of bowl", "xywh": [1207, 552, 61, 7]},
+        {"label": "unobstructed top front edge", "xywh": [264, 559, 1004, 12]},
+        {"label": "complete cabinet case, slats, doors, and base", "xywh": [265, 569, 1001, 231]}
+      ],
+      "polygons": [],
+      "insideWoodProbes": {
+        "top front edge": [800, 565],
+        "left door": [350, 650],
+        "grille slat": [700, 650],
+        "right door": [1180, 650],
+        "base": [700, 795]
+      },
+      "outsideZeroProbes": {
+        "vase": [340, 540],
+        "bowl": [1175, 545],
+        "wall above unit": [800, 530],
+        "wall beside unit": [1300, 700],
+        "floor": [800, 810]
+      }
+    },
+    "integrated/radiator-cover/clean-slat-cover/fireplace-wall-v1.png": {
+      "installationBounds": [128, 596, 1497, 852],
+      "rectangles": [
+        {"label": "left top surface left of lamp", "xywh": [128, 596, 69, 8]},
+        {"label": "left top surface between bowl and plant", "xywh": [336, 596, 29, 8]},
+        {"label": "left top surface right of plant", "xywh": [425, 596, 91, 8]},
+        {"label": "left unobstructed top front edge", "xywh": [128, 604, 388, 12]},
+        {"label": "left cabinet case", "xywh": [130, 614, 385, 239]},
+        {"label": "right top surface left of books", "xywh": [1052, 596, 50, 8]},
+        {"label": "right top surface between books and vase", "xywh": [1215, 596, 73, 8]},
+        {"label": "right top surface right of vase", "xywh": [1365, 596, 133, 8]},
+        {"label": "right unobstructed top front edge", "xywh": [1052, 604, 446, 12]},
+        {"label": "right cabinet above foreground sofa", "xywh": [1054, 614, 444, 115]}
+      ],
+      "polygons": [
+        {
+          "label": "right lower cabinet clipped to the visible sofa boundary",
+          "points": [[1054, 729], [1442, 729], [1432, 852], [1054, 852]]
+        }
+      ],
+      "insideWoodProbes": {
+        "left grille slat": [300, 700],
+        "left base": [300, 848],
+        "right grille slat": [1200, 700],
+        "right base": [1200, 848]
+      },
+      "outsideZeroProbes": {
+        "left lamp": [240, 575],
+        "left plant": [395, 585],
+        "right books": [1150, 590],
+        "right vase": [1330, 575],
+        "fireplace": [800, 700],
+        "foreground sofa": [1480, 800],
+        "floor": [1200, 870]
+      }
+    },
+    "integrated/radiator-cover/clean-slat-cover/center-recess-v1.png": {
+      "installationBounds": [141, 592, 1394, 842],
+      "rectangles": [
+        {"label": "left top surface left of vase", "xywh": [141, 592, 85, 9]},
+        {"label": "left top surface right of vase", "xywh": [298, 592, 176, 9]},
+        {"label": "left unobstructed top front edge", "xywh": [141, 601, 333, 10]},
+        {"label": "left cabinet above toe cavity", "xywh": [143, 609, 330, 217]},
+        {"label": "left outer foot", "xywh": [143, 826, 33, 17]},
+        {"label": "left inner foot", "xywh": [447, 826, 26, 17]},
+        {"label": "right top surface left of books and bowl", "xywh": [1063, 592, 47, 9]},
+        {"label": "right top surface right of bowl", "xywh": [1291, 592, 104, 9]},
+        {"label": "right unobstructed top front edge", "xywh": [1063, 601, 332, 10]},
+        {"label": "right cabinet above toe cavity", "xywh": [1064, 609, 330, 217]},
+        {"label": "right inner foot", "xywh": [1064, 826, 28, 17]},
+        {"label": "right outer foot", "xywh": [1363, 826, 31, 17]}
+      ],
+      "polygons": [],
+      "insideWoodProbes": {
+        "left grille slat": [300, 700],
+        "left base": [160, 835],
+        "right grille slat": [1200, 700],
+        "right base": [1380, 835]
+      },
+      "outsideZeroProbes": {
+        "left vase": [260, 580],
+        "right books": [1160, 585],
+        "right bowl": [1240, 585],
+        "center projection": [800, 700],
+        "left toe cavity": [300, 835],
+        "right toe cavity": [1200, 835],
+        "floor": [800, 860]
+      }
+    },
+    "integrated/radiator-cover/clean-slat-cover/door-wall-v1.png": {
+      "installationBounds": [140, 569, 1504, 865],
+      "rectangles": [
+        {"label": "left top surface left of vase", "xywh": [140, 569, 52, 9]},
+        {"label": "left top surface right of bowl", "xywh": [392, 569, 183, 9]},
+        {"label": "left unobstructed top front edge", "xywh": [140, 578, 435, 8]},
+        {"label": "left cabinet above toe cavity", "xywh": [141, 584, 430, 266]},
+        {"label": "left outer foot", "xywh": [141, 850, 10, 16]},
+        {"label": "left inner side and foot", "xywh": [517, 850, 54, 16]},
+        {"label": "right top surface left of books", "xywh": [961, 569, 41, 9]},
+        {"label": "right top surface between books and vase", "xywh": [1132, 569, 158, 9]},
+        {"label": "right top surface right of vase", "xywh": [1370, 569, 135, 9]},
+        {"label": "right unobstructed top front edge", "xywh": [961, 578, 544, 8]},
+        {"label": "right cabinet above toe cavity", "xywh": [969, 584, 535, 267]},
+        {"label": "right inner side and foot", "xywh": [969, 851, 42, 15]},
+        {"label": "right outer foot", "xywh": [1453, 851, 51, 15]}
+      ],
+      "polygons": [],
+      "insideWoodProbes": {
+        "left grille slat": [300, 700],
+        "left base": [540, 860],
+        "right grille slat": [1200, 700],
+        "right base": [1480, 860]
+      },
+      "outsideZeroProbes": {
+        "left vase": [240, 550],
+        "left bowl": [340, 550],
+        "right books": [1070, 565],
+        "right vase": [1330, 550],
+        "door": [800, 700],
+        "left toe cavity": [300, 860],
+        "right toe cavity": [1200, 860],
+        "floor": [800, 890]
+      }
+    },
+    "integrated/radiator-cover/clean-slat-cover/corner-wall-v1.png": {
+      "installationBounds": [0, 476, 1535, 842],
+      "rectangles": [],
+      "polygons": [
+        {
+          "label": "left countertop surface before vase",
+          "points": [[0, 516], [65, 513], [65, 533], [0, 536]]
+        },
+        {
+          "label": "left countertop surface between vase and bowl",
+          "points": [[180, 507], [230, 505], [230, 525], [180, 527]]
+        },
+        {
+          "label": "left countertop surface after bowl",
+          "points": [[350, 499], [847, 476], [847, 491], [350, 519]]
+        },
+        {
+          "label": "left unobstructed countertop front edge",
+          "points": [[0, 536], [847, 491], [847, 510], [0, 555]]
+        },
+        {
+          "label": "left cabinet frame and slatted front above toe cavity",
+          "points": [[0, 554], [847, 509], [829, 690], [89, 800], [89, 820], [49, 842], [0, 817]]
+        },
+        {
+          "label": "left perspective base rail below toe cavity",
+          "points": [[89, 798], [829, 688], [828, 712], [89, 822]]
+        },
+        {
+          "label": "inside-corner post",
+          "points": [[829, 499], [866, 501], [865, 714], [828, 712]]
+        },
+        {
+          "label": "right countertop surface before books",
+          "points": [[847, 476], [1245, 501], [1245, 518], [847, 491]]
+        },
+        {
+          "label": "right countertop surface after books",
+          "points": [[1428, 512], [1535, 519], [1535, 536], [1428, 529]]
+        },
+        {
+          "label": "right unobstructed countertop front edge",
+          "points": [[847, 491], [1535, 536], [1535, 554], [847, 510]]
+        },
+        {
+          "label": "right cabinet frame and slatted front above toe cavity",
+          "points": [[847, 509], [1535, 554], [1535, 817], [1482, 841], [1434, 802], [866, 690]]
+        },
+        {
+          "label": "right perspective base rail below toe cavity",
+          "points": [[866, 688], [1434, 800], [1434, 823], [865, 712]]
+        }
+      ],
+      "insideWoodProbes": {
+        "left countertop": [600, 500],
+        "left grille slat": [500, 650],
+        "left base rail": [500, 760],
+        "corner post": [848, 620],
+        "right countertop": [1000, 500],
+        "right grille slat": [1100, 650],
+        "right base rail": [1200, 760]
+      },
+      "outsideZeroProbes": {
+        "left vase": [120, 490],
+        "left bowl": [285, 500],
+        "right books": [1320, 500],
+        "wall above corner": [800, 450],
+        "floor below left toe": [600, 800],
+        "floor below corner": [800, 780],
+        "floor below right toe": [1200, 820],
+        "foreground floor": [800, 900]
+      }
+    },
+    "integrated/radiator-cover/clean-slat-cover/double-opening-v2.png": {
+      "installationBounds": [409, 585, 1130, 814],
+      "rectangles": [
+        {"label": "complete unobstructed top", "xywh": [409, 585, 722, 15]},
+        {"label": "cabinet case above toe cavity", "xywh": [410, 598, 720, 200]},
+        {"label": "lower-left side cabinet and foot", "xywh": [410, 798, 117, 17]},
+        {"label": "lower-right side cabinet and foot", "xywh": [1014, 798, 116, 17]}
+      ],
+      "polygons": [],
+      "insideWoodProbes": {
+        "top": [800, 590],
+        "left door": [460, 700],
+        "grille slat": [800, 700],
+        "right door": [1080, 700],
+        "right base": [1080, 810]
+      },
+      "outsideZeroProbes": {
+        "left wall": [390, 700],
+        "right wall": [1150, 700],
+        "toe cavity": [800, 805],
+        "floor": [800, 830]
+      }
+    }
+  }
+}

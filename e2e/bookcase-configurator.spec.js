@@ -621,7 +621,7 @@ async function expectCustomizationWorkspaceInOneScreen(page, context) {
 
 async function expectDrawersRightNicheComposition(preview, context) {
   const conceptAsset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-v2.png";
-  const finishMaskAsset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v2.png";
+  const finishMaskAsset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v3.png";
   await expectIntegratedPreview(preview, conceptAsset);
   await expect(preview).toHaveAttribute("data-preview-key", "bookcase:drawer-base-shelves:right-niche");
   await expect(preview).toHaveAttribute("data-authored-layout", "right-niche");
@@ -725,11 +725,11 @@ async function expectDrawersRightNicheComposition(preview, context) {
   expect(geometry.nonzeroPixels, `${context} useful furniture mask`).toBeGreaterThan(100_000);
   expect(geometry.sourceBounds, `${context} complete authored furniture bounds`).toEqual({
     left: 338,
-    top: 136,
+    top: 137,
     right: 1199,
     bottom: 856,
     width: 861,
-    height: 720
+    height: 719
   });
   expect(geometry.sourceBounds.width / geometry.sourceWidth, `${context} furniture width`).toBeGreaterThan(0.5);
   expect(geometry.sourceBounds.height / geometry.sourceHeight, `${context} furniture height`).toBeGreaterThan(0.65);
@@ -743,6 +743,79 @@ async function expectDrawersRightNicheComposition(preview, context) {
   }
   expect(geometry.resetScale, `${context} semantic crop is measured at reset`).toBe(1);
   return geometry;
+}
+
+async function expectAssetFinishMaskSemantics(preview, specification, context) {
+  await expect(preview).toHaveAttribute("data-finish-mask-mode", "asset");
+  await expect(preview).toHaveAttribute("data-finish-mask-asset", specification.maskAsset);
+
+  const mask = preview.locator("svg.concept-finish-overlay mask");
+  const maskImage = mask.locator(":scope > image");
+  await expect(mask).toHaveCount(1);
+  await expect(maskImage).toHaveCount(1);
+  await expect(maskImage).toHaveAttribute("href", specification.maskAsset);
+  await expect(
+    mask.locator(":scope > path, :scope > rect, :scope > polygon, :scope > circle, :scope > ellipse")
+  ).toHaveCount(0);
+
+  const samples = await preview.evaluate(async (element, expected) => {
+    const maskElement = element.querySelector("svg.concept-finish-overlay mask");
+    const imageElement = maskElement.querySelector(":scope > image");
+    const href = imageElement.getAttribute("href");
+    const image = new Image();
+    image.src = new URL(href, window.location.href).href;
+    await image.decode();
+
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context2d = canvas.getContext("2d", { willReadFrequently: true });
+    context2d.drawImage(image, 0, 0);
+    const pixels = context2d.getImageData(0, 0, canvas.width, canvas.height).data;
+    const sample = ([x, y]) => {
+      if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) {
+        throw new Error(`Finish-mask probe ${x},${y} is outside ${canvas.width}x${canvas.height}`);
+      }
+      const offset = (y * canvas.width + x) * 4;
+      return Math.round(
+        Math.max(pixels[offset], pixels[offset + 1], pixels[offset + 2])
+          * (pixels[offset + 3] / 255)
+      );
+    };
+    const readGroup = (group) => Object.fromEntries(
+      Object.entries(group).map(([label, point]) => [label, sample(point)])
+    );
+
+    return {
+      mode: element.dataset.finishMaskMode,
+      declaredAsset: element.dataset.finishMaskAsset,
+      imageHref: href,
+      decodedUrlMatches: new URL(image.src).pathname.endsWith(expected.maskAsset),
+      width: canvas.width,
+      height: canvas.height,
+      imageCount: maskElement.querySelectorAll(":scope > image").length,
+      inlineGeometryCount: maskElement.querySelectorAll(
+        ":scope > path, :scope > rect, :scope > polygon, :scope > circle, :scope > ellipse"
+      ).length,
+      protected: readGroup(expected.protected),
+      wood: readGroup(expected.wood)
+    };
+  }, specification);
+
+  expect(samples.mode, `${context} mask mode`).toBe("asset");
+  expect(samples.declaredAsset, `${context} declared mask`).toBe(specification.maskAsset);
+  expect(samples.imageHref, `${context} rendered mask image`).toBe(specification.maskAsset);
+  expect(samples.decodedUrlMatches, `${context} decoded mask image`).toBe(true);
+  expect([samples.width, samples.height], `${context} authored mask dimensions`).toEqual([1536, 1024]);
+  expect(samples.imageCount, `${context} one asset-backed mask`).toBe(1);
+  expect(samples.inlineGeometryCount, `${context} no inline mask geometry`).toBe(0);
+  for (const [label, value] of Object.entries(samples.protected)) {
+    expect(value, `${context} protected ${label}`).toBeLessThanOrEqual(8);
+  }
+  for (const [label, value] of Object.entries(samples.wood)) {
+    expect(value, `${context} selected ${label}`).toBeGreaterThanOrEqual(224);
+  }
+  return samples;
 }
 
 async function continueToReview(page, layout = "Clear Wall", product = "Cabinets + Shelves") {
@@ -1440,7 +1513,7 @@ test("Between Openings keeps every bookcase construction in the selected room", 
 test("Door Wall keeps the selected drawer construction through customization and review", async ({ page }) => {
   const asset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/door-wall-v1.png";
   const avifAsset = asset.replace(/\.png$/, ".avif");
-  const finishMaskAsset = asset.replace(/-v1\.png$/, "-finish-mask-v1.png");
+  const finishMaskAsset = asset.replace(/-v1\.png$/, "-finish-mask-v3.png");
   let finishMaskStatus = 0;
   page.on("response", (response) => {
     if (new URL(response.url()).pathname.endsWith(finishMaskAsset)) {
@@ -1652,7 +1725,7 @@ test("Clear Wall bookcase installations stay on the rear wall plane and match ap
       styleId: "full-open-shelving",
       snapshotId: "full-open",
       furnitureAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-furniture-v2.png",
-      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v2.png",
+      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v3.png",
       sourceAspectRatio: 885 / 648,
       alphaBounds: { left: 356, top: 108, right: 1181, bottom: 712, width: 825, height: 604 }
     },
@@ -1661,7 +1734,7 @@ test("Clear Wall bookcase installations stay on the rear wall plane and match ap
       styleId: "drawer-base-shelves",
       snapshotId: "drawers",
       furnitureAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-furniture-v2.png",
-      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v2.png",
+      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v3.png",
       sourceAspectRatio: 757 / 643,
       alphaBounds: { left: 412, top: 108, right: 1123, bottom: 712, width: 711, height: 604 }
     },
@@ -1670,7 +1743,7 @@ test("Clear Wall bookcase installations stay on the rear wall plane and match ap
       styleId: "cabinet-base-shelves",
       snapshotId: "cabinets",
       furnitureAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-furniture-v2.png",
-      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v2.png",
+      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v3.png",
       sourceAspectRatio: 799 / 654,
       alphaBounds: { left: 399, top: 108, right: 1137, bottom: 712, width: 738, height: 604 }
     }
@@ -1954,6 +2027,262 @@ test("Right Niche shows only room perimeter dimensions and one integrated previe
   await expect(metadata).toBeVisible();
 });
 
+test("Step 4 finish masks select cabinet material without recoloring protected scene content", async ({ page }) => {
+  test.slow();
+  const runtime = monitorRuntime(page);
+  const cases = [
+    {
+      context: "Floating Storage / Right Niche",
+      product: "Floating Storage",
+      category: "floating-storage",
+      style: "floating-drawer-bank",
+      maskAsset: "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/right-niche-finish-mask-v3.png",
+      protected: {
+        wall: [800, 460],
+        vase: [350, 480],
+        books: [710, 540],
+        lamp: [1250, 500],
+        hardware: [615, 620],
+        baseboard: [800, 850]
+      },
+      wood: {
+        "drawer front": [700, 700]
+      }
+    },
+    {
+      context: "TV Unit / Right Niche",
+      product: "TV Unit",
+      category: "tv-unit",
+      style: "framed-tv-wall",
+      maskAsset: "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/right-niche-finish-mask-v3.png",
+      protected: {
+        wall: [100, 500],
+        television: [750, 450],
+        vase: [370, 305],
+        "plant pot": [935, 300],
+        books: [1090, 420],
+        basket: [1100, 610],
+        hardware: [415, 682]
+      },
+      wood: {
+        "shelf backing": [700, 250]
+      }
+    },
+    {
+      context: "Window Storage / Right Niche",
+      product: "Window Storage",
+      category: "window-storage",
+      style: "window-seat-storage",
+      maskAsset: "assets/photos/configurator/integrated/window-storage/window-seat-storage/right-niche-finish-mask-v3.png",
+      protected: {
+        wall: [100, 500],
+        window: [1020, 260],
+        vase: [300, 270],
+        books: [385, 270],
+        cushion: [1025, 500],
+        plant: [600, 650],
+        hardware: [515, 789]
+      },
+      wood: {
+        "cabinet face": [300, 750]
+      }
+    },
+    {
+      context: "Radiator Cover / Right Niche",
+      product: "Radiator Cover",
+      category: "radiator-cover",
+      style: "clean-slat-cover",
+      maskAsset: "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/right-niche-finish-mask-v3.png",
+      protected: {
+        wall: [1100, 700],
+        vase: [285, 545],
+        bowl: [900, 565],
+        "grille gap": [306, 680],
+        "vent gap": [500, 866]
+      },
+      wood: {
+        "grille slat": [300, 680],
+        "side panel": [950, 700]
+      }
+    },
+    {
+      context: "Drawers + Shelves / Right Niche bookcase control",
+      product: "Drawers + Shelves",
+      category: "bookcase",
+      style: "drawer-base-shelves",
+      maskAsset: "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v3.png",
+      protected: {
+        wall: [100, 500],
+        vase: [510, 250],
+        books: [420, 350],
+        hardware: [490, 690]
+      },
+      wood: {
+        "shelf backing": [700, 250],
+        "drawer front": [700, 700]
+      }
+    },
+    {
+      context: "Cabinets + Shelves / Clear Wall",
+      product: "Cabinets + Shelves",
+      category: "bookcase",
+      style: "cabinet-base-shelves",
+      layoutLabel: "Clear Wall",
+      layoutId: "clear-wall",
+      maskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v3.png",
+      protected: {
+        room: [100, 500],
+        vase: [520, 215],
+        artwork: [640, 300],
+        plant: [500, 390],
+        basket: [1000, 500],
+        hardware: [575, 558]
+      },
+      wood: {
+        "shelf backing": [700, 250],
+        "cabinet door": [700, 650]
+      }
+    },
+    {
+      context: "Drawers + Shelves / Clear Wall",
+      product: "Drawers + Shelves",
+      category: "bookcase",
+      style: "drawer-base-shelves",
+      layoutLabel: "Clear Wall",
+      layoutId: "clear-wall",
+      maskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v3.png",
+      protected: {
+        room: [100, 500],
+        vase: [840, 210],
+        books: [470, 310],
+        hardware: [530, 597]
+      },
+      wood: {
+        "shelf backing": [700, 250],
+        "drawer front": [700, 640]
+      }
+    },
+    {
+      context: "Full Open Shelving / Clear Wall",
+      product: "Full Open Shelving",
+      category: "bookcase",
+      style: "full-open-shelving",
+      layoutLabel: "Clear Wall",
+      layoutId: "clear-wall",
+      maskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v3.png",
+      protected: {
+        room: [100, 500],
+        vase: [960, 210],
+        books: [535, 295],
+        decor: [565, 480]
+      },
+      wood: {
+        "shelf backing": [700, 250],
+        base: [700, 650]
+      }
+    },
+    {
+      context: "Cabinets + Shelves / Between Openings",
+      product: "Cabinets + Shelves",
+      category: "bookcase",
+      style: "cabinet-base-shelves",
+      layoutLabel: "Between Openings",
+      layoutId: "double-opening",
+      maskAsset: "assets/photos/configurator/concept-cabinets-shelves-between-openings-finish-mask-v3.png",
+      protected: {
+        wall: [200, 500],
+        vase: [495, 255],
+        bowl: [865, 370],
+        plant: [470, 468],
+        basket: [1020, 570],
+        hardware: [554, 635]
+      },
+      wood: {
+        "top shelf face": [600, 210],
+        "cabinet face": [600, 700]
+      }
+    },
+    {
+      context: "Drawers + Shelves / Between Openings",
+      product: "Drawers + Shelves",
+      category: "bookcase",
+      style: "drawer-base-shelves",
+      layoutLabel: "Between Openings",
+      layoutId: "double-opening",
+      maskAsset: "assets/photos/configurator/concept-drawers-shelves-between-openings-finish-mask-v3.png",
+      protected: {
+        wall: [200, 500],
+        vase: [525, 260],
+        bowl: [865, 380],
+        decor: [1015, 480],
+        basket: [1010, 585],
+        hardware: [515, 667]
+      },
+      wood: {
+        "top shelf face": [600, 215],
+        "drawer face": [600, 700]
+      }
+    },
+    {
+      context: "Full Open Shelving / Between Openings",
+      product: "Full Open Shelving",
+      category: "bookcase",
+      style: "full-open-shelving",
+      layoutLabel: "Between Openings",
+      layoutId: "double-opening",
+      maskAsset: "assets/photos/configurator/concept-full-shelving-between-openings-finish-mask-v3.png",
+      protected: {
+        wall: [200, 500],
+        plant: [410, 380],
+        bowl: [770, 470],
+        "left basket": [550, 660],
+        "right basket": [1100, 750]
+      },
+      wood: {
+        "middle shelf face": [500, 615],
+        base: [800, 800]
+      }
+    }
+  ];
+
+  for (const specification of cases) {
+    await test.step(specification.context, async () => {
+      const layoutLabel = specification.layoutLabel || "Right Niche";
+      const layoutId = specification.layoutId || "right-niche";
+      await openFreshProject(page);
+      await continueToLayouts(page, specification.product);
+      await chooseLayout(page, layoutLabel);
+      await page.locator("[data-continue]").click();
+      await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+      await page.locator("[data-continue]").click();
+      await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+
+      const presentation = resolvePreviewPresentation(
+        specification.category,
+        specification.style,
+        layoutId
+      );
+      expect(presentation.finishMaskMode, `${specification.context} presentation mask mode`).toBe("asset");
+      expect(presentation.finishMaskAsset, `${specification.context} presentation mask asset`).toBe(
+        specification.maskAsset
+      );
+
+      const preview = page.locator(
+        `.concept-preview[data-category="${specification.category}"]`
+        + `[data-style="${specification.style}"][data-layout="${layoutId}"]`
+      );
+      await expect(preview).toBeVisible();
+      await expect(preview).toHaveAttribute(
+        "data-preview-key",
+        `${specification.category}:${specification.style}:${layoutId}`
+      );
+      await expectAssetFinishMaskSemantics(preview, specification, specification.context);
+    });
+  }
+
+  expect(runtime.filter((failure) => !failure.includes("net::ERR_ABORTED"))).toEqual([]);
+});
+
 test("Drawers + Shelves Right Niche stays one-screen and completely framed through every preview state", async ({ page }) => {
   test.slow();
   const runtime = monitorRuntime(page);
@@ -2043,7 +2372,7 @@ test("Drawers + Shelves Right Niche stays one-screen and completely framed throu
       );
       await expect(preview.locator("svg.concept-finish-overlay mask image")).toHaveAttribute(
         "href",
-        "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v2.png"
+        "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v3.png"
       );
       await page.getByRole("button", { name: "Reset preview" }).click();
       await expect(preview.locator("[data-concept-scene]")).toHaveCSS("--preview-scale", "1");
@@ -3007,9 +3336,7 @@ test("all seventy product and room combinations render one exact truthful presen
       expect(expected.mediaSvgPreserveAspectRatio, `${product.id}/${layout.id} SVG fit`).toMatch(
         /^x(?:Min|Mid|Max)Y(?:Min|Mid|Max) slice$/
       );
-      expect(["asset", "inline"], `${product.id}/${layout.id} finish mask mode`).toContain(
-        expected.finishMaskMode
-      );
+      expect(expected.finishMaskMode, `${product.id}/${layout.id} finish mask mode`).toBe("asset");
       expect(expected.finishMaskViewBox, `${product.id}/${layout.id} finish mask viewBox`).toBe(
         `0 0 ${expected.finishMaskWidth} ${expected.finishMaskHeight}`
       );
@@ -3025,13 +3352,8 @@ test("all seventy product and room combinations render one exact truthful presen
         await expectIntegratedPreview(preview, expectedAsset);
       }
       const maskImage = preview.locator("svg.concept-finish-overlay mask image");
-      if (expected.finishMaskMode === "asset") {
-        await expect(maskImage).toHaveCount(1);
-        await expect(maskImage).toHaveAttribute("href", expected.finishMaskAsset);
-      } else {
-        await expect(maskImage).toHaveCount(0);
-        expect(expected.finishMaskAsset).toBeNull();
-      }
+      await expect(maskImage).toHaveCount(1);
+      await expect(maskImage).toHaveAttribute("href", expected.finishMaskAsset);
 
       await page.getByRole("button", { name: /Choose Layout, completed/ }).click();
     }

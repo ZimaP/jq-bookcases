@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Authored installation envelopes. A finish matte may never extend beyond these cabinet footprints.",
+  "entries": {
+    "integrated/tv-unit/framed-tv-wall/niche-layout-v1.png": {
+      "rectangles": [[270, 120, 990, 59], [257, 178, 999, 482], [257, 660, 1012, 206]]
+    },
+    "integrated/tv-unit/framed-tv-wall/left-niche-v1.png": {
+      "rectangles": [[307, 160, 1008, 718]]
+    },
+    "integrated/tv-unit/framed-tv-wall/right-niche-v1.png": {
+      "rectangles": [[250, 178, 991, 58], [260, 233, 966, 420], [248, 650, 995, 218]]
+    },
+    "integrated/tv-unit/framed-tv-wall/fireplace-wall-v1.png": {
+      "rectangles": [
+        [73, 119, 414, 531],
+        [35, 643, 454, 243],
+        [1038, 119, 438, 531],
+        [1034, 643, 469, 243]
+      ]
+    },
+    "integrated/tv-unit/framed-tv-wall/center-recess-v1.png": {
+      "rectangles": [[84, 112, 385, 753], [1059, 112, 387, 753], [452, 114, 624, 31]]
+    },
+    "integrated/tv-unit/framed-tv-wall/window-wall-v1.png": {
+      "rectangles": [
+        [60, 123, 580, 757],
+        [616, 123, 386, 54],
+        [615, 713, 388, 167],
+        [984, 123, 512, 757]
+      ]
+    },
+    "integrated/tv-unit/framed-tv-wall/door-wall-v1.png": {
+      "rectangles": [
+        [51, 87, 611, 566],
+        [37, 643, 613, 242],
+        [970, 87, 528, 566],
+        [978, 643, 520, 242]
+      ]
+    },
+    "integrated/tv-unit/framed-tv-wall/corner-wall-v1.png": {
+      "polygons": [[[43, 82], [1484, 82], [1470, 910], [1110, 797], [45, 912]]]
+    },
+    "integrated/tv-unit/framed-tv-wall/double-opening-v2.png": {
+      "rectangles": [[419, 205, 704, 613]]
+    },
+
+    "integrated/window-storage/window-seat-storage/niche-layout-v1.png": {
+      "rectangles": [[495, 670, 540, 185]],
+      "polygons": [
+        [[363, 113], [509, 113], [527, 143], [527, 645], [495, 670], [495, 855], [363, 855]],
+        [[1020, 113], [1173, 113], [1173, 855], [1035, 855], [1035, 670], [1004, 645], [1004, 143]]
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/left-niche-v1.png": {
+      "rectangles": [
+        [466, 125, 235, 781],
+        [1165, 125, 253, 781],
+        [701, 125, 464, 125],
+        [701, 176, 35, 527],
+        [1138, 176, 27, 527],
+        [463, 703, 957, 203]
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/right-niche-v1.png": {
+      "rectangles": [
+        [220, 122, 288, 744],
+        [922, 122, 268, 744],
+        [508, 122, 414, 139],
+        [508, 176, 40, 494],
+        [890, 176, 32, 494],
+        [421, 670, 713, 196]
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/fireplace-wall-v1.png": {
+      "rectangles": [
+        [102, 77, 321, 68],
+        [422, 77, 159, 843],
+        [54, 780, 374, 140],
+        [1084, 75, 330, 611],
+        [1084, 682, 368, 238]
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/center-recess-v1.png": {
+      "rectangles": [
+        [89, 101, 218, 641],
+        [88, 742, 497, 178],
+        [1116, 118, 312, 644],
+        [1037, 762, 395, 158]
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/clear-wall-v2.png": {
+      "rectangles": [
+        [263, 150, 312, 707],
+        [965, 150, 308, 707],
+        [575, 150, 390, 65],
+        [263, 657, 1010, 200]
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/door-wall-v1.png": {
+      "rectangles": [
+        [106, 90, 178, 596],
+        [102, 674, 520, 181],
+        [1180, 113, 266, 566],
+        [960, 667, 486, 188]
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/corner-wall-v1.png": {
+      "rectangles": [[82, 48, 257, 905], [1200, 67, 280, 894]],
+      "polygons": [
+        [[335, 696], [871, 696], [871, 837], [335, 923]],
+        [[870, 647], [1215, 647], [1215, 692], [1479, 692], [1479, 960], [870, 837]]
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/double-opening-v2.png": {
+      "rectangles": [
+        [357, 128, 202, 728],
+        [976, 128, 199, 728],
+        [559, 128, 417, 78],
+        [526, 663, 479, 193]
+      ]
+    }
+  }
+}

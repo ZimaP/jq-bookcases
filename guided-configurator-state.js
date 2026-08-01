@@ -10,7 +10,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=clear-wall-installation-20260731a";
+} from "./guided-configurator-data.js?v=wood-only-finishes-20260731a";
 
 export const GUIDED_PROJECT_SCHEMA_VERSION = 2;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
