@@ -14,7 +14,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=clear-wall-installation-20260731a";
+} from "./guided-configurator-data.js?v=wood-only-finishes-20260731a";
 import {
   buildProjectSummary,
   createProject,
@@ -23,7 +23,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=clear-wall-installation-20260731a";
+} from "./guided-configurator-state.js?v=wood-only-finishes-20260731a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -65,223 +65,6 @@ const BOOKCASE_CONFIGURATION_DEFAULTS = Object.freeze({
     lighting: "warm-led",
     baseStyle: "flush-base",
     topTreatment: "traditional-crown"
-  })
-});
-
-const CONCEPT_FINISH_MASKS = Object.freeze({
-  "concept-cabinets-shelves-v1.png": Object.freeze({
-    viewBox: "0 0 1254 1254",
-    width: 1254,
-    height: 1254,
-    rectangles: Object.freeze([
-      [195, 82, 872, 76],
-      [195, 112, 55, 596],
-      [615, 112, 39, 596],
-      [1016, 112, 55, 596],
-      [205, 112, 850, 34],
-      [222, 280, 804, 24],
-      [222, 414, 804, 24],
-      [222, 548, 804, 24],
-      [222, 680, 804, 28],
-      [194, 694, 880, 325]
-    ])
-  }),
-  "concept-drawers-shelves-v1.png": Object.freeze({
-    viewBox: "0 0 1448 1086",
-    width: 1448,
-    height: 1086,
-    rectangles: Object.freeze([
-      [221, 38, 1048, 98],
-      [220, 96, 46, 615],
-      [714, 96, 36, 615],
-      [1218, 96, 49, 615],
-      [248, 98, 985, 34],
-      [250, 241, 979, 25],
-      [250, 386, 979, 25],
-      [250, 532, 979, 25],
-      [250, 684, 979, 29],
-      [204, 700, 1084, 289]
-    ])
-  }),
-  "concept-full-shelving-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [177, 59, 1173, 68],
-      [193, 108, 39, 782],
-      [568, 108, 39, 782],
-      [945, 108, 38, 782],
-      [1305, 108, 42, 782],
-      [211, 108, 1118, 34],
-      [224, 245, 1081, 25],
-      [224, 371, 1081, 25],
-      [224, 497, 1081, 25],
-      [224, 620, 1081, 25],
-      [224, 741, 1081, 25],
-      [224, 865, 1081, 27],
-      [193, 872, 1144, 55]
-    ])
-  }),
-  "concept-tv-wall-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [166, 53, 1227, 75],
-      [174, 103, 43, 543],
-      [480, 103, 38, 543],
-      [906, 103, 39, 543],
-      [1334, 103, 43, 543],
-      [196, 103, 1155, 39],
-      [200, 245, 1149, 25],
-      [200, 373, 301, 25],
-      [929, 373, 420, 25],
-      [200, 503, 301, 25],
-      [929, 503, 420, 25],
-      [493, 339, 465, 30],
-      [493, 339, 28, 306],
-      [930, 339, 28, 306],
-      [493, 615, 465, 30],
-      [200, 631, 1149, 21],
-      [157, 643, 1231, 286]
-    ])
-  }),
-  "concept-window-cabinets-v1.png": Object.freeze({
-    viewBox: "0 0 1448 1086",
-    width: 1448,
-    height: 1086,
-    rectangles: Object.freeze([
-      [107, 75, 1233, 81],
-      [109, 120, 45, 635],
-      [436, 120, 42, 635],
-      [977, 120, 42, 635],
-      [1294, 120, 45, 635],
-      [117, 120, 1215, 36],
-      [126, 286, 326, 24],
-      [998, 286, 322, 24],
-      [126, 438, 326, 24],
-      [998, 438, 322, 24],
-      [126, 587, 326, 24],
-      [998, 587, 322, 24],
-      [126, 738, 326, 24],
-      [998, 738, 322, 24],
-      [97, 748, 1253, 219]
-    ])
-  }),
-  "concept-cabinets-shelves-between-openings-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [369, 148, 794, 58],
-      [365, 183, 37, 417],
-      [758, 183, 31, 417],
-      [1127, 183, 37, 417],
-      [390, 184, 750, 27],
-      [392, 290, 744, 22],
-      [392, 397, 744, 22],
-      [392, 496, 744, 22],
-      [365, 594, 799, 207],
-      [365, 782, 799, 20]
-    ])
-  }),
-  "concept-drawers-shelves-between-openings-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [389, 147, 756, 58],
-      [389, 187, 33, 431],
-      [746, 187, 31, 431],
-      [1113, 187, 33, 431],
-      [410, 189, 711, 26],
-      [411, 299, 708, 22],
-      [411, 404, 708, 22],
-      [411, 500, 708, 22],
-      [389, 612, 757, 176],
-      [389, 770, 757, 20]
-    ])
-  }),
-  "concept-full-shelving-between-openings-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [324, 168, 885, 50],
-      [332, 198, 34, 594],
-      [620, 198, 31, 594],
-      [890, 198, 31, 594],
-      [1175, 198, 34, 594],
-      [352, 199, 835, 25],
-      [354, 305, 830, 21],
-      [354, 407, 830, 21],
-      [354, 500, 830, 21],
-      [354, 599, 830, 21],
-      [354, 690, 830, 21],
-      [354, 779, 830, 21],
-      [332, 787, 877, 29]
-    ])
-  }),
-  "product-floating-storage-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [241, 484, 1065, 25],
-      [241, 484, 28, 66],
-      [1278, 484, 28, 66],
-      [269, 532, 1009, 20],
-      [190, 548, 1142, 217]
-    ])
-  }),
-  "product-radiator-cover-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [113, 389, 1307, 31],
-      [126, 414, 1277, 426]
-    ])
-  }),
-  "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [420, 205, 696, 611]
-    ]),
-    cutouts: Object.freeze([
-      [590, 349, 355, 216]
-    ])
-  }),
-  "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/double-opening-v3.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [390, 510, 751, 194]
-    ])
-  }),
-  "assets/photos/configurator/integrated/window-storage/window-seat-storage/double-opening-v2.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [357, 128, 819, 52],
-      [375, 165, 785, 42],
-      [375, 172, 170, 660],
-      [990, 172, 170, 660],
-      [375, 696, 785, 162]
-    ])
-  }),
-  "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/double-opening-v2.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [408, 582, 723, 235]
-    ])
   })
 });
 
@@ -454,16 +237,10 @@ function scheduleLikelyNextStepImages() {
 function preloadPreviewAsset(asset) {
   if (!asset) return;
 
-  const generatedFinishMask = String(asset).includes("-finish-mask-")
-    ? null
-    : resolveGeneratedIntegratedFinishMask(asset)?.maskAsset;
   const optimizedSource = assetSupportsOptimizedVersion(asset)
     ? optimizedImageAsset(asset)
     : asset;
-  const sources = [
-    optimizedSource,
-    generatedFinishMask
-  ].filter(Boolean);
+  const sources = [optimizedSource];
 
   for (const source of sources) {
     if (previewPreloadCache.has(source)) continue;
@@ -1486,8 +1263,7 @@ function renderConceptLayoutContext(layout, previewPresentation) {
 
 function renderConceptFinishOverlay(previewPresentation) {
   const previewAsset = previewPresentation.furnitureAsset || previewPresentation.conceptAsset;
-  const assetName = String(previewAsset || "").split("/").pop();
-  const contractDefinition = previewPresentation.finishMaskMode === "asset"
+  const definition = previewPresentation.finishMaskMode === "asset"
     && previewPresentation.finishMaskAsset
     ? Object.freeze({
         viewBox: previewPresentation.finishMaskViewBox,
@@ -1496,35 +1272,9 @@ function renderConceptFinishOverlay(previewPresentation) {
         maskAsset: previewPresentation.finishMaskAsset
       })
     : null;
-  const definition = contractDefinition
-    || CONCEPT_FINISH_MASKS[previewAsset]
-    || CONCEPT_FINISH_MASKS[assetName]
-    || resolveGeneratedIntegratedFinishMask(previewAsset);
   if (!definition) return "";
 
   const maskId = `concept-finish-mask-${String(previewAsset).replace(/[^a-z0-9]+/gi, "-")}`;
-  const maskContents = definition.maskAsset
-    ? `
-      <image
-        href="${escapeAttribute(definition.maskAsset)}"
-        x="0"
-        y="0"
-        width="${definition.width || 1536}"
-        height="${definition.height || 1024}"
-        preserveAspectRatio="none"
-      ></image>
-    `
-    : `
-      ${(definition.rectangles || []).map(([x, y, width, height]) => (
-        `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="2" fill="#fff"></rect>`
-      )).join("")}
-      ${(definition.polygons || []).map((points) => (
-        `<polygon points="${points}" fill="#fff"></polygon>`
-      )).join("")}
-      ${(definition.cutouts || []).map(([x, y, width, height]) => (
-        `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="2" fill="#000"></rect>`
-      )).join("")}
-    `;
   return `
     <svg
       class="concept-finish-overlay"
@@ -1544,7 +1294,14 @@ function renderConceptFinishOverlay(previewPresentation) {
           height="${definition.height || 1024}"
           style="mask-type: luminance"
         >
-          ${maskContents}
+          <image
+            href="${escapeAttribute(definition.maskAsset)}"
+            x="0"
+            y="0"
+            width="${definition.width || 1536}"
+            height="${definition.height || 1024}"
+            preserveAspectRatio="none"
+          ></image>
         </mask>
       </defs>
       <rect
@@ -1561,36 +1318,6 @@ function renderConceptFinishOverlay(previewPresentation) {
       ></rect>
     </svg>
   `;
-}
-
-function resolveGeneratedIntegratedFinishMask(previewAsset) {
-  const explicitMaskAssets = Object.freeze({
-    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png":
-      "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-finish-mask-v1.png",
-    "assets/photos/configurator/integrated/window-storage/window-seat-storage/clear-wall-v2.png":
-      "assets/photos/configurator/integrated/window-storage/window-seat-storage/clear-wall-finish-mask-v2.png"
-  });
-  const explicitMaskAsset = explicitMaskAssets[String(previewAsset || "")];
-  if (explicitMaskAsset) {
-    return Object.freeze({
-      viewBox: "0 0 1536 1024",
-      width: 1536,
-      height: 1024,
-      maskAsset: explicitMaskAsset
-    });
-  }
-
-  const match = String(previewAsset || "").match(
-    /integrated\/([^/]+)\/([^/]+)\/([^/]+)-v\d+\.png$/
-  );
-  if (!match) return null;
-
-  return Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    maskAsset: String(previewAsset).replace(/-v\d+\.png$/, "-finish-mask-v1.png")
-  });
 }
 
 function conceptPreviewScope(category, layout, selectedStyle, previewPresentation) {

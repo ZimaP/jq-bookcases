@@ -1,0 +1,5662 @@
+{
+  "schemaVersion": 1,
+  "entries": {
+    "integrated/floating-storage/floating-drawer-bank/center-recess-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            442,
+            552,
+            96,
+            29
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            1120,
+            342,
+            171,
+            197
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            164,
+            611,
+            43,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            342,
+            611,
+            54,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            472,
+            611,
+            54,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            342,
+            684,
+            54,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            472,
+            684,
+            54,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            1008,
+            611,
+            54,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 9",
+          "xywh": [
+            1138,
+            611,
+            54,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 10",
+          "xywh": [
+            1008,
+            684,
+            54,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 11",
+          "xywh": [
+            1138,
+            684,
+            54,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 12",
+          "xywh": [
+            1322,
+            611,
+            45,
+            23
+          ]
+        },
+        {
+          "label": "floor spill 13",
+          "xywh": [
+            948,
+            850,
+            300,
+            46
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            164,
+            465,
+            258,
+            579
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            248,
+            530,
+            330,
+            579
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            505,
+            532,
+            548,
+            577
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            1209,
+            532,
+            1292,
+            579
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1302,
+            447,
+            1390,
+            507
+          ]
+        },
+        {
+          "label": "authored object ellipse 6",
+          "bounds": [
+            1321,
+            482,
+            1371,
+            579
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              66,
+              391
+            ],
+            [
+              92,
+              330
+            ],
+            [
+              154,
+              269
+            ],
+            [
+              184,
+              244
+            ],
+            [
+              215,
+              286
+            ],
+            [
+              253,
+              249
+            ],
+            [
+              282,
+              302
+            ],
+            [
+              322,
+              286
+            ],
+            [
+              347,
+              341
+            ],
+            [
+              389,
+              389
+            ],
+            [
+              378,
+              435
+            ],
+            [
+              310,
+              448
+            ],
+            [
+              260,
+              466
+            ],
+            [
+              171,
+              472
+            ],
+            [
+              114,
+              438
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/floating-storage/floating-drawer-bank/corner-wall-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            398,
+            524,
+            110,
+            34
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            1139,
+            268,
+            190,
+            236
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            280,
+            600,
+            48,
+            24
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            486,
+            591,
+            60,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            486,
+            666,
+            60,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            645,
+            580,
+            57,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            645,
+            647,
+            57,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            842,
+            575,
+            60,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 9",
+          "xywh": [
+            842,
+            642,
+            60,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 10",
+          "xywh": [
+            986,
+            582,
+            58,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 11",
+          "xywh": [
+            986,
+            655,
+            58,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 12",
+          "xywh": [
+            1197,
+            595,
+            52,
+            24
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            216,
+            406,
+            334,
+            559
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            329,
+            500,
+            418,
+            559
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            724,
+            498,
+            780,
+            550
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            1290,
+            386,
+            1410,
+            466
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1315,
+            432,
+            1385,
+            561
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              67,
+              220
+            ],
+            [
+              112,
+              198
+            ],
+            [
+              179,
+              229
+            ],
+            [
+              205,
+              145
+            ],
+            [
+              260,
+              215
+            ],
+            [
+              303,
+              151
+            ],
+            [
+              344,
+              224
+            ],
+            [
+              403,
+              189
+            ],
+            [
+              450,
+              245
+            ],
+            [
+              481,
+              318
+            ],
+            [
+              449,
+              390
+            ],
+            [
+              346,
+              414
+            ],
+            [
+              272,
+              424
+            ],
+            [
+              190,
+              404
+            ],
+            [
+              111,
+              345
+            ]
+          ]
+        },
+        {
+          "label": "floor and wall spill",
+          "points": [
+            [
+              140,
+              801
+            ],
+            [
+              344,
+              780
+            ],
+            [
+              620,
+              742
+            ],
+            [
+              807,
+              738
+            ],
+            [
+              1012,
+              774
+            ],
+            [
+              1207,
+              809
+            ],
+            [
+              1207,
+              900
+            ],
+            [
+              140,
+              900
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/floating-storage/floating-drawer-bank/door-wall-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            1141,
+            340,
+            170,
+            209
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            977,
+            552,
+            111,
+            37
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            171,
+            636,
+            48,
+            24
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            326,
+            632,
+            58,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            326,
+            713,
+            58,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            438,
+            636,
+            34,
+            24
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            1074,
+            637,
+            33,
+            24
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            1156,
+            632,
+            58,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 9",
+          "xywh": [
+            1156,
+            713,
+            58,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 10",
+          "xywh": [
+            1318,
+            636,
+            48,
+            24
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            162,
+            476,
+            264,
+            597
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            263,
+            537,
+            357,
+            597
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            497,
+            542,
+            554,
+            598
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            1301,
+            438,
+            1398,
+            505
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1328,
+            484,
+            1380,
+            598
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              69,
+              385
+            ],
+            [
+              97,
+              306
+            ],
+            [
+              152,
+              247
+            ],
+            [
+              201,
+              201
+            ],
+            [
+              235,
+              262
+            ],
+            [
+              285,
+              229
+            ],
+            [
+              327,
+              287
+            ],
+            [
+              376,
+              286
+            ],
+            [
+              392,
+              355
+            ],
+            [
+              359,
+              423
+            ],
+            [
+              286,
+              452
+            ],
+            [
+              257,
+              481
+            ],
+            [
+              161,
+              476
+            ],
+            [
+              103,
+              444
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/floating-storage/floating-drawer-bank/double-opening-v3.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            476,
+            584,
+            57,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            648,
+            582,
+            61,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            648,
+            645,
+            61,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            828,
+            582,
+            61,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            828,
+            645,
+            61,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            1003,
+            584,
+            58,
+            25
+          ]
+        },
+        {
+          "label": "floor spill 7",
+          "xywh": [
+            1225,
+            679,
+            36,
+            186
+          ]
+        },
+        {
+          "label": "floor spill 8",
+          "xywh": [
+            1018,
+            817,
+            55,
+            60
+          ]
+        },
+        {
+          "label": "floor spill 9",
+          "xywh": [
+            968,
+            850,
+            53,
+            38
+          ]
+        },
+        {
+          "label": "floor spill 10",
+          "xywh": [
+            1114,
+            817,
+            111,
+            72
+          ]
+        }
+      ],
+      "ellipses": [],
+      "polygons": []
+    },
+    "integrated/floating-storage/floating-drawer-bank/fireplace-wall-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            438,
+            559,
+            108,
+            34
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            1119,
+            351,
+            178,
+            212
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            160,
+            634,
+            48,
+            24
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            336,
+            631,
+            61,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            336,
+            702,
+            61,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            466,
+            631,
+            61,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            466,
+            702,
+            61,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            1015,
+            631,
+            61,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 9",
+          "xywh": [
+            1015,
+            702,
+            61,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 10",
+          "xywh": [
+            1138,
+            631,
+            61,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 11",
+          "xywh": [
+            1138,
+            702,
+            61,
+            22
+          ]
+        },
+        {
+          "label": "authored object rectangle 12",
+          "xywh": [
+            1327,
+            634,
+            48,
+            24
+          ]
+        },
+        {
+          "label": "floor spill 13",
+          "xywh": [
+            39,
+            828,
+            90,
+            40
+          ]
+        },
+        {
+          "label": "floor spill 14",
+          "xywh": [
+            959,
+            828,
+            525,
+            69
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            160,
+            482,
+            263,
+            605
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            260,
+            545,
+            348,
+            604
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            499,
+            548,
+            553,
+            604
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            1203,
+            539,
+            1298,
+            604
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1300,
+            465,
+            1419,
+            541
+          ]
+        },
+        {
+          "label": "authored object ellipse 6",
+          "bounds": [
+            1330,
+            516,
+            1391,
+            605
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              70,
+              395
+            ],
+            [
+              95,
+              309
+            ],
+            [
+              149,
+              247
+            ],
+            [
+              202,
+              213
+            ],
+            [
+              236,
+              268
+            ],
+            [
+              281,
+              235
+            ],
+            [
+              326,
+              286
+            ],
+            [
+              372,
+              289
+            ],
+            [
+              391,
+              359
+            ],
+            [
+              360,
+              425
+            ],
+            [
+              287,
+              457
+            ],
+            [
+              259,
+              486
+            ],
+            [
+              160,
+              481
+            ],
+            [
+              103,
+              451
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/floating-storage/floating-drawer-bank/left-niche-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            718,
+            538,
+            113,
+            41
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            383,
+            609,
+            58,
+            24
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            645,
+            608,
+            72,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            645,
+            687,
+            72,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            919,
+            608,
+            72,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            919,
+            687,
+            72,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            1194,
+            609,
+            58,
+            24
+          ]
+        },
+        {
+          "label": "floor spill 8",
+          "xywh": [
+            269,
+            857,
+            47,
+            31
+          ]
+        },
+        {
+          "label": "floor spill 9",
+          "xywh": [
+            659,
+            856,
+            40,
+            32
+          ]
+        },
+        {
+          "label": "floor spill 10",
+          "xywh": [
+            754,
+            855,
+            148,
+            33
+          ]
+        },
+        {
+          "label": "floor spill 11",
+          "xywh": [
+            891,
+            855,
+            363,
+            33
+          ]
+        },
+        {
+          "label": "floor spill 12",
+          "xywh": [
+            1253,
+            858,
+            45,
+            30
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            371,
+            432,
+            485,
+            575
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            473,
+            517,
+            571,
+            577
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            848,
+            516,
+            910,
+            576
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            1209,
+            412,
+            1333,
+            491
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1238,
+            463,
+            1302,
+            576
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              273,
+              306
+            ],
+            [
+              305,
+              244
+            ],
+            [
+              356,
+              203
+            ],
+            [
+              395,
+              198
+            ],
+            [
+              430,
+              259
+            ],
+            [
+              481,
+              225
+            ],
+            [
+              523,
+              280
+            ],
+            [
+              572,
+              311
+            ],
+            [
+              570,
+              383
+            ],
+            [
+              527,
+              429
+            ],
+            [
+              482,
+              452
+            ],
+            [
+              389,
+              438
+            ],
+            [
+              335,
+              401
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/floating-storage/floating-drawer-bank/niche-layout-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            692,
+            514,
+            116,
+            37
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            992,
+            270,
+            181,
+            216
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            363,
+            589,
+            59,
+            24
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            615,
+            590,
+            70,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            615,
+            678,
+            70,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            860,
+            590,
+            70,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            860,
+            678,
+            70,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            1117,
+            589,
+            60,
+            24
+          ]
+        },
+        {
+          "label": "authored object rectangle 9",
+          "xywh": [
+            1234,
+            411,
+            77,
+            143
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            357,
+            405,
+            469,
+            545
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            453,
+            499,
+            542,
+            549
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            812,
+            494,
+            881,
+            548
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            1148,
+            383,
+            1262,
+            452
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1172,
+            428,
+            1241,
+            547
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              248,
+              299
+            ],
+            [
+              287,
+              238
+            ],
+            [
+              338,
+              203
+            ],
+            [
+              364,
+              145
+            ],
+            [
+              401,
+              224
+            ],
+            [
+              438,
+              157
+            ],
+            [
+              478,
+              225
+            ],
+            [
+              530,
+              215
+            ],
+            [
+              574,
+              275
+            ],
+            [
+              588,
+              345
+            ],
+            [
+              544,
+              397
+            ],
+            [
+              469,
+              427
+            ],
+            [
+              403,
+              426
+            ],
+            [
+              333,
+              397
+            ],
+            [
+              278,
+              360
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/floating-storage/floating-drawer-bank/right-niche-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            668,
+            525,
+            114,
+            31
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            1023,
+            252,
+            191,
+            238
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            306,
+            606,
+            61,
+            24
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            579,
+            607,
+            72,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            579,
+            699,
+            72,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            870,
+            607,
+            72,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            870,
+            699,
+            72,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            1146,
+            606,
+            61,
+            24
+          ]
+        },
+        {
+          "label": "authored object rectangle 9",
+          "xywh": [
+            1318,
+            435,
+            42,
+            125
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            285,
+            403,
+            406,
+            557
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            398,
+            510,
+            498,
+            557
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            803,
+            507,
+            861,
+            558
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            1194,
+            393,
+            1312,
+            481
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1225,
+            444,
+            1288,
+            558
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              157,
+              266
+            ],
+            [
+              195,
+              185
+            ],
+            [
+              247,
+              129
+            ],
+            [
+              287,
+              82
+            ],
+            [
+              324,
+              176
+            ],
+            [
+              374,
+              106
+            ],
+            [
+              414,
+              190
+            ],
+            [
+              474,
+              155
+            ],
+            [
+              525,
+              237
+            ],
+            [
+              547,
+              315
+            ],
+            [
+              512,
+              381
+            ],
+            [
+              440,
+              420
+            ],
+            [
+              365,
+              414
+            ],
+            [
+              287,
+              398
+            ],
+            [
+              218,
+              352
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/floating-storage/floating-drawer-bank/window-wall-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            701,
+            607,
+            119,
+            37
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            263,
+            667,
+            58,
+            24
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            565,
+            667,
+            68,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            565,
+            741,
+            68,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            884,
+            667,
+            68,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            884,
+            741,
+            68,
+            23
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            1204,
+            667,
+            58,
+            24
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            1314,
+            516,
+            65,
+            128
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            202,
+            493,
+            309,
+            642
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            302,
+            582,
+            397,
+            642
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            828,
+            583,
+            891,
+            641
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            1230,
+            485,
+            1340,
+            550
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1254,
+            522,
+            1320,
+            642
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              111,
+              372
+            ],
+            [
+              144,
+              313
+            ],
+            [
+              195,
+              270
+            ],
+            [
+              229,
+              331
+            ],
+            [
+              273,
+              276
+            ],
+            [
+              309,
+              340
+            ],
+            [
+              354,
+              303
+            ],
+            [
+              402,
+              369
+            ],
+            [
+              411,
+              428
+            ],
+            [
+              373,
+              478
+            ],
+            [
+              311,
+              504
+            ],
+            [
+              235,
+              498
+            ],
+            [
+              166,
+              462
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/center-recess-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            135,
+            449,
+            78,
+            71
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            1200,
+            326,
+            165,
+            91
+          ]
+        },
+        {
+          "label": "shelf artwork and frame",
+          "mode": "full",
+          "xywh": [
+            1213,
+            447,
+            104,
+            105
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            1209,
+            598,
+            163,
+            88
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            1212,
+            710,
+            151,
+            68
+          ]
+        },
+        {
+          "label": "window seat cushion",
+          "mode": "full",
+          "xywh": [
+            88,
+            742,
+            497,
+            51
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            1037,
+            762,
+            395,
+            27
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            148,
+            818,
+            60,
+            29
+          ]
+        },
+        {
+          "label": "authored object rectangle 9",
+          "xywh": [
+            304,
+            818,
+            60,
+            29
+          ]
+        },
+        {
+          "label": "authored object rectangle 10",
+          "xywh": [
+            457,
+            818,
+            60,
+            29
+          ]
+        },
+        {
+          "label": "authored object rectangle 11",
+          "xywh": [
+            1084,
+            807,
+            60,
+            29
+          ]
+        },
+        {
+          "label": "authored object rectangle 12",
+          "xywh": [
+            1207,
+            807,
+            60,
+            29
+          ]
+        },
+        {
+          "label": "authored object rectangle 13",
+          "xywh": [
+            1323,
+            807,
+            60,
+            29
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            149,
+            204,
+            216,
+            285
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            145,
+            376,
+            215,
+            427
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            147,
+            658,
+            214,
+            727
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            1264,
+            238,
+            1339,
+            300
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1304,
+            477,
+            1363,
+            555
+          ]
+        },
+        {
+          "label": "authored object ellipse 6",
+          "bounds": [
+            1218,
+            626,
+            1302,
+            689
+          ]
+        },
+        {
+          "label": "authored object ellipse 7",
+          "bounds": [
+            178,
+            149,
+            205,
+            170
+          ]
+        },
+        {
+          "label": "authored object ellipse 8",
+          "bounds": [
+            1263,
+            149,
+            1292,
+            170
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              135,
+              579
+            ],
+            [
+              158,
+              550
+            ],
+            [
+              188,
+              570
+            ],
+            [
+              207,
+              598
+            ],
+            [
+              220,
+              667
+            ],
+            [
+              213,
+              706
+            ],
+            [
+              150,
+              706
+            ],
+            [
+              135,
+              674
+            ]
+          ]
+        },
+        {
+          "label": "window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              214,
+              648
+            ],
+            [
+              271,
+              638
+            ],
+            [
+              322,
+              647
+            ],
+            [
+              365,
+              702
+            ],
+            [
+              354,
+              747
+            ],
+            [
+              267,
+              753
+            ],
+            [
+              222,
+              722
+            ]
+          ]
+        },
+        {
+          "label": "authored object polygon 3",
+          "points": [
+            [
+              1236,
+              199
+            ],
+            [
+              1260,
+              187
+            ],
+            [
+              1286,
+              201
+            ],
+            [
+              1316,
+              191
+            ],
+            [
+              1352,
+              224
+            ],
+            [
+              1360,
+              273
+            ],
+            [
+              1329,
+              294
+            ],
+            [
+              1265,
+              292
+            ],
+            [
+              1235,
+              261
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/clear-wall-v2.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            302,
+            232,
+            49,
+            83
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            342,
+            277,
+            91,
+            42
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            484,
+            239,
+            50,
+            81
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            297,
+            349,
+            84,
+            91
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            386,
+            412,
+            84,
+            31
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            337,
+            493,
+            91,
+            59
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            298,
+            578,
+            67,
+            97
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            375,
+            610,
+            119,
+            65
+          ]
+        },
+        {
+          "label": "authored object rectangle 9",
+          "xywh": [
+            1115,
+            231,
+            119,
+            88
+          ]
+        },
+        {
+          "label": "authored object rectangle 10",
+          "xywh": [
+            997,
+            347,
+            85,
+            93
+          ]
+        },
+        {
+          "label": "right shelf artwork and frame",
+          "mode": "full",
+          "xywh": [
+            1096,
+            349,
+            78,
+            90
+          ]
+        },
+        {
+          "label": "authored object rectangle 12",
+          "xywh": [
+            1170,
+            371,
+            45,
+            69
+          ]
+        },
+        {
+          "label": "authored object rectangle 13",
+          "xywh": [
+            1028,
+            505,
+            90,
+            48
+          ]
+        },
+        {
+          "label": "authored object rectangle 14",
+          "xywh": [
+            1170,
+            465,
+            68,
+            89
+          ]
+        },
+        {
+          "label": "authored object rectangle 15",
+          "xywh": [
+            1058,
+            609,
+            133,
+            67
+          ]
+        },
+        {
+          "label": "center wall artwork and frame",
+          "mode": "full",
+          "xywh": [
+            741,
+            337,
+            96,
+            121
+          ]
+        },
+        {
+          "label": "center seat cushion",
+          "mode": "full",
+          "xywh": [
+            522,
+            657,
+            490,
+            64
+          ]
+        },
+        {
+          "label": "left seat cushion",
+          "mode": "full",
+          "xywh": [
+            288,
+            664,
+            229,
+            57
+          ]
+        },
+        {
+          "label": "right seat cushion",
+          "mode": "full",
+          "xywh": [
+            1018,
+            664,
+            229,
+            57
+          ]
+        },
+        {
+          "label": "authored object rectangle 19",
+          "xywh": [
+            380,
+            733,
+            62,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 20",
+          "xywh": [
+            380,
+            770,
+            62,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 21",
+          "xywh": [
+            617,
+            733,
+            62,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 22",
+          "xywh": [
+            617,
+            770,
+            62,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 23",
+          "xywh": [
+            858,
+            733,
+            62,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 24",
+          "xywh": [
+            858,
+            770,
+            62,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 25",
+          "xywh": [
+            1094,
+            733,
+            62,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 26",
+          "xywh": [
+            1094,
+            770,
+            62,
+            25
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            451,
+            259,
+            501,
+            321
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            406,
+            389,
+            471,
+            438
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            476,
+            365,
+            528,
+            441
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            343,
+            486,
+            421,
+            541
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            429,
+            487,
+            519,
+            553
+          ]
+        },
+        {
+          "label": "authored object ellipse 6",
+          "bounds": [
+            1016,
+            246,
+            1094,
+            320
+          ]
+        },
+        {
+          "label": "authored object ellipse 7",
+          "bounds": [
+            1138,
+            496,
+            1187,
+            554
+          ]
+        },
+        {
+          "label": "authored object ellipse 8",
+          "bounds": [
+            397,
+            203,
+            442,
+            223
+          ]
+        },
+        {
+          "label": "authored object ellipse 9",
+          "bounds": [
+            1092,
+            203,
+            1137,
+            223
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "left seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              537,
+              563
+            ],
+            [
+              574,
+              550
+            ],
+            [
+              620,
+              563
+            ],
+            [
+              659,
+              635
+            ],
+            [
+              648,
+              684
+            ],
+            [
+              563,
+              686
+            ],
+            [
+              535,
+              645
+            ]
+          ]
+        },
+        {
+          "label": "right seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              869,
+              576
+            ],
+            [
+              905,
+              555
+            ],
+            [
+              956,
+              561
+            ],
+            [
+              1002,
+              631
+            ],
+            [
+              988,
+              686
+            ],
+            [
+              903,
+              684
+            ],
+            [
+              868,
+              645
+            ]
+          ]
+        },
+        {
+          "label": "authored object polygon 3",
+          "points": [
+            [
+              1007,
+              240
+            ],
+            [
+              1036,
+              225
+            ],
+            [
+              1068,
+              232
+            ],
+            [
+              1106,
+              245
+            ],
+            [
+              1117,
+              279
+            ],
+            [
+              1085,
+              297
+            ],
+            [
+              1028,
+              291
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/corner-wall-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            130,
+            237,
+            176,
+            112
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            156,
+            457,
+            116,
+            41
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            142,
+            806,
+            99,
+            95
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            1240,
+            307,
+            160,
+            63
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            1250,
+            414,
+            174,
+            103
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            1297,
+            617,
+            112,
+            46
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            145,
+            680,
+            124,
+            84
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            1247,
+            692,
+            152,
+            75
+          ]
+        },
+        {
+          "label": "authored object rectangle 11",
+          "xywh": [
+            595,
+            749,
+            70,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 12",
+          "xywh": [
+            390,
+            801,
+            85,
+            27
+          ]
+        },
+        {
+          "label": "authored object rectangle 13",
+          "xywh": [
+            916,
+            756,
+            70,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 14",
+          "xywh": [
+            1048,
+            817,
+            83,
+            27
+          ]
+        },
+        {
+          "label": "authored object rectangle 15",
+          "xywh": [
+            1217,
+            817,
+            83,
+            27
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            158,
+            153,
+            264,
+            213
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            166,
+            399,
+            265,
+            478
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            145,
+            528,
+            224,
+            642
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            210,
+            580,
+            287,
+            644
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1263,
+            143,
+            1375,
+            238
+          ]
+        },
+        {
+          "label": "authored object ellipse 6",
+          "bounds": [
+            1251,
+            303,
+            1327,
+            363
+          ]
+        },
+        {
+          "label": "authored object ellipse 7",
+          "bounds": [
+            1324,
+            310,
+            1402,
+            367
+          ]
+        },
+        {
+          "label": "authored object ellipse 8",
+          "bounds": [
+            1287,
+            469,
+            1350,
+            520
+          ]
+        },
+        {
+          "label": "authored object ellipse 9",
+          "bounds": [
+            1241,
+            548,
+            1332,
+            655
+          ]
+        },
+        {
+          "label": "authored object ellipse 10",
+          "bounds": [
+            215,
+            827,
+            286,
+            885
+          ]
+        },
+        {
+          "label": "authored object ellipse 11",
+          "bounds": [
+            189,
+            93,
+            230,
+            114
+          ]
+        },
+        {
+          "label": "authored object ellipse 12",
+          "bounds": [
+            1306,
+            108,
+            1345,
+            128
+          ]
+        },
+        {
+          "label": "authored object ellipse 13",
+          "bounds": [
+            191,
+            216,
+            229,
+            237
+          ]
+        },
+        {
+          "label": "authored object ellipse 14",
+          "bounds": [
+            191,
+            352,
+            229,
+            374
+          ]
+        },
+        {
+          "label": "authored object ellipse 15",
+          "bounds": [
+            191,
+            480,
+            229,
+            502
+          ]
+        },
+        {
+          "label": "authored object ellipse 16",
+          "bounds": [
+            191,
+            630,
+            229,
+            652
+          ]
+        },
+        {
+          "label": "authored object ellipse 17",
+          "bounds": [
+            191,
+            754,
+            229,
+            776
+          ]
+        },
+        {
+          "label": "authored object ellipse 18",
+          "bounds": [
+            1306,
+            238,
+            1345,
+            260
+          ]
+        },
+        {
+          "label": "authored object ellipse 19",
+          "bounds": [
+            1306,
+            371,
+            1345,
+            393
+          ]
+        },
+        {
+          "label": "authored object ellipse 20",
+          "bounds": [
+            1306,
+            504,
+            1345,
+            526
+          ]
+        },
+        {
+          "label": "authored object ellipse 21",
+          "bounds": [
+            1306,
+            641,
+            1345,
+            663
+          ]
+        },
+        {
+          "label": "authored object ellipse 22",
+          "bounds": [
+            1306,
+            757,
+            1345,
+            779
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              168,
+              395
+            ],
+            [
+              188,
+              376
+            ],
+            [
+              216,
+              381
+            ],
+            [
+              246,
+              396
+            ],
+            [
+              263,
+              429
+            ],
+            [
+              250,
+              461
+            ],
+            [
+              183,
+              461
+            ],
+            [
+              166,
+              434
+            ]
+          ]
+        },
+        {
+          "label": "left window seat cushion",
+          "mode": "full",
+          "points": [
+            [
+              336,
+              684
+            ],
+            [
+              869,
+              647
+            ],
+            [
+              870,
+              724
+            ],
+            [
+              339,
+              768
+            ]
+          ]
+        },
+        {
+          "label": "right window seat cushion",
+          "mode": "full",
+          "points": [
+            [
+              869,
+              647
+            ],
+            [
+              1197,
+              681
+            ],
+            [
+              1203,
+              749
+            ],
+            [
+              870,
+              724
+            ]
+          ]
+        },
+        {
+          "label": "left window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              336,
+              578
+            ],
+            [
+              373,
+              564
+            ],
+            [
+              418,
+              575
+            ],
+            [
+              465,
+              646
+            ],
+            [
+              456,
+              708
+            ],
+            [
+              369,
+              714
+            ],
+            [
+              335,
+              670
+            ]
+          ]
+        },
+        {
+          "label": "center window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              564,
+              575
+            ],
+            [
+              604,
+              559
+            ],
+            [
+              653,
+              568
+            ],
+            [
+              706,
+              634
+            ],
+            [
+              698,
+              689
+            ],
+            [
+              612,
+              700
+            ],
+            [
+              568,
+              665
+            ]
+          ]
+        },
+        {
+          "label": "window seat fabric throw",
+          "mode": "full",
+          "points": [
+            [
+              384,
+              628
+            ],
+            [
+              430,
+              617
+            ],
+            [
+              501,
+              636
+            ],
+            [
+              555,
+              694
+            ],
+            [
+              534,
+              807
+            ],
+            [
+              476,
+              807
+            ],
+            [
+              449,
+              730
+            ],
+            [
+              391,
+              690
+            ]
+          ]
+        },
+        {
+          "label": "authored object polygon 5",
+          "points": [
+            [
+              1242,
+              149
+            ],
+            [
+              1277,
+              133
+            ],
+            [
+              1320,
+              142
+            ],
+            [
+              1366,
+              169
+            ],
+            [
+              1378,
+              206
+            ],
+            [
+              1350,
+              233
+            ],
+            [
+              1280,
+              228
+            ],
+            [
+              1245,
+              202
+            ]
+          ]
+        },
+        {
+          "label": "authored object polygon 6",
+          "points": [
+            [
+              1240,
+              547
+            ],
+            [
+              1274,
+              531
+            ],
+            [
+              1316,
+              541
+            ],
+            [
+              1352,
+              574
+            ],
+            [
+              1342,
+              620
+            ],
+            [
+              1290,
+              641
+            ],
+            [
+              1249,
+              619
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/door-wall-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            148,
+            164,
+            105,
+            85
+          ]
+        },
+        {
+          "label": "left shelf artwork and frame",
+          "mode": "full",
+          "xywh": [
+            171,
+            299,
+            79,
+            80
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            148,
+            418,
+            103,
+            87
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            158,
+            599,
+            93,
+            34
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            1210,
+            319,
+            83,
+            91
+          ]
+        },
+        {
+          "label": "right shelf artwork and frame",
+          "mode": "full",
+          "xywh": [
+            1311,
+            333,
+            76,
+            73
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            1213,
+            496,
+            170,
+            46
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            1233,
+            613,
+            147,
+            65
+          ]
+        },
+        {
+          "label": "window seat cushion",
+          "mode": "full",
+          "xywh": [
+            102,
+            674,
+            520,
+            53
+          ]
+        },
+        {
+          "label": "authored object rectangle 10",
+          "xywh": [
+            156,
+            746,
+            57,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 11",
+          "xywh": [
+            273,
+            746,
+            57,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 12",
+          "xywh": [
+            390,
+            746,
+            57,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 13",
+          "xywh": [
+            507,
+            746,
+            57,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 14",
+          "xywh": [
+            1072,
+            703,
+            43,
+            67
+          ]
+        },
+        {
+          "label": "authored object rectangle 15",
+          "xywh": [
+            1283,
+            703,
+            43,
+            67
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            203,
+            187,
+            249,
+            248
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            198,
+            337,
+            249,
+            379
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            198,
+            467,
+            253,
+            509
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            166,
+            548,
+            239,
+            628
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            430,
+            568,
+            518,
+            646
+          ]
+        },
+        {
+          "label": "authored object ellipse 6",
+          "bounds": [
+            1230,
+            210,
+            1302,
+            269
+          ]
+        },
+        {
+          "label": "authored object ellipse 7",
+          "bounds": [
+            1280,
+            331,
+            1328,
+            411
+          ]
+        },
+        {
+          "label": "authored object ellipse 8",
+          "bounds": [
+            1209,
+            489,
+            1300,
+            545
+          ]
+        },
+        {
+          "label": "authored object ellipse 9",
+          "bounds": [
+            193,
+            247,
+            226,
+            269
+          ]
+        },
+        {
+          "label": "authored object ellipse 10",
+          "bounds": [
+            193,
+            374,
+            226,
+            396
+          ]
+        },
+        {
+          "label": "authored object ellipse 11",
+          "bounds": [
+            193,
+            502,
+            226,
+            524
+          ]
+        },
+        {
+          "label": "authored object ellipse 12",
+          "bounds": [
+            193,
+            629,
+            226,
+            651
+          ]
+        },
+        {
+          "label": "authored object ellipse 13",
+          "bounds": [
+            1282,
+            136,
+            1320,
+            158
+          ]
+        },
+        {
+          "label": "authored object ellipse 14",
+          "bounds": [
+            1282,
+            268,
+            1320,
+            290
+          ]
+        },
+        {
+          "label": "authored object ellipse 15",
+          "bounds": [
+            1282,
+            404,
+            1320,
+            426
+          ]
+        },
+        {
+          "label": "authored object ellipse 16",
+          "bounds": [
+            1282,
+            532,
+            1320,
+            554
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              255,
+              579
+            ],
+            [
+              294,
+              565
+            ],
+            [
+              338,
+              577
+            ],
+            [
+              384,
+              645
+            ],
+            [
+              380,
+              689
+            ],
+            [
+              302,
+              695
+            ],
+            [
+              261,
+              664
+            ]
+          ]
+        },
+        {
+          "label": "authored object polygon 2",
+          "points": [
+            [
+              414,
+              542
+            ],
+            [
+              435,
+              503
+            ],
+            [
+              465,
+              487
+            ],
+            [
+              492,
+              509
+            ],
+            [
+              514,
+              552
+            ],
+            [
+              521,
+              587
+            ],
+            [
+              505,
+              608
+            ],
+            [
+              442,
+              606
+            ],
+            [
+              414,
+              582
+            ]
+          ]
+        },
+        {
+          "label": "authored object polygon 3",
+          "points": [
+            [
+              1201,
+              183
+            ],
+            [
+              1222,
+              168
+            ],
+            [
+              1253,
+              170
+            ],
+            [
+              1286,
+              192
+            ],
+            [
+              1301,
+              228
+            ],
+            [
+              1290,
+              259
+            ],
+            [
+              1237,
+              263
+            ],
+            [
+              1205,
+              233
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/double-opening-v2.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            393,
+            232,
+            123,
+            84
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            397,
+            365,
+            120,
+            76
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            405,
+            527,
+            105,
+            42
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            394,
+            607,
+            62,
+            87
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            1007,
+            232,
+            139,
+            84
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            1007,
+            471,
+            64,
+            98
+          ]
+        },
+        {
+          "label": "right shelf artwork and frame",
+          "mode": "full",
+          "xywh": [
+            1044,
+            489,
+            69,
+            75
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            1017,
+            639,
+            112,
+            60
+          ]
+        },
+        {
+          "label": "window seat cushion",
+          "mode": "full",
+          "xywh": [
+            526,
+            663,
+            479,
+            72
+          ]
+        },
+        {
+          "label": "authored object rectangle 10",
+          "xywh": [
+            427,
+            749,
+            64,
+            27
+          ]
+        },
+        {
+          "label": "authored object rectangle 11",
+          "xywh": [
+            572,
+            768,
+            64,
+            27
+          ]
+        },
+        {
+          "label": "authored object rectangle 12",
+          "xywh": [
+            726,
+            768,
+            64,
+            27
+          ]
+        },
+        {
+          "label": "authored object rectangle 13",
+          "xywh": [
+            886,
+            768,
+            64,
+            27
+          ]
+        },
+        {
+          "label": "authored object rectangle 14",
+          "xywh": [
+            1044,
+            749,
+            64,
+            27
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            432,
+            257,
+            509,
+            310
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            403,
+            376,
+            482,
+            441
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            425,
+            496,
+            505,
+            565
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            439,
+            629,
+            512,
+            695
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1015,
+            337,
+            1106,
+            442
+          ]
+        },
+        {
+          "label": "authored object ellipse 6",
+          "bounds": [
+            1084,
+            518,
+            1128,
+            570
+          ]
+        },
+        {
+          "label": "authored object ellipse 7",
+          "bounds": [
+            451,
+            176,
+            490,
+            198
+          ]
+        },
+        {
+          "label": "authored object ellipse 8",
+          "bounds": [
+            1038,
+            176,
+            1077,
+            198
+          ]
+        },
+        {
+          "label": "authored object ellipse 9",
+          "bounds": [
+            451,
+            315,
+            490,
+            337
+          ]
+        },
+        {
+          "label": "authored object ellipse 10",
+          "bounds": [
+            451,
+            438,
+            490,
+            460
+          ]
+        },
+        {
+          "label": "authored object ellipse 11",
+          "bounds": [
+            451,
+            560,
+            490,
+            582
+          ]
+        },
+        {
+          "label": "authored object ellipse 12",
+          "bounds": [
+            1038,
+            315,
+            1077,
+            337
+          ]
+        },
+        {
+          "label": "authored object ellipse 13",
+          "bounds": [
+            1038,
+            438,
+            1077,
+            460
+          ]
+        },
+        {
+          "label": "authored object ellipse 14",
+          "bounds": [
+            1038,
+            560,
+            1077,
+            582
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              424,
+              473
+            ],
+            [
+              449,
+              459
+            ],
+            [
+              476,
+              470
+            ],
+            [
+              509,
+              493
+            ],
+            [
+              516,
+              529
+            ],
+            [
+              494,
+              552
+            ],
+            [
+              443,
+              549
+            ],
+            [
+              422,
+              520
+            ]
+          ]
+        },
+        {
+          "label": "left window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              535,
+              574
+            ],
+            [
+              575,
+              560
+            ],
+            [
+              620,
+              574
+            ],
+            [
+              667,
+              641
+            ],
+            [
+              657,
+              690
+            ],
+            [
+              573,
+              694
+            ],
+            [
+              535,
+              656
+            ]
+          ]
+        },
+        {
+          "label": "center window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              608,
+              606
+            ],
+            [
+              650,
+              592
+            ],
+            [
+              713,
+              606
+            ],
+            [
+              764,
+              641
+            ],
+            [
+              756,
+              680
+            ],
+            [
+              651,
+              684
+            ],
+            [
+              613,
+              657
+            ]
+          ]
+        },
+        {
+          "label": "right window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              862,
+              575
+            ],
+            [
+              899,
+              561
+            ],
+            [
+              945,
+              573
+            ],
+            [
+              990,
+              639
+            ],
+            [
+              981,
+              692
+            ],
+            [
+              898,
+              694
+            ],
+            [
+              862,
+              655
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/fireplace-wall-v1.png": {
+      "rectangles": [
+    {
+      "label": "left upper upright books",
+      "xywh": [
+        442,
+        304,
+        67,
+        82
+      ]
+    },
+    {
+      "label": "left upper stacked books",
+      "xywh": [
+        493,
+        357,
+        69,
+        29
+      ]
+    },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            449,
+            751,
+            112,
+            46
+          ]
+        },
+    {
+      "label": "right upper upright books",
+      "xywh": [
+        1098,
+        304,
+        124,
+        82
+      ]
+    },
+    {
+      "label": "right upper stacked books",
+      "xywh": [
+        1235,
+        349,
+        105,
+        38
+      ]
+    },
+        {
+          "label": "right shelf artwork and frame",
+          "mode": "full",
+          "xywh": [
+            1133,
+            427,
+            100,
+            94
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            1234,
+            610,
+            117,
+            56
+          ]
+        },
+        {
+          "label": "window seat cushion",
+          "mode": "full",
+          "xywh": [
+            54,
+            699,
+            382,
+            91
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            100,
+            821,
+            54,
+            27
+          ]
+        },
+        {
+          "label": "authored object rectangle 9",
+          "xywh": [
+            224,
+            821,
+            54,
+            27
+          ]
+        },
+        {
+          "label": "authored object rectangle 10",
+          "xywh": [
+            345,
+            821,
+            54,
+            27
+          ]
+        },
+        {
+          "label": "authored object rectangle 11",
+          "xywh": [
+            468,
+            821,
+            54,
+            27
+          ]
+        },
+        {
+          "label": "authored object rectangle 12",
+          "xywh": [
+            1175,
+            692,
+            46,
+            78
+          ]
+        },
+        {
+          "label": "authored object rectangle 13",
+          "xywh": [
+            1290,
+            692,
+            46,
+            78
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            479,
+            176,
+            541,
+            264
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            469,
+            461,
+            540,
+            522
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            455,
+            526,
+            548,
+            658
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            1152,
+            163,
+            1307,
+            265
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1263,
+            443,
+            1326,
+            522
+          ]
+        },
+        {
+          "label": "authored object ellipse 6",
+          "bounds": [
+            1115,
+            562,
+            1194,
+            666
+          ]
+        },
+        {
+          "label": "authored object ellipse 7",
+          "bounds": [
+            1233,
+            597,
+            1308,
+            665
+          ]
+        },
+        {
+          "label": "authored object ellipse 8",
+          "bounds": [
+            495,
+            136,
+            533,
+            158
+          ]
+        },
+        {
+          "label": "authored object ellipse 9",
+          "bounds": [
+            1208,
+            136,
+            1246,
+            158
+          ]
+        },
+        {
+          "label": "authored object ellipse 10",
+          "bounds": [
+            495,
+            266,
+            533,
+            288
+          ]
+        },
+        {
+          "label": "authored object ellipse 11",
+          "bounds": [
+            495,
+            397,
+            533,
+            419
+          ]
+        },
+        {
+          "label": "authored object ellipse 12",
+          "bounds": [
+            495,
+            506,
+            533,
+            528
+          ]
+        },
+        {
+          "label": "authored object ellipse 13",
+          "bounds": [
+            495,
+            639,
+            533,
+            661
+          ]
+        },
+        {
+          "label": "authored object ellipse 14",
+          "bounds": [
+            1208,
+            266,
+            1246,
+            288
+          ]
+        },
+        {
+          "label": "authored object ellipse 15",
+          "bounds": [
+            1208,
+            397,
+            1246,
+            419
+          ]
+        },
+        {
+          "label": "authored object ellipse 16",
+          "bounds": [
+            1208,
+            526,
+            1246,
+            548
+          ]
+        },
+        {
+          "label": "authored object ellipse 17",
+          "bounds": [
+            1208,
+            664,
+            1246,
+            686
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "left window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              76,
+              614
+            ],
+            [
+              115,
+              599
+            ],
+            [
+              163,
+              611
+            ],
+            [
+              211,
+              670
+            ],
+            [
+              205,
+              734
+            ],
+            [
+              112,
+              738
+            ],
+            [
+              78,
+              696
+            ]
+          ]
+        },
+        {
+          "label": "right window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              152,
+              621
+            ],
+            [
+              198,
+              606
+            ],
+            [
+              252,
+              622
+            ],
+            [
+              310,
+              684
+            ],
+            [
+              301,
+              739
+            ],
+            [
+              208,
+              739
+            ],
+            [
+              167,
+              704
+            ]
+          ]
+        },
+        {
+          "label": "authored object polygon 3",
+          "points": [
+            [
+              1144,
+              167
+            ],
+            [
+              1177,
+              151
+            ],
+            [
+              1223,
+              155
+            ],
+            [
+              1273,
+              176
+            ],
+            [
+              1307,
+              216
+            ],
+            [
+              1291,
+              251
+            ],
+            [
+              1215,
+              263
+            ],
+            [
+              1152,
+              231
+            ]
+          ]
+        },
+        {
+          "label": "authored object polygon 4",
+          "points": [
+            [
+              456,
+              526
+            ],
+            [
+              479,
+              506
+            ],
+            [
+              514,
+              512
+            ],
+            [
+              545,
+              543
+            ],
+            [
+              548,
+              598
+            ],
+            [
+              522,
+              642
+            ],
+            [
+              470,
+              642
+            ],
+            [
+              453,
+              601
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/left-niche-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            508,
+            207,
+            173,
+            88
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            507,
+            331,
+            87,
+            103
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            588,
+            392,
+            96,
+            45
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            506,
+            609,
+            91,
+            104
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            1310,
+            207,
+            77,
+            87
+          ]
+        },
+        {
+          "label": "right shelf artwork and frame",
+          "mode": "full",
+          "xywh": [
+            1209,
+            338,
+            82,
+            100
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            1199,
+            518,
+            182,
+            52
+          ]
+        },
+        {
+          "label": "window seat cushion",
+          "mode": "full",
+          "xywh": [
+            463,
+            703,
+            957,
+            61
+          ]
+        },
+        {
+          "label": "authored object rectangle 9",
+          "xywh": [
+            548,
+            801,
+            88,
+            26
+          ]
+        },
+        {
+          "label": "authored object rectangle 10",
+          "xywh": [
+            774,
+            801,
+            88,
+            26
+          ]
+        },
+        {
+          "label": "authored object rectangle 11",
+          "xywh": [
+            998,
+            801,
+            88,
+            26
+          ]
+        },
+        {
+          "label": "authored object rectangle 12",
+          "xywh": [
+            1225,
+            801,
+            88,
+            26
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            548,
+            235,
+            615,
+            299
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            596,
+            377,
+            679,
+            438
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            534,
+            480,
+            646,
+            574
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            588,
+            640,
+            664,
+            714
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1177,
+            219,
+            1298,
+            332
+          ]
+        },
+        {
+          "label": "authored object ellipse 6",
+          "bounds": [
+            1281,
+            380,
+            1351,
+            438
+          ]
+        },
+        {
+          "label": "authored object ellipse 7",
+          "bounds": [
+            1080,
+            625,
+            1163,
+            716
+          ]
+        },
+        {
+          "label": "authored object ellipse 8",
+          "bounds": [
+            579,
+            151,
+            620,
+            173
+          ]
+        },
+        {
+          "label": "authored object ellipse 9",
+          "bounds": [
+            1254,
+            151,
+            1295,
+            173
+          ]
+        },
+        {
+          "label": "authored object ellipse 10",
+          "bounds": [
+            579,
+            286,
+            620,
+            308
+          ]
+        },
+        {
+          "label": "authored object ellipse 11",
+          "bounds": [
+            579,
+            421,
+            620,
+            443
+          ]
+        },
+        {
+          "label": "authored object ellipse 12",
+          "bounds": [
+            579,
+            555,
+            620,
+            577
+          ]
+        },
+        {
+          "label": "authored object ellipse 13",
+          "bounds": [
+            1254,
+            286,
+            1295,
+            308
+          ]
+        },
+        {
+          "label": "authored object ellipse 14",
+          "bounds": [
+            1254,
+            421,
+            1295,
+            443
+          ]
+        },
+        {
+          "label": "authored object ellipse 15",
+          "bounds": [
+            1254,
+            555,
+            1295,
+            577
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              529,
+              486
+            ],
+            [
+              557,
+              472
+            ],
+            [
+              590,
+              480
+            ],
+            [
+              625,
+              506
+            ],
+            [
+              642,
+              543
+            ],
+            [
+              628,
+              568
+            ],
+            [
+              566,
+              570
+            ],
+            [
+              535,
+              547
+            ]
+          ]
+        },
+        {
+          "label": "left window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              693,
+              584
+            ],
+            [
+              733,
+              567
+            ],
+            [
+              783,
+              580
+            ],
+            [
+              831,
+              642
+            ],
+            [
+              819,
+              705
+            ],
+            [
+              731,
+              712
+            ],
+            [
+              692,
+              666
+            ]
+          ]
+        },
+        {
+          "label": "right window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              1041,
+              560
+            ],
+            [
+              1063,
+              534
+            ],
+            [
+              1095,
+              520
+            ],
+            [
+              1127,
+              544
+            ],
+            [
+              1166,
+              585
+            ],
+            [
+              1187,
+              641
+            ],
+            [
+              1166,
+              678
+            ],
+            [
+              1101,
+              679
+            ],
+            [
+              1061,
+              642
+            ]
+          ]
+        },
+        {
+          "label": "authored object polygon 4",
+          "points": [
+            [
+              1169,
+              217
+            ],
+            [
+              1201,
+              203
+            ],
+            [
+              1245,
+              212
+            ],
+            [
+              1291,
+              241
+            ],
+            [
+              1302,
+              285
+            ],
+            [
+              1272,
+              319
+            ],
+            [
+              1201,
+              310
+            ],
+            [
+              1174,
+              276
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/niche-layout-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            453,
+            217,
+            60,
+            92
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            389,
+            392,
+            103,
+            48
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            386,
+            586,
+            49,
+            92
+          ]
+        },
+        {
+          "label": "authored object rectangle 4",
+          "xywh": [
+            402,
+            735,
+            91,
+            66
+          ]
+        },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            1091,
+            217,
+            73,
+            93
+          ]
+        },
+        {
+          "label": "right shelf artwork and frame",
+          "mode": "full",
+          "xywh": [
+            1033,
+            347,
+            81,
+            93
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            1093,
+            477,
+            68,
+            93
+          ]
+        },
+        {
+          "label": "authored object rectangle 8",
+          "xywh": [
+            1027,
+            540,
+            74,
+            33
+          ]
+        },
+        {
+          "label": "authored object rectangle 9",
+          "xywh": [
+            1034,
+            640,
+            135,
+            40
+          ]
+        },
+        {
+          "label": "authored object rectangle 10",
+          "xywh": [
+            1034,
+            735,
+            137,
+            66
+          ]
+        },
+        {
+          "label": "window seat cushion",
+          "mode": "full",
+          "xywh": [
+            495,
+            670,
+            540,
+            61
+          ]
+        },
+        {
+          "label": "authored object rectangle 12",
+          "xywh": [
+            535,
+            768,
+            70,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 13",
+          "xywh": [
+            667,
+            768,
+            70,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 14",
+          "xywh": [
+            799,
+            768,
+            70,
+            25
+          ]
+        },
+        {
+          "label": "authored object rectangle 15",
+          "xywh": [
+            929,
+            768,
+            70,
+            25
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            401,
+            249,
+            475,
+            309
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            416,
+            368,
+            480,
+            413
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            399,
+            472,
+            466,
+            565
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            435,
+            526,
+            500,
+            568
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            416,
+            613,
+            482,
+            681
+          ]
+        },
+        {
+          "label": "authored object ellipse 6",
+          "bounds": [
+            1032,
+            239,
+            1109,
+            313
+          ]
+        },
+        {
+          "label": "authored object ellipse 7",
+          "bounds": [
+            1080,
+            376,
+            1164,
+            443
+          ]
+        },
+        {
+          "label": "authored object ellipse 8",
+          "bounds": [
+            1037,
+            519,
+            1100,
+            568
+          ]
+        },
+        {
+          "label": "authored object ellipse 9",
+          "bounds": [
+            1049,
+            613,
+            1127,
+            659
+          ]
+        },
+        {
+          "label": "authored object ellipse 10",
+          "bounds": [
+            425,
+            176,
+            465,
+            198
+          ]
+        },
+        {
+          "label": "authored object ellipse 11",
+          "bounds": [
+            1069,
+            176,
+            1109,
+            198
+          ]
+        },
+        {
+          "label": "authored object ellipse 12",
+          "bounds": [
+            425,
+            305,
+            465,
+            327
+          ]
+        },
+        {
+          "label": "authored object ellipse 13",
+          "bounds": [
+            425,
+            438,
+            465,
+            460
+          ]
+        },
+        {
+          "label": "authored object ellipse 14",
+          "bounds": [
+            425,
+            566,
+            465,
+            588
+          ]
+        },
+        {
+          "label": "authored object ellipse 15",
+          "bounds": [
+            425,
+            694,
+            465,
+            716
+          ]
+        },
+        {
+          "label": "authored object ellipse 16",
+          "bounds": [
+            1069,
+            305,
+            1109,
+            327
+          ]
+        },
+        {
+          "label": "authored object ellipse 17",
+          "bounds": [
+            1069,
+            438,
+            1109,
+            460
+          ]
+        },
+        {
+          "label": "authored object ellipse 18",
+          "bounds": [
+            1069,
+            566,
+            1109,
+            588
+          ]
+        },
+        {
+          "label": "authored object ellipse 19",
+          "bounds": [
+            1069,
+            694,
+            1109,
+            716
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              392,
+              220
+            ],
+            [
+              411,
+              207
+            ],
+            [
+              435,
+              211
+            ],
+            [
+              460,
+              228
+            ],
+            [
+              477,
+              253
+            ],
+            [
+              472,
+              286
+            ],
+            [
+              425,
+              294
+            ],
+            [
+              396,
+              270
+            ]
+          ]
+        },
+        {
+          "label": "right window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              884,
+              582
+            ],
+            [
+              924,
+              568
+            ],
+            [
+              970,
+              579
+            ],
+            [
+              1015,
+              635
+            ],
+            [
+              1008,
+              689
+            ],
+            [
+              923,
+              694
+            ],
+            [
+              884,
+              655
+            ]
+          ]
+        },
+        {
+          "label": "left window seat pillow and throw",
+          "mode": "full",
+          "points": [
+            [
+              508,
+              657
+            ],
+            [
+              547,
+              643
+            ],
+            [
+              602,
+              658
+            ],
+            [
+              662,
+              695
+            ],
+            [
+              684,
+              744
+            ],
+            [
+              650,
+              789
+            ],
+            [
+              590,
+              777
+            ],
+            [
+              553,
+              731
+            ]
+          ]
+        }
+      ]
+    },
+    "integrated/window-storage/window-seat-storage/right-niche-v1.png": {
+      "rectangles": [
+        {
+          "label": "authored object rectangle 1",
+          "xywh": [
+            319,
+            221,
+            106,
+            91
+          ]
+        },
+        {
+          "label": "authored object rectangle 2",
+          "xywh": [
+            360,
+            347,
+            68,
+            87
+          ]
+        },
+        {
+          "label": "authored object rectangle 3",
+          "xywh": [
+            238,
+            579,
+            101,
+            105
+          ]
+        },
+    {
+      "label": "right upper upright books",
+      "xywh": [
+        944,
+        337,
+        98,
+        97
+      ]
+    },
+        {
+          "label": "authored object rectangle 5",
+          "xywh": [
+            981,
+            451,
+            84,
+            98
+          ]
+        },
+        {
+          "label": "authored object rectangle 6",
+          "xywh": [
+            945,
+            576,
+            93,
+            109
+          ]
+        },
+        {
+          "label": "authored object rectangle 7",
+          "xywh": [
+            333,
+            626,
+            83,
+            59
+          ]
+        },
+        {
+          "label": "window seat cushion",
+          "mode": "full",
+          "xywh": [
+            421,
+            670,
+            713,
+            61
+          ]
+        },
+        {
+          "label": "drawer handle 1",
+          "xywh": [
+            480,
+            778,
+            58,
+            14
+          ]
+        },
+        {
+          "label": "drawer handle 2",
+          "xywh": [
+            641,
+            778,
+            58,
+            14
+          ]
+        },
+        {
+          "label": "drawer handle 3",
+          "xywh": [
+            801,
+            778,
+            58,
+            14
+          ]
+        },
+        {
+          "label": "drawer handle 4",
+          "xywh": [
+            960,
+            778,
+            58,
+            14
+          ]
+        }
+      ],
+      "ellipses": [
+        {
+          "label": "authored object ellipse 1",
+          "bounds": [
+            273,
+            240,
+            340,
+            315
+          ]
+        },
+        {
+          "label": "authored object ellipse 2",
+          "bounds": [
+            268,
+            372,
+            352,
+            435
+          ]
+        },
+        {
+          "label": "authored object ellipse 3",
+          "bounds": [
+            272,
+            461,
+            379,
+            561
+          ]
+        },
+        {
+          "label": "authored object ellipse 4",
+          "bounds": [
+            974,
+            213,
+            1105,
+            316
+          ]
+        },
+        {
+          "label": "authored object ellipse 5",
+          "bounds": [
+            1022,
+            374,
+            1090,
+            435
+          ]
+        },
+        {
+          "label": "authored object ellipse 6",
+          "bounds": [
+            1054,
+            493,
+            1110,
+            551
+          ]
+        },
+        {
+          "label": "authored object ellipse 7",
+          "bounds": [
+            1048,
+            586,
+            1111,
+            687
+          ]
+        },
+        {
+          "label": "authored object ellipse 8",
+          "bounds": [
+            321,
+            176,
+            362,
+            198
+          ]
+        },
+        {
+          "label": "authored object ellipse 9",
+          "bounds": [
+            1018,
+            176,
+            1059,
+            198
+          ]
+        },
+        {
+          "label": "authored object ellipse 10",
+          "bounds": [
+            321,
+            316,
+            362,
+            338
+          ]
+        },
+        {
+          "label": "authored object ellipse 11",
+          "bounds": [
+            321,
+            430,
+            362,
+            452
+          ]
+        },
+        {
+          "label": "authored object ellipse 12",
+          "bounds": [
+            321,
+            552,
+            362,
+            574
+          ]
+        },
+        {
+          "label": "authored object ellipse 13",
+          "bounds": [
+            321,
+            675,
+            362,
+            697
+          ]
+        },
+        {
+          "label": "authored object ellipse 14",
+          "bounds": [
+            1018,
+            316,
+            1059,
+            338
+          ]
+        },
+        {
+          "label": "authored object ellipse 15",
+          "bounds": [
+            1018,
+            430,
+            1059,
+            452
+          ]
+        },
+        {
+          "label": "authored object ellipse 16",
+          "bounds": [
+            1018,
+            552,
+            1059,
+            574
+          ]
+        },
+        {
+          "label": "authored object ellipse 17",
+          "bounds": [
+            1018,
+            675,
+            1059,
+            697
+          ]
+        }
+      ],
+      "polygons": [
+        {
+          "label": "authored object polygon 1",
+          "points": [
+            [
+              270,
+              455
+            ],
+            [
+              296,
+              441
+            ],
+            [
+              327,
+              450
+            ],
+            [
+              365,
+              477
+            ],
+            [
+              381,
+              520
+            ],
+            [
+              364,
+              554
+            ],
+            [
+              302,
+              559
+            ],
+            [
+              274,
+              532
+            ]
+          ]
+        },
+        {
+          "label": "left window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              438,
+              552
+            ],
+            [
+              480,
+              537
+            ],
+            [
+              528,
+              553
+            ],
+            [
+              571,
+              615
+            ],
+            [
+              561,
+              687
+            ],
+            [
+              473,
+              694
+            ],
+            [
+              438,
+              647
+            ]
+          ]
+        },
+        {
+          "label": "right window seat pillow",
+          "mode": "full",
+          "points": [
+            [
+              526,
+              602
+            ],
+            [
+              573,
+              588
+            ],
+            [
+              626,
+              601
+            ],
+            [
+              679,
+              638
+            ],
+            [
+              676,
+              683
+            ],
+            [
+              573,
+              687
+            ],
+            [
+              531,
+              660
+            ]
+          ]
+        },
+        {
+          "label": "authored object polygon 4",
+          "points": [
+            [
+              968,
+              213
+            ],
+            [
+              1004,
+              198
+            ],
+            [
+              1048,
+              207
+            ],
+            [
+              1093,
+              236
+            ],
+            [
+              1109,
+              281
+            ],
+            [
+              1082,
+              311
+            ],
+            [
+              1008,
+              308
+            ],
+            [
+              977,
+              276
+            ]
+          ]
+        }
+      ]
+    }
+  }
+}

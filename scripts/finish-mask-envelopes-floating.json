@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "coordinateSpace": {
+    "width": 1536,
+    "height": 1024,
+    "origin": "top-left",
+    "vertices": "inclusive source-image pixels"
+  },
+  "contract": {
+    "operation": "intersect the source-pixel wood candidate with the union of includePolygons, then subtract the matching authored object exclusions",
+    "objectExclusionManifest": "scripts/finish-mask-exclusions-floating-window.json",
+    "outsideEnvelopeMustBeZero": true,
+    "excludedMaterials": [
+      "wall",
+      "floor",
+      "cast shadow",
+      "decor",
+      "books",
+      "artwork",
+      "hardware"
+    ]
+  },
+  "entries": {
+    "integrated/floating-storage/floating-drawer-bank/center-recess-v1.png": {
+      "installationBounds": [71, 524, 1456, 744],
+      "includePolygons": [
+        {
+          "label": "left cabinet and rear rail silhouette",
+          "points": [[116, 524], [570, 524], [570, 744], [71, 744], [71, 576], [116, 576]]
+        },
+        {
+          "label": "right cabinet and rear rail silhouette",
+          "points": [[960, 524], [1418, 524], [1418, 576], [1456, 576], [1456, 744], [960, 744]]
+        }
+      ],
+      "insideWoodProbes": {
+        "left cabinet face": [400, 650],
+        "right cabinet face": [1100, 650]
+      },
+      "outsideZeroProbes": {
+        "left wall shadow": [50, 650],
+        "center projection": [800, 650],
+        "right drop shadow": [1480, 650],
+        "floor": [1100, 870]
+      }
+    },
+    "integrated/floating-storage/floating-drawer-bank/corner-wall-v1.png": {
+      "installationBounds": [85, 490, 1448, 785],
+      "includePolygons": [
+        {
+          "label": "left-wall rear rail silhouette",
+          "points": [[119, 490], [807, 493], [807, 555], [119, 554]]
+        },
+        {
+          "label": "right-wall rear rail silhouette",
+          "points": [[807, 493], [1429, 492], [1429, 554], [807, 555]]
+        },
+        {
+          "label": "left-wall perspective cabinet case",
+          "points": [[85, 555], [807, 555], [807, 694], [139, 785], [85, 765]]
+        },
+        {
+          "label": "right-wall perspective cabinet case",
+          "points": [[807, 555], [1448, 555], [1448, 744], [1405, 778], [807, 694]]
+        }
+      ],
+      "insideWoodProbes": {
+        "left cabinet face": [500, 630],
+        "right cabinet face": [1050, 630],
+        "left rear rail": [600, 520],
+        "right rear rail": [1000, 520]
+      },
+      "outsideZeroProbes": {
+        "left wall": [60, 650],
+        "right drop shadow": [1490, 650],
+        "wall below corner": [800, 740],
+        "known floor spill": [1217, 860]
+      }
+    },
+    "integrated/floating-storage/floating-drawer-bank/door-wall-v1.png": {
+      "installationBounds": [62, 535, 1473, 783],
+      "includePolygons": [
+        {
+          "label": "left cabinet and rear rail silhouette",
+          "points": [[103, 535], [584, 535], [584, 783], [62, 783], [62, 590], [103, 590]]
+        },
+        {
+          "label": "right cabinet and rear rail silhouette",
+          "points": [[955, 535], [1432, 535], [1432, 590], [1473, 590], [1473, 783], [955, 783]]
+        }
+      ],
+      "insideWoodProbes": {
+        "left cabinet face": [400, 700],
+        "right cabinet face": [1200, 700]
+      },
+      "outsideZeroProbes": {
+        "left drop shadow": [45, 650],
+        "door": [800, 650],
+        "right drop shadow": [1500, 650],
+        "floor": [800, 850]
+      }
+    },
+    "integrated/floating-storage/floating-drawer-bank/double-opening-v3.png": {
+      "installationBounds": [390, 511, 1140, 701],
+      "includePolygons": [
+        {
+          "label": "cabinet and rear rail silhouette",
+          "points": [[411, 511], [1122, 511], [1122, 553], [1140, 553], [1140, 701], [390, 701], [390, 553], [411, 553]]
+        }
+      ],
+      "insideWoodProbes": {
+        "cabinet face": [700, 650],
+        "rear rail": [700, 530]
+      },
+      "outsideZeroProbes": {
+        "left wall": [370, 620],
+        "right drop shadow": [1160, 620],
+        "floor": [800, 820],
+        "known floor spill": [1050, 850]
+      }
+    },
+    "integrated/floating-storage/floating-drawer-bank/fireplace-wall-v1.png": {
+      "installationBounds": [68, 548, 1470, 762],
+      "includePolygons": [
+        {
+          "label": "left cabinet and rear rail silhouette",
+          "points": [[124, 548], [559, 548], [559, 762], [68, 762], [68, 598], [124, 598]]
+        },
+        {
+          "label": "right cabinet and rear rail silhouette",
+          "points": [[974, 548], [1438, 548], [1438, 598], [1470, 598], [1470, 762], [974, 762]]
+        }
+      ],
+      "insideWoodProbes": {
+        "left cabinet face": [400, 680],
+        "right cabinet face": [1200, 680]
+      },
+      "outsideZeroProbes": {
+        "left drop shadow": [50, 650],
+        "fireplace projection": [800, 700],
+        "right drop shadow": [1500, 650],
+        "floor": [1100, 840]
+      }
+    },
+    "integrated/floating-storage/floating-drawer-bank/left-niche-v1.png": {
+      "installationBounds": [258, 510, 1375, 757],
+      "includePolygons": [
+        {
+          "label": "cabinet and rear rail silhouette",
+          "points": [[303, 510], [1339, 510], [1339, 568], [1375, 568], [1375, 757], [258, 757], [258, 568], [303, 568]]
+        }
+      ],
+      "insideWoodProbes": {
+        "cabinet face": [800, 680],
+        "rear rail": [800, 530]
+      },
+      "outsideZeroProbes": {
+        "left wall return": [230, 650],
+        "right drop shadow": [1400, 650],
+        "wall below cabinet": [800, 800],
+        "known floor spill": [700, 860]
+      }
+    },
+    "integrated/floating-storage/floating-drawer-bank/niche-layout-v1.png": {
+      "installationBounds": [226, 481, 1308, 752],
+      "includePolygons": [
+        {
+          "label": "cabinet and rear rail silhouette",
+          "points": [[273, 481], [1274, 481], [1274, 542], [1308, 542], [1308, 752], [226, 752], [226, 542], [273, 542]]
+        }
+      ],
+      "insideWoodProbes": {
+        "cabinet face": [800, 680],
+        "rear rail": [800, 510]
+      },
+      "outsideZeroProbes": {
+        "left drop shadow": [200, 650],
+        "right drop shadow": [1340, 650],
+        "wall below cabinet": [800, 800],
+        "known floor spill": [850, 860]
+      }
+    },
+    "integrated/floating-storage/floating-drawer-bank/right-niche-v1.png": {
+      "installationBounds": [157, 486, 1348, 777],
+      "includePolygons": [
+        {
+          "label": "cabinet and rear rail silhouette",
+          "points": [[206, 486], [1317, 486], [1317, 549], [1348, 549], [1348, 777], [157, 777], [157, 549], [206, 549]]
+        }
+      ],
+      "insideWoodProbes": {
+        "cabinet face": [700, 700],
+        "rear rail": [700, 520]
+      },
+      "outsideZeroProbes": {
+        "left drop shadow": [140, 650],
+        "right drop shadow": [1380, 650],
+        "wall below cabinet": [800, 820],
+        "floor": [800, 850]
+      }
+    },
+    "integrated/floating-storage/floating-drawer-bank/window-wall-v1.png": {
+      "installationBounds": [132, 587, 1404, 804],
+      "includePolygons": [
+        {
+          "label": "cabinet and rear rail silhouette",
+          "points": [[176, 587], [1361, 587], [1361, 637], [1404, 637], [1404, 804], [132, 804], [132, 637], [176, 637]]
+        }
+      ],
+      "insideWoodProbes": {
+        "cabinet face": [800, 740],
+        "rear rail": [800, 610]
+      },
+      "outsideZeroProbes": {
+        "left drop shadow": [100, 720],
+        "right drop shadow": [1450, 720],
+        "wall below cabinet": [800, 840],
+        "floor": [800, 880]
+      }
+    }
+  }
+}

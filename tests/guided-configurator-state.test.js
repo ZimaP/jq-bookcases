@@ -6,6 +6,7 @@ import {
   CATEGORY_DEFINITIONS,
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
+  PREVIEW_FINISH_MASK_ASSETS,
   PRODUCT_CHOICES,
   PRODUCT_INTEGRATED_PREVIEW_ASSETS,
   PUBLIC_BOOKCASE_STYLE_IDS,
@@ -14,6 +15,7 @@ import {
   getLayout,
   getMeasurementDiagramSpec,
   getMeasurementFields,
+  resolveFinishMaskAsset,
   resolvePreviewAsset,
   resolvePreviewPresentation
 } from "../guided-configurator-data.js";
@@ -93,10 +95,7 @@ function assertIntegratedPresentation(presentation, expectedAsset, previewKey) {
     /^x(?:Min|Mid|Max)Y(?:Min|Mid|Max) slice$/,
     `${previewKey} mask uses the same edge-filling alignment`
   );
-  assert.ok(
-    ["asset", "inline"].includes(presentation.finishMaskMode),
-    `${previewKey} declares how its finish mask is rendered`
-  );
+  assert.equal(presentation.finishMaskMode, "asset", `${previewKey} uses an approved material mask`);
   assert.equal(
     presentation.finishMaskViewBox,
     `0 0 ${presentation.finishMaskWidth} ${presentation.finishMaskHeight}`,
@@ -112,15 +111,11 @@ function assertIntegratedPresentation(presentation, expectedAsset, previewKey) {
     presentation.mediaHeight,
     `${previewKey} finish mask height matches the photograph`
   );
-  if (presentation.finishMaskMode === "asset") {
-    assert.match(
-      presentation.finishMaskAsset,
-      /-finish-mask-v\d+\.png$/,
-      `${previewKey} references an authored finish mask`
-    );
-  } else {
-    assert.equal(presentation.finishMaskAsset, null, `${previewKey} uses its inline finish mask`);
-  }
+  assert.match(
+    presentation.finishMaskAsset,
+    /-finish-mask-v\d+\.png$/,
+    `${previewKey} references an authored finish mask`
+  );
   for (const field of [
     "roomAsset",
     "productAsset",
@@ -693,6 +688,8 @@ test("the seven product cards resolve to seventy exact product and room scenes",
 
   assert.equal(new Set(PRODUCT_CHOICES.map((choice) => choice.id)).size, 7);
   const exactAssets = new Set();
+  const finishSources = new Set();
+  const resolvedMasks = new Set();
   let resolvedSceneCount = 0;
 
   for (const choice of PRODUCT_CHOICES) {
@@ -719,6 +716,12 @@ test("the seven product cards resolve to seventy exact product and room scenes",
       } else {
         assertIntegratedPresentation(presentation, expectedAsset, previewKey);
       }
+      const finishSource = presentation.furnitureAsset || presentation.conceptAsset;
+      assert.equal(
+        presentation.finishMaskAsset,
+        PREVIEW_FINISH_MASK_ASSETS[finishSource],
+        `${previewKey} uses the explicitly approved wood-material mask`
+      );
 
       const png = await readFile(new URL(`../${expectedAsset}`, import.meta.url));
       assert.ok(png.byteLength > 10_000, `${previewKey} PNG is empty`);
@@ -737,6 +740,8 @@ test("the seven product cards resolve to seventy exact product and room scenes",
       }
 
       exactAssets.add(expectedAsset);
+      finishSources.add(finishSource);
+      resolvedMasks.add(presentation.finishMaskAsset);
       resolvedSceneCount += 1;
     }
   }
@@ -745,6 +750,20 @@ test("the seven product cards resolve to seventy exact product and room scenes",
   // Cabinets + Shelves and Window Storage intentionally share the same approved
   // cabinetry-around-a-window scene for Window Wall; every other asset is unique.
   assert.equal(exactAssets.size, 69);
+  assert.equal(finishSources.size, 69);
+  assert.equal(resolvedMasks.size, 69);
+  assert.deepEqual(
+    [...finishSources].sort(),
+    Object.keys(PREVIEW_FINISH_MASK_ASSETS).sort(),
+    "the approved mask allowlist exactly covers the active public preview sources"
+  );
+  assert.equal(Object.values(PREVIEW_FINISH_MASK_ASSETS).every(Boolean), true);
+});
+
+test("unapproved preview assets fail closed without an inferred finish mask", () => {
+  const unknownAsset = "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/right-niche-v99.png";
+  assert.equal(resolveFinishMaskAsset(unknownAsset), null);
+  assert.equal(resolveFinishMaskAsset(""), null);
 });
 
 test("preview presentations expose truthful media contracts for all seventy selections", () => {

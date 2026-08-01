@@ -729,17 +729,17 @@ export const PUBLIC_BOOKCASE_STYLE_IDS = Object.freeze([
 export const CLEAR_WALL_BOOKCASE_FURNITURE_PRESENTATIONS = Object.freeze({
   "cabinet-base-shelves": Object.freeze({
     furnitureAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-furniture-v2.png",
-    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v2.png",
+    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v3.png",
     installationEnvelope: Object.freeze({ x: 0.259765625, y: 0.10546875, width: 0.48046875, height: 0.58984375 })
   }),
   "drawer-base-shelves": Object.freeze({
     furnitureAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-furniture-v2.png",
-    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v2.png",
+    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v3.png",
     installationEnvelope: Object.freeze({ x: 0.2682291666666667, y: 0.10546875, width: 0.462890625, height: 0.58984375 })
   }),
   "full-open-shelving": Object.freeze({
     furnitureAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-furniture-v2.png",
-    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v2.png",
+    finishMaskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v3.png",
     installationEnvelope: Object.freeze({ x: 0.23177083333333334, y: 0.10546875, width: 0.537109375, height: 0.58984375 })
   })
 });
@@ -1025,17 +1025,151 @@ const PREVIEW_MEDIA_OVERRIDES = Object.freeze({
   })
 });
 
-const PREVIEW_FINISH_MASK_ASSET_OVERRIDES = Object.freeze({
-  "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/niche-layout-v2.png":
-    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/niche-layout-finish-mask-v2.png",
+/*
+ * Finish color is allowed to touch only pixels approved by an authored
+ * material matte. Keeping the complete source-to-mask relationship explicit
+ * makes the renderer fail closed: a new preview cannot silently inherit a
+ * filename-derived rectangle that recolors the room, props, or hardware.
+ */
+export const PREVIEW_FINISH_MASK_ASSETS = Object.freeze({
+  "assets/photos/configurator/concept-cabinets-shelves-between-openings-v1.png":
+    "assets/photos/configurator/concept-cabinets-shelves-between-openings-finish-mask-v3.png",
+  "assets/photos/configurator/concept-drawers-shelves-between-openings-v1.png":
+    "assets/photos/configurator/concept-drawers-shelves-between-openings-finish-mask-v3.png",
+  "assets/photos/configurator/concept-full-shelving-between-openings-v1.png":
+    "assets/photos/configurator/concept-full-shelving-between-openings-finish-mask-v3.png",
+  "assets/photos/configurator/concept-tv-wall-v1.png":
+    "assets/photos/configurator/concept-tv-wall-finish-mask-v3.png",
+  "assets/photos/configurator/concept-window-cabinets-v1.png":
+    "assets/photos/configurator/concept-window-cabinets-finish-mask-v3.png",
+  "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-furniture-v2.png":
+    "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v3.png",
+  "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-furniture-v2.png":
+    "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v3.png",
+  "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-furniture-v2.png":
+    "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/center-recess-v1.png":
+    "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/center-recess-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/corner-wall-v1.png":
+    "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/corner-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/door-wall-v1.png":
+    "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/door-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/fireplace-wall-v1.png":
+    "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/fireplace-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/left-niche-v1.png":
+    "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/left-niche-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/niche-layout-v1.png":
+    "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/niche-layout-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/right-niche-v1.png":
+    "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/right-niche-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/center-recess-v1.png":
+    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/center-recess-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/corner-wall-v1.png":
+    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/corner-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/door-wall-v1.png":
+    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/door-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/fireplace-wall-v1.png":
+    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/fireplace-wall-finish-mask-v3.png",
   "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/left-niche-v2.png":
-    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/left-niche-finish-mask-v2.png",
+    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/left-niche-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/niche-layout-v2.png":
+    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/niche-layout-finish-mask-v3.png",
   "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-v2.png":
-    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v2.png",
+    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/window-wall-v1.png":
+    "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/window-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/full-open-shelving/center-recess-v1.png":
+    "assets/photos/configurator/integrated/bookcase/full-open-shelving/center-recess-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/full-open-shelving/corner-wall-v1.png":
+    "assets/photos/configurator/integrated/bookcase/full-open-shelving/corner-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/full-open-shelving/door-wall-v1.png":
+    "assets/photos/configurator/integrated/bookcase/full-open-shelving/door-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/full-open-shelving/fireplace-wall-v1.png":
+    "assets/photos/configurator/integrated/bookcase/full-open-shelving/fireplace-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/full-open-shelving/left-niche-v1.png":
+    "assets/photos/configurator/integrated/bookcase/full-open-shelving/left-niche-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/full-open-shelving/niche-layout-v1.png":
+    "assets/photos/configurator/integrated/bookcase/full-open-shelving/niche-layout-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/full-open-shelving/right-niche-v1.png":
+    "assets/photos/configurator/integrated/bookcase/full-open-shelving/right-niche-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/bookcase/full-open-shelving/window-wall-v1.png":
+    "assets/photos/configurator/integrated/bookcase/full-open-shelving/window-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/center-recess-v1.png":
+    "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/center-recess-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/corner-wall-v1.png":
+    "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/corner-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/door-wall-v1.png":
+    "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/door-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/double-opening-v3.png":
+    "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/double-opening-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/fireplace-wall-v1.png":
+    "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/fireplace-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/left-niche-v1.png":
+    "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/left-niche-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/niche-layout-v1.png":
+    "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/niche-layout-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/right-niche-v1.png":
+    "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/right-niche-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/window-wall-v1.png":
+    "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/window-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/center-recess-v1.png":
+    "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/center-recess-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/clear-wall-v1.png":
+    "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/clear-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/corner-wall-v1.png":
+    "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/corner-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/door-wall-v1.png":
+    "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/door-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/double-opening-v2.png":
+    "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/double-opening-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/fireplace-wall-v1.png":
+    "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/fireplace-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/left-niche-v1.png":
+    "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/left-niche-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/niche-layout-v1.png":
+    "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/niche-layout-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/right-niche-v1.png":
+    "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/right-niche-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/center-recess-v1.png":
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/center-recess-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/corner-wall-v1.png":
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/corner-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/door-wall-v1.png":
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/door-wall-finish-mask-v3.png",
   "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png":
-    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-finish-mask-v1.png",
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/fireplace-wall-v1.png":
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/fireplace-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/left-niche-v1.png":
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/left-niche-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/niche-layout-v1.png":
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/niche-layout-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/right-niche-v1.png":
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/right-niche-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/window-wall-v1.png":
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/window-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/window-storage/window-seat-storage/center-recess-v1.png":
+    "assets/photos/configurator/integrated/window-storage/window-seat-storage/center-recess-finish-mask-v3.png",
   "assets/photos/configurator/integrated/window-storage/window-seat-storage/clear-wall-v2.png":
-    "assets/photos/configurator/integrated/window-storage/window-seat-storage/clear-wall-finish-mask-v2.png"
+    "assets/photos/configurator/integrated/window-storage/window-seat-storage/clear-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/window-storage/window-seat-storage/corner-wall-v1.png":
+    "assets/photos/configurator/integrated/window-storage/window-seat-storage/corner-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/window-storage/window-seat-storage/door-wall-v1.png":
+    "assets/photos/configurator/integrated/window-storage/window-seat-storage/door-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/window-storage/window-seat-storage/double-opening-v2.png":
+    "assets/photos/configurator/integrated/window-storage/window-seat-storage/double-opening-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/window-storage/window-seat-storage/fireplace-wall-v1.png":
+    "assets/photos/configurator/integrated/window-storage/window-seat-storage/fireplace-wall-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/window-storage/window-seat-storage/left-niche-v1.png":
+    "assets/photos/configurator/integrated/window-storage/window-seat-storage/left-niche-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/window-storage/window-seat-storage/niche-layout-v1.png":
+    "assets/photos/configurator/integrated/window-storage/window-seat-storage/niche-layout-finish-mask-v3.png",
+  "assets/photos/configurator/integrated/window-storage/window-seat-storage/right-niche-v1.png":
+    "assets/photos/configurator/integrated/window-storage/window-seat-storage/right-niche-finish-mask-v3.png",
+  "assets/photos/configurator/product-floating-storage-v1.png":
+    "assets/photos/configurator/product-floating-storage-finish-mask-v3.png",
+  "assets/photos/configurator/product-radiator-cover-v1.png":
+    "assets/photos/configurator/product-radiator-cover-finish-mask-v3.png"
 });
 
 /*
@@ -1063,16 +1197,16 @@ function resolveAuthoredLayoutId(previewAsset) {
   ))?.id || null;
 }
 
+export function resolveFinishMaskAsset(previewAsset) {
+  return PREVIEW_FINISH_MASK_ASSETS[previewAsset] || null;
+}
+
 function resolvePreviewMediaContract(previewAsset) {
   const mediaSize = PREVIEW_MEDIA_OVERRIDES[previewAsset] || Object.freeze({
     width: 1536,
     height: 1024
   });
-  const usesAssetMask = previewAsset.includes("/integrated/");
-  const finishMaskAsset = usesAssetMask
-    ? PREVIEW_FINISH_MASK_ASSET_OVERRIDES[previewAsset]
-      || previewAsset.replace(/-v\d+\.png$/, "-finish-mask-v1.png")
-    : null;
+  const finishMaskAsset = resolveFinishMaskAsset(previewAsset);
   return Object.freeze({
     mediaFit: "cover",
     mediaWidth: mediaSize.width,
@@ -1080,7 +1214,7 @@ function resolvePreviewMediaContract(previewAsset) {
     mediaAspectRatio: `${mediaSize.width} / ${mediaSize.height}`,
     mediaObjectPosition: "50% 50%",
     mediaSvgPreserveAspectRatio: "xMidYMid slice",
-    finishMaskMode: usesAssetMask ? "asset" : "inline",
+    finishMaskMode: finishMaskAsset ? "asset" : "none",
     finishMaskAsset,
     finishMaskWidth: mediaSize.width,
     finishMaskHeight: mediaSize.height,
