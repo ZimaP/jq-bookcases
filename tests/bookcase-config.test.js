@@ -55,6 +55,28 @@ test("construction profiles use the current inset standard while preserving expl
   );
 });
 
+test("physical dimensions preserve bounded fractional inches while discrete counts remain integers", () => {
+  const normalized = normalizeBookcaseConfig({
+    ...defaultBookcaseConfig,
+    width: 119.25,
+    height: 95.5,
+    depth: 14.25,
+    sections: 3.6,
+    shelves: 4.6
+  });
+
+  assert.equal(normalized.width, 119.25);
+  assert.equal(normalized.height, 95.5);
+  assert.equal(normalized.depth, 14.25);
+  assert.equal(normalized.sections, 4);
+  assert.equal(normalized.shelves, 5);
+
+  const bounded = normalizeBookcaseConfig({ width: 999, height: 1, depth: 99 });
+  assert.equal(bounded.width, 144);
+  assert.equal(bounded.height, 72);
+  assert.equal(bounded.depth, 24);
+});
+
 test("per-section door arrangements normalize to an aligned door-only schema", () => {
   assert.deepEqual(DOOR_ARRANGEMENTS, [
     "auto",

@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "source": "config/golden-projects.json",
+  "catalogSchemaVersion": 1,
+  "viewport": {
+    "width": 1536,
+    "height": 1024
+  },
+  "route": "/configurator.html?start=new",
+  "step": 4,
+  "expectedFixtureCount": 12,
+  "capturedFixtureCount": 12,
+  "fixtures": [
+    {
+      "id": "G01-right-niche-tv",
+      "productId": "tv-unit",
+      "layoutId": "right-niche",
+      "finish": "natural-oak",
+      "screenshot": "G01-right-niche-tv-step4.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-3FSC67U7YYY74",
+      "specificationFingerprint": "jq-guided-spec-v1-09jtyhx",
+      "renderContractValid": true
+    },
+    {
+      "id": "G02-center-niche-cabinets",
+      "productId": "cabinet-shelves",
+      "layoutId": "niche-layout",
+      "finish": "warm-white",
+      "screenshot": "G02-center-niche-cabinets-step4.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-1V7FTMXJYBXS9",
+      "specificationFingerprint": "jq-guided-spec-v1-0pze355",
+      "renderContractValid": true
+    },
+    {
+      "id": "G03-clear-drawers-wide",
+      "productId": "drawer-shelves",
+      "layoutId": "clear-wall",
+      "finish": "medium-walnut",
+      "screenshot": "G03-clear-drawers-wide-step4.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-0L9K5QZCMNPXA",
+      "specificationFingerprint": "jq-guided-spec-v1-1fdak7h",
+      "renderContractValid": true
+    },
+    {
+      "id": "G04-clear-open",
+      "productId": "open-shelving",
+      "layoutId": "clear-wall",
+      "finish": "white-oak",
+      "screenshot": "G04-clear-open-step4.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-27HOIXZZ40XSU",
+      "specificationFingerprint": "jq-guided-spec-v1-1hqc5ny",
+      "renderContractValid": true
+    },
+    {
+      "id": "G05-fireplace",
+      "productId": "cabinet-shelves",
+      "layoutId": "fireplace-wall",
+      "finish": "soft-ivory",
+      "screenshot": "G05-fireplace-step4.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-1NPUG42Z20WPR",
+      "specificationFingerprint": "jq-guided-spec-v1-1864x52",
+      "renderContractValid": true
+    },
+    {
+      "id": "G06-window-storage",
+      "productId": "window-storage",
+      "layoutId": "window-wall",
+      "finish": "warm-white",
+      "screenshot": "G06-window-storage-step4.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-1YSA0KS8ARWB1",
+      "specificationFingerprint": "jq-guided-spec-v1-1uf0kr1",
+      "renderContractValid": true
+    },
+    {
+      "id": "G07-door-wall",
+      "productId": "cabinet-shelves",
+      "layoutId": "door-wall",
+      "finish": "sage-gray",
+      "screenshot": "G07-door-wall-step4.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-2TVVYTGDO5L6Z",
+      "specificationFingerprint": "jq-guided-spec-v1-1qpagmw",
+      "renderContractValid": true
+    },
+    {
+      "id": "G08-between-openings",
+      "productId": "cabinet-shelves",
+      "layoutId": "double-opening",
+      "finish": "natural-oak",
+      "screenshot": "G08-between-openings-step4.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-0NDPS0TUYZ00Y",
+      "specificationFingerprint": "jq-guided-spec-v1-0horvd4",
+      "renderContractValid": true
+    },
+    {
+      "id": "G09-corner",
+      "productId": "open-shelving",
+      "layoutId": "corner-wall",
+      "finish": "warm-white",
+      "screenshot": "G09-corner-step4.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-391WK154QODXF",
+      "specificationFingerprint": "jq-guided-spec-v1-0zycxqn",
+      "renderContractValid": true
+    },
+    {
+      "id": "G10-floating",
+      "productId": "floating-storage",
+      "layoutId": "clear-wall",
+      "finish": "dark-walnut",
+      "screenshot": "G10-floating-step4.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-0RZ9PPL0RB6PZ",
+      "specificationFingerprint": "jq-guided-spec-v1-1vh7sfe",
+      "renderContractValid": true
+    },
+    {
+      "id": "G11-radiator",
+      "productId": "radiator-cover",
+      "layoutId": "window-wall",
+      "finish": "warm-white",
+      "screenshot": "G11-radiator-step4.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-1I22SBIGVTM36",
+      "specificationFingerprint": "jq-guided-spec-v1-0cqkwkx",
+      "renderContractValid": true
+    },
+    {
+      "id": "G12-round-trip",
+      "productId": "drawer-shelves",
+      "layoutId": "niche-layout",
+      "finish": "charcoal",
+      "screenshot": "G12-round-trip-step4.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-0RFP0AMH0VCG1",
+      "specificationFingerprint": "jq-guided-spec-v1-0e6l3qq",
+      "renderContractValid": true
+    }
+  ]
+}

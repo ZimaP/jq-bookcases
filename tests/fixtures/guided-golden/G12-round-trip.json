@@ -1,0 +1,19 @@
+{
+  "id": "G12-round-trip",
+  "productId": "drawer-shelves",
+  "layoutId": "niche-layout",
+  "measurements": {
+    "wallWidth": 132,
+    "ceilingHeight": 102,
+    "desiredDepth": 15,
+    "nicheWidth": 108,
+    "nicheHeight": 102,
+    "nicheDepth": 15,
+    "leftReturn": 12,
+    "rightReturn": 12
+  },
+  "finish": "charcoal",
+  "expected": {
+    "saveReloadSameFingerprint": true
+  }
+}

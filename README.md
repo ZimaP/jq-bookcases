@@ -20,16 +20,19 @@ Premium static website and parametric 3D configurator for JQ Bookcases — Built
 `request-quote.html`. The shared header, footer, navigation, icons, tokens, and
 responsive primitives are owned by `site.js` and `styles.css`.
 
-`configurator.html` hosts the five-step public guided project flow. Steps 3–5
-share one persistent, code-native Three.js concept scene: measurements reshape
-the room and its world-space callouts, then the selected product joins that same
-scene, camera, depth buffer, lighting, and shadow system. Approved static photos
-are graceful fallback assets only.
+`configurator.html` hosts the five-step public guided project flow. The public
+flow resolves each complete edit through room-topology, installation-fit, and
+product engines before it may replace the last accepted specification. Steps
+3–5 share one persistent Three.js renderer: room presentation and callouts come
+from the resolved topology, while every product mesh comes from the accepted
+physical descriptor graph. A rejected candidate keeps the prior accepted
+specification visible and reports a named diagnostic; it is never replaced by
+an unrelated product photograph.
 
-The guided concept renderer is intentionally separate from the accepted-design
-renderer and the physical layout, BOM, and pricing engines. Its architecture
-and boundaries are documented in `GUIDED-3D-SCENE.md`. The separate accepted
-CAD-like workspace remains documented in `CONFIGURATOR-ARCHITECTURE.md`.
+The guided engine architecture, installation invariants, PBR material contract,
+save/reload behavior, and shop-review boundary are documented in
+`GUIDED-3D-SCENE.md`. The separate CAD-like workspace remains documented in
+`CONFIGURATOR-ARCHITECTURE.md`.
 
 ## Run Locally
 

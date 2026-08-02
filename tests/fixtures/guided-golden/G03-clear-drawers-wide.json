@@ -1,0 +1,19 @@
+{
+  "id": "G03-clear-drawers-wide",
+  "productId": "drawer-shelves",
+  "layoutId": "clear-wall",
+  "measurements": {
+    "wallWidth": 144,
+    "ceilingHeight": 108,
+    "desiredDepth": 15
+  },
+  "finish": "medium-walnut",
+  "expected": {
+    "equalFillers": true,
+    "rootScale": [
+      1,
+      1,
+      1
+    ]
+  }
+}

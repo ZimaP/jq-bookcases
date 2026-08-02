@@ -142,6 +142,13 @@ jobs:
             guided-configurator.js \
             guided-configurator-data.js \
             guided-configurator-state.js \
+            guided-room-topology.js \
+            guided-installation-solver.js \
+            guided-product-adapter.js \
+            guided-product-engine.js \
+            guided-render-contract.js \
+            guided-materials.js \
+            guided-project-engine.js \
             guided-scene-plan.js \
             guided-configurator-3d.js \
             quote-prefill.js \
@@ -152,6 +159,7 @@ jobs:
             bookcase-pricing.js \
             bookcase-bom.js \
             bookcase-billable.js \
+            bookcase-render-contract.js \
             hardware-catalog.js \
             hardware-compatibility.js \
             _site/
@@ -159,7 +167,10 @@ jobs:
           cp assets/favicon.svg _site/assets/
           mkdir -p _site/assets/vendor
           cp assets/vendor/three.module.js _site/assets/vendor/
+          cp -R assets/environments _site/assets/
+          cp -R assets/textures _site/assets/
           cp -R assets/photos _site/assets/
+          cp -R config _site/
           cp -R styles _site/
           mkdir -p _site/data
           cp -R data/generated _site/data/
@@ -180,15 +191,56 @@ jobs:
             _site/cabinet-ar-model.js \
             _site/cabinet-ar-ui.js \
             _site/cabinet-ar-placement.js \
-            _site/profile-camera.js \
-            _site/bookcase-render-contract.js
+            _site/profile-camera.js
           do
             test ! -e "$legacy_asset"
           done
           test ! -e _site/configurator-3d.js
           test -f _site/guided-scene-plan.js
           test -f _site/guided-configurator-3d.js
+          test -f _site/guided-room-topology.js
+          test -f _site/guided-installation-solver.js
+          test -f _site/guided-product-adapter.js
+          test -f _site/guided-product-engine.js
+          test -f _site/guided-render-contract.js
+          test -f _site/guided-materials.js
+          test -f _site/guided-project-engine.js
+          test -f _site/bookcase-render-contract.js
           test -f _site/assets/vendor/three.module.js
+          test -f _site/assets/environments/jq-warm-interior.hdr
+          test -f _site/assets/environments/jq-warm-interior.jpg
+          test -f _site/assets/environments/jq-neutral-studio.hdr
+          test -f _site/assets/environments/jq-neutral-studio.jpg
+          test -f _site/assets/textures/paint/sprayed-normal.png
+          test -f _site/assets/textures/paint/sprayed-roughness.png
+          test -f _site/assets/textures/wood/white-oak/albedo.jpg
+          test -f _site/assets/textures/wood/white-oak/normal.png
+          test -f _site/assets/textures/wood/white-oak/roughness.png
+          test -f _site/assets/textures/wood/white-oak/ao.png
+          test -f _site/assets/textures/wood/natural-oak/albedo.jpg
+          test -f _site/assets/textures/wood/natural-oak/normal.png
+          test -f _site/assets/textures/wood/natural-oak/roughness.png
+          test -f _site/assets/textures/wood/natural-oak/ao.png
+          test -f _site/assets/textures/wood/light-walnut/albedo.jpg
+          test -f _site/assets/textures/wood/light-walnut/normal.png
+          test -f _site/assets/textures/wood/light-walnut/roughness.png
+          test -f _site/assets/textures/wood/light-walnut/ao.png
+          test -f _site/assets/textures/wood/medium-walnut/albedo.jpg
+          test -f _site/assets/textures/wood/medium-walnut/normal.png
+          test -f _site/assets/textures/wood/medium-walnut/roughness.png
+          test -f _site/assets/textures/wood/medium-walnut/ao.png
+          test -f _site/assets/textures/wood/dark-walnut/albedo.jpg
+          test -f _site/assets/textures/wood/dark-walnut/normal.png
+          test -f _site/assets/textures/wood/dark-walnut/roughness.png
+          test -f _site/assets/textures/wood/dark-walnut/ao.png
+          test -f _site/config/asset-manifest.json
+          test -f _site/config/fit-policy.json
+          test -f _site/config/golden-projects.json
+          test -f _site/config/materials.json
+          test -f _site/config/product-archetypes.json
+          test -f _site/config/product-layout-compatibility.json
+          test -f _site/config/provisional-decisions.json
+          test -f _site/config/room-topologies.json
           test -f _site/data/generated/benjamin-moore-colors.json
           test -f _site/data/hardware/jq-hardware-catalog.seed.json
           test -f _site/styles/icons.css

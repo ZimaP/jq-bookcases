@@ -1,0 +1,14 @@
+{
+  "id": "G04-clear-open",
+  "productId": "open-shelving",
+  "layoutId": "clear-wall",
+  "measurements": {
+    "wallWidth": 120,
+    "ceilingHeight": 96,
+    "desiredDepth": 13
+  },
+  "finish": "white-oak",
+  "expected": {
+    "noDoorsOrHardware": true
+  }
+}

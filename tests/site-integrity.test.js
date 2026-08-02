@@ -535,6 +535,55 @@ test("browser modules use one cache identity for every shared dependency", () =>
   }
 });
 
+test("the build syntax-checks every guided accepted-specification module", () => {
+  for (const moduleName of [
+    "guided-room-topology.js",
+    "guided-installation-solver.js",
+    "guided-product-adapter.js",
+    "guided-product-engine.js",
+    "guided-render-contract.js",
+    "guided-materials.js",
+    "guided-project-engine.js",
+    "guided-scene-plan.js",
+    "guided-configurator-3d.js",
+    "guided-configurator.js",
+  ]) {
+    assert.match(
+      packageSource,
+      new RegExp(`node --check ${moduleName.replaceAll(".", "\\.")}`),
+      `${moduleName} must be part of the build syntax gate`,
+    );
+  }
+});
+
+test("both guided quote transports use regenerated verified compact quote evidence", () => {
+  assert.match(guidedConfiguratorSource, /prepareGuidedQuote\(project, project\.acceptedSnapshot\)/);
+  assert.match(
+    guidedConfiguratorSource,
+    /prepareQuoteEmail\(project, quotePreparation\)/,
+    "the static mailto path must use the verified preparation",
+  );
+  assert.match(
+    guidedConfiguratorSource,
+    /buildMailtoUrl\(project, quotePreparation\)/,
+    "the static fallback link must reuse the same verified preparation",
+  );
+  assert.match(
+    guidedConfiguratorSource,
+    /formData\.append\("project", JSON\.stringify\(createConnectedQuotePayload\(project, quotePreparation\)\)\)/,
+    "the connected endpoint must receive the same verified preparation",
+  );
+  assert.match(guidedConfiguratorSource, /acceptedSnapshot: quotePreparation\.snapshot/);
+  assert.match(guidedConfiguratorSource, /acceptedQuote: quotePreparation\.quote/);
+  assert.match(guidedConfiguratorSource, /delete payload\.acceptedSpecification/);
+  assert.match(guidedConfiguratorSource, /acceptedSpecification: quotePreparation\.specification/);
+  assert.doesNotMatch(
+    guidedConfiguratorSource,
+    /formData\.append\("project", JSON\.stringify\(project\)\)/,
+    "the connected endpoint must not receive an unverified raw saved project",
+  );
+});
+
 test("manual production release uses an allowlisted Pages artifact", () => {
   assert.match(productionWorkflowSource, /find \. -maxdepth 1 -type f/);
   assert.match(productionWorkflowSource, /-name '\*\.html'/);
@@ -542,8 +591,19 @@ test("manual production release uses an allowlisted Pages artifact", () => {
   assert.match(productionWorkflowSource, /guided-configurator\.js/);
   assert.match(productionWorkflowSource, /guided-configurator-data\.js/);
   assert.match(productionWorkflowSource, /guided-configurator-state\.js/);
+  assert.match(productionWorkflowSource, /guided-room-topology\.js/);
+  assert.match(productionWorkflowSource, /guided-installation-solver\.js/);
+  assert.match(productionWorkflowSource, /guided-product-adapter\.js/);
+  assert.match(productionWorkflowSource, /guided-product-engine\.js/);
+  assert.match(productionWorkflowSource, /guided-render-contract\.js/);
+  assert.match(productionWorkflowSource, /guided-materials\.js/);
+  assert.match(productionWorkflowSource, /guided-project-engine\.js/);
+  assert.match(productionWorkflowSource, /bookcase-render-contract\.js/);
   assert.match(productionWorkflowSource, /cp assets\/favicon\.svg _site\/assets\//);
+  assert.match(productionWorkflowSource, /cp -R assets\/environments _site\/assets\//);
+  assert.match(productionWorkflowSource, /cp -R assets\/textures _site\/assets\//);
   assert.match(productionWorkflowSource, /cp -R assets\/photos _site\/assets\//);
+  assert.match(productionWorkflowSource, /cp -R config _site\//);
   assert.match(productionWorkflowSource, /cp -R styles _site\//);
   assert.match(productionWorkflowSource, /cp -R data\/generated _site\/data\//);
   assert.doesNotMatch(productionWorkflowSource, /rsync -a|cp -R \.\/ _site|find \. -maxdepth 1 -type f[\s\S]*-name '\*\.js'/);
@@ -555,7 +615,49 @@ test("manual production release uses an allowlisted Pages artifact", () => {
     "_site/guided-configurator.css",
     "_site/guided-scene-plan.js",
     "_site/guided-configurator-3d.js",
+    "_site/guided-room-topology.js",
+    "_site/guided-installation-solver.js",
+    "_site/guided-product-adapter.js",
+    "_site/guided-product-engine.js",
+    "_site/guided-render-contract.js",
+    "_site/guided-materials.js",
+    "_site/guided-project-engine.js",
+    "_site/bookcase-render-contract.js",
     "_site/assets/vendor/three.module.js",
+    "_site/assets/environments/jq-warm-interior.hdr",
+    "_site/assets/environments/jq-warm-interior.jpg",
+    "_site/assets/environments/jq-neutral-studio.hdr",
+    "_site/assets/environments/jq-neutral-studio.jpg",
+    "_site/assets/textures/paint/sprayed-normal.png",
+    "_site/assets/textures/paint/sprayed-roughness.png",
+    "_site/assets/textures/wood/white-oak/albedo.jpg",
+    "_site/assets/textures/wood/white-oak/normal.png",
+    "_site/assets/textures/wood/white-oak/roughness.png",
+    "_site/assets/textures/wood/white-oak/ao.png",
+    "_site/assets/textures/wood/natural-oak/albedo.jpg",
+    "_site/assets/textures/wood/natural-oak/normal.png",
+    "_site/assets/textures/wood/natural-oak/roughness.png",
+    "_site/assets/textures/wood/natural-oak/ao.png",
+    "_site/assets/textures/wood/light-walnut/albedo.jpg",
+    "_site/assets/textures/wood/light-walnut/normal.png",
+    "_site/assets/textures/wood/light-walnut/roughness.png",
+    "_site/assets/textures/wood/light-walnut/ao.png",
+    "_site/assets/textures/wood/medium-walnut/albedo.jpg",
+    "_site/assets/textures/wood/medium-walnut/normal.png",
+    "_site/assets/textures/wood/medium-walnut/roughness.png",
+    "_site/assets/textures/wood/medium-walnut/ao.png",
+    "_site/assets/textures/wood/dark-walnut/albedo.jpg",
+    "_site/assets/textures/wood/dark-walnut/normal.png",
+    "_site/assets/textures/wood/dark-walnut/roughness.png",
+    "_site/assets/textures/wood/dark-walnut/ao.png",
+    "_site/config/asset-manifest.json",
+    "_site/config/fit-policy.json",
+    "_site/config/golden-projects.json",
+    "_site/config/materials.json",
+    "_site/config/product-archetypes.json",
+    "_site/config/product-layout-compatibility.json",
+    "_site/config/provisional-decisions.json",
+    "_site/config/room-topologies.json",
     "_site/data/generated/benjamin-moore-colors.json",
   ]) {
     assert.match(

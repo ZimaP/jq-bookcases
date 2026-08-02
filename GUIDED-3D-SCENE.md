@@ -1,132 +1,180 @@
-# Guided 3D Concept Scene
+# Guided Accepted-Specification Scene
 
 ## Purpose
 
-The public guided configurator uses a code-native Three.js scene to make the
-customer's approximate room and selected fitted furniture read as one spatial
-concept. It replaces normal-path photo compositing with actual room and product
-geometry while preserving approved static photography as a graceful fallback.
+The public guided configurator is driven by one accepted, immutable physical
+specification. The UI proposes a complete project candidate; pure room,
+installation, and product engines either accept it or return named diagnostics.
+The Three.js renderer displays the accepted product descriptors and never
+invents cabinetry from UI labels, scales a stock model to fit, or substitutes a
+photograph for rejected geometry.
 
-This is a concept renderer. It is explicitly separate from the accepted-design
-renderer and from every physical layout, bill-of-material, quantity, pricing,
-and manufacturing decision.
+“Accepted” means internally consistent under this guided engine contract. It is
+not a shop drawing, structural approval, site verification, or authorization to
+manufacture. Field dimensions, attachment conditions, service clearances, and
+the provisional decisions listed in `config/provisional-decisions.json` still
+require JQ Bookcases review.
 
-## Public flow
+## One transaction from input to output
 
-One guided scene controller, WebGL renderer, canvas, camera, and Three.js scene
-persist through public steps 3–5. The runtime may move its canvas between the
-step-specific hosts, but it must not create a second viewer or reset the room
-into an unrelated photographic composition.
+| Phase | Owner | Result |
+| --- | --- | --- |
+| Guided state | `guided-configurator.js` and `guided-configurator-state.js` | Product, layout, measurements, finish, hardware, and lighting intent |
+| Room topology | `guided-room-topology.js` | Physical planes, returns, features, exclusions, installation zones, and camera intent |
+| Installation fit | `guided-installation-solver.js` | Casework envelope, separate treatments, anchors, and fit invariants |
+| Product geometry | `guided-product-adapter.js` and `guided-product-engine.js` | Audited physical descriptor sets, render manifest, geometry fingerprint, and supported pricing |
+| Accepted specification | `guided-project-engine.js` | Atomic room + fit + product result with selection and specification fingerprints |
+| Display | `guided-render-contract.js`, `guided-materials.js`, and `guided-configurator-3d.js` | A persistent renderer that displays only accepted product descriptors |
+| Downstream state | `guided-configurator-state.js` | The same accepted snapshot used by review, save/reload, and quote summaries |
 
-| Step | Scene responsibility |
-| --- | --- |
-| 3 — Room & Size | Render the selected room topology and measurement-driven architecture. Show dimension lines anchored in world space, with projected labels. |
-| 4 — Customization | Keep the same room and camera basis, add the selected concept product, and update its visible finish and supported details. |
-| 5 — Review & Details | Keep the same room/product concept available as the visual summary of the guided project. |
+`transactGuidedProject` commits a candidate only after every phase succeeds. A
+rejected edit exposes its stage and diagnostic codes while keeping the last
+accepted specification available. The same normalized input produces the same
+geometry and specification fingerprints.
 
-Room surfaces, architectural features, and concept cabinetry occupy one
-`THREE.Scene`. They share the same perspective camera, depth buffer, lighting,
-occlusion, and shadows. The product is not a transparent cutout, billboard, or
-photograph placed inside a separate room photograph.
+## Room topology contract
 
-## Measurement-driven scene contract
+Room topology is geometry rather than a card label. The engine resolves all ten
+public conditions:
 
-`guided-configurator-state.js` normalizes the customer's approximate
-measurements and reports non-blocking range or spatial warnings.
-`guided-scene-plan.js` converts that guided state into a renderer-neutral,
-inch-based scene plan. The plan describes:
+- center niche;
+- left niche and right niche with physically distinct one-sided returns;
+- clear wall;
+- fireplace wall;
+- center projection;
+- window wall;
+- door wall;
+- two-run corner wall;
+- the wall zone between two openings.
 
-- room bounds and layout topology;
-- walls, floor, returns, recesses, projections, and explicit openings;
-- product target zones and concept-product descriptors;
-- dimension anchors and labels;
-- selection and appearance values needed by the concept scene.
+Every accepted topology uses inches and explicit X/Y/Z planes. Features such as
+windows, doors, fireplaces, projections, radiators, open edges, and returns
+produce exclusion volumes and bounded installation zones. A multi-zone layout
+remains multi-zone downstream; it is not collapsed into one centered image.
+Invalid or intersecting feature dimensions reject with named errors.
 
-`guided-configurator-3d.js` consumes that plan and converts inches to scene
-units in one place. Changing a supported width, height, depth, return, opening,
-or clearance changes the corresponding geometry instead of merely changing
-text over a fixed image.
+`guided-scene-plan.js` remains the renderer-neutral source for room
+presentation, architecture, dimension lines, and camera framing. It is not the
+source of product geometry. Product target bounds and placement come from the
+accepted topology and fit contracts.
 
-Dimension lines use the same world-space anchors as the geometry they describe.
-Their text labels may live in a DOM overlay for legibility, but their screen
-positions are projected from the active Three.js camera. They are not authored
-as fixed SVG coordinates over a photograph.
+## Installation fit contract
 
-When an entered dimension cannot fit inside another entered envelope, the form
-shows a live, non-blocking spatial warning. If the concept scene must fit that
-feature to the available room geometry, its callout reports both the dimension
-shown and the value entered; it must never label clamped geometry with the
-unclamped value.
+The installation solver supports fitted, freestanding, and floating modes. It
+never uses a global scale transform: every accepted descriptor set has root
+scale `[1, 1, 1]` and physical inch dimensions.
 
-Architectural openings are explicit exclusions in the product target zones.
-Category features such as a TV, window, or radiator are placed in available
-wall intervals when their position was not explicitly measured. Concept
-cabinetry must honor those exclusions rather than crossing a door, window,
-fireplace, projection, or opening.
+For fitted work, the room boundaries determine the generated casework width,
+base, top scribe, fillers, end panels, and back/floor/ceiling anchors. Fillers
+and end panels are separate auditable treatments. Equivalent boundaries must
+balance within the policy tolerance; an open edge receives a finished end
+condition instead of a fictional wall filler. Floor-mounted work meets the
+finished floor, fitted work meets its top boundary, and floating work retains
+its explicit mounting height and floor clearance.
 
-## Persistence and updates
+If the requested product cannot fit after the permitted treatment and section
+reductions, the solver rejects it. The renderer does not shrink the accepted
+model or display a near-enough visual approximation.
 
-`guided-configurator.js` owns one lazily created guided scene controller. State
-changes update the existing controller; navigation between steps 3–5 remounts
-the same runtime where necessary. The scene may rebuild descriptor-driven
-content, but the WebGL renderer and canvas remain the same until the guided
-application is disposed.
+## Product and TV geometry
 
-Rapid measurement input is coalesced before rebuilding scene geometry; a
-finalized value renders immediately.
+The guided adapter maps the public product/style selection to one of seven
+physical archetypes and evaluates its room-layout compatibility before product
+generation. Supported bookcase and media variants pass through the canonical
+bookcase engine and render contract. Floating storage, window storage, radiator
+covers, and corner transitions use product-specific descriptor builders while
+obeying the same fit references, IDs, bounds, validation, and fingerprint rules.
 
-The selected layout remains the same room across measurement, customization,
-and review. Adding the product does not swap to a photograph with a different
-lens, horizon, crop, or room proportions.
+TV geometry is derived from the entered diagonal and aspect ratio, or from
+explicit body dimensions when supplied. The black TV body is a separate
+descriptor. The surrounding opening is generated from that body plus the
+centralized side, top, bottom, soundbar, equipment, and ventilation clearances.
+Towers and shelves occupy the remaining accepted envelope. An impossible media
+fit rejects instead of drawing a decorative frame unrelated to the TV data.
 
-## Graceful photo fallback
+Canonical-engine products retain canonical pricing and layout fingerprints.
+Product-specific descriptor builders currently report pricing as unavailable;
+the UI and saved specification must preserve that status rather than fabricate
+an estimate.
 
-Approved room-layout and integrated concept photos remain available only when
-the Three.js module cannot load, WebGL initialization fails, or the guided
-runtime otherwise cannot render safely. Fallback presentation must:
+## Persistent rendering contract
 
-- use the approved asset mapped to the selected room and product where one
-  exists;
-- avoid presenting image zoom as true 3D orbit or depth;
-- remain usable without concealing the measurement and project controls;
-- never be layered into the working WebGL scene as a fake room or product.
+Steps 3–5 share one lazily created scene controller, WebGL renderer, canvas,
+camera, and scene. The canvas may move between step hosts, but a second viewer
+is not created. The room and product share camera, lighting, depth, occlusion,
+and shadows.
 
-Static photography is not the normal rendering path for steps 3–5 and is not a
-source of geometry.
+Before display, `guided-render-contract.js` audits the accepted specification,
+including root scale, installation references, component bounds, floor/floating
+anchors, and width reconciliation. It converts the accepted descriptor graph
+to scene records and verifies the rendered manifest. The renderer creates one
+mesh per renderable accepted descriptor; no product-layout calculation belongs
+in `guided-configurator-3d.js`.
 
-Fallback photo and finish-mask URLs remain deferred while WebGL is loading or
-ready. The application hydrates those assets only after the scene enters its
-fallback state, so the normal 3D path does not download an integrated
-photo-composite behind the canvas.
+Geometry and appearance have separate identities. A changed geometry
+fingerprint rebuilds descriptor-driven scene content. A finish, hardware, or
+lighting-only change updates materials on the existing product meshes without
+changing their fitted dimensions. The renderer exposes its accepted
+fingerprints and rebuild counters as diagnostic data attributes for browser QA.
 
-## Explicit boundary from accepted design
+The normal path fails closed. A missing, rejected, or unauditable accepted
+specification leaves the renderer in a named error state and does not hydrate an
+integrated room/product photograph as a substitute. Static imagery remains
+appropriate for product and room-selection cards, but it is not step 4 or step
+5 geometry.
 
-The guided scene answers: “How could this selection sit in this approximate
-space?” It does not answer: “Is this the accepted, manufacturable design?”
+## PBR material contract
 
-In particular, the guided renderer and scene plan must not:
+`guided-materials.js` provides five wood families and four sprayed-paint
+families. Wood uses separate albedo, normal, roughness, and ambient-occlusion
+maps. Paint uses shared sprayed normal and roughness maps plus its selected base
+color. The assets are under `assets/textures/`.
 
-- create or certify physical part geometry;
-- calculate generated quantities, bills of material, estimates, or prices;
-- claim structural, installation, or manufacturing validity;
-- become the source of truth for an accepted customer design;
-- bypass validation owned by the physical configurator and domain engines.
+UV repeats are computed from the physical descriptor dimensions. Grain follows
+the part: side panels, doors, drawer fronts, and backs are vertical; shelves and
+tops follow their long axis; crown and trim follow the extrusion axis. Room,
+screen, glass, hardware, and light materials remain independent of the selected
+millwork finish.
 
-The accepted-design path remains owned by `configurator-3d.js` together with
-the physical configuration, layout, render-contract, billable, BOM, and pricing
-modules. If guided selections later enter that path, they must be translated
-and validated through its public contracts; concept-scene meshes are never
-reused as accepted physical output.
+Warm customer and neutral material-QA environment sources are under
+`assets/environments/`. The manifest retains the HDR sources and browser-ready
+preview images. Shared textures and environment maps are cached across material
+updates and are not disposed when only product geometry is refreshed.
+
+## State, save, and review integrity
+
+The accepted specification contains the room, fit, product descriptor graph,
+material state, pricing or explicit pricing status, diagnostics, and three
+identities: geometry, selection, and complete specification fingerprints.
+`guided-configurator-state.js` stores an accepted snapshot with the project.
+Reload restores and revalidates that snapshot against current state before it
+can become the displayed result.
+
+Review and quote summaries receive the accepted specification rather than
+reconstructing dimensions from labels. A rejected edit never mutates the last
+accepted snapshot. Price, when available, comes from the same canonical product
+evaluation that produced the rendered geometry.
+
+## Shipped policy and evidence
+
+`config/` contains the engine package's room, fit, compatibility, archetype,
+material, provisional-decision, golden-project, and asset-manifest contracts.
+The production Pages artifact deliberately allowlists this directory together
+with the guided engine modules, canonical render contract, textures, and
+environments. The release workflow verifies every required module, config, and
+material/environment file before upload.
 
 ## File ownership
 
-- `guided-configurator-data.js` — guided catalog and room/selection definitions.
-- `guided-configurator-state.js` — project normalization, approximate validation,
-  summaries, and persistence.
-- `guided-scene-plan.js` — pure scene-plan construction in measurement space.
-- `guided-configurator-3d.js` — persistent Three.js concept renderer and
-  interaction.
-- `guided-configurator.js` — public step orchestration, lazy loading, and
-  controller updates.
-- Approved files under `assets/photos/configurator/room-layouts/` and
-  `assets/photos/configurator/integrated/` — graceful fallback imagery only.
+- `guided-configurator-data.js` — public catalog, measurement, and selection definitions.
+- `guided-configurator-state.js` — normalization, warnings, accepted snapshots, persistence, and summaries.
+- `guided-room-topology.js` — ten physical room topologies, features, exclusions, zones, and camera intent.
+- `guided-installation-solver.js` — fitted, freestanding, and floating installation contracts.
+- `guided-product-adapter.js` — product archetypes, compatibility, TV derivation, and canonical inputs.
+- `guided-product-engine.js` — product descriptors, validation, pricing status, manifests, and geometry fingerprints.
+- `guided-project-engine.js` — atomic accepted-specification transactions and snapshot restoration.
+- `guided-render-contract.js` — descriptor conversion and pre/post-render audits.
+- `guided-materials.js` — PBR assets, physical UVs, part-aware grain, and environments.
+- `guided-scene-plan.js` — room presentation, dimensions, and camera planning only.
+- `guided-configurator-3d.js` — persistent display of accepted descriptors.
+- `guided-configurator.js` — public flow orchestration and last-valid transaction handling.

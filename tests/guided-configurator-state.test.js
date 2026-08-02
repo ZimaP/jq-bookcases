@@ -31,6 +31,7 @@ import {
   prepareMeasurementsForLayout,
   validateMeasurements
 } from "../guided-configurator-state.js";
+import { prepareGuidedProjectPersistence } from "../guided-project-engine.js";
 
 class MemoryStorage {
   #records = new Map();
@@ -273,9 +274,9 @@ test("all ten bookcase room diagrams expose ordered architectural dimension geom
       ["wallWidth", "A"],
       ["ceilingHeight", "B"],
       ["desiredDepth", "C"],
-      ["nicheWidth", "D"],
-      ["nicheHeight", "E"],
-      ["nicheDepth", "F"]
+      ["projectionWidth", "D"],
+      ["projectionHeight", "E"],
+      ["projectionDepth", "F"]
     ]],
     ["window-wall", [
       ["wallWidth", "A"],
@@ -429,7 +430,7 @@ test("niche layout selection derives distinct left, centered, and right returns 
 
   assert.deepEqual(
     pickReturns(prepareMeasurementsForLayout(project, "left-niche")),
-    { leftReturn: 0, rightReturn: 24 }
+    { leftReturn: 24, rightReturn: 0 }
   );
   assert.deepEqual(
     pickReturns(prepareMeasurementsForLayout(project, "niche-layout")),
@@ -437,7 +438,7 @@ test("niche layout selection derives distinct left, centered, and right returns 
   );
   assert.deepEqual(
     pickReturns(prepareMeasurementsForLayout(project, "right-niche")),
-    { leftReturn: 24, rightReturn: 0 }
+    { leftReturn: 0, rightReturn: 24 }
   );
 
   function pickReturns(measurements) {
@@ -506,6 +507,22 @@ test("five-step state and legacy category layouts migrate without losing a proje
   assert.equal(legacy.layout, "clear-wall");
   assert.equal(legacy.currentStep, 5);
   assert.equal(legacy.maxVisitedStep, 5);
+
+  const legacyProjection = normalizeProject({
+    ...createProject({ now: 7, productSelected: true }),
+    layout: "center-recess",
+    measurements: {
+      wallWidth: 144,
+      ceilingHeight: 108,
+      desiredDepth: 15,
+      nicheWidth: 48,
+      nicheHeight: 72,
+      nicheDepth: 8
+    }
+  }, { now: 8 });
+  assert.equal(legacyProjection.measurements.projectionWidth, 48);
+  assert.equal(legacyProjection.measurements.projectionHeight, 72);
+  assert.equal(legacyProjection.measurements.projectionDepth, 8);
 });
 
 test("normalization removes incompatible detail choices without disturbing project identity", () => {
@@ -859,6 +876,139 @@ test("legacy hidden Bookcase styles migrate without inventing an integrated room
   );
 });
 
+test("compact accepted snapshots survive normalization and storage while retaining physical summary rows", () => {
+  const acceptedSnapshot = {
+    schemaVersion: 2,
+    engineVersion: "2026.08-luxury-configurator-v1",
+    specificationSchemaVersion: 1,
+    projectId: "JQ-COMPACT-0001",
+    productId: "tv-unit",
+    layoutId: "clear-wall",
+    geometryFingerprint: "jq-guided-geometry-v1-compact",
+    selectionFingerprint: "jq-guided-selection-v1-compact",
+    specificationFingerprint: "jq-guided-spec-v1-compact",
+    regeneration: {
+      topologyFingerprint: "jq-guided-snapshot-room-v1-compact",
+      fitFingerprint: "jq-guided-snapshot-fit-v1-compact",
+      descriptorFingerprint: "jq-guided-snapshot-descriptors-v1-compact",
+      materialFingerprint: "jq-guided-snapshot-materials-v1-compact",
+      cameraFingerprint: "jq-guided-snapshot-camera-v1-compact"
+    },
+    summary: {
+      installations: [{
+        zoneId: "main",
+        role: "primary",
+        casework: { width: 117, overallHeight: 96, depth: 14 },
+        treatments: {
+          left: { kind: "filler", width: 1.5 },
+          right: { kind: "filler", width: 1.5 },
+          base: { kind: "built-in-base", height: 4 },
+          top: { kind: "scribe-or-crown", height: 0.75 }
+        }
+      }],
+      tv: {
+        accepted: true,
+        body: { width: 56, height: 33 },
+        opening: { width: 60, height: 37 }
+      }
+    }
+  };
+  const project = normalizeProject({
+    ...createProject({ now: 90, random: 0.09, category: "tv-unit", productSelected: true }),
+    projectId: "JQ-COMPACT-0001",
+    layout: "clear-wall",
+    acceptedSnapshot
+  }, { now: 91 });
+  assert.deepEqual(project.acceptedSnapshot, acceptedSnapshot);
+  assert.equal(Object.hasOwn(project.acceptedSnapshot, "acceptedSpecification"), false);
+
+  const storage = new MemoryStorage();
+  const projects = createProjectStore(storage);
+  assert.equal(projects.saveDraft(project), true);
+  const restored = projects.loadDraft();
+  assert.deepEqual(restored.acceptedSnapshot, acceptedSnapshot);
+  assert.ok(Buffer.byteLength(storage.getItem(GUIDED_DRAFT_STORAGE_KEY), "utf8") < 8_192);
+
+  const summary = Object.fromEntries(buildProjectSummary(restored).map((row) => [row.key, row.value]));
+  assert.equal(summary.fittedSize, "117 × 96 × 14 in");
+  assert.equal(summary.tvBody, "56 × 33 in");
+  assert.equal(summary.tvOpening, "60 × 37 in");
+  assert.equal(summary.geometryFingerprint, acceptedSnapshot.geometryFingerprint);
+});
+
+test("Radiator Cover defaults the Window Wall obstruction to present", () => {
+  const radiatorProject = createProject({
+    now: 92,
+    random: 0.12,
+    category: "radiator-cover",
+    productSelected: true
+  });
+  const measurements = prepareMeasurementsForLayout(radiatorProject, "window-wall");
+  assert.equal(measurements.radiatorBelowWindow, "yes");
+  assert.equal(measurements.windowWidth, 60);
+  assert.equal(measurements.sillHeight, 32);
+  assert.equal(measurements.radiatorWidth, 48);
+  assert.equal(measurements.radiatorHeight, 26);
+  assert.equal(measurements.radiatorDepth, 9);
+});
+
+test("review and quote summary rows expose accepted pricing, warnings, and geometry identity", () => {
+  const summaryProject = normalizeProject({
+    ...createProject({ now: 93, random: 0.13, productSelected: true }),
+    layout: "clear-wall"
+  }, { now: 94 });
+  const rows = Object.fromEntries(buildProjectSummary(summaryProject, {
+    acceptedSpecification: {
+      accepted: true,
+      fit: { installations: [] },
+      product: { tv: null },
+      geometryFingerprint: "jq-guided-geometry-v1-summary",
+      pricing: { available: true, total: 12345 },
+      warnings: [{
+        code: "DESIGN_REVIEW_NOTE",
+        message: "Field measurements must be confirmed."
+      }]
+    },
+    acceptedQuote: {
+      identity: {
+        geometryFingerprint: "jq-guided-geometry-v1-summary"
+      },
+      pricing: {
+        available: true,
+        total: 12345,
+        fingerprint: "jq-guided-quote-pricing-v1-summary"
+      },
+      warnings: {
+        fingerprint: "jq-guided-quote-warnings-v1-summary",
+        items: [{
+          code: "DESIGN_REVIEW_NOTE",
+          message: "Field measurements must be confirmed."
+        }]
+      },
+      bom: {
+        componentCount: 13,
+        billableComponentCount: 12,
+        customerEquipmentCount: 1,
+        byRole: { door: 4, screen: 1, shelf: 8 },
+        fingerprint: "jq-guided-quote-bom-v1-summary"
+      },
+      integrity: {
+        verified: true,
+        quoteFingerprint: "jq-guided-quote-contract-v1-summary"
+      }
+    }
+  }).map((row) => [row.key, row.value]));
+
+  assert.equal(rows.pricing, "$12,345");
+  assert.equal(rows.pricingFingerprint, "jq-guided-quote-pricing-v1-summary");
+  assert.equal(rows.geometryFingerprint, "jq-guided-geometry-v1-summary");
+  assert.equal(rows.warnings, "Field measurements must be confirmed. (DESIGN_REVIEW_NOTE)");
+  assert.equal(rows.warningsFingerprint, "jq-guided-quote-warnings-v1-summary");
+  assert.equal(rows.bom, "12 billable components (13 physical; 1 customer equipment) · door 4, screen 1, shelf 8");
+  assert.equal(rows.bomFingerprint, "jq-guided-quote-bom-v1-summary");
+  assert.equal(rows.quoteFingerprint, "jq-guided-quote-contract-v1-summary");
+});
+
 test("project store supports drafts, multiple saves, rename, duplicate, resume, and delete", () => {
   const storage = new MemoryStorage();
   const projects = createProjectStore(storage);
@@ -890,6 +1040,50 @@ test("project store supports drafts, multiple saves, rename, duplicate, resume, 
   assert.equal(projects.deleteProject("missing"), false);
   assert.equal(projects.clearDraft(), true);
   assert.equal(projects.loadDraft(), null);
+});
+
+test("project store accepts only an engine-verified persistence contract for accepted saves", () => {
+  const storage = new MemoryStorage();
+  const projects = createProjectStore(storage);
+  const base = createProject({
+    now: 250,
+    random: 0.25,
+    category: "bookcase",
+    productSelected: true,
+    projectName: "Accepted Library"
+  });
+  const acceptedProject = normalizeProject({
+    ...base,
+    layout: "clear-wall",
+    measurements: prepareMeasurementsForLayout(base, "clear-wall")
+  }, { now: 251 });
+  const accepted = prepareGuidedProjectPersistence(acceptedProject);
+  assert.equal(accepted.accepted, true, JSON.stringify(accepted.errors));
+  assert.equal(projects.saveAcceptedDraft(accepted), true);
+  assert.ok(projects.saveAcceptedProject(accepted, "Accepted Library"));
+
+  const storedDraft = projects.loadDraft();
+  const storedProject = projects.getProject(acceptedProject.projectId);
+  const acceptedFingerprint = accepted.specification.specificationFingerprint;
+  assert.equal(storedDraft.acceptedSnapshot.specificationFingerprint, acceptedFingerprint);
+  assert.equal(storedProject.acceptedSnapshot.specificationFingerprint, acceptedFingerprint);
+
+  const invalidEdit = structuredClone(accepted.project);
+  invalidEdit.measurements.wallWidth = -1;
+  const rejected = prepareGuidedProjectPersistence(invalidEdit, accepted.specification);
+  assert.equal(rejected.code, "GUIDED_SAVE_REJECTED_CANDIDATE");
+  assert.equal(projects.saveAcceptedDraft(rejected), false);
+  assert.equal(projects.saveAcceptedProject(rejected, "Invalid Library"), null);
+  assert.equal(projects.loadDraft().measurements.wallWidth, storedDraft.measurements.wallWidth);
+  assert.equal(
+    projects.getProject(acceptedProject.projectId).acceptedSnapshot.specificationFingerprint,
+    acceptedFingerprint
+  );
+
+  const forged = structuredClone(accepted);
+  forged.project.acceptedSnapshot.geometryFingerprint = "jq-guided-geometry-v1-forged";
+  assert.equal(projects.saveAcceptedDraft(forged), false);
+  assert.equal(projects.saveAcceptedProject(forged, "Forged Library"), null);
 });
 
 test("catalog provides the complete curated finish and detail collections", () => {

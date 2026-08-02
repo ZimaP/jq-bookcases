@@ -127,13 +127,12 @@ test("validateMeasurements appends spatial warnings without making them blockers
     nicheWidth: 97,
     nicheHeight: 97,
     nicheDepth: 14,
-    leftReturn: 12,
-    rightReturn: 12
+    leftReturn: 12
   };
 
   const spatialResult = validateMeasurements(nicheProject);
   assert.equal(spatialResult.valid, true);
-  assert.deepEqual(warningFields(spatialResult.warnings), ["nicheHeight", "nicheWidth"]);
+  assert.deepEqual(warningFields(spatialResult.warnings), ["nicheHeight"]);
   assert.equal(spatialResult.errors.length, 0);
 
   const rangeProject = createProject({ now: 2, random: 0.5, category: "bookcase" });

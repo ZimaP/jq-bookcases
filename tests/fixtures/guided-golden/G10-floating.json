@@ -1,0 +1,16 @@
+{
+  "id": "G10-floating",
+  "productId": "floating-storage",
+  "layoutId": "clear-wall",
+  "measurements": {
+    "wallWidth": 120,
+    "ceilingHeight": 96,
+    "desiredDepth": 16,
+    "mountingHeight": 18
+  },
+  "finish": "dark-walnut",
+  "expected": {
+    "floorClear": true,
+    "noBase": true
+  }
+}

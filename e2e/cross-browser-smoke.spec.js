@@ -28,6 +28,25 @@ function monitorRuntime(page) {
   return failures;
 }
 
+async function expectAcceptedSmokePreview(page) {
+  const preview = page.locator(".concept-preview");
+  await expect(preview).toHaveAttribute("data-preview-render-mode", "accepted-geometry");
+  await expect(preview).toHaveAttribute("data-finish-mask-mode", "none");
+  await expect(preview).toHaveAttribute("data-accepted-specification", "true");
+  await expect(preview).toHaveAttribute("data-geometry-fingerprint", /.+/);
+  await expect(preview).toHaveAttribute("data-specification-fingerprint", /.+/);
+  await expect(preview.locator(
+    "picture.concept-photo, picture.concept-room-photo, img.concept-photo, img.concept-room-photo, img.concept-furniture-photo, svg.concept-finish-overlay"
+  )).toHaveCount(0);
+  await expect(preview.locator("[data-accepted-fit-summary]")).toBeVisible();
+  const canvas = preview.locator('.guided-3d-canvas[data-rendered="true"]');
+  await expect(canvas).toHaveCount(1);
+  await expect(canvas).toHaveAttribute("data-render-contract-valid", "true");
+  await expect(canvas).toHaveAttribute("data-geometry-fingerprint", /.+/);
+  await expect(canvas).toHaveAttribute("data-specification-fingerprint", /.+/);
+  return canvas;
+}
+
 test("public routes render without runtime, network, or responsive overflow failures", async ({ page }) => {
   const failures = monitorRuntime(page);
   for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
@@ -44,35 +63,86 @@ test("public routes render without runtime, network, or responsive overflow fail
   }
 });
 
-test("the guided project flow works through review and refresh", async ({ page }) => {
+test("the guided accepted-geometry flow rebuilds dimensions and TV data across mirrored niches", async ({ page }) => {
   const failures = monitorRuntime(page);
   await page.goto("/configurator.html?start=new", { waitUntil: "networkidle" });
   await page.locator('[data-product-choice="tv-unit"]').click();
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
-  await page.locator('[data-layout="clear-wall"]').click();
+  await page.locator('[data-layout="right-niche"]').click();
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+  const measurementCanvas = page.locator('.measurement-room[data-guided3d-state="ready"] .guided-3d-canvas');
+  await expect(measurementCanvas).toHaveCount(1);
+  const initialRoomFingerprint = await measurementCanvas.getAttribute("data-geometry-fingerprint");
   await page.getByLabel("Wall width").fill("126 1/2");
+  await expect.poll(() => measurementCanvas.getAttribute("data-geometry-fingerprint"))
+    .not.toBe(initialRoomFingerprint);
+  const widerRoomFingerprint = await measurementCanvas.getAttribute("data-geometry-fingerprint");
+  await page.getByLabel("Ceiling height").fill("100");
+  await expect.poll(() => measurementCanvas.getAttribute("data-geometry-fingerprint"))
+    .not.toBe(widerRoomFingerprint);
+  const tallerRoomFingerprint = await measurementCanvas.getAttribute("data-geometry-fingerprint");
+  await page.getByLabel("Desired built-in depth").fill("16");
+  await expect.poll(() => measurementCanvas.getAttribute("data-geometry-fingerprint"))
+    .not.toBe(tallerRoomFingerprint);
+  await page.locator('[data-measurement="tvScreenSize"]').fill("55");
+  await page.locator('[data-measurement="tvHeight"]').fill("28");
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+  const customizationCanvas = await expectAcceptedSmokePreview(page);
+  const smallTvGeometryFingerprint = await customizationCanvas.getAttribute("data-geometry-fingerprint");
+  const instanceId = await customizationCanvas.getAttribute("data-guided3d-instance");
   await page.getByRole("tab", { name: "Finish" }).click();
   await page.getByRole("button", { name: "Dark Walnut", exact: true }).click();
+  await expect(customizationCanvas).toHaveAttribute("data-geometry-fingerprint", smallTvGeometryFingerprint);
+
+  await page.locator("[data-back]").click();
+  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+  await page.locator('[data-measurement="tvScreenSize"]').fill("65");
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+  const largerTvCanvas = await expectAcceptedSmokePreview(page);
+  const largerTvGeometryFingerprint = await largerTvCanvas.getAttribute("data-geometry-fingerprint");
+  expect(largerTvGeometryFingerprint).not.toBe(smallTvGeometryFingerprint);
+  await expect(largerTvCanvas).toHaveAttribute("data-guided3d-instance", instanceId);
+
+  await page.locator("[data-back]").click();
+  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+  await page.locator("[data-back]").click();
+  await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
+  await page.locator('[data-layout="left-niche"]').click();
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+  const mirroredCanvas = await expectAcceptedSmokePreview(page);
+  await expect(mirroredCanvas).toHaveAttribute("data-guided3d-instance", instanceId);
+  await expect(mirroredCanvas).toHaveAttribute("data-scene-layout", "left-niche");
+  const geometryFingerprint = await mirroredCanvas.getAttribute("data-geometry-fingerprint");
   await page.locator("[data-continue]").click();
 
   const summary = page.locator(".project-summary-card");
   await expect(summary).toContainText("TV Unit");
-  await expect(summary).toContainText("Clear Wall");
+  await expect(summary).toContainText("Left Niche");
   await expect(summary).toContainText("126 1/2 in");
+  await expect(summary).toContainText("Accepted TV body");
+  await expect(summary).toContainText("Generated TV opening");
   await expect(summary).toContainText("Dark Walnut");
+  await expect(summary).toContainText(geometryFingerprint);
+  const reviewCanvas = await expectAcceptedSmokePreview(page);
+  await expect(reviewCanvas).toHaveAttribute("data-geometry-fingerprint", geometryFingerprint);
+
   await page.waitForTimeout(250);
   await page.reload({ waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
   await expect(page.locator(".project-summary-card")).toContainText("126 1/2 in");
+  const reloadedCanvas = await expectAcceptedSmokePreview(page);
+  await expect(reloadedCanvas).toHaveAttribute("data-geometry-fingerprint", geometryFingerprint);
   expect(failures).toEqual([]);
 });
 
-test("layered Bookcase Clear Wall remains aligned through finish, review, and reload", async ({ page }) => {
+test("accepted Bookcase geometry keeps one canvas while finish updates materials only", async ({ page }) => {
   const failures = monitorRuntime(page);
   await page.setViewportSize({ width: 1024, height: 768 });
   await page.goto("/configurator.html?start=new", { waitUntil: "networkidle" });
@@ -80,61 +150,34 @@ test("layered Bookcase Clear Wall remains aligned through finish, review, and re
   await page.locator("[data-continue]").click();
   await page.locator('[data-layout="clear-wall"]').click();
   await page.locator("[data-continue]").click();
-
-  const measurementRoom = page.locator('.measurement-room[data-layout="clear-wall"]');
-  await expect(measurementRoom).toBeVisible();
-  const roomAsset = await measurementRoom.getAttribute("data-room-asset");
-  expect(roomAsset).toBe("assets/photos/configurator/room-layouts/room-clear-wall-v1.png");
   await page.locator("[data-continue]").click();
 
-  const preview = page.locator(
-    '.concept-preview[data-layout="clear-wall"][data-style="full-open-shelving"]'
-  );
-  const roomImage = preview.locator("img.concept-room-photo");
-  const furnitureImage = preview.locator("img.concept-furniture-photo");
-  const finishOverlay = preview.locator("svg.concept-finish-overlay");
-  await expect(preview).toHaveAttribute("data-preview-render-mode", "room-plus-furniture");
-  await expect(preview).toHaveAttribute("data-room-asset", roomAsset);
-  await expect(roomImage).toBeVisible();
-  await expect(furnitureImage).toBeVisible();
-  await expect(finishOverlay).toBeVisible();
-  await expect(roomImage).toHaveCSS("object-fit", "cover");
-  await expect(furnitureImage).toHaveCSS("object-fit", "cover");
-  await expect(finishOverlay).toHaveAttribute("preserveAspectRatio", "xMidYMid slice");
-
-  const alignedLayers = await preview.evaluate((element) => {
-    const scene = element.querySelector("[data-concept-scene]");
-    const layers = [
-      element.querySelector("img.concept-room-photo"),
-      element.querySelector("img.concept-furniture-photo"),
-      element.querySelector("svg.concept-finish-overlay")
-    ];
-    const sceneRect = scene.getBoundingClientRect();
-    const tolerance = 1;
-    return layers.every((layer) => {
-      const rect = layer.getBoundingClientRect();
-      return Math.abs(rect.left - sceneRect.left) <= tolerance
-        && Math.abs(rect.top - sceneRect.top) <= tolerance
-        && Math.abs(rect.right - sceneRect.right) <= tolerance
-        && Math.abs(rect.bottom - sceneRect.bottom) <= tolerance;
-    });
-  });
-  expect(alignedLayers).toBe(true);
+  const canvas = await expectAcceptedSmokePreview(page);
+  const instanceId = await canvas.getAttribute("data-guided3d-instance");
+  const geometryFingerprint = await canvas.getAttribute("data-geometry-fingerprint");
+  const geometryRebuildCount = await canvas.getAttribute("data-geometry-rebuild-count");
+  const materialUpdateCount = Number(await canvas.getAttribute("data-material-update-count"));
 
   await page.getByRole("button", { name: "Charcoal", exact: true }).click();
-  await expect(preview).toHaveAttribute("data-finish", "charcoal");
+  await expect.poll(async () => Number(await canvas.getAttribute("data-material-update-count")))
+    .toBeGreaterThan(materialUpdateCount);
+  await expect(canvas).toHaveAttribute("data-guided3d-instance", instanceId);
+  await expect(canvas).toHaveAttribute("data-geometry-fingerprint", geometryFingerprint);
+  await expect(canvas).toHaveAttribute("data-geometry-rebuild-count", geometryRebuildCount);
+  await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
+
   await page.locator("[data-continue]").click();
   await expect(page.locator(".project-summary-card")).toContainText("Clear Wall");
   await expect(page.locator(".project-summary-card")).toContainText("Charcoal");
-  await expect(page.locator(".concept-preview")).toHaveAttribute(
-    "data-preview-render-mode",
-    "room-plus-furniture"
-  );
+  await expect(page.locator(".project-summary-card")).toContainText(geometryFingerprint);
+  const reviewCanvas = await expectAcceptedSmokePreview(page);
+  await expect(reviewCanvas).toHaveAttribute("data-guided3d-instance", instanceId);
+
   await expect.poll(() => page.evaluate(() => (
     JSON.parse(localStorage.getItem("jqGuidedConfiguratorDraftV1") || "null")?.currentStep
   ))).toBe(5);
   await page.reload({ waitUntil: "networkidle" });
-  await expect(page.locator(".concept-preview")).toHaveAttribute("data-room-asset", roomAsset);
-  await expect(page.locator(".concept-preview img.concept-furniture-photo")).toBeVisible();
+  const reloadedCanvas = await expectAcceptedSmokePreview(page);
+  await expect(reloadedCanvas).toHaveAttribute("data-geometry-fingerprint", geometryFingerprint);
   expect(failures).toEqual([]);
 });

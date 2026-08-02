@@ -1,0 +1,26 @@
+{
+  "id": "G01-right-niche-tv",
+  "productId": "tv-unit",
+  "layoutId": "right-niche",
+  "measurements": {
+    "wallWidth": 120,
+    "ceilingHeight": 96,
+    "desiredDepth": 14,
+    "nicheWidth": 96,
+    "nicheHeight": 96,
+    "nicheDepth": 14,
+    "leftReturn": 0,
+    "rightReturn": 12,
+    "tvScreenSize": 65,
+    "tvHeight": 33,
+    "soundbarRequired": "yes"
+  },
+  "finish": "natural-oak",
+  "expected": {
+    "floorAnchored": true,
+    "rightReturnVisible": true,
+    "baseHeight": 4,
+    "tvOpeningDerived": true,
+    "noRandomTvFrame": true
+  }
+}

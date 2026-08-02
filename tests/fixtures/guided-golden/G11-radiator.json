@@ -1,0 +1,21 @@
+{
+  "id": "G11-radiator",
+  "productId": "radiator-cover",
+  "layoutId": "window-wall",
+  "measurements": {
+    "wallWidth": 120,
+    "ceilingHeight": 96,
+    "desiredDepth": 14,
+    "windowWidth": 60,
+    "windowHeight": 48,
+    "sillHeight": 32,
+    "radiatorWidth": 48,
+    "radiatorHeight": 26,
+    "radiatorDepth": 9,
+    "radiatorBelowWindow": "yes"
+  },
+  "finish": "warm-white",
+  "expected": {
+    "ventEnvelopeClear": true
+  }
+}

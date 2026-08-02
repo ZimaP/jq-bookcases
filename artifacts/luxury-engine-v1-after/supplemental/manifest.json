@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 1,
+  "cases": [
+    {
+      "id": "right-niche-tv-width-120",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "filename": "right-niche-tv-width-120.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-3FSC67U7YYY74",
+      "specificationFingerprint": "jq-guided-spec-v1-09jtyhx",
+      "layoutId": "right-niche",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 93 × 96 × 14 in TV opening · 60 × 37 in jq-guided-geometry-v1-3FSC67U7YYY74"
+    },
+    {
+      "id": "right-niche-tv-width-144",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "filename": "right-niche-tv-width-144.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-14Y7DRDYNHV3E",
+      "specificationFingerprint": "jq-guided-spec-v1-0redvgj",
+      "layoutId": "right-niche",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 117 × 96 × 14 in TV opening · 60 × 37 in jq-guided-geometry-v1-14Y7DRDYNHV3E"
+    },
+    {
+      "id": "right-niche-tv-width-171-5",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "filename": "right-niche-tv-width-171-5.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-2WRIO386OYYHO",
+      "specificationFingerprint": "jq-guided-spec-v1-1mtqm9o",
+      "layoutId": "right-niche",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 144 × 96 × 14 in TV opening · 60 × 37 in jq-guided-geometry-v1-2WRIO386OYYHO"
+    },
+    {
+      "id": "left-niche-tv-mirror",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "filename": "left-niche-tv-mirror.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-11RPH7XUO3CH8",
+      "specificationFingerprint": "jq-guided-spec-v1-1w3sjj6",
+      "layoutId": "left-niche",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 93 × 96 × 14 in TV opening · 60 × 37 in jq-guided-geometry-v1-11RPH7XUO3CH8"
+    },
+    {
+      "id": "clear-wall-fitted",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "filename": "clear-wall-fitted.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-104RJ5ZFL9Q4R",
+      "specificationFingerprint": "jq-guided-spec-v1-0sjxkjq",
+      "layoutId": "clear-wall",
+      "finish": "medium-walnut",
+      "fitSummary": "Accepted fit 141 × 108 × 15 in jq-guided-geometry-v1-104RJ5ZFL9Q4R"
+    },
+    {
+      "id": "clear-wall-freestanding",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "filename": "clear-wall-freestanding.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-3FACT1FW583HX",
+      "specificationFingerprint": "jq-guided-spec-v1-1tkan47",
+      "layoutId": "clear-wall",
+      "finish": "medium-walnut",
+      "fitSummary": "Accepted fit 143 × 107 1/2 × 15 in jq-guided-geometry-v1-3FACT1FW583HX"
+    },
+    {
+      "id": "right-niche-tv-55",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "filename": "right-niche-tv-55.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-2N8ORVBLUJFNL",
+      "specificationFingerprint": "jq-guided-spec-v1-1ntfth7",
+      "layoutId": "right-niche",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 117 × 96 × 14 in TV opening · 51 5/16 × 32 in jq-guided-geometry-v1-2N8ORVBLUJFNL"
+    },
+    {
+      "id": "right-niche-tv-75",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "filename": "right-niche-tv-75.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-0QOJ9TVNJHZN7",
+      "specificationFingerprint": "jq-guided-spec-v1-0ggte00",
+      "layoutId": "right-niche",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 117 × 96 × 14 in TV opening · 68 11/16 × 42 in jq-guided-geometry-v1-0QOJ9TVNJHZN7"
+    },
+    {
+      "id": "wood-material-close",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "filename": "wood-material-close.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-104RJ5ZFL9Q4R",
+      "specificationFingerprint": "jq-guided-spec-v1-0eq4gyq",
+      "layoutId": "clear-wall",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 141 × 108 × 15 in jq-guided-geometry-v1-104RJ5ZFL9Q4R"
+    },
+    {
+      "id": "paint-material-close",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "filename": "paint-material-close.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-104RJ5ZFL9Q4R",
+      "specificationFingerprint": "jq-guided-spec-v1-1i206iz",
+      "layoutId": "clear-wall",
+      "finish": "charcoal",
+      "fitSummary": "Accepted fit 141 × 108 × 15 in jq-guided-geometry-v1-104RJ5ZFL9Q4R"
+    },
+    {
+      "id": "glass-material-close",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "filename": "glass-material-close.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-0KJQRH51WYGP3",
+      "specificationFingerprint": "jq-guided-spec-v1-1x2qkcf",
+      "layoutId": "clear-wall",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 141 × 108 × 15 in jq-guided-geometry-v1-0KJQRH51WYGP3"
+    },
+    {
+      "id": "right-niche-review-desktop",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "filename": "right-niche-review-desktop.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-3FSC67U7YYY74",
+      "specificationFingerprint": "jq-guided-spec-v1-09jtyhx",
+      "layoutId": "right-niche",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 93 × 96 × 14 in TV opening · 60 × 37 in jq-guided-geometry-v1-3FSC67U7YYY74"
+    },
+    {
+      "id": "desktop-1440x900",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "filename": "desktop-1440x900.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-3FSC67U7YYY74",
+      "specificationFingerprint": "jq-guided-spec-v1-09jtyhx",
+      "layoutId": "right-niche",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 93 × 96 × 14 in TV opening · 60 × 37 in jq-guided-geometry-v1-3FSC67U7YYY74"
+    },
+    {
+      "id": "desktop-1366x1024",
+      "browser": "chromium",
+      "viewport": {
+        "width": 1366,
+        "height": 1024
+      },
+      "filename": "desktop-1366x1024.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-3FSC67U7YYY74",
+      "specificationFingerprint": "jq-guided-spec-v1-09jtyhx",
+      "layoutId": "right-niche",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 93 × 96 × 14 in TV opening · 60 × 37 in jq-guided-geometry-v1-3FSC67U7YYY74"
+    },
+    {
+      "id": "webkit-ipad-landscape-1024x768",
+      "browser": "webkit",
+      "viewport": {
+        "width": 1024,
+        "height": 768
+      },
+      "filename": "webkit-ipad-landscape-1024x768.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-3FSC67U7YYY74",
+      "specificationFingerprint": "jq-guided-spec-v1-09jtyhx",
+      "layoutId": "right-niche",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 93 × 96 × 14 in TV opening · 60 × 37 in jq-guided-geometry-v1-3FSC67U7YYY74"
+    },
+    {
+      "id": "webkit-tablet-portrait-834x1194",
+      "browser": "webkit",
+      "viewport": {
+        "width": 834,
+        "height": 1194
+      },
+      "filename": "webkit-tablet-portrait-834x1194.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-3FSC67U7YYY74",
+      "specificationFingerprint": "jq-guided-spec-v1-09jtyhx",
+      "layoutId": "right-niche",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 93 × 96 × 14 in TV opening · 60 × 37 in jq-guided-geometry-v1-3FSC67U7YYY74"
+    },
+    {
+      "id": "mobile-390x844",
+      "browser": "chromium",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "filename": "mobile-390x844.png",
+      "geometryFingerprint": "jq-guided-geometry-v1-3FSC67U7YYY74",
+      "specificationFingerprint": "jq-guided-spec-v1-09jtyhx",
+      "layoutId": "right-niche",
+      "finish": "natural-oak",
+      "fitSummary": "Accepted fit 93 × 96 × 14 in TV opening · 60 × 37 in jq-guided-geometry-v1-3FSC67U7YYY74"
+    }
+  ]
+}
