@@ -147,6 +147,7 @@ jobs:
             guided-product-adapter.js \
             guided-product-engine.js \
             guided-render-contract.js \
+            guided-render-primitives.js \
             guided-materials.js \
             guided-project-engine.js \
             guided-scene-plan.js \
@@ -203,6 +204,7 @@ jobs:
           test -f _site/guided-product-adapter.js
           test -f _site/guided-product-engine.js
           test -f _site/guided-render-contract.js
+          test -f _site/guided-render-primitives.js
           test -f _site/guided-materials.js
           test -f _site/guided-project-engine.js
           test -f _site/bookcase-render-contract.js

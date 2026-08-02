@@ -1827,7 +1827,7 @@ function syncGuidedScene() {
   }
 
   updateGuidedSceneState("loading");
-  guidedSceneImportPromise ||= import("./guided-configurator-3d.js?v=luxury-configurator-engine-v1-20260802a");
+  guidedSceneImportPromise ||= import("./guided-configurator-3d.js?v=blender-render-foundation-v1");
   guidedSceneImportPromise
     .then(({ createGuidedSceneController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;
