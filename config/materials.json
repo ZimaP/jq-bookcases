@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "units": "inches",
+  "environment": {
+    "customerWarm": "assets/environments/jq-warm-interior.hdr",
+    "materialQaNeutral": "assets/environments/jq-neutral-studio.hdr"
+  },
+  "wood": [
+    {
+      "id": "white-oak",
+      "label": "White Oak",
+      "folder": "assets/textures/wood/white-oak",
+      "repeatInches": [
+        24,
+        48
+      ],
+      "roughness": 0.62
+    },
+    {
+      "id": "natural-oak",
+      "label": "Natural Oak",
+      "folder": "assets/textures/wood/natural-oak",
+      "repeatInches": [
+        24,
+        48
+      ],
+      "roughness": 0.58
+    },
+    {
+      "id": "light-walnut",
+      "label": "Light Walnut",
+      "folder": "assets/textures/wood/light-walnut",
+      "repeatInches": [
+        22,
+        44
+      ],
+      "roughness": 0.57
+    },
+    {
+      "id": "medium-walnut",
+      "label": "Medium Walnut",
+      "folder": "assets/textures/wood/medium-walnut",
+      "repeatInches": [
+        22,
+        44
+      ],
+      "roughness": 0.55
+    },
+    {
+      "id": "dark-walnut",
+      "label": "Dark Walnut",
+      "folder": "assets/textures/wood/dark-walnut",
+      "repeatInches": [
+        22,
+        44
+      ],
+      "roughness": 0.54
+    }
+  ],
+  "paint": [
+    {
+      "id": "warm-white",
+      "label": "Warm White",
+      "baseColor": "#f3f0e9",
+      "normal": "assets/textures/paint/sprayed-normal.png",
+      "roughnessMap": "assets/textures/paint/sprayed-roughness.png",
+      "roughness": 0.62
+    },
+    {
+      "id": "soft-ivory",
+      "label": "Soft Ivory",
+      "baseColor": "#e8dfd0",
+      "normal": "assets/textures/paint/sprayed-normal.png",
+      "roughnessMap": "assets/textures/paint/sprayed-roughness.png",
+      "roughness": 0.63
+    },
+    {
+      "id": "sage-gray",
+      "label": "Sage Gray",
+      "baseColor": "#89918a",
+      "normal": "assets/textures/paint/sprayed-normal.png",
+      "roughnessMap": "assets/textures/paint/sprayed-roughness.png",
+      "roughness": 0.65
+    },
+    {
+      "id": "charcoal",
+      "label": "Charcoal",
+      "baseColor": "#343638",
+      "normal": "assets/textures/paint/sprayed-normal.png",
+      "roughnessMap": "assets/textures/paint/sprayed-roughness.png",
+      "roughness": 0.58
+    }
+  ],
+  "grainOrientation": {
+    "side_panel": "vertical",
+    "divider": "vertical",
+    "door": "vertical",
+    "drawer_front": "vertical",
+    "shelf": "long-axis",
+    "top_panel": "long-axis",
+    "trim": "extrusion-axis",
+    "crown": "extrusion-axis",
+    "back_panel": "vertical"
+  },
+  "limitations": "Procedural visualization starters; replaceable after physical sample approval."
+}

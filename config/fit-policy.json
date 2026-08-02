@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "units": "inches",
+  "tolerance": {
+    "geometry": 0.001,
+    "visualContact": 0.125,
+    "symmetry": 0.125
+  },
+  "base": {
+    "builtInNominalHeight": 4.0,
+    "existingFurnitureBaseHeight": 4.5,
+    "sourceStatus": "locked"
+  },
+  "fillers": {
+    "preferredEach": 1.5,
+    "minimumEach": 0.75,
+    "maximumEach": 4.0,
+    "symmetryTolerance": 0.125,
+    "sourceStatus": "provisional-shop-confirmation"
+  },
+  "topScribe": {
+    "preferred": 0.75,
+    "minimum": 0.25,
+    "maximum": 2.0,
+    "sourceStatus": "provisional-shop-confirmation"
+  },
+  "openEdge": {
+    "finishedEndPanelThickness": 0.75,
+    "designClearance": 0.5,
+    "sourceStatus": "provisional-shop-confirmation"
+  },
+  "tv": {
+    "defaultAspectRatio": [
+      16,
+      9
+    ],
+    "sideServiceClearance": 2.0,
+    "topServiceClearance": 2.0,
+    "bottomServiceClearance": 2.0,
+    "soundbarZoneHeight": 4.5,
+    "equipmentVentClearance": 1.0,
+    "sourceStatus": "provisional-shop-confirmation"
+  },
+  "featureClearance": {
+    "doorTrim": 1.0,
+    "windowTrim": 1.0,
+    "fireplaceTrim": 2.0,
+    "radiatorService": 2.0,
+    "sourceStatus": "provisional-shop-confirmation"
+  },
+  "rules": [
+    "No global scaling",
+    "Floor and rear-wall anchoring",
+    "Equivalent boundaries imply equal fillers",
+    "Open edge implies finished end treatment",
+    "Invalid candidates fail closed"
+  ]
+}

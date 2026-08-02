@@ -2,7 +2,7 @@ import {
   defaultBookcaseConfig,
   layoutPresets,
   normalizeBookcaseConfig
-} from "./bookcase-config.js?v=engine-polish-20260716a";
+} from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
 
 export const STUDIO_ENTRY_VIEWS = Object.freeze({
   welcome: "welcome"

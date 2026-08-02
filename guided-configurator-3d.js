@@ -1,5 +1,18 @@
 import * as THREE from "./assets/vendor/three.module.js";
-import { createGuidedScenePlan } from "./guided-scene-plan.js?v=unified-guided-scene-20260729d";
+import { createGuidedScenePlan } from "./guided-scene-plan.js?v=luxury-configurator-engine-v1-20260802c";
+import {
+  applyGuidedEnvironment,
+  applyPhysicalBoxUvs,
+  applyPhysicalExtrusionUvs,
+  createGuidedMaterialLibrary,
+  isGuidedSharedTexture
+} from "./guided-materials.js?v=luxury-configurator-engine-v1";
+import {
+  auditGuidedAcceptedSpecification,
+  createGuidedSceneDescriptors,
+  transformGuidedBoundsToWorld,
+  validateGuidedRenderedManifest
+} from "./guided-render-contract.js?v=luxury-configurator-engine-v1";
 
 const INCH_TO_SCENE = 1 / 12;
 const MAX_DEVICE_PIXEL_RATIO = 2;
@@ -7,20 +20,96 @@ const MIN_SURFACE_THICKNESS = 0.065;
 const CAMERA_FOV = 35;
 const CAMERA_NEAR = 0.04;
 const CAMERA_FAR = 320;
-const CONCEPT_SCENE_PURPOSE = "customer-concept-scene-descriptor";
+const CONCEPT_SCENE_PURPOSE = "accepted-fitted-millwork-specification";
 const ARCHITECTURAL_CLEARANCE = 2.5;
 const DIMENSION_LABEL_GAP = 6;
 const DIMENSION_LABEL_VIEWPORT_PADDING = 8;
 const DIMENSION_LABEL_BOTTOM_RESERVE = 44;
+const GUIDED_NEUTRAL_MATERIAL_COLOR = 0xb8b5ae;
+const GUIDED_NEUTRAL_MATERIAL_ROUGHNESS = 0.72;
+const GUIDED_NEUTRAL_MATERIAL_SLOTS = Object.freeze([
+  "case",
+  "side",
+  "back",
+  "front",
+  "inset",
+  "accent"
+]);
+const GUIDED_FINISH_TEXTURE_SLOTS = Object.freeze([
+  "map",
+  "normalMap",
+  "roughnessMap",
+  "aoMap"
+]);
+const GUIDED_APPEARANCE_DESCRIPTOR_ROLES = new Set(["handle", "light"]);
+
+export const GUIDED_RESOURCE_FALLBACKS = Object.freeze({
+  material: Object.freeze({
+    code: "GUIDED_MATERIAL_ASSET_FALLBACK",
+    id: "jq-neutral-material-v1",
+    label: "JQ Neutral Material",
+    message: "A selected finish asset could not be loaded. The preview is using JQ Neutral Material instead."
+  }),
+  environment: Object.freeze({
+    code: "GUIDED_ENVIRONMENT_ASSET_FALLBACK",
+    id: "jq-neutral-studio-lighting-v1",
+    label: "JQ Neutral Studio Lighting",
+    message: "The preview environment could not be loaded. The preview is using JQ Neutral Studio Lighting instead."
+  })
+});
+
+/**
+ * Replace finish-dependent surfaces with an explicit, asset-independent
+ * neutral material. Hardware, glass, screens, and lighting remain separate
+ * materials and are intentionally untouched. Accent surfaces join the
+ * fallback because both match-exterior and sprayed accent paints depend on
+ * finish assets loaded through this material pipeline.
+ */
+export function applyGuidedNeutralMaterialFallback(library) {
+  if (!library || typeof library !== "object") return false;
+  const fallback = GUIDED_RESOURCE_FALLBACKS.material;
+  const requestedFinishId = library.requestedFinishId || library.finishId || "unknown";
+  let applied = false;
+
+  GUIDED_NEUTRAL_MATERIAL_SLOTS.forEach((slot) => {
+    const material = library[slot];
+    if (!material || typeof material !== "object") return;
+    GUIDED_FINISH_TEXTURE_SLOTS.forEach((textureSlot) => {
+      if (textureSlot in material) material[textureSlot] = null;
+    });
+    material.color?.set?.(GUIDED_NEUTRAL_MATERIAL_COLOR);
+    material.roughness = GUIDED_NEUTRAL_MATERIAL_ROUGHNESS;
+    material.metalness = 0;
+    material.name = `${fallback.label} · ${slot}`;
+    material.userData ||= {};
+    material.userData.guidedRequestedFinishId = slot === "accent"
+      ? library.accentFinishId || requestedFinishId
+      : requestedFinishId;
+    material.userData.guidedFinishId = fallback.id;
+    material.userData.guidedFallbackId = fallback.id;
+    material.userData.guidedNeutralFallback = true;
+    material.needsUpdate = true;
+    applied = true;
+  });
+
+  if (!applied) return false;
+  library.requestedFinishId = requestedFinishId;
+  library.finishId = fallback.id;
+  library.finishFamily = "neutral-fallback";
+  library.accentFinishId = fallback.id;
+  library.accentMatchesExterior = true;
+  library.repeatInches = Object.freeze([12, 12]);
+  library.fallbackId = fallback.id;
+  return true;
+}
 
 let guidedSceneInstanceSequence = 0;
 
 /**
  * Create the lightweight renderer used by the guided configurator.
  *
- * This viewer intentionally consumes the guided scene plan rather than the
- * manufacturing engine. Its cabinetry is a concept-scene descriptor
- * visualization only; it never creates bill-of-material or pricing data.
+ * The room plan is presentation-only. Product meshes are created exclusively
+ * from the audited descriptor graph in the accepted guided specification.
  */
 export function createGuidedSceneController(options = {}) {
   return new GuidedSceneController(options);
@@ -35,11 +124,15 @@ export class GuidedSceneController {
     this.onError = typeof options.onError === "function"
       ? options.onError
       : () => {};
+    this.onWarning = typeof options.onWarning === "function"
+      ? options.onWarning
+      : () => {};
 
     this.runtime = null;
     this.canvas = null;
     this.labelLayer = null;
     this.hint = null;
+    this.resourceWarningElement = null;
     this.mountTarget = null;
     this.ownerWindow = null;
     this.scene = null;
@@ -59,8 +152,19 @@ export class GuidedSceneController {
     this.plan = null;
     this.options = Object.freeze({ showProduct: false, showDimensions: false });
     this.sceneSignature = "";
+    this.geometrySignature = "";
+    this.appearanceSignature = "";
+    this.materialSignature = "";
     this.topologySignature = "";
+    this.acceptedSpecification = null;
+    this.productGroup = null;
+    this.renderAudit = null;
+    this.geometryRebuildCount = 0;
+    this.appearanceUpdateCount = 0;
+    this.materialUpdateCount = 0;
     this.userAdjustedCamera = false;
+    this.resourceWarnings = new Map();
+    this.activeMaterialLoad = null;
 
     this.cameraTarget = new THREE.Vector3();
     this.defaultCameraTarget = new THREE.Vector3();
@@ -115,7 +219,9 @@ export class GuidedSceneController {
     if (this.disposed) return false;
     const nextOptions = Object.freeze({
       showProduct: options.showProduct === true,
-      showDimensions: options.showDimensions === true
+      showDimensions: options.showDimensions === true,
+      acceptedSpecification: options.acceptedSpecification || null,
+      rejectedCandidate: options.rejectedCandidate || null
     });
     const preserveReadyPresentation = this.state === "ready"
       && this.failed !== true;
@@ -128,7 +234,28 @@ export class GuidedSceneController {
         this.ensureRuntime(documentRef);
       }
 
-      const plan = createRenderReadyScenePlan(createGuidedScenePlan(project));
+      const acceptedSpecification = nextOptions.acceptedSpecification;
+      if (nextOptions.showProduct) {
+        const audit = auditGuidedAcceptedSpecification(acceptedSpecification);
+        if (!audit.valid) {
+          const first = audit.errors[0];
+          const error = new Error(first?.message || "The fitted configuration is not accepted for rendering.");
+          error.code = first?.code || "GUIDED_SPECIFICATION_NOT_ACCEPTED";
+          throw error;
+        }
+      }
+      const plan = createRenderReadyScenePlan(
+        createGuidedScenePlan(project),
+        acceptedSpecification?.accepted ? acceptedSpecification.room : null
+      );
+      if (acceptedSpecification?.accepted && acceptedSpecification.layoutId !== plan.room?.layoutId) {
+        const error = new Error("The accepted room topology does not match the visible room plan.");
+        error.code = "VISIBLE_ROOM_TOPOLOGY_MISMATCH";
+        throw error;
+      }
+      if (nextOptions.showProduct && acceptedSpecification?.accepted) {
+        applyAcceptedTargetZones(plan, acceptedSpecification);
+      }
       validateScenePlan(plan);
       const nextTopologySignature = [
         plan.room?.layoutId || "unselected",
@@ -140,7 +267,20 @@ export class GuidedSceneController {
 
       this.plan = plan;
       this.options = nextOptions;
-      this.sceneSignature = createSceneSignature(plan);
+      this.acceptedSpecification = acceptedSpecification;
+      const nextGeometrySignature = createGeometrySceneSignature(plan, acceptedSpecification, nextOptions);
+      const nextAppearanceSignature = createGuidedAppearanceDescriptorSignature(
+        nextOptions.showProduct ? acceptedSpecification : null
+      );
+      const nextMaterialSignature = acceptedSpecification?.selectionFingerprint
+        || createMaterialSignature(plan.selection);
+      const geometryChanged = nextGeometrySignature !== this.geometrySignature;
+      const appearanceChanged = nextAppearanceSignature !== this.appearanceSignature;
+      const materialChanged = nextMaterialSignature !== this.materialSignature;
+      this.geometrySignature = nextGeometrySignature;
+      this.appearanceSignature = nextAppearanceSignature;
+      this.materialSignature = nextMaterialSignature;
+      this.sceneSignature = acceptedSpecification?.specificationFingerprint || createSceneSignature(plan);
       this.topologySignature = nextTopologySignature;
       this.failed = false;
       this.runtime.hidden = false;
@@ -148,8 +288,15 @@ export class GuidedSceneController {
       delete this.canvas.dataset.rendered;
       this.runtime.dataset.scenePurpose = CONCEPT_SCENE_PURPOSE;
       this.syncDiagnostics();
-      this.rebuildScene();
-      this.configureCamera({ preserveAdjustedCamera });
+      if (geometryChanged || !this.content) {
+        this.rebuildScene();
+        this.configureCamera({ preserveAdjustedCamera });
+      } else if (appearanceChanged && this.options.showProduct) {
+        this.refreshProductAppearance();
+      } else if (materialChanged && this.options.showProduct) {
+        this.refreshProductMaterials();
+      }
+      this.syncDiagnostics();
       this.requestRender();
       return true;
     } catch (error) {
@@ -182,6 +329,8 @@ export class GuidedSceneController {
   dispose() {
     if (this.disposed) return;
     this.disposed = true;
+    if (this.activeMaterialLoad) this.activeMaterialLoad.active = false;
+    this.activeMaterialLoad = null;
     this.cancelScheduledRender();
     this.cancelScheduledResize();
     this.resizeObserver?.disconnect();
@@ -206,12 +355,14 @@ export class GuidedSceneController {
     this.runtime = null;
     this.labelLayer = null;
     this.hint = null;
+    this.resourceWarningElement = null;
     this.content = null;
     this.scene = null;
     this.camera = null;
     this.renderer = null;
     this.canvas = null;
     this.plan = null;
+    this.resourceWarnings.clear();
   }
 
   ensureRuntime(documentRef) {
@@ -262,6 +413,20 @@ export class GuidedSceneController {
       "Pointer users can drag to orbit and focus the viewer before scrolling to zoom."
     ].join(" ");
 
+    const resourceWarning = documentRef.createElement("p");
+    resourceWarning.id = `guided-3d-resource-warning-${this.instanceId}`;
+    resourceWarning.className = "visually-hidden";
+    resourceWarning.style.position = "absolute";
+    resourceWarning.style.width = "1px";
+    resourceWarning.style.height = "1px";
+    resourceWarning.style.overflow = "hidden";
+    resourceWarning.style.clipPath = "inset(50%)";
+    resourceWarning.style.whiteSpace = "nowrap";
+    resourceWarning.setAttribute("role", "status");
+    resourceWarning.setAttribute("aria-live", "polite");
+    resourceWarning.setAttribute("aria-atomic", "true");
+    resourceWarning.hidden = true;
+
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xf2efea);
     scene.fog = new THREE.Fog(0xf2efea, 24, 76);
@@ -285,7 +450,7 @@ export class GuidedSceneController {
     canvas.setAttribute("role", "application");
     canvas.setAttribute("aria-roledescription", "interactive 3D viewer");
     canvas.setAttribute("aria-label", "Room and fitted furniture concept");
-    canvas.setAttribute("aria-describedby", instructions.id);
+    canvas.setAttribute("aria-describedby", `${instructions.id} ${resourceWarning.id}`);
     canvas.style.display = "block";
     canvas.style.width = "100%";
     canvas.style.height = "100%";
@@ -293,12 +458,13 @@ export class GuidedSceneController {
     canvas.dataset.guided3dInstance = String(this.instanceId);
     canvas.setAttribute("data-guided-3d-instance", String(this.instanceId));
 
-    runtime.append(canvas, labelLayer, hint, instructions);
+    runtime.append(canvas, labelLayer, hint, instructions, resourceWarning);
 
     this.runtime = runtime;
     this.canvas = canvas;
     this.labelLayer = labelLayer;
     this.hint = hint;
+    this.resourceWarningElement = resourceWarning;
     this.scene = scene;
     this.camera = camera;
     this.renderer = renderer;
@@ -306,6 +472,10 @@ export class GuidedSceneController {
     this.content.name = "guided-concept-scene";
     this.content.userData.scenePurpose = CONCEPT_SCENE_PURPOSE;
     this.scene.add(this.content);
+    applyGuidedEnvironment(THREE, this.scene, renderer, "warm", {
+      onLoad: () => this.requestRender(),
+      onError: (error, source) => this.handleEnvironmentAssetFailure(error, source)
+    });
     this.setupLighting();
     this.bindControls();
     this.syncDiagnostics();
@@ -538,6 +708,9 @@ export class GuidedSceneController {
   }
 
   rebuildScene() {
+    if (this.activeMaterialLoad) this.activeMaterialLoad.active = false;
+    this.activeMaterialLoad = null;
+    if (!this.options.showProduct) this.clearResourceWarning("material");
     if (this.content) {
       this.scene.remove(this.content);
       disposeObject3D(this.content);
@@ -548,7 +721,7 @@ export class GuidedSceneController {
     this.labelLayer.replaceChildren();
 
     this.content = new THREE.Group();
-    this.content.name = "guided-concept-scene";
+    this.content.name = "guided-accepted-scene";
     this.content.userData.scenePurpose = CONCEPT_SCENE_PURPOSE;
     this.scene.add(this.content);
 
@@ -564,18 +737,10 @@ export class GuidedSceneController {
     });
 
     if (this.options.showProduct) {
-      const productGroup = new THREE.Group();
-      productGroup.name = "guided-product-concept";
-      productGroup.userData = {
-        scenePurpose: CONCEPT_SCENE_PURPOSE,
-        source: "guided-scene-plan",
-        billOfMaterials: false,
-        pricing: false
-      };
-      const productMaterials = createProductMaterials(this.plan.selection);
-      productGroup.userData.materials = productMaterials;
-      this.content.add(productGroup);
-      renderProductPlan(productGroup, this.plan, productMaterials);
+      this.mountAcceptedProductGroup(this.content);
+    } else {
+      this.productGroup = null;
+      this.renderAudit = null;
     }
 
     const dimensions = new THREE.Group();
@@ -591,6 +756,155 @@ export class GuidedSceneController {
         this.dimensionLabels
       );
     }
+    this.geometryRebuildCount += 1;
+  }
+
+  mountAcceptedProductGroup(parent) {
+    const productGroup = new THREE.Group();
+    productGroup.name = "guided-product-accepted-descriptors";
+    productGroup.userData = {
+      scenePurpose: CONCEPT_SCENE_PURPOSE,
+      source: "accepted-guided-specification",
+      geometryFingerprint: this.acceptedSpecification?.geometryFingerprint || null,
+      specificationFingerprint: this.acceptedSpecification?.specificationFingerprint || null,
+      billOfMaterials: true,
+      pricing: this.acceptedSpecification?.pricingStatus || "unavailable"
+    };
+    const productMaterials = this.createProductMaterialLibrary();
+    productGroup.userData.materials = productMaterials;
+    parent.add(productGroup);
+    this.productGroup = productGroup;
+    const records = renderAcceptedProduct(
+      productGroup,
+      this.acceptedSpecification,
+      productMaterials
+    );
+    this.renderAudit = validateGuidedRenderedManifest(this.acceptedSpecification, records);
+    if (!this.renderAudit.valid) {
+      const first = this.renderAudit.issues[0];
+      const error = new Error(first?.message || "Accepted descriptors did not reach the scene.");
+      error.code = first?.code || "GUIDED_RENDER_CONTRACT_FAILED";
+      throw error;
+    }
+    productGroup.userData.renderAudit = this.renderAudit;
+  }
+
+  refreshProductAppearance() {
+    const parent = this.productGroup?.parent || this.content;
+    if (!parent) return;
+    if (this.productGroup) {
+      parent.remove(this.productGroup);
+      disposeObject3D(this.productGroup);
+      this.productGroup.clear();
+    }
+    this.productGroup = null;
+    this.renderAudit = null;
+    this.mountAcceptedProductGroup(parent);
+    this.appearanceUpdateCount += 1;
+  }
+
+  refreshProductMaterials() {
+    if (!this.productGroup) return;
+    const previous = this.productGroup.userData.materials;
+    const materials = this.createProductMaterialLibrary();
+    this.productGroup.traverse((child) => {
+      const slot = child.userData?.materialSlot;
+      if (!slot || (!child.isMesh && !child.isLineSegments)) return;
+      child.material = materials[slot] || materials.case;
+    });
+    this.productGroup.userData.materials = materials;
+    disposeMaterialLibrary(previous);
+    this.materialUpdateCount += 1;
+  }
+
+  createProductMaterialLibrary() {
+    if (this.activeMaterialLoad) this.activeMaterialLoad.active = false;
+    this.clearResourceWarning("material");
+    const context = {
+      active: true,
+      failed: false,
+      library: null
+    };
+    this.activeMaterialLoad = context;
+    const library = createGuidedMaterialLibrary(THREE, this.plan.selection, {
+      onLoad: () => {
+        if (context.active && this.activeMaterialLoad === context) this.requestRender();
+      },
+      onError: (error, source) => {
+        if (!context.active || this.activeMaterialLoad !== context || this.disposed) return;
+        context.failed = true;
+        this.handleMaterialAssetFailure(context, error, source);
+      }
+    });
+    context.library = library;
+    if (context.failed) applyGuidedNeutralMaterialFallback(library);
+    return library;
+  }
+
+  handleMaterialAssetFailure(context, error, source) {
+    if (!context?.active || this.activeMaterialLoad !== context || this.disposed) return;
+    if (context.library) applyGuidedNeutralMaterialFallback(context.library);
+    this.recordResourceFallbackWarning("material", error, source);
+    this.requestRender();
+  }
+
+  handleEnvironmentAssetFailure(error, source) {
+    if (this.disposed) return;
+    const fallback = GUIDED_RESOURCE_FALLBACKS.environment;
+    if (this.scene) {
+      this.scene.environment = null;
+      this.scene.userData ||= {};
+      this.scene.userData.requestedEnvironmentSource = normalizeResourceSource(source, error);
+      this.scene.userData.environmentSource = fallback.id;
+      this.scene.userData.environmentPreview = "";
+      this.scene.userData.environmentFallbackId = fallback.id;
+    }
+    if (this.renderer) this.renderer.toneMappingExposure = 0.95;
+    this.recordResourceFallbackWarning("environment", error, source);
+    this.requestRender();
+  }
+
+  recordResourceFallbackWarning(kind, error, source) {
+    const fallback = GUIDED_RESOURCE_FALLBACKS[kind];
+    if (!fallback) return null;
+    const normalizedSource = normalizeResourceSource(source, error);
+    const previous = this.resourceWarnings.get(kind);
+    const sources = new Set(previous?.sources || []);
+    const sourceAdded = !sources.has(normalizedSource);
+    sources.add(normalizedSource);
+    const warning = Object.freeze({
+      code: fallback.code,
+      severity: "warning",
+      kind,
+      fallbackId: fallback.id,
+      fallbackLabel: fallback.label,
+      message: fallback.message,
+      errorCode: String(error?.code || ""),
+      sources: Object.freeze([...sources].sort())
+    });
+    this.resourceWarnings.set(kind, warning);
+    this.syncDiagnostics();
+    if (!previous || sourceAdded) {
+      try {
+        this.onWarning(warning);
+      } catch (callbackError) {
+        // Warning reporting must not replace the recoverable renderer fallback.
+      }
+    }
+    return warning;
+  }
+
+  clearResourceWarning(kind) {
+    if (!this.resourceWarnings.delete(kind)) return false;
+    this.syncDiagnostics();
+    return true;
+  }
+
+  getResourceWarnings() {
+    return [...this.resourceWarnings.values()].map((warning) => Object.freeze({
+      ...warning,
+      sources: Object.freeze([...warning.sources])
+    }));
   }
 
   configureCamera({ preserveAdjustedCamera = false } = {}) {
@@ -719,17 +1033,36 @@ export class GuidedSceneController {
   }
 
   syncDiagnostics() {
+    const warnings = this.getResourceWarnings();
     const values = {
       guided3dInstance: String(this.instanceId),
       sceneLayout: this.plan?.room?.layoutId || "",
       showProduct: String(this.options.showProduct === true),
       showDimensions: String(this.options.showDimensions === true),
-      sceneSignature: this.sceneSignature || ""
+      sceneSignature: this.sceneSignature || "",
+      geometryFingerprint: this.acceptedSpecification?.geometryFingerprint || "",
+      specificationFingerprint: this.acceptedSpecification?.specificationFingerprint || "",
+      geometryRebuildCount: String(this.geometryRebuildCount),
+      appearanceUpdateCount: String(this.appearanceUpdateCount),
+      materialUpdateCount: String(this.materialUpdateCount),
+      renderContractValid: String(this.renderAudit?.valid === true),
+      resourceFallbackActive: String(warnings.length > 0),
+      resourceWarningCount: String(warnings.length),
+      resourceWarningCodes: warnings.map(({ code }) => code).join(" "),
+      resourceFallbackIds: warnings.map(({ fallbackId }) => fallbackId).join(" "),
+      materialFallbackActive: String(this.resourceWarnings.has("material")),
+      environmentFallbackActive: String(this.resourceWarnings.has("environment"))
     };
     [this.runtime, this.canvas].filter(Boolean).forEach((element) => {
       Object.assign(element.dataset, values);
       element.setAttribute("data-guided-3d-instance", String(this.instanceId));
     });
+    if (this.resourceWarningElement) {
+      this.resourceWarningElement.textContent = warnings
+        .map(({ message }) => message)
+        .join(" ");
+      this.resourceWarningElement.hidden = warnings.length === 0;
+    }
   }
 
   notifyState(state) {
@@ -757,6 +1090,15 @@ export class GuidedSceneController {
     this.notifyState("fallback");
     return false;
   }
+}
+
+function normalizeResourceSource(source, error) {
+  const candidate = source
+    || error?.target?.currentSrc
+    || error?.target?.src
+    || error?.source
+    || "unknown-asset";
+  return String(candidate);
 }
 
 function positionDimensionLabels(labels, viewportWidth, viewportHeight) {
@@ -842,8 +1184,24 @@ function getRectOverlapArea(first, second) {
   return width * height;
 }
 
-function createRenderReadyScenePlan(sourcePlan) {
+function createRenderReadyScenePlan(sourcePlan, acceptedRoom = null) {
   const plan = JSON.parse(JSON.stringify(sourcePlan));
+  if (acceptedRoom?.accepted) {
+    plan.purpose = CONCEPT_SCENE_PURPOSE;
+    plan.units = "inches";
+    plan.measurements = {
+      ...plan.measurements,
+      wallWidth: acceptedRoom.wallWidth,
+      ceilingHeight: acceptedRoom.ceilingHeight,
+      desiredDepth: acceptedRoom.desiredDepth
+    };
+    plan.room = createAcceptedRoomRenderDescriptor(acceptedRoom);
+    plan.dimensionCallouts = syncAcceptedRoomDimensionCallouts(
+      plan.dimensionCallouts,
+      acceptedRoom
+    );
+    return plan;
+  }
   const finalized = [];
   const hiddenDimensionGroups = new Set();
   const finalizeFeatures = (matcher, resolver, dimensionGroup) => {
@@ -892,6 +1250,258 @@ function createRenderReadyScenePlan(sourcePlan) {
     ));
   }
   return plan;
+}
+
+function createAcceptedRoomRenderDescriptor(room) {
+  const left = finiteOr(room.planes?.leftWall?.value, -Number(room.wallWidth) / 2);
+  const right = finiteOr(room.planes?.rightWall?.value, Number(room.wallWidth) / 2);
+  const floor = finiteOr(room.floorPlaneY, 0);
+  const ceiling = finiteOr(room.ceilingHeight, finiteOr(room.planes?.ceiling?.value, 96));
+  const rear = finiteOr(room.rearWallPlaneZ, finiteOr(room.planes?.rearWall?.value, 0));
+  const roomWidth = right - left;
+  const front = Math.min(
+    -Math.max(54, roomWidth * 0.58),
+    ...Object.values(room.features || {})
+      .map((feature) => Number(feature?.bounds?.min?.z))
+      .filter(Number.isFinite)
+  );
+  const niche = Object.values(room.features || {}).find((feature) => (
+    /niche|recess/.test(String(feature?.kind || feature?.id || ""))
+    && isBounds(feature?.bounds)
+  ));
+  const back = Math.max(
+    rear,
+    niche?.bounds?.max?.z ?? rear
+  );
+  const bounds = createBounds(
+    { x: left, y: floor, z: front },
+    { x: right, y: ceiling, z: back + 1.2 }
+  );
+  const surfaces = createAcceptedRoomSurfaces({
+    room,
+    bounds,
+    niche,
+    left,
+    right,
+    floor,
+    ceiling,
+    rear,
+    front,
+    back
+  });
+  const features = createAcceptedRoomFeatures(room, rear);
+  return {
+    layoutId: room.layoutId,
+    label: room.layoutId,
+    condition: room.layoutKind || room.layoutId,
+    buildDepth: room.desiredDepth,
+    bounds,
+    surfaces,
+    features,
+    cameraIntent: room.cameraIntent || "front",
+    source: "accepted-room-topology",
+    topologySchemaVersion: room.schemaVersion,
+    installationZoneIds: (room.installationZones || []).map((zone) => zone.id)
+  };
+}
+
+function createAcceptedRoomSurfaces(context) {
+  const {
+    room,
+    bounds,
+    niche,
+    left,
+    right,
+    floor,
+    ceiling,
+    rear,
+    front,
+    back
+  } = context;
+  const surfaces = [
+    acceptedSurface("room-floor", "floor", createBounds(
+      { x: left - 24, y: floor - 1.1, z: front - 18 },
+      { x: right + 24, y: floor, z: back + 18 }
+    )),
+    acceptedSurface("room-ceiling", "ceiling", createBounds(
+      { x: left - 12, y: ceiling, z: front },
+      { x: right + 12, y: ceiling + 1, z: back + 8 }
+    )),
+    acceptedSurface("room-left-wall", "side-wall", createBounds(
+      { x: left - 1.2, y: floor, z: front },
+      { x: left, y: ceiling, z: back + 1 }
+    )),
+    acceptedSurface("room-right-wall", "side-wall", createBounds(
+      { x: right, y: floor, z: front },
+      { x: right + 1.2, y: ceiling, z: back + 1 }
+    ))
+  ];
+
+  if (niche) {
+    appendAcceptedNicheSurfaces(surfaces, {
+      room,
+      niche,
+      left,
+      right,
+      floor,
+      ceiling,
+      rear
+    });
+  } else {
+    surfaces.push(acceptedSurface("room-back-wall", "back-wall", createBounds(
+      { x: left, y: floor, z: rear },
+      { x: right, y: ceiling, z: rear + 1.2 }
+    )));
+    surfaces.push(acceptedSurface("room-baseboard", "room-baseboard", createBounds(
+      { x: left, y: floor, z: rear - 0.7 },
+      { x: right, y: floor + 4.25, z: rear + 0.7 }
+    )));
+  }
+
+  if (room.layoutId === "corner-wall") {
+    const corner = room.features?.corner;
+    const returnLength = Math.max(
+      Number(corner?.returnRun) || 0,
+      Math.abs(front - rear)
+    );
+    surfaces.push(acceptedSurface("corner-return-wall", "return-wall", createBounds(
+      { x: right, y: floor, z: rear - returnLength },
+      { x: right + 1.2, y: ceiling, z: rear }
+    )));
+  }
+  return surfaces;
+}
+
+function appendAcceptedNicheSurfaces(surfaces, context) {
+  const { room, niche, left, right, floor, ceiling, rear } = context;
+  const nicheBounds = niche.bounds;
+  const nicheBack = nicheBounds.max.z;
+  const addWallSpan = (id, minX, maxX) => {
+    if (maxX - minX <= 0.001) return;
+    surfaces.push(acceptedSurface(id, "back-wall", createBounds(
+      { x: minX, y: floor, z: rear },
+      { x: maxX, y: ceiling, z: rear + 1.2 }
+    )));
+    surfaces.push(acceptedSurface(`${id}-baseboard`, "room-baseboard", createBounds(
+      { x: minX, y: floor, z: rear - 0.7 },
+      { x: maxX, y: floor + 4.25, z: rear + 0.7 }
+    )));
+  };
+  addWallSpan("room-back-wall-left", left, nicheBounds.min.x);
+  addWallSpan("room-back-wall-right", nicheBounds.max.x, right);
+  if (nicheBounds.max.y < ceiling - 0.001) {
+    surfaces.push(acceptedSurface("room-back-wall-above-niche", "back-wall", createBounds(
+      { x: nicheBounds.min.x, y: nicheBounds.max.y, z: rear },
+      { x: nicheBounds.max.x, y: ceiling, z: rear + 1.2 }
+    )));
+  }
+  surfaces.push(acceptedSurface("niche-back", "recess-back", createBounds(
+    { x: nicheBounds.min.x, y: nicheBounds.min.y, z: nicheBack },
+    { x: nicheBounds.max.x, y: nicheBounds.max.y, z: nicheBack + 1 }
+  )));
+
+  const returnSides = room.layoutId === "niche-layout"
+    ? ["left", "right"]
+    : [String(niche.returnSide || niche.side || "")];
+  if (returnSides.includes("left")) {
+    surfaces.push(acceptedSurface("niche-left-return", "recess-return", createBounds(
+      { x: nicheBounds.min.x, y: nicheBounds.min.y, z: rear },
+      { x: nicheBounds.min.x, y: nicheBounds.max.y, z: nicheBack }
+    )));
+  }
+  if (returnSides.includes("right")) {
+    surfaces.push(acceptedSurface("niche-right-return", "recess-return", createBounds(
+      { x: nicheBounds.max.x, y: nicheBounds.min.y, z: rear },
+      { x: nicheBounds.max.x, y: nicheBounds.max.y, z: nicheBack }
+    )));
+  }
+  if (nicheBounds.max.y < ceiling - 0.001) {
+    surfaces.push(acceptedSurface("niche-soffit", "recess-return", createBounds(
+      { x: nicheBounds.min.x, y: nicheBounds.max.y, z: rear },
+      { x: nicheBounds.max.x, y: nicheBounds.max.y, z: nicheBack }
+    )));
+  }
+}
+
+function createAcceptedRoomFeatures(room, rearWallZ) {
+  const features = [];
+  for (const source of Object.values(room.features || {})) {
+    if (!source || !isBounds(source.bounds)) continue;
+    const kind = String(source.kind || source.id || "feature");
+    if (/niche|recess|corner/.test(kind)) continue;
+    const feature = {
+      ...JSON.parse(JSON.stringify(source)),
+      bounds: createAcceptedFeaturePresentationBounds(source, rearWallZ),
+      source: "accepted-room-topology",
+      measurements: {
+        doorTrimWidth: source.trimWidth,
+        doorSwing: source.swing,
+        valveLocation: source.valveLocation
+      },
+      metadata: {
+        doorSwing: source.swing,
+        acceptedFeature: true
+      }
+    };
+    features.push(feature);
+    if (isBounds(source.mantelBounds)) {
+      features.push({
+        id: `${source.id || "fireplace"}-mantel`,
+        kind: "mantel",
+        bounds: cloneSceneBounds(source.mantelBounds),
+        source: "accepted-room-topology"
+      });
+    }
+    if (isBounds(source.trimBounds)) {
+      features.push({
+        id: `${source.id || "door"}-trim`,
+        kind: "door-trim",
+        bounds: createAcceptedOpeningFaceBounds(source.trimBounds, rearWallZ),
+        source: "accepted-room-topology",
+        measurements: { doorTrimWidth: source.trimWidth }
+      });
+    }
+  }
+  return features;
+}
+
+function createAcceptedFeaturePresentationBounds(feature, rearWallZ) {
+  const kind = String(feature.kind || feature.id || "");
+  if (/window|door|opening|passage/.test(kind)) {
+    return createAcceptedOpeningFaceBounds(feature.bounds, rearWallZ);
+  }
+  return cloneSceneBounds(feature.bounds);
+}
+
+function createAcceptedOpeningFaceBounds(bounds, rearWallZ) {
+  return createBounds(
+    { x: bounds.min.x, y: bounds.min.y, z: rearWallZ - 1 },
+    { x: bounds.max.x, y: bounds.max.y, z: rearWallZ }
+  );
+}
+
+function cloneSceneBounds(bounds) {
+  return createBounds(
+    { x: bounds.min.x, y: bounds.min.y, z: bounds.min.z },
+    { x: bounds.max.x, y: bounds.max.y, z: bounds.max.z }
+  );
+}
+
+function acceptedSurface(id, kind, bounds) {
+  return { id, kind, source: "accepted-room-topology", bounds };
+}
+
+function syncAcceptedRoomDimensionCallouts(callouts, room) {
+  const values = {
+    wallWidth: Number(room.wallWidth),
+    ceilingHeight: Number(room.ceilingHeight),
+    desiredDepth: Number(room.desiredDepth)
+  };
+  return (Array.isArray(callouts) ? callouts : []).map((callout) => (
+    Object.hasOwn(values, callout.fieldId) && Number.isFinite(values[callout.fieldId])
+      ? { ...callout, value: values[callout.fieldId], enteredValue: values[callout.fieldId], adjusted: false }
+      : callout
+  ));
 }
 
 function syncWindowStorageTargetZones(plan, windowBounds) {
@@ -2218,1267 +2828,509 @@ function createProceduralFloorTexture() {
   return texture;
 }
 
-function renderProductPlan(group, plan, materials) {
-  const zones = plan.targetZones.filter((zone) => isBounds(zone?.bounds));
-  const featuresById = new Map(
-    plan.room.features.map((feature) => [feature.id, feature])
-  );
-  if (!zones.length) return;
+function renderAcceptedProduct(group, acceptedSpecification, materials) {
+  const descriptors = createGuidedSceneDescriptors(acceptedSpecification);
+  const setGroups = new Map();
+  const records = [];
 
-  zones.forEach((zone) => {
-    const zoneRoot = createZoneRoot(zone);
-    if (!zoneRoot) return;
-    zoneRoot.name = `guided-product-zone-${zone.id || zone.role || "primary"}`;
-    zoneRoot.userData = {
-      source: zone.source || "guided-scene-plan",
-      descriptorId: zone.id || null,
-      zoneRole: zone.role || "primary",
-      scenePurpose: CONCEPT_SCENE_PURPOSE,
-      billOfMaterials: false,
-      pricing: false
+  for (const descriptor of descriptors) {
+    let setGroup = setGroups.get(descriptor.descriptorSetId);
+    if (!setGroup) {
+      setGroup = createAcceptedDescriptorSetRoot(descriptor);
+      group.add(setGroup);
+      setGroups.set(descriptor.descriptorSetId, setGroup);
+    }
+    const componentGroup = new THREE.Group();
+    componentGroup.name = `accepted-component-${descriptor.componentId}`;
+    componentGroup.userData = {
+      componentId: descriptor.componentId,
+      descriptorSetId: descriptor.descriptorSetId,
+      role: descriptor.role,
+      acceptedPhysicalDescriptor: true
     };
-    group.add(zoneRoot);
-
-    const context = {
-      zone,
-      width: getZoneWidth(zone),
-      height: getZoneHeight(zone),
-      depth: getZoneDepth(zone),
-      role: String(zone.role || "primary"),
-      exclusions: resolveZoneExclusions(zone, featuresById, plan.room.features, plan),
-      plan,
-      selection: plan.selection,
-      materials
-    };
-    if (context.width <= 0 || context.height <= 0 || context.depth <= 0) return;
-    renderProductZone(zoneRoot, context);
-  });
+    setGroup.add(componentGroup);
+    const rendered = renderAcceptedComponent(componentGroup, descriptor, materials);
+    records.push(Object.freeze({
+      componentId: descriptor.componentId,
+      meshCount: rendered.meshes.length,
+      materialSlots: rendered.plan.materialSlots,
+      worldBounds: rendered.plan.worldBounds,
+      submeshes: Object.freeze(rendered.plan.submeshes.map((submesh) => Object.freeze({
+        submeshId: submesh.submeshId,
+        geometry: submesh.geometry,
+        materialSlot: submesh.materialSlot,
+        grainRole: submesh.grainRole,
+        worldBounds: submesh.worldBounds
+      })))
+    }));
+  }
+  group.userData.renderRecords = Object.freeze(records);
+  return records;
 }
 
-function renderProductZone(group, context) {
-  const category = String(context.selection?.categoryId || "bookcase");
-  const style = String(context.selection?.styleId || "");
-
-  if (category === "floating-storage") {
-    renderFloatingStorage(group, context);
-    return;
-  }
-  if (category === "radiator-cover") {
-    renderRadiatorCover(group, context);
-    return;
-  }
-  if (category === "window-storage") {
-    renderWindowStorage(group, context);
-    return;
-  }
-  if (category === "tv-unit" || style.includes("tv") || style.includes("media")) {
-    renderMediaWall(group, context);
-    return;
-  }
-
-  renderBookcaseProduct(group, context);
-}
-
-function renderBookcaseProduct(group, context) {
-  const style = String(context.selection?.styleId || "");
-  const role = context.role;
-  if (role === "below") {
-    getRenderableWidthIntervals(context).forEach(([start, end]) => {
-      if (end - start < 4) return;
-      renderBaseStorage(group, {
-        ...context,
-        x: start,
-        y: 0,
-        width: end - start,
-        height: context.height,
-        depth: context.depth,
-        storage: style.includes("drawer") ? "drawers" : "doors"
-      });
-    });
-    return;
-  }
-  if (role === "above") {
-    getRenderableWidthIntervals(context).forEach(([start, end]) => {
-      if (end - start < 4) return;
-      renderOpenCase(group, {
-        ...context,
-        x: start,
-        y: 0,
-        width: end - start,
-        height: context.height,
-        depth: context.depth,
-        includeBase: false
-      });
-    });
-    return;
-  }
-
-  const intervals = getRenderableWidthIntervals(context);
-  intervals.forEach(([start, end]) => {
-    const width = end - start;
-    if (width < Math.min(context.width * 0.06, 4)) return;
-    renderBookcaseBank(group, {
-      ...context,
-      x: start,
-      width,
-      style
-    });
-  });
-}
-
-function renderBookcaseBank(group, context) {
-  const { x, width, height, depth, style } = context;
-  const openOnly = style.includes("full-open");
-  const storageKind = style.includes("drawer") ? "drawers" : "doors";
-  const lowerHeight = openOnly ? 0 : height * 0.29;
-  const upperY = lowerHeight;
-  const upperHeight = height - lowerHeight;
-
-  if (lowerHeight > 0) {
-    renderBaseStorage(group, {
-      ...context,
-      x,
-      y: 0,
-      width,
-      height: lowerHeight,
-      depth,
-      storage: storageKind
-    });
-  }
-
-  renderOpenCase(group, {
-    ...context,
-    x,
-    y: upperY,
-    width,
-    height: upperHeight,
-    depth,
-    includeBase: openOnly
-  });
-  renderTopTreatment(group, {
-    ...context,
-    x,
-    y: height,
-    width,
-    depth
-  });
-  if (openOnly) {
-    renderBaseTreatment(group, {
-      ...context,
-      x,
-      width,
-      depth
-    });
-  }
-}
-
-function renderOpenCase(group, context) {
-  const {
-    x,
-    y,
-    width,
-    height,
-    depth,
-    materials,
-    selection
-  } = context;
-  if (width <= 0 || height <= 0 || depth <= 0) return;
-
-  const frame = visualFrameThickness(width, height);
-  const usableWidth = Math.max(frame, width - frame * 2);
-  const sectionCount = clamp(Math.round(width / Math.max(height * 0.38, 1)), 1, 4);
-  const sectionWidth = usableWidth / sectionCount;
-  const shelfCount = clamp(Math.round(3 + height / Math.max(width, 1)), 3, 6);
-  const shelfDepth = depth * 0.9;
-  const shelfThickness = frame * 0.56;
-  const backThickness = Math.max(0.55, frame * 0.34);
-
-  addSceneBox(group, [frame, height, depth], [x + frame / 2, y + height / 2, depth / 2], materials.side, {
-    edgeMaterial: materials.edge
-  });
-  addSceneBox(group, [frame, height, depth], [x + width - frame / 2, y + height / 2, depth / 2], materials.side, {
-    edgeMaterial: materials.edge
-  });
-  addSceneBox(group, [width, frame, depth], [x + width / 2, y + height - frame / 2, depth / 2], materials.case, {
-    edgeMaterial: materials.edge
-  });
-  if (context.includeBase) {
-    addSceneBox(group, [width, frame, depth], [x + width / 2, y + frame / 2, depth / 2], materials.case, {
-      edgeMaterial: materials.edge
-    });
-  }
-  addSceneBox(group, [width - frame * 1.2, height - frame, backThickness], [
-    x + width / 2,
-    y + height / 2,
-    depth - backThickness / 2
-  ], materials.back, { castShadow: false, receiveShadow: true });
-
-  for (let section = 1; section < sectionCount; section += 1) {
-    const dividerX = x + frame + sectionWidth * section;
-    addSceneBox(group, [frame * 0.72, height, depth], [
-      dividerX,
-      y + height / 2,
-      depth / 2
-    ], materials.side, { edgeMaterial: materials.edge });
-  }
-
-  for (let shelfIndex = 1; shelfIndex <= shelfCount; shelfIndex += 1) {
-    const shelfY = y + frame + ((height - frame * 2) * shelfIndex) / (shelfCount + 1);
-    addSceneBox(group, [usableWidth, shelfThickness, shelfDepth], [
-      x + width / 2,
-      shelfY,
-      depth / 2
-    ], materials.case, { edgeMaterial: materials.edge });
-
-    if (selection?.details?.lighting && selection.details.lighting !== "no-lighting") {
-      addSceneBox(group, [
-        usableWidth * 0.84,
-        Math.max(0.18, shelfThickness * 0.14),
-        Math.max(0.22, depth * 0.08)
-      ], [
-        x + width / 2,
-        shelfY - shelfThickness * 0.54,
-        depth * 0.2
-      ], materials.led, { castShadow: false, receiveShadow: false });
-      addProductLight(group, [
-        x + width / 2,
-        shelfY - shelfThickness,
-        depth * 0.24
-      ], selection.details.lighting);
-    }
-  }
-}
-
-function renderBaseStorage(group, context) {
-  const {
-    x,
-    y,
-    width,
-    height,
-    depth,
-    storage,
-    materials,
-    selection
-  } = context;
-  if (width <= 0 || height <= 0 || depth <= 0) return;
-  const frame = visualFrameThickness(width, height);
-  const frontZ = -Math.max(0.25, depth * 0.018);
-  const columns = clamp(Math.round(width / Math.max(height * 1.28, 1)), 1, 4);
-  const columnWidth = width / columns;
-
-  addSceneBox(group, [width, height, depth], [x + width / 2, y + height / 2, depth / 2], materials.case, {
-    edgeMaterial: materials.edge
-  });
-  addSceneBox(group, [width - frame, height - frame, Math.max(0.55, frame * 0.35)], [
-    x + width / 2,
-    y + height / 2,
-    frontZ
-  ], materials.reveal, { castShadow: false, receiveShadow: true });
-
-  if (storage === "drawers") {
-    const rows = 3;
-    const gap = Math.max(0.35, frame * 0.23);
-    const panelWidth = Math.max(1, columnWidth - gap * 1.6);
-    const panelHeight = Math.max(1, (height - gap * (rows + 1)) / rows);
-    for (let column = 0; column < columns; column += 1) {
-      for (let row = 0; row < rows; row += 1) {
-        const centerX = x + columnWidth * (column + 0.5);
-        const centerY = y + gap + panelHeight / 2 + row * (panelHeight + gap);
-        renderFrontPanel(group, {
-          centerX,
-          centerY,
-          width: panelWidth,
-          height: panelHeight,
-          z: frontZ - 0.55,
-          style: selection?.details?.doorStyle || "shaker",
-          materials,
-          hardware: selection?.details?.hardware,
-          drawer: true
-        });
-      }
-    }
-  } else {
-    const gap = Math.max(0.4, frame * 0.24);
-    const panelWidth = Math.max(1, columnWidth - gap * 1.5);
-    const panelHeight = Math.max(1, height - gap * 2);
-    for (let column = 0; column < columns; column += 1) {
-      renderFrontPanel(group, {
-        centerX: x + columnWidth * (column + 0.5),
-        centerY: y + height / 2,
-        width: panelWidth,
-        height: panelHeight,
-        z: frontZ - 0.55,
-        style: selection?.details?.doorStyle || "shaker",
-        materials,
-        hardware: selection?.details?.hardware,
-        drawer: false,
-        hardwareSide: column % 2 ? -1 : 1
-      });
-    }
-  }
-
-  renderBaseTreatment(group, { ...context, x, y, width, depth });
-}
-
-function renderFrontPanel(group, descriptor) {
-  const {
-    centerX,
-    centerY,
-    width,
-    height,
-    z,
-    style,
-    materials,
-    hardware,
-    drawer,
-    hardwareSide = 0
-  } = descriptor;
-  const panelMaterial = style === "glass" ? materials.glass : materials.front;
-  addSceneBox(group, [width, height, 0.72], [centerX, centerY, z], panelMaterial, {
-    edgeMaterial: materials.edge
-  });
-
-  if (style === "shaker" || style === "glass") {
-    const rail = clamp(Math.min(width, height) * 0.1, 0.85, 2.4);
-    const insetWidth = Math.max(0.6, width - rail * 2);
-    const insetHeight = Math.max(0.6, height - rail * 2);
-    if (style !== "glass") {
-      addSceneBox(group, [insetWidth, insetHeight, 0.18], [
-        centerX,
-        centerY,
-        z - 0.44
-      ], materials.inset, { castShadow: true, receiveShadow: true });
-    }
-    addSceneBox(group, [width, rail, 0.26], [centerX, centerY + height / 2 - rail / 2, z - 0.52], materials.front);
-    addSceneBox(group, [width, rail, 0.26], [centerX, centerY - height / 2 + rail / 2, z - 0.52], materials.front);
-    addSceneBox(group, [rail, insetHeight, 0.26], [centerX - width / 2 + rail / 2, centerY, z - 0.52], materials.front);
-    addSceneBox(group, [rail, insetHeight, 0.26], [centerX + width / 2 - rail / 2, centerY, z - 0.52], materials.front);
-  }
-
-  if (!hardware || hardware === "none") return;
-  const hardwareX = drawer
-    ? centerX
-    : centerX + hardwareSide * width * 0.34;
-  addCabinetHardware(group, {
-    x: hardwareX,
-    y: drawer ? centerY : centerY,
-    z: z - 1.05,
-    width,
-    hardware,
-    material: materials.hardware
-  });
-}
-
-function addCabinetHardware(group, descriptor) {
-  const { x, y, z, width, hardware, material } = descriptor;
-  if (hardware === "knob") {
-    const knob = new THREE.Mesh(
-      new THREE.SphereGeometry(toSceneLength(clamp(width * 0.035, 0.55, 0.95)), 18, 12),
-      material
-    );
-    knob.position.set(toSceneLength(x), toSceneLength(y), toSceneLength(z));
-    knob.castShadow = true;
-    group.add(knob);
-    return;
-  }
-
-  const pullWidth = clamp(width * 0.24, 3, 7);
-  const bar = new THREE.Mesh(
-    new THREE.CylinderGeometry(toSceneLength(0.22), toSceneLength(0.22), toSceneLength(pullWidth), 18),
-    material
-  );
-  bar.rotation.z = Math.PI / 2;
-  bar.position.set(toSceneLength(x), toSceneLength(y), toSceneLength(z));
-  bar.castShadow = true;
-  group.add(bar);
-  [-1, 1].forEach((side) => {
-    const post = new THREE.Mesh(
-      new THREE.CylinderGeometry(toSceneLength(0.18), toSceneLength(0.18), toSceneLength(0.7), 14),
-      material
-    );
-    post.rotation.x = Math.PI / 2;
-    post.position.set(
-      toSceneLength(x + side * pullWidth * 0.42),
-      toSceneLength(y),
-      toSceneLength(z + 0.35)
-    );
-    post.castShadow = true;
-    group.add(post);
-  });
-}
-
-function renderBaseTreatment(group, context) {
-  const { x, y = 0, width, depth, materials, selection } = context;
-  const baseStyle = String(selection?.details?.baseStyle || "flush-base");
-  const baseHeight = clamp(Math.min(width, depth) * 0.075, 1.6, 3.5);
-  if (baseStyle === "recessed-toe-kick") {
-    addSceneBox(group, [
-      Math.max(1, width - baseHeight * 1.3),
-      baseHeight,
-      depth * 0.68
-    ], [
-      x + width / 2,
-      y + baseHeight / 2,
-      depth * 0.63
-    ], materials.toe, { castShadow: true, receiveShadow: true });
-    return;
-  }
-  if (baseStyle === "furniture-base") {
-    const footWidth = Math.max(1, baseHeight * 0.62);
-    [x + footWidth, x + width - footWidth].forEach((footX) => {
-      addSceneBox(group, [footWidth, baseHeight * 1.45, footWidth], [
-        footX,
-        y + baseHeight * 0.72,
-        depth * 0.72
-      ], materials.case, { edgeMaterial: materials.edge });
-    });
-    return;
-  }
-  addSceneBox(group, [width, baseHeight, depth], [
-    x + width / 2,
-    y + baseHeight / 2,
-    depth / 2
-  ], materials.case, { edgeMaterial: materials.edge });
-}
-
-function renderTopTreatment(group, context) {
-  const { x, y, width, depth, materials, selection } = context;
-  const treatment = String(selection?.details?.topTreatment || "small-crown");
-  if (treatment === "simple-finished-top") return;
-  const railHeight = clamp(Math.min(width, depth) * 0.075, 1.5, 3.5);
-  const projection = treatment === "traditional-crown" ? railHeight * 0.7 : railHeight * 0.35;
-  addSceneBox(group, [
-    width + projection * 2,
-    railHeight,
-    depth + projection
-  ], [
-    x + width / 2,
-    y - railHeight / 2,
-    depth / 2 - projection / 2
-  ], materials.case, { edgeMaterial: materials.edge });
-  if (treatment === "traditional-crown") {
-    addSceneBox(group, [
-      width + projection * 2.8,
-      railHeight * 0.58,
-      depth + projection * 1.55
-    ], [
-      x + width / 2,
-      y + railHeight * 0.22,
-      depth / 2 - projection * 0.78
-    ], materials.case, { edgeMaterial: materials.edge });
-  }
-}
-
-function renderMediaWall(group, context) {
-  if (context.role === "below") {
-    getArchitecturalSafeWidthIntervals(context).forEach(([start, end]) => {
-      if (end - start < 4) return;
-      renderBaseStorage(group, {
-        ...context,
-        x: start,
-        y: 0,
-        width: end - start,
-        storage: "doors"
-      });
-    });
-    return;
-  }
-  if (context.role === "left" || context.role === "right" || context.role === "return") {
-    getArchitecturalSafeWidthIntervals(context).forEach((interval) => (
-      renderBookcaseInterval(group, context, interval)
-    ));
-    return;
-  }
-  if (context.role === "above") {
-    getArchitecturalSafeWidthIntervals(context).forEach(([start, end]) => {
-      if (end - start < 4) return;
-      renderOpenCase(group, {
-        ...context,
-        x: start,
-        y: 0,
-        width: end - start,
-        includeBase: true
-      });
-    });
-    return;
-  }
-
-  const mediaFeature = findZoneFeature(context, /tv|screen|television/);
-  const safeMediaBounds = mediaFeature?.renderHidden ? null : mediaFeature?.bounds || null;
-  const localMedia = safeMediaBounds
-    ? projectBoundsIntoZone(context.zone, safeMediaBounds)
-    : null;
-  const architecturalExclusions = context.exclusions.filter(({ feature }) => (
-    isArchitecturalObstacleFeature(feature)
-  ));
-  if (!architecturalExclusions.length) {
-    renderMediaWallSegment(group, context, [0, context.width], localMedia, {
-      mediaFeaturePresent: Boolean(mediaFeature)
-    });
-    return;
-  }
-
-  const intervals = getArchitecturalSafeWidthIntervals(context);
-  const mediaWasRelocated = Boolean(mediaFeature?.renderAdjusted && safeMediaBounds);
-  const mediaInterval = selectMediaWidthInterval(intervals, localMedia, {
-    allowClosest: mediaWasRelocated || !mediaFeature
-  });
-
-  if (mediaInterval) {
-    intervals.forEach((interval) => {
-      if (interval === mediaInterval) {
-        renderMediaWallSegment(group, context, interval, localMedia, {
-          constrained: true,
-          mediaFeaturePresent: Boolean(mediaFeature)
-        });
-        return;
-      }
-      renderBookcaseInterval(group, context, interval);
-    });
-    return;
-  }
-
-  renderRaisedMediaLayout(group, context, intervals, localMedia, {
-    mediaFeaturePresent: Boolean(mediaFeature)
-  });
-}
-
-function renderMediaWallSegment(group, context, interval, localMedia, options = {}) {
-  const { height, depth, materials } = context;
-  const [start, end] = interval;
-  const width = end - start;
-  if (width < 8) return;
-  const baseHeight = height * 0.27;
-  renderBaseStorage(group, {
-    ...context,
-    x: start,
-    y: 0,
-    width,
-    height: baseHeight,
-    storage: "doors"
-  });
-
-  const desiredMedia = localMedia || {
-    min: { x: start + width * 0.29, y: height * 0.39, z: 0 },
-    max: { x: start + width * 0.71, y: height * 0.72, z: depth }
-  };
-  const sideGap = Math.max(1.5, visualFrameThickness(width, height));
-  const maximumScreenWidth = options.constrained
-    ? Math.max(1, width - sideGap * 1.4)
-    : width * 0.58;
-  const minimumScreenWidth = Math.min(maximumScreenWidth, width * 0.28);
-  const screenWidth = clamp(
-    desiredMedia.max.x - desiredMedia.min.x,
-    minimumScreenWidth,
-    maximumScreenWidth
-  );
-  const screenHeight = clamp(
-    desiredMedia.max.y - desiredMedia.min.y,
-    Math.min(height * 0.2, screenWidth * 0.72),
-    height * 0.42
-  );
-  const backdropHalfWidth = screenWidth / 2 + sideGap * 0.65;
-  const screenX = clamp(
-    (desiredMedia.min.x + desiredMedia.max.x) / 2,
-    start + backdropHalfWidth,
-    end - backdropHalfWidth
-  );
-  const screenY = clamp(
-    (desiredMedia.min.y + desiredMedia.max.y) / 2,
-    baseHeight + screenHeight / 2,
-    height - screenHeight / 2
-  );
-  const leftWidth = Math.max(0, screenX - screenWidth / 2 - sideGap - start);
-  const rightStart = screenX + screenWidth / 2 + sideGap;
-  const rightWidth = Math.max(0, end - rightStart);
-  const upperHeight = height - baseHeight;
-
-  if (leftWidth > 3) {
-    renderOpenCase(group, {
-      ...context,
-      x: start,
-      y: baseHeight,
-      width: leftWidth,
-      height: upperHeight,
-      includeBase: false
-    });
-  }
-  if (rightWidth > 3) {
-    renderOpenCase(group, {
-      ...context,
-      x: rightStart,
-      y: baseHeight,
-      width: rightWidth,
-      height: upperHeight,
-      includeBase: false
-    });
-  }
-
-  addSceneBox(group, [screenWidth + sideGap * 1.3, screenHeight + sideGap * 1.3, Math.max(1, depth * 0.08)], [
-    screenX,
-    screenY,
-    depth - Math.max(0.5, depth * 0.04)
-  ], materials.back, { castShadow: false, receiveShadow: true });
-  if (!options.mediaFeaturePresent) {
-    addSceneBox(group, [screenWidth, screenHeight, 1.35], [
-      screenX,
-      screenY,
-      -0.68
-    ], materials.screen, { castShadow: true, receiveShadow: false, edgeMaterial: materials.screenEdge });
-  }
-
-  const bridgeBottom = screenY + screenHeight / 2 + sideGap;
-  if (height - bridgeBottom > 4) {
-    renderOpenCase(group, {
-      ...context,
-      x: Math.max(start, screenX - screenWidth / 2 - sideGap),
-      y: bridgeBottom,
-      width: Math.min(end, screenX + screenWidth / 2 + sideGap)
-        - Math.max(start, screenX - screenWidth / 2 - sideGap),
-      height: height - bridgeBottom,
-      includeBase: true
-    });
-  }
-  renderTopTreatment(group, { ...context, x: start, y: height, width, depth });
-}
-
-function selectMediaWidthInterval(intervals, localMedia, options = {}) {
-  if (!intervals.length) return null;
-  if (!localMedia) {
-    if (!options.allowClosest) return null;
-    return intervals
-      .slice()
-      .sort((first, second) => (second[1] - second[0]) - (first[1] - first[0]))[0];
-  }
-  const direct = intervals.find(([start, end]) => (
-    localMedia.min.x >= start - 0.25 && localMedia.max.x <= end + 0.25
-  ));
-  if (direct) return direct;
-  if (!options.allowClosest) return null;
-  const center = (localMedia.min.x + localMedia.max.x) / 2;
-  return intervals
-    .filter(([start, end]) => end - start >= 12)
-    .slice()
-    .sort((first, second) => {
-      const firstDistance = Math.abs(clamp(center, first[0], first[1]) - center);
-      const secondDistance = Math.abs(clamp(center, second[0], second[1]) - center);
-      if (firstDistance !== secondDistance) return firstDistance - secondDistance;
-      return (second[1] - second[0]) - (first[1] - first[0]);
-    })[0] || null;
-}
-
-function renderBookcaseInterval(group, context, interval) {
-  const [start, end] = interval;
-  const width = end - start;
-  if (width < Math.min(context.width * 0.06, 4)) return;
-  renderBookcaseBank(group, {
-    ...context,
-    x: start,
-    width,
-    style: "cabinet-base-shelves"
-  });
-}
-
-function renderRaisedMediaLayout(group, context, intervals, localMedia, options = {}) {
-  if (!localMedia) {
-    intervals.forEach((interval) => renderBookcaseInterval(group, context, interval));
-    return;
-  }
-
-  const sideGap = Math.max(1.5, visualFrameThickness(context.width, context.height));
-  intervals.forEach((interval) => {
-    subtractWidthInterval(
-      [interval],
-      localMedia.min.x - sideGap,
-      localMedia.max.x + sideGap
-    ).forEach((segment) => renderBookcaseInterval(group, context, segment));
-  });
-
-  const screenWidth = clamp(
-    localMedia.max.x - localMedia.min.x,
-    1,
-    Math.max(1, context.width - sideGap * 1.3)
-  );
-  const screenHeight = clamp(
-    localMedia.max.y - localMedia.min.y,
-    1,
-    context.height * 0.48
-  );
-  const screenX = clamp(
-    (localMedia.min.x + localMedia.max.x) / 2,
-    screenWidth / 2 + sideGap * 0.65,
-    context.width - screenWidth / 2 - sideGap * 0.65
-  );
-  const screenY = clamp(
-    (localMedia.min.y + localMedia.max.y) / 2,
-    screenHeight / 2,
-    context.height - screenHeight / 2
-  );
-  addSceneBox(
-    group,
-    [screenWidth + sideGap * 1.3, screenHeight + sideGap * 1.3, Math.max(1, context.depth * 0.08)],
-    [screenX, screenY, context.depth - Math.max(0.5, context.depth * 0.04)],
-    context.materials.back,
-    { castShadow: false, receiveShadow: true }
-  );
-  if (!options.mediaFeaturePresent) {
-    addSceneBox(group, [screenWidth, screenHeight, 1.35], [
-      screenX,
-      screenY,
-      -0.68
-    ], context.materials.screen, {
-      castShadow: true,
-      receiveShadow: false,
-      edgeMaterial: context.materials.screenEdge
-    });
-  }
-
-  const bridgeStart = Math.max(0, screenX - screenWidth / 2 - sideGap);
-  const bridgeEnd = Math.min(context.width, screenX + screenWidth / 2 + sideGap);
-  const bridgeBottom = screenY + screenHeight / 2 + sideGap;
-  if (bridgeEnd - bridgeStart > 4 && context.height - bridgeBottom > 4) {
-    renderOpenCase(group, {
-      ...context,
-      x: bridgeStart,
-      y: bridgeBottom,
-      width: bridgeEnd - bridgeStart,
-      height: context.height - bridgeBottom,
-      includeBase: true
-    });
-    renderTopTreatment(group, {
-      ...context,
-      x: bridgeStart,
-      y: context.height,
-      width: bridgeEnd - bridgeStart,
-      depth: context.depth
-    });
-  }
-}
-
-function renderFloatingStorage(group, context) {
-  const { height, depth } = context;
-  getArchitecturalSafeWidthIntervals(context).forEach(([start, end]) => {
-    const width = end - start;
-    if (width < 8) return;
-    renderFloatingStorageSegment(group, context, { start, width, height, depth });
-  });
-}
-
-function renderFloatingStorageSegment(group, context, segment) {
-  const { start, width, height, depth } = segment;
-  const roleDefinesEnvelope = context.role === "below";
-  const cabinetHeight = roleDefinesEnvelope ? height : height * 0.24;
-  const cabinetY = roleDefinesEnvelope ? 0 : height * 0.31;
-  const cabinetWidth = roleDefinesEnvelope ? width : width * 0.86;
-  const cabinetX = start + (width - cabinetWidth) / 2;
-  renderBaseStorage(group, {
-    ...context,
-    x: cabinetX,
-    y: cabinetY,
-    width: cabinetWidth,
-    height: cabinetHeight,
-    depth: Math.min(depth, Math.max(depth * 0.78, 6)),
-    storage: "drawers",
-    selection: {
-      ...context.selection,
-      details: {
-        ...context.selection?.details,
-        baseStyle: "floating"
-      }
-    }
-  });
-}
-
-function renderWindowStorage(group, context) {
-  if (context.role === "left" || context.role === "right" || context.role === "return") {
-    getArchitecturalSafeWidthIntervals(context).forEach((interval) => (
-      renderBookcaseInterval(group, context, interval)
-    ));
-    return;
-  }
-  if (context.role === "above") {
-    getArchitecturalSafeWidthIntervals(context).forEach(([start, end]) => {
-      if (end - start < 4) return;
-      renderOpenCase(group, {
-        ...context,
-        x: start,
-        y: 0,
-        width: end - start,
-        includeBase: true
-      });
-    });
-    return;
-  }
-
-  const seatEnvelopeHeight = context.role === "below"
-    ? context.height
-    : context.height * 0.31;
-  getArchitecturalSafeWidthIntervals(context).forEach(([start, end]) => {
-    const width = end - start;
-    if (width < 8) return;
-    const topThickness = Math.min(
-      seatEnvelopeHeight * 0.18,
-      Math.max(1.25, seatEnvelopeHeight * 0.06)
-    );
-    const cabinetHeight = Math.max(1, seatEnvelopeHeight - topThickness);
-    renderBaseStorage(group, {
-      ...context,
-      x: start,
-      y: 0,
-      width,
-      height: cabinetHeight,
-      storage: "doors"
-    });
-    addSceneBox(group, [
-      width,
-      topThickness,
-      context.depth + Math.max(1, context.depth * 0.08)
-    ], [
-      start + width / 2,
-      cabinetHeight + topThickness / 2,
-      context.depth / 2 - Math.max(0.5, context.depth * 0.04)
-    ], context.materials.accent, { edgeMaterial: context.materials.edge });
-  });
-}
-
-function renderRadiatorCover(group, context) {
-  const intervals = getArchitecturalSafeWidthIntervals(context, {
-    ignore: ({ feature }) => /radiator/.test(getSemanticKind(feature))
-  });
-  const plannedRadiator = context.plan.room.features.find((feature) => (
-    /radiator/.test(getSemanticKind(feature))
-  ));
-  if (plannedRadiator?.renderHidden) return;
-  const radiator = context.exclusions.find(({ feature, localBounds }) => (
-    /radiator/.test(getSemanticKind(feature)) && isBounds(localBounds)
-  ));
-  if (!radiator) {
-    if (plannedRadiator) return;
-    intervals.forEach((interval) => renderRadiatorCoverSegment(group, context, interval));
-    return;
-  }
-
-  const targetCenter = (radiator.localBounds.min.x + radiator.localBounds.max.x) / 2;
-  const selected = intervals
-    .map((interval) => ({
-      interval,
-      distance: targetCenter < interval[0]
-        ? interval[0] - targetCenter
-        : targetCenter > interval[1]
-          ? targetCenter - interval[1]
-          : 0
-    }))
-    .sort((first, second) => (
-      first.distance - second.distance
-      || (second.interval[1] - second.interval[0]) - (first.interval[1] - first.interval[0])
-      || first.interval[0] - second.interval[0]
-    ))[0];
-  if (selected) {
-    renderRadiatorCoverSegment(group, context, selected.interval, radiator.localBounds);
-  }
-}
-
-function renderRadiatorCoverSegment(group, context, interval, targetBounds = null) {
-  const { height, depth, materials } = context;
-  const [intervalStart, intervalEnd] = interval;
-  const intervalWidth = intervalEnd - intervalStart;
-  if (intervalWidth < 12) return;
-  const coverHeight = context.role === "below" ? height : height * 0.38;
-  const targetWidth = isBounds(targetBounds) ? getBoundsWidth(targetBounds) : null;
-  const coverWidth = targetWidth !== null
-    ? Math.min(intervalWidth, Math.max(12, targetWidth + ARCHITECTURAL_CLEARANCE * 2))
-    : context.role === "primary"
-      ? intervalWidth * 0.84
-      : intervalWidth;
-  const targetCenter = isBounds(targetBounds)
-    ? (targetBounds.min.x + targetBounds.max.x) / 2
-    : intervalStart + intervalWidth / 2;
-  const startX = clamp(
-    targetCenter - coverWidth / 2,
-    intervalStart,
-    intervalEnd - coverWidth
-  );
-  const frame = visualFrameThickness(coverWidth, coverHeight);
-
-  addSceneBox(group, [coverWidth, frame, depth], [
-    startX + coverWidth / 2,
-    coverHeight - frame / 2,
-    depth / 2
-  ], materials.case, { edgeMaterial: materials.edge });
-  addSceneBox(group, [frame, coverHeight, depth], [
-    startX + frame / 2,
-    coverHeight / 2,
-    depth / 2
-  ], materials.side, { edgeMaterial: materials.edge });
-  addSceneBox(group, [frame, coverHeight, depth], [
-    startX + coverWidth - frame / 2,
-    coverHeight / 2,
-    depth / 2
-  ], materials.side, { edgeMaterial: materials.edge });
-  addSceneBox(group, [coverWidth, frame, depth], [
-    startX + coverWidth / 2,
-    frame / 2,
-    depth / 2
-  ], materials.case, { edgeMaterial: materials.edge });
-
-  const openingWidth = Math.max(1, coverWidth - frame * 2);
-  const openingHeight = Math.max(1, coverHeight - frame * 2);
-  addSceneBox(group, [
-    openingWidth,
-    openingHeight,
-    Math.max(0.65, frame * 0.35)
-  ], [
-    startX + coverWidth / 2,
-    coverHeight / 2,
-    Math.max(frame, depth * 0.8)
-  ], materials.reveal, { castShadow: false, receiveShadow: true });
-
-  const slatCount = clamp(Math.round(openingWidth / Math.max(coverHeight * 0.11, 1)), 8, 24);
-  const spacing = openingWidth / (slatCount + 1);
-  for (let index = 1; index <= slatCount; index += 1) {
-    addSceneBox(group, [
-      Math.max(0.6, spacing * 0.38),
-      openingHeight,
-      Math.max(0.45, frame * 0.32)
-    ], [
-      startX + frame + spacing * index,
-      coverHeight / 2,
-      -Math.max(0.25, frame * 0.2)
-    ], materials.front, { castShadow: true, receiveShadow: true });
-  }
-
-  addSceneBox(group, [
-    coverWidth + frame * 0.8,
-    frame * 0.72,
-    depth + frame
-  ], [
-    startX + coverWidth / 2,
-    coverHeight + frame * 0.35,
-    depth / 2 - frame * 0.42
-  ], materials.case, { edgeMaterial: materials.edge });
-}
-
-function createProductMaterials(selection) {
-  const finish = selection?.finish || {};
-  const baseColor = parseColor(finish.color, 0xb88e5e);
-  const accentColor = parseColor(selection?.accentFinish?.color, baseColor);
-  const isWood = finish.family === "wood";
-  const finishMap = isWood ? createProceduralWoodTexture(finish.color) : null;
-  if (finishMap) {
-    finishMap.wrapS = THREE.RepeatWrapping;
-    finishMap.wrapT = THREE.RepeatWrapping;
-    finishMap.repeat.set(2, 5);
-  }
-  const hardwareAppearance = getGuidedHardwareAppearance(selection?.details?.hardware);
-  const darker = new THREE.Color(baseColor).lerp(new THREE.Color(0x1d1915), 0.54).getHex();
-  const insetColor = new THREE.Color(baseColor).lerp(new THREE.Color(0xf8f4ed), isWood ? 0.08 : 0.04).getHex();
-  const lightingColor = selection?.details?.lighting === "integrated-led" ? 0xffe8be : 0xffcf91;
-
-  const caseMaterial = new THREE.MeshStandardMaterial({
-    color: finishMap ? 0xffffff : baseColor,
-    map: finishMap,
-    roughness: isWood ? 0.56 : 0.48,
-    metalness: 0
-  });
-
-  return {
-    case: caseMaterial,
-    side: new THREE.MeshStandardMaterial({
-      color: finishMap ? 0xf8f5f0 : baseColor,
-      map: finishMap,
-      roughness: isWood ? 0.58 : 0.5,
-      metalness: 0
-    }),
-    back: new THREE.MeshStandardMaterial({
-      color: insetColor,
-      roughness: isWood ? 0.68 : 0.6,
-      metalness: 0
-    }),
-    front: new THREE.MeshStandardMaterial({
-      color: finishMap ? 0xffffff : baseColor,
-      map: finishMap,
-      roughness: isWood ? 0.52 : 0.45,
-      metalness: 0
-    }),
-    inset: new THREE.MeshStandardMaterial({ color: insetColor, roughness: 0.68, metalness: 0 }),
-    accent: new THREE.MeshStandardMaterial({ color: accentColor, roughness: 0.58, metalness: 0 }),
-    reveal: new THREE.MeshStandardMaterial({ color: darker, roughness: 0.88, metalness: 0 }),
-    toe: new THREE.MeshStandardMaterial({ color: 0x292621, roughness: 0.9, metalness: 0 }),
-    hardware: new THREE.MeshStandardMaterial({
-      color: hardwareAppearance.color,
-      roughness: hardwareAppearance.roughness,
-      metalness: hardwareAppearance.metalness
-    }),
-    glass: new THREE.MeshPhysicalMaterial({
-      color: 0xd5e2e3,
-      roughness: 0.12,
-      metalness: 0,
-      transparent: true,
-      opacity: 0.22,
-      depthWrite: false,
-      transmission: 0.12,
-      clearcoat: 0.64,
-      clearcoatRoughness: 0.12
-    }),
-    led: new THREE.MeshStandardMaterial({
-      color: lightingColor,
-      emissive: lightingColor,
-      emissiveIntensity: 2.2,
-      roughness: 0.25,
-      metalness: 0.05,
-      toneMapped: false
-    }),
-    screen: new THREE.MeshStandardMaterial({
-      color: 0x0d1012,
-      roughness: 0.19,
-      metalness: 0.14,
-      emissive: 0x0b0e10,
-      emissiveIntensity: 0.2
-    }),
-    edge: new THREE.LineBasicMaterial({
-      color: darker,
-      transparent: true,
-      opacity: isWood ? 0.22 : 0.16
-    }),
-    screenEdge: new THREE.LineBasicMaterial({ color: 0x4c5052, transparent: true, opacity: 0.34 })
-  };
-}
-
-function createProceduralWoodTexture(rawColor) {
-  const canvas = globalThis.document?.createElement?.("canvas");
-  if (!canvas) return null;
-  canvas.width = 128;
-  canvas.height = 256;
-  const context = canvas.getContext("2d");
-  if (!context) return null;
-  const base = normalizeCssColor(rawColor, "#b88e5e");
-  context.fillStyle = base;
-  context.fillRect(0, 0, canvas.width, canvas.height);
-
-  for (let x = -8; x < canvas.width + 8; x += 7) {
-    const phase = (x * 0.37) % (Math.PI * 2);
-    context.beginPath();
-    for (let y = 0; y <= canvas.height; y += 4) {
-      const drift = Math.sin(y * 0.045 + phase) * 2.1 + Math.sin(y * 0.013 + phase * 0.6) * 3.4;
-      if (y === 0) context.moveTo(x + drift, y);
-      else context.lineTo(x + drift, y);
-    }
-    context.strokeStyle = x % 14
-      ? "rgba(68, 39, 20, 0.105)"
-      : "rgba(255, 247, 231, 0.085)";
-    context.lineWidth = x % 14 ? 0.75 : 1.1;
-    context.stroke();
-  }
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function getGuidedHardwareAppearance(hardwareId) {
-  if (hardwareId === "black-pull") {
-    return { color: 0x202224, roughness: 0.46, metalness: 0.62 };
-  }
-  if (hardwareId === "brass-pull") {
-    return { color: 0xb48a42, roughness: 0.3, metalness: 0.86 };
-  }
-  return { color: 0x393633, roughness: 0.38, metalness: 0.72 };
-}
-
-function addProductLight(group, position, lightingId) {
-  const conceptRoot = findConceptRoot(group);
-  conceptRoot.userData.productLightCount = Number(conceptRoot.userData.productLightCount) || 0;
-  if (conceptRoot.userData.productLightCount >= 8) return;
-  const color = lightingId === "integrated-led" ? 0xffe8bf : 0xffcf91;
-  const light = new THREE.PointLight(color, 0.36, toSceneLength(30), 1.7);
-  light.position.set(...position.map(toSceneLength));
-  light.castShadow = false;
-  group.add(light);
-  conceptRoot.userData.productLightCount += 1;
-}
-
-function findConceptRoot(object) {
-  let current = object;
-  while (current.parent && current.parent.userData?.scenePurpose === CONCEPT_SCENE_PURPOSE) {
-    current = current.parent;
-  }
-  return current;
-}
-
-function createZoneRoot(zone) {
-  const widthAxis = normalizedAxis(zone.frame?.widthAxis, new THREE.Vector3(1, 0, 0));
-  const heightAxis = normalizedAxis(zone.frame?.heightAxis, new THREE.Vector3(0, 1, 0));
-  const depthAxis = normalizedAxis(zone.frame?.depthAxis, new THREE.Vector3(0, 0, 1));
-  const origin = isPoint(zone.frame?.origin)
-    ? zone.frame.origin
-    : zone.bounds.min;
-
-  const matrix = new THREE.Matrix4().makeBasis(widthAxis, heightAxis, depthAxis);
+function createAcceptedDescriptorSetRoot(descriptor) {
+  const transform = descriptor.transform;
+  const xAxis = new THREE.Vector3(transform.basis.x.x, transform.basis.x.y, transform.basis.x.z);
+  const yAxis = new THREE.Vector3(transform.basis.y.x, transform.basis.y.y, transform.basis.y.z);
+  const zAxis = new THREE.Vector3(transform.basis.z.x, transform.basis.z.y, transform.basis.z.z);
+  const matrix = new THREE.Matrix4().makeBasis(xAxis, yAxis, zAxis);
   const root = new THREE.Group();
+  root.name = `accepted-descriptor-set-${descriptor.descriptorSetId}`;
   root.quaternion.setFromRotationMatrix(matrix);
-  root.position.copy(pointToScene(origin));
+  root.position.set(
+    toSceneLength(transform.translation.x),
+    toSceneLength(transform.translation.y),
+    toSceneLength(transform.translation.z)
+  );
+  root.userData = {
+    descriptorSetId: descriptor.descriptorSetId,
+    installationId: descriptor.installationId,
+    zoneId: descriptor.zoneId,
+    rootScale: [1, 1, 1],
+    source: "accepted-guided-specification"
+  };
   return root;
 }
 
-function normalizedAxis(candidate, fallback) {
-  if (!isPoint(candidate)) return fallback.clone();
-  const vector = new THREE.Vector3(candidate.x, candidate.y, candidate.z);
-  return vector.lengthSq() > 1e-8 ? vector.normalize() : fallback.clone();
-}
+/**
+ * Resolve one accepted physical descriptor into renderer-facing submeshes.
+ *
+ * This is deliberately pure: the descriptor remains the only geometric
+ * source of truth, while the Three.js layer below only realizes this plan.
+ * Rails, stiles, fields, and authored crown cross-sections therefore remain
+ * auditable without inspecting pixels or reverse-engineering a scene graph.
+ */
+export function createGuidedAcceptedComponentRenderPlan(descriptor) {
+  if (!descriptor?.componentId || !isAcceptedRenderBounds(descriptor.bounds)) {
+    throw new TypeError("A guided accepted component descriptor with finite bounds is required.");
+  }
+  const slot = normalizeGuidedMaterialSlot(descriptor.materialSlot, descriptor.role);
+  const profile = descriptor.metadata?.profileGeometry;
+  let geometryVariant = "box";
+  let submeshes;
 
-function getZoneWidth(zone) {
-  return getZoneAxisSpan(
-    zone,
-    zone.frame?.widthAxis,
-    positiveFinite(zone.size?.width, getBoundsWidth(zone.bounds))
-  );
-}
+  if (
+    ["door", "drawer_front"].includes(descriptor.role)
+    && isAcceptedFramedFrontProfile(profile)
+  ) {
+    geometryVariant = profile.kind;
+    submeshes = createAcceptedFrontSubmeshes(descriptor, slot, profile);
+  } else if (
+    descriptor.role === "crown"
+    && isAcceptedCrownProfile(profile)
+  ) {
+    geometryVariant = "crown_profile_extrusion";
+    submeshes = [createAcceptedSubmesh(descriptor, {
+      submeshId: "profile-extrusion",
+      geometry: "crown_profile_extrusion",
+      materialSlot: slot,
+      bounds: descriptor.bounds,
+      edgeVisible: true,
+      grainRole: "crown",
+      profileGeometry: profile
+    })];
+  } else {
+    geometryVariant = profile?.kind === "slab" ? "slab" : "box";
+    submeshes = [createAcceptedSubmesh(descriptor, {
+      submeshId: geometryVariant === "slab" ? "slab" : "body",
+      geometry: "box",
+      materialSlot: slot,
+      bounds: descriptor.bounds,
+      edgeVisible: true,
+      grainRole: descriptor.role
+    })];
+  }
 
-function getZoneHeight(zone) {
-  return getZoneAxisSpan(
-    zone,
-    zone.frame?.heightAxis,
-    positiveFinite(zone.size?.height, getBoundsHeight(zone.bounds))
-  );
-}
-
-function getZoneDepth(zone) {
-  return getZoneAxisSpan(
-    zone,
-    zone.frame?.depthAxis,
-    positiveFinite(zone.size?.depth, Math.max(1, getBoundsDepth(zone.bounds)))
-  );
-}
-
-function getZoneAxisSpan(zone, axisCandidate, fallback) {
-  if (!isBounds(zone?.bounds) || !isPoint(axisCandidate)) return fallback;
-  const axis = normalizedAxis(axisCandidate, new THREE.Vector3(1, 0, 0));
-  const projections = getBoundsCorners(zone.bounds).map((corner) => corner.dot(axis));
-  const span = Math.max(...projections) - Math.min(...projections);
-  return positiveFinite(span, fallback);
-}
-
-function resolveZoneExclusions(zone, featuresById, roomFeatures = [], plan = {}) {
-  const declared = (Array.isArray(zone.excludes) ? zone.excludes : [])
-    .map((reference) => {
-      if (typeof reference === "string") return featuresById.get(reference) || null;
-      if (reference?.id && featuresById.has(reference.id)) return featuresById.get(reference.id);
-      if (isBounds(reference?.bounds)) return reference;
-      if (isBounds(reference)) return { id: null, kind: "exclusion", bounds: reference };
-      return null;
-    })
-    .filter(Boolean);
-  const implicitArchitectural = roomFeatures.filter((feature) => (
-    isBounds(feature?.bounds)
-    && isProductObstacleFeature(feature, { selection: plan.selection })
-    && boundsIntersect(getFeatureExclusionBounds(feature, plan), zone.bounds)
-  ));
-  const unique = [];
-  const seen = new Set();
-  [...declared, ...implicitArchitectural].forEach((feature) => {
-    const identity = feature.id || feature;
-    if (seen.has(identity)) return;
-    seen.add(identity);
-    unique.push(feature);
+  const materialSlots = Object.freeze([...new Set(submeshes.map((entry) => entry.materialSlot))]);
+  return Object.freeze({
+    componentId: descriptor.componentId,
+    descriptorSetId: descriptor.descriptorSetId,
+    role: descriptor.role,
+    geometryVariant,
+    materialSlots,
+    worldBounds: freezeAcceptedBounds(unionAcceptedRenderBounds(submeshes.map((entry) => entry.worldBounds))),
+    submeshes: Object.freeze(submeshes)
   });
-
-  return unique
-    .map((feature) => {
-      const exclusionBounds = getFeatureExclusionBounds(feature, plan);
-      if (!isBounds(exclusionBounds)) {
-        return { feature, exclusionBounds: null, localBounds: null };
-      }
-      return {
-        feature,
-        exclusionBounds,
-        localBounds: projectBoundsIntoZone(zone, exclusionBounds)
-      };
-    })
-    .filter(({ localBounds }) => isBounds(localBounds));
 }
 
-function projectBoundsIntoZone(zone, bounds) {
-  const origin = isPoint(zone.frame?.origin) ? zone.frame.origin : zone.bounds.min;
-  const widthAxis = normalizedAxis(zone.frame?.widthAxis, new THREE.Vector3(1, 0, 0));
-  const heightAxis = normalizedAxis(zone.frame?.heightAxis, new THREE.Vector3(0, 1, 0));
-  const depthAxis = normalizedAxis(zone.frame?.depthAxis, new THREE.Vector3(0, 0, 1));
-  const localMin = new THREE.Vector3(Infinity, Infinity, Infinity);
-  const localMax = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
-  const originVector = new THREE.Vector3(origin.x, origin.y, origin.z);
-
-  getBoundsCorners(bounds).forEach((corner) => {
-    const relative = corner.sub(originVector);
-    const local = new THREE.Vector3(
-      relative.dot(widthAxis),
-      relative.dot(heightAxis),
-      relative.dot(depthAxis)
-    );
-    localMin.min(local);
-    localMax.max(local);
+function createAcceptedFrontSubmeshes(descriptor, frameSlot, profile) {
+  const depth = createAcceptedFrontDepths(descriptor, profile);
+  const regions = normalizeAcceptedFrontRegions(profile);
+  if (!depth || !regions) {
+    return [createAcceptedSubmesh(descriptor, {
+      submeshId: "slab-fallback",
+      geometry: "box",
+      materialSlot: frameSlot,
+      bounds: descriptor.bounds,
+      edgeVisible: true
+    })];
+  }
+  const frameBoundsFor = (region) => ({
+    min: { x: region.min.x, y: region.min.y, z: depth.frame.min },
+    max: { x: region.max.x, y: region.max.y, z: depth.frame.max }
   });
+  const fieldBounds = {
+    min: {
+      x: regions.field.min.x,
+      y: regions.field.min.y,
+      z: depth.field.min
+    },
+    max: {
+      x: regions.field.max.x,
+      y: regions.field.max.y,
+      z: depth.field.max
+    }
+  };
+  const frameSubmeshes = regions.frame.map((region) => createAcceptedSubmesh(descriptor, {
+    submeshId: region.id,
+    geometry: "box",
+    materialSlot: frameSlot,
+    bounds: frameBoundsFor(region),
+    edgeVisible: true,
+    grainRole: region.id.endsWith("rail") ? "front_rail" : "front_stile"
+  }));
+  frameSubmeshes.push(createAcceptedSubmesh(descriptor, {
+    submeshId: "center-field",
+    geometry: "box",
+    materialSlot: profile.kind === "glass_frame" || profile.fieldRegion?.kind === "glass"
+      ? "glass"
+      : frameSlot,
+    bounds: fieldBounds,
+    edgeVisible: false,
+    grainRole: "front_field"
+  }));
+  return frameSubmeshes;
+}
 
-  return createBounds(
-    { x: localMin.x, y: localMin.y, z: localMin.z },
-    { x: localMax.x, y: localMax.y, z: localMax.z }
+function createAcceptedFrontDepths(descriptor, profile) {
+  const bounds = descriptor.bounds;
+  const frontPlane = finiteAcceptedNumber(
+    descriptor.metadata?.frontPlaneZ,
+    bounds.min.z
   );
+  const backPlane = finiteAcceptedNumber(
+    descriptor.metadata?.backPlaneZ,
+    bounds.max.z
+  );
+  const inwardDirection = backPlane >= frontPlane ? 1 : -1;
+  const frameDepth = positiveAcceptedNumber(profile.frameDepth);
+  const panelDepth = positiveAcceptedNumber(profile.panelDepth);
+  const panelRecess = nonNegativeAcceptedNumber(profile.panelRecess);
+  if (!frameDepth || !panelDepth || panelRecess === null) return null;
+
+  const frameEnd = frontPlane + inwardDirection * frameDepth;
+  const fieldStart = frontPlane + inwardDirection * panelRecess;
+  const fieldEnd = fieldStart + inwardDirection * panelDepth;
+  const normalizeDepth = (first, second) => ({
+    min: clamp(Math.min(first, second), bounds.min.z, bounds.max.z),
+    max: clamp(Math.max(first, second), bounds.min.z, bounds.max.z)
+  });
+  const frame = normalizeDepth(frontPlane, frameEnd);
+  const field = normalizeDepth(fieldStart, fieldEnd);
+  if (frame.max <= frame.min || field.max <= field.min) return null;
+  return { frame, field };
 }
 
-function getRenderableWidthIntervals(context) {
-  let intervals = [[0, context.width]];
-  const tallExclusions = context.exclusions.filter(({ localBounds }) => {
-    const overlapBottom = Math.max(0, localBounds.min.y);
-    const overlapTop = Math.min(context.height, localBounds.max.y);
-    return overlapTop - overlapBottom > context.height * 0.24;
-  });
-
-  tallExclusions.forEach(({ localBounds, feature }) => {
-    const clearance = isProductObstacleFeature(feature, context)
-      ? ARCHITECTURAL_CLEARANCE
-      : 0;
-    const exclusionStart = clamp(localBounds.min.x - clearance, 0, context.width);
-    const exclusionEnd = clamp(localBounds.max.x + clearance, 0, context.width);
-    if (exclusionEnd <= exclusionStart) return;
-    intervals = subtractWidthInterval(intervals, exclusionStart, exclusionEnd);
-  });
-  return intervals;
+function normalizeAcceptedFrontRegions(profile) {
+  const frame = Array.isArray(profile.solidRegions)
+    ? profile.solidRegions.map((region) => normalizeAccepted2dRegion(region)).filter(Boolean)
+    : [];
+  const field = normalizeAccepted2dRegion(profile.fieldRegion);
+  if (frame.length !== 4 || !field) return null;
+  return { frame, field };
 }
 
-function getArchitecturalSafeWidthIntervals(context, options = {}) {
-  let intervals = [[0, context.width]];
-  context.exclusions
-    .filter((exclusion) => (
-      isProductObstacleFeature(exclusion.feature, context)
-      && !(typeof options.ignore === "function" && options.ignore(exclusion))
-    ))
-    .filter(({ localBounds }) => rangesOverlap(
-      0,
-      context.height,
-      localBounds.min.y,
-      localBounds.max.y
-    ))
-    .forEach(({ localBounds }) => {
-      intervals = subtractWidthInterval(
-        intervals,
-        clamp(localBounds.min.x - ARCHITECTURAL_CLEARANCE, 0, context.width),
-        clamp(localBounds.max.x + ARCHITECTURAL_CLEARANCE, 0, context.width)
+function normalizeAccepted2dRegion(region) {
+  const minX = Number(region?.bounds?.min?.x);
+  const maxX = Number(region?.bounds?.max?.x);
+  const minY = Number(region?.bounds?.min?.y);
+  const maxY = Number(region?.bounds?.max?.y);
+  if (
+    ![minX, maxX, minY, maxY].every(Number.isFinite)
+    || maxX <= minX
+    || maxY <= minY
+  ) return null;
+  return Object.freeze({
+    id: String(region.id || "frame-member"),
+    min: Object.freeze({ x: minX, y: minY }),
+    max: Object.freeze({ x: maxX, y: maxY })
+  });
+}
+
+function createAcceptedSubmesh(descriptor, options) {
+  const bounds = freezeAcceptedBounds(options.bounds);
+  return Object.freeze({
+    submeshId: String(options.submeshId),
+    geometry: options.geometry,
+    materialSlot: options.materialSlot,
+    bounds,
+    worldBounds: transformGuidedBoundsToWorld(bounds, descriptor.transform),
+    edgeVisible: options.edgeVisible === true,
+    grainRole: options.grainRole || descriptor.role,
+    profileGeometry: options.profileGeometry || null
+  });
+}
+
+function isAcceptedFramedFrontProfile(profile) {
+  return ["framed_panel", "glass_frame"].includes(profile?.kind)
+    && Number(profile?.frameWidth) > 0
+    && profile?.valid !== false;
+}
+
+function isAcceptedCrownProfile(profile) {
+  const outline = Array.isArray(profile?.outline) ? profile.outline : [];
+  return profile?.kind === "crown_profile_extrusion"
+    && profile?.crossSection?.heightAxis === "y"
+    && ["x", "z"].includes(profile?.crossSection?.projectionAxis)
+    && ["x", "z"].includes(profile?.extrusion?.axis)
+    && profile.crossSection.projectionAxis !== profile.extrusion.axis
+    && outline.length >= 3
+    && outline.every((point) => (
+      Number.isFinite(Number(point?.height))
+      && Number.isFinite(Number(point?.projection))
+      && Number(point.height) >= 0
+      && Number(point.height) <= 1
+      && Number(point.projection) >= 0
+      && Number(point.projection) <= 1
+    ));
+}
+
+function renderAcceptedComponent(group, descriptor, materials) {
+  const plan = createGuidedAcceptedComponentRenderPlan(descriptor);
+  const edgeMaterial = descriptor.role === "screen"
+    ? materials.screenEdge
+    : ["handle", "light", "screen", "back_panel", "backing_panel", "mounting_rail"].includes(descriptor.role)
+      ? null
+      : materials.edge;
+  const meshes = plan.submeshes.map((submesh) => {
+    const material = materials[submesh.materialSlot] || materials.case;
+    const mesh = submesh.geometry === "crown_profile_extrusion"
+      ? addAcceptedProfileExtrusion(group, submesh, material, {
+        descriptorRole: descriptor.role,
+        componentId: descriptor.componentId,
+        edgeMaterial: submesh.edgeVisible ? edgeMaterial : null,
+        edgeMaterialSlot: "edge",
+        repeatInches: materials.repeatInches
+      })
+      : addSceneBox(
+        group,
+        acceptedBoundsSize(submesh.bounds),
+        acceptedBoundsCenter(submesh.bounds),
+        material,
+        {
+          descriptorRole: descriptor.role,
+          materialSlot: submesh.materialSlot,
+          submeshId: submesh.submeshId,
+          componentId: descriptor.componentId,
+          repeatInches: materials.repeatInches,
+          uvRole: submesh.grainRole,
+          edgeMaterial: submesh.edgeVisible ? edgeMaterial : null,
+          edgeMaterialSlot: descriptor.role === "screen" ? "screenEdge" : "edge",
+          castShadow: descriptor.role !== "light",
+          receiveShadow: descriptor.role !== "light" && descriptor.role !== "screen"
+        }
       );
-    });
-  return intervals;
+    mesh.userData.descriptorMetadata = descriptor.metadata;
+    mesh.userData.acceptedSubmeshId = submesh.submeshId;
+    mesh.userData.acceptedLocalBounds = submesh.bounds;
+    return mesh;
+  });
+  if (descriptor.role === "light") {
+    const light = new THREE.PointLight(0xffdfad, 0.22, toSceneLength(26), 1.8);
+    light.position.copy(meshes[0].position);
+    light.userData.acceptedComponentId = descriptor.componentId;
+    light.userData.finishIndependent = true;
+    group.add(light);
+  }
+  return { plan, meshes };
 }
 
-function findZoneFeature(context, matcher) {
-  const excludedMatch = context.exclusions.find(({ feature }) => (
-    !feature.renderHidden && matcher.test(getSemanticKind(feature))
-  ));
-  if (excludedMatch) return excludedMatch.feature;
-  return context.plan.room.features.find((feature) => (
-    !feature.renderHidden && matcher.test(getSemanticKind(feature))
-  )) || null;
+function addAcceptedProfileExtrusion(parent, submesh, material, options = {}) {
+  const geometry = createGuidedAcceptedProfileExtrusionGeometry(
+    submesh,
+    options.repeatInches
+  );
+
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = options.castShadow !== false;
+  mesh.receiveShadow = options.receiveShadow !== false;
+  mesh.userData = {
+    scenePurpose: CONCEPT_SCENE_PURPOSE,
+    materialSlot: submesh.materialSlot,
+    componentId: options.componentId,
+    descriptorRole: options.descriptorRole,
+    guidedGrainRole: submesh.grainRole,
+    acceptedSubmeshId: submesh.submeshId,
+    acceptedProfileExtrusion: true
+  };
+  parent.add(mesh);
+
+  if (options.edgeMaterial) {
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geometry, 24),
+      options.edgeMaterial
+    );
+    edges.userData.nonPhysicalHelper = true;
+    edges.userData.materialSlot = options.edgeMaterialSlot || "edge";
+    parent.add(edges);
+  }
+  return mesh;
 }
 
-function visualFrameThickness(width, height) {
-  return clamp(Math.min(width, height) * 0.023, 1.15, 2.5);
+export function createGuidedAcceptedProfileExtrusionGeometry(submesh, repeatInches) {
+  const bounds = submesh.bounds;
+  const profile = submesh.profileGeometry;
+  if (!isAcceptedRenderBounds(bounds) || !isAcceptedCrownProfile(profile)) {
+    throw new TypeError("An accepted authored crown profile is required.");
+  }
+  const extrusionAxis = profile.extrusion.axis;
+  const projectionAxis = profile.crossSection.projectionAxis;
+  const projectionDirection = Number(profile.crossSection.projectionDirection) >= 0 ? 1 : -1;
+  const projectionLength = bounds.max[projectionAxis] - bounds.min[projectionAxis];
+  const mountingPlane = finiteAcceptedNumber(
+    profile.crossSection.mountingPlane,
+    projectionDirection > 0 ? bounds.min[projectionAxis] : bounds.max[projectionAxis]
+  );
+  const shape = new THREE.Shape();
+  profile.outline.forEach((point, index) => {
+    const y = bounds.min.y + Number(point.height) * (bounds.max.y - bounds.min.y);
+    const projection = mountingPlane
+      + projectionDirection * Number(point.projection) * projectionLength;
+    if (index === 0) shape.moveTo(toSceneLength(projection), toSceneLength(y));
+    else shape.lineTo(toSceneLength(projection), toSceneLength(y));
+  });
+  shape.closePath();
+
+  const extrusionMin = Number(profile.extrusion.min);
+  const extrusionMax = Number(profile.extrusion.max);
+  const extrusionLength = extrusionMax - extrusionMin;
+  const geometry = new THREE.ExtrudeGeometry(shape, {
+    depth: toSceneLength(extrusionLength),
+    steps: 1,
+    bevelEnabled: false,
+    curveSegments: 1
+  });
+  const positions = geometry.attributes.position;
+  for (let index = 0; index < positions.count; index += 1) {
+    const shapeProjection = positions.getX(index);
+    const height = positions.getY(index);
+    const extrusion = toSceneLength(extrusionMin) + positions.getZ(index);
+    if (extrusionAxis === "x") {
+      positions.setXYZ(index, extrusion, height, shapeProjection);
+    } else {
+      positions.setXYZ(index, shapeProjection, height, extrusion);
+    }
+  }
+  positions.needsUpdate = true;
+  applyPhysicalExtrusionUvs(geometry, repeatInches, extrusionAxis, {
+    unitsPerInch: INCH_TO_SCENE,
+    role: submesh.grainRole || "crown",
+    crossSectionAxes: ["y", projectionAxis]
+  });
+  geometry.computeVertexNormals();
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  geometry.userData ||= {};
+  geometry.userData.guidedProfileGeometry = {
+    kind: profile.kind,
+    profileId: profile.profileId || null,
+    outlineUnits: profile.outlineUnits || "normalized",
+    extrusionAxis,
+    projectionAxis
+  };
+  return geometry;
+}
+
+function acceptedBoundsSize(bounds) {
+  return [
+    bounds.max.x - bounds.min.x,
+    bounds.max.y - bounds.min.y,
+    bounds.max.z - bounds.min.z
+  ];
+}
+
+function acceptedBoundsCenter(bounds) {
+  return [
+    (bounds.min.x + bounds.max.x) / 2,
+    (bounds.min.y + bounds.max.y) / 2,
+    (bounds.min.z + bounds.max.z) / 2
+  ];
+}
+
+function unionAcceptedRenderBounds(boundsList) {
+  return boundsList.reduce((combined, bounds) => ({
+    min: {
+      x: Math.min(combined.min.x, bounds.min.x),
+      y: Math.min(combined.min.y, bounds.min.y),
+      z: Math.min(combined.min.z, bounds.min.z)
+    },
+    max: {
+      x: Math.max(combined.max.x, bounds.max.x),
+      y: Math.max(combined.max.y, bounds.max.y),
+      z: Math.max(combined.max.z, bounds.max.z)
+    }
+  }), {
+    min: { x: Infinity, y: Infinity, z: Infinity },
+    max: { x: -Infinity, y: -Infinity, z: -Infinity }
+  });
+}
+
+function freezeAcceptedBounds(bounds) {
+  if (!isAcceptedRenderBounds(bounds)) {
+    throw new TypeError("Accepted renderer submeshes require finite ordered bounds.");
+  }
+  return Object.freeze({
+    min: Object.freeze({
+      x: Number(bounds.min.x),
+      y: Number(bounds.min.y),
+      z: Number(bounds.min.z)
+    }),
+    max: Object.freeze({
+      x: Number(bounds.max.x),
+      y: Number(bounds.max.y),
+      z: Number(bounds.max.z)
+    })
+  });
+}
+
+function isAcceptedRenderBounds(bounds) {
+  return Boolean(bounds?.min && bounds?.max && ["x", "y", "z"].every((axis) => (
+    Number.isFinite(Number(bounds.min[axis]))
+    && Number.isFinite(Number(bounds.max[axis]))
+    && Number(bounds.max[axis]) > Number(bounds.min[axis])
+  )));
+}
+
+function finiteAcceptedNumber(value, fallback) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function positiveAcceptedNumber(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+}
+
+function nonNegativeAcceptedNumber(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
+}
+
+function normalizeGuidedMaterialSlot(slot, role) {
+  if (slot === "cabinet_interior") return "accent";
+  if (slot === "hardware") return "hardware";
+  if (slot === "led") return "led";
+  if (slot === "screen") return "screen";
+  if (slot === "mounting" || slot === "structural-neutral") return "reveal";
+  if (slot === "toe") return "toe";
+  if (slot === "back") return "back";
+  if (slot === "side") return "side";
+  if (slot === "front") return "front";
+  if (slot === "cabinet_finish") {
+    if (["door", "drawer_front", "slat", "fascia"].includes(role)) return "front";
+    if (["side_panel", "end_panel", "filler", "divider"].includes(role)) return "side";
+  }
+  return "case";
 }
 
 function getPlanCameraFrame(plan, aspect) {
@@ -3615,6 +3467,14 @@ function addSceneBox(parent, sizeInches, centerInches, material, options = {}) {
   const height = Math.max(MIN_SURFACE_THICKNESS, toSceneLength(sizeInches[1]));
   const depth = Math.max(MIN_SURFACE_THICKNESS, toSceneLength(sizeInches[2]));
   const geometry = new THREE.BoxGeometry(width, height, depth);
+  if (options.repeatInches) {
+    applyPhysicalBoxUvs(
+      geometry,
+      sizeInches,
+      options.repeatInches,
+      options.uvRole || options.descriptorRole || "case"
+    );
+  }
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(
     toSceneLength(centerInches[0]),
@@ -3624,6 +3484,11 @@ function addSceneBox(parent, sizeInches, centerInches, material, options = {}) {
   mesh.castShadow = options.castShadow !== false;
   mesh.receiveShadow = options.receiveShadow !== false;
   mesh.userData.scenePurpose = options.scenePurpose || CONCEPT_SCENE_PURPOSE;
+  if (options.materialSlot) mesh.userData.materialSlot = options.materialSlot;
+  if (options.componentId) mesh.userData.componentId = options.componentId;
+  if (options.descriptorRole) mesh.userData.descriptorRole = options.descriptorRole;
+  if (options.uvRole) mesh.userData.guidedGrainRole = options.uvRole;
+  if (options.submeshId) mesh.userData.acceptedSubmeshId = options.submeshId;
   parent.add(mesh);
 
   if (options.edgeMaterial) {
@@ -3631,6 +3496,7 @@ function addSceneBox(parent, sizeInches, centerInches, material, options = {}) {
     const edges = new THREE.LineSegments(edgeGeometry, options.edgeMaterial);
     edges.position.copy(mesh.position);
     edges.userData.nonPhysicalHelper = true;
+    edges.userData.materialSlot = options.edgeMaterialSlot || "edge";
     parent.add(edges);
   }
   return mesh;
@@ -3715,8 +3581,141 @@ function disposeObject3D(object) {
     }
   });
   geometries.forEach((geometry) => geometry.dispose?.());
-  textures.forEach((texture) => texture.dispose?.());
+  textures.forEach((texture) => {
+    if (!isGuidedSharedTexture(texture)) texture.dispose?.();
+  });
   materials.forEach((material) => material.dispose?.());
+}
+
+function disposeMaterialLibrary(library) {
+  const materials = new Set(
+    Object.values(library || {}).filter((value) => value?.isMaterial)
+  );
+  materials.forEach((material) => material.dispose?.());
+}
+
+function applyAcceptedTargetZones(plan, acceptedSpecification) {
+  const installations = new Map(
+    (acceptedSpecification.fit?.installations || []).map((installation) => [
+      installation.id,
+      installation
+    ])
+  );
+  plan.targetZones = (acceptedSpecification.product?.descriptorSets || []).map((set) => {
+    const bounds = transformAcceptedBounds(set.physicalBounds || set.bounds, set.transform);
+    const installation = installations.get(set.installationId);
+    return {
+      id: set.id,
+      role: installation?.role || set.zoneId || "primary",
+      source: "accepted-guided-specification",
+      bounds,
+      size: bounds.size,
+      frame: {
+        origin: bounds.min,
+        widthAxis: { x: 1, y: 0, z: 0 },
+        heightAxis: { x: 0, y: 1, z: 0 },
+        depthAxis: { x: 0, y: 0, z: 1 }
+      },
+      excludes: []
+    };
+  });
+}
+
+function transformAcceptedBounds(bounds, transform = {}) {
+  const translation = transform.translation || {};
+  const basis = transform.basis || {};
+  const xAxis = basis.x || { x: 1, y: 0, z: 0 };
+  const yAxis = basis.y || { x: 0, y: 1, z: 0 };
+  const zAxis = basis.z || { x: 0, y: 0, z: 1 };
+  const points = [];
+  [bounds.min.x, bounds.max.x].forEach((x) => {
+    [bounds.min.y, bounds.max.y].forEach((y) => {
+      [bounds.min.z, bounds.max.z].forEach((z) => {
+        points.push({
+          x: finiteOr(translation.x, 0) + xAxis.x * x + yAxis.x * y + zAxis.x * z,
+          y: finiteOr(translation.y, 0) + xAxis.y * x + yAxis.y * y + zAxis.y * z,
+          z: finiteOr(translation.z, 0) + xAxis.z * x + yAxis.z * y + zAxis.z * z
+        });
+      });
+    });
+  });
+  return createBounds(
+    {
+      x: Math.min(...points.map((point) => point.x)),
+      y: Math.min(...points.map((point) => point.y)),
+      z: Math.min(...points.map((point) => point.z))
+    },
+    {
+      x: Math.max(...points.map((point) => point.x)),
+      y: Math.max(...points.map((point) => point.y)),
+      z: Math.max(...points.map((point) => point.z))
+    }
+  );
+}
+
+/**
+ * Appearance fixtures can change independently from fitted casework geometry.
+ * The renderer uses this signature to refresh only the accepted product group
+ * when handles or lighting descriptors are added, removed, or reshaped.
+ */
+export function createGuidedAppearanceDescriptorSignature(acceptedSpecification) {
+  const sets = acceptedSpecification?.product?.descriptorSets
+    || acceptedSpecification?.descriptorSets
+    || [];
+  return createStableHash(
+    "guided-appearance-descriptors-v1",
+    sets.map((set) => ({
+      id: set?.id || null,
+      installationId: set?.installationId || null,
+      components: (Array.isArray(set?.components) ? set.components : [])
+        .filter((component) => GUIDED_APPEARANCE_DESCRIPTOR_ROLES.has(component?.role))
+        .map((component) => ({
+          id: component.id,
+          role: component.role,
+          parentId: component.parentId || null,
+          hostId: component.hostId || null,
+          bounds: component.bounds || null,
+          metadata: component.metadata || null
+        }))
+    }))
+  );
+}
+
+function createGeometrySceneSignature(plan, acceptedSpecification, options) {
+  const signatureInput = {
+    room: acceptedSpecification?.room || {
+      layoutId: plan.room.layoutId,
+      bounds: plan.room.bounds,
+      surfaces: plan.room.surfaces,
+      features: plan.room.features
+    },
+    geometryFingerprint: options.showProduct
+      ? acceptedSpecification?.geometryFingerprint || null
+      : null,
+    showProduct: options.showProduct,
+    showDimensions: options.showDimensions,
+    dimensionCallouts: options.showDimensions ? plan.dimensionCallouts : []
+  };
+  return createStableHash("guided-geometry-scene-v1", signatureInput);
+}
+
+function createMaterialSignature(selection) {
+  return createStableHash("guided-material-state-v1", {
+    finish: selection?.finish?.id,
+    accentFinish: selection?.accentFinish?.id,
+    hardware: selection?.details?.hardware,
+    lighting: selection?.details?.lighting
+  });
+}
+
+function createStableHash(prefix, value) {
+  const source = stableStringify(value);
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `${prefix}-${(hash >>> 0).toString(36)}`;
 }
 
 function createSceneSignature(plan) {

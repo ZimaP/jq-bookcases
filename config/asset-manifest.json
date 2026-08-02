@@ -1,0 +1,390 @@
+{
+  "schemaVersion": 1,
+  "assets": [
+    {
+      "path": "00_START_HERE.md",
+      "bytes": 2395,
+      "sha256": "4b604aab304e293112e2416c98f7d82c84afcd91850ae93c56e7c7b1a579b821"
+    },
+    {
+      "path": "01_MASTER_CODEX_PROMPT.md",
+      "bytes": 30512,
+      "sha256": "d7b32f4d2193850b92cafa3b5b1d8e77e09992d262b7fabae722f4b9f174e6f0"
+    },
+    {
+      "path": "COPY_PASTE_MASTER_PROMPT.txt",
+      "bytes": 30512,
+      "sha256": "d7b32f4d2193850b92cafa3b5b1d8e77e09992d262b7fabae722f4b9f174e6f0"
+    },
+    {
+      "path": "README_RU.md",
+      "bytes": 1645,
+      "sha256": "c3a67852e5fccfe582eb9036d39e606a96f2802efc865acaf970c3c0498197ae"
+    },
+    {
+      "path": "assets/current-ui/step-1-current-products.jpeg",
+      "bytes": 354459,
+      "sha256": "6e3b9daa17cb742edc811a58102fc1c18a2ca6fa9615e7dcc43cde050c0ba9cf"
+    },
+    {
+      "path": "assets/current-ui/step-2-current-layouts.jpeg",
+      "bytes": 283280,
+      "sha256": "55fb01d3153d0cae0173c82acbaf879bf9b360ca161738261949a31403acf018"
+    },
+    {
+      "path": "assets/current-ui/step-3-current-measurements.jpeg",
+      "bytes": 251778,
+      "sha256": "9bbefc9dc0a84e0315249a9a292c885cb4d370a1af837a786213dc0b85beee86"
+    },
+    {
+      "path": "assets/current-ui/step-4-current-preview.jpeg",
+      "bytes": 281291,
+      "sha256": "d0067755e3bbffa23e8c2fbdaccb2247670d119aca585177052e017d6053238b"
+    },
+    {
+      "path": "assets/diagrams/built-in-fit-contract.png",
+      "bytes": 51689,
+      "sha256": "cbc8de6596d0b9194704eca90d960fe568333d85a399fb570608252915318c2c"
+    },
+    {
+      "path": "assets/diagrams/current-step4-annotated.png",
+      "bytes": 736472,
+      "sha256": "d0a7610781779cb0fab58b0f7b9035c6a8611295e9be547a4518a2a574b5f75f"
+    },
+    {
+      "path": "assets/diagrams/material-pipeline.png",
+      "bytes": 47854,
+      "sha256": "8cc27a8ad721e1078c1dd48df5ec8e42a54b5d14e0a7b55e8c3c858a9c635ab1"
+    },
+    {
+      "path": "assets/diagrams/room-topology-grid.png",
+      "bytes": 55990,
+      "sha256": "0794f950b25125185450c63b7179e912540c3663594e9d76792d0aa6d526bf4b"
+    },
+    {
+      "path": "assets/diagrams/target-engine-architecture.png",
+      "bytes": 63882,
+      "sha256": "ad18f9c415e19aa45d531faa8ce35caf42b2ffb91243736dddb59751a730829e"
+    },
+    {
+      "path": "assets/diagrams/tv-unit-contract.png",
+      "bytes": 60391,
+      "sha256": "a9333ca2a2bfc5eaa796dc005810a1fd33c85c34964b7cd8a9303f0ceba50876"
+    },
+    {
+      "path": "assets/environments/jq-neutral-studio.hdr",
+      "bytes": 1341884,
+      "sha256": "0ff81b73774abc781428340a56a0c0170447c7919be9b451c05cf15b4c90a931"
+    },
+    {
+      "path": "assets/environments/jq-neutral-studio.jpg",
+      "bytes": 52273,
+      "sha256": "85da0051c51d171326cf724f7136f0cb373fb312e3563e355680bbf13edac47c"
+    },
+    {
+      "path": "assets/environments/jq-warm-interior.hdr",
+      "bytes": 1283397,
+      "sha256": "49db5b6e13c5b5239d8aca84c055c586dfc71aeaf1e1db64487f5bf8bab66db2"
+    },
+    {
+      "path": "assets/environments/jq-warm-interior.jpg",
+      "bytes": 52592,
+      "sha256": "37fb4b08fc940011996829fdbccf0453da980cf297b55d72b10ed94461806227"
+    },
+    {
+      "path": "assets/reference-boards/current-flow-board.jpg",
+      "bytes": 279538,
+      "sha256": "db144f8cdbccf67686e182a24937f3ba5aae4f98b3a9bfc1dd7960db6410d564"
+    },
+    {
+      "path": "assets/reference-boards/material-board.jpg",
+      "bytes": 143025,
+      "sha256": "4550b9cc3789f70eb0454bf9ac013235f9d2bf454201aab4675cfc32431eea5f"
+    },
+    {
+      "path": "assets/textures/paint/sprayed-normal.png",
+      "bytes": 6356184,
+      "sha256": "6a9fca85f8a7de65419b44741cc44dbbfacdbb3f7ac0998929ec5b74e886b244"
+    },
+    {
+      "path": "assets/textures/paint/sprayed-roughness.png",
+      "bytes": 1817404,
+      "sha256": "555aa83c2ba12f5d8c7f6aa8cf1b08aab5ccf41045e674fd3de4d86bda367280"
+    },
+    {
+      "path": "assets/textures/wood/dark-walnut/albedo.jpg",
+      "bytes": 484386,
+      "sha256": "0d9225672ddd51dcb58fe187c74637dbd71d3de674acb76d9719a648b8e1a01a"
+    },
+    {
+      "path": "assets/textures/wood/dark-walnut/ao.png",
+      "bytes": 591396,
+      "sha256": "607de081c6ce308204480e6f2be300602e16fdb888c2cbdaed859341c00300ed"
+    },
+    {
+      "path": "assets/textures/wood/dark-walnut/normal.png",
+      "bytes": 3983318,
+      "sha256": "356a9837fd9bcd3a1fee6575f22dfe8e4f63ea244a0f43b5f410eacd278499ec"
+    },
+    {
+      "path": "assets/textures/wood/dark-walnut/roughness.png",
+      "bytes": 662617,
+      "sha256": "a8e54a882a4a0b70382641291eafd23b139ecd2072bb383ed8e036b55d1270dd"
+    },
+    {
+      "path": "assets/textures/wood/light-walnut/albedo.jpg",
+      "bytes": 593472,
+      "sha256": "47cc845b38f91eba38516ccb7400ac849b815ffb05b89ca255991ea466dcf276"
+    },
+    {
+      "path": "assets/textures/wood/light-walnut/ao.png",
+      "bytes": 598454,
+      "sha256": "93adc8fbd11b32a527e522e28298c6a9102eaf67324a7b95fd4b79c38c05b5e7"
+    },
+    {
+      "path": "assets/textures/wood/light-walnut/normal.png",
+      "bytes": 4020230,
+      "sha256": "0c885ebdc647585003955d2d9f93ec683a470da7f236accadc4a0d6e4b5aeff3"
+    },
+    {
+      "path": "assets/textures/wood/light-walnut/roughness.png",
+      "bytes": 668028,
+      "sha256": "45354a8ef1c3fea52a28c66e1e943a2ef17df0789ba139111f388baf2a250749"
+    },
+    {
+      "path": "assets/textures/wood/medium-walnut/albedo.jpg",
+      "bytes": 546190,
+      "sha256": "d811cfa0dd60448e309d5ce48ce181b3bad6b3b90613890f2c4be91c5c8cd59a"
+    },
+    {
+      "path": "assets/textures/wood/medium-walnut/ao.png",
+      "bytes": 596238,
+      "sha256": "b3ff560307c51c902de9ea1cd9d8755854c3ab3e184e4dc69298010cd188cea8"
+    },
+    {
+      "path": "assets/textures/wood/medium-walnut/normal.png",
+      "bytes": 4021244,
+      "sha256": "111eb2dc6f49926e6b8d88db679a20eac85b9b05ae7a184b91899d0af8bad6b6"
+    },
+    {
+      "path": "assets/textures/wood/medium-walnut/roughness.png",
+      "bytes": 666171,
+      "sha256": "ee013c80c5598a1e5166bb6c1d7a066005c35485ffd135ea5e5a5d83203499a9"
+    },
+    {
+      "path": "assets/textures/wood/natural-oak/albedo.jpg",
+      "bytes": 593672,
+      "sha256": "5563af6c962805b7bf5321e6c109a746e8354768d15733a93d8a598547629cc1"
+    },
+    {
+      "path": "assets/textures/wood/natural-oak/ao.png",
+      "bytes": 610877,
+      "sha256": "db04a4651da29e444eb8d7bf125d91e0f5a1c0f895d0e2a122a64474d8345060"
+    },
+    {
+      "path": "assets/textures/wood/natural-oak/normal.png",
+      "bytes": 4022217,
+      "sha256": "2b3d7dbcb08cd065c6d96d38229e4aa7df194aa46a1729d22b30f136fdff628f"
+    },
+    {
+      "path": "assets/textures/wood/natural-oak/roughness.png",
+      "bytes": 680638,
+      "sha256": "c221f7539346ebeeea9b18f2ed92204511a8d4c68cb48c869e308f9b06e57ffd"
+    },
+    {
+      "path": "assets/textures/wood/white-oak/albedo.jpg",
+      "bytes": 555082,
+      "sha256": "514aa9729978a8b830cd95f02e9ef590ba69e35fcbf8a2c432e8a0022931f395"
+    },
+    {
+      "path": "assets/textures/wood/white-oak/ao.png",
+      "bytes": 630864,
+      "sha256": "12c952688531236a5901a3886817bba02f0c34bc472ef7a307ab0acf077055c1"
+    },
+    {
+      "path": "assets/textures/wood/white-oak/normal.png",
+      "bytes": 4109194,
+      "sha256": "275abd87c693e2a6290d5bc08166607f2100003936c80e34f8ecb65e9e53fa97"
+    },
+    {
+      "path": "assets/textures/wood/white-oak/roughness.png",
+      "bytes": 696441,
+      "sha256": "ef7eaf6545aabc130751b6e2f4197bb7d9e4fe249ae36fcdc37d33346ed14ca2"
+    },
+    {
+      "path": "code-templates/fit-contract.test.js",
+      "bytes": 1730,
+      "sha256": "81fbb7742c02977b11a6246049cefc76c8f881a30b59d308891f7b42cbec57c1"
+    },
+    {
+      "path": "code-templates/guided-spec-adapter.js",
+      "bytes": 2756,
+      "sha256": "c8def29b0e5148bcaa041928c42d03cd73b485b62ab50cb4cfc07d026ccfd574"
+    },
+    {
+      "path": "code-templates/installation-fit-solver.js",
+      "bytes": 3518,
+      "sha256": "5077b145e5bca4dd8474ea4045dbb34dcf7d7074299e8032095584784287c6eb"
+    },
+    {
+      "path": "code-templates/material-loader.js",
+      "bytes": 1329,
+      "sha256": "5a58432a649e53c04bfcc72fca88ec399a1f3512883b69a70650435d08217cab"
+    },
+    {
+      "path": "code-templates/room-topology.js",
+      "bytes": 3537,
+      "sha256": "e994d1add7af9437783a1a03d9d7bfd387457bbb2c9f5b2ed100309bf9a9f59d"
+    },
+    {
+      "path": "config/fit-policy.json",
+      "bytes": 1396,
+      "sha256": "5d4f01de52c80916ec2165ea841922228947f4202a17cfd3181f3866f8c66f74"
+    },
+    {
+      "path": "config/golden-projects.json",
+      "bytes": 5569,
+      "sha256": "8cd0ae1feffa50174a85242a92644147392f860c6d1aaee467ef450cd987c0ce"
+    },
+    {
+      "path": "config/materials.json",
+      "bytes": 2634,
+      "sha256": "d38fb24f1ee429c8c2efd3ffa5ed5e4c656b7804229a90d8cc9624fcbc1b5ff5"
+    },
+    {
+      "path": "config/product-archetypes.json",
+      "bytes": 1817,
+      "sha256": "ab1720dbd2e6ea9b28d4a69489e7ab9fb9bae8055c806889b6a907ed8ade8e93"
+    },
+    {
+      "path": "config/product-layout-compatibility.json",
+      "bytes": 3135,
+      "sha256": "253356dfc33d065eb81dfd375fe24a10a6082f21cb4a0042a40947c224b3a962"
+    },
+    {
+      "path": "config/provisional-decisions.json",
+      "bytes": 1111,
+      "sha256": "4ebbb154887ba4f36a88f8822d132bb2e37b987e83067259f2e61881998b55a5"
+    },
+    {
+      "path": "config/room-topologies.json",
+      "bytes": 3909,
+      "sha256": "eb31d6078c115b63bf2f3c29feeb54b273ad2156b9c5076eb229e24e96295f06"
+    },
+    {
+      "path": "docs/ASSET_LIMITATIONS.md",
+      "bytes": 1487,
+      "sha256": "2edbf7784ef5668a3c757cc290c6138aca8104b4bb2d20d77ae39333e4baa21a"
+    },
+    {
+      "path": "docs/CURRENT_SYSTEM_DIAGNOSIS.md",
+      "bytes": 3962,
+      "sha256": "a7e5ef392a36524feed06adc04de9d79dccbf1cb7bb03a24a78a900cb1c0df27"
+    },
+    {
+      "path": "docs/FINAL_REPORT_TEMPLATE.md",
+      "bytes": 535,
+      "sha256": "7574c19ad58b26e48fe2c86427783290d70126a830344af964e118b1bf95e74b"
+    },
+    {
+      "path": "docs/IMPLEMENTATION_ARCHITECTURE.md",
+      "bytes": 2928,
+      "sha256": "6ad3e8f654cf226a12e5e679d9a7478cc77c71025490002203479b391719783a"
+    },
+    {
+      "path": "docs/LOCKED_DECISIONS.md",
+      "bytes": 3114,
+      "sha256": "ecf37fac6812df18d5f86f3425d5586910e21adf1966c3a27236ca37f756a1d2"
+    },
+    {
+      "path": "docs/MATERIAL_AND_RENDERING_SYSTEM.md",
+      "bytes": 2473,
+      "sha256": "6c0131fe5fd8d74b7f4a09246a9fba2f50a75e6f5f9e5e4b9017ba29cf5bec74"
+    },
+    {
+      "path": "docs/PRODUCT_ARCHETYPES.md",
+      "bytes": 3011,
+      "sha256": "17869354bf9d81f1a9f027c2410214bba38d4968449ae1b1b1c5ebde3480efff"
+    },
+    {
+      "path": "docs/QUALITY_GATE.md",
+      "bytes": 4065,
+      "sha256": "b1af3899bd254607fd06fc55a8ac589ff14333d8e4d32b00dedff82df492e485"
+    },
+    {
+      "path": "docs/ROOM_TOPOLOGY_AND_FIT_RULES.md",
+      "bytes": 5740,
+      "sha256": "10129b027e0d1bd7c3a9ec565cb32fb8d43e4c40f5c7bd64e4c86b21d9195037"
+    },
+    {
+      "path": "docs/SOURCE_EVIDENCE.md",
+      "bytes": 1012,
+      "sha256": "da01185bc022f2ab27bd395cdc84bf6710eaca2b8f3e78e394ffb7eef162c859"
+    },
+    {
+      "path": "docs/TV_UNIT_CONTRACT.md",
+      "bytes": 2208,
+      "sha256": "6e85637156e6db34b6c69ce1c8fe94916ec1ca9029cfd0abe01c47bf0d18c737"
+    },
+    {
+      "path": "examples/G01-right-niche-tv.json",
+      "bytes": 555,
+      "sha256": "76442f341966f62e6d866f58fb9492535ff55c549df9402c3c7cd0fc7c2f5307"
+    },
+    {
+      "path": "examples/G02-center-niche-cabinets.json",
+      "bytes": 433,
+      "sha256": "48ed1fce1bfab04242d601d7e500726f0c2cf0a462ec23a3ddc1c5003f2c94df"
+    },
+    {
+      "path": "examples/G03-clear-drawers-wide.json",
+      "bytes": 321,
+      "sha256": "2e3235ccc9d9cf0206618ed31e31ebea63c7ebe5da72c94efdab35fe4d32ac47"
+    },
+    {
+      "path": "examples/G04-clear-open.json",
+      "bytes": 260,
+      "sha256": "ec0a055800d95f44e9bd4cf1b09ba5791faa64377e822792e58a634e80537e12"
+    },
+    {
+      "path": "examples/G05-fireplace.json",
+      "bytes": 448,
+      "sha256": "418b857d08ce7d06a97395a1351dc12502c017426242e99277658d5d5a3834cc"
+    },
+    {
+      "path": "examples/G06-window-storage.json",
+      "bytes": 424,
+      "sha256": "4d41fc14cfbf003abb3c9adee3d9f59663bb13e129174941701347a468b66de8"
+    },
+    {
+      "path": "examples/G07-door-wall.json",
+      "bytes": 378,
+      "sha256": "9877f29a08dfbfc9adc3df6e136d95e2334f897820f1d9070310677318085672"
+    },
+    {
+      "path": "examples/G08-between-openings.json",
+      "bytes": 354,
+      "sha256": "f3ef5ee45704352e44dd0ec845a50b187f72fb93af24fc0e00ca30a3a1614a46"
+    },
+    {
+      "path": "examples/G09-corner.json",
+      "bytes": 297,
+      "sha256": "ec0fb7daadf6e03a2daf052932218a460437efdb723d95d62c4bf22aaa1b8986"
+    },
+    {
+      "path": "examples/G10-floating.json",
+      "bytes": 302,
+      "sha256": "4b136118d8b7720635b1b8369dfc74c685043432806c78c464595f5ef7b6a767"
+    },
+    {
+      "path": "examples/G11-radiator.json",
+      "bytes": 439,
+      "sha256": "b9b0ae8d66db17eb615c28bfd111f87046e5bd5edaf7e41f832dd6039b93e22b"
+    },
+    {
+      "path": "examples/G12-round-trip.json",
+      "bytes": 385,
+      "sha256": "41c14379a0ff93537a793f4027c569103ddf8d79685936d1a95c216fdc2ee4b8"
+    }
+  ]
+}

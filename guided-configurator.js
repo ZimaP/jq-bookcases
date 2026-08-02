@@ -12,9 +12,8 @@ import {
   getMeasurementFields,
   getProductChoice,
   getProductChoiceForSelection,
-  getStyle,
-  resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=unified-guided-scene-20260729c";
+  getStyle
+} from "./guided-configurator-data.js?v=luxury-configurator-engine-v1-20260802b";
 import {
   buildProjectSummary,
   createProject,
@@ -24,7 +23,17 @@ import {
   parseInches,
   prepareMeasurementsForLayout,
   validateMeasurements
-} from "./guided-configurator-state.js?v=unified-guided-scene-20260729c";
+} from "./guided-configurator-state.js?v=luxury-configurator-engine-v1-20260802b";
+import {
+  resolveProductLayoutCompatibility
+} from "./guided-product-adapter.js?v=luxury-configurator-engine-v1";
+import {
+  createGuidedAcceptedSnapshot,
+  prepareGuidedProjectPersistence,
+  prepareGuidedQuote,
+  restoreGuidedAcceptedSnapshot,
+  transactGuidedProject
+} from "./guided-project-engine.js?v=luxury-configurator-engine-v1";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -74,6 +83,9 @@ const store = createProjectStore();
 const quoteEndpointMeta = document.querySelector('meta[name="jq-quote-endpoint"]');
 
 let project = initializeProject();
+const restoredAcceptedSpecification = project.acceptedSnapshot
+  ? restoreGuidedAcceptedSnapshot(project, project.acceptedSnapshot)
+  : null;
 let activeCustomizationTab = "finish";
 let previewScale = 1;
 let saveDialogMode = "save";
@@ -86,6 +98,17 @@ let guidedSceneController = null;
 let guidedSceneImportPromise = null;
 let guidedSceneSyncToken = 0;
 let guidedSceneMeasurementTimer = 0;
+let acceptedSpecification = restoredAcceptedSpecification?.accepted
+  ? restoredAcceptedSpecification
+  : project.acceptedSnapshot?.acceptedSpecification || null;
+let guidedProjectTransaction = restoredAcceptedSpecification?.accepted
+  ? {
+      accepted: true,
+      specification: restoredAcceptedSpecification,
+      errors: [],
+      warnings: restoredAcceptedSpecification.warnings || []
+    }
+  : null;
 
 if (app) {
   initializeStaticShell();
@@ -193,6 +216,7 @@ function renderApp(options = {}) {
   if (!app) return;
   window.clearTimeout(guidedSceneMeasurementTimer);
   guidedSceneMeasurementTimer = 0;
+  syncAcceptedSpecification();
   const step = STEP_DEFINITIONS[project.currentStep - 1];
   app.innerHTML = `
     <div class="guided-shell guided-shell--step-${project.currentStep}">
@@ -209,6 +233,7 @@ function renderApp(options = {}) {
     </div>
   `;
   mountIcons(app);
+  syncSaveControlState();
   applyPreviewScale();
   syncGuidedScene();
   scheduleDraftSave();
@@ -216,6 +241,50 @@ function renderApp(options = {}) {
 
   requestAnimationFrame(() => {
     if (options.focusHeading) app.querySelector("#guided-page-title")?.focus({ preventScroll: true });
+  });
+}
+
+function syncAcceptedSpecification() {
+  const savedAccepted = project.acceptedSnapshot?.acceptedSpecification;
+  const previous = acceptedSpecification?.projectId === project.projectId
+    ? acceptedSpecification
+    : savedAccepted?.projectId === project.projectId ? savedAccepted : null;
+  guidedProjectTransaction = transactGuidedProject(project, previous);
+  if (guidedProjectTransaction.accepted) {
+    acceptedSpecification = guidedProjectTransaction.specification;
+    project.acceptedSnapshot = createGuidedAcceptedSnapshot(acceptedSpecification, project);
+  } else {
+    acceptedSpecification = guidedProjectTransaction.specification;
+  }
+  return guidedProjectTransaction;
+}
+
+function prepareCurrentProjectPersistence() {
+  const preparation = prepareGuidedProjectPersistence(project, acceptedSpecification);
+  guidedProjectTransaction = preparation.transaction;
+  if (preparation.accepted) {
+    acceptedSpecification = preparation.specification;
+    project.acceptedSnapshot = preparation.snapshot;
+  } else {
+    acceptedSpecification = preparation.specification;
+  }
+  syncSaveControlState();
+  return preparation;
+}
+
+function syncSaveControlState() {
+  const blocked = guidedProjectTransaction?.accepted === false;
+  const diagnostic = guidedProjectTransaction?.errors?.[0];
+  document.querySelectorAll("[data-guided-save], [data-save-project]").forEach((button) => {
+    button.dataset.persistenceState = blocked ? "rejected-candidate" : "ready";
+    if (blocked) {
+      button.setAttribute(
+        "title",
+        `${diagnostic?.message || "The current edit is not an accepted fitted design."} Save is unavailable until this edit is corrected.`
+      );
+    } else {
+      button.removeAttribute("title");
+    }
   });
 }
 
@@ -443,15 +512,27 @@ function renderLayoutStep() {
     <div class="layout-grid" role="group" aria-label="Room conditions">
       ${SHARED_ROOM_LAYOUTS.map((layout) => {
         const selected = layout.id === project.layout;
+        const compatibility = resolveProductLayoutCompatibility({
+          project: { ...project, layout: layout.id },
+          topology: { layoutId: layout.id }
+        });
+        const unavailable = compatibility.status === "unavailable";
+        const statusLabel = compatibility.status === "conditional"
+          ? "Measurements required"
+          : compatibility.status === "review-only" ? "Design review" : "";
         return `
           <button
-            class="layout-card${selected ? " is-selected" : ""}"
+            class="layout-card layout-card--${escapeAttribute(compatibility.status)}${selected ? " is-selected" : ""}"
             type="button"
             data-layout="${layout.id}"
+            data-compatibility="${escapeAttribute(compatibility.status)}"
             aria-pressed="${selected}"
-            aria-label="${escapeAttribute(layout.label)}"
+            aria-label="${escapeAttribute(`${layout.label}${unavailable ? ", unavailable for this product" : statusLabel ? `, ${statusLabel}` : ""}`)}"
+            ${unavailable ? "disabled" : ""}
           >
             ${selected ? '<span class="layout-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
+            ${statusLabel ? `<span class="layout-compatibility-badge">${escapeHtml(statusLabel)}</span>` : ""}
+            ${unavailable ? '<span class="layout-compatibility-badge layout-compatibility-badge--unavailable">Unavailable</span>' : ""}
             ${renderLayoutPreview(layout)}
             <span class="layout-card-copy">
               <span class="layout-card-title">${escapeHtml(layout.label)}</span>
@@ -462,7 +543,7 @@ function renderLayoutStep() {
     </div>
     <aside class="guided-info">
       <i data-icon="information" aria-hidden="true"></i>
-      <span>These same ten room conditions apply to every product. Choose the closest match — our team will confirm the details before production.</span>
+      <span>Room conditions are checked against the selected product. Conditional choices ask for the measurements needed to generate safe preliminary geometry; unavailable combinations are never substituted.</span>
     </aside>
     <div class="guided-actions">
       <button class="guided-button guided-button-secondary" type="button" data-back>
@@ -1156,24 +1237,9 @@ function renderConceptPreview() {
   const layout = getLayout(project.category, project.layout);
   const selectedStyle = getStyle(project.category, project.style);
   const selectedProduct = getProductChoiceForSelection(category.id, selectedStyle.id);
-  const previewPresentation = resolvePreviewPresentation(category.id, selectedStyle.id, layout?.id);
   const finish = getFinish(project.finish);
-  const finishPreview = finish.preview || {};
-  const accentFinish = project.accentFinish === "no-accent" ? finish : getFinish(project.accentFinish);
-  const hardware = DETAIL_OPTIONS.hardware.find((option) => option.id === project.hardware);
-  const doorCount = category.id === "floating-storage" ? 5 : category.id === "window-storage" ? 6 : 4;
-  const previewScope = conceptPreviewScope(category, layout, selectedStyle, previewPresentation);
-  const layeredRoomPresentation = previewPresentation.renderMode === "room-plus-furniture";
-  const installationEnvelope = previewPresentation.installationEnvelope
-    ? JSON.stringify(previewPresentation.installationEnvelope)
-    : "";
-  const layeredDataAttributes = layeredRoomPresentation
-    ? `
-      data-room-asset="${escapeAttribute(previewPresentation.roomAsset)}"
-      data-furniture-asset="${escapeAttribute(previewPresentation.furnitureAsset)}"
-      data-installation-envelope="${escapeAttribute(installationEnvelope)}"
-    `
-    : "";
+  const diagnostic = guidedProjectTransaction?.errors?.[0] || null;
+  const accepted = acceptedSpecification?.accepted === true;
 
   return `
     <figure
@@ -1181,21 +1247,14 @@ function renderConceptPreview() {
       data-category="${escapeAttribute(category.id)}"
       data-layout="${escapeAttribute(layout?.id || "unselected")}"
       data-style="${escapeAttribute(selectedStyle.id)}"
-      data-preview-key="${escapeAttribute(previewPresentation.previewKey)}"
       data-finish="${escapeAttribute(finish.id)}"
       data-finish-family="${escapeAttribute(finish.family)}"
-      data-preview-asset="${escapeAttribute(previewPresentation.conceptAsset)}"
-      ${layeredDataAttributes}
-      data-authored-layout="${escapeAttribute(previewPresentation.authoredLayoutId || "")}"
-      data-layout-context-asset="${escapeAttribute(previewPresentation.layoutContextAsset || "")}"
-      data-preview-render-mode="${escapeAttribute(previewPresentation.renderMode)}"
-      data-preview-scope="${escapeAttribute(previewScope.id)}"
-      data-media-fit="${escapeAttribute(previewPresentation.mediaFit)}"
-      data-media-aspect-ratio="${escapeAttribute(previewPresentation.mediaAspectRatio)}"
-      data-media-position="${escapeAttribute(previewPresentation.mediaObjectPosition)}"
-      data-finish-mask-mode="${escapeAttribute(previewPresentation.finishMaskMode || "none")}"
-      data-finish-mask-asset="${escapeAttribute(previewPresentation.finishMaskAsset || "")}"
-      style="--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)};--concept-media-aspect-ratio:${escapeAttribute(previewPresentation.mediaAspectRatio)};--concept-media-position:${escapeAttribute(previewPresentation.mediaObjectPosition)}"
+      data-preview-render-mode="accepted-geometry"
+      data-finish-mask-mode="none"
+      data-accepted-specification="${accepted}"
+      data-geometry-fingerprint="${escapeAttribute(acceptedSpecification?.geometryFingerprint || "")}"
+      data-specification-fingerprint="${escapeAttribute(acceptedSpecification?.specificationFingerprint || "")}"
+      style="--finish-color:${escapeAttribute(finish.color)}"
       aria-label="${escapeAttribute(`${selectedProduct?.label || selectedStyle.label} for ${layout?.label || category.label} in ${finish.label}`)}"
     >
       <div class="concept-preview-meta">
@@ -1206,47 +1265,37 @@ function renderConceptPreview() {
             <strong>${escapeHtml(finish.label)}</strong>
           </span>
         </div>
-        ${renderConceptLayoutContext(layout, previewPresentation)}
+        ${renderConceptLayoutContext(layout)}
       </div>
-      <div class="concept-scene" data-concept-scene>
-        ${renderOptimizedPicture(previewPresentation.conceptAsset, {
-          pictureClass: "concept-photo",
-          imageClass: "concept-photo",
-          deferredFallback: true
-        })}
-        ${renderConceptFinishOverlay(previewPresentation.conceptAsset, { deferredFallback: true })}
-        ${previewPresentation.renderMode === "missing-integrated-scene" ? `
-          <div class="concept-preview-unavailable" role="status">
-            <strong>Room-specific concept in preparation</strong>
-            <span>We will not substitute an unrelated room for ${escapeHtml(layout?.label || "this layout")}.</span>
+      <div class="concept-scene-frame">
+        <div class="concept-scene" data-concept-scene>
+          <div class="guided-engine-status" data-guided-engine-status role="status" aria-live="polite">
+            <strong>${diagnostic ? "Last accepted design preserved" : "Building your fitted design"}</strong>
+            <span>${diagnostic
+              ? escapeHtml(`${diagnostic.message} (${diagnostic.code})`)
+              : "The room, installation, and product descriptors are being rendered."}</span>
           </div>
-        ` : ""}
-        <div
-          class="concept-unit concept-unit--sentinel"
-          data-style="${escapeAttribute(selectedStyle.id)}"
-          style="display:none;--unit-finish:${escapeAttribute(finish.color)};--accent-finish:${escapeAttribute(accentFinish.color)};--hardware-color:${escapeAttribute(hardware?.color || "#302d2a")};--door-count:${doorCount}"
-          aria-hidden="true"
-        ></div>
-        <div
-          class="guided-3d-mount guided-3d-mount--concept"
-          data-guided-3d-mount
-          data-guided-3d-mode="concept"
-          aria-label="${escapeAttribute(`Interactive three-dimensional ${selectedProduct?.label || selectedStyle.label} preview in the selected ${layout?.label || "room"}`)}"
-        ></div>
+          <div
+            class="guided-3d-mount guided-3d-mount--concept"
+            data-guided-3d-mount
+            data-guided-3d-mode="accepted-specification"
+            aria-label="${escapeAttribute(`Interactive three-dimensional ${selectedProduct?.label || selectedStyle.label} preview in the selected ${layout?.label || "room"}`)}"
+          ></div>
+        </div>
+        ${renderPreviewControls()}
       </div>
-      ${renderPreviewControls()}
+      ${renderAcceptedFitSummary()}
     </figure>
   `;
 }
 
-function renderConceptLayoutContext(layout, previewPresentation) {
-  if (!layout || !previewPresentation.layoutContextAsset) return "";
+function renderConceptLayoutContext(layout) {
+  if (!layout) return "";
   return `
     <div
       class="concept-layout-context"
       data-layout-context="${escapeAttribute(layout.id)}"
-      data-layout-context-asset="${escapeAttribute(previewPresentation.layoutContextAsset)}"
-      data-layout-context-mode="${escapeAttribute(previewPresentation.renderMode)}"
+      data-layout-context-mode="accepted-geometry"
       role="note"
       aria-label="${escapeAttribute(`Selected room condition: ${layout.label}`)}"
     >
@@ -1258,108 +1307,23 @@ function renderConceptLayoutContext(layout, previewPresentation) {
   `;
 }
 
-function renderConceptFinishOverlay(previewAsset, options = {}) {
-  const assetName = String(previewAsset || "").split("/").pop();
-  const definition = CONCEPT_FINISH_MASKS[assetName] || resolveGeneratedIntegratedFinishMask(previewAsset);
-  if (!definition) return "";
-
-  const maskId = `concept-finish-mask-${String(previewAsset).replace(/[^a-z0-9]+/gi, "-")}`;
-  const maskContents = definition.maskAsset
-    ? `
-      <image
-        ${options.deferredFallback
-          ? `data-fallback-href="${escapeAttribute(definition.maskAsset)}"`
-          : `href="${escapeAttribute(definition.maskAsset)}"`}
-        x="0"
-        y="0"
-        width="${definition.width || 1536}"
-        height="${definition.height || 1024}"
-        preserveAspectRatio="none"
-      ></image>
-    `
-    : `
-      ${(definition.rectangles || []).map(([x, y, width, height]) => (
-        `<rect x="${x}" y="${y}" width="${width}" height="${height}" rx="2" fill="#fff"></rect>`
-      )).join("")}
-      ${(definition.polygons || []).map((points) => (
-        `<polygon points="${points}" fill="#fff"></polygon>`
-      )).join("")}
-    `;
+function renderAcceptedFitSummary() {
+  if (!acceptedSpecification?.accepted) return "";
+  const installations = acceptedSpecification.fit?.installations || [];
+  const tv = acceptedSpecification.product?.tv;
   return `
-    <svg
-      class="concept-finish-overlay"
-      viewBox="${definition.viewBox || "0 0 1536 1024"}"
-      preserveAspectRatio="${escapeAttribute(previewPresentation.mediaSvgPreserveAspectRatio)}"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <defs>
-        <mask
-          id="${maskId}"
-          maskUnits="userSpaceOnUse"
-          maskContentUnits="userSpaceOnUse"
-          x="0"
-          y="0"
-          width="${definition.width || 1536}"
-          height="${definition.height || 1024}"
-          style="mask-type: luminance"
-        >
-          <image
-            href="${escapeAttribute(definition.maskAsset)}"
-            x="0"
-            y="0"
-            width="${definition.width || 1536}"
-            height="${definition.height || 1024}"
-            preserveAspectRatio="none"
-          ></image>
-        </mask>
-      </defs>
-      <rect
-        class="concept-finish-overlay-tint"
-        width="${definition.width || 1536}"
-        height="${definition.height || 1024}"
-        mask="url(#${maskId})"
-      ></rect>
-      <rect
-        class="concept-finish-overlay-tone"
-        width="${definition.width || 1536}"
-        height="${definition.height || 1024}"
-        mask="url(#${maskId})"
-      ></rect>
-    </svg>
+    <figcaption class="accepted-fit-summary" data-accepted-fit-summary aria-label="Accepted installation dimensions">
+      <strong>Accepted fit</strong>
+      ${installations.map((installation) => `
+        <span>
+          ${installations.length > 1 ? `${escapeHtml(installation.role || installation.zoneId)} · ` : ""}
+          ${escapeHtml(`${formatInches(installation.casework.width)} × ${formatInches(installation.casework.overallHeight)} × ${formatInches(installation.casework.depth)} in`)}
+        </span>
+      `).join("")}
+      ${tv?.accepted ? `<span>TV opening · ${escapeHtml(`${formatInches(tv.opening.width)} × ${formatInches(tv.opening.height)} in`)}</span>` : ""}
+      <small>${escapeHtml(acceptedSpecification.geometryFingerprint)}</small>
+    </figcaption>
   `;
-}
-
-function conceptPreviewScope(category, layout, selectedStyle, previewPresentation) {
-  if (["integrated", "room-plus-furniture"].includes(previewPresentation.renderMode)) {
-    return { id: "layout-and-configuration", label: "Layout + configuration reference" };
-  }
-  if (previewPresentation.renderMode === "missing-integrated-scene") {
-    return { id: "missing-integrated-scene", label: `${selectedStyle.label} · ${layout?.label || "room"} render unavailable` };
-  }
-  return { id: "category", label: "Curated concept reference" };
-}
-
-function renderConceptTower(position) {
-  return `
-    <div class="concept-tower concept-tower--${position}">
-      <span class="concept-shelf"></span>
-      <span class="concept-shelf"></span>
-      <span class="concept-shelf"></span>
-      <span class="concept-shelf"></span>
-    </div>
-  `;
-}
-
-function resolveConceptFeature(categoryId, layout) {
-  if (categoryId === "tv-unit" && layout?.feature !== "fireplace") return "tv";
-  if (categoryId === "window-storage") return "window";
-  if (categoryId === "radiator-cover") return layout?.feature === "window" ? "window" : "radiator";
-  return layout?.feature || "none";
-}
-
-function lightingLabel(lightingId) {
-  return DETAIL_OPTIONS.lighting.find((option) => option.id === lightingId)?.label || "";
 }
 
 function renderPreviewControls() {
@@ -1373,7 +1337,7 @@ function renderPreviewControls() {
 }
 
 function renderReviewStep() {
-  const summary = buildProjectSummary(project);
+  const summary = buildProjectSummary(project, { acceptedSpecification });
   const summaryKeys = [
     "product",
     "category",
@@ -1381,6 +1345,13 @@ function renderReviewStep() {
     "wallWidth",
     "ceilingHeight",
     "desiredDepth",
+    "fittedSize",
+    "fitTreatments",
+    "tvBody",
+    "tvOpening",
+    "pricing",
+    "warnings",
+    "geometryFingerprint",
     "finish",
     "doorStyle",
     "hardware",
@@ -1618,6 +1589,20 @@ function continueFromStep() {
       app.querySelector(`[data-measurement="${CSS.escape(error.field)}"]`)?.focus();
       return;
     }
+    const transaction = syncAcceptedSpecification();
+    if (!transaction.accepted) {
+      const diagnostic = transaction.errors[0] || {
+        code: "CONFIGURATION_NOT_ACCEPTED",
+        message: "These measurements do not yet resolve to a safe fitted configuration."
+      };
+      const message = app.querySelector("[data-measurement-error]");
+      if (message) {
+        message.hidden = false;
+        message.textContent = `${diagnostic.message} (${diagnostic.code})`;
+      }
+      showToast(`${diagnostic.message} (${diagnostic.code})`);
+      return;
+    }
   }
   navigateToStep(Math.min(5, project.currentStep + 1));
 }
@@ -1640,6 +1625,13 @@ function navigateToStep(step, options = {}) {
   if (targetStep > 3 && !validateMeasurements(project).valid) {
     project.currentStep = 3;
     showToast("Add the three basic room measurements before continuing.");
+    renderApp({ focusHeading: true });
+    return;
+  }
+  if (targetStep > 3 && !syncAcceptedSpecification().accepted) {
+    project.currentStep = 3;
+    const diagnostic = guidedProjectTransaction?.errors?.[0];
+    showToast(diagnostic ? `${diagnostic.message} (${diagnostic.code})` : "The fitted configuration needs review before continuing.");
     renderApp({ focusHeading: true });
     return;
   }
@@ -1745,6 +1737,7 @@ function scheduleMeasurementSceneUpdate(options = {}) {
   window.clearTimeout(guidedSceneMeasurementTimer);
   const update = () => {
     guidedSceneMeasurementTimer = 0;
+    syncAcceptedSpecification();
     guidedSceneController?.update(project, getGuidedSceneOptions());
   };
   if (options.immediate) {
@@ -1798,7 +1791,9 @@ function applyPreviewScale() {
 function getGuidedSceneOptions() {
   return {
     showDimensions: project.currentStep === 3,
-    showProduct: project.currentStep >= 4
+    showProduct: project.currentStep >= 4,
+    acceptedSpecification,
+    rejectedCandidate: guidedProjectTransaction?.rejectedCandidate || null
   };
 }
 
@@ -1806,21 +1801,20 @@ function updateGuidedSceneState(state) {
   const mount = app?.querySelector("[data-guided-3d-mount]");
   const scene = mount?.closest(".measurement-room, .concept-scene");
   if (!scene) return;
-  if (state === "fallback") activateGuidedFallbackAssets(scene);
+  if (state === "fallback") {
+    const status = scene.querySelector("[data-guided-engine-status]");
+    const diagnostic = guidedProjectTransaction?.errors?.[0];
+    if (status) {
+      status.querySelector("strong").textContent = diagnostic
+        ? "Last accepted design preserved"
+        : "3D preview unavailable";
+      status.querySelector("span").textContent = diagnostic
+        ? `${diagnostic.message} (${diagnostic.code})`
+        : "The renderer failed closed; no unrelated product or room image was substituted.";
+    }
+  }
   scene.dataset.guided3dState = state;
   applyPreviewScale();
-}
-
-function activateGuidedFallbackAssets(scene) {
-  scene.querySelectorAll("source[data-fallback-srcset]").forEach((source) => {
-    source.srcset = source.dataset.fallbackSrcset;
-  });
-  scene.querySelectorAll("img[data-fallback-src]").forEach((image) => {
-    image.src = image.dataset.fallbackSrc;
-  });
-  scene.querySelectorAll("image[data-fallback-href]").forEach((image) => {
-    image.setAttribute("href", image.dataset.fallbackHref);
-  });
 }
 
 function syncGuidedScene() {
@@ -1833,7 +1827,7 @@ function syncGuidedScene() {
   }
 
   updateGuidedSceneState("loading");
-  guidedSceneImportPromise ||= import("./guided-configurator-3d.js?v=unified-guided-scene-20260729d");
+  guidedSceneImportPromise ||= import("./guided-configurator-3d.js?v=luxury-configurator-engine-v1-20260802a");
   guidedSceneImportPromise
     .then(({ createGuidedSceneController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;
@@ -1851,7 +1845,13 @@ function syncGuidedScene() {
 function scheduleDraftSave() {
   window.clearTimeout(draftTimer);
   draftTimer = window.setTimeout(() => {
-    if (store.saveDraft(project) || storageWarningShown) return;
+    const preparation = prepareCurrentProjectPersistence();
+    const hasLastAcceptedDesign = Boolean(preparation.specification?.accepted || project.acceptedSnapshot);
+    if (!preparation.accepted && hasLastAcceptedDesign) return;
+    const saved = preparation.accepted
+      ? store.saveAcceptedDraft(preparation)
+      : store.saveDraft(project);
+    if (saved || storageWarningShown) return;
     storageWarningShown = true;
     showToast("Automatic saving is unavailable in this browser. Keep this page open or enable local storage.");
   }, 180);
@@ -1897,6 +1897,11 @@ function openSaveDialog() {
   const dialog = document.querySelector("[data-save-dialog]");
   const form = dialog?.querySelector("[data-save-form]");
   if (!dialog || !form) return;
+  const preparation = prepareCurrentProjectPersistence();
+  if (!preparation.accepted) {
+    showToast(`${preparation.message} (${preparation.code})`);
+    return;
+  }
   saveDialogMode = "save";
   renamingProjectId = null;
   const title = dialog.querySelector("#save-dialog-title");
@@ -1951,12 +1956,14 @@ function handleSaveForm(event) {
     return;
   }
 
-  project.projectName = name.slice(0, 80);
-  project.status = "saved";
-  project.updatedAt = new Date().toISOString();
-  const savedProject = store.saveProject(project, project.projectName);
+  const preparation = prepareCurrentProjectPersistence();
+  if (!preparation.accepted) {
+    showToast(`${preparation.message} (${preparation.code})`);
+    return;
+  }
+  const projectName = name.slice(0, 80);
+  const savedProject = store.saveAcceptedProject(preparation, projectName);
   if (!savedProject || !store.saveDraft(savedProject)) {
-    project.status = "draft";
     showToast("We couldn’t save this project because local storage is unavailable.");
     return;
   }
@@ -2126,6 +2133,18 @@ async function handleQuoteSubmit(event) {
     return;
   }
 
+  syncAcceptedSpecification();
+  const quotePreparation = prepareGuidedQuote(project, project.acceptedSnapshot);
+  if (!quotePreparation.accepted) {
+    if (error) {
+      error.textContent = "We couldn’t verify the accepted design for quoting. Return to the review step, confirm the design, and try again.";
+      error.hidden = false;
+    }
+    return;
+  }
+  acceptedSpecification = quotePreparation.specification;
+  project.acceptedSnapshot = quotePreparation.snapshot;
+
   const formData = new FormData(form);
   project.customerDetails = {
     fullName: String(formData.get("fullName") || ""),
@@ -2145,16 +2164,16 @@ async function handleQuoteSubmit(event) {
 
   const endpoint = quoteEndpointMeta?.content.trim();
   if (!endpoint) {
-    prepareQuoteEmail(project);
+    prepareQuoteEmail(project, quotePreparation);
     const mode = form.querySelector("[data-quote-mode]");
-    mode.innerHTML = `Your email draft is ready. Send it to complete the request, and attach any selected files. If no email window opened, <a href="${escapeAttribute(buildMailtoUrl(project))}" data-email-fallback>open the prepared email again</a>.`;
+    mode.innerHTML = `Your email draft is ready. Send it to complete the request, and attach any selected files. If no email window opened, <a href="${escapeAttribute(buildMailtoUrl(project, quotePreparation))}" data-email-fallback>open the prepared email again</a>.`;
     return;
   }
 
   submit.disabled = true;
   submit.textContent = "Sending…";
   try {
-    formData.append("project", JSON.stringify(project));
+    formData.append("project", JSON.stringify(createConnectedQuotePayload(project, quotePreparation)));
     const response = await fetch(endpoint, {
       method: "POST",
       body: formData,
@@ -2193,8 +2212,15 @@ function validateQuoteFiles(form) {
   return "";
 }
 
-function buildMailtoUrl(currentProject) {
-  const summary = buildProjectSummary(currentProject)
+function buildMailtoUrl(currentProject, preparedQuote = null) {
+  const quotePreparation = preparedQuote?.accepted
+    ? preparedQuote
+    : prepareGuidedQuote(currentProject, currentProject.acceptedSnapshot);
+  if (!quotePreparation.accepted) return "";
+  const summary = buildProjectSummary(currentProject, {
+    acceptedSpecification: quotePreparation.specification,
+    acceptedQuote: quotePreparation.quote
+  })
     .map((row) => `${row.label}: ${row.value}`)
     .join("\n");
   const details = currentProject.customerDetails;
@@ -2227,9 +2253,19 @@ function buildMailtoUrl(currentProject) {
   return `mailto:info@jqwoodworking.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-function prepareQuoteEmail(currentProject) {
+function createConnectedQuotePayload(currentProject, quotePreparation) {
+  const payload = {
+    ...currentProject,
+    acceptedSnapshot: quotePreparation.snapshot,
+    acceptedQuote: quotePreparation.quote
+  };
+  delete payload.acceptedSpecification;
+  return payload;
+}
+
+function prepareQuoteEmail(currentProject, quotePreparation) {
   const anchor = document.createElement("a");
-  anchor.href = buildMailtoUrl(currentProject);
+  anchor.href = buildMailtoUrl(currentProject, quotePreparation);
   anchor.hidden = true;
   document.body.append(anchor);
   anchor.click();

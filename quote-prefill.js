@@ -1,10 +1,10 @@
-import { buildPricingContext } from "./bookcase-pricing.js?v=engine-polish-20260716a";
+import { buildPricingContext } from "./bookcase-pricing.js?v=luxury-configurator-engine-v1-20260802c";
 import {
   getHardwareVariant,
   hardwareFinishOptions,
   hardwareTypeOptions,
   optionLabels
-} from "./bookcase-config.js?v=engine-polish-20260716a";
+} from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
 
 const storedLayoutLabels = Object.freeze({
   "lower-cabinets": "Full Bookcase",

@@ -471,7 +471,7 @@ async function initQuoteForm() {
     /^JQ-[A-Z0-9-]{5,20}$/.test(storedDesign.id)
   ) {
     try {
-      const { restoreAcceptedDesignSnapshot } = await import("./bookcase-engine.js?v=engine-polish-20260716a");
+      const { restoreAcceptedDesignSnapshot } = await import("./bookcase-engine.js?v=luxury-configurator-engine-v1-20260802c");
       const restored = restoreAcceptedDesignSnapshot(storedDesign);
       if (restored.accepted && restored.compatible) acceptedStoredDesign = { snapshot: storedDesign, restored };
     } catch (error) {
@@ -490,7 +490,7 @@ async function initQuoteForm() {
   if (activeStoredDesign && savedSummary) {
     try {
       const [{ createQuotePrefill }, { BENJAMIN_MOORE_COLOR_DATA_NOTICE }] = await Promise.all([
-        import("./quote-prefill.js?v=engine-polish-20260716a"),
+        import("./quote-prefill.js?v=luxury-configurator-engine-v1-20260802c"),
         import("./benjamin-moore-colors.js?v=engine-polish-20260716a")
       ]);
       const activeDesignId = activeStoredDesign.snapshot.id;

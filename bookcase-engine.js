@@ -2,8 +2,8 @@ import {
   CONSTRUCTION_PROFILE_IDS,
   migrateLegacyConstructionConfig,
   normalizeBookcaseConfig
-} from "./bookcase-config.js?v=engine-polish-20260716a";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=engine-polish-20260716a";
+} from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=luxury-configurator-engine-v1-20260802c";
 import {
   createLayoutFingerprint,
   createLegacyLayoutFingerprint
@@ -12,7 +12,7 @@ import {
   PRICING_VERSION,
   PRICING_RATES,
   calculateBookcasePriceBreakdown
-} from "./bookcase-pricing.js?v=engine-polish-20260716a";
+} from "./bookcase-pricing.js?v=luxury-configurator-engine-v1-20260802c";
 import { HARDWARE_CATALOG_VERSION } from "./hardware-catalog.js?v=engine-polish-20260716a";
 
 export const ENGINE_VERSION = "2026.07-direct-hardware-v2";

@@ -550,7 +550,7 @@ export function normalizeBookcaseConfig(config = {}) {
   const hasDrawerFrontStyle = Object.prototype.hasOwnProperty.call(legacyConfig, "drawerFrontStyle");
   const merged = { ...defaultBookcaseConfig, ...legacyConfig };
   const sections = clampInt(merged.sections, 1, 6);
-  const width = clampInt(merged.width, 24, 144);
+  const width = clampDimension(merged.width, 24, 144);
   // Door leaves are generated from the actual openings in the layout engine.
   // Keep the persisted value permissive here so the generated layout can
   // canonicalize it to the real physical count, including a single tall door.
@@ -567,8 +567,8 @@ export function normalizeBookcaseConfig(config = {}) {
     layoutPreset: typeof merged.layoutPreset === "string" ? merged.layoutPreset : defaultBookcaseConfig.layoutPreset,
     layoutType: typeof merged.layoutType === "string" ? merged.layoutType : defaultBookcaseConfig.layoutType,
     width,
-    height: clampInt(merged.height, 72, 120),
-    depth: clampInt(merged.depth, 10, 24),
+    height: clampDimension(merged.height, 72, 120),
+    depth: clampDimension(merged.depth, 10, 24),
     sections,
     shelves: clampInt(merged.shelves, 2, 8),
     shelfThickness: normalizeNumericOption(
@@ -979,4 +979,10 @@ function parseNumericOption(value) {
 
 function clampInt(value, min, max) {
   return Math.min(max, Math.max(min, Math.round(Number(value) || min)));
+}
+
+function clampDimension(value, min, max) {
+  const parsed = Number(value);
+  const bounded = Math.min(max, Math.max(min, Number.isFinite(parsed) ? parsed : min));
+  return Math.round((bounded + Number.EPSILON) * 1e6) / 1e6;
 }

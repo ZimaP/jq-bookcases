@@ -1,5 +1,5 @@
-import { normalizeBookcaseConfig } from "./bookcase-config.js?v=engine-polish-20260716a";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=engine-polish-20260716a";
+import { normalizeBookcaseConfig } from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=luxury-configurator-engine-v1-20260802c";
 import { deriveBookcaseBOM } from "./bookcase-bom.js?v=engine-polish-20260716a";
 import { deriveBillableComponents } from "./bookcase-billable.js?v=engine-polish-20260716a";
 

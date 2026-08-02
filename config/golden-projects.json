@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "projects": [
+    {
+      "id": "G01-right-niche-tv",
+      "productId": "tv-unit",
+      "layoutId": "right-niche",
+      "measurements": {
+        "wallWidth": 120,
+        "ceilingHeight": 96,
+        "desiredDepth": 14,
+        "nicheWidth": 96,
+        "nicheHeight": 96,
+        "nicheDepth": 14,
+        "leftReturn": 0,
+        "rightReturn": 12,
+        "tvScreenSize": 65,
+        "tvHeight": 33,
+        "soundbarRequired": "yes"
+      },
+      "finish": "natural-oak",
+      "expected": {
+        "floorAnchored": true,
+        "rightReturnVisible": true,
+        "baseHeight": 4,
+        "tvOpeningDerived": true,
+        "noRandomTvFrame": true
+      }
+    },
+    {
+      "id": "G02-center-niche-cabinets",
+      "productId": "cabinet-shelves",
+      "layoutId": "niche-layout",
+      "measurements": {
+        "wallWidth": 120,
+        "ceilingHeight": 96,
+        "desiredDepth": 15,
+        "nicheWidth": 96,
+        "nicheHeight": 96,
+        "nicheDepth": 15,
+        "leftReturn": 12,
+        "rightReturn": 12
+      },
+      "finish": "warm-white",
+      "expected": {
+        "equalFillers": true,
+        "floorAnchored": true,
+        "topFitted": true
+      }
+    },
+    {
+      "id": "G03-clear-drawers-wide",
+      "productId": "drawer-shelves",
+      "layoutId": "clear-wall",
+      "measurements": {
+        "wallWidth": 144,
+        "ceilingHeight": 108,
+        "desiredDepth": 15
+      },
+      "finish": "medium-walnut",
+      "expected": {
+        "equalFillers": true,
+        "rootScale": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "id": "G04-clear-open",
+      "productId": "open-shelving",
+      "layoutId": "clear-wall",
+      "measurements": {
+        "wallWidth": 120,
+        "ceilingHeight": 96,
+        "desiredDepth": 13
+      },
+      "finish": "white-oak",
+      "expected": {
+        "noDoorsOrHardware": true
+      }
+    },
+    {
+      "id": "G05-fireplace",
+      "productId": "cabinet-shelves",
+      "layoutId": "fireplace-wall",
+      "measurements": {
+        "wallWidth": 180,
+        "ceilingHeight": 108,
+        "desiredDepth": 15,
+        "fireplaceWidth": 42,
+        "fireplaceHeight": 32,
+        "mantelWidth": 60,
+        "mantelHeight": 48,
+        "fireplaceDepth": 8,
+        "fireplaceLeftWidth": 48,
+        "fireplaceRightWidth": 48
+      },
+      "finish": "soft-ivory",
+      "expected": {
+        "featureClear": true
+      }
+    },
+    {
+      "id": "G06-window-storage",
+      "productId": "window-storage",
+      "layoutId": "window-wall",
+      "measurements": {
+        "wallWidth": 144,
+        "ceilingHeight": 96,
+        "desiredDepth": 18,
+        "windowWidth": 60,
+        "windowHeight": 48,
+        "sillHeight": 30,
+        "windowLeftDistance": 42,
+        "windowRightDistance": 42,
+        "radiatorBelowWindow": "no"
+      },
+      "finish": "warm-white",
+      "expected": {
+        "windowClear": true
+      }
+    },
+    {
+      "id": "G07-door-wall",
+      "productId": "cabinet-shelves",
+      "layoutId": "door-wall",
+      "measurements": {
+        "wallWidth": 144,
+        "ceilingHeight": 96,
+        "desiredDepth": 14,
+        "doorWidth": 36,
+        "doorHeight": 80,
+        "doorLeftDistance": 54,
+        "doorTrimWidth": 3.5,
+        "doorSwing": "right-in"
+      },
+      "finish": "sage-gray",
+      "expected": {
+        "doorClear": true
+      }
+    },
+    {
+      "id": "G08-between-openings",
+      "productId": "cabinet-shelves",
+      "layoutId": "double-opening",
+      "measurements": {
+        "wallWidth": 96,
+        "ceilingHeight": 96,
+        "desiredDepth": 14,
+        "openingLeftDistance": 24,
+        "openingRightDistance": 24
+      },
+      "finish": "natural-oak",
+      "expected": {
+        "openingsClear": true,
+        "centered": true
+      }
+    },
+    {
+      "id": "G09-corner",
+      "productId": "open-shelving",
+      "layoutId": "corner-wall",
+      "measurements": {
+        "wallWidth": 120,
+        "ceilingHeight": 96,
+        "desiredDepth": 13,
+        "cornerReturn": 60
+      },
+      "finish": "warm-white",
+      "expected": {
+        "lShape": true,
+        "cornerCamera": true
+      }
+    },
+    {
+      "id": "G10-floating",
+      "productId": "floating-storage",
+      "layoutId": "clear-wall",
+      "measurements": {
+        "wallWidth": 120,
+        "ceilingHeight": 96,
+        "desiredDepth": 16,
+        "mountingHeight": 18
+      },
+      "finish": "dark-walnut",
+      "expected": {
+        "floorClear": true,
+        "noBase": true
+      }
+    },
+    {
+      "id": "G11-radiator",
+      "productId": "radiator-cover",
+      "layoutId": "window-wall",
+      "measurements": {
+        "wallWidth": 120,
+        "ceilingHeight": 96,
+        "desiredDepth": 14,
+        "windowWidth": 60,
+        "windowHeight": 48,
+        "sillHeight": 32,
+        "radiatorWidth": 48,
+        "radiatorHeight": 26,
+        "radiatorDepth": 9,
+        "radiatorBelowWindow": "yes"
+      },
+      "finish": "warm-white",
+      "expected": {
+        "ventEnvelopeClear": true
+      }
+    },
+    {
+      "id": "G12-round-trip",
+      "productId": "drawer-shelves",
+      "layoutId": "niche-layout",
+      "measurements": {
+        "wallWidth": 132,
+        "ceilingHeight": 102,
+        "desiredDepth": 15,
+        "nicheWidth": 108,
+        "nicheHeight": 102,
+        "nicheDepth": 15,
+        "leftReturn": 12,
+        "rightReturn": 12
+      },
+      "finish": "charcoal",
+      "expected": {
+        "saveReloadSameFingerprint": true
+      }
+    }
+  ]
+}

@@ -8,7 +8,7 @@ import {
   getMeasurementFields,
   getProductChoiceForSelection,
   getStyle
-} from "./guided-configurator-data.js?v=unified-guided-scene-20260729c";
+} from "./guided-configurator-data.js?v=luxury-configurator-engine-v1-20260802b";
 
 const DEFAULTS = Object.freeze({
   wallWidth: 120,

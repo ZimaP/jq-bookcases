@@ -21,9 +21,9 @@ import {
   normalizeBookcaseConfig,
   optionLabels,
   resolveHardwareVariant
-} from "./bookcase-config.js?v=engine-polish-20260716a";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=engine-polish-20260716a";
-import { formatPrice } from "./bookcase-pricing.js?v=engine-polish-20260716a";
+} from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=luxury-configurator-engine-v1-20260802c";
+import { formatPrice } from "./bookcase-pricing.js?v=luxury-configurator-engine-v1-20260802c";
 import {
   addSection,
   applySectionWidths,
@@ -41,7 +41,7 @@ import {
   setSectionStorageConfiguration,
   setSectionType,
   splitSection
-} from "./bookcase-sections.js?v=engine-polish-20260716a";
+} from "./bookcase-sections.js?v=luxury-configurator-engine-v1-20260802c";
 import {
   CAMERA_INTENT_STATES,
   PROFILE_CAMERA_DURATION,
@@ -86,7 +86,7 @@ import {
   createAcceptedDesignSnapshot,
   evaluateBookcaseCandidate,
   restoreAcceptedDesignSnapshot
-} from "./bookcase-engine.js?v=engine-polish-20260716a";
+} from "./bookcase-engine.js?v=luxury-configurator-engine-v1-20260802c";
 import { createLegacyHardwareSelections } from "./hardware-catalog.js?v=engine-polish-20260716a";
 import { resolveDirectEditIntersection } from "./direct-edit-picking.js?v=engine-polish-20260716a";
 import {

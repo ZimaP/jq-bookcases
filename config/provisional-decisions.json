@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "id": "FIT-FILLER-001",
+      "value": "0.75–4.0 in, preferred 1.5 in each",
+      "status": "provisional",
+      "owner": "John/shop"
+    },
+    {
+      "id": "FIT-TOP-001",
+      "value": "0.25–2.0 in top scribe, preferred 0.75 in",
+      "status": "provisional",
+      "owner": "John/shop"
+    },
+    {
+      "id": "TV-CLEAR-001",
+      "value": "2 in side/top/bottom starter clearance",
+      "status": "provisional",
+      "owner": "John/shop"
+    },
+    {
+      "id": "TV-SOUNDBAR-001",
+      "value": "4.5 in starter soundbar zone",
+      "status": "provisional",
+      "owner": "John/shop"
+    },
+    {
+      "id": "ROOM-FEATURE-001",
+      "value": "starter trim/service clearances in fit-policy.json",
+      "status": "provisional",
+      "owner": "John/shop"
+    },
+    {
+      "id": "FINISH-AVAIL-001",
+      "value": "wood + paint visual families",
+      "status": "visualization-supported, manufacturing-unconfirmed",
+      "owner": "John/shop"
+    }
+  ],
+  "policy": "Centralize and expose for review. Do not duplicate in UI/renderer code."
+}

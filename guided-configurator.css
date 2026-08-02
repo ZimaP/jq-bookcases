@@ -893,6 +893,44 @@ body.guided-page {
   box-shadow: 0 7px 18px rgba(69, 52, 35, 0.06);
 }
 
+.layout-card:disabled {
+  border-color: #ded9d2;
+  color: #8d8881;
+  background: #f3f1ee;
+  cursor: not-allowed;
+  filter: saturate(0.35);
+}
+
+.layout-card:disabled:hover {
+  transform: none;
+  border-color: #ded9d2;
+  box-shadow: none;
+}
+
+.layout-compatibility-badge {
+  position: absolute;
+  z-index: 4;
+  top: 9px;
+  left: 9px;
+  max-width: calc(100% - 52px);
+  padding: 4px 7px;
+  border: 1px solid rgba(148, 101, 47, 0.24);
+  border-radius: 999px;
+  color: #765125;
+  background: rgba(255, 249, 238, 0.94);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.layout-compatibility-badge--unavailable {
+  border-color: rgba(93, 87, 80, 0.18);
+  color: #69645e;
+  background: rgba(244, 242, 239, 0.95);
+}
+
 .layout-card:active {
   transform: translateY(0);
 }
@@ -963,7 +1001,7 @@ body.guided-page {
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 162px;
+  min-height: 0;
   object-fit: cover;
   object-position: 50% 58%;
 }
@@ -2965,7 +3003,7 @@ body.guided-page {
   position: relative;
   display: grid;
   min-height: 626px;
-  grid-template-rows: 58px minmax(0, 1fr);
+  grid-template-rows: 58px minmax(0, 1fr) auto;
   overflow: hidden;
   border: 1px solid var(--guided-line);
   border-radius: var(--guided-radius);
@@ -2988,14 +3026,94 @@ body.guided-page {
   background: rgba(248, 245, 240, 0.96);
 }
 
+.concept-scene-frame {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .concept-scene {
   position: relative;
+  width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
   transform: scale(var(--preview-scale, 1));
   transform-origin: 50% 58%;
   transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.guided-engine-status {
+  position: absolute;
+  z-index: 3;
+  inset: 50% auto auto 50%;
+  display: grid;
+  width: min(430px, calc(100% - 36px));
+  gap: 6px;
+  padding: 18px 20px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(122, 96, 67, 0.2);
+  border-radius: 12px;
+  color: #322d28;
+  background: rgba(255, 252, 247, 0.94);
+  text-align: center;
+  box-shadow: 0 14px 38px rgba(54, 43, 31, 0.1);
+  transition: opacity 180ms ease;
+}
+
+.guided-engine-status strong {
+  font-family: var(--guided-serif);
+  font-size: 1rem;
+}
+
+.guided-engine-status span {
+  color: #6f675f;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.concept-scene[data-guided3d-state="ready"] > .guided-engine-status {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.accepted-fit-summary {
+  position: relative;
+  z-index: 11;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px 12px;
+  padding: 7px 12px;
+  border-top: 1px solid rgba(107, 84, 58, 0.16);
+  color: #39332d;
+  background: rgba(255, 253, 249, 0.96);
+  pointer-events: none;
+}
+
+.accepted-fit-summary strong {
+  color: #806039;
+  font-size: 0.57rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.accepted-fit-summary span {
+  font-size: 0.67rem;
+  line-height: 1.3;
+}
+
+.accepted-fit-summary small {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  color: #827a72;
+  font-size: 0.5rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .concept-photo {
@@ -4265,7 +4383,7 @@ body.guided-page {
   }
 
   .guided-shell--step-5 .summary-list {
-    overflow: hidden;
+    overflow: auto;
   }
 
   .guided-shell--step-5 .summary-row {
@@ -4770,7 +4888,7 @@ body.guided-page {
 
   .concept-preview {
     min-height: 340px;
-    grid-template-rows: 52px minmax(0, 1fr);
+    grid-template-rows: 52px minmax(0, 1fr) auto;
   }
 
   .concept-preview-meta {
@@ -4938,8 +5056,7 @@ body.guided-page {
   }
 }
 
-/* Unified guided 3D scene
-   The photographic room/concept remains only as a WebGL failure fallback. */
+/* Unified guided 3D scene. Step 4/5 fail closed without a photo substitute. */
 .guided-3d-mount {
   position: absolute;
   z-index: 6;
@@ -5362,8 +5479,8 @@ body.guided-page {
   .guided-actions,
   .guided-shell--step-2 .guided-actions,
   .guided-shell--step-3 .guided-actions {
-    min-height: 42px;
-    flex: 0 0 42px;
+    min-height: 44px;
+    flex: 0 0 44px;
     gap: 9px;
     margin-top: 7px;
     transform: none;
@@ -5375,7 +5492,7 @@ body.guided-page {
   .guided-shell--step-3 .guided-actions .guided-button:last-child {
     width: auto;
     min-width: 150px;
-    min-height: 42px;
+    min-height: 44px;
     padding: 6px 18px;
     font-size: 0.8rem;
   }
@@ -5541,7 +5658,7 @@ body.guided-page {
   }
 
   .measurement-field {
-    min-height: 27px;
+    min-height: 36px;
     grid-template-columns: minmax(0, 1fr) 110px;
     gap: 8px;
   }
@@ -5554,8 +5671,8 @@ body.guided-page {
   .measurement-input-wrap input,
   .measurement-input-wrap select,
   .measurement-toggle {
-    min-height: 27px;
-    height: 27px;
+    min-height: 36px;
+    height: 36px;
     padding-block: 2px;
     font-size: 0.7rem;
   }
@@ -5764,7 +5881,7 @@ body.guided-page {
   }
 
   .concept-preview {
-    grid-template-rows: 50px minmax(0, 1fr);
+    grid-template-rows: 50px minmax(0, 1fr) auto;
   }
 
   .concept-preview-meta {
