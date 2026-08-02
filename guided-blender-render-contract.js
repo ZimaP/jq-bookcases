@@ -20,10 +20,11 @@ import {
 } from "./guided-materials.js?v=luxury-configurator-engine-v1";
 
 export const GUIDED_BLENDER_RENDER_JOB_SCHEMA_VERSION = 1;
-export const GUIDED_BLENDER_RENDER_PACKAGE_SCHEMA_VERSION = 1;
+export const GUIDED_BLENDER_RENDER_PACKAGE_SCHEMA_VERSION = 2;
 export const GUIDED_BLENDER_RENDER_RESULT_SCHEMA_VERSION = 1;
-export const GUIDED_BLENDER_RENDER_PIPELINE_VERSION = "2026.08-tv-clear-wall-foundation-v1";
+export const GUIDED_BLENDER_RENDER_PIPELINE_VERSION = "2026.08-tv-clear-wall-clay-worker-v1";
 export const GUIDED_BLENDER_MATERIAL_LIBRARY_VERSION = "jq-materials-v1";
+export const GUIDED_BLENDER_CLAY_LIBRARY_VERSION = "jq-neutral-clay-v1";
 export const GUIDED_BLENDER_SCENE_VERSION = "clear-wall-v1";
 export const GUIDED_BLENDER_CAMERA_VERSION = "hero-front-v1";
 export const GUIDED_BLENDER_RENDER_JOB_MAX_BYTES = 16_384;
@@ -201,6 +202,71 @@ const OUTPUT_PASS_CONTRACTS = Object.freeze({
     maxBytes: 64 * 1024 * 1024
   })
 });
+const CLAY_MATERIAL_DEFINITIONS = Object.freeze({
+  "clay-casework": Object.freeze({
+    family: "principled-clay",
+    baseColor: Object.freeze([0.52, 0.47, 0.42, 1]),
+    metallic: 0,
+    roughness: 0.68,
+    transmissionWeight: 0,
+    alpha: 1,
+    emissionColor: Object.freeze([0, 0, 0, 1]),
+    emissionStrength: 0
+  }),
+  "clay-hardware": Object.freeze({
+    family: "principled-clay",
+    baseColor: Object.freeze([0.055, 0.06, 0.065, 1]),
+    metallic: 0.18,
+    roughness: 0.42,
+    transmissionWeight: 0,
+    alpha: 1,
+    emissionColor: Object.freeze([0, 0, 0, 1]),
+    emissionStrength: 0
+  }),
+  "clay-screen": Object.freeze({
+    family: "principled-clay",
+    baseColor: Object.freeze([0.008, 0.01, 0.012, 1]),
+    metallic: 0.04,
+    roughness: 0.24,
+    transmissionWeight: 0,
+    alpha: 1,
+    emissionColor: Object.freeze([0, 0, 0, 1]),
+    emissionStrength: 0
+  }),
+  "clay-glass": Object.freeze({
+    family: "principled-clay",
+    baseColor: Object.freeze([0.72, 0.78, 0.8, 0.32]),
+    metallic: 0,
+    roughness: 0.14,
+    transmissionWeight: 0.62,
+    alpha: 0.32,
+    emissionColor: Object.freeze([0, 0, 0, 1]),
+    emissionStrength: 0
+  }),
+  "clay-led": Object.freeze({
+    family: "principled-clay",
+    baseColor: Object.freeze([1, 0.82, 0.58, 1]),
+    metallic: 0,
+    roughness: 0.38,
+    transmissionWeight: 0,
+    alpha: 1,
+    emissionColor: Object.freeze([1, 0.72, 0.42, 1]),
+    emissionStrength: 2.5
+  })
+});
+const CLAY_MATERIAL_BY_SOURCE_SLOT = Object.freeze({
+  back: "clay-casework",
+  cabinet_finish: "clay-casework",
+  cabinet_interior: "clay-casework",
+  case: "clay-casework",
+  front: "clay-casework",
+  side: "clay-casework",
+  toe: "clay-casework",
+  hardware: "clay-hardware",
+  screen: "clay-screen",
+  glass: "clay-glass",
+  led: "clay-led"
+});
 
 /**
  * Build the compact request that may cross the browser/server boundary.
@@ -358,6 +424,7 @@ export async function regenerateGuidedBlenderRenderPackage(job, options = {}) {
   });
   const constraints = createBlenderConstraints(specification);
   const materials = createMaterialBindings(components);
+  const clayMaterials = createClayMaterialLibrary(materials);
   const readiness = createRenderReadiness(specification, materials);
   const renderPayload = {
     kind: "jq-guided-blender-render-package",
@@ -376,7 +443,8 @@ export async function regenerateGuidedBlenderRenderPackage(job, options = {}) {
     installation: createBlenderInstallation(specification),
     constraints,
     components,
-    materials
+    materials,
+    clayMaterials
   };
   const packagePayload = {
     ...renderPayload,
@@ -417,6 +485,7 @@ export async function validateGuidedBlenderRenderPackage(renderPackage) {
     "constraints",
     "components",
     "materials",
+    "clayMaterials",
     "requestKey",
     "renderKey",
     "readiness",
@@ -433,6 +502,7 @@ export async function validateGuidedBlenderRenderPackage(renderPackage) {
   ) {
     errors.push(issue("INVALID_RENDER_PACKAGE", "A current verified Blender render package is required."));
   }
+  errors.push(...validateBlenderWorkerPackageStructure(renderPackage));
   if (!hasExactKeys(renderPackage?.identity, RENDER_IDENTITY_KEYS)) {
     errors.push(issue("INVALID_RENDER_PACKAGE_IDENTITY", "The Blender package identity shape is invalid."));
   }
@@ -531,6 +601,326 @@ export async function validateGuidedBlenderRenderResult(renderPackage, result) {
   });
 }
 
+function validateBlenderWorkerPackageStructure(renderPackage) {
+  const errors = [];
+  const materials = Array.isArray(renderPackage?.materials) ? renderPackage.materials : [];
+  const clayMaterials = Array.isArray(renderPackage?.clayMaterials)
+    ? renderPackage.clayMaterials
+    : [];
+  const materialBindings = new Map();
+  const clayMaterialIds = new Set();
+
+  if (!Array.isArray(renderPackage?.materials) || !materials.length) {
+    errors.push(issue("MISSING_RENDER_MATERIALS", "The Blender package requires explicit material bindings."));
+  }
+  if (!Array.isArray(renderPackage?.clayMaterials) || !clayMaterials.length) {
+    errors.push(issue("MISSING_CLAY_MATERIALS", "The Blender package requires a versioned clay material library."));
+  }
+  for (const material of clayMaterials) {
+    if (!hasExactKeys(material, ["materialId", "libraryVersion", "definition"])) {
+      errors.push(issue("INVALID_CLAY_MATERIAL_SHAPE", "A clay material contains unknown or missing fields."));
+      continue;
+    }
+    const materialId = String(material.materialId || "");
+    if (!materialId || clayMaterialIds.has(materialId)) {
+      errors.push(issue("DUPLICATE_CLAY_MATERIAL_ID", `Clay material ${materialId || "(missing)"} is duplicated or invalid.`));
+      continue;
+    }
+    clayMaterialIds.add(materialId);
+    if (
+      material.libraryVersion !== GUIDED_BLENDER_CLAY_LIBRARY_VERSION
+      || !CLAY_MATERIAL_DEFINITIONS[materialId]
+      || stableStringify(material.definition) !== stableStringify(CLAY_MATERIAL_DEFINITIONS[materialId])
+    ) {
+      errors.push(issue("INVALID_CLAY_MATERIAL_DEFINITION", `Clay material ${materialId} does not match the versioned library.`));
+    }
+  }
+  for (const material of materials) {
+    if (!hasExactKeys(material, [
+      "sourceMaterialSlot",
+      "materialId",
+      "clayMaterialId",
+      "resolver",
+      "status",
+      "materialContractVersion",
+      "sourceSha256",
+      "definition"
+    ])) {
+      errors.push(issue("INVALID_RENDER_MATERIAL_SHAPE", "A render material binding contains unknown or missing fields."));
+      continue;
+    }
+    const sourceMaterialSlot = String(material.sourceMaterialSlot || "");
+    if (!sourceMaterialSlot || materialBindings.has(sourceMaterialSlot)) {
+      errors.push(issue("DUPLICATE_RENDER_MATERIAL_SLOT", `Material slot ${sourceMaterialSlot || "(missing)"} is duplicated or invalid.`));
+      continue;
+    }
+    materialBindings.set(sourceMaterialSlot, material);
+    if (
+      typeof material.materialId !== "string"
+      || !material.materialId
+      || material.clayMaterialId !== CLAY_MATERIAL_BY_SOURCE_SLOT[sourceMaterialSlot]
+      || !clayMaterialIds.has(material.clayMaterialId)
+    ) {
+      errors.push(issue("UNRESOLVED_RENDER_MATERIAL", `Material slot ${sourceMaterialSlot} does not resolve explicitly to source and clay materials.`));
+    }
+  }
+
+  const components = Array.isArray(renderPackage?.components) ? renderPackage.components : [];
+  if (!Array.isArray(renderPackage?.components) || !components.length) {
+    errors.push(issue("MISSING_RENDER_COMPONENTS", "The Blender package requires renderable components."));
+  }
+  const componentIds = new Set();
+  const objectIds = new Set();
+  for (const component of components) {
+    if (!hasExactKeys(component, [
+      "componentId",
+      "descriptorSetId",
+      "installationId",
+      "zoneId",
+      "parentId",
+      "hostId",
+      "role",
+      "geometryVariant",
+      "sourceMaterialSlot",
+      "materialId",
+      "sourceTransform",
+      "sourceWorldBounds",
+      "blenderWorldBounds",
+      "metadata",
+      "submeshes"
+    ])) {
+      errors.push(issue("INVALID_RENDER_COMPONENT_SHAPE", "A render component contains unknown or missing fields."));
+      continue;
+    }
+    const componentId = String(component.componentId || "");
+    if (!componentId || componentIds.has(componentId)) {
+      errors.push(issue("DUPLICATE_RENDER_COMPONENT_ID", `Render component ${componentId || "(missing)"} is duplicated or invalid.`));
+      continue;
+    }
+    componentIds.add(componentId);
+    if (!strictFiniteBounds(component.blenderWorldBounds)) {
+      errors.push(issue("INVALID_RENDER_COMPONENT_BOUNDS", `${componentId} has invalid Blender bounds.`));
+    }
+    if (!isResolvedMaterialReference(component, materialBindings)) {
+      errors.push(issue("UNRESOLVED_RENDER_MATERIAL", `${componentId} has no exact material binding.`));
+    }
+    if (!Array.isArray(component.submeshes) || !component.submeshes.length) {
+      errors.push(issue("MISSING_RENDER_SUBMESH", `${componentId} has no renderable submesh.`));
+      continue;
+    }
+    const submeshIds = new Set();
+    for (const submesh of component.submeshes) {
+      if (!hasExactKeys(submesh, [
+        "submeshId",
+        "geometry",
+        "grainRole",
+        "edgeVisible",
+        "sourceMaterialSlot",
+        "materialId",
+        "sourceLocalBounds",
+        "sourceWorldBounds",
+        "blenderWorldBounds",
+        "profileGeometry"
+      ])) {
+        errors.push(issue("INVALID_RENDER_SUBMESH_SHAPE", `${componentId} has a submesh with unknown or missing fields.`));
+        continue;
+      }
+      const submeshId = String(submesh.submeshId || "");
+      const objectId = `${componentId}::${submeshId}`;
+      if (!submeshId || submeshIds.has(submeshId) || objectIds.has(objectId)) {
+        errors.push(issue("DUPLICATE_RENDER_SUBMESH_ID", `Render submesh ${objectId} is duplicated or invalid.`));
+        continue;
+      }
+      submeshIds.add(submeshId);
+      objectIds.add(objectId);
+      if (!strictFiniteBounds(submesh.blenderWorldBounds)) {
+        errors.push(issue("INVALID_RENDER_SUBMESH_BOUNDS", `${objectId} has invalid Blender bounds.`));
+      }
+      if (!isResolvedMaterialReference(submesh, materialBindings)) {
+        errors.push(issue("UNRESOLVED_RENDER_MATERIAL", `${objectId} has no exact material binding.`));
+      }
+      if (!new Set(["box", "crown_profile_extrusion"]).has(submesh.geometry)) {
+        errors.push(issue("UNSUPPORTED_RENDER_PRIMITIVE", `${objectId} uses unknown geometry ${submesh.geometry}.`));
+      } else if (submesh.geometry === "crown_profile_extrusion") {
+        if (!validStrictCrownProfile(submesh.profileGeometry)) {
+          errors.push(issue("MALFORMED_CROWN_PROFILE", `${objectId} has a malformed authored crown profile.`));
+        }
+      } else if (submesh.profileGeometry !== null) {
+        errors.push(issue("UNEXPECTED_RENDER_PROFILE", `${objectId} attaches profile geometry to a box.`));
+      }
+    }
+  }
+
+  const constraints = Array.isArray(renderPackage?.constraints) ? renderPackage.constraints : [];
+  if (!Array.isArray(renderPackage?.constraints)) {
+    errors.push(issue("INVALID_RENDER_CONSTRAINTS", "The Blender package constraints must be an array."));
+  }
+  const constraintIds = new Set();
+  for (const constraint of constraints) {
+    if (!hasExactKeys(constraint, [
+      "constraintId",
+      "kind",
+      "sourceWorldBounds",
+      "blenderWorldBounds",
+      "clearance"
+    ])) {
+      errors.push(issue("INVALID_RENDER_CONSTRAINT_SHAPE", "A render constraint contains unknown or missing fields."));
+      continue;
+    }
+    const constraintId = String(constraint.constraintId || "");
+    if (!constraintId || constraintIds.has(constraintId)) {
+      errors.push(issue("DUPLICATE_RENDER_CONSTRAINT_ID", `Render constraint ${constraintId || "(missing)"} is duplicated or invalid.`));
+      continue;
+    }
+    constraintIds.add(constraintId);
+    if (typeof constraint.kind !== "string" || !constraint.kind || !strictFiniteBounds(constraint.blenderWorldBounds)) {
+      errors.push(issue("INVALID_RENDER_CONSTRAINT", `${constraintId} has an invalid kind or Blender bounds.`));
+    }
+  }
+  if (
+    renderPackage?.audit?.renderedComponentCount !== components.length
+    || renderPackage?.audit?.constraintCount !== constraints.length
+  ) {
+    errors.push(issue("RENDER_PACKAGE_AUDIT_COUNT_MISMATCH", "The package arrays do not match their committed audit counts."));
+  }
+  return errors;
+}
+
+function isResolvedMaterialReference(value, materialBindings) {
+  const binding = materialBindings.get(value?.sourceMaterialSlot);
+  return Boolean(
+    binding
+    && typeof value?.materialId === "string"
+    && value.materialId === binding.materialId
+  );
+}
+
+function strictFiniteBounds(bounds) {
+  return Boolean(bounds?.min && bounds?.max && ["x", "y", "z"].every((axis) => (
+    typeof bounds.min[axis] === "number"
+    && Number.isFinite(bounds.min[axis])
+    && typeof bounds.max[axis] === "number"
+    && Number.isFinite(bounds.max[axis])
+    && bounds.max[axis] > bounds.min[axis]
+  )));
+}
+
+function validStrictCrownProfile(profile) {
+  if (!hasExactKeys(profile, [
+    "schemaVersion",
+    "kind",
+    "profileId",
+    "contour",
+    "outlineUnits",
+    "outline",
+    "crossSection",
+    "extrusion"
+  ])) return false;
+  if (
+    profile.schemaVersion !== 1
+    || profile.kind !== "crown_profile_extrusion"
+    || profile.outlineUnits !== "normalized"
+    || typeof profile.profileId !== "string"
+    || !profile.profileId
+    || typeof profile.contour !== "string"
+    || !profile.contour
+    || !hasExactKeys(profile.crossSection, [
+      "heightAxis",
+      "projectionAxis",
+      "mountingPlane",
+      "projectionDirection"
+    ])
+    || !hasExactKeys(profile.extrusion, ["axis", "min", "max"])
+  ) return false;
+  const crossSection = profile.crossSection;
+  const extrusion = profile.extrusion;
+  if (
+    crossSection.heightAxis !== "y"
+    || !["x", "z"].includes(crossSection.projectionAxis)
+    || !["x", "z"].includes(extrusion.axis)
+    || crossSection.projectionAxis === extrusion.axis
+    || typeof crossSection.mountingPlane !== "number"
+    || !Number.isFinite(crossSection.mountingPlane)
+    || ![-1, 1].includes(crossSection.projectionDirection)
+    || typeof extrusion.min !== "number"
+    || !Number.isFinite(extrusion.min)
+    || typeof extrusion.max !== "number"
+    || !Number.isFinite(extrusion.max)
+    || extrusion.max <= extrusion.min
+  ) return false;
+  const outline = Array.isArray(profile.outline) ? profile.outline : [];
+  if (outline.length < 3 || outline.some((point) => (
+    !hasExactKeys(point, ["height", "projection"])
+    || typeof point.height !== "number"
+    || !Number.isFinite(point.height)
+    || typeof point.projection !== "number"
+    || !Number.isFinite(point.projection)
+    || point.height < 0
+    || point.height > 1
+    || point.projection < 0
+    || point.projection > 1
+  ))) return false;
+  const heights = outline.map((point) => point.height);
+  const projections = outline.map((point) => point.projection);
+  if (
+    Math.min(...heights) !== 0
+    || Math.max(...heights) !== 1
+    || Math.min(...projections) !== 0
+    || Math.max(...projections) !== 1
+  ) return false;
+  const points = outline.map((point) => ({ x: point.projection, y: point.height }));
+  const signedDoubleArea = points.reduce((area, point, index) => {
+    const next = points[(index + 1) % points.length];
+    return area + point.x * next.y - next.x * point.y;
+  }, 0);
+  if (Math.abs(signedDoubleArea) <= 1e-9) return false;
+  for (let index = 0; index < points.length; index += 1) {
+    const next = (index + 1) % points.length;
+    if (same2dPoint(points[index], points[next])) return false;
+    for (let other = index + 1; other < points.length; other += 1) {
+      const otherNext = (other + 1) % points.length;
+      if (index === other || next === other || index === otherNext) continue;
+      if (segmentsIntersect(points[index], points[next], points[other], points[otherNext])) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+function same2dPoint(first, second) {
+  return Math.abs(first.x - second.x) <= 1e-12
+    && Math.abs(first.y - second.y) <= 1e-12;
+}
+
+function segmentsIntersect(first, second, third, fourth) {
+  const orientation = (a, b, c) => (
+    (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+  );
+  const firstThird = orientation(first, second, third);
+  const firstFourth = orientation(first, second, fourth);
+  const thirdFirst = orientation(third, fourth, first);
+  const thirdSecond = orientation(third, fourth, second);
+  const epsilon = 1e-12;
+  if (
+    Math.abs(firstThird) <= epsilon
+    || Math.abs(firstFourth) <= epsilon
+    || Math.abs(thirdFirst) <= epsilon
+    || Math.abs(thirdSecond) <= epsilon
+  ) {
+    return boundingBoxesOverlap(first, second, third, fourth, epsilon);
+  }
+  return (firstThird > 0) !== (firstFourth > 0)
+    && (thirdFirst > 0) !== (thirdSecond > 0);
+}
+
+function boundingBoxesOverlap(first, second, third, fourth, epsilon) {
+  return Math.max(Math.min(first.x, second.x), Math.min(third.x, fourth.x))
+      <= Math.min(Math.max(first.x, second.x), Math.max(third.x, fourth.x)) + epsilon
+    && Math.max(Math.min(first.y, second.y), Math.min(third.y, fourth.y))
+      <= Math.min(Math.max(first.y, second.y), Math.max(third.y, fourth.y)) + epsilon;
+}
+
 function createPackageRenderPayload(renderPackage) {
   return {
     kind: renderPackage?.kind,
@@ -550,6 +940,7 @@ function createPackageRenderPayload(renderPackage) {
     constraints: clone(renderPackage?.constraints),
     components: clone(renderPackage?.components),
     materials: clone(renderPackage?.materials),
+    clayMaterials: clone(renderPackage?.clayMaterials),
     requestKey: renderPackage?.requestKey,
     readiness: clone(renderPackage?.readiness),
     audit: clone(renderPackage?.audit)
@@ -620,14 +1011,55 @@ function createRenderIdentity(specification, profile, snapshot) {
 }
 
 function createRenderSettings(profile) {
+  const isPreview = profile.id === "preview";
   return {
     profileId: profile.id,
-    engine: profile.id === "final" ? "CYCLES" : "BLENDER_EEVEE_NEXT",
-    colorManagement: "AgX",
-    look: "AgX Medium High Contrast",
+    engine: isPreview ? "BLENDER_EEVEE_NEXT" : "CYCLES",
+    blenderEngine: isPreview ? "BLENDER_EEVEE" : "CYCLES",
+    materialMode: "neutral-clay-v1",
+    colorManagement: {
+      displayDevice: "sRGB",
+      viewTransform: "AgX",
+      look: "AgX - Medium High Contrast",
+      exposure: 0,
+      gamma: 1,
+      useCurveMapping: false
+    },
     width: profile.width,
     height: profile.height,
+    resolutionPercentage: 100,
     samples: profile.samples,
+    engineSettings: isPreview ? {
+      taaRenderSamples: profile.samples,
+      useShadows: true,
+      useRaytracing: false,
+      useFastGi: false,
+      useTaaReprojection: true
+    } : {
+      samples: profile.samples,
+      useDenoising: false
+    },
+    film: {
+      transparent: false
+    },
+    imageSettings: {
+      fileFormat: "WEBP",
+      colorMode: "RGB",
+      colorDepth: "8",
+      colorManagement: "FOLLOW_SCENE",
+      quality: 90
+    },
+    renderOptions: {
+      useFileExtension: true,
+      useCompositing: false,
+      useSequencer: false,
+      useStamp: false,
+      useBorder: false,
+      useCropToBorder: false,
+      pixelAspectX: 1,
+      pixelAspectY: 1,
+      ditherIntensity: 1
+    },
     passes: [...profile.passes],
     outputContracts: profile.passes.map((pass) => ({
       pass,
@@ -949,12 +1381,27 @@ function createBlenderScene(specification) {
       wallWidthIn: finiteOrNull(specification.room?.wallWidth),
       ceilingHeightIn: finiteOrNull(specification.room?.ceilingHeight),
       rearWallPlaneZIn: finiteOrNull(specification.room?.rearWallPlaneZ),
-      floorPlaneYIn: finiteOrNull(specification.room?.floorPlaneY)
+      floorPlaneYIn: finiteOrNull(specification.room?.floorPlaneY),
+      floorDepthIn: 300,
+      wallSurface: {
+        baseColor: [0.62, 0.58, 0.53, 1],
+        metallic: 0,
+        roughness: 0.82
+      },
+      floorSurface: {
+        baseColor: [0.24, 0.21, 0.19, 1],
+        metallic: 0,
+        roughness: 0.76
+      }
     },
     environment: {
       path: "assets/environments/jq-warm-interior.hdr",
       sha256: "49db5b6e13c5b5239d8aca84c055c586dfc71aeaf1e1db64487f5bf8bab66db2",
-      strength: 0.65
+      strength: 0.65,
+      projection: "EQUIRECTANGULAR",
+      interpolation: "Linear",
+      colorSpace: "Linear Rec.709",
+      rotationEuler: [0, 0, 0]
     },
     assetManifest: {
       path: "config/asset-manifest.json",
@@ -989,6 +1436,8 @@ function createBlenderCamera(components, renderSettings) {
     type: "PERSP",
     lensMm,
     sensorWidthMm,
+    sensorFit: "HORIZONTAL",
+    depthOfField: false,
     fitMargin: margin,
     position: {
       x: target.x,
@@ -1041,11 +1490,13 @@ function createMaterialBindings(components) {
 }
 
 function createPortableMaterialBinding(sourceMaterialSlot, materialId) {
+  const clayMaterialId = resolveClayMaterialId(sourceMaterialSlot);
   const guided = GUIDED_MATERIALS_BY_ID.get(materialId);
   if (guided) {
     return {
       sourceMaterialSlot,
       materialId,
+      clayMaterialId,
       resolver: "embedded-guided-material-definition",
       status: "procedural-starter",
       materialContractVersion: GUIDED_MATERIAL_CONTRACT_VERSION,
@@ -1108,12 +1559,44 @@ function createPortableMaterialBinding(sourceMaterialSlot, materialId) {
   return {
     sourceMaterialSlot,
     materialId,
+    clayMaterialId,
     resolver: "embedded-portable-recipe",
     status: "procedural-starter",
     materialContractVersion: GUIDED_MATERIAL_CONTRACT_VERSION,
     sourceSha256: GUIDED_BLENDER_MATERIAL_SOURCE_SHA256,
     definition
   };
+}
+
+function resolveClayMaterialId(sourceMaterialSlot) {
+  const clayMaterialId = CLAY_MATERIAL_BY_SOURCE_SLOT[sourceMaterialSlot];
+  if (!clayMaterialId) {
+    throw blenderContractError(
+      "UNSUPPORTED_CLAY_MATERIAL_SLOT",
+      `Material slot ${sourceMaterialSlot} has no neutral-clay resolver.`
+    );
+  }
+  return clayMaterialId;
+}
+
+function createClayMaterialLibrary(materials) {
+  const requiredIds = new Set(materials.map((material) => material.clayMaterialId));
+  requiredIds.add("clay-glass");
+  const entries = [...requiredIds].sort().map((materialId) => {
+    const definition = CLAY_MATERIAL_DEFINITIONS[materialId];
+    if (!definition) {
+      throw blenderContractError(
+        "UNSUPPORTED_CLAY_MATERIAL",
+        `Clay material ${materialId} has no versioned definition.`
+      );
+    }
+    return {
+      materialId,
+      libraryVersion: GUIDED_BLENDER_CLAY_LIBRARY_VERSION,
+      definition: clone(definition)
+    };
+  });
+  return entries;
 }
 
 function createRenderReadiness(specification, materials) {

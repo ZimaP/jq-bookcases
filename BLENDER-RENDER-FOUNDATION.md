@@ -32,10 +32,10 @@ fillers, depths, openings, shelves, fronts, or TV clearances.
 5. Blender coordinates are explicit and tested:
    `(JQ x, y, z inches) -> (Blender x, -z, y meters) * 0.0254`.
 
-Static GitHub Pages cannot execute Blender. The next service layer is a small
-Node render gateway plus a private Blender Python worker and object storage. The
-current Three.js view remains the immediate/loading/failure fallback when that
-service is connected to Step 4.
+Static GitHub Pages cannot execute Blender. Phase 2 proves the private Blender
+Python worker locally; a future service layer still needs a small Node render
+gateway and object storage. The current Three.js view remains the
+immediate/loading/failure fallback if that service is later connected to Step 4.
 
 `guided-blender-render-contract.js` is intentionally repository/server-only in
 foundation v1 and is excluded from the public Pages artifact. Only the shared
@@ -83,14 +83,40 @@ approve the current TV elevation as John Quinn's production template.
 - Camera, HDRI/room shell, color pipeline, and Blender version must be locked by
   a reviewed reference render before the worker is production-ready.
 
+## Local clay worker
+
+Phase 2 adds a local-only Blender 5.2 clay translator for the committed TV01
+fixture. Run it from the repository root:
+
+```sh
+npm run blender:clay
+```
+
+`BLENDER_BIN` may point to another Blender executable; otherwise the runner uses
+`/Applications/Blender.app/Contents/MacOS/Blender`. The command always rebuilds
+the compact job and authoritative package through the JQ JavaScript engine,
+validates the package, starts Blender with `--background --factory-startup`, and
+then validates both `result.json` and the actual WebP bytes. Generated files live
+under the ignored `artifacts/blender-clay-worker/TV01/` directory.
+
+The package keeps the semantic engine name `BLENDER_EEVEE_NEXT`. Blender 5.2
+exposes that engine through the RNA identifier `BLENDER_EEVEE`, so both values
+are explicit in the cache-bound render settings and the worker accepts only
+that exact mapping. Clay recipes, room surfaces, floor extent, HDR color space
+and orientation, WebP settings, transparency, sampling, and AgX settings are
+also versioned package data rather than worker defaults.
+
+This command does not connect Blender to Steps 1–5, approve a customer beauty
+render, or assign production wood, paint, or clear-UV-maple materials.
+
 ## Next implementation slice
 
 1. Confirm the TV elevation rules with John and encode them in the JQ product
    adapter/engine, not in Blender Python.
 2. Author the clear-UV maple material and the versioned Clear Wall room/camera
    scene.
-3. Implement the Node gateway and headless Blender worker against the committed
-   package schema. The gateway must enforce the 16 KiB job-body limit, apply
+3. Implement the Node gateway against the committed package schema. The gateway
+   must enforce the 16 KiB job-body limit, apply
    per-pass object-size limits, and verify object-storage `HEAD` metadata,
    content type, byte count, and SHA-256 before returning a succeeded result.
 4. Generate and review a neutral clay render first; only after geometry approval

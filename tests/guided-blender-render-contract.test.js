@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 
 import {
   GUIDED_BLENDER_ASSET_MANIFEST_SHA256,
+  GUIDED_BLENDER_CLAY_LIBRARY_VERSION,
   GUIDED_BLENDER_MATERIAL_SOURCE_SHA256,
   GUIDED_BLENDER_RENDER_PIPELINE_VERSION,
   convertGuidedBoundsToBlender,
@@ -113,6 +114,43 @@ test("TV01 preserves accepted component parity plus every non-renderable opening
   assert.ok(Number.isFinite(renderPackage.camera.position.y));
   assert.ok(renderPackage.camera.position.y > renderPackage.camera.target.y);
   assert.equal(renderPackage.scene.environment.sha256.length, 64);
+  assert.equal(renderPackage.render.engine, "BLENDER_EEVEE_NEXT");
+  assert.equal(renderPackage.render.blenderEngine, "BLENDER_EEVEE");
+  assert.equal(renderPackage.render.materialMode, "neutral-clay-v1");
+  assert.equal(renderPackage.render.resolutionPercentage, 100);
+  assert.equal(renderPackage.render.samples, 128);
+  assert.deepEqual(renderPackage.render.colorManagement, {
+    displayDevice: "sRGB",
+    viewTransform: "AgX",
+    look: "AgX - Medium High Contrast",
+    exposure: 0,
+    gamma: 1,
+    useCurveMapping: false
+  });
+  assert.deepEqual(renderPackage.render.film, { transparent: false });
+  assert.deepEqual(renderPackage.render.imageSettings, {
+    fileFormat: "WEBP",
+    colorMode: "RGB",
+    colorDepth: "8",
+    colorManagement: "FOLLOW_SCENE",
+    quality: 90
+  });
+  assert.deepEqual(renderPackage.render.renderOptions, {
+    useFileExtension: true,
+    useCompositing: false,
+    useSequencer: false,
+    useStamp: false,
+    useBorder: false,
+    useCropToBorder: false,
+    pixelAspectX: 1,
+    pixelAspectY: 1,
+    ditherIntensity: 1
+  });
+  assert.equal(renderPackage.scene.shell.floorDepthIn, 300);
+  assert.equal(renderPackage.scene.environment.projection, "EQUIRECTANGULAR");
+  assert.equal(renderPackage.scene.environment.interpolation, "Linear");
+  assert.equal(renderPackage.scene.environment.colorSpace, "Linear Rec.709");
+  assert.deepEqual(renderPackage.scene.environment.rotationEuler, [0, 0, 0]);
   assert.deepEqual(
     renderPackage.components.map((component) => component.componentId),
     [...renderPackage.components.map((component) => component.componentId)].sort()
@@ -442,6 +480,7 @@ test("material and approval gates remain explicit until John and physical sample
   const job = await createGuidedBlenderRenderJob(project, specification);
   const renderPackage = await regenerateGuidedBlenderRenderPackage(job);
   const bindings = new Map(renderPackage.materials.map((entry) => [entry.sourceMaterialSlot, entry]));
+  const clayMaterials = new Map(renderPackage.clayMaterials.map((entry) => [entry.materialId, entry]));
 
   assert.equal(bindings.get("cabinet_interior")?.materialId, "natural-oak");
   assert.equal(renderPackage.readiness.prototypeRenderAllowed, true);
@@ -456,6 +495,12 @@ test("material and approval gates remain explicit until John and physical sample
   assert.equal(bindings.get("hardware")?.definition.family, "metal");
   assert.equal(bindings.get("led")?.definition.family, "emissive");
   assert.equal(bindings.get("screen")?.definition.family, "screen");
+  assert.equal(bindings.get("case")?.clayMaterialId, "clay-casework");
+  assert.equal(bindings.get("hardware")?.clayMaterialId, "clay-hardware");
+  assert.equal(bindings.get("led")?.clayMaterialId, "clay-led");
+  assert.equal(bindings.get("screen")?.clayMaterialId, "clay-screen");
+  assert.equal(clayMaterials.get("clay-glass")?.libraryVersion, GUIDED_BLENDER_CLAY_LIBRARY_VERSION);
+  assert.equal(clayMaterials.size, 5);
   assert.ok(renderPackage.readiness.requiredAssets.some((asset) => (
     asset.materialId === "clear-uv-maple"
   )));
