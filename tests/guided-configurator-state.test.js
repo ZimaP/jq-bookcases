@@ -28,8 +28,10 @@ import {
   formatInches,
   normalizeProject,
   parseInches,
+  prepareMeasurementsForLayout,
   validateMeasurements
 } from "../guided-configurator-state.js";
+import { prepareGuidedProjectPersistence } from "../guided-project-engine.js";
 
 class MemoryStorage {
   #records = new Map();
@@ -229,7 +231,7 @@ test("measurement schemas are derived from category and layout conditions", () =
   assert.ok(radiatorFields.includes("valveLocation"));
 });
 
-test("all ten bookcase room diagrams retain field geometry but expose only two perimeter dimensions", () => {
+test("all ten bookcase room diagrams expose ordered architectural dimension geometry", () => {
   const expectedDimensions = new Map([
     ["niche-layout", [
       ["wallWidth", "A"],
@@ -272,9 +274,9 @@ test("all ten bookcase room diagrams retain field geometry but expose only two p
       ["wallWidth", "A"],
       ["ceilingHeight", "B"],
       ["desiredDepth", "C"],
-      ["nicheWidth", "D"],
-      ["nicheHeight", "E"],
-      ["nicheDepth", "F"]
+      ["projectionWidth", "D"],
+      ["projectionHeight", "E"],
+      ["projectionDepth", "F"]
     ]],
     ["window-wall", [
       ["wallWidth", "A"],
@@ -306,6 +308,8 @@ test("all ten bookcase room diagrams retain field geometry but expose only two p
       ["openingRightDistance", "E"]
     ]]
   ]);
+  const validAxes = new Set(["horizontal", "vertical", "depth", "diagonal"]);
+
   for (const roomLayout of SHARED_ROOM_LAYOUTS) {
     const spec = getMeasurementDiagramSpec("bookcase", roomLayout.id);
     const fieldsById = new Map(
@@ -323,28 +327,18 @@ test("all ten bookcase room diagrams retain field geometry but expose only two p
     assert.deepEqual(actualDimensions, expectedDimensions.get(roomLayout.id), `${context} fields and codes`);
     assert.equal(new Set(spec.spans.map((span) => span.fieldId)).size, spec.spans.length, `${context} field IDs are unique`);
     assert.equal(new Set(actualDimensions.map(([, code]) => code)).size, spec.spans.length, `${context} codes are unique`);
-    assert.deepEqual(
-      spec.perimeterSpans.map((span) => span.fieldId),
-      ["wallWidth", "ceilingHeight"],
-      `${context} rendered perimeter fields`
-    );
-    assert.deepEqual(
-      spec.perimeterSpans.map((span) => span.axis),
-      ["horizontal", "vertical"],
-      `${context} rendered perimeter axes`
-    );
 
-    for (const span of spec.perimeterSpans) {
+    for (const span of spec.spans) {
       const coordinates = [
         ...span.line,
         ...span.extensions.flat(),
         span.label.x,
         span.label.y
       ];
+      assert.ok(validAxes.has(span.axis), `${context} ${span.fieldId} uses a supported axis`);
       assert.equal(span.line.length, 4, `${context} ${span.fieldId} has two line endpoints`);
       assert.equal(span.extensions.length, 2, `${context} ${span.fieldId} has two witness lines`);
       assert.ok(span.extensions.every((extension) => extension.length === 4), `${context} ${span.fieldId} witness endpoints`);
-      assert.equal(span.endStyle, "arrow", `${context} ${span.fieldId} uses small arrowheads`);
       assert.ok(coordinates.every(Number.isFinite), `${context} ${span.fieldId} coordinates are finite`);
       assert.notDeepEqual(span.line.slice(0, 2), span.line.slice(2), `${context} ${span.fieldId} line has length`);
 
@@ -359,7 +353,7 @@ test("all ten bookcase room diagrams retain field geometry but expose only two p
   }
 });
 
-test("room diagrams use native image ratios and perimeter dimensions anchor to room surfaces", () => {
+test("room diagrams use native image ratios and Door Wall dimensions anchor to real architectural edges", () => {
   const expectedViewBoxes = new Map([
     ["niche-layout", [627, 627]],
     ["left-niche", [627, 627]],
@@ -375,82 +369,39 @@ test("room diagrams use native image ratios and perimeter dimensions anchor to r
 
   for (const [layoutId, expectedViewBox] of expectedViewBoxes) {
     const spec = getMeasurementDiagramSpec("bookcase", layoutId);
-    const [positionX, positionY] = spec.mediaObjectPosition
-      .split(" ")
-      .map((value) => Number.parseFloat(value) / 100);
-    const [viewportWidth, viewportHeight] = spec.mediaAspectRatio
-      .split("/")
-      .map((value) => Number.parseFloat(value.trim()));
-    const viewportRatio = viewportWidth / viewportHeight;
-    const sourceRatio = spec.width / spec.height;
-    const visibleWidth = sourceRatio > viewportRatio
-      ? spec.height * viewportRatio
-      : spec.width;
-    const visibleHeight = sourceRatio < viewportRatio
-      ? spec.width / viewportRatio
-      : spec.height;
-    const visibleSource = {
-      left: (spec.width - visibleWidth) * positionX,
-      right: (spec.width - visibleWidth) * positionX + visibleWidth,
-      top: (spec.height - visibleHeight) * positionY,
-      bottom: (spec.height - visibleHeight) * positionY + visibleHeight
-    };
-
     assert.deepEqual([spec.width, spec.height], expectedViewBox, `${layoutId} native image viewBox`);
-    assert.equal(spec.mediaFit, "cover", `${layoutId} room photograph fills its media frame`);
-    assert.equal(spec.mediaAspectRatio, "4 / 3", `${layoutId} uses the shared measurement viewport`);
-    assert.match(
-      spec.mediaSvgPreserveAspectRatio,
-      /^x(?:Min|Mid|Max)Y(?:Min|Mid|Max) slice$/,
-      `${layoutId} SVG shares the photograph's cover alignment`
-    );
-    for (const span of spec.perimeterSpans) {
-      const sourcePoints = [
-        span.line.slice(0, 2),
-        span.line.slice(2, 4),
-        ...span.extensions.flatMap((extension) => [
-          extension.slice(0, 2),
-          extension.slice(2, 4)
-        ]),
-        [span.label.x, span.label.y]
-      ];
-      for (const [x, y] of sourcePoints) {
-        assert.ok(
-          x >= visibleSource.left && x <= visibleSource.right,
-          `${layoutId} ${span.fieldId} x=${x} remains inside the visible cover crop`
-        );
-        assert.ok(
-          y >= visibleSource.top && y <= visibleSource.bottom,
-          `${layoutId} ${span.fieldId} y=${y} remains inside the visible cover crop`
-        );
-      }
-    }
   }
 
   const doorSpec = getMeasurementDiagramSpec("bookcase", "door-wall");
-  const doorPerimeter = new Map(doorSpec.perimeterSpans.map((span) => [span.fieldId, span]));
-  const [doorWidthX1, doorWidthY1, doorWidthX2, doorWidthY2] = doorPerimeter.get("wallWidth").line;
-  const [doorHeightX1, doorHeightY1, doorHeightX2, doorHeightY2] = doorPerimeter.get("ceilingHeight").line;
-  assert.ok(Math.abs(doorWidthX1 - 240) < 1);
-  assert.ok(Math.abs(doorWidthX2 - 1295) < 1);
-  assert.equal(doorWidthY1, doorWidthY2, "Door Wall width stays horizontal");
-  assert.ok(Math.abs(doorHeightY1 - 157) < 1);
-  assert.ok(Math.abs(doorHeightY2 - 758) < 1);
-  assert.equal(doorHeightX1, doorHeightX2, "Door Wall height stays vertical");
-  assert.ok(doorHeightX1 > doorWidthX1 && doorHeightX1 < doorWidthX2);
+  const doorSpans = new Map(doorSpec.spans.map((span) => [span.fieldId, span]));
+  assert.deepEqual(doorSpans.get("wallWidth").line, [240, 178, 1295, 178]);
+  assert.deepEqual(doorSpans.get("wallWidth").extensions, [
+    [240, 157, 240, 204],
+    [1295, 157, 1295, 204]
+  ]);
+  assert.deepEqual(doorSpans.get("ceilingHeight").line, [270, 157, 270, 758]);
+  assert.deepEqual(doorSpans.get("desiredDepth").line, [1295, 758, 1452, 840]);
+  assert.equal(doorSpans.get("desiredDepth").endStyle, "tick");
+  assert.equal(doorSpans.get("desiredDepth").extensionRole, "tick");
+  assert.deepEqual(doorSpans.get("doorWidth").line, [659, 232, 880, 232]);
+  assert.deepEqual(doorSpans.get("doorWidth").extensions, [
+    [659, 208, 659, 279],
+    [880, 208, 880, 279]
+  ]);
+  assert.deepEqual(doorSpans.get("doorHeight").line, [940, 279, 940, 758]);
+  assert.deepEqual(doorSpans.get("doorHeight").extensions, [
+    [880, 279, 960, 279],
+    [880, 758, 960, 758]
+  ]);
+  assert.deepEqual(doorSpans.get("doorLeftDistance").line, [240, 638, 639, 638]);
+  assert.ok(!doorSpans.has("doorTrimWidth"), "trim remains a small local field, not a long wall dimension");
+  assert.ok(!doorSpans.has("doorSwing"), "door swing remains directional data, not a linear dimension");
 
-  const doubleOpeningSpec = getMeasurementDiagramSpec("tv-unit", "double-opening");
-  const doubleOpeningPerimeter = new Map(
-    doubleOpeningSpec.perimeterSpans.map((span) => [span.fieldId, span])
+  const [depthX1, depthY1, depthX2, depthY2] = doorSpans.get("desiredDepth").line;
+  assert.ok(
+    Math.abs(((depthY2 - depthY1) / (depthX2 - depthX1)) - (82 / 157)) < 0.000001,
+    "built-in depth follows the right wall-floor perspective"
   );
-  const [openingWidthX1, openingWidthY1, openingWidthX2, openingWidthY2] = doubleOpeningPerimeter.get("wallWidth").line;
-  const [openingHeightX1, openingHeightY1, openingHeightX2, openingHeightY2] = doubleOpeningPerimeter.get("ceilingHeight").line;
-  assert.ok(Math.abs(openingWidthX1 - 304) < 1);
-  assert.ok(Math.abs(openingWidthX2 - 1230) < 1);
-  assert.equal(openingWidthY1, openingWidthY2, "Between Openings width stays horizontal");
-  assert.ok(Math.abs(openingHeightY1 - 150) < 1);
-  assert.ok(Math.abs(openingHeightY2 - 785) < 1);
-  assert.equal(openingHeightX1, openingHeightX2, "Between Openings height stays vertical");
 });
 
 test("inch parsing accepts decimals, mixed fractions, hyphenated fractions, and unicode fractions", () => {
@@ -466,6 +417,36 @@ test("inch parsing accepts decimals, mixed fractions, hyphenated fractions, and 
   assert.equal(formatInches(42.5), "42 1/2");
   assert.equal(formatInches(0.875), "7/8");
   assert.equal(formatInches(42.5, { decimal: true }), "42.5");
+});
+
+test("niche layout selection derives distinct left, centered, and right returns from the room envelope", () => {
+  const project = createProject();
+  project.measurements = {
+    wallWidth: 120,
+    ceilingHeight: 96,
+    desiredDepth: 14,
+    nicheWidth: 96
+  };
+
+  assert.deepEqual(
+    pickReturns(prepareMeasurementsForLayout(project, "left-niche")),
+    { leftReturn: 24, rightReturn: 0 }
+  );
+  assert.deepEqual(
+    pickReturns(prepareMeasurementsForLayout(project, "niche-layout")),
+    { leftReturn: 12, rightReturn: 12 }
+  );
+  assert.deepEqual(
+    pickReturns(prepareMeasurementsForLayout(project, "right-niche")),
+    { leftReturn: 0, rightReturn: 24 }
+  );
+
+  function pickReturns(measurements) {
+    return {
+      leftReturn: measurements.leftReturn,
+      rightReturn: measurements.rightReturn
+    };
+  }
 });
 
 test("core measurements are required while unusual values remain non-blocking warnings", () => {
@@ -526,6 +507,22 @@ test("five-step state and legacy category layouts migrate without losing a proje
   assert.equal(legacy.layout, "clear-wall");
   assert.equal(legacy.currentStep, 5);
   assert.equal(legacy.maxVisitedStep, 5);
+
+  const legacyProjection = normalizeProject({
+    ...createProject({ now: 7, productSelected: true }),
+    layout: "center-recess",
+    measurements: {
+      wallWidth: 144,
+      ceilingHeight: 108,
+      desiredDepth: 15,
+      nicheWidth: 48,
+      nicheHeight: 72,
+      nicheDepth: 8
+    }
+  }, { now: 8 });
+  assert.equal(legacyProjection.measurements.projectionWidth, 48);
+  assert.equal(legacyProjection.measurements.projectionHeight, 72);
+  assert.equal(legacyProjection.measurements.projectionDepth, 8);
 });
 
 test("normalization removes incompatible detail choices without disturbing project identity", () => {
@@ -879,6 +876,139 @@ test("legacy hidden Bookcase styles migrate without inventing an integrated room
   );
 });
 
+test("compact accepted snapshots survive normalization and storage while retaining physical summary rows", () => {
+  const acceptedSnapshot = {
+    schemaVersion: 2,
+    engineVersion: "2026.08-luxury-configurator-v1",
+    specificationSchemaVersion: 1,
+    projectId: "JQ-COMPACT-0001",
+    productId: "tv-unit",
+    layoutId: "clear-wall",
+    geometryFingerprint: "jq-guided-geometry-v1-compact",
+    selectionFingerprint: "jq-guided-selection-v1-compact",
+    specificationFingerprint: "jq-guided-spec-v1-compact",
+    regeneration: {
+      topologyFingerprint: "jq-guided-snapshot-room-v1-compact",
+      fitFingerprint: "jq-guided-snapshot-fit-v1-compact",
+      descriptorFingerprint: "jq-guided-snapshot-descriptors-v1-compact",
+      materialFingerprint: "jq-guided-snapshot-materials-v1-compact",
+      cameraFingerprint: "jq-guided-snapshot-camera-v1-compact"
+    },
+    summary: {
+      installations: [{
+        zoneId: "main",
+        role: "primary",
+        casework: { width: 117, overallHeight: 96, depth: 14 },
+        treatments: {
+          left: { kind: "filler", width: 1.5 },
+          right: { kind: "filler", width: 1.5 },
+          base: { kind: "built-in-base", height: 4 },
+          top: { kind: "scribe-or-crown", height: 0.75 }
+        }
+      }],
+      tv: {
+        accepted: true,
+        body: { width: 56, height: 33 },
+        opening: { width: 60, height: 37 }
+      }
+    }
+  };
+  const project = normalizeProject({
+    ...createProject({ now: 90, random: 0.09, category: "tv-unit", productSelected: true }),
+    projectId: "JQ-COMPACT-0001",
+    layout: "clear-wall",
+    acceptedSnapshot
+  }, { now: 91 });
+  assert.deepEqual(project.acceptedSnapshot, acceptedSnapshot);
+  assert.equal(Object.hasOwn(project.acceptedSnapshot, "acceptedSpecification"), false);
+
+  const storage = new MemoryStorage();
+  const projects = createProjectStore(storage);
+  assert.equal(projects.saveDraft(project), true);
+  const restored = projects.loadDraft();
+  assert.deepEqual(restored.acceptedSnapshot, acceptedSnapshot);
+  assert.ok(Buffer.byteLength(storage.getItem(GUIDED_DRAFT_STORAGE_KEY), "utf8") < 8_192);
+
+  const summary = Object.fromEntries(buildProjectSummary(restored).map((row) => [row.key, row.value]));
+  assert.equal(summary.fittedSize, "117 × 96 × 14 in");
+  assert.equal(summary.tvBody, "56 × 33 in");
+  assert.equal(summary.tvOpening, "60 × 37 in");
+  assert.equal(summary.geometryFingerprint, acceptedSnapshot.geometryFingerprint);
+});
+
+test("Radiator Cover defaults the Window Wall obstruction to present", () => {
+  const radiatorProject = createProject({
+    now: 92,
+    random: 0.12,
+    category: "radiator-cover",
+    productSelected: true
+  });
+  const measurements = prepareMeasurementsForLayout(radiatorProject, "window-wall");
+  assert.equal(measurements.radiatorBelowWindow, "yes");
+  assert.equal(measurements.windowWidth, 60);
+  assert.equal(measurements.sillHeight, 32);
+  assert.equal(measurements.radiatorWidth, 48);
+  assert.equal(measurements.radiatorHeight, 26);
+  assert.equal(measurements.radiatorDepth, 9);
+});
+
+test("review and quote summary rows expose accepted pricing, warnings, and geometry identity", () => {
+  const summaryProject = normalizeProject({
+    ...createProject({ now: 93, random: 0.13, productSelected: true }),
+    layout: "clear-wall"
+  }, { now: 94 });
+  const rows = Object.fromEntries(buildProjectSummary(summaryProject, {
+    acceptedSpecification: {
+      accepted: true,
+      fit: { installations: [] },
+      product: { tv: null },
+      geometryFingerprint: "jq-guided-geometry-v1-summary",
+      pricing: { available: true, total: 12345 },
+      warnings: [{
+        code: "DESIGN_REVIEW_NOTE",
+        message: "Field measurements must be confirmed."
+      }]
+    },
+    acceptedQuote: {
+      identity: {
+        geometryFingerprint: "jq-guided-geometry-v1-summary"
+      },
+      pricing: {
+        available: true,
+        total: 12345,
+        fingerprint: "jq-guided-quote-pricing-v1-summary"
+      },
+      warnings: {
+        fingerprint: "jq-guided-quote-warnings-v1-summary",
+        items: [{
+          code: "DESIGN_REVIEW_NOTE",
+          message: "Field measurements must be confirmed."
+        }]
+      },
+      bom: {
+        componentCount: 13,
+        billableComponentCount: 12,
+        customerEquipmentCount: 1,
+        byRole: { door: 4, screen: 1, shelf: 8 },
+        fingerprint: "jq-guided-quote-bom-v1-summary"
+      },
+      integrity: {
+        verified: true,
+        quoteFingerprint: "jq-guided-quote-contract-v1-summary"
+      }
+    }
+  }).map((row) => [row.key, row.value]));
+
+  assert.equal(rows.pricing, "$12,345");
+  assert.equal(rows.pricingFingerprint, "jq-guided-quote-pricing-v1-summary");
+  assert.equal(rows.geometryFingerprint, "jq-guided-geometry-v1-summary");
+  assert.equal(rows.warnings, "Field measurements must be confirmed. (DESIGN_REVIEW_NOTE)");
+  assert.equal(rows.warningsFingerprint, "jq-guided-quote-warnings-v1-summary");
+  assert.equal(rows.bom, "12 billable components (13 physical; 1 customer equipment) · door 4, screen 1, shelf 8");
+  assert.equal(rows.bomFingerprint, "jq-guided-quote-bom-v1-summary");
+  assert.equal(rows.quoteFingerprint, "jq-guided-quote-contract-v1-summary");
+});
+
 test("project store supports drafts, multiple saves, rename, duplicate, resume, and delete", () => {
   const storage = new MemoryStorage();
   const projects = createProjectStore(storage);
@@ -910,6 +1040,50 @@ test("project store supports drafts, multiple saves, rename, duplicate, resume, 
   assert.equal(projects.deleteProject("missing"), false);
   assert.equal(projects.clearDraft(), true);
   assert.equal(projects.loadDraft(), null);
+});
+
+test("project store accepts only an engine-verified persistence contract for accepted saves", () => {
+  const storage = new MemoryStorage();
+  const projects = createProjectStore(storage);
+  const base = createProject({
+    now: 250,
+    random: 0.25,
+    category: "bookcase",
+    productSelected: true,
+    projectName: "Accepted Library"
+  });
+  const acceptedProject = normalizeProject({
+    ...base,
+    layout: "clear-wall",
+    measurements: prepareMeasurementsForLayout(base, "clear-wall")
+  }, { now: 251 });
+  const accepted = prepareGuidedProjectPersistence(acceptedProject);
+  assert.equal(accepted.accepted, true, JSON.stringify(accepted.errors));
+  assert.equal(projects.saveAcceptedDraft(accepted), true);
+  assert.ok(projects.saveAcceptedProject(accepted, "Accepted Library"));
+
+  const storedDraft = projects.loadDraft();
+  const storedProject = projects.getProject(acceptedProject.projectId);
+  const acceptedFingerprint = accepted.specification.specificationFingerprint;
+  assert.equal(storedDraft.acceptedSnapshot.specificationFingerprint, acceptedFingerprint);
+  assert.equal(storedProject.acceptedSnapshot.specificationFingerprint, acceptedFingerprint);
+
+  const invalidEdit = structuredClone(accepted.project);
+  invalidEdit.measurements.wallWidth = -1;
+  const rejected = prepareGuidedProjectPersistence(invalidEdit, accepted.specification);
+  assert.equal(rejected.code, "GUIDED_SAVE_REJECTED_CANDIDATE");
+  assert.equal(projects.saveAcceptedDraft(rejected), false);
+  assert.equal(projects.saveAcceptedProject(rejected, "Invalid Library"), null);
+  assert.equal(projects.loadDraft().measurements.wallWidth, storedDraft.measurements.wallWidth);
+  assert.equal(
+    projects.getProject(acceptedProject.projectId).acceptedSnapshot.specificationFingerprint,
+    acceptedFingerprint
+  );
+
+  const forged = structuredClone(accepted);
+  forged.project.acceptedSnapshot.geometryFingerprint = "jq-guided-geometry-v1-forged";
+  assert.equal(projects.saveAcceptedDraft(forged), false);
+  assert.equal(projects.saveAcceptedProject(forged, "Forged Library"), null);
 });
 
 test("catalog provides the complete curated finish and detail collections", () => {
@@ -945,18 +1119,22 @@ test("project store reports blocked writes instead of fabricating save success",
   assert.equal(projects.deleteProject(project.projectId), false);
 });
 
-test("the public configurator route and deployment exclude the legacy 3D runtime", async () => {
-  const [html, guidedUi, guidedState, workflow] = await Promise.all([
+test("the public configurator lazily ships its unified guided 3D scene without the legacy workspace runtime", async () => {
+  const [html, guidedUi, guidedState, guidedScene, workflow] = await Promise.all([
     readFile(new URL("../configurator.html", import.meta.url), "utf8"),
     readFile(new URL("../guided-configurator.js", import.meta.url), "utf8"),
     readFile(new URL("../guided-configurator-state.js", import.meta.url), "utf8"),
+    readFile(new URL("../guided-configurator-3d.js", import.meta.url), "utf8"),
     readFile(new URL("../.github/workflows/deploy-pages-production.yml", import.meta.url), "utf8")
   ]);
 
   assert.match(html, /guided-configurator\.js/);
-  assert.doesNotMatch(html, /configurator-3d|three\.module|cabinet-ar|direct-hardware/);
-  assert.doesNotMatch(`${guidedUi}\n${guidedState}`, /configurator-3d|three\.module|bookcase-engine|cabinet-ar/);
+  assert.doesNotMatch(html, /assets\/vendor\/three\.module|src=["']configurator-3d|cabinet-ar|direct-hardware/);
+  assert.match(guidedUi, /import\(["']\.\/guided-configurator-3d\.js/);
+  assert.match(guidedScene, /assets\/vendor\/three\.module\.js/);
+  assert.doesNotMatch(`${guidedUi}\n${guidedState}`, /bookcase-engine|cabinet-ar/);
   assert.match(workflow, /test ! -e _site\/configurator-3d\.js/);
-  assert.match(workflow, /test ! -e _site\/assets\/vendor\/three\.module\.js/);
-  assert.doesNotMatch(workflow, /test -f _site\/assets\/vendor\/three\.module\.js/);
+  assert.match(workflow, /test -f _site\/guided-configurator-3d\.js/);
+  assert.match(workflow, /test -f _site\/guided-scene-plan\.js/);
+  assert.match(workflow, /test -f _site\/assets\/vendor\/three\.module\.js/);
 });

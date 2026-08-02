@@ -1,0 +1,17 @@
+{
+  "id": "G08-between-openings",
+  "productId": "cabinet-shelves",
+  "layoutId": "double-opening",
+  "measurements": {
+    "wallWidth": 96,
+    "ceilingHeight": 96,
+    "desiredDepth": 14,
+    "openingLeftDistance": 24,
+    "openingRightDistance": 24
+  },
+  "finish": "natural-oak",
+  "expected": {
+    "openingsClear": true,
+    "centered": true
+  }
+}

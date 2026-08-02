@@ -1,0 +1,19 @@
+{
+  "id": "G07-door-wall",
+  "productId": "cabinet-shelves",
+  "layoutId": "door-wall",
+  "measurements": {
+    "wallWidth": 144,
+    "ceilingHeight": 96,
+    "desiredDepth": 14,
+    "doorWidth": 36,
+    "doorHeight": 80,
+    "doorLeftDistance": 54,
+    "doorTrimWidth": 3.5,
+    "doorSwing": "right-in"
+  },
+  "finish": "sage-gray",
+  "expected": {
+    "doorClear": true
+  }
+}

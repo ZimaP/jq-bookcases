@@ -8,10 +8,10 @@ import {
   layoutPresets,
   normalizeBookcaseConfig,
   optionLabels
-} from "./bookcase-config.js?v=engine-polish-20260716a";
+} from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
 import { deriveBillableComponents } from "./bookcase-billable.js?v=engine-polish-20260716a";
 import { deriveBookcaseBOM } from "./bookcase-bom.js?v=engine-polish-20260716a";
-import { getSectionDesignerState } from "./bookcase-sections.js?v=engine-polish-20260716a";
+import { getSectionDesignerState } from "./bookcase-sections.js?v=luxury-configurator-engine-v1-20260802c";
 
 /**
  * Non-linear customer workspace navigation. These are organizational stages,

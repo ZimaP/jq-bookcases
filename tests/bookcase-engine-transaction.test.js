@@ -275,6 +275,45 @@ test("accepted evaluation commits one synchronized state, layout, BOM, and price
   assert.equal(evaluation.pricing.total % evaluation.pricing.roundingIncrement, 0);
 });
 
+test("fractional physical dimensions remain exact through layout, BOM, pricing, and snapshot restore", () => {
+  const input = {
+    ...defaultBookcaseConfig,
+    width: 119.25,
+    height: 95.5,
+    depth: 14.25,
+    sections: 4
+  };
+  const evaluation = evaluateBookcaseCandidate(input);
+
+  assert.equal(evaluation.accepted, true, JSON.stringify(evaluation.errors));
+  assert.deepEqual(
+    [evaluation.state.width, evaluation.state.height, evaluation.state.depth],
+    [119.25, 95.5, 14.25]
+  );
+  assert.deepEqual(
+    [evaluation.layout.config.width, evaluation.layout.config.height, evaluation.layout.config.depth],
+    [119.25, 95.5, 14.25]
+  );
+  assert.deepEqual(
+    [
+      evaluation.bom.overall.widthIn,
+      evaluation.bom.overall.heightIn,
+      evaluation.bom.overall.depthIn
+    ],
+    [119.25, 95.5, 14.25]
+  );
+  assert.deepEqual(evaluation.pricing.state, evaluation.state);
+
+  const snapshot = createAcceptedDesignSnapshot(evaluation, {
+    savedAt: "2026-08-02T00:00:00.000Z"
+  });
+  const restored = restoreAcceptedDesignSnapshot(JSON.parse(JSON.stringify(snapshot)));
+  assert.equal(restored.accepted, true, JSON.stringify(restored.errors));
+  assert.deepEqual(restored.state, evaluation.state);
+  assert.equal(restored.layoutFingerprint, evaluation.layoutFingerprint);
+  assert.equal(restored.pricing.total, evaluation.pricing.total);
+});
+
 test("automatic construction corrections become the accepted canonical state", () => {
   const evaluation = evaluateBookcaseCandidate({
     ...defaultBookcaseConfig,

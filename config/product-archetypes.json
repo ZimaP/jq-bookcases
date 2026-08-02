@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "products": [
+    {
+      "id": "cabinet-shelves",
+      "categoryId": "bookcase",
+      "styleId": "cabinet-base-shelves",
+      "archetype": "lower-door-bookcase",
+      "engine": "existing-bookcase",
+      "baseMode": "floor",
+      "topMode": "fitted"
+    },
+    {
+      "id": "drawer-shelves",
+      "categoryId": "bookcase",
+      "styleId": "drawer-base-shelves",
+      "archetype": "lower-drawer-bookcase",
+      "engine": "existing-bookcase",
+      "baseMode": "floor",
+      "topMode": "fitted"
+    },
+    {
+      "id": "open-shelving",
+      "categoryId": "bookcase",
+      "styleId": "full-open-shelving",
+      "archetype": "full-open-bookcase",
+      "engine": "existing-bookcase",
+      "baseMode": "floor",
+      "topMode": "fitted"
+    },
+    {
+      "id": "tv-unit",
+      "categoryId": "tv-unit",
+      "styleId": "framed-tv-wall",
+      "archetype": "media-wall",
+      "engine": "existing-bookcase-media-adapter",
+      "baseMode": "floor",
+      "topMode": "fitted"
+    },
+    {
+      "id": "floating-storage",
+      "categoryId": "floating-storage",
+      "styleId": "floating-drawer-bank",
+      "archetype": "floating-bank",
+      "engine": "new-deterministic-builder",
+      "baseMode": "floating",
+      "topMode": "none"
+    },
+    {
+      "id": "window-storage",
+      "categoryId": "window-storage",
+      "styleId": "window-seat-storage",
+      "archetype": "window-storage",
+      "engine": "new-deterministic-builder",
+      "baseMode": "floor",
+      "topMode": "feature-fit"
+    },
+    {
+      "id": "radiator-cover",
+      "categoryId": "radiator-cover",
+      "styleId": "clean-slat-cover",
+      "archetype": "ventilated-radiator-cover",
+      "engine": "new-deterministic-builder",
+      "baseMode": "floor",
+      "topMode": "feature-fit"
+    }
+  ]
+}

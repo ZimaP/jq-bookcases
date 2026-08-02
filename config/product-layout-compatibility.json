@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "statusDefinitions": {
+    "supported": "deterministic geometry and tests required",
+    "conditional": "requires feature measurements or option",
+    "review-only": "safe preliminary geometry plus explicit warning",
+    "unavailable": "disable and explain; never substitute"
+  },
+  "matrix": {
+    "cabinet-shelves": {
+      "niche-layout": "supported",
+      "left-niche": "supported",
+      "right-niche": "supported",
+      "clear-wall": "supported",
+      "fireplace-wall": "conditional",
+      "center-recess": "conditional",
+      "window-wall": "conditional",
+      "door-wall": "conditional",
+      "corner-wall": "conditional",
+      "double-opening": "supported"
+    },
+    "drawer-shelves": {
+      "niche-layout": "supported",
+      "left-niche": "supported",
+      "right-niche": "supported",
+      "clear-wall": "supported",
+      "fireplace-wall": "conditional",
+      "center-recess": "conditional",
+      "window-wall": "conditional",
+      "door-wall": "conditional",
+      "corner-wall": "conditional",
+      "double-opening": "supported"
+    },
+    "open-shelving": {
+      "niche-layout": "supported",
+      "left-niche": "supported",
+      "right-niche": "supported",
+      "clear-wall": "supported",
+      "fireplace-wall": "conditional",
+      "center-recess": "conditional",
+      "window-wall": "conditional",
+      "door-wall": "conditional",
+      "corner-wall": "conditional",
+      "double-opening": "supported"
+    },
+    "tv-unit": {
+      "niche-layout": "supported",
+      "left-niche": "supported",
+      "right-niche": "supported",
+      "clear-wall": "supported",
+      "fireplace-wall": "conditional",
+      "center-recess": "unavailable",
+      "window-wall": "unavailable",
+      "door-wall": "conditional",
+      "corner-wall": "conditional",
+      "double-opening": "supported"
+    },
+    "floating-storage": {
+      "niche-layout": "supported",
+      "left-niche": "supported",
+      "right-niche": "supported",
+      "clear-wall": "supported",
+      "fireplace-wall": "conditional",
+      "center-recess": "conditional",
+      "window-wall": "supported",
+      "door-wall": "conditional",
+      "corner-wall": "supported",
+      "double-opening": "supported"
+    },
+    "window-storage": {
+      "niche-layout": "unavailable",
+      "left-niche": "unavailable",
+      "right-niche": "unavailable",
+      "clear-wall": "unavailable",
+      "fireplace-wall": "unavailable",
+      "center-recess": "unavailable",
+      "window-wall": "supported",
+      "door-wall": "unavailable",
+      "corner-wall": "unavailable",
+      "double-opening": "unavailable"
+    },
+    "radiator-cover": {
+      "niche-layout": "unavailable",
+      "left-niche": "unavailable",
+      "right-niche": "unavailable",
+      "clear-wall": "unavailable",
+      "fireplace-wall": "unavailable",
+      "center-recess": "unavailable",
+      "window-wall": "supported",
+      "door-wall": "unavailable",
+      "corner-wall": "unavailable",
+      "double-opening": "unavailable"
+    }
+  },
+  "note": "Conservative starter matrix. Promote only after deterministic builder and golden tests exist."
+}

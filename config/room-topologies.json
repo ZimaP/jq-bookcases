@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "units": "inches",
+  "coordinateNote": "Reuse repository physical axes; topology returns an installation transform rather than scaling descriptors.",
+  "layouts": [
+    {
+      "id": "niche-layout",
+      "label": "Niche Layout",
+      "kind": "center-alcove",
+      "boundaries": {
+        "left": "return",
+        "right": "return",
+        "top": "ceiling-or-niche-top",
+        "back": "wall",
+        "bottom": "floor"
+      },
+      "zones": [
+        "center"
+      ],
+      "cameraIntent": "front"
+    },
+    {
+      "id": "left-niche",
+      "label": "Left Niche",
+      "kind": "unilateral-left-return",
+      "boundaries": {
+        "left": "return",
+        "right": "resolved-wall-or-open-edge",
+        "top": "ceiling",
+        "back": "wall",
+        "bottom": "floor"
+      },
+      "zones": [
+        "main"
+      ],
+      "cameraIntent": "front"
+    },
+    {
+      "id": "right-niche",
+      "label": "Right Niche",
+      "kind": "unilateral-right-return",
+      "boundaries": {
+        "left": "resolved-wall-or-open-edge",
+        "right": "return",
+        "top": "ceiling",
+        "back": "wall",
+        "bottom": "floor"
+      },
+      "zones": [
+        "main"
+      ],
+      "cameraIntent": "front"
+    },
+    {
+      "id": "clear-wall",
+      "label": "Clear Wall",
+      "kind": "straight-wall",
+      "boundaries": {
+        "left": "wall-or-open-edge",
+        "right": "wall-or-open-edge",
+        "top": "ceiling",
+        "back": "wall",
+        "bottom": "floor"
+      },
+      "zones": [
+        "main"
+      ],
+      "cameraIntent": "front"
+    },
+    {
+      "id": "fireplace-wall",
+      "label": "Fireplace Wall",
+      "kind": "split-around-fireplace",
+      "boundaries": {
+        "feature": "fireplace-opening-mantel-projection",
+        "back": "wall",
+        "bottom": "floor",
+        "top": "ceiling"
+      },
+      "zones": [
+        "left",
+        "right",
+        "optional-over-mantel"
+      ],
+      "cameraIntent": "front"
+    },
+    {
+      "id": "center-recess",
+      "label": "Center Projection",
+      "kind": "split-around-projection",
+      "boundaries": {
+        "feature": "positive-projection-volume",
+        "back": "wall",
+        "bottom": "floor",
+        "top": "ceiling"
+      },
+      "zones": [
+        "left",
+        "right",
+        "optional-surround"
+      ],
+      "cameraIntent": "front"
+    },
+    {
+      "id": "window-wall",
+      "label": "Window Wall",
+      "kind": "window-feature-wall",
+      "boundaries": {
+        "feature": "window-opening-sill-trim",
+        "back": "wall",
+        "bottom": "floor",
+        "top": "ceiling"
+      },
+      "zones": [
+        "left",
+        "right",
+        "below-window",
+        "optional-above-window"
+      ],
+      "cameraIntent": "front"
+    },
+    {
+      "id": "door-wall",
+      "label": "Door Wall",
+      "kind": "door-feature-wall",
+      "boundaries": {
+        "feature": "door-opening-trim-swing",
+        "back": "wall",
+        "bottom": "floor",
+        "top": "ceiling"
+      },
+      "zones": [
+        "left",
+        "right",
+        "optional-over-door"
+      ],
+      "cameraIntent": "front"
+    },
+    {
+      "id": "corner-wall",
+      "label": "Corner Wall",
+      "kind": "l-shaped-corner",
+      "boundaries": {
+        "feature": "corner-joint",
+        "bottom": "floor",
+        "top": "ceiling"
+      },
+      "zones": [
+        "primary-run",
+        "return-run",
+        "corner"
+      ],
+      "cameraIntent": "corner-oblique"
+    },
+    {
+      "id": "double-opening",
+      "label": "Between Openings",
+      "kind": "wall-between-openings",
+      "boundaries": {
+        "left": "opening-trim",
+        "right": "opening-trim",
+        "back": "wall",
+        "bottom": "floor",
+        "top": "ceiling"
+      },
+      "zones": [
+        "between-openings"
+      ],
+      "cameraIntent": "front"
+    }
+  ]
+}

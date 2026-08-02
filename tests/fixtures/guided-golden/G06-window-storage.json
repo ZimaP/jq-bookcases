@@ -1,0 +1,20 @@
+{
+  "id": "G06-window-storage",
+  "productId": "window-storage",
+  "layoutId": "window-wall",
+  "measurements": {
+    "wallWidth": 144,
+    "ceilingHeight": 96,
+    "desiredDepth": 18,
+    "windowWidth": 60,
+    "windowHeight": 48,
+    "sillHeight": 30,
+    "windowLeftDistance": 42,
+    "windowRightDistance": 42,
+    "radiatorBelowWindow": "no"
+  },
+  "finish": "warm-white",
+  "expected": {
+    "windowClear": true
+  }
+}

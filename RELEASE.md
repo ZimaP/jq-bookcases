@@ -17,6 +17,27 @@ The following workflows run without deployment permissions:
 All checks for the intended commit must be green before creating a production
 release tag.
 
+## Production artifact contract
+
+The Pages artifact is an explicit allowlist, not a copy of the repository. In
+addition to the public HTML, shell, generated color data, and photography, the
+guided configurator release must include:
+
+- the room-topology, installation-fit, product adapter/product engine, project
+  transaction, render-contract, material, scene-plan, renderer, state, data, and
+  UI modules;
+- the canonical bookcase engine dependencies used by guided products, including
+  `bookcase-render-contract.js`;
+- `config/` with the v1 fit, topology, compatibility, archetype, material,
+  provisional-decision, golden-project, and asset-manifest contracts;
+- all allowlisted assets under `assets/textures/` and `assets/environments/`.
+
+The production workflow checks each required runtime module, config file,
+texture map, and environment file before it uploads the artifact. Developer
+tools, tests, package metadata, and the legacy configurator workspace remain
+excluded. Any new customer-facing runtime dependency must be added to both the
+copy allowlist and the pre-upload assertions in the same change.
+
 ## Manual production release
 
 Production is published only by `Deploy GitHub Pages — Manual Production

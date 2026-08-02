@@ -1,0 +1,21 @@
+{
+  "id": "G02-center-niche-cabinets",
+  "productId": "cabinet-shelves",
+  "layoutId": "niche-layout",
+  "measurements": {
+    "wallWidth": 120,
+    "ceilingHeight": 96,
+    "desiredDepth": 15,
+    "nicheWidth": 96,
+    "nicheHeight": 96,
+    "nicheDepth": 15,
+    "leftReturn": 12,
+    "rightReturn": 12
+  },
+  "finish": "warm-white",
+  "expected": {
+    "equalFillers": true,
+    "floorAnchored": true,
+    "topFitted": true
+  }
+}

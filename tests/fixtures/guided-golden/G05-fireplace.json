@@ -1,0 +1,21 @@
+{
+  "id": "G05-fireplace",
+  "productId": "cabinet-shelves",
+  "layoutId": "fireplace-wall",
+  "measurements": {
+    "wallWidth": 180,
+    "ceilingHeight": 108,
+    "desiredDepth": 15,
+    "fireplaceWidth": 42,
+    "fireplaceHeight": 32,
+    "mantelWidth": 60,
+    "mantelHeight": 48,
+    "fireplaceDepth": 8,
+    "fireplaceLeftWidth": 48,
+    "fireplaceRightWidth": 48
+  },
+  "finish": "soft-ivory",
+  "expected": {
+    "featureClear": true
+  }
+}

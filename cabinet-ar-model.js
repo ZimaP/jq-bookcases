@@ -3,7 +3,7 @@ import {
   getHardwareFinish,
   getHardwareFinishOption,
   getHardwareType
-} from "./bookcase-config.js?v=engine-polish-20260716a";
+} from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
 
 const NON_RENDERED_ROLES = new Set(["assembly", "section", "section_group", "opening"]);
 const GLB_MAGIC = 0x46546c67;

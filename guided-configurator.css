@@ -893,6 +893,44 @@ body.guided-page {
   box-shadow: 0 7px 18px rgba(69, 52, 35, 0.06);
 }
 
+.layout-card:disabled {
+  border-color: #ded9d2;
+  color: #8d8881;
+  background: #f3f1ee;
+  cursor: not-allowed;
+  filter: saturate(0.35);
+}
+
+.layout-card:disabled:hover {
+  transform: none;
+  border-color: #ded9d2;
+  box-shadow: none;
+}
+
+.layout-compatibility-badge {
+  position: absolute;
+  z-index: 4;
+  top: 9px;
+  left: 9px;
+  max-width: calc(100% - 52px);
+  padding: 4px 7px;
+  border: 1px solid rgba(148, 101, 47, 0.24);
+  border-radius: 999px;
+  color: #765125;
+  background: rgba(255, 249, 238, 0.94);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.035em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.layout-compatibility-badge--unavailable {
+  border-color: rgba(93, 87, 80, 0.18);
+  color: #69645e;
+  background: rgba(244, 242, 239, 0.95);
+}
+
 .layout-card:active {
   transform: translateY(0);
 }
@@ -963,7 +1001,7 @@ body.guided-page {
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 162px;
+  min-height: 0;
   object-fit: cover;
   object-position: 50% 58%;
 }
@@ -2965,7 +3003,7 @@ body.guided-page {
   position: relative;
   display: grid;
   min-height: 626px;
-  grid-template-rows: 58px minmax(0, 1fr);
+  grid-template-rows: 58px minmax(0, 1fr) auto;
   overflow: hidden;
   border: 1px solid var(--guided-line);
   border-radius: var(--guided-radius);
@@ -2988,14 +3026,94 @@ body.guided-page {
   background: rgba(248, 245, 240, 0.96);
 }
 
+.concept-scene-frame {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .concept-scene {
   position: relative;
+  width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
   transform: scale(var(--preview-scale, 1));
   transform-origin: 50% 58%;
   transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.guided-engine-status {
+  position: absolute;
+  z-index: 3;
+  inset: 50% auto auto 50%;
+  display: grid;
+  width: min(430px, calc(100% - 36px));
+  gap: 6px;
+  padding: 18px 20px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(122, 96, 67, 0.2);
+  border-radius: 12px;
+  color: #322d28;
+  background: rgba(255, 252, 247, 0.94);
+  text-align: center;
+  box-shadow: 0 14px 38px rgba(54, 43, 31, 0.1);
+  transition: opacity 180ms ease;
+}
+
+.guided-engine-status strong {
+  font-family: var(--guided-serif);
+  font-size: 1rem;
+}
+
+.guided-engine-status span {
+  color: #6f675f;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.concept-scene[data-guided3d-state="ready"] > .guided-engine-status {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.accepted-fit-summary {
+  position: relative;
+  z-index: 11;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px 12px;
+  padding: 7px 12px;
+  border-top: 1px solid rgba(107, 84, 58, 0.16);
+  color: #39332d;
+  background: rgba(255, 253, 249, 0.96);
+  pointer-events: none;
+}
+
+.accepted-fit-summary strong {
+  color: #806039;
+  font-size: 0.57rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.accepted-fit-summary span {
+  font-size: 0.67rem;
+  line-height: 1.3;
+}
+
+.accepted-fit-summary small {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  color: #827a72;
+  font-size: 0.5rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .concept-photo {
@@ -4265,7 +4383,7 @@ body.guided-page {
   }
 
   .guided-shell--step-5 .summary-list {
-    overflow: hidden;
+    overflow: auto;
   }
 
   .guided-shell--step-5 .summary-row {
@@ -4770,7 +4888,7 @@ body.guided-page {
 
   .concept-preview {
     min-height: 340px;
-    grid-template-rows: 52px minmax(0, 1fr);
+    grid-template-rows: 52px minmax(0, 1fr) auto;
   }
 
   .concept-preview-meta {
@@ -4935,6 +5053,196 @@ body.guided-page {
     bottom: calc(82px + env(safe-area-inset-bottom));
     left: 14px;
     max-width: none;
+  }
+}
+
+/* Unified guided 3D scene. Step 4/5 fail closed without a photo substitute. */
+.guided-3d-mount {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 50% 28%, #f8f5ef 0, #e9e2d8 62%, #d6cdc1 100%);
+  transition: opacity 220ms ease;
+}
+
+.measurement-room[data-guided3d-state="ready"] > .guided-3d-mount,
+.concept-scene[data-guided3d-state="ready"] > .guided-3d-mount {
+  opacity: 1;
+}
+
+.measurement-room > :is(
+    picture.measurement-room-image,
+    .measurement-feature,
+    .dimension-overlay
+  ),
+.concept-scene > :is(
+    picture.concept-photo,
+    .concept-finish-overlay,
+    .concept-preview-unavailable,
+    .concept-unit
+  ) {
+  transition:
+    opacity 180ms ease;
+}
+
+.measurement-room[data-guided3d-state="ready"] > :is(
+    picture.measurement-room-image,
+    .measurement-feature,
+    .dimension-overlay
+  ),
+.concept-scene[data-guided3d-state="ready"] > :is(
+    picture.concept-photo,
+    .concept-finish-overlay,
+    .concept-preview-unavailable,
+    .concept-unit
+  ) {
+  opacity: 0;
+}
+
+.guided-3d-runtime,
+.guided-3d-canvas,
+.guided-3d-label-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.guided-3d-runtime {
+  isolation: isolate;
+  background: #ece6de;
+}
+
+.guided-3d-canvas {
+  z-index: 1;
+  display: block;
+  outline: none;
+  cursor: grab;
+  touch-action: none;
+}
+
+.guided-3d-canvas[data-interacting="true"] {
+  cursor: grabbing;
+}
+
+.guided-3d-canvas:focus-visible {
+  outline: 3px solid rgba(166, 117, 52, 0.82);
+  outline-offset: -4px;
+}
+
+.guided-3d-label-layer {
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.guided-3d-dimension-label {
+  position: absolute;
+  display: grid;
+  min-width: 98px;
+  gap: 1px;
+  padding: 6px 9px;
+  color: #28231e;
+  font-family: var(--guided-sans);
+  line-height: 1.12;
+  text-align: center;
+  border: 1px solid rgba(116, 90, 61, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 4px 14px rgba(56, 42, 29, 0.12);
+  transform: translate(-50%, -50%);
+  backdrop-filter: blur(8px);
+}
+
+.guided-3d-dimension-label strong {
+  font-size: 0.68rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.guided-3d-dimension-label small {
+  color: #796a5a;
+  font-size: 0.58rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.guided-3d-dimension-label b {
+  margin-right: 3px;
+  color: #815118;
+}
+
+.guided-3d-hint {
+  position: absolute;
+  z-index: 3;
+  right: 50%;
+  bottom: 14px;
+  display: flex;
+  gap: 12px;
+  padding: 7px 11px;
+  color: #4f473e;
+  font-size: 0.59rem;
+  font-weight: 650;
+  letter-spacing: 0.035em;
+  line-height: 1;
+  border: 1px solid rgba(104, 84, 64, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 5px 18px rgba(55, 43, 31, 0.09);
+  transform: translateX(50%);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.guided-3d-hint span + span::before {
+  margin-right: 12px;
+  color: #9a7a55;
+  content: "·";
+}
+
+@media (max-width: 680px) {
+  .guided-3d-dimension-label {
+    min-width: 82px;
+    padding: 5px 7px;
+  }
+
+  .guided-3d-dimension-label strong {
+    font-size: 0.6rem;
+  }
+
+  .guided-3d-dimension-label small {
+    font-size: 0.52rem;
+  }
+
+  .guided-3d-hint {
+    bottom: 10px;
+    gap: 8px;
+    padding: 6px 9px;
+    font-size: 0.52rem;
+  }
+
+  .guided-3d-hint span + span::before {
+    margin-right: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guided-3d-mount,
+  .measurement-room > :is(
+      picture.measurement-room-image,
+      .measurement-feature,
+      .dimension-overlay
+    ),
+  .concept-scene > :is(
+      picture.concept-photo,
+      .concept-finish-overlay,
+      .concept-preview-unavailable,
+      .concept-unit
+    ) {
+    transition: none;
   }
 }
 
@@ -5171,8 +5479,8 @@ body.guided-page {
   .guided-actions,
   .guided-shell--step-2 .guided-actions,
   .guided-shell--step-3 .guided-actions {
-    min-height: 42px;
-    flex: 0 0 42px;
+    min-height: 44px;
+    flex: 0 0 44px;
     gap: 9px;
     margin-top: 7px;
     transform: none;
@@ -5184,7 +5492,7 @@ body.guided-page {
   .guided-shell--step-3 .guided-actions .guided-button:last-child {
     width: auto;
     min-width: 150px;
-    min-height: 42px;
+    min-height: 44px;
     padding: 6px 18px;
     font-size: 0.8rem;
   }
@@ -5350,7 +5658,7 @@ body.guided-page {
   }
 
   .measurement-field {
-    min-height: 27px;
+    min-height: 36px;
     grid-template-columns: minmax(0, 1fr) 110px;
     gap: 8px;
   }
@@ -5363,8 +5671,8 @@ body.guided-page {
   .measurement-input-wrap input,
   .measurement-input-wrap select,
   .measurement-toggle {
-    min-height: 27px;
-    height: 27px;
+    min-height: 36px;
+    height: 36px;
     padding-block: 2px;
     font-size: 0.7rem;
   }
@@ -5573,7 +5881,7 @@ body.guided-page {
   }
 
   .concept-preview {
-    grid-template-rows: 50px minmax(0, 1fr);
+    grid-template-rows: 50px minmax(0, 1fr) auto;
   }
 
   .concept-preview-meta {
@@ -5836,89 +6144,9 @@ body.guided-page {
   }
 }
 
-@media (min-width: 1181px) and (max-width: 1350px), (min-width: 1181px) and (max-height: 900px) {
-  body.guided-page:has(.guided-shell--step-1) {
-    height: auto;
-    min-height: calc(100dvh - 8px);
-    overflow-x: hidden;
-    overflow-y: auto;
-  }
-
-  .guided-app:has(> .guided-shell--step-1),
-  .guided-shell--step-1 {
-    height: auto;
-  }
-
-  .guided-app:has(> .guided-shell--step-1),
-  .guided-shell--step-1 {
-    min-height: calc(100dvh - var(--guided-header-height) - 8px);
-  }
-
-  .guided-shell--step-1 {
-    overflow: visible;
-  }
-}
-
-/* Step 2 room cards share one stable media frame. */
-
-.guided-shell--step-2 .layout-card {
-  height: auto;
-  min-height: 0;
-  grid-template-rows: auto 38px;
-}
-
-.guided-shell--step-2 .layout-illustration {
-  width: 100%;
-  min-height: 0;
-  aspect-ratio: 4 / 3;
-}
-
-.guided-shell--step-2 .layout-illustration img {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  object-fit: cover;
-}
-
-@media (min-width: 1181px) and (max-width: 1350px), (min-width: 1181px) and (max-height: 900px) {
-  body.guided-page:has(.guided-shell--step-2) {
-    height: auto;
-    min-height: calc(100dvh - 8px);
-    overflow-x: hidden;
-    overflow-y: auto;
-  }
-
-  .guided-app:has(> .guided-shell--step-2),
-  .guided-shell--step-2 {
-    height: auto;
-    min-height: calc(100dvh - var(--guided-header-height) - 8px);
-  }
-
-  .guided-shell--step-2 {
-    overflow: visible;
-  }
-
-  .guided-shell--step-2 .layout-grid {
-    flex: 0 0 auto;
-    grid-template-rows: repeat(2, auto);
-  }
-
-  .guided-shell--step-2 .layout-card {
-    grid-template-rows: auto 25px;
-  }
-}
-
-@media (max-width: 360px) {
-  .guided-shell--step-2 .layout-card {
-    min-height: 124px;
-    grid-template-columns: 1.2fr 1fr;
-    grid-template-rows: 1fr;
-  }
-}
-
 /* Architectural measurement drawing
    Keep this final override after every legacy viewport rule. The room photo
-   and its single SVG overlay share the same cover transform and source viewBox. */
+   and its single SVG overlay share the same cover transform and viewBox ratio. */
 
 .measurement-room.measurement-room--photo {
   position: absolute;
@@ -5946,7 +6174,7 @@ body.guided-page {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: var(--measurement-media-position, 50% 50%);
+  object-position: 50% 50%;
 }
 
 /* The older photographic-room rule hid every direct child except the picture
@@ -6136,450 +6364,8 @@ body.guided-page {
   }
 }
 
-/*
- * Room-media transform contract
- *
- * The photo and its SVG share the same authored coordinate system. A stable
- * 4:3 viewport keeps every architectural endpoint inside the cover crop; the
- * SVG uses the matching slice alignment supplied by the room descriptor.
- */
-.guided-shell--step-3 .measurement-diagram-card {
-  height: auto;
-  min-height: 0;
-  aspect-ratio: var(--measurement-media-aspect-ratio, 4 / 3);
-  align-self: start;
-}
-
-/*
- * Integrated concept scenes follow their authored source ratio. The photo and
- * finish mask fill exactly the same viewport and receive the same zoom.
- */
-.guided-shell--step-4 .concept-preview,
-.guided-shell--step-5 .concept-preview,
-.review-layout .concept-preview {
-  height: auto;
-  min-height: 0;
-  grid-template-rows: auto auto;
-  align-self: start;
-}
-
-.guided-shell--step-4 .concept-scene,
-.guided-shell--step-5 .concept-scene {
-  width: 100%;
-  aspect-ratio: var(--concept-media-aspect-ratio, 3 / 2);
-}
-
-:is(.guided-shell--step-4, .guided-shell--step-5) .concept-scene > picture.concept-photo {
-  position: absolute;
-  z-index: 0;
-  inset: 0;
+/* The photographic diagram's compatibility rule hides unrecognized direct
+   children. Keep the real scene runtime mounted above that fallback layer. */
+.measurement-room.measurement-room--photo > .guided-3d-mount {
   display: block;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-:is(.guided-shell--step-4, .guided-shell--step-5)
-  .concept-scene
-  > picture.concept-photo
-  > img.concept-photo {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: var(--concept-media-position, 50% 50%);
-  background: transparent;
-}
-
-:is(.guided-shell--step-4, .guided-shell--step-5)
-  .concept-scene
-  > img.concept-furniture-photo {
-  position: absolute;
-  z-index: 1;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: var(--concept-media-position, 50% 50%);
-  background: transparent;
-}
-
-:is(.guided-shell--step-4, .guided-shell--step-5) .preview-control:disabled {
-  cursor: default;
-  opacity: 0.5;
-}
-
-/*
- * Room & Size and Customization are one-screen workspaces on landscape
- * tablets and desktops. Their working grids consume the available height;
- * controls remain structural and media never drives document height.
- */
-@media (min-width: 901px) {
-  body.guided-page:has(.guided-shell--step-3),
-  body.guided-page:has(.guided-shell--step-4) {
-    height: calc(100dvh - 8px);
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .guided-app:has(> .guided-shell--step-3),
-  .guided-app:has(> .guided-shell--step-4) {
-    height: calc(100dvh - var(--guided-header-height) - 8px);
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .guided-shell--step-3,
-  .guided-shell--step-4 {
-    display: flex;
-    height: 100%;
-    min-height: 0;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .guided-shell--step-3 .guided-stepper,
-  .guided-shell--step-4 .guided-stepper,
-  .guided-shell--step-3 .guided-content-head,
-  .guided-shell--step-4 .guided-content-head {
-    flex: 0 0 auto;
-  }
-
-  .guided-shell--step-3 .guided-workspace,
-  .guided-shell--step-4 .guided-workspace {
-    height: auto;
-    min-height: 0;
-    flex: 1 1 auto;
-    overflow: hidden;
-  }
-
-  .guided-shell--step-3 .guided-main,
-  .guided-shell--step-4 .guided-main {
-    display: flex;
-    height: 100%;
-    min-height: 0;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
-  .guided-shell--step-3 .measurement-layout,
-  .guided-shell--step-4 .customization-layout {
-    height: auto;
-    min-height: 0;
-    flex: 1 1 auto;
-    align-items: stretch;
-    overflow: hidden;
-  }
-
-  .guided-shell--step-3 .measurement-controls-column {
-    display: grid;
-    min-height: 0;
-    grid-template-rows: minmax(0, 1fr) auto auto;
-    align-content: stretch;
-    gap: 7px;
-  }
-
-  .guided-shell--step-3 .measurement-panel {
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .guided-shell--step-3 .guided-info {
-    min-height: 44px;
-    margin: 0;
-  }
-
-  .guided-shell--step-3 .guided-actions {
-    display: grid;
-    min-height: 44px;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
-    margin: 0;
-    transform: none;
-  }
-
-  .guided-shell--step-3 .guided-actions .guided-button {
-    width: 100%;
-    min-width: 0;
-    min-height: 44px;
-  }
-
-  .guided-shell--step-3 .measurement-diagram-column {
-    container-type: size;
-    place-items: center;
-  }
-
-  .guided-shell--step-3 .measurement-diagram-card {
-    width: min(100cqw, calc(100cqh * 4 / 3));
-    max-width: none;
-    height: min(100cqh, calc(100cqw * 3 / 4));
-    max-height: none;
-    justify-self: center;
-    align-self: center;
-  }
-
-  .guided-shell--step-4 .customization-controls-column {
-    display: grid;
-    min-height: 0;
-    grid-template-rows: minmax(0, 1fr) 44px;
-    gap: 7px;
-  }
-
-  .guided-shell--step-4 .customization-panel,
-  .guided-shell--step-4 .concept-preview {
-    height: 100%;
-    min-height: 0;
-  }
-
-  .guided-shell--step-4 .customization-actions {
-    height: 44px;
-    grid-template-columns: 1fr 1.18fr;
-    gap: 7px;
-    margin: 0;
-  }
-
-  .guided-shell--step-4 .customization-actions .guided-button {
-    min-height: 44px;
-  }
-
-  .guided-shell--step-4 .concept-preview {
-    width: 100%;
-    grid-template-rows: auto minmax(0, 1fr);
-    align-self: stretch;
-  }
-
-  .guided-shell--step-4 .concept-scene {
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    aspect-ratio: auto;
-  }
-}
-
-@media (min-width: 901px) and (max-height: 900px) {
-  body.guided-page:has(.guided-shell--step-3),
-  body.guided-page:has(.guided-shell--step-4) {
-    --guided-header-height: 64px;
-  }
-
-  body.guided-page:has(.guided-shell--step-3) .guided-header,
-  body.guided-page:has(.guided-shell--step-4) .guided-header {
-    min-height: var(--guided-header-height);
-    padding-inline: 27px 22px;
-  }
-
-  body.guided-page:has(.guided-shell--step-3) .guided-brand,
-  body.guided-page:has(.guided-shell--step-4) .guided-brand {
-    gap: 13px;
-    min-height: 42px;
-  }
-
-  body.guided-page:has(.guided-shell--step-3) .guided-brand-mark,
-  body.guided-page:has(.guided-shell--step-4) .guided-brand-mark {
-    font-size: 2.35rem;
-  }
-
-  body.guided-page:has(.guided-shell--step-3) .guided-brand-copy,
-  body.guided-page:has(.guided-shell--step-4) .guided-brand-copy {
-    font-size: 1.15rem;
-  }
-
-  body.guided-page:has(.guided-shell--step-3) .guided-header-actions,
-  body.guided-page:has(.guided-shell--step-4) .guided-header-actions {
-    gap: 15px;
-  }
-
-  .guided-shell--step-3,
-  .guided-shell--step-4 {
-    padding: 7px 28px 8px;
-  }
-
-  .guided-shell--step-3 .guided-stepper,
-  .guided-shell--step-4 .guided-stepper {
-    height: 47px;
-    grid-template-columns: repeat(5, minmax(0, 148px));
-    margin: 0 auto 6px;
-  }
-
-  .guided-shell--step-3 .guided-step,
-  .guided-shell--step-4 .guided-step {
-    min-height: 47px;
-    gap: 3px;
-    padding-inline: 5px;
-  }
-
-  .guided-shell--step-3 .guided-step::after,
-  .guided-shell--step-4 .guided-step::after {
-    top: 14px;
-    left: calc(50% + 21px);
-    width: calc(100% - 42px);
-  }
-
-  .guided-shell--step-3 .guided-step-number,
-  .guided-shell--step-4 .guided-step-number {
-    width: 29px;
-    height: 29px;
-    font-size: 0.78rem;
-  }
-
-  .guided-shell--step-3 .guided-step-label,
-  .guided-shell--step-4 .guided-step-label {
-    font-size: 0.68rem;
-  }
-
-  .guided-shell--step-3 .guided-content-head,
-  .guided-shell--step-4 .guided-content-head {
-    margin: 0 0 7px;
-  }
-
-  .guided-shell--step-3 .guided-content-head h1,
-  .guided-shell--step-4 .guided-content-head h1 {
-    max-width: none;
-    margin-bottom: 2px;
-    font-size: 1.78rem;
-    line-height: 1.03;
-  }
-
-  .guided-shell--step-3 .guided-content-head p,
-  .guided-shell--step-4 .guided-content-head p {
-    font-size: 0.74rem;
-    line-height: 1.3;
-  }
-
-  .guided-shell--step-3 .measurement-layout {
-    grid-template-columns: minmax(290px, 330px) minmax(0, 1fr);
-    gap: 17px;
-  }
-
-  .guided-shell--step-3 .measurement-layout--dense {
-    grid-template-columns: minmax(390px, 430px) minmax(0, 1fr);
-  }
-
-  .guided-shell--step-3 .measurement-panel {
-    padding: 8px 11px;
-  }
-
-  .guided-shell--step-3 .measurement-panel-title {
-    margin-bottom: 4px;
-    font-size: 0.75rem;
-  }
-
-  .guided-shell--step-3 .selected-layout-chip {
-    min-height: 28px;
-    margin-bottom: 5px;
-    padding: 3px 7px;
-    font-size: 0.72rem;
-  }
-
-  .guided-shell--step-3 .measurement-fields {
-    gap: 3px;
-  }
-
-  .guided-shell--step-3 .measurement-group-title {
-    margin: 2px 0 0;
-    padding-top: 4px;
-    font-size: 0.72rem;
-  }
-
-  .guided-shell--step-3 .measurement-field {
-    min-height: 36px;
-    grid-template-columns: minmax(0, 1fr) 110px;
-    gap: 8px;
-  }
-
-  .guided-shell--step-3 .measurement-layout--dense .measurement-field {
-    grid-template-columns: minmax(0, 1fr) 92px;
-  }
-
-  .guided-shell--step-3 .measurement-field-label {
-    font-size: 0.74rem;
-    line-height: 1.14;
-  }
-
-  .guided-shell--step-3 :is(
-    .measurement-input-wrap input,
-    .measurement-input-wrap select,
-    .measurement-toggle
-  ) {
-    height: 36px;
-    min-height: 36px;
-    padding-block: 3px;
-    font-size: 0.74rem;
-  }
-
-  .guided-shell--step-3 .measurement-toggle span,
-  .guided-shell--step-3 .measurement-unit {
-    font-size: 0.66rem;
-  }
-
-  .guided-shell--step-3 .guided-info {
-    gap: 9px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    font-size: 0.68rem;
-    line-height: 1.25;
-  }
-
-  .guided-shell--step-3 .guided-info [data-icon] {
-    --icon-size: 24px;
-    min-width: 24px;
-    padding: 6px;
-  }
-
-  .guided-shell--step-3 .guided-button,
-  .guided-shell--step-4 .guided-button {
-    min-width: 0;
-    min-height: 44px;
-    padding: 6px 14px;
-    font-size: 0.8rem;
-  }
-
-  .guided-shell--step-4 .customization-layout {
-    grid-template-columns: minmax(280px, 310px) minmax(0, 1fr);
-    gap: 17px;
-  }
-
-  .guided-shell--step-4 .customization-tabs {
-    min-height: 36px;
-  }
-
-  .guided-shell--step-4 .customization-tab {
-    min-height: 36px;
-    padding: 5px;
-    font-size: 0.72rem;
-  }
-
-  .guided-shell--step-4 .customization-content {
-    padding: 8px 10px;
-  }
-
-  .guided-shell--step-4 .concept-preview {
-    grid-template-rows: 50px minmax(0, 1fr);
-  }
-
-  .guided-shell--step-4 .concept-preview-meta {
-    min-height: 50px;
-    padding: 6px 9px;
-  }
-}
-
-/* Review retains its existing natural-document behavior in short landscape. */
-@media (min-width: 1181px) and (max-width: 1350px), (min-width: 1181px) and (max-height: 900px) {
-  body.guided-page:has(.guided-shell--step-5) {
-    height: auto;
-    min-height: 100dvh;
-    overflow-x: hidden;
-    overflow-y: auto;
-  }
-
-  .guided-app:has(.guided-shell--step-5),
-  .guided-shell--step-5,
-  .guided-shell--step-5 .guided-workspace,
-  .guided-shell--step-5 .guided-main {
-    height: auto;
-    min-height: 0;
-    overflow: visible;
-  }
 }

@@ -10,9 +10,9 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=empty-shelf-concepts-20260801a";
+} from "./guided-configurator-data.js?v=luxury-configurator-engine-v1-20260802b";
 
-export const GUIDED_PROJECT_SCHEMA_VERSION = 2;
+export const GUIDED_PROJECT_SCHEMA_VERSION = 3;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
 export const GUIDED_PROJECTS_STORAGE_KEY = "jqGuidedConfiguratorProjectsV1";
 
@@ -51,6 +51,25 @@ const defaultDetails = Object.freeze({
   topTreatment: DETAIL_OPTIONS.topTreatment[1].id
 });
 
+const COMPACT_ACCEPTED_SNAPSHOT_SCHEMA_VERSION = 2;
+const REGENERATION_FINGERPRINT_KEYS = Object.freeze([
+  "topologyFingerprint",
+  "fitFingerprint",
+  "descriptorFingerprint",
+  "materialFingerprint",
+  "cameraFingerprint"
+]);
+const GUIDED_ACCEPTED_PERSISTENCE_KIND = "guided-accepted-project";
+const GUIDED_ACCEPTED_PERSISTENCE_SCHEMA_VERSION = 1;
+
+const LEGACY_MEASUREMENT_ALIASES_BY_LAYOUT = Object.freeze({
+  "center-recess": Object.freeze({
+    projectionWidth: "nicheWidth",
+    projectionHeight: "nicheHeight",
+    projectionDepth: "nicheDepth"
+  })
+});
+
 export function createProject(options = {}) {
   const now = Number(options.now) || Date.now();
   const category = getCategory(options.category || "bookcase");
@@ -78,6 +97,7 @@ export function createProject(options = {}) {
     notes: "",
     uploadedFiles: [],
     customerDetails: {},
+    acceptedSnapshot: null,
     previewAsset: resolvePreviewAsset(category.id, selectedStyle.id, null),
     createdAt: new Date(now).toISOString(),
     updatedAt: new Date(now).toISOString(),
@@ -123,6 +143,47 @@ export function parseInches(rawValue) {
   return Number.isFinite(decimal) && decimal >= 0 ? decimal : null;
 }
 
+export function prepareMeasurementsForLayout(project = {}, layoutId) {
+  const category = getCategory(project.category);
+  const layout = getLayout(category.id, layoutId);
+  const current = project.measurements && typeof project.measurements === "object"
+    ? project.measurements
+    : {};
+  const fields = getMeasurementFields(category.id, layout?.id);
+  const next = Object.fromEntries(fields.map((field) => [
+    field.id,
+    Object.hasOwn(current, field.id) ? current[field.id] : field.defaultValue
+  ]));
+
+  if (category.id === "radiator-cover" && layout?.id === "window-wall") {
+    next.radiatorBelowWindow = "yes";
+    if (!Object.hasOwn(current, "windowWidth")) next.windowWidth = 60;
+    if (!Object.hasOwn(current, "sillHeight")) next.sillHeight = 32;
+  }
+
+  if (!["niche-layout", "left-niche", "right-niche"].includes(layout?.id)) return next;
+
+  const wallField = fields.find((field) => field.id === "wallWidth");
+  const nicheField = fields.find((field) => field.id === "nicheWidth");
+  const wallWidth = parseInches(next.wallWidth) ?? wallField?.defaultValue ?? 0;
+  const nicheWidth = parseInches(next.nicheWidth) ?? nicheField?.defaultValue ?? 0;
+  const availableReturn = Number(Math.max(0, wallWidth - nicheWidth).toFixed(4));
+
+  if (layout.id === "left-niche") {
+    next.leftReturn = availableReturn;
+    next.rightReturn = 0;
+  } else if (layout.id === "right-niche") {
+    next.leftReturn = 0;
+    next.rightReturn = availableReturn;
+  } else {
+    const centeredReturn = Number((availableReturn / 2).toFixed(4));
+    next.leftReturn = centeredReturn;
+    next.rightReturn = Number((availableReturn - centeredReturn).toFixed(4));
+  }
+
+  return next;
+}
+
 export function formatInches(rawValue, options = {}) {
   const value = parseInches(rawValue);
   if (value === null) return options.empty || "—";
@@ -137,6 +198,147 @@ export function formatInches(rawValue, options = {}) {
   const numerator = remainder / divisor;
   const denominator = 16 / divisor;
   return whole ? `${whole} ${numerator}/${denominator}` : `${numerator}/${denominator}`;
+}
+
+const SPATIAL_COMPARISON_EPSILON = 1e-6;
+
+export function validateSpatialRelationships(measurements = {}) {
+  const source = measurements && typeof measurements === "object" ? measurements : {};
+  const valueFor = (fieldId) => parseInches(source[fieldId]);
+  const allKnown = (...values) => values.every((value) => value !== null);
+  const exceeds = (extent, envelope) => extent - envelope > SPATIAL_COMPARISON_EPSILON;
+  const differs = (first, second) => Math.abs(first - second) > SPATIAL_COMPARISON_EPSILON;
+  const warnings = [];
+  const continueMessage = "You can continue and our team will confirm these approximate measurements.";
+  const addWarning = (field, message) => {
+    warnings.push({ field, message: `${message} ${continueMessage}` });
+  };
+
+  const wallWidth = valueFor("wallWidth");
+  const ceilingHeight = valueFor("ceilingHeight");
+
+  const nicheHeight = valueFor("nicheHeight");
+  if (allKnown(nicheHeight, ceilingHeight) && exceeds(nicheHeight, ceilingHeight)) {
+    addWarning(
+      "nicheHeight",
+      `Niche height (${formatInches(nicheHeight)} in) exceeds the ceiling height (${formatInches(ceilingHeight)} in).`
+    );
+  }
+
+  const nicheWidth = valueFor("nicheWidth");
+  const leftReturn = valueFor("leftReturn");
+  const rightReturn = valueFor("rightReturn");
+  if (allKnown(nicheWidth, leftReturn, rightReturn, wallWidth)) {
+    const nicheEnvelope = nicheWidth + leftReturn + rightReturn;
+    if (differs(nicheEnvelope, wallWidth)) {
+      addWarning(
+        "nicheWidth",
+        `Niche width plus the left and right returns total ${formatInches(nicheEnvelope)} in, which does not match the ${formatInches(wallWidth)} in wall width.`
+      );
+    }
+  }
+
+  const doorWidth = valueFor("doorWidth");
+  const doorLeftDistance = valueFor("doorLeftDistance");
+  if (allKnown(doorWidth, wallWidth)) {
+    const doorExtent = doorWidth + (doorLeftDistance ?? 0);
+    if (exceeds(doorExtent, wallWidth)) {
+      const extentDescription = doorLeftDistance === null
+        ? `Door width (${formatInches(doorWidth)} in)`
+        : `The door's extent from the left wall (${formatInches(doorExtent)} in)`;
+      addWarning(
+        "doorWidth",
+        `${extentDescription} exceeds the ${formatInches(wallWidth)} in wall width.`
+      );
+    }
+  }
+
+  const doorHeight = valueFor("doorHeight");
+  if (allKnown(doorHeight, ceilingHeight) && exceeds(doorHeight, ceilingHeight)) {
+    addWarning(
+      "doorHeight",
+      `Door height (${formatInches(doorHeight)} in) exceeds the ceiling height (${formatInches(ceilingHeight)} in).`
+    );
+  }
+
+  const windowWidth = valueFor("windowWidth");
+  const windowLeftDistance = valueFor("windowLeftDistance");
+  const windowRightDistance = valueFor("windowRightDistance");
+  if (allKnown(windowWidth, wallWidth)) {
+    const knownWindowDistances = [windowLeftDistance, windowRightDistance]
+      .filter((value) => value !== null);
+    const windowExtent = knownWindowDistances.reduce((total, value) => total + value, windowWidth);
+    if (exceeds(windowExtent, wallWidth)) {
+      const extentDescription = knownWindowDistances.length
+        ? `Window width plus the known wall distance${knownWindowDistances.length === 1 ? "" : "s"} total ${formatInches(windowExtent)} in`
+        : `Window width (${formatInches(windowWidth)} in)`;
+      addWarning(
+        "windowWidth",
+        `${extentDescription}, exceeding the ${formatInches(wallWidth)} in wall width.`
+      );
+    }
+  }
+
+  const windowHeight = valueFor("windowHeight");
+  const sillHeight = valueFor("sillHeight");
+  if (allKnown(windowHeight, sillHeight, ceilingHeight)) {
+    const windowTop = sillHeight + windowHeight;
+    if (exceeds(windowTop, ceilingHeight)) {
+      addWarning(
+        "windowHeight",
+        `Sill height plus window height reaches ${formatInches(windowTop)} in, exceeding the ${formatInches(ceilingHeight)} in ceiling height.`
+      );
+    }
+  }
+
+  const fireplaceWidth = valueFor("fireplaceWidth");
+  if (allKnown(fireplaceWidth, wallWidth) && exceeds(fireplaceWidth, wallWidth)) {
+    addWarning(
+      "fireplaceWidth",
+      `Fireplace opening width (${formatInches(fireplaceWidth)} in) exceeds the ${formatInches(wallWidth)} in wall width.`
+    );
+  }
+
+  const fireplaceHeight = valueFor("fireplaceHeight");
+  if (allKnown(fireplaceHeight, ceilingHeight) && exceeds(fireplaceHeight, ceilingHeight)) {
+    addWarning(
+      "fireplaceHeight",
+      `Fireplace opening height (${formatInches(fireplaceHeight)} in) exceeds the ${formatInches(ceilingHeight)} in ceiling height.`
+    );
+  }
+
+  const mantelWidth = valueFor("mantelWidth");
+  if (allKnown(mantelWidth, wallWidth) && exceeds(mantelWidth, wallWidth)) {
+    addWarning(
+      "mantelWidth",
+      `Mantel width (${formatInches(mantelWidth)} in) exceeds the ${formatInches(wallWidth)} in wall width.`
+    );
+  }
+
+  const mantelHeight = valueFor("mantelHeight");
+  if (allKnown(mantelHeight, ceilingHeight) && exceeds(mantelHeight, ceilingHeight)) {
+    addWarning(
+      "mantelHeight",
+      `Mantel height (${formatInches(mantelHeight)} in) exceeds the ${formatInches(ceilingHeight)} in ceiling height.`
+    );
+  }
+
+  const fireplaceLeftWidth = valueFor("fireplaceLeftWidth");
+  const fireplaceRightWidth = valueFor("fireplaceRightWidth");
+  if (
+    allKnown(fireplaceLeftWidth, fireplaceWidth, fireplaceRightWidth, wallWidth)
+    && !exceeds(fireplaceWidth, wallWidth)
+  ) {
+    const fireplaceEnvelope = fireplaceLeftWidth + fireplaceWidth + fireplaceRightWidth;
+    if (exceeds(fireplaceEnvelope, wallWidth)) {
+      addWarning(
+        "fireplaceWidth",
+        `Available widths on both sides plus the fireplace opening total ${formatInches(fireplaceEnvelope)} in, exceeding the ${formatInches(wallWidth)} in wall width.`
+      );
+    }
+  }
+
+  return warnings;
 }
 
 export function normalizeProject(candidate, options = {}) {
@@ -175,9 +377,15 @@ export function normalizeProject(candidate, options = {}) {
   const fields = getMeasurementFields(category.id, layout?.id);
   const inputMeasurements = source.measurements && typeof source.measurements === "object" ? source.measurements : {};
   const measurements = {};
+  const legacyAliases = LEGACY_MEASUREMENT_ALIASES_BY_LAYOUT[layout?.id] || {};
 
   for (const field of fields) {
-    const raw = Object.hasOwn(inputMeasurements, field.id) ? inputMeasurements[field.id] : field.defaultValue;
+    const legacyField = legacyAliases[field.id];
+    const raw = Object.hasOwn(inputMeasurements, field.id)
+      ? inputMeasurements[field.id]
+      : legacyField && Object.hasOwn(inputMeasurements, legacyField)
+        ? inputMeasurements[legacyField]
+        : field.defaultValue;
     if (field.type === "select") {
       const allowed = field.values.map((option) => option.value);
       measurements[field.id] = allowed.includes(String(raw)) ? String(raw) : field.defaultValue;
@@ -193,7 +401,7 @@ export function normalizeProject(candidate, options = {}) {
   };
   const migrateStep = (rawStep) => {
     const step = Math.max(1, Number(rawStep) || 1);
-    if (sourceSchemaVersion >= GUIDED_PROJECT_SCHEMA_VERSION) return Math.min(5, step);
+    if (sourceSchemaVersion >= 2) return Math.min(5, step);
     if (step === 1) return layout ? 2 : 1;
     return Math.min(5, step + 1);
   };
@@ -250,6 +458,7 @@ export function normalizeProject(candidate, options = {}) {
     customerDetails: source.customerDetails && typeof source.customerDetails === "object"
       ? deepClone(source.customerDetails)
       : {},
+    acceptedSnapshot: normalizeAcceptedSnapshot(source.acceptedSnapshot),
     previewAsset: resolvePreviewAsset(category.id, selectedStyle.id, layout?.id),
     createdAt: typeof source.createdAt === "string" && !Number.isNaN(Date.parse(source.createdAt))
       ? source.createdAt
@@ -259,6 +468,92 @@ export function normalizeProject(candidate, options = {}) {
   };
 
   return normalized;
+}
+
+function normalizeAcceptedSnapshot(candidate) {
+  if (!candidate || typeof candidate !== "object") return null;
+  const schemaVersion = Number(candidate.schemaVersion);
+  if (![1, COMPACT_ACCEPTED_SNAPSHOT_SCHEMA_VERSION].includes(schemaVersion)) return null;
+  if (
+    typeof candidate.geometryFingerprint !== "string"
+    || typeof candidate.selectionFingerprint !== "string"
+    || typeof candidate.specificationFingerprint !== "string"
+  ) return null;
+  if (schemaVersion === 1) {
+    return candidate.acceptedSpecification?.accepted === true ? deepClone(candidate) : null;
+  }
+  if (
+    typeof candidate.engineVersion !== "string"
+    || typeof candidate.productId !== "string"
+    || typeof candidate.layoutId !== "string"
+    || !candidate.regeneration
+    || REGENERATION_FINGERPRINT_KEYS.some((key) => typeof candidate.regeneration[key] !== "string")
+  ) return null;
+  return {
+    schemaVersion: COMPACT_ACCEPTED_SNAPSHOT_SCHEMA_VERSION,
+    engineVersion: candidate.engineVersion,
+    specificationSchemaVersion: Number(candidate.specificationSchemaVersion) || 1,
+    projectId: typeof candidate.projectId === "string" ? candidate.projectId : null,
+    productId: candidate.productId,
+    layoutId: candidate.layoutId,
+    geometryFingerprint: candidate.geometryFingerprint,
+    selectionFingerprint: candidate.selectionFingerprint,
+    specificationFingerprint: candidate.specificationFingerprint,
+    regeneration: Object.fromEntries(
+      REGENERATION_FINGERPRINT_KEYS.map((key) => [key, candidate.regeneration[key]])
+    ),
+    summary: normalizeAcceptedSummary(candidate.summary)
+  };
+}
+
+function normalizeAcceptedSummary(candidate) {
+  const source = candidate && typeof candidate === "object" ? candidate : {};
+  const installations = Array.isArray(source.installations)
+    ? source.installations.slice(0, 10).map((installation) => ({
+        zoneId: compactString(installation?.zoneId),
+        role: compactString(installation?.role),
+        casework: {
+          width: finiteSummaryNumber(installation?.casework?.width),
+          overallHeight: finiteSummaryNumber(installation?.casework?.overallHeight),
+          depth: finiteSummaryNumber(installation?.casework?.depth)
+        },
+        treatments: {
+          left: normalizeSummaryTreatment(installation?.treatments?.left, "width"),
+          right: normalizeSummaryTreatment(installation?.treatments?.right, "width"),
+          base: normalizeSummaryTreatment(installation?.treatments?.base, "height"),
+          top: normalizeSummaryTreatment(installation?.treatments?.top, "height")
+        }
+      }))
+    : [];
+  const tv = source.tv?.accepted === true ? {
+    accepted: true,
+    body: {
+      width: finiteSummaryNumber(source.tv.body?.width),
+      height: finiteSummaryNumber(source.tv.body?.height)
+    },
+    opening: {
+      width: finiteSummaryNumber(source.tv.opening?.width),
+      height: finiteSummaryNumber(source.tv.opening?.height)
+    }
+  } : null;
+  return { installations, tv };
+}
+
+function normalizeSummaryTreatment(candidate, dimension) {
+  if (!candidate || typeof candidate !== "object") return null;
+  return {
+    kind: compactString(candidate.kind) || "none",
+    [dimension]: finiteSummaryNumber(candidate[dimension])
+  };
+}
+
+function finiteSummaryNumber(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function compactString(value) {
+  return typeof value === "string" ? value.slice(0, 80) : null;
 }
 
 export function validateMeasurements(project) {
@@ -296,6 +591,8 @@ export function validateMeasurements(project) {
     }
   }
 
+  warnings.push(...validateSpatialRelationships(values));
+
   return {
     valid: errors.length === 0,
     errors,
@@ -306,7 +603,7 @@ export function validateMeasurements(project) {
 
 const labelFor = (list, id) => list.find((item) => item.id === id)?.label || "—";
 
-export function buildProjectSummary(project) {
+export function buildProjectSummary(project, options = {}) {
   const normalized = normalizeProject(project, { now: Date.parse(project?.updatedAt) || Date.now() });
   const category = getCategory(normalized.category);
   const layout = getLayout(normalized.category, normalized.layout);
@@ -328,6 +625,121 @@ export function buildProjectSummary(project) {
     rows.push({ key: field.id, label: field.label, value, step: 3 });
   }
 
+  const accepted = options.acceptedSpecification || normalized.acceptedSnapshot?.acceptedSpecification || null;
+  const compactAccepted = normalized.acceptedSnapshot?.summary || null;
+  const acceptedQuote = options.acceptedQuote?.integrity?.verified === true
+    ? options.acceptedQuote
+    : null;
+  if (accepted?.accepted || compactAccepted || acceptedQuote) {
+    const installations = accepted?.accepted
+      ? Array.isArray(accepted.fit?.installations)
+        ? accepted.fit.installations
+        : accepted.fit?.accepted ? [accepted.fit] : []
+      : compactAccepted?.installations || [];
+    if (installations.length) {
+      const fittedSizes = installations.map((installation) => {
+        const label = installations.length > 1 ? `${installation.role || installation.zoneId}: ` : "";
+        return `${label}${formatInches(installation.casework?.width)} × ${formatInches(installation.casework?.overallHeight)} × ${formatInches(installation.casework?.depth)} in`;
+      });
+      rows.push({ key: "fittedSize", label: "Accepted fitted size", value: fittedSizes.join(" · "), step: 3 });
+      const treatments = installations.map((installation) => {
+        const left = installation.treatments?.left;
+        const right = installation.treatments?.right;
+        const base = installation.treatments?.base;
+        const top = installation.treatments?.top;
+        const label = installations.length > 1 ? `${installation.role || installation.zoneId}: ` : "";
+        return `${label}left ${formatTreatment(left)}, right ${formatTreatment(right)}, base ${formatTreatment(base)}, top ${formatTreatment(top)}`;
+      });
+      rows.push({ key: "fitTreatments", label: "Installation treatments", value: treatments.join(" · "), step: 3 });
+    }
+    const tv = accepted?.accepted ? accepted.product?.tv : compactAccepted?.tv;
+    if (tv?.accepted) {
+      rows.push({
+        key: "tvBody",
+        label: "Accepted TV body",
+        value: `${formatInches(tv.body?.width)} × ${formatInches(tv.body?.height)} in`,
+        step: 3
+      });
+      rows.push({
+        key: "tvOpening",
+        label: "Generated TV opening",
+        value: `${formatInches(tv.opening?.width)} × ${formatInches(tv.opening?.height)} in`,
+        step: 3
+      });
+    }
+    rows.push({
+      key: "geometryFingerprint",
+      label: "Geometry reference",
+      value: acceptedQuote?.identity?.geometryFingerprint
+        || accepted?.geometryFingerprint
+        || normalized.acceptedSnapshot?.geometryFingerprint,
+      step: 5
+    });
+    const acceptedPricing = acceptedQuote?.pricing || accepted?.pricing;
+    const preliminaryTotal = Number(acceptedPricing?.total);
+    rows.push({
+      key: "pricing",
+      label: "Preliminary price",
+      value: acceptedPricing?.available === true && Number.isFinite(preliminaryTotal)
+        ? new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+            maximumFractionDigits: 0
+          }).format(preliminaryTotal)
+        : "Design review required",
+      step: 5
+    });
+    if (acceptedQuote?.pricing?.fingerprint) {
+      rows.push({
+        key: "pricingFingerprint",
+        label: "Pricing reference",
+        value: acceptedQuote.pricing.fingerprint,
+        step: 5
+      });
+    }
+    const acceptedWarnings = acceptedQuote?.warnings?.items || accepted?.warnings;
+    if (Array.isArray(acceptedWarnings) && acceptedWarnings.length) {
+      rows.push({
+        key: "warnings",
+        label: "Accepted warnings",
+        value: acceptedWarnings
+          .map((warning) => `${warning.message || "Design review note"} (${warning.code || "REVIEW"})`)
+          .join(" · "),
+        step: 5
+      });
+    } else if (acceptedQuote) {
+      rows.push({ key: "warnings", label: "Accepted warnings", value: "None", step: 5 });
+    }
+    if (acceptedQuote?.warnings?.fingerprint) {
+      rows.push({
+        key: "warningsFingerprint",
+        label: "Warnings reference",
+        value: acceptedQuote.warnings.fingerprint,
+        step: 5
+      });
+    }
+    if (acceptedQuote?.bom) {
+      rows.push({
+        key: "bom",
+        label: "Accepted BOM",
+        value: formatQuoteBom(acceptedQuote.bom),
+        step: 5
+      });
+      rows.push({
+        key: "bomFingerprint",
+        label: "BOM reference",
+        value: acceptedQuote.bom.fingerprint,
+        step: 5
+      });
+      rows.push({
+        key: "quoteFingerprint",
+        label: "Verified quote reference",
+        value: acceptedQuote.integrity.quoteFingerprint,
+        step: 5
+      });
+    }
+  }
+
   rows.push(
     { key: "finish", label: "Finish", value: getFinish(normalized.finish).label, step: 4 },
     { key: "accentFinish", label: "Accent / interior", value: getFinish(normalized.accentFinish).label, step: 4 }
@@ -341,6 +753,28 @@ export function buildProjectSummary(project) {
   rows.push({ key: "notes", label: "Notes", value: normalized.notes || "—", step: 5 });
 
   return rows;
+}
+
+function formatTreatment(treatment) {
+  if (!treatment) return "none";
+  const amount = Number(treatment.width ?? treatment.height);
+  return Number.isFinite(amount) && amount > 0
+    ? `${String(treatment.kind || "treatment").replaceAll("-", " ")} ${formatInches(amount)} in`
+    : String(treatment.kind || "none").replaceAll("-", " ");
+}
+
+function formatQuoteBom(bom) {
+  const roles = Object.entries(bom.byRole || {})
+    .filter(([, count]) => Number(count) > 0)
+    .map(([role, count]) => `${role.replaceAll("_", " ")} ${count}`)
+    .join(", ");
+  const billable = Number(bom.billableComponentCount) || 0;
+  const physical = Number(bom.componentCount) || 0;
+  const customerEquipment = Number(bom.customerEquipmentCount) || 0;
+  const ownership = customerEquipment
+    ? ` (${physical} physical; ${customerEquipment} customer equipment)`
+    : "";
+  return `${billable} billable components${ownership}${roles ? ` · ${roles}` : ""}`;
 }
 
 const parseStoredJson = (storage, key, fallback) => {
@@ -373,6 +807,29 @@ export function createProjectStore(storage = globalThis.localStorage) {
 
   const writeProjects = (projects) => writeStoredJson(storage, GUIDED_PROJECTS_STORAGE_KEY, projects);
 
+  const normalizeAcceptedPersistence = (preparation, overrides = {}) => {
+    if (
+      preparation?.accepted !== true
+      || preparation?.persistable !== true
+      || preparation?.kind !== GUIDED_ACCEPTED_PERSISTENCE_KIND
+      || preparation?.schemaVersion !== GUIDED_ACCEPTED_PERSISTENCE_SCHEMA_VERSION
+      || !preparation.project
+      || !preparation.snapshot
+    ) return null;
+    const snapshot = preparation.snapshot;
+    const source = preparation.project;
+    if (
+      source.projectId !== snapshot.projectId
+      || source.acceptedSnapshot?.specificationFingerprint !== snapshot.specificationFingerprint
+      || source.acceptedSnapshot?.geometryFingerprint !== snapshot.geometryFingerprint
+      || source.acceptedSnapshot?.selectionFingerprint !== snapshot.selectionFingerprint
+    ) return null;
+    const normalized = normalizeProject({ ...source, ...overrides, acceptedSnapshot: snapshot });
+    return normalized.acceptedSnapshot?.specificationFingerprint === snapshot.specificationFingerprint
+      ? normalized
+      : null;
+  };
+
   return Object.freeze({
     loadDraft() {
       const draft = parseStoredJson(storage, GUIDED_DRAFT_STORAGE_KEY, null);
@@ -380,6 +837,10 @@ export function createProjectStore(storage = globalThis.localStorage) {
     },
     saveDraft(project) {
       return writeStoredJson(storage, GUIDED_DRAFT_STORAGE_KEY, normalizeProject(project));
+    },
+    saveAcceptedDraft(preparation) {
+      const normalized = normalizeAcceptedPersistence(preparation);
+      return normalized ? writeStoredJson(storage, GUIDED_DRAFT_STORAGE_KEY, normalized) : false;
     },
     clearDraft() {
       try {
@@ -402,6 +863,18 @@ export function createProjectStore(storage = globalThis.localStorage) {
         projectName: projectName || project.projectName,
         status: "saved"
       });
+      const projects = loadProjects();
+      const existingIndex = projects.findIndex((saved) => saved.projectId === normalized.projectId);
+      if (existingIndex >= 0) projects.splice(existingIndex, 1, normalized);
+      else projects.unshift(normalized);
+      return writeProjects(projects) ? deepClone(normalized) : null;
+    },
+    saveAcceptedProject(preparation, projectName) {
+      const normalized = normalizeAcceptedPersistence(preparation, {
+        projectName: projectName || preparation?.project?.projectName,
+        status: "saved"
+      });
+      if (!normalized) return null;
       const projects = loadProjects();
       const existingIndex = projects.findIndex((saved) => saved.projectId === normalized.projectId);
       if (existingIndex >= 0) projects.splice(existingIndex, 1, normalized);

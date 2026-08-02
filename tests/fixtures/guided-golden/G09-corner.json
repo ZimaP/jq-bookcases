@@ -1,0 +1,16 @@
+{
+  "id": "G09-corner",
+  "productId": "open-shelving",
+  "layoutId": "corner-wall",
+  "measurements": {
+    "wallWidth": 120,
+    "ceilingHeight": 96,
+    "desiredDepth": 13,
+    "cornerReturn": 60
+  },
+  "finish": "warm-white",
+  "expected": {
+    "lShape": true,
+    "cornerCamera": true
+  }
+}
