@@ -1,7 +1,7 @@
 {
   "id": "TV01-clear-wall-foundation",
-  "approvalStatus": "pending-john-design-review",
-  "purpose": "Contract fixture only; this is not an approved customer beauty-render template.",
+  "approvalStatus": "internal-drawing-4-prototype",
+  "purpose": "Drawing 4 internal prototype contract fixture; this is not an approved customer beauty-render template.",
   "project": {
     "productId": "tv-unit",
     "layoutId": "clear-wall",
@@ -33,7 +33,16 @@
     "tvBodyHeight": 33,
     "tvOpeningWidth": 60,
     "tvOpeningHeight": 37,
-    "renderableComponents": 39,
+    "moduleClearWidths": [27, 29.625, 29.625, 27],
+    "outerShelfThickness": 1,
+    "centerShelfThickness": 1.25,
+    "countertopWidth": 117,
+    "countertopThickness": 1.25,
+    "countertopDepth": 14,
+    "doorCount": 8,
+    "hardwareCount": 8,
+    "renderableComponents": 46,
+    "renderableSubmeshes": 78,
     "nonRenderableBlenderConstraints": 7
   }
 }

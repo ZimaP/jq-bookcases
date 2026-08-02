@@ -12,6 +12,11 @@ export const CONSTRUCTION_PROFILE_IDS = Object.freeze({
 export const DEFAULT_CONSTRUCTION_PROFILE = CONSTRUCTION_PROFILE_IDS.inset;
 export const CONSTRUCTION_PROFILE_VALUES = Object.freeze(Object.values(CONSTRUCTION_PROFILE_IDS));
 
+// Versioned construction templates opt a canonical layout into a narrowly
+// defined physical arrangement without changing the behavior of public
+// presets that happen to share the same high-level layout type.
+export const TV_DRAWING_4_TEMPLATE_ID = "tv-drawing-4-v1";
+
 export const DOOR_ARRANGEMENTS = Object.freeze([
   "auto",
   "single_hinge_left",
@@ -801,6 +806,9 @@ function normalizeNumericOption(value, options, fallback) {
 function normalizeLayoutMetadata(value, sections, source = {}) {
   const input = value && typeof value === "object" && !Array.isArray(value) ? value : {};
   const metadata = {};
+  if (input.constructionTemplateId === TV_DRAWING_4_TEMPLATE_ID) {
+    metadata.constructionTemplateId = TV_DRAWING_4_TEMPLATE_ID;
+  }
   if (Number.isInteger(Number(input.specialSpan))) {
     metadata.specialSpan = Math.min(sections, Math.max(1, Number(input.specialSpan)));
   }

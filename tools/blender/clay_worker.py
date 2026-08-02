@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strict Blender 5.2 clay translator for the TV01 foundation package.
+"""Strict Blender 5.2 clay translator for the Drawing 4 TV01 package.
 
 The accepted JQ package is the only geometry authority.  This worker validates
 that package, translates its exact world-space bounds, and renders it.  It does
@@ -27,12 +27,12 @@ PACKAGE_SCHEMA_VERSION = 2
 RESULT_SCHEMA_VERSION = 1
 RENDER_CONTRACT_VERSION = 1
 PRIMITIVE_CONTRACT_VERSION = 1
-PIPELINE_VERSION = "2026.08-tv-clear-wall-clay-worker-v1"
+PIPELINE_VERSION = "2026.08-tv-drawing-4-clay-worker-v1"
 SCENE_VERSION = "clear-wall-v1"
 CAMERA_VERSION = "hero-front-v1"
 MATERIAL_LIBRARY_VERSION = "jq-materials-v1"
 ASSET_MANIFEST_SHA256 = (
-    "156874a63c03ebbaf89f2409c82312777588461e1051bfeee5311437bf38ca24"
+    "73b57b0ca24c4ecc6fc0af47ef5f3a47159ef9b57dcb2ba231c34492ad893284"
 )
 MATERIAL_SOURCE_SHA256 = (
     "299b321424bf7665f413c2740c5238bcd7f7e1b0d412ab5c1db16339e4d772cd"
@@ -40,7 +40,21 @@ MATERIAL_SOURCE_SHA256 = (
 ENVIRONMENT_SHA256 = (
     "49db5b6e13c5b5239d8aca84c055c586dfc71aeaf1e1db64487f5bf8bab66db2"
 )
-EXPECTED_COMPONENT_COUNT = 39
+EXPECTED_REQUEST_KEY = (
+    "jq-blender-v1-c4815b0d7c54f5cd54188571e5bba799611c032572b0da6842a8362b67ab6293"
+)
+EXPECTED_RENDER_KEY = (
+    "jq-blender-package-v1-132f36bbb41c69511fe893001a49d1406790e2d7fa5c954416f9cfbd9e63c29f"
+)
+EXPECTED_IDENTITY_FINGERPRINTS = {
+    "geometryFingerprint": "jq-guided-geometry-v1-2J95JPTIW69O4",
+    "selectionFingerprint": "jq-guided-selection-v1-0mnaift",
+    "descriptorFingerprint": "jq-guided-snapshot-descriptors-v1-1vl3c3s",
+    "materialFingerprint": "jq-guided-snapshot-materials-v1-1fs7psz",
+    "cameraFingerprint": "jq-guided-snapshot-camera-v1-1kj9fv5",
+}
+EXPECTED_COMPONENT_COUNT = 46
+EXPECTED_SUBMESH_OBJECT_COUNT = 78
 EXPECTED_CONSTRAINT_COUNT = 7
 MAX_PACKAGE_BYTES = 16 * 1024 * 1024
 MAX_BEAUTY_BYTES = 32 * 1024 * 1024
@@ -219,7 +233,7 @@ KNOWN_JSON_KEYS = set().union(
         "mountingPlane", "projectionDirection", "extrusion", "outline",
         "outlineUnits", "contour", "projection", "frameWidth", "frameDepth",
         "panelDepth", "panelRecess", "minimumCenterField", "nominalFrameWidth",
-        "solidRegions", "fieldRegion", "bounds", "style", "basis", "translation",
+        "centerFieldBounds", "solidRegions", "fieldRegion", "bounds", "style", "basis", "translation",
         "hostFace", "componentFace", "hostPlane", "hostCoordinate",
         "horizontalAnchor", "verticalAnchor", "edgeOffsetMm", "mirrored",
     },
@@ -564,6 +578,11 @@ def validate_package_hash(package: dict[str, Any]) -> None:
     render_key = package.get("renderKey")
     if not isinstance(render_key, str) or not RENDER_KEY_RE.fullmatch(render_key):
         fail("INVALID_RENDER_KEY", "Package render key has an invalid shape")
+    if render_key != EXPECTED_RENDER_KEY:
+        fail(
+            "UNSUPPORTED_RENDER_KEY",
+            "Worker accepts only the exact committed Drawing 4 package",
+        )
     payload = {key: value for key, value in package.items() if key != "renderKey"}
     digest = hashlib.sha256(js_stable_stringify(payload).encode("utf-8")).hexdigest()
     expected = f"jq-blender-package-v1-{digest}"
@@ -915,7 +934,7 @@ def validate_components(
     value: Any, bindings: dict[str, dict[str, Any]]
 ) -> tuple[list[dict[str, Any]], int]:
     if not isinstance(value, list) or len(value) != EXPECTED_COMPONENT_COUNT:
-        fail("COMPONENT_COUNT_MISMATCH", f"Foundation package must contain {EXPECTED_COMPONENT_COUNT} components")
+        fail("COMPONENT_COUNT_MISMATCH", f"Drawing 4 package must contain {EXPECTED_COMPONENT_COUNT} components")
     components: list[dict[str, Any]] = []
     component_ids: set[str] = set()
     object_names: set[str] = set()
@@ -1003,12 +1022,17 @@ def validate_components(
         fail("NONDETERMINISTIC_COMPONENT_ORDER", "Components must be sorted by component ID")
     if used_slots != set(bindings):
         fail("UNUSED_MATERIAL_BINDING", "Package material bindings must exactly match submesh slots")
+    if submesh_count != EXPECTED_SUBMESH_OBJECT_COUNT:
+        fail(
+            "SUBMESH_COUNT_MISMATCH",
+            f"Drawing 4 package must contain {EXPECTED_SUBMESH_OBJECT_COUNT} submesh objects",
+        )
     return components, submesh_count
 
 
 def validate_constraints(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list) or len(value) != EXPECTED_CONSTRAINT_COUNT:
-        fail("CONSTRAINT_COUNT_MISMATCH", f"Foundation package must contain {EXPECTED_CONSTRAINT_COUNT} constraints")
+        fail("CONSTRAINT_COUNT_MISMATCH", f"Drawing 4 package must contain {EXPECTED_CONSTRAINT_COUNT} constraints")
     constraints: list[dict[str, Any]] = []
     ids: set[str] = set()
     order: list[str] = []
@@ -1060,13 +1084,14 @@ def validate_package(package: dict[str, Any]) -> dict[str, Any]:
     identity = exact_keys(package["identity"], IDENTITY_KEYS, "identity")
     identity_expected = {
         "productId": "tv-unit", "layoutId": "clear-wall", "installationMode": "fitted",
-        "engineVersion": "2026.08-luxury-configurator-v1", "jobSchemaVersion": 1,
+        "engineVersion": "2026.08-tv-drawing-4-v1", "jobSchemaVersion": 1,
         "packageSchemaVersion": 2, "renderContractVersion": 1,
         "primitiveContractVersion": 1, "materialContractVersion": 1,
         "pipelineVersion": PIPELINE_VERSION, "materialLibraryVersion": MATERIAL_LIBRARY_VERSION,
         "sceneVersion": SCENE_VERSION, "cameraVersion": CAMERA_VERSION,
         "assetManifestSha256": ASSET_MANIFEST_SHA256,
         "materialSourceSha256": MATERIAL_SOURCE_SHA256, "outputProfile": "preview",
+        **EXPECTED_IDENTITY_FINGERPRINTS,
     }
     if any(identity.get(key) != expected for key, expected in identity_expected.items()):
         fail("IDENTITY_MISMATCH", "Package identity is outside the supported foundation slice")
@@ -1080,10 +1105,8 @@ def validate_package(package: dict[str, Any]) -> dict[str, Any]:
             fail("INVALID_FINGERPRINT", f"identity.{key} is malformed")
     sha256_string(identity["assetManifestSha256"], "identity.assetManifestSha256")
     sha256_string(identity["materialSourceSha256"], "identity.materialSourceSha256")
-    if not isinstance(package["requestKey"], str) or not re.fullmatch(
-        r"jq-blender-v1-[a-f0-9]{64}", package["requestKey"]
-    ):
-        fail("INVALID_REQUEST_KEY", "Package request key is malformed")
+    if package["requestKey"] != EXPECTED_REQUEST_KEY:
+        fail("INVALID_REQUEST_KEY", "Package request key is not the committed Drawing 4 job")
     validate_coordinate_contract(package["coordinateSystem"])
     render = validate_render(package["render"])
     room = validate_room(package["room"])
@@ -1316,7 +1339,11 @@ def create_mesh_object(
 ) -> Any:
     mesh = bpy.data.meshes.new(name)
     mesh.from_pydata(vertices, [], faces)
-    mesh.validate(verbose=False, clean_customdata=False)
+    if mesh.validate(verbose=False, clean_customdata=False):
+        fail(
+            "MESH_GEOMETRY_CORRECTED",
+            f"Blender attempted to repair package geometry for {name}",
+        )
     mesh.update(calc_edges=True)
     normal_mesh = bmesh.new()
     normal_mesh.from_mesh(mesh)

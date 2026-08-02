@@ -2,7 +2,7 @@ import {
   defaultBookcaseConfig,
   layoutPresets,
   normalizeBookcaseConfig
-} from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
+} from "./bookcase-config.js?v=tv-drawing-4-geometry-v1-20260802a";
 
 export const STUDIO_ENTRY_VIEWS = Object.freeze({
   welcome: "welcome"

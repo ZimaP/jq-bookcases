@@ -26,14 +26,14 @@ import {
 } from "./guided-configurator-state.js?v=luxury-configurator-engine-v1-20260802b";
 import {
   resolveProductLayoutCompatibility
-} from "./guided-product-adapter.js?v=luxury-configurator-engine-v1";
+} from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
   createGuidedAcceptedSnapshot,
   prepareGuidedProjectPersistence,
   prepareGuidedQuote,
   restoreGuidedAcceptedSnapshot,
   transactGuidedProject
-} from "./guided-project-engine.js?v=luxury-configurator-engine-v1";
+} from "./guided-project-engine.js?v=tv-drawing-4-geometry-v1-20260802a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),

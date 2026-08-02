@@ -6,10 +6,10 @@
       "productId": "tv-unit",
       "layoutId": "right-niche",
       "measurements": {
-        "wallWidth": 120,
+        "wallWidth": 144,
         "ceilingHeight": 96,
         "desiredDepth": 14,
-        "nicheWidth": 96,
+        "nicheWidth": 120,
         "nicheHeight": 96,
         "nicheDepth": 14,
         "leftReturn": 0,

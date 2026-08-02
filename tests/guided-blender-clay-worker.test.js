@@ -13,6 +13,9 @@ import {
 } from "../guided-blender-render-contract.js";
 import {
   DEFAULT_BLENDER_EXECUTABLE,
+  EXPECTED_DRAWING_4_GEOMETRY_FINGERPRINT,
+  EXPECTED_DRAWING_4_RENDER_KEY,
+  EXPECTED_DRAWING_4_REQUEST_KEY,
   REPOSITORY_ROOT,
   BlenderClayRunnerError,
   createVerifiedClayRenderPackage,
@@ -23,9 +26,9 @@ import {
   writeDeterministicJson
 } from "../tools/blender/run-clay-worker.mjs";
 
-const EXPECTED_COMPONENT_COUNT = 39;
+const EXPECTED_COMPONENT_COUNT = 46;
 const EXPECTED_CONSTRAINT_COUNT = 7;
-const EXPECTED_SUBMESH_OBJECT_COUNT = 39;
+const EXPECTED_SUBMESH_OBJECT_COUNT = 78;
 const EXPECTED_WIDTH = 960;
 const EXPECTED_HEIGHT = 640;
 const PYTHON_WORKER_PATH = join(REPOSITORY_ROOT, "tools/blender/clay_worker.py");
@@ -43,6 +46,12 @@ test("the TV01 clay runner writes deterministic authoritative package JSON", asy
 
   assert.equal(first.packageJson, repeated.packageJson);
   assert.equal(first.renderPackage.renderKey, repeated.renderPackage.renderKey);
+  assert.equal(first.renderPackage.renderKey, EXPECTED_DRAWING_4_RENDER_KEY);
+  assert.equal(first.renderPackage.requestKey, EXPECTED_DRAWING_4_REQUEST_KEY);
+  assert.equal(
+    first.renderPackage.identity.geometryFingerprint,
+    EXPECTED_DRAWING_4_GEOMETRY_FINGERPRINT
+  );
   assert.deepEqual(JSON.parse(first.packageJson), first.renderPackage);
   assert.equal(first.packageJson.endsWith("\n"), true);
 
@@ -74,7 +83,7 @@ test("the verified package has the exact component, constraint, and object tuple
   assert.equal(renderPackage.audit.physicalComponentCount, EXPECTED_COMPONENT_COUNT);
   assert.equal(renderPackage.audit.renderedComponentCount, EXPECTED_COMPONENT_COUNT);
   assert.equal(renderPackage.audit.constraintCount, EXPECTED_CONSTRAINT_COUNT);
-  assert.equal(renderPackage.audit.primitiveRecordCount, EXPECTED_SUBMESH_OBJECT_COUNT);
+  assert.equal(renderPackage.audit.primitiveRecordCount, EXPECTED_COMPONENT_COUNT);
 });
 
 test("component IDs and component/submesh object IDs are unique and deterministic", async () => {
@@ -248,6 +257,13 @@ test("the pure Python worker boundary rejects malformed packages without Blender
     }],
     ["duplicate component", "DUPLICATE_COMPONENT_ID", (candidate) => {
       candidate.components[1].componentId = candidate.components[0].componentId;
+    }],
+    ["wrong aggregate submesh count", "SUBMESH_COUNT_MISMATCH", (candidate) => {
+      const framed = candidate.components.find((component) => component.submeshes.length > 1);
+      assert.ok(framed, "Drawing 4 package must contain decomposed Shaker fronts");
+      const fieldIndex = framed.submeshes.findIndex((submesh) => submesh.submeshId === "center-field");
+      assert.notEqual(fieldIndex, -1, "framed front must contain a center-field submesh");
+      framed.submeshes.splice(fieldIndex, 1);
     }]
   ];
   for (const [label, code, mutate] of cases) {
@@ -259,6 +275,25 @@ test("the pure Python worker boundary rejects malformed packages without Blender
       assert.match(result.stderr, new RegExp(`\\[${code}\\]`));
     });
   }
+});
+
+test("the Python worker rejects rehashed hand-authored geometry", async () => {
+  const { renderPackage } = await getGeneratedPackage();
+  const candidate = structuredClone(renderPackage);
+  const tvBody = candidate.components.find((component) => component.componentId.endsWith("/tv-body"));
+  assert.ok(tvBody, "Drawing 4 package must contain the TV body");
+  assert.equal(tvBody.submeshes.length, 1);
+
+  tvBody.sourceWorldBounds.max.x -= 1;
+  tvBody.blenderWorldBounds.max.x -= 0.0254;
+  tvBody.submeshes[0].sourceWorldBounds.max.x -= 1;
+  tvBody.submeshes[0].blenderWorldBounds.max.x -= 0.0254;
+  candidate.renderKey = recomputePublicRenderKey(candidate);
+
+  assert.notEqual(candidate.renderKey, EXPECTED_DRAWING_4_RENDER_KEY);
+  const result = await runPythonPackageValidation(candidate);
+  assert.equal(result.status, 2, result.stderr);
+  assert.match(result.stderr, /\[UNSUPPORTED_RENDER_KEY\]/);
 });
 
 test("the committed result manifest accepts only the exact succeeded beauty record", async () => {
@@ -374,6 +409,22 @@ function createBeautyResult(renderPackage, { bytes, sha256 }) {
       sha256
     }]
   };
+}
+
+function recomputePublicRenderKey(renderPackage) {
+  const payload = Object.fromEntries(
+    Object.entries(renderPackage).filter(([key]) => key !== "renderKey")
+  );
+  const digest = createHash("sha256").update(stableStringify(payload)).digest("hex");
+  return `jq-blender-package-v1-${digest}`;
+}
+
+function stableStringify(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(",")}]`;
+  return `{${Object.keys(value).sort().map((key) => (
+    `${JSON.stringify(key)}:${stableStringify(value[key])}`
+  )).join(",")}}`;
 }
 
 function createVp8xWebp(width, height) {

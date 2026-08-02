@@ -3,7 +3,7 @@ import {
   getHardwareFinish,
   getHardwareFinishOption,
   getHardwareType
-} from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
+} from "./bookcase-config.js?v=tv-drawing-4-geometry-v1-20260802a";
 
 const NON_RENDERED_ROLES = new Set(["assembly", "section", "section_group", "opening"]);
 const GLB_MAGIC = 0x46546c67;

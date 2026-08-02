@@ -2,7 +2,7 @@ import {
   GUIDED_PROJECT_ENGINE_VERSION,
   prepareGuidedProjectPersistence,
   restoreGuidedAcceptedSnapshot
-} from "./guided-project-engine.js?v=luxury-configurator-engine-v1";
+} from "./guided-project-engine.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
   GUIDED_RENDER_CONTRACT_VERSION,
   auditGuidedAcceptedSpecification,
@@ -22,13 +22,13 @@ import {
 export const GUIDED_BLENDER_RENDER_JOB_SCHEMA_VERSION = 1;
 export const GUIDED_BLENDER_RENDER_PACKAGE_SCHEMA_VERSION = 2;
 export const GUIDED_BLENDER_RENDER_RESULT_SCHEMA_VERSION = 1;
-export const GUIDED_BLENDER_RENDER_PIPELINE_VERSION = "2026.08-tv-clear-wall-clay-worker-v1";
+export const GUIDED_BLENDER_RENDER_PIPELINE_VERSION = "2026.08-tv-drawing-4-clay-worker-v1";
 export const GUIDED_BLENDER_MATERIAL_LIBRARY_VERSION = "jq-materials-v1";
 export const GUIDED_BLENDER_CLAY_LIBRARY_VERSION = "jq-neutral-clay-v1";
 export const GUIDED_BLENDER_SCENE_VERSION = "clear-wall-v1";
 export const GUIDED_BLENDER_CAMERA_VERSION = "hero-front-v1";
 export const GUIDED_BLENDER_RENDER_JOB_MAX_BYTES = 16_384;
-export const GUIDED_BLENDER_ASSET_MANIFEST_SHA256 = "156874a63c03ebbaf89f2409c82312777588461e1051bfeee5311437bf38ca24";
+export const GUIDED_BLENDER_ASSET_MANIFEST_SHA256 = "73b57b0ca24c4ecc6fc0af47ef5f3a47159ef9b57dcb2ba231c34492ad893284";
 export const GUIDED_BLENDER_MATERIAL_SOURCE_SHA256 = "299b321424bf7665f413c2740c5238bcd7f7e1b0d412ab5c1db16339e4d772cd";
 
 const INCHES_TO_METERS = 0.0254;
@@ -1602,10 +1602,6 @@ function createClayMaterialLibrary(materials) {
 function createRenderReadiness(specification, materials) {
   const blockers = [
     {
-      code: "TV_TEMPLATE_APPROVAL_REQUIRED",
-      message: "John's Drawing 4 bay, front, and countertop rules are not yet encoded as the approved TV template."
-    },
-    {
       code: "SCENE_CAMERA_APPROVAL_REQUIRED",
       message: "The procedural room shell and deterministic hero camera require a reviewed reference render."
     }
@@ -1632,7 +1628,7 @@ function createRenderReadiness(specification, materials) {
   return {
     prototypeRenderAllowed: unresolvedMaterials.length === 0,
     customerBeautyRenderApproved: false,
-    geometryApproval: "pending-john-tv-template",
+    geometryApproval: "internal-drawing-4-prototype",
     materialApproval: "pending-physical-samples",
     requiredAssets: [{
       materialId: "clear-uv-maple",

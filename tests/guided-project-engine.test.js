@@ -551,6 +551,16 @@ test("static and connected quote transports share one verified compact quote con
     prepared.quote.bom.installations[0].canonical.layoutFingerprint,
     canonicalBom.layoutFingerprint
   );
+  assert.deepEqual(
+    prepared.quote.bom.installations[0].canonical.countertops,
+    canonicalBom.countertops
+  );
+  assert.deepEqual(
+    prepared.quote.pricing.installations[0].lineItems
+      .filter((item) => item.code.startsWith("SHELF_THICKNESS"))
+      .map((item) => item.thicknessIn),
+    [1, 1.25]
+  );
   assert.equal(prepared.quote.bom.customerEquipmentCount, 1);
   assert.match(prepared.quote.bom.fingerprint, /^jq-guided-quote-bom-v1-/);
   assert.match(prepared.quote.integrity.quoteFingerprint, /^jq-guided-quote-contract-v1-/);

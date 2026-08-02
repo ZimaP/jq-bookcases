@@ -1,7 +1,8 @@
 # JQ Bookcases Blender render foundation
 
-Status: foundation v1 implemented for **TV Unit + Clear Wall + fitted installation**.
-It is a prototype render boundary, not yet a customer-approved beauty-render path.
+Status: Drawing 4 geometry v1 implemented for the internal
+**TV Unit + Clear Wall + fitted installation** prototype. It remains a clay
+render boundary, not a customer-approved beauty-render path.
 
 ## Decision
 
@@ -53,26 +54,39 @@ intentionally excluded, so a quote change cannot invalidate an identical image.
 Finish-only and light-warmth-only changes retain the geometry fingerprint but
 still produce a different render key.
 
-## First prototype contract
+## Drawing 4 internal prototype contract
 
-The committed `TV01-clear-wall-foundation` fixture currently resolves:
+The committed `TV01-clear-wall-foundation` fixture now resolves:
 
 - 120 × 96 × 14 in room input;
 - 117 × 96 × 14 in fitted casework;
 - 1.5 in fillers on each side;
 - 56 × 33 in TV body and 60 × 37 in service opening;
-- 39 renderable components and seven non-renderable opening/clearance constraints.
+- four clear module widths of 27, 29.625, 29.625, and 27 in, derived from the
+  exact service opening and five 0.75 in structural panel widths;
+- four paired lower openings with eight authored Shaker door leaves and eight
+  descriptor-hosted Black Pulls;
+- one continuous 117 × 1.25 × 14 in countertop;
+- eight outer shelves governed by the 1 in/27 in rule and two center display
+  shelves governed by the 1.25 in/31 in rule;
+- a split center divider below the countertop and above the service opening,
+  with no divider through the TV, soundbar, or ventilation volumes;
+- 46 renderable components, 78 renderer-neutral/Blender submesh objects, and
+  seven non-renderable opening/clearance constraints.
 
-These figures prove transport and coordinate integrity only. They do **not**
-approve the current TV elevation as John Quinn's production template.
+The authoritative shelf schedule is fail-closed: 1 in MDF supports a maximum
+27 in clear span, 1.25 in supports 31 in, and 1.5 in supports 36 in. A wider
+span is rejected instead of receiving an undersized shelf. The Drawing 4
+module solver likewise rejects casework that cannot preserve the service span,
+paired-door leaves, usable side bays, and shelf rules; it never falls back to
+the former three-section elevation.
 
-## Explicit approval blockers
+John approval is not required for this internal prototype phase. This encoding
+does not approve production shop geometry or a customer beauty render;
+`customerBeautyRenderApproved` remains `false`.
 
-- The current engine creates three upper sections and seven flat lower doors.
-  John's Drawing 4 reference appears closer to four upper bays, a TV spanning
-  the middle bays, eight framed lower doors, and a continuous countertop. John
-  must approve the elevation/clay render before a customer beauty image is
-  enabled.
+## Remaining non-geometry blockers
+
 - Clear-UV prefinished maple is fixed for hidden cabinet interiors, but the
   current descriptor graph does not distinguish those surfaces reliably from
   exposed oak backing. The Blender package therefore records both semantic
@@ -82,6 +96,10 @@ approve the current TV elevation as John Quinn's production template.
   against physical John Quinn samples.
 - Camera, HDRI/room shell, color pipeline, and Blender version must be locked by
   a reviewed reference render before the worker is production-ready.
+- The shallow straight-on crown appearance remains a later visual-detail task;
+  this phase intentionally preserves its authored profile and camera.
+- Package-defined puck lights remain rectangular proxies. Circular puck
+  primitives are a separate renderer-neutral detail task.
 
 ## Local clay worker
 
@@ -111,8 +129,8 @@ render, or assign production wood, paint, or clear-UV-maple materials.
 
 ## Next implementation slice
 
-1. Confirm the TV elevation rules with John and encode them in the JQ product
-   adapter/engine, not in Blender Python.
+1. Review the Drawing 4 clay elevation for visual discrepancies without
+   changing product rules in the renderer.
 2. Author the clear-UV maple material and the versioned Clear Wall room/camera
    scene.
 3. Implement the Node gateway against the committed package schema. The gateway

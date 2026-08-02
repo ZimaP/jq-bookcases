@@ -160,12 +160,10 @@ test("TV01 preserves accepted component parity plus every non-renderable opening
     expectations.renderableComponents
   );
   assert.deepEqual(new Set(renderPackage.constraints.map((constraint) => constraint.kind)), new Set([
-    "media",
     "lower_cabinet",
     "tv_service_opening",
     "soundbar_equipment_zone",
-    "equipment_ventilation",
-    "continuous_media_console"
+    "equipment_ventilation"
   ]));
   assert.ok(renderPackage.components.every((component) => component.submeshes.length > 0));
   assert.ok(renderPackage.components.flatMap((component) => component.submeshes).every((submesh) => (
@@ -351,7 +349,7 @@ test("the server boundary fails closed on request or accepted-project tampering"
   );
 });
 
-test("foundation v1 rejects every product/layout/mode outside fitted TV Unit + Clear Wall", async () => {
+test("foundation v1 rejects every accepted product or mode outside fitted TV Unit + Clear Wall", async () => {
   for (const unsupported of [
     { ...structuredClone(project), productId: "cabinet-shelves" },
     { ...structuredClone(project), layoutId: "right-niche" },
@@ -475,7 +473,7 @@ test("foundation v1 requires exact typed Clear Wall and TV measurements", async 
   );
 });
 
-test("material and approval gates remain explicit until John and physical samples approve them", async () => {
+test("Drawing 4 remains an internal prototype while material and customer gates stay explicit", async () => {
   const specification = evaluateGuidedProjectCandidate(project);
   const job = await createGuidedBlenderRenderJob(project, specification);
   const renderPackage = await regenerateGuidedBlenderRenderPackage(job);
@@ -485,7 +483,7 @@ test("material and approval gates remain explicit until John and physical sample
   assert.equal(bindings.get("cabinet_interior")?.materialId, "natural-oak");
   assert.equal(renderPackage.readiness.prototypeRenderAllowed, true);
   assert.equal(renderPackage.readiness.customerBeautyRenderApproved, false);
-  assert.equal(renderPackage.readiness.geometryApproval, "pending-john-tv-template");
+  assert.equal(renderPackage.readiness.geometryApproval, "internal-drawing-4-prototype");
   assert.ok(renderPackage.materials.every((binding) => (
     binding.status === "procedural-starter"
     && binding.resolver.startsWith("embedded-")
@@ -507,6 +505,9 @@ test("material and approval gates remain explicit until John and physical sample
   assert.ok(renderPackage.readiness.blockers.some((blocker) => (
     blocker.code === "CLEAR_UV_MAPLE_PBR_REQUIRED"
   )));
+  assert.equal(renderPackage.readiness.blockers.some((blocker) => (
+    blocker.code === "TV_TEMPLATE_APPROVAL_REQUIRED"
+  )), false);
 
   const serialized = JSON.stringify(renderPackage);
   assert.doesNotMatch(serialized, /https?:\/\/|hardwareSnapshot|variantSnapshot|"pricing"/i);

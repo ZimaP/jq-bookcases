@@ -243,8 +243,8 @@
     },
     {
       "path": "config/golden-projects.json",
-      "bytes": 5569,
-      "sha256": "8cd0ae1feffa50174a85242a92644147392f860c6d1aaee467ef450cd987c0ce"
+      "bytes": 5570,
+      "sha256": "d9a1bbe0c7a73ff36b41c613f553f77420ddd91f8970d8bd95ae0cb9a791181a"
     },
     {
       "path": "config/materials.json",

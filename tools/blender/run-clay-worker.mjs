@@ -30,7 +30,11 @@ export const DEFAULT_BLENDER_EXECUTABLE = "/Applications/Blender.app/Contents/Ma
 export const BLENDER_WORKER_PATH = join(MODULE_DIRECTORY, "clay_worker.py");
 
 const FOUNDATION_FIXTURE_ID = "TV01-clear-wall-foundation";
-const EXPECTED_COMPONENT_COUNT = 39;
+export const EXPECTED_DRAWING_4_REQUEST_KEY = "jq-blender-v1-c4815b0d7c54f5cd54188571e5bba799611c032572b0da6842a8362b67ab6293";
+export const EXPECTED_DRAWING_4_RENDER_KEY = "jq-blender-package-v1-132f36bbb41c69511fe893001a49d1406790e2d7fa5c954416f9cfbd9e63c29f";
+export const EXPECTED_DRAWING_4_GEOMETRY_FINGERPRINT = "jq-guided-geometry-v1-2J95JPTIW69O4";
+const EXPECTED_COMPONENT_COUNT = 46;
+const EXPECTED_SUBMESH_OBJECT_COUNT = 78;
 const EXPECTED_CONSTRAINT_COUNT = 7;
 const EXPECTED_COLLECTION_COUNT = 4;
 const EXPECTED_FOUNDATION_MEASUREMENTS = Object.freeze({
@@ -382,7 +386,7 @@ function assertFoundationFixture(fixture) {
     `The clay runner only accepts ${FOUNDATION_FIXTURE_ID}.`
   );
   assertCondition(
-    fixture?.approvalStatus === "pending-john-design-review",
+    fixture?.approvalStatus === "internal-drawing-4-prototype",
     "FOUNDATION_APPROVAL_STATE_DRIFT",
     "The TV01 fixture approval state changed; clay generation must be reviewed."
   );
@@ -401,6 +405,11 @@ function assertFoundationFixture(fixture) {
     expectations.renderableComponents,
     EXPECTED_COMPONENT_COUNT,
     "FOUNDATION_COMPONENT_EXPECTATION_DRIFT"
+  );
+  assertEqual(
+    expectations.renderableSubmeshes,
+    EXPECTED_SUBMESH_OBJECT_COUNT,
+    "FOUNDATION_SUBMESH_EXPECTATION_DRIFT"
   );
   assertEqual(
     expectations.nonRenderableBlenderConstraints,
@@ -459,14 +468,24 @@ function assertFoundationPackage(renderPackage, job, expectations) {
   assertEqual(renderPackage.targetUnits, "meters", "PACKAGE_TARGET_UNITS_MISMATCH");
   assertEqual(renderPackage.requestKey, job.renderKey, "PACKAGE_REQUEST_KEY_MISMATCH");
   assertEqual(
+    renderPackage.requestKey,
+    EXPECTED_DRAWING_4_REQUEST_KEY,
+    "UNSUPPORTED_DRAWING_4_REQUEST_KEY"
+  );
+  assertEqual(
+    renderPackage.identity?.geometryFingerprint,
+    EXPECTED_DRAWING_4_GEOMETRY_FINGERPRINT,
+    "UNSUPPORTED_DRAWING_4_GEOMETRY_FINGERPRINT"
+  );
+  assertEqual(
     deterministicJson(renderPackage.identity),
     deterministicJson(job.identity),
     "PACKAGE_IDENTITY_MISMATCH"
   );
-  assertCondition(
-    /^jq-blender-package-v1-[a-f0-9]{64}$/.test(String(renderPackage.renderKey || "")),
-    "INVALID_FOUNDATION_PACKAGE_KEY",
-    "The authoritative TV01 package did not produce a current SHA-256 package key."
+  assertEqual(
+    renderPackage.renderKey,
+    EXPECTED_DRAWING_4_RENDER_KEY,
+    "UNSUPPORTED_DRAWING_4_RENDER_KEY"
   );
   assertCondition(
     renderPackage?.readiness?.prototypeRenderAllowed === true,
@@ -508,6 +527,16 @@ function assertFoundationPackage(renderPackage, job, expectations) {
     expectations.nonRenderableBlenderConstraints,
     "PACKAGE_AUDIT_CONSTRAINT_COUNT_MISMATCH"
   );
+  assertEqual(
+    renderPackage.audit.primitiveRecordCount,
+    EXPECTED_COMPONENT_COUNT,
+    "PACKAGE_PRIMITIVE_RECORD_COUNT_MISMATCH"
+  );
+  assertEqual(
+    countPackageSubmeshes(renderPackage),
+    EXPECTED_SUBMESH_OBJECT_COUNT,
+    "PACKAGE_SUBMESH_OBJECT_COUNT_MISMATCH"
+  );
   assertPreviewRenderSettings(renderPackage.render);
   assertUniquePackageIds(renderPackage);
   assertPackageBoundsAndMaterials(renderPackage);
@@ -532,6 +561,12 @@ function assertUniquePackageIds(renderPackage) {
   for (const constraint of renderPackage.constraints || []) {
     assertUniqueIdentifier(constraintIds, constraint.constraintId, "constraint");
   }
+}
+
+function countPackageSubmeshes(renderPackage) {
+  return (renderPackage.components || []).reduce((total, component) => (
+    total + (Array.isArray(component.submeshes) ? component.submeshes.length : 0)
+  ), 0);
 }
 
 function assertUniqueIdentifier(seen, value, label) {

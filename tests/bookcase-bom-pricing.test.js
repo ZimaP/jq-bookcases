@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { defaultBookcaseConfig, layoutPresets } from "../bookcase-config.js";
 import { deriveBillableComponents } from "../bookcase-billable.js";
-import { deriveBookcaseBOM, createLayoutFingerprint } from "../bookcase-bom.js";
+import { BOM_SCHEMA_VERSION, deriveBookcaseBOM, createLayoutFingerprint } from "../bookcase-bom.js";
 import { generateBookcaseLayout } from "../bookcase-layout.js";
 import {
   PRICING_VERSION,
@@ -18,7 +18,7 @@ test("default BOM quantities are derived from generated descriptors", () => {
   const layout = generateBookcaseLayout(defaultBookcaseConfig);
   const bom = deriveBookcaseBOM(layout);
 
-  assert.equal(bom.schemaVersion, 1);
+  assert.equal(bom.schemaVersion, BOM_SCHEMA_VERSION);
   assert.equal(bom.sections.count, layout.components.filter((component) => component.role === "section").length);
   assert.equal(bom.shelves.adjustableCount, layout.components.filter((component) => component.role === "shelf").length);
   assert.equal(bom.shelves.fixedCount, layout.components.filter((component) => component.role === "fixed_shelf").length);

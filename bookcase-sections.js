@@ -5,12 +5,12 @@ import {
   layoutPresets,
   normalizeBookcaseConfig,
   normalizeSectionTypeValue
-} from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
+} from "./bookcase-config.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
   CONSTRUCTION_RULES,
   generateBookcaseLayout,
   resolveDoorArrangement
-} from "./bookcase-layout.js?v=luxury-configurator-engine-v1-20260802c";
+} from "./bookcase-layout.js?v=tv-drawing-4-geometry-v1-20260802a";
 
 const PRECISION = 1e6;
 const RATIO_PRECISION = 1e12;

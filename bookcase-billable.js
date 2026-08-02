@@ -60,6 +60,10 @@ function summarizeBillableComponents(components, componentById) {
   const drawerFronts = components.filter((component) => component.role === "drawer_front");
   const handles = components.filter((component) => component.role === "handle");
   const lights = components.filter((component) => component.role === "light");
+  const continuousCountertops = components.filter((component) => (
+    component.role === "fixed_shelf"
+    && component.metadata?.purpose === "continuous_countertop"
+  ));
 
   const doorOpeningKind = (door) => componentById.get(door.parentId)?.metadata?.kind || "unknown";
   const handleHostRole = (handle) => componentById.get(handle.parentId)?.role || "unknown";
@@ -70,6 +74,11 @@ function summarizeBillableComponents(components, componentById) {
     generatedTallDoors: doors.filter((door) => doorOpeningKind(door) === "tall_storage").length,
     generatedGlassDoors: doors.filter((door) => door.metadata?.style === "glass").length,
     hingedDoorLeaves: doors.length,
+    continuousCountertopUnits: continuousCountertops.length,
+    continuousCountertopLinearIn: roundQuantity(continuousCountertops.reduce(
+      (total, countertop) => total + countertop.size.x,
+      0
+    )),
     drawerHardwareUnits: handles.filter((handle) => handleHostRole(handle) === "drawer_front").length,
     doorHardwareUnits: handles.filter((handle) => handleHostRole(handle) === "door").length,
     hardwareUnits: handles.length,
@@ -148,4 +157,8 @@ function countBy(components, selector) {
     counts.set(key, (counts.get(key) || 0) + 1);
   }
   return Object.fromEntries([...counts.entries()].sort(([left], [right]) => left.localeCompare(right)));
+}
+
+function roundQuantity(value) {
+  return Math.round((Number(value) + Number.EPSILON) * 1e6) / 1e6;
 }
