@@ -804,7 +804,10 @@ def reviewed_component_selection(
     relative = source.relative_to(ASSET_ROOT).as_posix()
     has_semantic_labels = relative in (_FIXED_EXCLUSIONS or {})
     is_integrated_bookcase = "/integrated/bookcase/" in source.as_posix()
-    is_full_open = "full-open-shelving" in source.as_posix()
+    is_full_open = (
+        "full-open-shelving" in source.as_posix()
+        or source.name.startswith("concept-full-shelving-")
+    )
     is_cabinet_base = "cabinet-base-shelves" in source.as_posix()
     is_floating_storage = "/floating-storage/" in source.as_posix()
     is_bookcase_concept = source.name.startswith((
@@ -823,9 +826,10 @@ def reviewed_component_selection(
     # for Bookcase emitter continuity.
     line_fixed = Image.new("L", exclusion.size, 0)
     authored_light_fixed = authored_bookcase_light_strips(source, exclusion.size)
+    has_authored_bookcase_lights = authored_light_fixed.getbbox() is not None
     continuous_light_fixed = (
         authored_light_fixed
-        if authored_light_fixed.getbbox()
+        if has_authored_bookcase_lights
         else (
             fixed_bookcase_light_strips(
                 candidate,
@@ -924,6 +928,12 @@ def reviewed_component_selection(
         selected = not fixed_detail and (
             is_integrated_bookcase
             or has_semantic_labels
+            # Authored light geometry is the complete fixed-detail contract for
+            # these generic Bookcase concepts.  Any remaining non-hardware,
+            # non-media exclusion is former styling or wood—not another light.
+            # This prevents tiny low-difference prop-era specks from escaping
+            # the finish as isolated brown holes.
+            or (is_bookcase_concept and has_authored_bookcase_lights)
             or changed_semantic_object
         )
         target = removable if selected else fixed

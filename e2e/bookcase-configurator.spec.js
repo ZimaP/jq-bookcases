@@ -1800,6 +1800,8 @@ test("Clear Wall bookcase installations stay on the rear wall plane and match ap
       rendered.media.alphaBounds.width / rendered.media.alphaBounds.height,
       "Clear Wall furniture keeps the approved source proportions"
     ).toBeCloseTo(product.sourceAspectRatio, 2);
+    await page.getByRole("button", { name: "Sage Gray", exact: true }).click();
+    await expect(preview).toHaveAttribute("data-finish", "sage-gray");
     await expectTopologyScreenshot(
       preview,
       `clear-wall-${product.snapshotId}-step4-1024x768.png`
@@ -2166,16 +2168,19 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       }
     },
     {
-      context: "Cabinets + Shelves / Clear Wall",
+      context: "Cabinets + Shelves / Clear Wall / Sage Gray",
       product: "Cabinets + Shelves",
       category: "bookcase",
       style: "cabinet-base-shelves",
       layoutLabel: "Clear Wall",
       layoutId: "clear-wall",
+      finishLabel: "Sage Gray",
+      finishId: "sage-gray",
       maskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v4.png",
       protected: {
         room: [100, 500],
-        hardware: [575, 558]
+        hardware: [575, 558],
+        "shelf light emitter": [600, 161]
       },
       wood: {
         "shelf backing": [700, 250],
@@ -2187,16 +2192,19 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       }
     },
     {
-      context: "Drawers + Shelves / Clear Wall",
+      context: "Drawers + Shelves / Clear Wall / Sage Gray",
       product: "Drawers + Shelves",
       category: "bookcase",
       style: "drawer-base-shelves",
       layoutLabel: "Clear Wall",
       layoutId: "clear-wall",
+      finishLabel: "Sage Gray",
+      finishId: "sage-gray",
       maskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v4.png",
       protected: {
         room: [100, 500],
-        hardware: [530, 597]
+        hardware: [530, 597],
+        "shelf light emitter": [600, 168]
       },
       wood: {
         "shelf backing": [700, 250],
@@ -2206,21 +2214,27 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       }
     },
     {
-      context: "Full Open Shelving / Clear Wall",
+      context: "Full Open Shelving / Clear Wall / Sage Gray",
       product: "Full Open Shelving",
       category: "bookcase",
       style: "full-open-shelving",
       layoutLabel: "Clear Wall",
       layoutId: "clear-wall",
+      finishLabel: "Sage Gray",
+      finishId: "sage-gray",
       maskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v4.png",
       protected: {
-        room: [100, 500]
+        room: [100, 500],
+        "shelf light emitter": [500, 168]
       },
       wood: {
         "shelf backing": [700, 250],
         "wood revealed behind former vase": [960, 210],
         "wood revealed behind former books": [535, 295],
         "wood revealed behind former decor": [565, 480],
+        "lower-center former mask streak left": [662, 660],
+        "lower-center former mask streak middle": [738, 655],
+        "lower-center former mask streak right": [814, 650],
         base: [700, 650]
       }
     },
@@ -2234,7 +2248,8 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       maskAsset: "assets/photos/configurator/concept-cabinets-shelves-between-openings-finish-mask-v4.png",
       protected: {
         wall: [200, 500],
-        hardware: [554, 635]
+        hardware: [554, 635],
+        "shelf light emitter": [600, 205]
       },
       wood: {
         "top shelf face": [600, 295],
@@ -2255,7 +2270,8 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       maskAsset: "assets/photos/configurator/concept-drawers-shelves-between-openings-finish-mask-v4.png",
       protected: {
         wall: [200, 500],
-        hardware: [515, 667]
+        hardware: [515, 667],
+        "shelf light emitter": [600, 210]
       },
       wood: {
         "top shelf face": [600, 295],
@@ -2275,7 +2291,8 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       layoutId: "double-opening",
       maskAsset: "assets/photos/configurator/concept-full-shelving-between-openings-finish-mask-v4.png",
       protected: {
-        wall: [200, 500]
+        wall: [200, 500],
+        "shelf light emitter": [500, 232]
       },
       wood: {
         "middle shelf face": [500, 615],
@@ -2299,6 +2316,12 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
       await page.locator("[data-continue]").click();
       await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+      if (specification.finishLabel) {
+        await page.getByRole("button", {
+          name: specification.finishLabel,
+          exact: true
+        }).click();
+      }
 
       const presentation = resolvePreviewPresentation(
         specification.category,
@@ -2319,6 +2342,9 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
         "data-preview-key",
         `${specification.category}:${specification.style}:${layoutId}`
       );
+      if (specification.finishId) {
+        await expect(preview).toHaveAttribute("data-finish", specification.finishId);
+      }
       await expectAssetFinishMaskSemantics(preview, specification, specification.context);
     });
   }
