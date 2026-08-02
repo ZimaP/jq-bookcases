@@ -14,7 +14,7 @@ import {
   getProductChoiceForSelection,
   getStyle,
   resolvePreviewPresentation
-} from "./guided-configurator-data.js?v=wood-only-finishes-20260731a";
+} from "./guided-configurator-data.js?v=empty-shelf-concepts-20260801a";
 import {
   buildProjectSummary,
   createProject,
@@ -23,7 +23,7 @@ import {
   normalizeProject,
   parseInches,
   validateMeasurements
-} from "./guided-configurator-state.js?v=wood-only-finishes-20260731a";
+} from "./guided-configurator-state.js?v=empty-shelf-concepts-20260801a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
@@ -224,7 +224,7 @@ function scheduleLikelyNextStepImages() {
         presentation.finishMaskAsset
       ]),
       category.productPreviewAsset,
-      "assets/photos/configurator/concept-window-cabinets-v1.png"
+      "assets/photos/configurator/concept-window-cabinets-v2.png"
     ];
   }
 

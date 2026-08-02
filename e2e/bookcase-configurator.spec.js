@@ -620,8 +620,8 @@ async function expectCustomizationWorkspaceInOneScreen(page, context) {
 }
 
 async function expectDrawersRightNicheComposition(preview, context) {
-  const conceptAsset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-v2.png";
-  const finishMaskAsset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v3.png";
+  const conceptAsset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-v3.png";
+  const finishMaskAsset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v4.png";
   await expectIntegratedPreview(preview, conceptAsset);
   await expect(preview).toHaveAttribute("data-preview-key", "bookcase:drawer-base-shelves:right-niche");
   await expect(preview).toHaveAttribute("data-authored-layout", "right-niche");
@@ -1304,7 +1304,7 @@ test("measurement fields adapt to the layout, accept fractions, warn gently, and
   await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
   await expect(page.locator(".concept-preview")).toHaveAttribute(
     "data-preview-asset",
-    "assets/photos/configurator/concept-window-cabinets-v1.png"
+    "assets/photos/configurator/concept-window-cabinets-v2.png"
   );
   await page.locator("[data-back]").click();
   await expect(width).toHaveValue("190");
@@ -1333,7 +1333,7 @@ test("Between Openings remains visible through customization and review", async 
   const customizationPreview = page.locator('.concept-preview[data-layout="double-opening"]');
   const customizationContext = customizationPreview.locator('[data-layout-context="double-opening"]');
   const roomAsset = "assets/photos/configurator/room-layouts/room-double-opening-v1.png";
-  const conceptAsset = "assets/photos/configurator/concept-full-shelving-between-openings-v1.png";
+  const conceptAsset = "assets/photos/configurator/concept-full-shelving-between-openings-v2.png";
   await expectIntegratedPreview(customizationPreview, conceptAsset);
   await expect(customizationContext).toBeVisible();
   await expect(customizationContext).toHaveAccessibleName("Selected room condition: Between Openings");
@@ -1395,7 +1395,7 @@ test("Between Openings remains visible through customization and review", async 
 });
 
 test("TV Unit keeps one exact Between Openings composite through customization, review, and reload", async ({ page }) => {
-  const conceptAsset = "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png";
+  const conceptAsset = "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v3.png";
   const viewports = [
     { name: "desktop", width: 1180, height: 820 },
     { name: "iPad landscape", width: 1280, height: 720 }
@@ -1477,17 +1477,17 @@ test("Between Openings keeps every bookcase construction in the selected room", 
     {
       product: "cabinet-shelves",
       style: "cabinet-base-shelves",
-      asset: "assets/photos/configurator/concept-cabinets-shelves-between-openings-v1.png"
+      asset: "assets/photos/configurator/concept-cabinets-shelves-between-openings-v2.png"
     },
     {
       product: "drawer-shelves",
       style: "drawer-base-shelves",
-      asset: "assets/photos/configurator/concept-drawers-shelves-between-openings-v1.png"
+      asset: "assets/photos/configurator/concept-drawers-shelves-between-openings-v2.png"
     },
     {
       product: "open-shelving",
       style: "full-open-shelving",
-      asset: "assets/photos/configurator/concept-full-shelving-between-openings-v1.png"
+      asset: "assets/photos/configurator/concept-full-shelving-between-openings-v2.png"
     }
   ];
 
@@ -1511,9 +1511,9 @@ test("Between Openings keeps every bookcase construction in the selected room", 
 });
 
 test("Door Wall keeps the selected drawer construction through customization and review", async ({ page }) => {
-  const asset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/door-wall-v1.png";
+  const asset = "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/door-wall-v2.png";
   const avifAsset = asset.replace(/\.png$/, ".avif");
-  const finishMaskAsset = asset.replace(/-v1\.png$/, "-finish-mask-v3.png");
+  const finishMaskAsset = asset.replace(/-v\d+\.png$/, "-finish-mask-v4.png");
   let finishMaskStatus = 0;
   page.on("response", (response) => {
     if (new URL(response.url()).pathname.endsWith(finishMaskAsset)) {
@@ -1724,8 +1724,8 @@ test("Clear Wall bookcase installations stay on the rear wall plane and match ap
       label: "Full Open Shelving",
       styleId: "full-open-shelving",
       snapshotId: "full-open",
-      furnitureAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-furniture-v2.png",
-      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v3.png",
+      furnitureAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-furniture-v3.png",
+      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v4.png",
       sourceAspectRatio: 885 / 648,
       alphaBounds: { left: 356, top: 108, right: 1181, bottom: 712, width: 825, height: 604 }
     },
@@ -1733,8 +1733,8 @@ test("Clear Wall bookcase installations stay on the rear wall plane and match ap
       label: "Drawers + Shelves",
       styleId: "drawer-base-shelves",
       snapshotId: "drawers",
-      furnitureAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-furniture-v2.png",
-      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v3.png",
+      furnitureAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-furniture-v3.png",
+      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v4.png",
       sourceAspectRatio: 757 / 643,
       alphaBounds: { left: 412, top: 108, right: 1123, bottom: 712, width: 711, height: 604 }
     },
@@ -1742,8 +1742,8 @@ test("Clear Wall bookcase installations stay on the rear wall plane and match ap
       label: "Cabinets + Shelves",
       styleId: "cabinet-base-shelves",
       snapshotId: "cabinets",
-      furnitureAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-furniture-v2.png",
-      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v3.png",
+      furnitureAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-furniture-v3.png",
+      finishMaskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v4.png",
       sourceAspectRatio: 799 / 654,
       alphaBounds: { left: 399, top: 108, right: 1137, bottom: 712, width: 738, height: 604 }
     }
@@ -1997,11 +1997,11 @@ test("Right Niche shows only room perimeter dimensions and one integrated previe
   const context = preview.locator('[data-layout-context="right-niche"]');
   await expect(preview).toHaveAttribute(
     "data-preview-asset",
-    "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/right-niche-v1.png"
+    "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/right-niche-v2.png"
   );
   await expectIntegratedPreview(
     preview,
-    "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/right-niche-v1.png"
+    "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/right-niche-v2.png"
   );
   await expect(context).toContainText("Right Niche");
   const previewGeometry = await preview.evaluate((element) => {
@@ -2036,16 +2036,17 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       product: "Floating Storage",
       category: "floating-storage",
       style: "floating-drawer-bank",
-      maskAsset: "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/right-niche-finish-mask-v3.png",
+      maskAsset: "assets/photos/configurator/integrated/floating-storage/floating-drawer-bank/right-niche-finish-mask-v4.png",
       protected: {
         wall: [800, 460],
-        vase: [350, 480],
-        books: [710, 540],
-        lamp: [1250, 500],
-        hardware: [615, 620],
+        "air above the former vase": [350, 480],
+        "cabinet knob": [322, 618],
+        "drawer pull": [620, 710],
         baseboard: [800, 850]
       },
       wood: {
+        "wood revealed behind former books": [710, 540],
+        "wood revealed behind former lamp": [1250, 500],
         "drawer front": [700, 700]
       }
     },
@@ -2054,18 +2055,19 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       product: "TV Unit",
       category: "tv-unit",
       style: "framed-tv-wall",
-      maskAsset: "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/right-niche-finish-mask-v3.png",
+      maskAsset: "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/right-niche-finish-mask-v4.png",
       protected: {
         wall: [100, 500],
         television: [750, 450],
-        vase: [370, 305],
-        "plant pot": [935, 300],
-        books: [1090, 420],
-        basket: [1100, 610],
+        spotlight: [373, 243],
         hardware: [415, 682]
       },
       wood: {
-        "shelf backing": [700, 250]
+        "shelf backing": [700, 250],
+        "wood revealed behind former vase": [370, 305],
+        "wood revealed behind former plant": [935, 300],
+        "wood revealed behind former books": [1090, 420],
+        "wood revealed behind former basket": [1100, 610]
       }
     },
     {
@@ -2073,18 +2075,40 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       product: "Window Storage",
       category: "window-storage",
       style: "window-seat-storage",
-      maskAsset: "assets/photos/configurator/integrated/window-storage/window-seat-storage/right-niche-finish-mask-v3.png",
+      maskAsset: "assets/photos/configurator/integrated/window-storage/window-seat-storage/right-niche-finish-mask-v4.png",
       protected: {
         wall: [100, 500],
-        window: [1020, 260],
-        vase: [300, 270],
-        books: [385, 270],
-        cushion: [1025, 500],
-        plant: [600, 650],
+        window: [700, 400],
+        cushion: [700, 700],
         hardware: [515, 789]
       },
       wood: {
-        "cabinet face": [300, 750]
+        "cabinet face": [300, 750],
+        "wood revealed behind former vase": [300, 270],
+        "wood revealed behind former books": [385, 270]
+      }
+    },
+    {
+      context: "Window Storage / Corner Wall brass pulls",
+      product: "Window Storage",
+      category: "window-storage",
+      style: "window-seat-storage",
+      layoutLabel: "Corner Wall",
+      layoutId: "corner-wall",
+      maskAsset: "assets/photos/configurator/integrated/window-storage/window-seat-storage/corner-wall-finish-mask-v4.png",
+      protected: {
+        wall: [900, 400],
+        window: [600, 400],
+        cushion: [700, 700],
+        "second left brass pull": [610, 791],
+        "third left brass pull": [790, 766],
+        "middle right brass pull": [1075, 798]
+      },
+      wood: {
+        "wood revealed behind removed fabric throw": [500, 780],
+        "left drawer front": [600, 820],
+        "left shelf backing": [200, 400],
+        "right shelf backing": [1300, 450]
       }
     },
     {
@@ -2092,11 +2116,11 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       product: "Radiator Cover",
       category: "radiator-cover",
       style: "clean-slat-cover",
-      maskAsset: "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/right-niche-finish-mask-v3.png",
+      maskAsset: "assets/photos/configurator/integrated/radiator-cover/clean-slat-cover/right-niche-finish-mask-v4.png",
       protected: {
         wall: [1100, 700],
-        vase: [285, 545],
-        bowl: [900, 565],
+        "air above the former vase": [285, 545],
+        "air above the former bowl": [900, 565],
         "grille gap": [306, 680],
         "vent gap": [500, 866]
       },
@@ -2110,16 +2134,35 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       product: "Drawers + Shelves",
       category: "bookcase",
       style: "drawer-base-shelves",
-      maskAsset: "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v3.png",
+      maskAsset: "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v4.png",
       protected: {
         wall: [100, 500],
-        vase: [510, 250],
-        books: [420, 350],
         hardware: [490, 690]
       },
       wood: {
         "shelf backing": [700, 250],
+        "wood revealed behind former vase": [510, 250],
+        "wood revealed behind former books": [420, 350],
         "drawer front": [700, 700]
+      }
+    },
+    {
+      context: "Cabinets + Shelves / Right Niche hardware and light control",
+      product: "Cabinets + Shelves",
+      category: "bookcase",
+      style: "cabinet-base-shelves",
+      maskAsset: "assets/photos/configurator/integrated/bookcase/cabinet-base-shelves/right-niche-finish-mask-v4.png",
+      protected: {
+        wall: [100, 500],
+        "left cabinet knob": [510, 682],
+        "right cabinet knob": [1001, 682],
+        "shelf light emitter": [500, 170]
+      },
+      wood: {
+        "shelf backing": [700, 250],
+        "wood revealed behind former styling": [1180, 610],
+        "cabinet door": [700, 760],
+        plinth: [700, 875]
       }
     },
     {
@@ -2129,17 +2172,17 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       style: "cabinet-base-shelves",
       layoutLabel: "Clear Wall",
       layoutId: "clear-wall",
-      maskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v3.png",
+      maskAsset: "assets/photos/configurator/furniture/bookcase/cabinet-base-shelves/clear-wall-finish-mask-v4.png",
       protected: {
         room: [100, 500],
-        vase: [520, 215],
-        artwork: [640, 300],
-        plant: [500, 390],
-        basket: [1000, 500],
         hardware: [575, 558]
       },
       wood: {
         "shelf backing": [700, 250],
+        "wood revealed behind former vase": [520, 215],
+        "wood revealed behind former artwork": [640, 300],
+        "wood revealed behind former plant": [500, 390],
+        "wood revealed behind former basket": [1000, 500],
         "cabinet door": [700, 650]
       }
     },
@@ -2150,15 +2193,15 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       style: "drawer-base-shelves",
       layoutLabel: "Clear Wall",
       layoutId: "clear-wall",
-      maskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v3.png",
+      maskAsset: "assets/photos/configurator/furniture/bookcase/drawer-base-shelves/clear-wall-finish-mask-v4.png",
       protected: {
         room: [100, 500],
-        vase: [840, 210],
-        books: [470, 310],
         hardware: [530, 597]
       },
       wood: {
         "shelf backing": [700, 250],
+        "wood revealed behind former vase": [840, 210],
+        "wood revealed behind former books": [470, 310],
         "drawer front": [700, 640]
       }
     },
@@ -2169,15 +2212,15 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       style: "full-open-shelving",
       layoutLabel: "Clear Wall",
       layoutId: "clear-wall",
-      maskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v3.png",
+      maskAsset: "assets/photos/configurator/furniture/bookcase/full-open-shelving/clear-wall-finish-mask-v4.png",
       protected: {
-        room: [100, 500],
-        vase: [960, 210],
-        books: [535, 295],
-        decor: [565, 480]
+        room: [100, 500]
       },
       wood: {
         "shelf backing": [700, 250],
+        "wood revealed behind former vase": [960, 210],
+        "wood revealed behind former books": [535, 295],
+        "wood revealed behind former decor": [565, 480],
         base: [700, 650]
       }
     },
@@ -2188,17 +2231,17 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       style: "cabinet-base-shelves",
       layoutLabel: "Between Openings",
       layoutId: "double-opening",
-      maskAsset: "assets/photos/configurator/concept-cabinets-shelves-between-openings-finish-mask-v3.png",
+      maskAsset: "assets/photos/configurator/concept-cabinets-shelves-between-openings-finish-mask-v4.png",
       protected: {
         wall: [200, 500],
-        vase: [495, 255],
-        bowl: [865, 370],
-        plant: [470, 468],
-        basket: [1020, 570],
         hardware: [554, 635]
       },
       wood: {
-        "top shelf face": [600, 210],
+        "top shelf face": [600, 295],
+        "wood revealed behind former vase": [495, 255],
+        "wood revealed behind former bowl": [865, 370],
+        "wood revealed behind former plant": [470, 468],
+        "wood revealed behind former basket": [1020, 570],
         "cabinet face": [600, 700]
       }
     },
@@ -2209,17 +2252,17 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       style: "drawer-base-shelves",
       layoutLabel: "Between Openings",
       layoutId: "double-opening",
-      maskAsset: "assets/photos/configurator/concept-drawers-shelves-between-openings-finish-mask-v3.png",
+      maskAsset: "assets/photos/configurator/concept-drawers-shelves-between-openings-finish-mask-v4.png",
       protected: {
         wall: [200, 500],
-        vase: [525, 260],
-        bowl: [865, 380],
-        decor: [1015, 480],
-        basket: [1010, 585],
         hardware: [515, 667]
       },
       wood: {
-        "top shelf face": [600, 215],
+        "top shelf face": [600, 295],
+        "wood revealed behind former vase": [525, 260],
+        "wood revealed behind former bowl": [865, 380],
+        "wood revealed behind former decor": [1015, 480],
+        "wood revealed behind former basket": [1010, 585],
         "drawer face": [600, 700]
       }
     },
@@ -2230,16 +2273,16 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
       style: "full-open-shelving",
       layoutLabel: "Between Openings",
       layoutId: "double-opening",
-      maskAsset: "assets/photos/configurator/concept-full-shelving-between-openings-finish-mask-v3.png",
+      maskAsset: "assets/photos/configurator/concept-full-shelving-between-openings-finish-mask-v4.png",
       protected: {
-        wall: [200, 500],
-        plant: [410, 380],
-        bowl: [770, 470],
-        "left basket": [550, 660],
-        "right basket": [1100, 750]
+        wall: [200, 500]
       },
       wood: {
         "middle shelf face": [500, 615],
+        "wood revealed behind former plant": [410, 380],
+        "wood revealed behind former bowl": [770, 470],
+        "wood revealed behind former left basket": [550, 660],
+        "wood revealed behind former right basket": [1100, 750],
         base: [800, 800]
       }
     }
@@ -2281,6 +2324,55 @@ test("Step 4 finish masks select cabinet material without recoloring protected s
   }
 
   expect(runtime.filter((failure) => !failure.includes("net::ERR_ABORTED"))).toEqual([]);
+});
+
+test("Full Open Shelving Door Wall stays empty with a continuous Sage Gray wood finish", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await openFreshProject(page);
+  await continueToLayouts(page, "Full Open Shelving");
+  await chooseLayout(page, "Door Wall");
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+  await page.getByRole("button", { name: "Sage Gray", exact: true }).click();
+
+  const maskAsset = "assets/photos/configurator/integrated/bookcase/full-open-shelving/door-wall-finish-mask-v4.png";
+  const preview = page.locator(
+    '.concept-preview[data-category="bookcase"]'
+    + '[data-style="full-open-shelving"][data-layout="door-wall"]'
+  );
+  await expect(preview).toHaveAttribute("data-finish", "sage-gray");
+  await expect(preview).toHaveAttribute(
+    "data-preview-asset",
+    "assets/photos/configurator/integrated/bookcase/full-open-shelving/door-wall-v2.png"
+  );
+  await expectAssetFinishMaskSemantics(preview, {
+    maskAsset,
+    protected: {
+      "left room wall": [100, 500],
+      door: [760, 500],
+      floor: [760, 900]
+    },
+    wood: {
+      "left shelf backing": [350, 300],
+      "right shelf backing": [1120, 300],
+      "left lower shelf": [350, 680],
+      "right lower shelf": [1120, 680]
+    }
+  }, "Full Open Shelving / Door Wall / Sage Gray");
+
+  const photo = preview.locator("img.concept-photo");
+  await expect.poll(() => photo.evaluate((image) => (
+    image.complete && image.naturalWidth === 1536 && image.naturalHeight === 1024
+  ))).toBe(true);
+  await page.locator("[data-guided-toast]").evaluate((element) => {
+    element.style.visibility = "hidden";
+  });
+  await expect(preview.locator("[data-concept-scene]")).toHaveScreenshot(
+    "empty-full-open-door-wall-sage-gray-step4-1024x768.png",
+    { animations: "disabled", maxDiffPixelRatio: 0.001 }
+  );
 });
 
 test("Drawers + Shelves Right Niche stays one-screen and completely framed through every preview state", async ({ page }) => {
@@ -2368,11 +2460,11 @@ test("Drawers + Shelves Right Niche stays one-screen and completely framed throu
       await expect(preview.locator("[data-concept-scene]")).toHaveCSS("--preview-scale", "1.1");
       await expect(preview).toHaveAttribute(
         "data-preview-asset",
-        "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-v2.png"
+        "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-v3.png"
       );
       await expect(preview.locator("svg.concept-finish-overlay mask image")).toHaveAttribute(
         "href",
-        "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v3.png"
+        "assets/photos/configurator/integrated/bookcase/drawer-base-shelves/right-niche-finish-mask-v4.png"
       );
       await page.getByRole("button", { name: "Reset preview" }).click();
       await expect(preview.locator("[data-concept-scene]")).toHaveCSS("--preview-scale", "1");

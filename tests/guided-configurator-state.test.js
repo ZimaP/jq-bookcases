@@ -672,6 +672,50 @@ test("every public Bookcase construction maps to the selected room scene", async
   assert.equal(radiatorConcept.mediaHeight, 1024);
 });
 
+test("Step 1 Bookcase product cards use the empty v2 artwork cohort", async () => {
+  const expectedCardAssets = new Map([
+    ["cabinet-shelves", "assets/photos/configurator/concept-cabinets-shelves-v2.png"],
+    ["drawer-shelves", "assets/photos/configurator/concept-drawers-shelves-v2.png"],
+    ["open-shelving", "assets/photos/configurator/concept-full-shelving-v2.png"]
+  ]);
+  const retiredPropFilledAssets = new Set([
+    "assets/photos/configurator/concept-cabinets-shelves-v1.png",
+    "assets/photos/configurator/concept-drawers-shelves-v1.png",
+    "assets/photos/configurator/concept-full-shelving-v1.png"
+  ]);
+  const bookcaseCategory = categoryById("bookcase");
+  const activeCardAssets = [];
+
+  for (const choice of PRODUCT_CHOICES.filter(({ categoryId }) => categoryId === "bookcase")) {
+    const style = bookcaseCategory.styles.find(({ id }) => id === choice.styleId);
+    const cardAsset = style?.previewAsset || bookcaseCategory.productPreviewAsset;
+    const expectedAsset = expectedCardAssets.get(choice.id);
+
+    assert.equal(cardAsset, expectedAsset, `${choice.label} uses its reviewed empty-shelf card`);
+    assert.equal(retiredPropFilledAssets.has(cardAsset), false, `${choice.label} rejects prop-filled v1 artwork`);
+    assert.doesNotMatch(cardAsset, /-v1\.png$/, `${choice.label} is cache-safe`);
+
+    const png = await readFile(new URL(`../${cardAsset}`, import.meta.url));
+    const avif = await readFile(new URL(`../${cardAsset.replace(/\.png$/, ".avif")}`, import.meta.url));
+    assert.ok(png.byteLength > 10_000, `${choice.label} empty-shelf PNG is present`);
+    assert.ok(avif.byteLength > 10_000, `${choice.label} empty-shelf AVIF is present`);
+    activeCardAssets.push(cardAsset);
+  }
+
+  assert.deepEqual(activeCardAssets, [...expectedCardAssets.values()]);
+  assert.equal(bookcaseCategory.productPreviewAsset, expectedCardAssets.get("cabinet-shelves"));
+
+  const configuratorHtml = await readFile(new URL("../configurator.html", import.meta.url), "utf8");
+  assert.match(
+    configuratorHtml,
+    /rel="preload" href="assets\/photos\/configurator\/concept-cabinets-shelves-v2\.avif"/,
+    "the initial Step 1 preload uses the empty Cabinets + Shelves card"
+  );
+  for (const retiredAsset of retiredPropFilledAssets) {
+    assert.doesNotMatch(configuratorHtml, new RegExp(retiredAsset.replace(".png", "\\.(?:png|avif)")));
+  }
+});
+
 test("the seven product cards resolve to seventy exact product and room scenes", async () => {
   assert.deepEqual(
     PRODUCT_CHOICES.map(({ id, label, categoryId, styleId }) => ({ id, label, categoryId, styleId })),
@@ -705,6 +749,12 @@ test("the seven product cards resolve to seventy exact product and room scenes",
       const expectedAsset = productMatrix[layout.id];
       const presentation = resolvePreviewPresentation(choice.categoryId, choice.styleId, layout.id);
 
+      assert.doesNotMatch(
+        expectedAsset,
+        /-v1\.png$/,
+        `${previewKey} uses the cache-safe empty-shelf asset cohort`
+      );
+
       assert.equal(presentation.previewKey, previewKey);
       assert.equal(presentation.categoryId, choice.categoryId);
       assert.equal(presentation.styleId, choice.styleId);
@@ -733,6 +783,11 @@ test("the seven product cards resolve to seventy exact product and room scenes",
       }
 
       if (presentation.finishMaskMode === "asset") {
+        assert.match(
+          presentation.finishMaskAsset,
+          /-finish-mask-v4\.png$/,
+          `${previewKey} uses the empty-shelf wood-only mask cohort`
+        );
         const finishMask = await readFile(
           new URL(`../${presentation.finishMaskAsset}`, import.meta.url)
         );
@@ -790,11 +845,11 @@ test("preview presentations expose truthful media contracts for all seventy sele
   assert.equal(betweenOpenings.layoutLabel, "Between Openings");
   assert.equal(
     betweenOpenings.conceptAsset,
-    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png"
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v3.png"
   );
   assertIntegratedPresentation(
     betweenOpenings,
-    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v2.png",
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v3.png",
     betweenOpenings.previewKey
   );
 
