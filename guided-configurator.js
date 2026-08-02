@@ -69,184 +69,6 @@ const BOOKCASE_CONFIGURATION_DEFAULTS = Object.freeze({
   })
 });
 
-const CONCEPT_FINISH_MASKS = Object.freeze({
-  "concept-cabinets-shelves-v1.png": Object.freeze({
-    viewBox: "0 0 1254 1254",
-    width: 1254,
-    height: 1254,
-    rectangles: Object.freeze([
-      [195, 82, 872, 76],
-      [195, 112, 55, 596],
-      [615, 112, 39, 596],
-      [1016, 112, 55, 596],
-      [205, 112, 850, 34],
-      [222, 280, 804, 24],
-      [222, 414, 804, 24],
-      [222, 548, 804, 24],
-      [222, 680, 804, 28],
-      [194, 694, 880, 325]
-    ])
-  }),
-  "concept-drawers-shelves-v1.png": Object.freeze({
-    viewBox: "0 0 1448 1086",
-    width: 1448,
-    height: 1086,
-    rectangles: Object.freeze([
-      [221, 38, 1048, 98],
-      [220, 96, 46, 615],
-      [714, 96, 36, 615],
-      [1218, 96, 49, 615],
-      [248, 98, 985, 34],
-      [250, 241, 979, 25],
-      [250, 386, 979, 25],
-      [250, 532, 979, 25],
-      [250, 684, 979, 29],
-      [204, 700, 1084, 289]
-    ])
-  }),
-  "concept-full-shelving-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [177, 59, 1173, 68],
-      [193, 108, 39, 782],
-      [568, 108, 39, 782],
-      [945, 108, 38, 782],
-      [1305, 108, 42, 782],
-      [211, 108, 1118, 34],
-      [224, 245, 1081, 25],
-      [224, 371, 1081, 25],
-      [224, 497, 1081, 25],
-      [224, 620, 1081, 25],
-      [224, 741, 1081, 25],
-      [224, 865, 1081, 27],
-      [193, 872, 1144, 55]
-    ])
-  }),
-  "concept-tv-wall-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [166, 53, 1227, 75],
-      [174, 103, 43, 543],
-      [480, 103, 38, 543],
-      [906, 103, 39, 543],
-      [1334, 103, 43, 543],
-      [196, 103, 1155, 39],
-      [200, 245, 1149, 25],
-      [200, 373, 301, 25],
-      [929, 373, 420, 25],
-      [200, 503, 301, 25],
-      [929, 503, 420, 25],
-      [493, 339, 465, 30],
-      [493, 339, 28, 306],
-      [930, 339, 28, 306],
-      [493, 615, 465, 30],
-      [200, 631, 1149, 21],
-      [157, 643, 1231, 286]
-    ])
-  }),
-  "concept-window-cabinets-v1.png": Object.freeze({
-    viewBox: "0 0 1448 1086",
-    width: 1448,
-    height: 1086,
-    rectangles: Object.freeze([
-      [107, 75, 1233, 81],
-      [109, 120, 45, 635],
-      [436, 120, 42, 635],
-      [977, 120, 42, 635],
-      [1294, 120, 45, 635],
-      [117, 120, 1215, 36],
-      [126, 286, 326, 24],
-      [998, 286, 322, 24],
-      [126, 438, 326, 24],
-      [998, 438, 322, 24],
-      [126, 587, 326, 24],
-      [998, 587, 322, 24],
-      [126, 738, 326, 24],
-      [998, 738, 322, 24],
-      [97, 748, 1253, 219]
-    ])
-  }),
-  "concept-cabinets-shelves-between-openings-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [369, 148, 794, 58],
-      [365, 183, 37, 417],
-      [758, 183, 31, 417],
-      [1127, 183, 37, 417],
-      [390, 184, 750, 27],
-      [392, 290, 744, 22],
-      [392, 397, 744, 22],
-      [392, 496, 744, 22],
-      [365, 594, 799, 207],
-      [365, 782, 799, 20]
-    ])
-  }),
-  "concept-drawers-shelves-between-openings-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [389, 147, 756, 58],
-      [389, 187, 33, 431],
-      [746, 187, 31, 431],
-      [1113, 187, 33, 431],
-      [410, 189, 711, 26],
-      [411, 299, 708, 22],
-      [411, 404, 708, 22],
-      [411, 500, 708, 22],
-      [389, 612, 757, 176],
-      [389, 770, 757, 20]
-    ])
-  }),
-  "concept-full-shelving-between-openings-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [324, 168, 885, 50],
-      [332, 198, 34, 594],
-      [620, 198, 31, 594],
-      [890, 198, 31, 594],
-      [1175, 198, 34, 594],
-      [352, 199, 835, 25],
-      [354, 305, 830, 21],
-      [354, 407, 830, 21],
-      [354, 500, 830, 21],
-      [354, 599, 830, 21],
-      [354, 690, 830, 21],
-      [354, 779, 830, 21],
-      [332, 787, 877, 29]
-    ])
-  }),
-  "product-floating-storage-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [241, 484, 1065, 25],
-      [241, 484, 28, 66],
-      [1278, 484, 28, 66],
-      [269, 532, 1009, 20],
-      [190, 548, 1142, 217]
-    ])
-  }),
-  "product-radiator-cover-v1.png": Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    rectangles: Object.freeze([
-      [113, 389, 1307, 31],
-      [126, 414, 1277, 426]
-    ])
-  })
-});
-
 const app = document.querySelector("[data-guided-app]");
 const store = createProjectStore();
 const quoteEndpointMeta = document.querySelector('meta[name="jq-quote-endpoint"]');
@@ -412,11 +234,10 @@ function scheduleLikelyNextStepImages() {
 function preloadPreviewAsset(asset) {
   if (!asset) return;
 
-  const generatedFinishMask = resolveGeneratedIntegratedFinishMask(asset)?.maskAsset;
-  const sources = [
-    optimizedImageAsset(asset),
-    generatedFinishMask
-  ].filter(Boolean);
+  const optimizedSource = assetSupportsOptimizedVersion(asset)
+    ? optimizedImageAsset(asset)
+    : asset;
+  const sources = [optimizedSource];
 
   for (const source of sources) {
     if (previewPreloadCache.has(source)) continue;
@@ -425,6 +246,13 @@ function preloadPreviewAsset(asset) {
     image.decoding = "async";
     image.src = source;
   }
+}
+
+function assetSupportsOptimizedVersion(asset) {
+  const source = String(asset || "");
+  return source.endsWith(".png")
+    && !source.includes("/furniture/")
+    && !source.includes("-finish-mask-");
 }
 
 function optimizedImageAsset(asset) {
@@ -460,6 +288,24 @@ function renderOptimizedPicture(asset, options = {}) {
         ${fetchPriority}${style}
       >
     </picture>
+  `;
+}
+
+function renderPngImage(asset, options = {}) {
+  const imageClass = ["guided-picture-image", options.imageClass].filter(Boolean).join(" ");
+  const loading = options.loading === "eager" ? "eager" : "lazy";
+  const fetchPriority = options.fetchPriority ? ` fetchpriority="${escapeAttribute(options.fetchPriority)}"` : "";
+
+  return `
+    <img
+      class="${escapeAttribute(imageClass)}"
+      src="${escapeAttribute(asset)}"
+      alt=""
+      loading="${loading}"
+      decoding="async"
+      ${fetchPriority}
+      aria-hidden="true"
+    >
   `;
 }
 
@@ -556,7 +402,7 @@ function renderProductStep() {
               ${renderOptimizedPicture(style.previewAsset || category.productPreviewAsset, {
                 loading: "eager",
                 fetchPriority: index === 0 ? "high" : "low",
-                style: "object-position:50% 50%"
+                style: `object-position:${choice.previewPosition || "50% 50%"}`
               })}
             </span>
             <span class="product-card-copy">
@@ -802,7 +648,7 @@ function renderMeasurementStep() {
   const diagramFieldIds = new Set(
     selectMeasurementDiagramFields(fields, selectedLayout).map((field) => field.id)
   );
-  const denseMeasurements = fields.length > 9;
+  const denseMeasurements = fields.length > 8;
   const validation = validateMeasurements(project);
   let previousGroup = "";
 
@@ -817,35 +663,39 @@ function renderMeasurementStep() {
 
   return `
     <div class="measurement-layout${denseMeasurements ? " measurement-layout--dense" : ""}">
-      <section
-        class="measurement-panel${denseMeasurements ? " measurement-panel--dense" : ""}"
-        data-measurement-field-count="${fields.length}"
-        aria-label="Approximate room measurements"
-      >
-        <h2 class="measurement-panel-title">Selected Layout</h2>
-        <p class="selected-layout-chip">
-          ${renderCategoryIcon(getCategory(project.category).icon)}
-          <span>${escapeHtml(selectedLayout?.label || "Select a layout")}</span>
-        </p>
-        <p class="measurement-format-hint visually-hidden">Use inches. Decimals and common fractions are welcome.</p>
-        <div class="measurement-fields">${fieldMarkup}</div>
-        <p class="measurement-error" data-measurement-error role="alert" ${validation.errors.length ? "" : "hidden"}>
-          ${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}
-        </p>
-      </section>
-      ${renderMeasurementDiagram(selectMeasurementDiagramFields(fields, selectedLayout), selectedLayout)}
-    </div>
-    <aside class="guided-info">
-      <i data-icon="information" aria-hidden="true"></i>
-      <span>Don’t worry if your measurements are approximate — our team can confirm detail before production.</span>
-    </aside>
-    <div class="guided-actions">
-      <button class="guided-button guided-button-secondary" type="button" data-back>
-        <i data-icon="chevron-left" aria-hidden="true"></i> Back
-      </button>
-      <button class="guided-button guided-button-primary" type="button" data-continue>
-        Continue <i data-icon="arrow-right" aria-hidden="true"></i>
-      </button>
+      <div class="measurement-controls-column">
+        <section
+          class="measurement-panel${denseMeasurements ? " measurement-panel--dense" : ""}"
+          data-measurement-field-count="${fields.length}"
+          aria-label="Approximate room measurements"
+        >
+          <h2 class="measurement-panel-title">Selected Layout</h2>
+          <p class="selected-layout-chip">
+            ${renderCategoryIcon(getCategory(project.category).icon)}
+            <span>${escapeHtml(selectedLayout?.label || "Select a layout")}</span>
+          </p>
+          <p class="measurement-format-hint visually-hidden">Use inches. Decimals and common fractions are welcome.</p>
+          <div class="measurement-fields">${fieldMarkup}</div>
+          <p class="measurement-error" data-measurement-error role="alert" ${validation.errors.length ? "" : "hidden"}>
+            ${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}
+          </p>
+        </section>
+        <aside class="guided-info">
+          <i data-icon="information" aria-hidden="true"></i>
+          <span>Don’t worry if your measurements are approximate — our team can confirm detail before production.</span>
+        </aside>
+        <div class="guided-actions">
+          <button class="guided-button guided-button-secondary" type="button" data-back>
+            <i data-icon="chevron-left" aria-hidden="true"></i> Back
+          </button>
+          <button class="guided-button guided-button-primary" type="button" data-continue>
+            Continue <i data-icon="arrow-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      <div class="measurement-diagram-column">
+        ${renderMeasurementDiagram(selectMeasurementDiagramFields(fields, selectedLayout), selectedLayout)}
+      </div>
     </div>
   `;
 }
@@ -951,7 +801,14 @@ function renderMeasurementDiagram(fields, selectedLayout) {
   ) ? '<span class="measurement-feature" aria-hidden="true"></span>' : "";
 
   return `
-    <figure class="measurement-diagram-card" aria-label="Measurement diagram for ${escapeAttribute(selectedLayout?.label || "selected layout")}">
+    <figure
+      class="measurement-diagram-card"
+      data-media-fit="${escapeAttribute(diagramSpec.mediaFit)}"
+      data-media-aspect-ratio="${escapeAttribute(diagramSpec.mediaAspectRatio)}"
+      data-media-position="${escapeAttribute(diagramSpec.mediaObjectPosition)}"
+      style="--measurement-media-aspect-ratio:${escapeAttribute(diagramSpec.mediaAspectRatio)};--measurement-media-position:${escapeAttribute(diagramSpec.mediaObjectPosition)}"
+      aria-label="Measurement diagram for ${escapeAttribute(selectedLayout?.label || "selected layout")}"
+    >
       <div
         class="measurement-room measurement-room--photo"
         data-layout="${escapeAttribute(selectedLayout?.id || "clear-wall")}"
@@ -1306,6 +1163,17 @@ function renderConceptPreview() {
   const hardware = DETAIL_OPTIONS.hardware.find((option) => option.id === project.hardware);
   const doorCount = category.id === "floating-storage" ? 5 : category.id === "window-storage" ? 6 : 4;
   const previewScope = conceptPreviewScope(category, layout, selectedStyle, previewPresentation);
+  const layeredRoomPresentation = previewPresentation.renderMode === "room-plus-furniture";
+  const installationEnvelope = previewPresentation.installationEnvelope
+    ? JSON.stringify(previewPresentation.installationEnvelope)
+    : "";
+  const layeredDataAttributes = layeredRoomPresentation
+    ? `
+      data-room-asset="${escapeAttribute(previewPresentation.roomAsset)}"
+      data-furniture-asset="${escapeAttribute(previewPresentation.furnitureAsset)}"
+      data-installation-envelope="${escapeAttribute(installationEnvelope)}"
+    `
+    : "";
 
   return `
     <figure
@@ -1317,10 +1185,17 @@ function renderConceptPreview() {
       data-finish="${escapeAttribute(finish.id)}"
       data-finish-family="${escapeAttribute(finish.family)}"
       data-preview-asset="${escapeAttribute(previewPresentation.conceptAsset)}"
+      ${layeredDataAttributes}
+      data-authored-layout="${escapeAttribute(previewPresentation.authoredLayoutId || "")}"
       data-layout-context-asset="${escapeAttribute(previewPresentation.layoutContextAsset || "")}"
       data-preview-render-mode="${escapeAttribute(previewPresentation.renderMode)}"
       data-preview-scope="${escapeAttribute(previewScope.id)}"
-      style="--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)}"
+      data-media-fit="${escapeAttribute(previewPresentation.mediaFit)}"
+      data-media-aspect-ratio="${escapeAttribute(previewPresentation.mediaAspectRatio)}"
+      data-media-position="${escapeAttribute(previewPresentation.mediaObjectPosition)}"
+      data-finish-mask-mode="${escapeAttribute(previewPresentation.finishMaskMode || "none")}"
+      data-finish-mask-asset="${escapeAttribute(previewPresentation.finishMaskAsset || "")}"
+      style="--finish-color:${escapeAttribute(finish.color)};--finish-tint-opacity:${escapeAttribute(finishPreview.tintOpacity ?? 0)};--finish-tone-color:${escapeAttribute(finishPreview.toneColor || "transparent")};--finish-tone-blend:${escapeAttribute(finishPreview.toneBlend || "normal")};--finish-tone-opacity:${escapeAttribute(finishPreview.toneOpacity ?? 0)};--concept-media-aspect-ratio:${escapeAttribute(previewPresentation.mediaAspectRatio)};--concept-media-position:${escapeAttribute(previewPresentation.mediaObjectPosition)}"
       aria-label="${escapeAttribute(`${selectedProduct?.label || selectedStyle.label} for ${layout?.label || category.label} in ${finish.label}`)}"
     >
       <div class="concept-preview-meta">
@@ -1414,7 +1289,7 @@ function renderConceptFinishOverlay(previewAsset, options = {}) {
     <svg
       class="concept-finish-overlay"
       viewBox="${definition.viewBox || "0 0 1536 1024"}"
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio="${escapeAttribute(previewPresentation.mediaSvgPreserveAspectRatio)}"
       aria-hidden="true"
       focusable="false"
     >
@@ -1429,7 +1304,14 @@ function renderConceptFinishOverlay(previewAsset, options = {}) {
           height="${definition.height || 1024}"
           style="mask-type: luminance"
         >
-          ${maskContents}
+          <image
+            href="${escapeAttribute(definition.maskAsset)}"
+            x="0"
+            y="0"
+            width="${definition.width || 1536}"
+            height="${definition.height || 1024}"
+            preserveAspectRatio="none"
+          ></image>
         </mask>
       </defs>
       <rect
@@ -1448,22 +1330,8 @@ function renderConceptFinishOverlay(previewAsset, options = {}) {
   `;
 }
 
-function resolveGeneratedIntegratedFinishMask(previewAsset) {
-  const match = String(previewAsset || "").match(
-    /integrated\/([^/]+)\/([^/]+)\/([^/]+)-v1\.png$/
-  );
-  if (!match) return null;
-
-  return Object.freeze({
-    viewBox: "0 0 1536 1024",
-    width: 1536,
-    height: 1024,
-    maskAsset: String(previewAsset).replace(/-v1\.png$/, "-finish-mask-v1.png")
-  });
-}
-
 function conceptPreviewScope(category, layout, selectedStyle, previewPresentation) {
-  if (previewPresentation.renderMode === "integrated") {
+  if (["integrated", "room-plus-furniture"].includes(previewPresentation.renderMode)) {
     return { id: "layout-and-configuration", label: "Layout + configuration reference" };
   }
   if (previewPresentation.renderMode === "missing-integrated-scene") {
@@ -1904,7 +1772,7 @@ function updateProject(patch) {
 
 function updatePreviewScale(action) {
   if (action === "in") previewScale = Math.min(1.2, previewScale + 0.1);
-  else if (action === "out") previewScale = Math.max(0.8, previewScale - 0.1);
+  else if (action === "out") previewScale = Math.max(1, previewScale - 0.1);
   else previewScale = 1;
   guidedSceneController?.zoom(action);
   applyPreviewScale();
@@ -1915,6 +1783,14 @@ function applyPreviewScale() {
     scene.style.setProperty(
       "--preview-scale",
       scene.dataset.guided3dState === "ready" ? "1" : String(previewScale)
+    );
+  });
+  app?.querySelectorAll("[data-preview-zoom]").forEach((button) => {
+    const action = button.dataset.previewZoom;
+    button.disabled = (
+      (action === "out" && previewScale <= 1)
+      || (action === "in" && previewScale >= 1.2)
+      || (action === "reset" && previewScale === 1)
     );
   });
 }

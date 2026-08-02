@@ -1,0 +1,671 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Authored exclusion geometry for wood-only finish masks. Every coordinate is in the original PNG source space.",
+  "coordinateFormat": {
+    "rectangle": "[x, y, width, height]",
+    "ellipse": "[left, top, right, bottom]",
+    "polygon": "[[x1, y1], [x2, y2], ...]"
+  },
+  "coverage": {
+    "reviewedSourceMaskPairs": 16,
+    "tvIntegratedPairs": 9,
+    "genericPairs": 7,
+    "reviewedClasses": [
+      "books",
+      "pottery",
+      "plants",
+      "baskets",
+      "artwork",
+      "electronics",
+      "hardware",
+      "direct-light emitters",
+      "wall spill",
+      "floor spill"
+    ]
+  },
+  "entries": {
+    "integrated/tv-unit/framed-tv-wall/niche-layout-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "top-left stacked books", "xywh": [344, 246, 101, 36]},
+        {"label": "top-right stacked books", "xywh": [1074, 246, 108, 36]},
+        {"label": "left upright books", "xywh": [307, 406, 88, 83]},
+        {"label": "left bottom stacked books", "xywh": [337, 624, 108, 40]},
+        {"label": "right upper stacked books", "xywh": [1068, 344, 94, 40]},
+        {"label": "right upright books", "xywh": [1052, 407, 78, 83]},
+        {"label": "right bottom stacked books", "xywh": [1092, 621, 112, 44]},
+        {"label": "television and bezel", "xywh": [528, 349, 475, 270]},
+        {"label": "soundbar", "xywh": [643, 622, 243, 39]},
+        {"label": "left top LED emitter core", "xywh": [296, 297, 172, 2]},
+        {"label": "center top LED emitter core", "xywh": [481, 292, 541, 2]},
+        {"label": "right top LED emitter core", "xywh": [1050, 297, 176, 2]},
+        {"label": "left middle LED emitter core", "xywh": [297, 393, 172, 2]},
+        {"label": "right middle LED emitter core", "xywh": [1051, 394, 175, 2]},
+        {"label": "left lower LED emitter core", "xywh": [297, 495, 172, 2]},
+        {"label": "right lower LED emitter core", "xywh": [1052, 496, 175, 2]}
+      ],
+      "ellipses": [
+        {"label": "top-center bowl", "bounds": [554, 239, 666, 283]},
+        {"label": "top-center tall vase", "bounds": [862, 215, 920, 284]},
+        {"label": "top-center round vase", "bounds": [914, 220, 978, 284]},
+        {"label": "left upper bowl", "bounds": [349, 338, 446, 384]},
+        {"label": "left middle vase", "bounds": [396, 420, 456, 491]},
+        {"label": "left lower bowl", "bounds": [327, 540, 416, 599]},
+        {"label": "right middle vase", "bounds": [1127, 430, 1190, 491]},
+        {"label": "cabinet knob 1", "bounds": [428, 679, 444, 695]},
+        {"label": "cabinet knob 2", "bounds": [583, 679, 599, 695]},
+        {"label": "cabinet knob 3", "bounds": [602, 679, 618, 695]},
+        {"label": "cabinet knob 4", "bounds": [900, 679, 916, 695]},
+        {"label": "cabinet knob 5", "bounds": [917, 679, 933, 695]},
+        {"label": "cabinet knob 6", "bounds": [1076, 679, 1092, 695]}
+      ],
+      "polygons": [],
+      "coverageWarnings": []
+    },
+    "integrated/tv-unit/framed-tv-wall/left-niche-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "left middle upright books", "xywh": [457, 382, 53, 85]},
+        {"label": "left lower warm book", "xywh": [452, 571, 57, 63]},
+        {"label": "right lower upright books", "xywh": [1163, 530, 100, 111]},
+        {"label": "television and bezel", "xywh": [564, 354, 469, 265]},
+        {"label": "left top LED emitter core", "xywh": [398, 248, 108, 2]},
+        {"label": "right top LED emitter core", "xywh": [1088, 249, 126, 2]},
+        {"label": "left middle LED emitter core", "xywh": [398, 359, 108, 2]},
+        {"label": "right middle LED emitter core", "xywh": [1089, 360, 125, 2]},
+        {"label": "left lower LED emitter core", "xywh": [398, 475, 108, 2]},
+        {"label": "right lower LED emitter core", "xywh": [1089, 476, 125, 2]}
+      ],
+      "ellipses": [
+        {"label": "left top vase", "bounds": [393, 263, 484, 348]},
+        {"label": "top dark bowl", "bounds": [717, 270, 838, 321]},
+        {"label": "top plant pot", "bounds": [910, 291, 956, 322]},
+        {"label": "right top vase", "bounds": [1134, 268, 1200, 345]},
+        {"label": "left middle plant pot", "bounds": [403, 429, 455, 468]},
+        {"label": "right middle plant pot", "bounds": [1148, 432, 1206, 469]},
+        {"label": "left lower bowl", "bounds": [368, 568, 485, 642]},
+        {"label": "right lower dark vessel", "bounds": [1111, 585, 1177, 642]},
+        {"label": "cabinet knob 1", "bounds": [453, 679, 469, 695]},
+        {"label": "cabinet knob 2", "bounds": [474, 679, 490, 695]},
+        {"label": "cabinet knob 3", "bounds": [772, 679, 788, 695]},
+        {"label": "cabinet knob 4", "bounds": [794, 679, 810, 695]},
+        {"label": "cabinet knob 5", "bounds": [1100, 679, 1116, 695]},
+        {"label": "cabinet knob 6", "bounds": [1122, 679, 1138, 695]}
+      ],
+      "polygons": [
+        {"label": "top plant foliage", "points": [[883, 279], [894, 257], [910, 262], [921, 246], [936, 257], [948, 247], [963, 267], [971, 289], [960, 315], [943, 302], [926, 316], [906, 306], [891, 315]]},
+        {"label": "left middle plant foliage", "points": [[394, 406], [402, 384], [416, 391], [425, 375], [438, 392], [453, 383], [465, 408], [458, 435], [444, 449], [420, 442], [404, 451]]},
+        {"label": "right middle plant foliage", "points": [[1126, 417], [1137, 393], [1150, 401], [1162, 384], [1177, 397], [1190, 388], [1204, 404], [1220, 399], [1214, 429], [1200, 447], [1178, 440], [1160, 451], [1140, 439]]}
+      ],
+      "coverageWarnings": [
+        "The v3 candidate visibly under-covers warm wood at the far-left shelving edge; exclusions cannot repair missing wood coverage."
+      ]
+    },
+    "integrated/tv-unit/framed-tv-wall/right-niche-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "right top pale vase", "mode": "full", "xywh": [1080, 284, 43, 47]},
+        {"label": "left middle square decor", "xywh": [374, 400, 45, 36]},
+        {"label": "right middle stacked books", "xywh": [1046, 404, 103, 35]},
+        {"label": "left bottom basket", "xywh": [316, 588, 109, 63]},
+        {"label": "right bottom basket", "xywh": [1044, 587, 116, 63]},
+        {"label": "television and bezel", "xywh": [498, 363, 472, 255]}
+      ],
+      "ellipses": [
+        {"label": "left top vase", "bounds": [337, 280, 407, 335]},
+        {"label": "top-center stone bowl", "bounds": [690, 289, 785, 333]},
+        {"label": "top plant pot", "bounds": [917, 301, 956, 333]},
+        {"label": "left middle plant pot", "bounds": [327, 404, 369, 437]},
+        {"label": "right middle bowl", "bounds": [1061, 387, 1139, 421]},
+        {"label": "left lower vase", "bounds": [320, 472, 377, 540]},
+        {"label": "left lower bowl", "bounds": [369, 512, 426, 541]},
+        {"label": "right lower plant pot", "bounds": [1082, 510, 1127, 543]},
+        {"label": "spotlight 1", "bounds": [362, 237, 383, 253]},
+        {"label": "spotlight 2", "bounds": [566, 237, 589, 253]},
+        {"label": "spotlight 3", "bounds": [887, 237, 910, 253]},
+        {"label": "spotlight 4", "bounds": [1089, 237, 1114, 253]},
+        {"label": "cabinet knob 1", "bounds": [404, 674, 420, 690]},
+        {"label": "cabinet knob 2", "bounds": [557, 674, 573, 690]},
+        {"label": "cabinet knob 3", "bounds": [579, 674, 595, 690]},
+        {"label": "cabinet knob 4", "bounds": [867, 674, 883, 690]},
+        {"label": "cabinet knob 5", "bounds": [888, 674, 904, 690]},
+        {"label": "cabinet knob 6", "bounds": [1041, 674, 1057, 690]}
+      ],
+      "polygons": [
+        {"label": "top plant foliage", "points": [[899, 292], [905, 274], [918, 280], [926, 263], [938, 276], [947, 267], [960, 283], [968, 303], [958, 318], [942, 307], [928, 319], [914, 309]]},
+        {"label": "left middle plant foliage", "points": [[315, 390], [323, 369], [336, 375], [344, 361], [355, 378], [367, 367], [378, 388], [372, 410], [358, 418], [342, 409], [329, 420], [318, 408]]},
+        {"label": "right lower plant foliage", "points": [[1063, 502], [1070, 480], [1084, 489], [1093, 474], [1106, 488], [1117, 477], [1131, 493], [1143, 513], [1135, 532], [1119, 523], [1106, 537], [1088, 526], [1071, 534]]}
+      ],
+      "coverageWarnings": [
+        "The v3 candidate leaves much of the central warm television backing/frame unselected; exclusions cannot repair missing wood coverage."
+      ]
+    },
+    "integrated/tv-unit/framed-tv-wall/fireplace-wall-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "left upper stacked books", "xywh": [320, 374, 110, 40]},
+        {"label": "left bottom upright books", "xywh": [388, 556, 82, 84]},
+        {"label": "right upper stacked books", "xywh": [1264, 383, 116, 31]},
+        {"label": "right bottom upright books", "xywh": [1323, 555, 101, 87]},
+        {"label": "left top LED emitter core", "xywh": [124, 195, 354, 2]},
+        {"label": "left upper LED emitter core", "xywh": [124, 317, 354, 2]},
+        {"label": "left middle LED emitter core", "xywh": [124, 427, 354, 2]},
+        {"label": "left lower LED emitter core", "xywh": [124, 535, 354, 2]},
+        {"label": "right top LED emitter core", "xywh": [1049, 197, 374, 2]},
+        {"label": "right upper LED emitter core", "xywh": [1049, 319, 374, 2]},
+        {"label": "right middle LED emitter core", "xywh": [1049, 429, 374, 2]},
+        {"label": "right lower LED emitter core", "xywh": [1049, 538, 374, 2]}
+      ],
+      "ellipses": [
+        {"label": "left top vase", "bounds": [166, 230, 245, 297]},
+        {"label": "left upper vase", "bounds": [174, 352, 217, 414]},
+        {"label": "left middle bowl", "bounds": [181, 480, 312, 527]},
+        {"label": "left middle vase", "bounds": [367, 460, 423, 527]},
+        {"label": "left bottom pink vase", "bounds": [143, 583, 232, 640]},
+        {"label": "left bottom plant pot", "bounds": [293, 607, 333, 641]},
+        {"label": "right top vase", "bounds": [1126, 232, 1206, 299]},
+        {"label": "right upper plant pot", "bounds": [1112, 381, 1155, 414]},
+        {"label": "right middle pink vessel", "bounds": [1089, 480, 1172, 529]},
+        {"label": "right middle dark vase 1", "bounds": [1264, 435, 1317, 530]},
+        {"label": "right middle dark vase 2", "bounds": [1315, 435, 1378, 530]},
+        {"label": "right bottom plant pot", "bounds": [1107, 607, 1154, 643]},
+        {"label": "cabinet knob left 1", "bounds": [176, 678, 192, 694]},
+        {"label": "cabinet knob left 2", "bounds": [193, 678, 209, 694]},
+        {"label": "cabinet knob left 3", "bounds": [311, 678, 327, 694]},
+        {"label": "cabinet knob left 4", "bounds": [328, 678, 344, 694]},
+        {"label": "cabinet knob right 1", "bounds": [1174, 678, 1190, 694]},
+        {"label": "cabinet knob right 2", "bounds": [1191, 678, 1207, 694]},
+        {"label": "cabinet knob right 3", "bounds": [1338, 678, 1354, 694]},
+        {"label": "cabinet knob right 4", "bounds": [1355, 678, 1371, 694]}
+      ],
+      "polygons": [
+        {"label": "left top plant foliage", "points": [[309, 278], [317, 246], [336, 254], [350, 226], [367, 248], [387, 230], [404, 258], [417, 289], [406, 316], [384, 303], [367, 320], [346, 306], [327, 318]]},
+        {"label": "left bottom plant foliage", "points": [[273, 600], [279, 576], [291, 584], [301, 564], [313, 579], [326, 566], [340, 589], [346, 612], [334, 627], [318, 619], [305, 632], [288, 622]]},
+        {"label": "right upper plant foliage", "points": [[1087, 376], [1095, 351], [1108, 359], [1118, 341], [1131, 358], [1144, 347], [1159, 367], [1165, 392], [1154, 405], [1138, 397], [1124, 409], [1108, 399], [1094, 407]]},
+        {"label": "right bottom plant foliage", "points": [[1088, 600], [1094, 575], [1108, 583], [1118, 563], [1131, 579], [1144, 566], [1158, 588], [1166, 612], [1155, 628], [1139, 619], [1125, 633], [1107, 622]]},
+        {"label": "left wall spill beside cabinet", "points": [[20, 568], [72, 568], [72, 886], [20, 918]]},
+        {"label": "left foreground floor spill", "points": [[20, 875], [198, 875], [198, 924], [20, 924]]}
+      ],
+      "coverageWarnings": [
+        "The v3 candidate visibly reaches room wall/floor at the lower-left edge; the polygons above remove that spill without touching the tower base."
+      ]
+    },
+    "integrated/tv-unit/framed-tv-wall/center-recess-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "left top stacked books", "xywh": [242, 270, 100, 28]},
+        {"label": "left upper upright books", "xywh": [305, 338, 48, 76]},
+        {"label": "left middle artwork", "xywh": [184, 461, 76, 84]},
+        {"label": "left middle stacked books", "xywh": [241, 513, 89, 34]},
+        {"label": "right top stacked books", "xywh": [1237, 261, 101, 34]},
+        {"label": "right upper upright books", "xywh": [1328, 336, 58, 77]},
+        {"label": "right middle framed artwork", "xywh": [1230, 455, 102, 85]},
+        {"label": "television and bezel", "xywh": [516, 341, 507, 279]}
+      ],
+      "ellipses": [
+        {"label": "left top bowl", "bounds": [179, 250, 264, 296]},
+        {"label": "left upper plant pot", "bounds": [177, 376, 218, 412]},
+        {"label": "left upper stone object", "bounds": [348, 371, 412, 415]},
+        {"label": "left middle vase", "bounds": [336, 465, 398, 546]},
+        {"label": "left lower bowl", "bounds": [243, 610, 336, 650]},
+        {"label": "right top ring sculpture", "bounds": [1164, 233, 1232, 294]},
+        {"label": "right upper plant pot", "bounds": [1111, 378, 1159, 413]},
+        {"label": "right upper dark bowl", "bounds": [1176, 385, 1241, 415]},
+        {"label": "right upper tiny vase", "bounds": [1382, 381, 1408, 413]},
+        {"label": "right middle plant pot", "bounds": [1126, 511, 1180, 541]},
+        {"label": "right middle dark vase", "bounds": [1315, 494, 1380, 541]},
+        {"label": "right lower bowl", "bounds": [1170, 610, 1312, 649]},
+        {"label": "cabinet knob left 1", "bounds": [196, 680, 212, 696]},
+        {"label": "cabinet knob left 2", "bounds": [211, 680, 227, 696]},
+        {"label": "cabinet knob left 3", "bounds": [332, 680, 348, 696]},
+        {"label": "cabinet knob right 1", "bounds": [1176, 680, 1192, 696]},
+        {"label": "cabinet knob right 2", "bounds": [1193, 680, 1209, 696]},
+        {"label": "cabinet knob right 3", "bounds": [1323, 680, 1339, 696]}
+      ],
+      "polygons": [
+        {"label": "left upper plant foliage", "points": [[158, 372], [164, 351], [176, 357], [186, 337], [199, 354], [212, 342], [226, 365], [232, 389], [221, 401], [205, 393], [191, 406], [174, 397], [162, 405]]},
+        {"label": "right upper plant foliage", "points": [[1097, 373], [1104, 350], [1117, 357], [1127, 338], [1140, 355], [1153, 343], [1168, 365], [1175, 389], [1164, 402], [1148, 393], [1134, 406], [1117, 397], [1104, 406]]},
+        {"label": "right middle plant foliage", "points": [[1098, 501], [1105, 482], [1117, 487], [1128, 471], [1140, 486], [1154, 474], [1168, 493], [1178, 513], [1168, 527], [1151, 520], [1138, 533], [1121, 524], [1107, 532]]},
+        {"label": "left wall spill", "points": [[25, 618], [77, 618], [77, 786], [25, 786]]},
+        {"label": "left foreground floor spill", "points": [[0, 846], [83, 846], [83, 904], [0, 904]]},
+        {"label": "right foreground floor spill", "points": [[1441, 855], [1536, 855], [1536, 922], [1441, 922]]}
+      ],
+      "coverageWarnings": [
+        "The v3 candidate has lower left/right room-surface spill. The exclusion polygons intentionally extend only outside the cabinetry towers."
+      ]
+    },
+    "integrated/tv-unit/framed-tv-wall/window-wall-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "right upper stacked books", "xywh": [1247, 361, 92, 32]},
+        {"label": "right upper upright books", "xywh": [1355, 312, 96, 81]},
+        {"label": "right middle stacked books", "xywh": [1233, 475, 96, 39]},
+        {"label": "right lower stacked books and bowl", "xywh": [1219, 592, 106, 45]},
+        {"label": "right lower upright books", "xywh": [1347, 533, 108, 104]},
+        {"label": "television and bezel", "xywh": [139, 337, 448, 266]}
+      ],
+      "ellipses": [
+        {"label": "right top dark bowl", "bounds": [1062, 234, 1194, 280]},
+        {"label": "right top plant pot", "bounds": [1298, 224, 1379, 290]},
+        {"label": "right upper vase", "bounds": [1089, 337, 1148, 396]},
+        {"label": "right upper small dark bowl", "bounds": [1155, 359, 1199, 394]},
+        {"label": "right middle plant pot", "bounds": [1071, 469, 1133, 514]},
+        {"label": "right middle dark bowl", "bounds": [1324, 474, 1384, 515]},
+        {"label": "right lower vase", "bounds": [1068, 562, 1143, 639]},
+        {"label": "left spotlight 1", "bounds": [205, 181, 229, 195]},
+        {"label": "left spotlight 2", "bounds": [493, 181, 517, 195]},
+        {"label": "right spotlight 1", "bounds": [1094, 285, 1118, 300]},
+        {"label": "right spotlight 2", "bounds": [1297, 285, 1321, 300]},
+        {"label": "left cabinet knob 1", "bounds": [187, 675, 203, 691]},
+        {"label": "left cabinet knob 2", "bounds": [208, 675, 224, 691]},
+        {"label": "left cabinet knob 3", "bounds": [445, 675, 461, 691]},
+        {"label": "left cabinet knob 4", "bounds": [466, 675, 482, 691]},
+        {"label": "right cabinet knob 1", "bounds": [1110, 675, 1126, 691]},
+        {"label": "right cabinet knob 2", "bounds": [1130, 675, 1146, 691]},
+        {"label": "right cabinet knob 3", "bounds": [1340, 675, 1356, 691]},
+        {"label": "right cabinet knob 4", "bounds": [1360, 675, 1376, 691]},
+        {"label": "window-seat drawer knob 1", "bounds": [710, 781, 726, 797]},
+        {"label": "window-seat drawer knob 2", "bounds": [886, 781, 902, 797]}
+      ],
+      "polygons": [
+        {"label": "right top plant foliage", "points": [[1278, 239], [1285, 211], [1300, 220], [1313, 191], [1329, 211], [1343, 188], [1358, 211], [1375, 203], [1394, 232], [1405, 262], [1390, 280], [1368, 270], [1349, 287], [1328, 275], [1307, 286], [1289, 267]]},
+        {"label": "right middle plant foliage", "points": [[1036, 464], [1044, 435], [1060, 444], [1071, 418], [1087, 440], [1104, 421], [1120, 445], [1137, 430], [1155, 460], [1167, 486], [1154, 506], [1132, 494], [1114, 512], [1092, 500], [1073, 512], [1053, 496]]},
+        {"label": "foreground floor spill below installation", "points": [[57, 878], [615, 878], [615, 881], [1000, 881], [1000, 878], [1526, 878], [1526, 922], [57, 922]]}
+      ],
+      "coverageWarnings": [
+        "The v3 candidate reaches the foreground floor below all three cabinetry bases; the floor polygon starts at the photographed base/floor boundary."
+      ]
+    },
+    "integrated/tv-unit/framed-tv-wall/door-wall-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "left top stacked books", "xywh": [462, 244, 98, 31]},
+        {"label": "right top stacked books and bowl", "xywh": [1261, 234, 122, 40]},
+        {"label": "right upper upright books", "xywh": [1326, 305, 70, 83]},
+        {"label": "right middle stacked books", "xywh": [1040, 495, 99, 34]},
+        {"label": "right middle artwork", "xywh": [1228, 434, 99, 94]},
+        {"label": "right lower stacked books", "xywh": [1288, 608, 103, 38]},
+        {"label": "television and bezel", "xywh": [132, 330, 465, 279]},
+        {"label": "left top LED emitter core", "xywh": [151, 181, 444, 2]},
+        {"label": "right top LED emitter core", "xywh": [1041, 181, 365, 2]},
+        {"label": "right upper LED emitter core", "xywh": [1019, 294, 391, 2]},
+        {"label": "right middle LED emitter core", "xywh": [1018, 407, 392, 2]},
+        {"label": "right lower LED emitter core", "xywh": [1022, 543, 375, 2]}
+      ],
+      "ellipses": [
+        {"label": "left top vase", "bounds": [155, 211, 224, 276]},
+        {"label": "left top dark bowl", "bounds": [482, 230, 543, 257]},
+        {"label": "right top vase", "bounds": [1074, 200, 1158, 278]},
+        {"label": "right upper bowl", "bounds": [1067, 339, 1160, 385]},
+        {"label": "right upper vase", "bounds": [1243, 321, 1313, 390]},
+        {"label": "right middle dark vessel", "bounds": [1066, 462, 1117, 506]},
+        {"label": "right lower bowl", "bounds": [1090, 602, 1194, 647]},
+        {"label": "left cabinet knob 1", "bounds": [177, 680, 193, 696]},
+        {"label": "left cabinet knob 2", "bounds": [201, 680, 217, 696]},
+        {"label": "left cabinet knob 3", "bounds": [463, 680, 479, 696]},
+        {"label": "left cabinet knob 4", "bounds": [485, 680, 501, 696]},
+        {"label": "right cabinet knob 1", "bounds": [1131, 680, 1147, 696]},
+        {"label": "right cabinet knob 2", "bounds": [1155, 680, 1171, 696]},
+        {"label": "right cabinet knob 3", "bounds": [1308, 680, 1324, 696]}
+      ],
+      "polygons": [
+        {"label": "right middle plant foliage", "points": [[1305, 482], [1312, 455], [1326, 463], [1337, 438], [1351, 458], [1365, 441], [1379, 465], [1398, 454], [1411, 485], [1402, 510], [1384, 501], [1368, 520], [1349, 507], [1331, 522], [1314, 505]]},
+        {"label": "left foreground floor spill", "points": [[24, 887], [652, 887], [652, 993], [24, 993]]},
+        {"label": "right foreground floor spill", "points": [[976, 887], [1512, 887], [1512, 995], [976, 995]]}
+      ],
+      "coverageWarnings": [
+        "The v3 candidate extends well beyond both base plinths onto the photographed floor."
+      ]
+    },
+    "integrated/tv-unit/framed-tv-wall/corner-wall-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "left lower stacked books", "xywh": [136, 605, 99, 36]},
+        {"label": "right top stacked books", "xywh": [1177, 274, 77, 40]},
+        {"label": "right middle stacked books", "xywh": [1159, 474, 92, 34]},
+        {"label": "center lower upright books", "xywh": [862, 546, 79, 68]},
+        {"label": "center framed artwork", "xywh": [997, 438, 59, 69]},
+        {"label": "television and bezel", "xywh": [329, 331, 472, 279]}
+      ],
+      "ellipses": [
+        {"label": "left top vase", "bounds": [168, 200, 223, 275]},
+        {"label": "left upper plant pot", "bounds": [174, 355, 218, 390]},
+        {"label": "left middle bowl", "bounds": [150, 475, 231, 513]},
+        {"label": "center upper vessel", "bounds": [864, 355, 925, 410]},
+        {"label": "center lower dark bowl", "bounds": [1018, 565, 1077, 612]},
+        {"label": "right top plant pot", "bounds": [1310, 244, 1364, 290]},
+        {"label": "right upper plant pot", "bounds": [1176, 365, 1231, 403]},
+        {"label": "right upper small vase", "bounds": [1301, 352, 1346, 397]},
+        {"label": "right upper dark bowl", "bounds": [1355, 344, 1410, 393]},
+        {"label": "right bottom vase 1", "bounds": [1174, 550, 1224, 615]},
+        {"label": "right bottom vase 2", "bounds": [1203, 565, 1247, 618]},
+        {"label": "right bottom large vase", "bounds": [1310, 562, 1403, 643]},
+        {"label": "cabinet knob 1", "bounds": [246, 670, 262, 686]},
+        {"label": "cabinet knob 2", "bounds": [425, 661, 441, 677]},
+        {"label": "cabinet knob 3", "bounds": [440, 661, 456, 677]},
+        {"label": "cabinet knob 4", "bounds": [719, 648, 735, 664]},
+        {"label": "cabinet knob 5", "bounds": [734, 648, 750, 664]},
+        {"label": "cabinet knob 6", "bounds": [862, 638, 878, 654]},
+        {"label": "cabinet knob 7", "bounds": [1183, 644, 1199, 660]},
+        {"label": "cabinet knob 8", "bounds": [1193, 647, 1209, 663]}
+      ],
+      "polygons": [
+        {"label": "room above sloped cornice", "points": [[0, 0], [1536, 0], [1536, 95], [1476, 95], [1132, 198], [66, 56], [0, 56]]},
+        {"label": "floor below perspective plinth", "points": [[43, 910], [1110, 797], [1455, 913], [1536, 913], [1536, 1024], [0, 1024], [0, 913]]},
+        {"label": "left upper plant foliage", "points": [[163, 350], [168, 333], [180, 339], [188, 324], [201, 337], [211, 328], [225, 346], [232, 365], [222, 378], [208, 371], [195, 384], [180, 375], [168, 384]]},
+        {"label": "right top plant foliage", "points": [[1278, 235], [1285, 209], [1300, 217], [1310, 194], [1325, 211], [1338, 191], [1352, 212], [1368, 201], [1384, 229], [1397, 254], [1386, 276], [1367, 264], [1351, 284], [1331, 272], [1313, 285], [1294, 265]]},
+        {"label": "right upper plant foliage", "points": [[1161, 365], [1168, 347], [1180, 352], [1190, 335], [1203, 350], [1215, 338], [1229, 357], [1240, 378], [1230, 394], [1213, 385], [1200, 400], [1184, 390], [1169, 400]]},
+        {"label": "right middle plant foliage", "points": [[1276, 489], [1283, 460], [1297, 470], [1308, 444], [1322, 466], [1336, 446], [1351, 470], [1368, 454], [1385, 482], [1400, 512], [1390, 537], [1368, 525], [1350, 544], [1330, 531], [1311, 547], [1292, 529]]},
+        {"label": "right lower large plant foliage", "points": [[1287, 543], [1295, 514], [1309, 524], [1320, 498], [1335, 519], [1349, 501], [1363, 524], [1380, 510], [1398, 539], [1411, 568], [1401, 593], [1380, 581], [1362, 601], [1341, 589], [1323, 604], [1304, 586]]},
+        {"label": "left LED emitter core 1", "points": [[150, 173], [239, 181], [239, 184], [150, 176]]},
+        {"label": "left LED emitter core 2", "points": [[150, 288], [241, 292], [241, 295], [150, 291]]},
+        {"label": "left LED emitter core 3", "points": [[145, 404], [239, 406], [239, 409], [145, 407]]},
+        {"label": "center-left LED emitter core", "points": [[328, 294], [569, 305], [569, 308], [328, 297]]},
+        {"label": "center spot LED emitter core", "points": [[869, 231], [919, 235], [919, 238], [869, 234]]},
+        {"label": "center-right LED emitter core", "points": [[981, 243], [1049, 248], [1049, 251], [981, 246]]},
+        {"label": "right LED emitter core 1", "points": [[1190, 242], [1400, 181], [1401, 184], [1190, 245]]},
+        {"label": "right LED emitter core 2", "points": [[1190, 329], [1408, 287], [1409, 290], [1190, 332]]},
+        {"label": "right LED emitter core 3", "points": [[1190, 418], [1410, 399], [1411, 402], [1190, 421]]}
+      ],
+      "coverageWarnings": [
+        "The mask has both ceiling/wall spill above the perspective cornice and floor spill below the angled plinth; the two architectural polygons follow those photographed boundaries."
+      ]
+    },
+    "integrated/tv-unit/framed-tv-wall/double-opening-v2.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "left top black vessel", "xywh": [484, 281, 45, 40]},
+        {"label": "right top bowl", "xywh": [998, 287, 61, 35]},
+        {"label": "left upper small bowl", "xywh": [503, 382, 40, 27]},
+        {"label": "right upper pitcher", "xywh": [999, 352, 48, 58]},
+        {"label": "right upper small bowl", "xywh": [1034, 382, 40, 28]},
+        {"label": "right middle stacked books", "xywh": [995, 489, 72, 23]},
+        {"label": "television and bezel", "xywh": [588, 345, 359, 224]}
+      ],
+      "ellipses": [
+        {"label": "left upper pink vase", "bounds": [470, 350, 510, 410]},
+        {"label": "left middle plant pot", "bounds": [474, 470, 508, 509]},
+        {"label": "left middle small bowl", "bounds": [503, 480, 542, 511]},
+        {"label": "right middle vase", "bounds": [998, 444, 1050, 503]},
+        {"label": "left bottom basket", "bounds": [471, 565, 537, 603]},
+        {"label": "right bottom stone vase", "bounds": [997, 544, 1058, 604]},
+        {"label": "spotlight left", "bounds": [498, 255, 520, 276]},
+        {"label": "spotlight right", "bounds": [1013, 255, 1036, 276]},
+        {"label": "cabinet knob left", "bounds": [544, 633, 560, 649]},
+        {"label": "cabinet knob right", "bounds": [974, 633, 990, 649]}
+      ],
+      "polygons": [
+        {"label": "left middle plant foliage", "points": [[455, 472], [461, 450], [473, 457], [483, 437], [495, 453], [507, 441], [520, 460], [530, 482], [520, 497], [505, 488], [493, 503], [477, 494], [463, 504]]},
+        {"label": "foreground floor spill", "points": [[420, 806], [1117, 806], [1195, 846], [1195, 894], [642, 894], [642, 875], [420, 825]]}
+      ],
+      "coverageWarnings": [
+        "The v3 candidate creates a large foreground floor island below the base; the floor polygon begins at the photographed plinth boundary."
+      ]
+    },
+    "concept-window-cabinets-v1.png": {
+      "canvas": [1448, 1086],
+      "rectangles": [
+        {"label": "left top books", "xywh": [140, 184, 170, 108]},
+        {"label": "left top vase", "xywh": [340, 220, 56, 73]},
+        {"label": "left top books beside vase", "xywh": [374, 199, 66, 94]},
+        {"label": "right top plant and pot", "xywh": [1008, 195, 116, 99]},
+        {"label": "right top books", "xywh": [1152, 187, 145, 107]},
+        {"label": "left middle books", "xywh": [138, 338, 108, 106]},
+        {"label": "left middle bowl and books", "xywh": [270, 382, 92, 63]},
+        {"label": "left middle vase", "xywh": [370, 366, 66, 80]},
+        {"label": "right middle books", "xywh": [1002, 335, 102, 110]},
+        {"label": "right shelf artwork and frame", "mode": "full", "xywh": [1135, 347, 78, 98]},
+        {"label": "right middle vase", "xywh": [1217, 367, 58, 79]},
+        {"label": "left lower bowl and books", "xywh": [198, 516, 113, 72]},
+        {"label": "left lower plant and pot", "xywh": [312, 510, 102, 79]},
+        {"label": "right lower books", "xywh": [1038, 530, 112, 59]},
+        {"label": "right lower vase and books", "xywh": [1188, 486, 112, 104]},
+        {"label": "left bottom books", "xywh": [139, 618, 88, 124]},
+        {"label": "left bottom basket", "xywh": [234, 668, 155, 76]},
+        {"label": "right bottom basket", "xywh": [1094, 662, 165, 82]},
+        {"label": "cabinet pull 1", "xywh": [256, 793, 12, 43]},
+        {"label": "cabinet pull 2", "xywh": [276, 793, 12, 43]},
+        {"label": "cabinet pull 3", "xywh": [548, 793, 13, 43]},
+        {"label": "cabinet pull 4", "xywh": [568, 793, 13, 43]},
+        {"label": "cabinet pull 5", "xywh": [849, 793, 13, 43]},
+        {"label": "cabinet pull 6", "xywh": [869, 793, 13, 43]},
+        {"label": "cabinet pull 7", "xywh": [1151, 793, 13, 43]},
+        {"label": "cabinet pull 8", "xywh": [1171, 793, 13, 43]}
+      ],
+      "ellipses": [
+        {"label": "left spotlight", "bounds": [282, 141, 307, 158]},
+        {"label": "right spotlight", "bounds": [1141, 141, 1167, 158]}
+      ],
+      "polygons": [],
+      "coverageWarnings": [
+        "All visible shelf decor and cabinet hardware are explicitly authored because several warm props overlap the wood classifier."
+      ]
+    },
+    "concept-cabinets-shelves-between-openings-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "left top vases", "xywh": [430, 224, 104, 69]},
+        {"label": "left top books", "xywh": [594, 258, 96, 35]},
+        {"label": "right top vases", "xywh": [832, 220, 64, 73]},
+        {"label": "right top books", "xywh": [956, 255, 92, 39]},
+        {"label": "left row two books", "xywh": [397, 318, 72, 74]},
+        {"label": "left row two cup and books", "xywh": [480, 356, 65, 38]},
+        {"label": "left shelf artwork and frame", "mode": "full", "xywh": [584, 329, 88, 66]},
+        {"label": "right row two bowl", "xywh": [834, 346, 84, 49]},
+        {"label": "right row two books", "xywh": [994, 316, 105, 79]},
+        {"label": "left row three plant and pot", "xywh": [426, 411, 94, 81]},
+        {"label": "left row three bowl", "xywh": [603, 448, 53, 43]},
+        {"label": "right row three books", "xywh": [811, 416, 74, 76]},
+        {"label": "right row three bowl and books", "xywh": [972, 445, 100, 48]},
+        {"label": "left bottom books", "xywh": [394, 517, 94, 78]},
+        {"label": "left bottom vase and books", "xywh": [580, 523, 110, 72]},
+        {"label": "right bottom pot and books", "xywh": [824, 534, 99, 62]},
+        {"label": "right bottom basket", "xywh": [979, 550, 89, 46]},
+        {"label": "left LED emitter core row 1", "xywh": [415, 204, 344, 2]},
+        {"label": "right LED emitter core row 1", "xywh": [786, 204, 333, 2]},
+        {"label": "left LED emitter core row 2", "xywh": [415, 309, 344, 2]},
+        {"label": "right LED emitter core row 2", "xywh": [786, 309, 333, 2]},
+        {"label": "left LED emitter core row 3", "xywh": [415, 405, 344, 2]},
+        {"label": "right LED emitter core row 3", "xywh": [786, 405, 333, 2]}
+      ],
+      "ellipses": [
+        {"label": "cabinet knob 1", "bounds": [546, 627, 562, 643]},
+        {"label": "cabinet knob 2", "bounds": [568, 627, 584, 643]},
+        {"label": "cabinet knob 3", "bounds": [939, 627, 955, 643]},
+        {"label": "cabinet knob 4", "bounds": [961, 627, 977, 643]}
+      ],
+      "polygons": [
+        {"label": "right top slim vase silhouette", "mode": "full", "points": [[842, 251], [845, 241], [853, 237], [860, 241], [861, 249], [867, 255], [869, 269], [866, 286], [860, 292], [842, 292], [837, 286], [837, 265]]},
+        {"label": "right top tall vase silhouette", "mode": "full", "points": [[866, 231], [872, 226], [890, 226], [894, 231], [892, 254], [899, 268], [900, 284], [896, 292], [864, 292], [859, 284], [860, 269], [867, 255]]}
+      ],
+      "coverageWarnings": [
+        "All visible shelf decor, direct-light cores, and cabinet hardware are explicitly authored."
+      ]
+    },
+    "concept-drawers-shelves-between-openings-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "left top vases", "xywh": [460, 226, 108, 70]},
+        {"label": "left top books", "xywh": [612, 258, 91, 38]},
+        {"label": "right top vases", "xywh": [830, 224, 69, 72]},
+        {"label": "right top books", "xywh": [956, 256, 93, 40]},
+        {"label": "left row two books", "xywh": [417, 321, 88, 76]},
+        {"label": "left row two cup and books", "xywh": [491, 355, 76, 42]},
+        {"label": "left shelf artwork and frame", "mode": "full", "xywh": [608, 329, 88, 69]},
+        {"label": "right row two bowl", "xywh": [827, 347, 87, 51]},
+        {"label": "right row two books", "xywh": [969, 317, 106, 81]},
+        {"label": "left row three plant and pot", "xywh": [446, 414, 96, 87]},
+        {"label": "left row three bowl", "xywh": [617, 449, 62, 52]},
+        {"label": "right row three books", "xywh": [802, 419, 89, 82]},
+        {"label": "right row three bowl and books", "xywh": [953, 449, 103, 53]},
+        {"label": "left bottom books", "xywh": [414, 532, 92, 86]},
+        {"label": "left bottom vase and books", "xywh": [596, 537, 110, 81]},
+        {"label": "right bottom pot and books", "xywh": [810, 551, 103, 67]},
+        {"label": "right bottom basket", "xywh": [958, 558, 102, 61]},
+        {"label": "left LED emitter core row 1", "xywh": [434, 209, 315, 2]},
+        {"label": "right LED emitter core row 1", "xywh": [776, 209, 338, 2]},
+        {"label": "left LED emitter core row 2", "xywh": [428, 312, 322, 2]},
+        {"label": "right LED emitter core row 2", "xywh": [776, 312, 338, 2]},
+        {"label": "left LED emitter core row 3", "xywh": [429, 412, 321, 2]},
+        {"label": "right LED emitter core row 3", "xywh": [776, 412, 338, 2]},
+        {"label": "left LED emitter core row 4", "xywh": [429, 511, 321, 2]},
+        {"label": "right LED emitter core row 4", "xywh": [776, 511, 338, 2]}
+      ],
+      "ellipses": [
+        {"label": "drawer knob left top", "bounds": [506, 658, 524, 676]},
+        {"label": "drawer knob center top", "bounds": [745, 658, 763, 676]},
+        {"label": "drawer knob right top", "bounds": [991, 658, 1009, 676]},
+        {"label": "drawer knob left bottom", "bounds": [506, 730, 524, 748]},
+        {"label": "drawer knob center bottom", "bounds": [745, 730, 763, 748]},
+        {"label": "drawer knob right bottom", "bounds": [990, 730, 1008, 748]}
+      ],
+      "polygons": [],
+      "coverageWarnings": []
+    },
+    "concept-full-shelving-between-openings-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "row one left vases", "xywh": [389, 254, 85, 54]},
+        {"label": "row one center bowl and books", "xywh": [675, 263, 86, 46]},
+        {"label": "row one center vase", "xywh": [802, 253, 56, 56]},
+        {"label": "row one right vase", "xywh": [942, 256, 57, 52]},
+        {"label": "row one right books", "xywh": [1048, 243, 111, 66]},
+        {"label": "row two left plant and pot", "xywh": [380, 325, 88, 78]},
+        {"label": "row two left books and bowl", "xywh": [492, 340, 100, 63]},
+        {"label": "row two center books", "xywh": [634, 339, 80, 64]},
+        {"label": "row two center plant and pot", "xywh": [798, 326, 91, 77]},
+        {"label": "row two right books", "xywh": [930, 360, 76, 44]},
+        {"label": "row two right vase", "xywh": [1054, 338, 72, 66]},
+        {"label": "row three left books", "xywh": [360, 430, 88, 73]},
+        {"label": "row three left artwork and frame", "mode": "full", "xywh": [492, 433, 89, 70]},
+        {"label": "row three center bowl and books", "xywh": [706, 446, 96, 57]},
+        {"label": "row three right artwork and frame", "mode": "full", "xywh": [952, 432, 106, 71]},
+        {"label": "row three right books", "xywh": [1105, 444, 81, 60]},
+        {"label": "row four left bowl and books", "xywh": [390, 527, 100, 70]},
+        {"label": "row four left vase", "xywh": [526, 537, 61, 61]},
+        {"label": "row four center books", "xywh": [630, 527, 78, 71]},
+        {"label": "row four center pot and books", "xywh": [788, 540, 92, 59]},
+        {"label": "row four right books", "xywh": [914, 529, 82, 70]},
+        {"label": "row four right plant and pot", "xywh": [1036, 513, 112, 87]},
+        {"label": "row five left books", "xywh": [355, 614, 83, 78]},
+        {"label": "row five left pot and books", "xywh": [434, 638, 73, 54]},
+        {"label": "row five left basket", "xywh": [510, 630, 87, 62]},
+        {"label": "row five center bowl and books", "xywh": [678, 634, 105, 59]},
+        {"label": "row five right books", "xywh": [909, 614, 88, 79]},
+        {"label": "row five right pot", "xywh": [971, 640, 56, 53]},
+        {"label": "row five right bowl", "xywh": [1048, 638, 86, 55]},
+        {"label": "row six left vase", "xywh": [393, 698, 78, 81]},
+        {"label": "row six left books", "xywh": [540, 709, 77, 70]},
+        {"label": "row six center pot and books", "xywh": [669, 711, 93, 68]},
+        {"label": "row six center books", "xywh": [804, 698, 81, 81]},
+        {"label": "row six right books", "xywh": [909, 699, 88, 80]},
+        {"label": "row six right basket", "xywh": [1046, 706, 101, 74]},
+        {"label": "left LED emitter core row 1", "xywh": [369, 231, 246, 2]},
+        {"label": "center LED emitter core row 1", "xywh": [648, 231, 246, 2]},
+        {"label": "right LED emitter core row 1", "xywh": [919, 231, 257, 2]},
+        {"label": "left LED emitter core row 2", "xywh": [369, 327, 246, 2]},
+        {"label": "center LED emitter core row 2", "xywh": [648, 327, 246, 2]},
+        {"label": "right LED emitter core row 2", "xywh": [919, 327, 257, 2]},
+        {"label": "left LED emitter core row 3", "xywh": [369, 418, 246, 2]},
+        {"label": "center LED emitter core row 3", "xywh": [648, 418, 246, 2]},
+        {"label": "right LED emitter core row 3", "xywh": [919, 418, 257, 2]},
+        {"label": "left LED emitter core row 4", "xywh": [369, 511, 246, 2]},
+        {"label": "center LED emitter core row 4", "xywh": [648, 511, 246, 2]},
+        {"label": "right LED emitter core row 4", "xywh": [919, 511, 257, 2]}
+      ],
+      "ellipses": [],
+      "polygons": [],
+      "coverageWarnings": [
+        "All visible shelf decor and direct-light cores are explicitly authored; unlit shelf wood remains finishable."
+      ]
+    },
+    "concept-tv-wall-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "left top vases", "xywh": [268, 176, 112, 75]},
+        {"label": "center top bowl and books", "xywh": [646, 192, 113, 59]},
+        {"label": "right top vases", "xywh": [988, 160, 81, 91]},
+        {"label": "right top bowl and books", "xywh": [1122, 193, 132, 58]},
+        {"label": "left row two books", "xywh": [209, 286, 101, 95]},
+        {"label": "left row two bowl and books", "xywh": [320, 332, 84, 49]},
+        {"label": "right row two books", "xywh": [998, 290, 91, 92]},
+        {"label": "right row two bowl", "xywh": [1168, 327, 105, 55]},
+        {"label": "left row three plant and pot", "xywh": [253, 397, 133, 108]},
+        {"label": "right row three vase and books", "xywh": [1004, 440, 112, 65]},
+        {"label": "right row three bowl and books", "xywh": [1168, 452, 119, 54]},
+        {"label": "left bottom books", "xywh": [205, 540, 106, 105]},
+        {"label": "right bottom basket", "xywh": [1162, 580, 108, 66]},
+        {"label": "left LED emitter core row 1", "xywh": [214, 141, 270, 2]},
+        {"label": "center LED emitter core row 1", "xywh": [514, 141, 394, 2]},
+        {"label": "right LED emitter core row 1", "xywh": [941, 141, 379, 2]},
+        {"label": "left LED emitter core row 2", "xywh": [212, 273, 272, 2]},
+        {"label": "center LED emitter core row 2", "xywh": [514, 273, 394, 2]},
+        {"label": "right LED emitter core row 2", "xywh": [941, 273, 379, 2]},
+        {"label": "left LED emitter core row 3", "xywh": [212, 395, 272, 2]},
+        {"label": "right LED emitter core row 3", "xywh": [941, 395, 379, 2]},
+        {"label": "television and bezel", "xywh": [507, 357, 424, 257]}
+      ],
+      "ellipses": [
+        {"label": "cabinet knob 1", "bounds": [309, 685, 325, 701]},
+        {"label": "cabinet knob 2", "bounds": [335, 685, 351, 701]},
+        {"label": "cabinet knob 3", "bounds": [598, 685, 614, 701]},
+        {"label": "cabinet knob 4", "bounds": [624, 685, 640, 701]},
+        {"label": "cabinet knob 5", "bounds": [893, 685, 909, 701]},
+        {"label": "cabinet knob 6", "bounds": [919, 685, 935, 701]},
+        {"label": "cabinet knob 7", "bounds": [1189, 685, 1205, 701]},
+        {"label": "cabinet knob 8", "bounds": [1215, 685, 1231, 701]}
+      ],
+      "polygons": [],
+      "coverageWarnings": [
+        "The v3 candidate has small material-coverage holes on the far-left cabinet and around the TV backing; exclusions cannot repair those missing wood pixels."
+      ]
+    },
+    "product-floating-storage-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "artwork and frame", "xywh": [1006, 253, 202, 239]},
+        {"label": "stacked books", "xywh": [673, 523, 121, 31]},
+        {"label": "drawer pull left top", "xywh": [568, 603, 95, 18]},
+        {"label": "drawer pull right top", "xywh": [849, 603, 98, 18]},
+        {"label": "drawer pull left bottom", "xywh": [568, 693, 95, 18]},
+        {"label": "drawer pull right bottom", "xywh": [849, 693, 98, 18]}
+      ],
+      "ellipses": [
+        {"label": "large plant vase", "bounds": [312, 420, 425, 555]},
+        {"label": "left bowl", "bounds": [414, 503, 512, 556]},
+        {"label": "small center vessel", "bounds": [804, 504, 868, 558]},
+        {"label": "lamp shade", "bounds": [1188, 390, 1294, 485]},
+        {"label": "lamp base", "bounds": [1212, 440, 1272, 558]},
+        {"label": "cabinet knob 1", "bounds": [341, 601, 359, 619]},
+        {"label": "cabinet knob 2", "bounds": [372, 601, 390, 619]},
+        {"label": "cabinet knob 3", "bounds": [1140, 601, 1158, 619]},
+        {"label": "cabinet knob 4", "bounds": [1170, 601, 1188, 619]}
+      ],
+      "polygons": [
+        {"label": "large plant foliage", "points": [[193, 402], [210, 350], [239, 360], [226, 311], [266, 327], [251, 275], [293, 302], [291, 244], [324, 280], [339, 215], [365, 278], [397, 223], [406, 286], [450, 246], [442, 312], [491, 290], [474, 344], [535, 329], [508, 376], [561, 383], [521, 417], [478, 409], [447, 435], [400, 420], [366, 443], [326, 425], [285, 443], [250, 420], [216, 432]]}
+      ],
+      "coverageWarnings": [
+        "The customer-reported source is explicitly protected around every foreground object, hardware item, and direct light even where the classifier already rejects it."
+      ]
+    },
+    "product-radiator-cover-v1.png": {
+      "canvas": [1536, 1024],
+      "rectangles": [
+        {"label": "stacked books", "xywh": [1121, 347, 210, 45]}
+      ],
+      "ellipses": [
+        {"label": "plant vase", "bounds": [273, 260, 397, 390]},
+        {"label": "wood bowl decor", "bounds": [1141, 309, 1288, 360]},
+        {"label": "left cabinet knob", "bounds": [278, 565, 298, 585]},
+        {"label": "right cabinet knob", "bounds": [1235, 565, 1255, 585]}
+      ],
+      "polygons": [
+        {"label": "plant foliage", "points": [[139, 238], [159, 196], [190, 207], [177, 158], [218, 181], [211, 127], [250, 157], [263, 94], [292, 151], [327, 95], [328, 162], [377, 125], [363, 190], [415, 165], [389, 220], [451, 220], [406, 255], [360, 244], [332, 278], [291, 260], [252, 286], [220, 253], [178, 269]]},
+        {"label": "bottom radiator void and shadow", "points": [[361, 801], [1170, 801], [1187, 816], [1187, 844], [344, 844], [344, 816]]}
+      ],
+      "coverageWarnings": [
+        "The neutral classifier correctly keeps the wood slat faces and rejects most grille voids; the bottom void still contains visible eligible islands and is explicitly cut out."
+      ]
+    }
+  }
+}

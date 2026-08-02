@@ -1,0 +1,418 @@
+{
+  "schemaVersion": 1,
+  "coordinateSpace": {
+    "width": 1536,
+    "height": 1024,
+    "origin": "top-left",
+    "vertices": "inclusive source-image pixels"
+  },
+  "contract": {
+    "operation": "use the union of the authored furniture shapes as the material base, then subtract candidate-confirmed LEDs and hardware",
+    "outsideEnvelopeMustBeZero": true,
+    "excludedMaterials": [
+      "wall",
+      "floor",
+      "architectural opening",
+      "window",
+      "television screen",
+      "lighting emitter",
+      "hardware"
+    ]
+  },
+  "entries": {
+    "integrated/bookcase/cabinet-base-shelves/center-recess-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [228, 141, 1295, 821],
+      "rectangles": [
+        [239, 141, 347, 40],
+        [241, 177, 345, 420],
+        [228, 594, 359, 20],
+        [231, 612, 355, 210],
+        [942, 141, 354, 40],
+        [941, 177, 348, 420],
+        [941, 594, 354, 20],
+        [942, 612, 354, 210]
+      ]
+    },
+    "integrated/bookcase/cabinet-base-shelves/corner-wall-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [89, 59, 1460, 908],
+      "polygons": [
+        [[99, 72], [817, 198], [1428, 59], [1460, 80], [1457, 908], [817, 735], [90, 869], [90, 96]]
+      ],
+      "fixedLightLines": [
+        [125, 153, 421, 193, 5],
+        [125, 269, 422, 293, 5],
+        [125, 380, 421, 389, 5],
+        [125, 489, 424, 484, 5],
+        [456, 197, 651, 225, 5],
+        [456, 296, 651, 312, 5],
+        [456, 389, 650, 395, 5],
+        [455, 483, 650, 479, 5],
+        [688, 229, 786, 244, 5],
+        [688, 315, 785, 324, 5],
+        [688, 396, 785, 400, 5],
+        [688, 476, 784, 476, 5],
+        [852, 243, 1066, 205, 5],
+        [853, 324, 1066, 301, 5],
+        [854, 400, 1067, 392, 5],
+        [855, 478, 1067, 485, 5],
+        [1108, 197, 1404, 143, 5],
+        [1109, 297, 1404, 265, 5],
+        [1110, 391, 1405, 380, 5],
+        [1108, 487, 1404, 498, 5]
+      ]
+    },
+    "integrated/bookcase/cabinet-base-shelves/door-wall-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [222, 170, 1312, 791],
+      "rectangles": [
+        [234, 170, 391, 38],
+        [237, 202, 379, 405],
+        [222, 605, 406, 20],
+        [225, 623, 393, 169],
+        [909, 170, 395, 38],
+        [919, 202, 382, 405],
+        [911, 605, 402, 20],
+        [913, 623, 398, 169]
+      ]
+    },
+    "integrated/bookcase/cabinet-base-shelves/fireplace-wall-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [192, 85, 1325, 824],
+      "rectangles": [
+        [210, 85, 309, 40],
+        [209, 120, 310, 459],
+        [192, 576, 329, 20],
+        [198, 594, 323, 231],
+        [1005, 85, 306, 40],
+        [1004, 120, 307, 459],
+        [1004, 576, 322, 20],
+        [1006, 594, 320, 231]
+      ]
+    },
+    "integrated/bookcase/cabinet-base-shelves/left-niche-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [311, 88, 1332, 884],
+      "rectangles": [
+        [320, 88, 1009, 55],
+        [319, 140, 1004, 495],
+        [311, 633, 1022, 20],
+        [315, 651, 1014, 234]
+      ]
+    },
+    "integrated/bookcase/cabinet-base-shelves/niche-layout-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [356, 96, 1161, 880],
+      "rectangles": [
+        [365, 96, 790, 49],
+        [372, 141, 776, 473],
+        [356, 612, 806, 20],
+        [360, 630, 798, 251]
+      ]
+    },
+    "integrated/bookcase/cabinet-base-shelves/right-niche-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [292, 97, 1236, 897],
+      "rectangles": [
+        [295, 97, 934, 48],
+        [303, 141, 925, 495],
+        [292, 634, 945, 20],
+        [295, 652, 939, 246]
+      ]
+    },
+
+    "integrated/bookcase/drawer-base-shelves/center-recess-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [228, 184, 1304, 783],
+      "rectangles": [
+        [239, 184, 351, 40],
+        [240, 220, 350, 400],
+        [228, 617, 363, 20],
+        [230, 635, 359, 149],
+        [939, 184, 357, 40],
+        [939, 220, 356, 400],
+        [939, 617, 365, 20],
+        [939, 635, 365, 149]
+      ]
+    },
+    "integrated/bookcase/drawer-base-shelves/corner-wall-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [138, 31, 1391, 947],
+      "polygons": [
+        [[139, 31], [817, 165], [1361, 37], [1391, 57], [1389, 947], [806, 825], [138, 935]]
+      ],
+      "fixedLightLines": [
+        [191, 132, 725, 216, 5],
+        [191, 264, 726, 316, 5],
+        [187, 395, 725, 414, 5],
+        [191, 528, 725, 517, 5],
+        [870, 216, 1335, 128, 5],
+        [865, 321, 1335, 270, 5],
+        [864, 419, 1335, 401, 5],
+        [864, 518, 1335, 533, 5]
+      ]
+    },
+    "integrated/bookcase/drawer-base-shelves/door-wall-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [224, 142, 1307, 801],
+      "rectangles": [
+        [238, 142, 377, 40],
+        [240, 178, 371, 459],
+        [224, 635, 394, 19],
+        [228, 652, 390, 150],
+        [916, 142, 380, 40],
+        [921, 178, 372, 459],
+        [913, 635, 395, 19],
+        [916, 652, 392, 150]
+      ]
+    },
+    "integrated/bookcase/drawer-base-shelves/fireplace-wall-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [200, 106, 1332, 817],
+      "rectangles": [
+        [213, 106, 299, 40],
+        [215, 142, 297, 438],
+        [200, 578, 313, 19],
+        [205, 595, 307, 223],
+        [1018, 106, 308, 40],
+        [1017, 142, 306, 438],
+        [1017, 578, 316, 19],
+        [1020, 595, 313, 223]
+      ]
+    },
+    "integrated/bookcase/drawer-base-shelves/left-niche-v2.png": {
+      "materialBase": "envelope",
+      "installationBounds": [338, 137, 1198, 855],
+      "rectangles": [
+        [344, 137, 850, 44],
+        [354, 177, 829, 460],
+        [338, 635, 861, 19],
+        [338, 652, 861, 204]
+      ]
+    },
+    "integrated/bookcase/drawer-base-shelves/niche-layout-v2.png": {
+      "materialBase": "envelope",
+      "installationBounds": [338, 137, 1198, 855],
+      "rectangles": [
+        [344, 137, 850, 44],
+        [354, 177, 829, 460],
+        [338, 635, 861, 19],
+        [338, 652, 861, 204]
+      ]
+    },
+    "integrated/bookcase/drawer-base-shelves/right-niche-v2.png": {
+      "materialBase": "envelope",
+      "installationBounds": [338, 137, 1198, 855],
+      "rectangles": [
+        [344, 137, 850, 44],
+        [354, 177, 829, 460],
+        [338, 635, 861, 19],
+        [338, 652, 861, 204]
+      ]
+    },
+    "integrated/bookcase/drawer-base-shelves/window-wall-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [256, 133, 1273, 842],
+      "rectangles": [
+        [273, 133, 319, 47],
+        [273, 176, 319, 469],
+        [938, 133, 320, 47],
+        [943, 176, 315, 469],
+        [256, 643, 1018, 200]
+      ]
+    },
+
+    "integrated/bookcase/full-open-shelving/center-recess-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [218, 129, 1305, 807],
+      "rectangles": [
+        [228, 129, 319, 42],
+        [230, 167, 317, 612],
+        [230, 777, 313, 31],
+        [962, 129, 344, 42],
+        [962, 167, 341, 612],
+        [965, 777, 337, 31]
+      ]
+    },
+    "integrated/bookcase/full-open-shelving/corner-wall-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [43, 10, 1494, 968],
+      "polygons": [
+        [[44, 38], [836, 176], [1492, 10], [1494, 968], [834, 820], [44, 923]]
+      ],
+      "fixedLightLines": [
+        [86, 134, 386, 175, 5],
+        [81, 258, 386, 287, 5],
+        [81, 379, 394, 399, 5],
+        [81, 500, 416, 503, 5],
+        [81, 624, 412, 612, 5],
+        [81, 756, 412, 718, 5],
+        [434, 182, 647, 212, 5],
+        [432, 289, 647, 310, 5],
+        [432, 397, 647, 406, 5],
+        [433, 501, 647, 503, 5],
+        [433, 611, 646, 602, 5],
+        [433, 716, 646, 680, 5],
+        [697, 220, 798, 235, 5],
+        [697, 313, 796, 324, 5],
+        [697, 407, 797, 414, 5],
+        [695, 501, 796, 502, 5],
+        [706, 596, 796, 593, 5],
+        [704, 690, 796, 682, 5],
+        [876, 233, 1115, 184, 5],
+        [877, 325, 1116, 294, 5],
+        [876, 415, 1116, 401, 5],
+        [848, 503, 1123, 506, 5],
+        [874, 596, 1124, 618, 5],
+        [875, 679, 1119, 727, 5],
+        [1174, 171, 1449, 116, 5],
+        [1138, 291, 1448, 251, 5],
+        [1134, 397, 1450, 381, 5],
+        [1135, 502, 1449, 511, 5],
+        [1138, 613, 1451, 649, 5],
+        [1137, 730, 1449, 779, 5]
+      ]
+    },
+    "integrated/bookcase/full-open-shelving/door-wall-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [190, 87, 1335, 819],
+      "rectangles": [
+        [193, 87, 1143, 72],
+        [190, 150, 405, 670],
+        [926, 150, 409, 670]
+      ],
+      "fixedLightLines": [
+        [244, 162, 558, 162, 5],
+        [965, 162, 1283, 162, 5],
+        [244, 269, 558, 269, 5],
+        [965, 270, 1283, 270, 5],
+        [244, 377, 558, 377, 5],
+        [965, 379, 1283, 379, 5],
+        [244, 487, 558, 487, 5],
+        [965, 489, 1283, 489, 5],
+        [244, 594, 558, 594, 5],
+        [965, 597, 1283, 597, 5],
+        [244, 699, 558, 699, 5],
+        [965, 701, 1283, 701, 5]
+      ]
+    },
+    "integrated/bookcase/full-open-shelving/fireplace-wall-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [291, 110, 1241, 773],
+      "rectangles": [
+        [291, 110, 220, 664],
+        [1020, 110, 222, 664]
+      ]
+    },
+    "integrated/bookcase/full-open-shelving/left-niche-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [277, 43, 1388, 952],
+      "rectangles": [[277, 43, 1112, 910]]
+    },
+    "integrated/bookcase/full-open-shelving/niche-layout-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [279, 149, 1255, 879],
+      "rectangles": [[279, 149, 977, 731]]
+    },
+    "integrated/bookcase/full-open-shelving/right-niche-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [178, 123, 1230, 874],
+      "rectangles": [[178, 123, 1053, 752]]
+    },
+    "integrated/bookcase/full-open-shelving/window-wall-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [281, 137, 1249, 827],
+      "rectangles": [
+        [281, 137, 969, 63],
+        [281, 197, 313, 631],
+        [939, 197, 311, 631]
+      ]
+    },
+
+    "concept-cabinets-shelves-between-openings-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [365, 148, 1163, 801],
+      "rectangles": [[365, 148, 799, 654]],
+      "fixedLightLines": [
+        [415, 205, 759, 205, 3],
+        [786, 205, 1119, 205, 3],
+        [415, 310, 759, 310, 3],
+        [786, 310, 1119, 310, 3],
+        [415, 406, 759, 406, 3],
+        [786, 406, 1119, 406, 3],
+        [415, 500, 759, 500, 3],
+        [786, 500, 1119, 500, 3]
+      ]
+    },
+    "concept-drawers-shelves-between-openings-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [389, 147, 1145, 789],
+      "rectangles": [[389, 147, 757, 643]],
+      "fixedLightLines": [
+        [434, 210, 749, 210, 3],
+        [776, 210, 1114, 210, 3],
+        [428, 313, 750, 313, 3],
+        [776, 313, 1114, 313, 3],
+        [429, 413, 750, 413, 3],
+        [776, 413, 1114, 413, 3],
+        [429, 512, 750, 512, 3],
+        [776, 512, 1114, 512, 3]
+      ]
+    },
+    "concept-full-shelving-between-openings-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [324, 168, 1208, 815],
+      "rectangles": [
+        [324, 168, 885, 50],
+        [332, 198, 868, 590],
+        [332, 787, 877, 29]
+      ],
+      "fixedLightLines": [
+        [369, 232, 615, 232, 3],
+        [648, 232, 894, 232, 3],
+        [919, 232, 1176, 232, 3],
+        [369, 328, 615, 328, 3],
+        [648, 328, 894, 328, 3],
+        [919, 328, 1176, 328, 3],
+        [369, 419, 615, 419, 3],
+        [648, 419, 894, 419, 3],
+        [919, 419, 1176, 419, 3],
+        [369, 512, 615, 512, 3],
+        [648, 512, 894, 512, 3],
+        [919, 512, 1176, 512, 3],
+        [369, 605, 615, 605, 3],
+        [648, 605, 894, 605, 3],
+        [919, 605, 1176, 605, 3],
+        [369, 696, 615, 696, 3],
+        [648, 696, 894, 696, 3],
+        [919, 696, 1176, 696, 3]
+      ]
+    },
+    "concept-tv-wall-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [157, 53, 1387, 928],
+      "rectangles": [
+        [157, 53, 1231, 287],
+        [157, 339, 336, 306],
+        [958, 339, 430, 306],
+        [493, 339, 465, 30],
+        [493, 339, 28, 306],
+        [930, 339, 28, 306],
+        [493, 615, 465, 30],
+        [157, 643, 1231, 231],
+        [157, 874, 978, 55]
+      ]
+    },
+    "concept-window-cabinets-v1.png": {
+      "materialBase": "envelope",
+      "installationBounds": [97, 75, 1349, 966],
+      "rectangles": [
+        [107, 75, 1233, 81],
+        [109, 120, 369, 635],
+        [977, 120, 362, 635],
+        [97, 748, 1253, 250]
+      ]
+    }
+  }
+}

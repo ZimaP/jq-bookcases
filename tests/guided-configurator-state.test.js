@@ -6,6 +6,7 @@ import {
   CATEGORY_DEFINITIONS,
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
+  PREVIEW_FINISH_MASK_ASSETS,
   PRODUCT_CHOICES,
   PRODUCT_INTEGRATED_PREVIEW_ASSETS,
   PUBLIC_BOOKCASE_STYLE_IDS,
@@ -14,6 +15,7 @@ import {
   getLayout,
   getMeasurementDiagramSpec,
   getMeasurementFields,
+  resolveFinishMaskAsset,
   resolvePreviewAsset,
   resolvePreviewPresentation
 } from "../guided-configurator-data.js";
@@ -56,6 +58,121 @@ class ToggleStorage extends MemoryStorage {
 }
 
 const categoryById = (id) => CATEGORY_DEFINITIONS.find((category) => category.id === id);
+
+function assertIntegratedPresentation(presentation, expectedAsset, previewKey) {
+  assert.equal(presentation.conceptAsset, expectedAsset, `${previewKey} full-room composite`);
+  assert.equal(presentation.renderMode, "integrated", `${previewKey} integrated render mode`);
+  assert.equal(
+    presentation.authoredLayoutId,
+    presentation.layoutId,
+    `${previewKey} authored room topology matches the selected layout`
+  );
+  assert.equal(
+    presentation.integratedLayoutId,
+    presentation.layoutId,
+    `${previewKey} integrated room topology matches the selected layout`
+  );
+  assert.equal(presentation.mediaFit, "cover", `${previewKey} media fills the scene`);
+  assert.ok(
+    Number.isFinite(presentation.mediaWidth) && presentation.mediaWidth > 0,
+    `${previewKey} media width`
+  );
+  assert.ok(
+    Number.isFinite(presentation.mediaHeight) && presentation.mediaHeight > 0,
+    `${previewKey} media height`
+  );
+  assert.equal(
+    presentation.mediaAspectRatio,
+    `${presentation.mediaWidth} / ${presentation.mediaHeight}`,
+    `${previewKey} media aspect ratio is derived from the authored canvas`
+  );
+  assert.match(
+    presentation.mediaObjectPosition,
+    /^(?:0|50|100)% (?:0|50|100)%$/,
+    `${previewKey} has a deterministic focal position`
+  );
+  assert.match(
+    presentation.mediaSvgPreserveAspectRatio,
+    /^x(?:Min|Mid|Max)Y(?:Min|Mid|Max) slice$/,
+    `${previewKey} mask uses the same edge-filling alignment`
+  );
+  assert.equal(presentation.finishMaskMode, "asset", `${previewKey} uses an approved material mask`);
+  assert.equal(
+    presentation.finishMaskViewBox,
+    `0 0 ${presentation.finishMaskWidth} ${presentation.finishMaskHeight}`,
+    `${previewKey} finish mask has an explicit source coordinate system`
+  );
+  assert.equal(
+    presentation.finishMaskWidth,
+    presentation.mediaWidth,
+    `${previewKey} finish mask width matches the photograph`
+  );
+  assert.equal(
+    presentation.finishMaskHeight,
+    presentation.mediaHeight,
+    `${previewKey} finish mask height matches the photograph`
+  );
+  assert.match(
+    presentation.finishMaskAsset,
+    /-finish-mask-v\d+\.png$/,
+    `${previewKey} references an authored finish mask`
+  );
+  for (const field of [
+    "roomAsset",
+    "productAsset",
+    "installationEnvelope",
+    "installationEnvelopeId"
+  ]) {
+    assert.equal(
+      Object.hasOwn(presentation, field),
+      false,
+      `${previewKey} must not expose the obsolete ${field} layer field`
+    );
+  }
+}
+
+function assertRoomPlusFurniturePresentation(presentation, expectedFurnitureAsset, previewKey) {
+  assert.equal(presentation.renderMode, "room-plus-furniture", `${previewKey} layered render mode`);
+  assert.equal(
+    presentation.conceptAsset,
+    presentation.layoutContextAsset,
+    `${previewKey} concept state stores the selected room asset`
+  );
+  assert.equal(
+    presentation.roomAsset,
+    presentation.layoutContextAsset,
+    `${previewKey} reuses the exact measurement room`
+  );
+  assert.equal(
+    presentation.furnitureAsset,
+    expectedFurnitureAsset,
+    `${previewKey} uses an architecture-free furniture layer`
+  );
+  assert.equal(presentation.authoredLayoutId, presentation.layoutId, `${previewKey} authored room topology`);
+  assert.equal(presentation.integratedLayoutId, presentation.layoutId, `${previewKey} resolved room topology`);
+  assert.equal(presentation.mediaFit, "cover", `${previewKey} media fills the scene`);
+  assert.equal(presentation.mediaWidth, 1536, `${previewKey} shared scene width`);
+  assert.equal(presentation.mediaHeight, 1024, `${previewKey} shared scene height`);
+  assert.equal(presentation.mediaAspectRatio, "1536 / 1024", `${previewKey} shared scene aspect ratio`);
+  assert.equal(presentation.mediaSvgPreserveAspectRatio, "xMidYMid slice", `${previewKey} shared crop alignment`);
+  assert.equal(presentation.finishMaskMode, "asset", `${previewKey} asset-backed finish mask`);
+  assert.equal(presentation.finishMaskWidth, presentation.mediaWidth, `${previewKey} finish mask width`);
+  assert.equal(presentation.finishMaskHeight, presentation.mediaHeight, `${previewKey} finish mask height`);
+  assert.match(presentation.finishMaskAsset, /-finish-mask-v\d+\.png$/, `${previewKey} finish mask asset`);
+  assert.deepEqual(
+    Object.keys(presentation.installationEnvelope).sort(),
+    ["height", "width", "x", "y"],
+    `${previewKey} normalized furniture envelope`
+  );
+  for (const value of Object.values(presentation.installationEnvelope)) {
+    assert.ok(value >= 0 && value <= 1, `${previewKey} normalized envelope value`);
+  }
+}
+
+function pngColorType(buffer) {
+  assert.equal(buffer.subarray(1, 4).toString("ascii"), "PNG", "PNG signature");
+  return buffer[25];
+}
 
 test("all five customer categories use the same ten room conditions", () => {
   assert.deepEqual(
@@ -478,24 +595,34 @@ test("every public Bookcase construction maps to the selected room scene", async
       const expectedAsset = layoutAssets[styleId];
       const presentation = resolvePreviewPresentation("bookcase", styleId, layout.id);
       const previewKey = `bookcase:${styleId}:${layout.id}`;
+      const layeredClearWall = layout.id === "clear-wall";
 
-      assert.equal(resolvePreviewAsset("bookcase", styleId, layout.id), expectedAsset);
+      assert.equal(
+        resolvePreviewAsset("bookcase", styleId, layout.id),
+        layeredClearWall ? layout.previewAsset : expectedAsset
+      );
       assert.equal(presentation.previewKey, previewKey);
       assert.equal(presentation.categoryId, "bookcase");
       assert.equal(presentation.styleId, styleId);
       assert.equal(presentation.layoutId, layout.id);
       assert.equal(presentation.integratedLayoutId, layout.id);
-      assert.equal(presentation.renderMode, "integrated");
-      assert.equal(presentation.conceptAsset, expectedAsset);
-      assert.notEqual(expectedAsset, layout.previewAsset);
+      if (layeredClearWall) {
+        assertRoomPlusFurniturePresentation(presentation, expectedAsset, previewKey);
+      } else {
+        assertIntegratedPresentation(presentation, expectedAsset, previewKey);
+      }
 
       const png = await readFile(new URL(`../${expectedAsset}`, import.meta.url));
-      const avif = await readFile(new URL(`../${expectedAsset.replace(/\.png$/, ".avif")}`, import.meta.url));
       assert.ok(png.byteLength > 10_000, `${previewKey} PNG is empty`);
-      assert.ok(avif.byteLength > 10_000, `${previewKey} AVIF is empty`);
-      if (expectedAsset.includes("/integrated/")) {
+      if (layeredClearWall) {
+        assert.equal(pngColorType(png), 6, `${previewKey} furniture PNG has an alpha channel`);
+      } else {
+        const avif = await readFile(new URL(`../${expectedAsset.replace(/\.png$/, ".avif")}`, import.meta.url));
+        assert.ok(avif.byteLength > 10_000, `${previewKey} AVIF is empty`);
+      }
+      if (presentation.finishMaskMode === "asset") {
         const finishMask = await readFile(
-          new URL(`../${expectedAsset.replace(/-v1\.png$/, "-finish-mask-v1.png")}`, import.meta.url)
+          new URL(`../${presentation.finishMaskAsset}`, import.meta.url)
         );
         assert.ok(finishMask.byteLength > 1_000, `${previewKey} finish mask is empty`);
       }
@@ -508,10 +635,65 @@ test("every public Bookcase construction maps to the selected room scene", async
   const legacyMediaPreview = resolvePreviewPresentation("bookcase", "tv-wall-cabinets", "door-wall");
   assert.equal(legacyMediaPreview.renderMode, "missing-integrated-scene");
   assert.equal(legacyMediaPreview.integratedLayoutId, null);
+  assert.equal(legacyMediaPreview.authoredLayoutId, "door-wall");
   assert.equal(
     legacyMediaPreview.conceptAsset,
     "assets/photos/configurator/room-layouts/room-door-wall-v1.png"
   );
+
+  const drawerConcept = resolvePreviewPresentation("bookcase", "drawer-base-shelves");
+  assert.equal(drawerConcept.authoredLayoutId, "niche-layout");
+  assert.equal(drawerConcept.mediaWidth, 1448);
+  assert.equal(drawerConcept.mediaHeight, 1086);
+
+  const radiatorConcept = resolvePreviewPresentation("radiator-cover", "clean-slat-cover");
+  assert.equal(radiatorConcept.authoredLayoutId, "window-wall");
+  assert.equal(radiatorConcept.mediaWidth, 1536);
+  assert.equal(radiatorConcept.mediaHeight, 1024);
+});
+
+test("Step 1 Bookcase product cards use the empty v2 artwork cohort", async () => {
+  const expectedCardAssets = new Map([
+    ["cabinet-shelves", "assets/photos/configurator/concept-cabinets-shelves-v2.png"],
+    ["drawer-shelves", "assets/photos/configurator/concept-drawers-shelves-v2.png"],
+    ["open-shelving", "assets/photos/configurator/concept-full-shelving-v2.png"]
+  ]);
+  const retiredPropFilledAssets = new Set([
+    "assets/photos/configurator/concept-cabinets-shelves-v1.png",
+    "assets/photos/configurator/concept-drawers-shelves-v1.png",
+    "assets/photos/configurator/concept-full-shelving-v1.png"
+  ]);
+  const bookcaseCategory = categoryById("bookcase");
+  const activeCardAssets = [];
+
+  for (const choice of PRODUCT_CHOICES.filter(({ categoryId }) => categoryId === "bookcase")) {
+    const style = bookcaseCategory.styles.find(({ id }) => id === choice.styleId);
+    const cardAsset = style?.previewAsset || bookcaseCategory.productPreviewAsset;
+    const expectedAsset = expectedCardAssets.get(choice.id);
+
+    assert.equal(cardAsset, expectedAsset, `${choice.label} uses its reviewed empty-shelf card`);
+    assert.equal(retiredPropFilledAssets.has(cardAsset), false, `${choice.label} rejects prop-filled v1 artwork`);
+    assert.doesNotMatch(cardAsset, /-v1\.png$/, `${choice.label} is cache-safe`);
+
+    const png = await readFile(new URL(`../${cardAsset}`, import.meta.url));
+    const avif = await readFile(new URL(`../${cardAsset.replace(/\.png$/, ".avif")}`, import.meta.url));
+    assert.ok(png.byteLength > 10_000, `${choice.label} empty-shelf PNG is present`);
+    assert.ok(avif.byteLength > 10_000, `${choice.label} empty-shelf AVIF is present`);
+    activeCardAssets.push(cardAsset);
+  }
+
+  assert.deepEqual(activeCardAssets, [...expectedCardAssets.values()]);
+  assert.equal(bookcaseCategory.productPreviewAsset, expectedCardAssets.get("cabinet-shelves"));
+
+  const configuratorHtml = await readFile(new URL("../configurator.html", import.meta.url), "utf8");
+  assert.match(
+    configuratorHtml,
+    /rel="preload" href="assets\/photos\/configurator\/concept-cabinets-shelves-v2\.avif"/,
+    "the initial Step 1 preload uses the empty Cabinets + Shelves card"
+  );
+  for (const retiredAsset of retiredPropFilledAssets) {
+    assert.doesNotMatch(configuratorHtml, new RegExp(retiredAsset.replace(".png", "\\.(?:png|avif)")));
+  }
 });
 
 test("the seven product cards resolve to seventy exact product and room scenes", async () => {
@@ -530,6 +712,8 @@ test("the seven product cards resolve to seventy exact product and room scenes",
 
   assert.equal(new Set(PRODUCT_CHOICES.map((choice) => choice.id)).size, 7);
   const exactAssets = new Set();
+  const finishSources = new Set();
+  const resolvedMasks = new Set();
   let resolvedSceneCount = 0;
 
   for (const choice of PRODUCT_CHOICES) {
@@ -545,27 +729,54 @@ test("the seven product cards resolve to seventy exact product and room scenes",
       const expectedAsset = productMatrix[layout.id];
       const presentation = resolvePreviewPresentation(choice.categoryId, choice.styleId, layout.id);
 
+      assert.doesNotMatch(
+        expectedAsset,
+        /-v1\.png$/,
+        `${previewKey} uses the cache-safe empty-shelf asset cohort`
+      );
+
       assert.equal(presentation.previewKey, previewKey);
       assert.equal(presentation.categoryId, choice.categoryId);
       assert.equal(presentation.styleId, choice.styleId);
       assert.equal(presentation.layoutId, layout.id);
       assert.equal(presentation.integratedLayoutId, layout.id);
-      assert.equal(presentation.renderMode, "integrated");
-      assert.equal(presentation.conceptAsset, expectedAsset);
-      assert.notEqual(expectedAsset, layout.previewAsset);
+      const layeredClearWall = choice.categoryId === "bookcase" && layout.id === "clear-wall";
+      if (layeredClearWall) {
+        assertRoomPlusFurniturePresentation(presentation, expectedAsset, previewKey);
+      } else {
+        assertIntegratedPresentation(presentation, expectedAsset, previewKey);
+      }
+      const finishSource = presentation.furnitureAsset || presentation.conceptAsset;
+      assert.equal(
+        presentation.finishMaskAsset,
+        PREVIEW_FINISH_MASK_ASSETS[finishSource],
+        `${previewKey} uses the explicitly approved wood-material mask`
+      );
 
       const png = await readFile(new URL(`../${expectedAsset}`, import.meta.url));
-      const avif = await readFile(new URL(`../${expectedAsset.replace(/\.png$/, ".avif")}`, import.meta.url));
       assert.ok(png.byteLength > 10_000, `${previewKey} PNG is empty`);
-      assert.ok(avif.byteLength > 10_000, `${previewKey} AVIF is empty`);
+      if (layeredClearWall) {
+        assert.equal(pngColorType(png), 6, `${previewKey} furniture PNG has an alpha channel`);
+      } else {
+        const avif = await readFile(new URL(`../${expectedAsset.replace(/\.png$/, ".avif")}`, import.meta.url));
+        assert.ok(avif.byteLength > 10_000, `${previewKey} AVIF is empty`);
+      }
 
-      if (expectedAsset.includes("/integrated/")) {
-        const maskAsset = expectedAsset.replace(/-v1\.png$/, "-finish-mask-v1.png");
-        const finishMask = await readFile(new URL(`../${maskAsset}`, import.meta.url));
+      if (presentation.finishMaskMode === "asset") {
+        assert.match(
+          presentation.finishMaskAsset,
+          /-finish-mask-v4\.png$/,
+          `${previewKey} uses the empty-shelf wood-only mask cohort`
+        );
+        const finishMask = await readFile(
+          new URL(`../${presentation.finishMaskAsset}`, import.meta.url)
+        );
         assert.ok(finishMask.byteLength > 1_000, `${previewKey} finish mask is empty`);
       }
 
       exactAssets.add(expectedAsset);
+      finishSources.add(finishSource);
+      resolvedMasks.add(presentation.finishMaskAsset);
       resolvedSceneCount += 1;
     }
   }
@@ -574,44 +785,60 @@ test("the seven product cards resolve to seventy exact product and room scenes",
   // Cabinets + Shelves and Window Storage intentionally share the same approved
   // cabinetry-around-a-window scene for Window Wall; every other asset is unique.
   assert.equal(exactAssets.size, 69);
+  assert.equal(finishSources.size, 69);
+  assert.equal(resolvedMasks.size, 69);
+  assert.deepEqual(
+    [...finishSources].sort(),
+    Object.keys(PREVIEW_FINISH_MASK_ASSETS).sort(),
+    "the approved mask allowlist exactly covers the active public preview sources"
+  );
+  assert.equal(Object.values(PREVIEW_FINISH_MASK_ASSETS).every(Boolean), true);
 });
 
-test("preview presentations preserve every selected room condition", () => {
-  for (const styleId of PUBLIC_BOOKCASE_STYLE_IDS) {
+test("unapproved preview assets fail closed without an inferred finish mask", () => {
+  const unknownAsset = "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/right-niche-v99.png";
+  assert.equal(resolveFinishMaskAsset(unknownAsset), null);
+  assert.equal(resolveFinishMaskAsset(""), null);
+});
+
+test("preview presentations expose truthful media contracts for all seventy selections", () => {
+  for (const choice of PRODUCT_CHOICES) {
     for (const layout of SHARED_ROOM_LAYOUTS) {
-      const presentation = resolvePreviewPresentation("bookcase", styleId, layout.id);
+      const presentation = resolvePreviewPresentation(choice.categoryId, choice.styleId, layout.id);
+      const expectedAsset = PRODUCT_INTEGRATED_PREVIEW_ASSETS[choice.id][layout.id];
       assert.equal(presentation.layoutId, layout.id);
       assert.equal(presentation.integratedLayoutId, layout.id);
       assert.equal(presentation.layoutLabel, layout.label);
       assert.equal(presentation.layoutContextAsset, layout.previewAsset);
       assert.equal(presentation.layoutPreviewMode, layout.previewMode);
       assert.equal(presentation.layoutPreviewPosition, layout.previewPosition);
-      assert.equal(presentation.renderMode, "integrated");
+      if (choice.categoryId === "bookcase" && layout.id === "clear-wall") {
+        assertRoomPlusFurniturePresentation(presentation, expectedAsset, presentation.previewKey);
+      } else {
+        assertIntegratedPresentation(presentation, expectedAsset, presentation.previewKey);
+      }
     }
   }
 
-  const betweenOpenings = resolvePreviewPresentation("bookcase", "full-open-shelving", "double-opening");
+  const betweenOpenings = resolvePreviewPresentation("tv-unit", "framed-tv-wall", "double-opening");
   assert.equal(betweenOpenings.layoutId, "double-opening");
   assert.equal(betweenOpenings.layoutLabel, "Between Openings");
   assert.equal(
-    betweenOpenings.layoutContextAsset,
-    "assets/photos/configurator/room-layouts/room-double-opening-v1.png"
-  );
-  assert.equal(
     betweenOpenings.conceptAsset,
-    "assets/photos/configurator/concept-full-shelving-between-openings-v1.png"
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v3.png"
   );
-  assert.equal(betweenOpenings.renderMode, "integrated");
-  assert.notEqual(
-    betweenOpenings.conceptAsset,
-    resolvePreviewPresentation("bookcase", "full-open-shelving", "clear-wall").conceptAsset
+  assertIntegratedPresentation(
+    betweenOpenings,
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/double-opening-v3.png",
+    betweenOpenings.previewKey
   );
 
   const normalized = normalizeProject({
     ...createProject({ now: 24, random: 0.24 }),
     productSelected: true,
+    category: "tv-unit",
     layout: "between-openings",
-    style: "full-open-shelving",
+    style: "framed-tv-wall",
     finish: "charcoal"
   }, { now: 25 });
   assert.equal(normalized.layout, "double-opening");
