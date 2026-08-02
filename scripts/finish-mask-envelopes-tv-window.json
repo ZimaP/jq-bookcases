@@ -3,12 +3,22 @@
   "purpose": "Authored installation envelopes. A finish matte may never extend beyond these cabinet footprints.",
   "entries": {
     "integrated/tv-unit/framed-tv-wall/niche-layout-v1.png": {
-      "rectangles": [[270, 120, 990, 59], [257, 178, 999, 482], [257, 660, 1012, 206]]
+      "materialBase": "envelope",
+      "rectangles": [
+        [270, 120, 990, 59],
+        [270, 178, 986, 482],
+        [257, 660, 1012, 206]
+      ]
     },
     "integrated/tv-unit/framed-tv-wall/left-niche-v1.png": {
-      "rectangles": [[307, 160, 1008, 718]]
+      "rectangles": [
+        [307, 160, 1008, 341],
+        [307, 501, 976, 176],
+        [307, 677, 1008, 201]
+      ]
     },
     "integrated/tv-unit/framed-tv-wall/right-niche-v1.png": {
+      "materialBase": "envelope",
       "rectangles": [[250, 178, 991, 58], [260, 233, 966, 420], [248, 650, 995, 218]]
     },
     "integrated/tv-unit/framed-tv-wall/fireplace-wall-v1.png": {
@@ -20,32 +30,53 @@
       ]
     },
     "integrated/tv-unit/framed-tv-wall/center-recess-v1.png": {
-      "rectangles": [[84, 112, 385, 753], [1059, 112, 387, 753], [452, 114, 624, 31]]
+      "rectangles": [
+        [84, 112, 385, 753],
+        [1059, 112, 387, 248],
+        [1059, 360, 365, 85],
+        [1059, 445, 387, 420],
+        [452, 114, 624, 31]
+      ]
     },
     "integrated/tv-unit/framed-tv-wall/window-wall-v1.png": {
       "rectangles": [
         [60, 123, 580, 757],
         [616, 123, 386, 54],
         [615, 713, 388, 167],
-        [984, 123, 512, 757]
+        [984, 123, 512, 160],
+        [984, 283, 498, 145],
+        [984, 428, 512, 84],
+        [984, 512, 498, 117],
+        [984, 629, 512, 251]
       ]
     },
     "integrated/tv-unit/framed-tv-wall/door-wall-v1.png": {
       "rectangles": [
         [51, 87, 611, 566],
         [37, 643, 613, 242],
-        [970, 87, 528, 566],
-        [978, 643, 520, 242]
+        [970, 87, 528, 289],
+        [970, 376, 513, 186],
+        [986, 562, 497, 13],
+        [986, 575, 512, 68],
+        [986, 643, 512, 76],
+        [978, 719, 520, 166]
       ]
     },
     "integrated/tv-unit/framed-tv-wall/corner-wall-v1.png": {
       "polygons": [[[43, 82], [1484, 82], [1470, 910], [1110, 797], [45, 912]]]
     },
     "integrated/tv-unit/framed-tv-wall/double-opening-v2.png": {
-      "rectangles": [[419, 205, 704, 613]]
+      "rectangles": [
+        [419, 205, 704, 131],
+        [438, 336, 685, 16],
+        [438, 352, 661, 194],
+        [438, 546, 685, 55],
+        [419, 601, 704, 217]
+      ]
     },
 
     "integrated/window-storage/window-seat-storage/niche-layout-v1.png": {
+      "materialBase": "envelope",
       "rectangles": [[495, 670, 540, 185]],
       "polygons": [
         [[363, 113], [509, 113], [527, 143], [527, 645], [495, 670], [495, 855], [363, 855]],
@@ -53,26 +84,25 @@
       ]
     },
     "integrated/window-storage/window-seat-storage/left-niche-v1.png": {
+      "materialBase": "envelope",
       "rectangles": [
-        [466, 125, 235, 781],
-        [1165, 125, 253, 781],
-        [701, 125, 464, 125],
-        [701, 176, 35, 527],
-        [1138, 176, 27, 527],
+        [487, 95, 909, 81],
+        [487, 176, 217, 527],
+        [1165, 176, 231, 527],
         [463, 703, 957, 203]
       ]
     },
     "integrated/window-storage/window-seat-storage/right-niche-v1.png": {
+      "materialBase": "envelope",
       "rectangles": [
-        [220, 122, 288, 744],
-        [922, 122, 268, 744],
-        [508, 122, 414, 139],
-        [508, 176, 40, 494],
-        [890, 176, 32, 494],
+        [220, 127, 969, 123],
+        [227, 250, 281, 616],
+        [890, 250, 299, 616],
         [421, 670, 713, 196]
       ]
     },
     "integrated/window-storage/window-seat-storage/fireplace-wall-v1.png": {
+      "materialBase": "envelope",
       "rectangles": [
         [102, 77, 321, 68],
         [422, 77, 159, 843],
@@ -82,14 +112,16 @@
       ]
     },
     "integrated/window-storage/window-seat-storage/center-recess-v1.png": {
+      "materialBase": "envelope",
       "rectangles": [
-        [89, 101, 218, 641],
+        [119, 101, 143, 641],
         [88, 742, 497, 178],
-        [1116, 118, 312, 644],
-        [1037, 762, 395, 158]
+        [1161, 118, 233, 644],
+        [1045, 762, 383, 158]
       ]
     },
     "integrated/window-storage/window-seat-storage/clear-wall-v2.png": {
+      "materialBase": "envelope",
       "rectangles": [
         [263, 150, 312, 707],
         [965, 150, 308, 707],
@@ -98,21 +130,41 @@
       ]
     },
     "integrated/window-storage/window-seat-storage/door-wall-v1.png": {
+      "materialBase": "envelope",
       "rectangles": [
-        [106, 90, 178, 596],
-        [102, 674, 520, 181],
-        [1180, 113, 266, 566],
-        [960, 667, 486, 188]
+        [137, 90, 147, 596],
+        [107, 674, 508, 181],
+        [1180, 113, 239, 566],
+        [963, 667, 483, 188]
       ]
     },
     "integrated/window-storage/window-seat-storage/corner-wall-v1.png": {
-      "rectangles": [[82, 48, 257, 905], [1200, 67, 280, 894]],
+      "materialBase": "envelope",
       "polygons": [
-        [[335, 696], [871, 696], [871, 837], [335, 923]],
-        [[870, 647], [1215, 647], [1215, 692], [1479, 692], [1479, 960], [870, 837]]
-      ]
+        [[120, 48], [339, 80], [339, 922], [119, 951], [82, 929], [82, 72]],
+        [[1409, 69], [1478, 88], [1478, 929], [1380, 955], [1201, 917], [1201, 110], [1278, 80], [1362, 80]],
+        [[337, 703], [871, 703], [871, 832], [337, 923]],
+        [[870, 669], [1201, 710], [1201, 751], [1479, 783], [1479, 929], [1380, 955], [870, 832]]
+      ],
+      "finishExcludes": {
+        "polygons": [
+          {
+            "label": "second left brass drawer pull",
+            "points": [[591, 790], [633, 785], [634, 790], [592, 795]]
+          },
+          {
+            "label": "third left brass drawer pull",
+            "points": [[771, 766], [814, 761], [815, 766], [772, 771]]
+          },
+          {
+            "label": "middle right brass drawer pull",
+            "points": [[1052, 793], [1099, 801], [1098, 806], [1051, 798]]
+          }
+        ]
+      }
     },
     "integrated/window-storage/window-seat-storage/double-opening-v2.png": {
+      "materialBase": "envelope",
       "rectangles": [
         [357, 128, 202, 728],
         [976, 128, 199, 728],

@@ -10,8 +10,7 @@ source's x/y aspect ratio, and place every unit against the canonical wall.
 from argparse import ArgumentParser
 from pathlib import Path
 
-import numpy as np
-from PIL import Image, ImageChops, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -25,7 +24,8 @@ TARGET_HEIGHT = 604
 # backing, base, and intentional edge fillers of each furniture installation.
 STYLES = {
     "cabinet-base-shelves": {
-        "source": "concept-cabinets-shelves-between-openings-v1.png",
+        "source": "concept-cabinets-shelves-between-openings-v2.png",
+        "finish_mask": "concept-cabinets-shelves-between-openings-finish-mask-v4.png",
         "source_envelope": (365, 148, 1164, 802),
         "silhouette_bands": (
             (369, 148, 1163, 183),
@@ -33,7 +33,8 @@ STYLES = {
         ),
     },
     "drawer-base-shelves": {
-        "source": "concept-drawers-shelves-between-openings-v1.png",
+        "source": "concept-drawers-shelves-between-openings-v2.png",
+        "finish_mask": "concept-drawers-shelves-between-openings-finish-mask-v4.png",
         "source_envelope": (389, 147, 1146, 790),
         "silhouette_bands": (
             (389, 147, 1145, 187),
@@ -41,7 +42,8 @@ STYLES = {
         ),
     },
     "full-open-shelving": {
-        "source": "concept-full-shelving-between-openings-v1.png",
+        "source": "concept-full-shelving-between-openings-v2.png",
+        "finish_mask": "concept-full-shelving-between-openings-finish-mask-v4.png",
         "source_envelope": (324, 168, 1209, 816),
         "silhouette_bands": (
             (324, 168, 1209, 218),
@@ -59,32 +61,18 @@ def build_silhouette(bands):
     return silhouette
 
 
-def build_finish_mask(source, silhouette):
-    """Select warm wood pixels while leaving decor and hardware unchanged."""
-    rgb = np.asarray(source).astype(np.int16)
-    hsv = np.asarray(source.convert("HSV"))
-    selected = (
-        (hsv[:, :, 0] >= 8)
-        & (hsv[:, :, 0] <= 36)
-        & (hsv[:, :, 1] >= 52)
-        & (hsv[:, :, 2] >= 24)
-        & (hsv[:, :, 2] <= 250)
-        & ((rgb[:, :, 0] - rgb[:, :, 2]) >= 34)
-        & (np.asarray(silhouette) > 0)
-    )
-    mask = Image.fromarray(np.where(selected, 255, 0).astype(np.uint8))
-    mask = mask.filter(ImageFilter.MaxFilter(3))
-    mask = mask.filter(ImageFilter.MinFilter(3))
-    return mask.filter(ImageFilter.GaussianBlur(0.8))
-
-
 def build_style(style_id, definition):
     source = Image.open(ASSET_ROOT / definition["source"]).convert("RGB")
     if source.size != CANVAS_SIZE:
         raise ValueError(f"{definition['source']} must be {CANVAS_SIZE}, got {source.size}")
 
     silhouette = build_silhouette(definition["silhouette_bands"])
-    finish_mask = build_finish_mask(source, silhouette)
+    finish_mask = Image.open(ASSET_ROOT / definition["finish_mask"]).convert("L")
+    if finish_mask.size != CANVAS_SIZE:
+        raise ValueError(
+            f"{definition['finish_mask']} must be {CANVAS_SIZE}, got {finish_mask.size}"
+        )
+    finish_mask = ImageChops.multiply(finish_mask, silhouette)
     source_envelope = definition["source_envelope"]
     source_width = source_envelope[2] - source_envelope[0]
     source_height = source_envelope[3] - source_envelope[1]
@@ -121,8 +109,8 @@ def build_style(style_id, definition):
 def output_paths(style_id):
     output_dir = ASSET_ROOT / "furniture/bookcase" / style_id
     return (
-        output_dir / "clear-wall-furniture-v2.png",
-        output_dir / "clear-wall-finish-mask-v2.png",
+        output_dir / "clear-wall-furniture-v3.png",
+        output_dir / "clear-wall-finish-mask-v4.png",
     )
 
 
