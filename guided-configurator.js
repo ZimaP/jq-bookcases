@@ -1827,7 +1827,7 @@ function syncGuidedScene() {
   }
 
   updateGuidedSceneState("loading");
-  guidedSceneImportPromise ||= import("./guided-configurator-3d.js?v=blender-render-foundation-v1");
+  guidedSceneImportPromise ||= import("./guided-configurator-3d.js?v=tv-puck-light-primitive-v1-20260802a");
   guidedSceneImportPromise
     .then(({ createGuidedSceneController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;

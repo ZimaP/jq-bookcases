@@ -2,7 +2,14 @@ import {
   transformGuidedBoundsToWorld
 } from "./guided-render-contract.js?v=luxury-configurator-engine-v1";
 
-export const GUIDED_RENDER_PRIMITIVE_CONTRACT_VERSION = 1;
+export const GUIDED_RENDER_PRIMITIVE_CONTRACT_VERSION = 2;
+
+const PUCK_CYLINDER_SCHEMA_VERSION = 1;
+const PUCK_CYLINDER_SEGMENTS = 32;
+const PUCK_HOUSING_INNER_RADIUS_RATIO = 0.8;
+const PUCK_LENS_RADIUS_RATIO = 0.72;
+const PUCK_LENS_RECESS_DEPTH_RATIO = 1 / 6;
+const PUCK_LENS_DEPTH_RATIO = 0.5;
 
 /**
  * Resolve one accepted physical descriptor into renderer-neutral submeshes.
@@ -39,6 +46,13 @@ export function createGuidedAcceptedComponentRenderPlan(descriptor) {
   }
   const claimsFramedFront = ["framed_panel", "glass_frame"].includes(profile?.kind);
   const claimsCrownProfile = profile?.kind === "crown_profile_extrusion";
+  const claimsPuckLight = descriptor.metadata?.lightType === "puck";
+  if (claimsPuckLight && descriptor.role !== "light") {
+    throw new TypeError(`${descriptor.componentId} claims puck geometry without the light role.`);
+  }
+  if (claimsPuckLight && !isGuidedAcceptedPuckAttachment(descriptor.metadata?.attachment)) {
+    throw new TypeError(`${descriptor.componentId} has an unsupported puck attachment.`);
+  }
   if (
     ["door", "drawer_front"].includes(descriptor.role)
     && claimsFramedFront
@@ -62,6 +76,9 @@ export function createGuidedAcceptedComponentRenderPlan(descriptor) {
   ) {
     geometryVariant = profile.kind;
     submeshes = createAcceptedFrontSubmeshes(descriptor, slot, profile);
+  } else if (claimsPuckLight) {
+    geometryVariant = "recessed_puck_light";
+    submeshes = createAcceptedPuckSubmeshes(descriptor);
   } else if (
     descriptor.role === "crown"
     && isGuidedAcceptedCrownProfile(profile)
@@ -99,6 +116,121 @@ export function createGuidedAcceptedComponentRenderPlan(descriptor) {
     worldBounds: freezeAcceptedBounds(unionAcceptedRenderBounds(submeshes.map((entry) => entry.worldBounds))),
     submeshes: Object.freeze(submeshes)
   });
+}
+
+function createAcceptedPuckSubmeshes(descriptor) {
+  const bounds = descriptor.bounds;
+  const width = Number(bounds.max.x) - Number(bounds.min.x);
+  const height = Number(bounds.max.y) - Number(bounds.min.y);
+  const depth = Number(bounds.max.z) - Number(bounds.min.z);
+  if (width !== depth) {
+    throw new TypeError(`${descriptor.componentId} requires equal puck X/Z bounds.`);
+  }
+
+  const centerX = midpointAcceptedNumber(bounds.min.x, bounds.max.x);
+  const centerY = midpointAcceptedNumber(bounds.min.y, bounds.max.y);
+  const centerZ = midpointAcceptedNumber(bounds.min.z, bounds.max.z);
+  const housingRadius = width / 2;
+  const housingInnerRadius = housingRadius * PUCK_HOUSING_INNER_RADIUS_RATIO;
+  const lensRadius = housingRadius * PUCK_LENS_RADIUS_RATIO;
+  const lensMinY = Number(bounds.min.y) + height * PUCK_LENS_RECESS_DEPTH_RATIO;
+  const lensDepth = height * PUCK_LENS_DEPTH_RATIO;
+  const lensMaxY = lensMinY + lensDepth;
+  if (
+    !positiveAcceptedNumber(housingRadius)
+    || !positiveAcceptedNumber(housingInnerRadius)
+    || housingInnerRadius >= housingRadius
+    || !positiveAcceptedNumber(lensRadius)
+    || lensRadius >= housingInnerRadius
+    || !positiveAcceptedNumber(lensDepth)
+    || lensMinY <= Number(bounds.min.y)
+    || lensMaxY >= Number(bounds.max.y)
+  ) {
+    throw new TypeError(`${descriptor.componentId} cannot realize deterministic recessed puck proportions.`);
+  }
+
+  const lensBounds = {
+    min: {
+      x: centerX - lensRadius,
+      y: lensMinY,
+      z: centerZ - lensRadius
+    },
+    max: {
+      x: centerX + lensRadius,
+      y: lensMaxY,
+      z: centerZ + lensRadius
+    }
+  };
+  return [
+    createAcceptedSubmesh(descriptor, {
+      submeshId: "housing-rim",
+      geometry: "cylinder",
+      materialSlot: "hardware",
+      bounds,
+      edgeVisible: false,
+      grainRole: "puck_housing",
+      primitiveGeometry: createAcceptedCylinderGeometry({
+        center: { x: centerX, y: centerY, z: centerZ },
+        radius: housingRadius,
+        innerRadius: housingInnerRadius,
+        depth: height,
+        capStyle: "annular",
+        surfaceRole: "housing"
+      })
+    }),
+    createAcceptedSubmesh(descriptor, {
+      submeshId: "emissive-lens",
+      geometry: "cylinder",
+      materialSlot: "led",
+      bounds: lensBounds,
+      edgeVisible: false,
+      grainRole: "puck_lens",
+      primitiveGeometry: createAcceptedCylinderGeometry({
+        center: {
+          x: centerX,
+          y: midpointAcceptedNumber(lensMinY, lensMaxY),
+          z: centerZ
+        },
+        radius: lensRadius,
+        innerRadius: 0,
+        depth: lensDepth,
+        capStyle: "closed",
+        surfaceRole: "emissive_lens"
+      })
+    })
+  ];
+}
+
+function createAcceptedCylinderGeometry({
+  center,
+  radius,
+  innerRadius,
+  depth,
+  capStyle,
+  surfaceRole
+}) {
+  return Object.freeze({
+    schemaVersion: PUCK_CYLINDER_SCHEMA_VERSION,
+    kind: "cylinder",
+    axis: "y",
+    center: Object.freeze({
+      x: Number(center.x),
+      y: Number(center.y),
+      z: Number(center.z)
+    }),
+    radius: Number(radius),
+    innerRadius: Number(innerRadius),
+    depth: Number(depth),
+    segments: PUCK_CYLINDER_SEGMENTS,
+    capStyle,
+    surfaceRole
+  });
+}
+
+function isGuidedAcceptedPuckAttachment(attachment) {
+  return attachment?.axis === "y"
+    && attachment?.componentFace === "max"
+    && attachment?.hostFace === "min";
 }
 
 function createAcceptedFrontSubmeshes(descriptor, frameSlot, profile) {
@@ -209,7 +341,8 @@ function createAcceptedSubmesh(descriptor, options) {
     worldBounds: transformGuidedBoundsToWorld(bounds, descriptor.transform),
     edgeVisible: options.edgeVisible === true,
     grainRole: options.grainRole || descriptor.role,
-    profileGeometry: options.profileGeometry || null
+    profileGeometry: options.profileGeometry || null,
+    primitiveGeometry: options.primitiveGeometry || null
   });
 }
 
@@ -294,6 +427,10 @@ function positiveAcceptedNumber(value) {
 function nonNegativeAcceptedNumber(value) {
   const numeric = Number(value);
   return Number.isFinite(numeric) && numeric >= 0 ? numeric : null;
+}
+
+function midpointAcceptedNumber(minimum, maximum) {
+  return (Number(minimum) + Number(maximum)) / 2;
 }
 
 function normalizeGuidedMaterialSlot(slot, role) {

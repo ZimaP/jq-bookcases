@@ -17,7 +17,7 @@ import {
   finiteGuidedAcceptedNumber as finiteAcceptedNumber,
   isGuidedAcceptedCrownProfile as isAcceptedCrownProfile,
   isGuidedAcceptedRenderBounds as isAcceptedRenderBounds
-} from "./guided-render-primitives.js?v=blender-render-foundation-v1";
+} from "./guided-render-primitives.js?v=tv-puck-light-primitive-v1-20260802a";
 
 const INCH_TO_SCENE = 1 / 12;
 const MAX_DEVICE_PIXEL_RATIO = 2;

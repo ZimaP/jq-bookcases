@@ -8,21 +8,22 @@ import {
   auditGuidedAcceptedSpecification,
   createGuidedSceneDescriptors,
   transformGuidedBoundsToWorld,
+  transformGuidedPointToWorld,
   validateGuidedRenderedManifest
 } from "./guided-render-contract.js?v=luxury-configurator-engine-v1";
 import {
   GUIDED_RENDER_PRIMITIVE_CONTRACT_VERSION,
   createGuidedAcceptedComponentRenderPlan
-} from "./guided-render-primitives.js?v=blender-render-foundation-v1";
+} from "./guided-render-primitives.js?v=tv-puck-light-primitive-v1-20260802a";
 import {
   GUIDED_MATERIAL_CONTRACT_VERSION,
   GUIDED_MATERIAL_MANIFEST
 } from "./guided-materials.js?v=luxury-configurator-engine-v1";
 
 export const GUIDED_BLENDER_RENDER_JOB_SCHEMA_VERSION = 1;
-export const GUIDED_BLENDER_RENDER_PACKAGE_SCHEMA_VERSION = 2;
+export const GUIDED_BLENDER_RENDER_PACKAGE_SCHEMA_VERSION = 3;
 export const GUIDED_BLENDER_RENDER_RESULT_SCHEMA_VERSION = 1;
-export const GUIDED_BLENDER_RENDER_PIPELINE_VERSION = "2026.08-tv-drawing-4-clay-worker-v1";
+export const GUIDED_BLENDER_RENDER_PIPELINE_VERSION = "2026.08-tv-puck-light-clay-worker-v1";
 export const GUIDED_BLENDER_MATERIAL_LIBRARY_VERSION = "jq-materials-v1";
 export const GUIDED_BLENDER_CLAY_LIBRARY_VERSION = "jq-neutral-clay-v1";
 export const GUIDED_BLENDER_SCENE_VERSION = "clear-wall-v1";
@@ -32,6 +33,19 @@ export const GUIDED_BLENDER_ASSET_MANIFEST_SHA256 = "73b57b0ca24c4ecc6fc0af47ef5
 export const GUIDED_BLENDER_MATERIAL_SOURCE_SHA256 = "299b321424bf7665f413c2740c5238bcd7f7e1b0d412ab5c1db16339e4d772cd";
 
 const INCHES_TO_METERS = 0.0254;
+const CYLINDER_PRIMITIVE_KEYS = Object.freeze([
+  "schemaVersion",
+  "kind",
+  "axis",
+  "center",
+  "radius",
+  "innerRadius",
+  "depth",
+  "segments",
+  "capStyle",
+  "surfaceRole"
+]);
+const CYLINDER_CENTER_KEYS = Object.freeze(["x", "y", "z"]);
 const GUIDED_MATERIALS_BY_ID = new Map([
   ...Object.values(GUIDED_MATERIAL_MANIFEST.woods),
   ...Object.values(GUIDED_MATERIAL_MANIFEST.paints),
@@ -720,7 +734,8 @@ function validateBlenderWorkerPackageStructure(renderPackage) {
         "sourceLocalBounds",
         "sourceWorldBounds",
         "blenderWorldBounds",
-        "profileGeometry"
+        "profileGeometry",
+        "primitiveGeometry"
       ])) {
         errors.push(issue("INVALID_RENDER_SUBMESH_SHAPE", `${componentId} has a submesh with unknown or missing fields.`));
         continue;
@@ -739,15 +754,47 @@ function validateBlenderWorkerPackageStructure(renderPackage) {
       if (!isResolvedMaterialReference(submesh, materialBindings)) {
         errors.push(issue("UNRESOLVED_RENDER_MATERIAL", `${objectId} has no exact material binding.`));
       }
-      if (!new Set(["box", "crown_profile_extrusion"]).has(submesh.geometry)) {
+      if (!new Set(["box", "crown_profile_extrusion", "cylinder"]).has(submesh.geometry)) {
         errors.push(issue("UNSUPPORTED_RENDER_PRIMITIVE", `${objectId} uses unknown geometry ${submesh.geometry}.`));
       } else if (submesh.geometry === "crown_profile_extrusion") {
         if (!validStrictCrownProfile(submesh.profileGeometry)) {
           errors.push(issue("MALFORMED_CROWN_PROFILE", `${objectId} has a malformed authored crown profile.`));
         }
-      } else if (submesh.profileGeometry !== null) {
-        errors.push(issue("UNEXPECTED_RENDER_PROFILE", `${objectId} attaches profile geometry to a box.`));
+        if (submesh.primitiveGeometry !== null) {
+          errors.push(issue("UNEXPECTED_RENDER_PRIMITIVE_GEOMETRY", `${objectId} crown cannot attach primitive geometry.`));
+        }
+      } else if (submesh.geometry === "cylinder") {
+        if (submesh.profileGeometry !== null) {
+          errors.push(issue("UNEXPECTED_RENDER_PROFILE", `${objectId} cylinder cannot attach authored profile geometry.`));
+        }
+        errors.push(...validateStrictBlenderCylinder(
+          submesh.primitiveGeometry,
+          submesh.blenderWorldBounds,
+          submesh.sourceMaterialSlot,
+          objectId
+        ));
+      } else {
+        if (submesh.profileGeometry !== null) {
+          errors.push(issue("UNEXPECTED_RENDER_PROFILE", `${objectId} attaches profile geometry to a box.`));
+        }
+        if (submesh.primitiveGeometry !== null) {
+          errors.push(issue("UNEXPECTED_RENDER_PRIMITIVE_GEOMETRY", `${objectId} box cannot attach primitive geometry.`));
+        }
       }
+    }
+    const cylinderSubmeshes = component.submeshes.filter((submesh) => submesh.geometry === "cylinder");
+    if (
+      component.geometryVariant === "recessed_puck_light"
+        ? component.role !== "light"
+          || cylinderSubmeshes.length !== 2
+          || cylinderSubmeshes.map((submesh) => submesh.submeshId).sort().join("|")
+            !== "emissive-lens|housing-rim"
+        : cylinderSubmeshes.length !== 0
+    ) {
+      errors.push(issue(
+        "INVALID_RECESSED_PUCK_COMPONENT",
+        `${componentId} does not match the exact two-surface recessed puck contract.`
+      ));
     }
   }
 
@@ -803,6 +850,69 @@ function strictFiniteBounds(bounds) {
     && Number.isFinite(bounds.max[axis])
     && bounds.max[axis] > bounds.min[axis]
   )));
+}
+
+function strictFinitePoint(point) {
+  return Boolean(point && ["x", "y", "z"].every((axis) => (
+    typeof point[axis] === "number" && Number.isFinite(point[axis])
+  )));
+}
+
+function strictPositiveNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function strictNonNegativeNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function sameStrictBounds(first, second, tolerance = 1e-9) {
+  return strictFiniteBounds(first) && strictFiniteBounds(second) && ["x", "y", "z"].every((axis) => (
+    Math.abs(first.min[axis] - second.min[axis]) <= tolerance
+    && Math.abs(first.max[axis] - second.max[axis]) <= tolerance
+  ));
+}
+
+function validateStrictBlenderCylinder(primitive, blenderWorldBounds, sourceMaterialSlot, objectId) {
+  if (
+    !hasExactKeys(primitive, CYLINDER_PRIMITIVE_KEYS)
+    || !hasExactKeys(primitive?.center, CYLINDER_CENTER_KEYS)
+    || primitive.schemaVersion !== 1
+    || primitive.kind !== "cylinder"
+    || !strictFinitePoint(primitive.center)
+    || !strictPositiveNumber(primitive.radius)
+    || !strictNonNegativeNumber(primitive.innerRadius)
+    || primitive.innerRadius >= primitive.radius
+    || !strictPositiveNumber(primitive.depth)
+    || primitive.segments !== 32
+    || !["annular", "closed"].includes(primitive.capStyle)
+    || !["housing", "emissive_lens"].includes(primitive.surfaceRole)
+  ) {
+    return [issue(
+      "MALFORMED_CYLINDER_PRIMITIVE",
+      `${objectId} has malformed versioned cylinder geometry.`
+    )];
+  }
+  const errors = [];
+  if (primitive.axis !== "z") {
+    errors.push(issue(
+      "UNSUPPORTED_CYLINDER_AXIS",
+      `${objectId} cylinder axis must be Blender Z.`
+    ));
+  }
+  if (!validCylinderSurfaceMaterial(primitive, sourceMaterialSlot)) {
+    errors.push(issue(
+      "CYLINDER_MATERIAL_MISMATCH",
+      `${objectId} cylinder surface does not use its required material slot.`
+    ));
+  }
+  if (!sameStrictBounds(createBlenderCylinderBounds(primitive), blenderWorldBounds)) {
+    errors.push(issue(
+      "CYLINDER_BLENDER_BOUNDS_MISMATCH",
+      `${objectId} cylinder parameters contradict its exact Blender bounds.`
+    ));
+  }
+  return errors;
 }
 
 function validStrictCrownProfile(profile) {
@@ -1267,9 +1377,12 @@ function createBlenderComponent(
     blenderWorldBounds: convertGuidedBoundsToBlender(plan.worldBounds),
     metadata: sanitizeComponentMetadata(sourceComponent.metadata),
     submeshes: plan.submeshes.map((submesh) => {
-      const submeshSlot = submesh.materialSlot === "glass"
-        ? "glass"
-        : sourceMaterialSlot;
+      const submeshSlot = plan.geometryVariant === "recessed_puck_light"
+        ? String(submesh.materialSlot || "")
+        : submesh.materialSlot === "glass"
+          ? "glass"
+          : sourceMaterialSlot;
+      const blenderWorldBounds = convertGuidedBoundsToBlender(submesh.worldBounds);
       return {
         submeshId: submesh.submeshId,
         geometry: submesh.geometry,
@@ -1279,10 +1392,154 @@ function createBlenderComponent(
         materialId: resolveMaterialId(submeshSlot, materialState),
         sourceLocalBounds: clone(submesh.bounds),
         sourceWorldBounds: clone(submesh.worldBounds),
-        blenderWorldBounds: convertGuidedBoundsToBlender(submesh.worldBounds),
-        profileGeometry: sanitizeProfileGeometry(submesh.profileGeometry)
+        blenderWorldBounds,
+        profileGeometry: sanitizeProfileGeometry(submesh.profileGeometry),
+        primitiveGeometry: convertPrimitiveGeometryToBlender({
+          geometry: submesh.geometry,
+          primitiveGeometry: submesh.primitiveGeometry,
+          profileGeometry: submesh.profileGeometry,
+          sourceLocalBounds: submesh.bounds,
+          sourceWorldBounds: submesh.worldBounds,
+          blenderWorldBounds,
+          sourceTransform: descriptor.transform,
+          sourceMaterialSlot: submeshSlot,
+          componentId: descriptor.componentId,
+          submeshId: submesh.submeshId
+        })
       };
     })
+  };
+}
+
+function convertPrimitiveGeometryToBlender(options) {
+  const {
+    geometry,
+    primitiveGeometry,
+    profileGeometry,
+    sourceLocalBounds,
+    sourceWorldBounds,
+    blenderWorldBounds,
+    sourceTransform,
+    sourceMaterialSlot,
+    componentId,
+    submeshId
+  } = options;
+  const objectId = `${componentId}::${submeshId}`;
+  if (geometry !== "cylinder") {
+    if (primitiveGeometry !== null && primitiveGeometry !== undefined) {
+      throw blenderContractError(
+        "UNEXPECTED_RENDER_PRIMITIVE_GEOMETRY",
+        `${objectId} attaches primitive geometry to ${geometry}.`
+      );
+    }
+    return null;
+  }
+  if (profileGeometry !== null && profileGeometry !== undefined) {
+    throw blenderContractError(
+      "UNEXPECTED_RENDER_PROFILE",
+      `${objectId} cylinder cannot attach authored profile geometry.`
+    );
+  }
+  if (!validSourceCylinderPrimitive(primitiveGeometry)) {
+    throw blenderContractError(
+      "MALFORMED_CYLINDER_PRIMITIVE",
+      `${objectId} has malformed source cylinder geometry.`
+    );
+  }
+  if (!validCylinderSurfaceMaterial(primitiveGeometry, sourceMaterialSlot)) {
+    throw blenderContractError(
+      "CYLINDER_MATERIAL_MISMATCH",
+      `${objectId} cylinder surface does not use its required material slot.`
+    );
+  }
+  const expectedLocalBounds = createSourceCylinderBounds(primitiveGeometry);
+  const expectedWorldBounds = transformGuidedBoundsToWorld(expectedLocalBounds, sourceTransform);
+  if (
+    !sameStrictBounds(expectedLocalBounds, sourceLocalBounds)
+    || !sameStrictBounds(expectedWorldBounds, sourceWorldBounds)
+  ) {
+    throw blenderContractError(
+      "CYLINDER_SOURCE_BOUNDS_MISMATCH",
+      `${objectId} cylinder parameters contradict its accepted source bounds.`
+    );
+  }
+  const worldCenter = transformGuidedPointToWorld(primitiveGeometry.center, sourceTransform);
+  const converted = {
+    schemaVersion: 1,
+    kind: "cylinder",
+    axis: "z",
+    center: convertGuidedPointToBlender(worldCenter),
+    radius: canonicalNumber(primitiveGeometry.radius * INCHES_TO_METERS),
+    innerRadius: canonicalNumber(primitiveGeometry.innerRadius * INCHES_TO_METERS),
+    depth: canonicalNumber(primitiveGeometry.depth * INCHES_TO_METERS),
+    segments: primitiveGeometry.segments,
+    capStyle: primitiveGeometry.capStyle,
+    surfaceRole: primitiveGeometry.surfaceRole
+  };
+  if (!sameStrictBounds(createBlenderCylinderBounds(converted), blenderWorldBounds)) {
+    throw blenderContractError(
+      "CYLINDER_BLENDER_BOUNDS_MISMATCH",
+      `${objectId} cylinder conversion contradicts its exact Blender bounds.`
+    );
+  }
+  return converted;
+}
+
+function validSourceCylinderPrimitive(primitive) {
+  return hasExactKeys(primitive, CYLINDER_PRIMITIVE_KEYS)
+    && hasExactKeys(primitive.center, CYLINDER_CENTER_KEYS)
+    && primitive.schemaVersion === 1
+    && primitive.kind === "cylinder"
+    && primitive.axis === "y"
+    && strictFinitePoint(primitive.center)
+    && strictPositiveNumber(primitive.radius)
+    && strictNonNegativeNumber(primitive.innerRadius)
+    && primitive.innerRadius < primitive.radius
+    && strictPositiveNumber(primitive.depth)
+    && primitive.segments === 32
+    && ["annular", "closed"].includes(primitive.capStyle)
+    && ["housing", "emissive_lens"].includes(primitive.surfaceRole);
+}
+
+function validCylinderSurfaceMaterial(primitive, sourceMaterialSlot) {
+  if (primitive.surfaceRole === "housing") {
+    return primitive.capStyle === "annular"
+      && primitive.innerRadius > 0
+      && sourceMaterialSlot === "hardware";
+  }
+  return primitive.surfaceRole === "emissive_lens"
+    && primitive.capStyle === "closed"
+    && primitive.innerRadius === 0
+    && sourceMaterialSlot === "led";
+}
+
+function createSourceCylinderBounds(primitive) {
+  return {
+    min: {
+      x: primitive.center.x - primitive.radius,
+      y: primitive.center.y - primitive.depth / 2,
+      z: primitive.center.z - primitive.radius
+    },
+    max: {
+      x: primitive.center.x + primitive.radius,
+      y: primitive.center.y + primitive.depth / 2,
+      z: primitive.center.z + primitive.radius
+    }
+  };
+}
+
+function createBlenderCylinderBounds(primitive) {
+  return {
+    min: {
+      x: primitive.center.x - primitive.radius,
+      y: primitive.center.y - primitive.radius,
+      z: primitive.center.z - primitive.depth / 2
+    },
+    max: {
+      x: primitive.center.x + primitive.radius,
+      y: primitive.center.y + primitive.radius,
+      z: primitive.center.z + primitive.depth / 2
+    }
   };
 }
 

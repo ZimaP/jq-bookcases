@@ -1,8 +1,8 @@
 # JQ Bookcases Blender render foundation
 
-Status: Drawing 4 geometry v1 implemented for the internal
-**TV Unit + Clear Wall + fitted installation** prototype. It remains a clay
-render boundary, not a customer-approved beauty-render path.
+Status: Drawing 4 geometry v1 and circular puck-light primitive v1 implemented
+for the internal **TV Unit + Clear Wall + fitted installation** prototype. It
+remains a clay-render boundary, not a customer-approved beauty-render path.
 
 ## Decision
 
@@ -71,7 +71,7 @@ The committed `TV01-clear-wall-foundation` fixture now resolves:
   shelves governed by the 1.25 in/31 in rule;
 - a split center divider below the countertop and above the service opening,
   with no divider through the TV, soundbar, or ventilation volumes;
-- 46 renderable components, 78 renderer-neutral/Blender submesh objects, and
+- 46 renderable components, 80 renderer-neutral/Blender submesh objects, and
   seven non-renderable opening/clearance constraints.
 
 The authoritative shelf schedule is fail-closed: 1 in MDF supports a maximum
@@ -84,6 +84,24 @@ the former three-section elevation.
 John approval is not required for this internal prototype phase. This encoding
 does not approve production shop geometry or a customer beauty render;
 `customerBeautyRenderApproved` remains `false`.
+
+## Circular puck-light primitive v1
+
+Primitive contract version 2 replaces each accepted puck's former box proxy
+with two package-driven `cylinder` submeshes while leaving its authoritative
+component descriptor unchanged. Each of the two existing pucks retains its
+stable component ID, top-panel host, center, mirrored placement, 2.25 in
+diameter envelope, 0.375 in physical depth, and underside Y-axis attachment.
+
+The `housing-rim` is a 32-segment annular cylinder with a 1.125 in outer radius
+and 0.9 in inner radius using the dark hardware clay. The `emissive-lens` is a
+32-segment closed cylinder with a 0.81 in radius and 0.1875 in depth, recessed
+0.0625 in behind the housing face and resolved explicitly to the warm LED clay.
+The radial clearance and axial recess prevent overlap and z-fighting. Blender
+receives the converted center, Z-axis orientation, radii, depth, tessellation,
+bounds, surface role, and material binding from package schema 3; it does not
+infer or substitute any of those values. The pipeline identity is
+`2026.08-tv-puck-light-clay-worker-v1`.
 
 ## Remaining non-geometry blockers
 
@@ -98,13 +116,12 @@ does not approve production shop geometry or a customer beauty render;
   a reviewed reference render before the worker is production-ready.
 - The shallow straight-on crown appearance remains a later visual-detail task;
   this phase intentionally preserves its authored profile and camera.
-- Package-defined puck lights remain rectangular proxies. Circular puck
-  primitives are a separate renderer-neutral detail task.
 
 ## Local clay worker
 
-Phase 2 adds a local-only Blender 5.2 clay translator for the committed TV01
-fixture. Run it from the repository root:
+The local-only Blender 5.2 clay translator renders the committed TV01 fixture,
+including the package-defined circular puck housings and lenses. Run it from
+the repository root:
 
 ```sh
 npm run blender:clay
@@ -130,7 +147,8 @@ render, or assign production wood, paint, or clear-UV-maple materials.
 ## Next implementation slice
 
 1. Review the Drawing 4 clay elevation for visual discrepancies without
-   changing product rules in the renderer.
+   changing product rules in the renderer. Crown and straight-on camera
+   readability remain deferred visual-detail work.
 2. Author the clear-UV maple material and the versioned Clear Wall room/camera
    scene.
 3. Implement the Node gateway against the committed package schema. The gateway

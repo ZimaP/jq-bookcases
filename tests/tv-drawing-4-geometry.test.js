@@ -212,6 +212,40 @@ test("outer and center shelf elevations are mirrored and use their per-span auth
   mirroredBounds(perSection[1][0], perSection[2][0]);
 });
 
+test("Drawing 4 preserves its two hosted mirrored puck-light descriptor envelopes", () => {
+  const { components } = evaluate();
+  const lights = byRole(components, "light")
+    .sort((left, right) => left.bounds.min.x - right.bounds.min.x);
+
+  assert.deepEqual(lights.map((light) => light.id), [
+    "guided-installation-main/section-01-light-puck",
+    "guided-installation-main/section-04-light-puck"
+  ]);
+  assert.deepEqual(lights.map((light) => light.hostId), [
+    "guided-installation-main/top-panel",
+    "guided-installation-main/top-panel"
+  ]);
+  assert.deepEqual(lights.map((light) => light.size), [
+    { x: 2.25, y: 0.375, z: 2.25 },
+    { x: 2.25, y: 0.375, z: 2.25 }
+  ]);
+  assert.deepEqual(lights.map((light) => light.metadata.attachment), [
+    { axis: "y", hostFace: "min", componentFace: "max" },
+    { axis: "y", hostFace: "min", componentFace: "max" }
+  ]);
+  assert.deepEqual(lights.map((light) => light.bounds), [
+    {
+      min: { x: -45.375, y: 94.875, z: 1.625 },
+      max: { x: -43.125, y: 95.25, z: 3.875 }
+    },
+    {
+      min: { x: 43.125, y: 94.875, z: 1.625 },
+      max: { x: 45.375, y: 95.25, z: 3.875 }
+    }
+  ]);
+  mirroredBounds(lights[0], lights[1]);
+});
+
 test("Drawing 4 metadata namespacing leaves the frozen non-TV geometry identity unchanged", () => {
   const specification = evaluateGuidedProjectCandidate(structuredClone(frozenNonTvFixture));
   assert.equal(specification.accepted, true, JSON.stringify(specification.errors));

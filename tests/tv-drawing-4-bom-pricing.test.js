@@ -43,6 +43,7 @@ test("TV Drawing 4 BOM and billable quantities come only from the accepted descr
   ));
   const doors = components.filter((component) => component.role === "door");
   const handles = components.filter((component) => component.role === "handle");
+  const lights = components.filter((component) => component.role === "light");
   const lowerOpenings = components.filter((component) => (
     component.role === "opening"
     && component.metadata?.kind === "lower_cabinet"
@@ -83,6 +84,15 @@ test("TV Drawing 4 BOM and billable quantities come only from the accepted descr
   assert.equal(billable.hingedDoorLeaves, 8);
   assert.equal(billable.doorHardwareUnits, 8);
   assert.equal(billable.hardwareUnits, 8);
+
+  assert.equal(lights.length, 2);
+  assert.deepEqual(bom.lighting, {
+    count: 2,
+    byType: { puck: 2 }
+  });
+  assert.equal(billable.compatibleLightingComponents, 2);
+  assert.equal(billable.puckLightLocations, 2);
+  assert.deepEqual(billable.lightsByType, { puck: 2 });
 
   assert.equal(
     bom.hardware.schedule.reduce((total, entry) => total + entry.quantity, 0),
@@ -139,6 +149,7 @@ test("TV Drawing 4 prices its countertop and mixed shelf thicknesses explicitly"
   assert.equal(findLine(first.pricing, "LOWER_STORAGE").quantity, first.bom.openings.lowerStorageLinearIn);
   assert.equal(findLine(first.pricing, "DOOR_STYLE_SHAKER").quantity, 8);
   assert.equal(findLine(first.pricing, "HARDWARE_MATTE_BLACK_PULL").quantity, 8);
+  assert.equal(findLine(first.pricing, "LIGHTING_PUCK").quantity, 2);
 
   assert.deepEqual(first.bom.countertops, repeated.bom.countertops);
   assert.deepEqual(first.bom.shelves.byThicknessIn, repeated.bom.shelves.byThicknessIn);

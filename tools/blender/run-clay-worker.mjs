@@ -30,11 +30,11 @@ export const DEFAULT_BLENDER_EXECUTABLE = "/Applications/Blender.app/Contents/Ma
 export const BLENDER_WORKER_PATH = join(MODULE_DIRECTORY, "clay_worker.py");
 
 const FOUNDATION_FIXTURE_ID = "TV01-clear-wall-foundation";
-export const EXPECTED_DRAWING_4_REQUEST_KEY = "jq-blender-v1-c4815b0d7c54f5cd54188571e5bba799611c032572b0da6842a8362b67ab6293";
-export const EXPECTED_DRAWING_4_RENDER_KEY = "jq-blender-package-v1-132f36bbb41c69511fe893001a49d1406790e2d7fa5c954416f9cfbd9e63c29f";
+export const EXPECTED_DRAWING_4_REQUEST_KEY = "jq-blender-v1-93be24a7f4d9031edef36401f38c2168907688f19065d1d04e2b466f914f2272";
+export const EXPECTED_DRAWING_4_RENDER_KEY = "jq-blender-package-v1-5af4ea52a32b54f80541e61d305e1ce1e4ce671c845cfce33a4980e080e6ad99";
 export const EXPECTED_DRAWING_4_GEOMETRY_FINGERPRINT = "jq-guided-geometry-v1-2J95JPTIW69O4";
 const EXPECTED_COMPONENT_COUNT = 46;
-const EXPECTED_SUBMESH_OBJECT_COUNT = 78;
+const EXPECTED_SUBMESH_OBJECT_COUNT = 80;
 const EXPECTED_CONSTRAINT_COUNT = 7;
 const EXPECTED_COLLECTION_COUNT = 4;
 const EXPECTED_FOUNDATION_MEASUREMENTS = Object.freeze({
@@ -609,7 +609,7 @@ function assertPackageBoundsAndMaterials(renderPackage) {
       const objectId = `${component.componentId}::${submesh.submeshId}`;
       assertFiniteOrderedBounds(submesh.blenderWorldBounds, objectId);
       assertCondition(
-        ["box", "crown_profile_extrusion"].includes(submesh.geometry),
+        ["box", "crown_profile_extrusion", "cylinder"].includes(submesh.geometry),
         "UNSUPPORTED_PACKAGE_PRIMITIVE",
         `${objectId} uses unsupported primitive ${submesh.geometry}.`
       );

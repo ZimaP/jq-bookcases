@@ -28,7 +28,7 @@ import {
 
 const EXPECTED_COMPONENT_COUNT = 46;
 const EXPECTED_CONSTRAINT_COUNT = 7;
-const EXPECTED_SUBMESH_OBJECT_COUNT = 78;
+const EXPECTED_SUBMESH_OBJECT_COUNT = 80;
 const EXPECTED_WIDTH = 960;
 const EXPECTED_HEIGHT = 640;
 const PYTHON_WORKER_PATH = join(REPOSITORY_ROOT, "tools/blender/clay_worker.py");
@@ -255,11 +255,40 @@ test("the pure Python worker boundary rejects malformed packages without Blender
         .find((submesh) => submesh.geometry === "crown_profile_extrusion");
       crown.profileGeometry.outline = [{ height: 0, projection: 0 }];
     }],
+    ["malformed cylinder keys", "INVALID_PACKAGE_SHAPE", (candidate) => {
+      delete findCylinder(candidate).primitiveGeometry.surfaceRole;
+    }],
+    ["unsupported cylinder axis", "UNSUPPORTED_CYLINDER_AXIS", (candidate) => {
+      findCylinder(candidate).primitiveGeometry.axis = "x";
+    }],
+    ["nonpositive cylinder radius", "INVALID_POSITIVE_NUMBER", (candidate) => {
+      findCylinder(candidate).primitiveGeometry.radius = 0;
+    }],
+    ["invalid cylinder inner radius", "INVALID_CYLINDER_RADIUS", (candidate) => {
+      const cylinder = findCylinder(candidate);
+      cylinder.primitiveGeometry.innerRadius = cylinder.primitiveGeometry.radius;
+    }],
+    ["invalid cylinder cap and surface", "INVALID_CYLINDER_SURFACE", (candidate) => {
+      const housing = findCylinder(candidate, "housing");
+      housing.primitiveGeometry.capStyle = "closed";
+    }],
+    ["invalid cylinder material", "INVALID_CYLINDER_MATERIAL", (candidate) => {
+      const housing = findCylinder(candidate, "housing");
+      const led = candidate.materials.find((binding) => binding.sourceMaterialSlot === "led");
+      assert.ok(led);
+      housing.sourceMaterialSlot = "led";
+      housing.materialId = led.materialId;
+    }],
+    ["cylinder bounds mismatch", "CYLINDER_BOUNDS_MISMATCH", (candidate) => {
+      findCylinder(candidate).primitiveGeometry.center.x += 0.001;
+    }],
     ["duplicate component", "DUPLICATE_COMPONENT_ID", (candidate) => {
       candidate.components[1].componentId = candidate.components[0].componentId;
     }],
     ["wrong aggregate submesh count", "SUBMESH_COUNT_MISMATCH", (candidate) => {
-      const framed = candidate.components.find((component) => component.submeshes.length > 1);
+      const framed = candidate.components.find((component) => (
+        component.submeshes.some((submesh) => submesh.submeshId === "center-field")
+      ));
       assert.ok(framed, "Drawing 4 package must contain decomposed Shaker fronts");
       const fieldIndex = framed.submeshes.findIndex((submesh) => submesh.submeshId === "center-field");
       assert.notEqual(fieldIndex, -1, "framed front must contain a center-field submesh");
@@ -276,6 +305,15 @@ test("the pure Python worker boundary rejects malformed packages without Blender
     });
   }
 });
+
+function findCylinder(renderPackage, surfaceRole = null) {
+  const cylinder = renderPackage.components
+    .flatMap((component) => component.submeshes)
+    .find((submesh) => submesh.geometry === "cylinder"
+      && (!surfaceRole || submesh.primitiveGeometry?.surfaceRole === surfaceRole));
+  assert.ok(cylinder, `Drawing 4 package must contain ${surfaceRole || "a"} cylinder`);
+  return cylinder;
+}
 
 test("the Python worker rejects rehashed hand-authored geometry", async () => {
   const { renderPackage } = await getGeneratedPackage();

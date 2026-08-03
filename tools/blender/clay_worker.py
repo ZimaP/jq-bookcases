@@ -23,11 +23,11 @@ from typing import Any, Iterable
 INCHES_TO_METERS = 0.0254
 PACKAGE_KIND = "jq-guided-blender-render-package"
 RESULT_KIND = "jq-guided-blender-render-result"
-PACKAGE_SCHEMA_VERSION = 2
+PACKAGE_SCHEMA_VERSION = 3
 RESULT_SCHEMA_VERSION = 1
 RENDER_CONTRACT_VERSION = 1
-PRIMITIVE_CONTRACT_VERSION = 1
-PIPELINE_VERSION = "2026.08-tv-drawing-4-clay-worker-v1"
+PRIMITIVE_CONTRACT_VERSION = 2
+PIPELINE_VERSION = "2026.08-tv-puck-light-clay-worker-v1"
 SCENE_VERSION = "clear-wall-v1"
 CAMERA_VERSION = "hero-front-v1"
 MATERIAL_LIBRARY_VERSION = "jq-materials-v1"
@@ -41,10 +41,10 @@ ENVIRONMENT_SHA256 = (
     "49db5b6e13c5b5239d8aca84c055c586dfc71aeaf1e1db64487f5bf8bab66db2"
 )
 EXPECTED_REQUEST_KEY = (
-    "jq-blender-v1-c4815b0d7c54f5cd54188571e5bba799611c032572b0da6842a8362b67ab6293"
+    "jq-blender-v1-93be24a7f4d9031edef36401f38c2168907688f19065d1d04e2b466f914f2272"
 )
 EXPECTED_RENDER_KEY = (
-    "jq-blender-package-v1-132f36bbb41c69511fe893001a49d1406790e2d7fa5c954416f9cfbd9e63c29f"
+    "jq-blender-package-v1-5af4ea52a32b54f80541e61d305e1ce1e4ce671c845cfce33a4980e080e6ad99"
 )
 EXPECTED_IDENTITY_FINGERPRINTS = {
     "geometryFingerprint": "jq-guided-geometry-v1-2J95JPTIW69O4",
@@ -54,7 +54,7 @@ EXPECTED_IDENTITY_FINGERPRINTS = {
     "cameraFingerprint": "jq-guided-snapshot-camera-v1-1kj9fv5",
 }
 EXPECTED_COMPONENT_COUNT = 46
-EXPECTED_SUBMESH_OBJECT_COUNT = 78
+EXPECTED_SUBMESH_OBJECT_COUNT = 80
 EXPECTED_CONSTRAINT_COUNT = 7
 MAX_PACKAGE_BYTES = 16 * 1024 * 1024
 MAX_BEAUTY_BYTES = 32 * 1024 * 1024
@@ -106,7 +106,7 @@ COMPONENT_KEYS = {
 SUBMESH_KEYS = {
     "submeshId", "geometry", "grainRole", "edgeVisible", "sourceMaterialSlot",
     "materialId", "sourceLocalBounds", "sourceWorldBounds",
-    "blenderWorldBounds", "profileGeometry",
+    "blenderWorldBounds", "profileGeometry", "primitiveGeometry",
 }
 CONSTRAINT_KEYS = {
     "constraintId", "kind", "sourceWorldBounds", "blenderWorldBounds",
@@ -120,6 +120,10 @@ CLAY_MATERIAL_KEYS = {"materialId", "libraryVersion", "definition"}
 CROWN_PROFILE_KEYS = {
     "schemaVersion", "kind", "profileId", "contour", "outlineUnits", "outline",
     "crossSection", "extrusion",
+}
+CYLINDER_GEOMETRY_KEYS = {
+    "schemaVersion", "kind", "axis", "center", "radius", "innerRadius",
+    "depth", "segments", "capStyle", "surfaceRole",
 }
 SAFE_METADATA_KEYS = {
     "attachment", "backPlaneZ", "catalogVersion", "category", "derivation",
@@ -169,7 +173,7 @@ CLAY_DEFINITIONS = {
         "alpha": 1, "emissionColor": [0, 0, 0, 1], "emissionStrength": 0,
     },
 }
-SUPPORTED_GEOMETRY = {"box", "crown_profile_extrusion"}
+SUPPORTED_GEOMETRY = {"box", "crown_profile_extrusion", "cylinder"}
 IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/+:\-]{0,254}$")
 SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 RENDER_KEY_RE = re.compile(r"^jq-blender-package-v1-[a-f0-9]{64}$")
@@ -236,6 +240,7 @@ KNOWN_JSON_KEYS = set().union(
         "centerFieldBounds", "solidRegions", "fieldRegion", "bounds", "style", "basis", "translation",
         "hostFace", "componentFace", "hostPlane", "hostCoordinate",
         "horizontalAnchor", "verticalAnchor", "edgeOffsetMm", "mirrored",
+        "center", "radius", "innerRadius", "segments", "capStyle", "surfaceRole",
     },
 )
 
@@ -540,6 +545,61 @@ def validate_crown_profile(
         if blender["max"][axis] <= blender["min"][axis]:
             fail("MALFORMED_CROWN_PROFILE", f"{label} transformed profile is degenerate")
     return profile
+
+
+def validate_cylinder_geometry(
+    geometry_value: Any,
+    blender: dict[str, dict[str, float]],
+    source_material_slot: str,
+    component_role: str,
+    label: str,
+) -> dict[str, Any]:
+    geometry = exact_keys(
+        geometry_value, CYLINDER_GEOMETRY_KEYS, f"{label}.primitiveGeometry"
+    )
+    if geometry["schemaVersion"] != 1 or geometry["kind"] != "cylinder":
+        fail("UNSUPPORTED_CYLINDER", f"{label} cylinder schema or kind is unsupported")
+    if geometry["axis"] != "z":
+        fail("UNSUPPORTED_CYLINDER_AXIS", f"{label} cylinder axis must be Blender z")
+    center = point(geometry["center"], f"{label}.primitiveGeometry.center")
+    radius = positive_number(geometry["radius"], f"{label}.primitiveGeometry.radius")
+    inner_radius = finite_number(
+        geometry["innerRadius"], f"{label}.primitiveGeometry.innerRadius"
+    )
+    depth = positive_number(geometry["depth"], f"{label}.primitiveGeometry.depth")
+    if inner_radius < 0 or inner_radius >= radius:
+        fail("INVALID_CYLINDER_RADIUS", f"{label} inner radius must be in [0, radius)")
+    if integer(geometry["segments"], f"{label}.primitiveGeometry.segments") != 32:
+        fail("UNSUPPORTED_CYLINDER_SEGMENTS", f"{label} cylinder must use 32 segments")
+
+    cap_style = geometry["capStyle"]
+    surface_role = geometry["surfaceRole"]
+    if inner_radius > 0:
+        valid_surface = cap_style == "annular" and surface_role == "housing"
+        valid_material = source_material_slot == "hardware"
+    else:
+        valid_surface = cap_style == "closed" and surface_role == "emissive_lens"
+        valid_material = source_material_slot == "led"
+    if not valid_surface:
+        fail("INVALID_CYLINDER_SURFACE", f"{label} cylinder surface and cap style contradict its radius")
+    if not valid_material or component_role != "light":
+        fail("INVALID_CYLINDER_MATERIAL", f"{label} cylinder surface has an invalid material or host role")
+
+    expected = {
+        "min": {
+            "x": center["x"] - radius,
+            "y": center["y"] - radius,
+            "z": center["z"] - depth / 2.0,
+        },
+        "max": {
+            "x": center["x"] + radius,
+            "y": center["y"] + radius,
+            "z": center["z"] + depth / 2.0,
+        },
+    }
+    if not same_bounds(expected, blender):
+        fail("CYLINDER_BOUNDS_MISMATCH", f"{label} cylinder geometry contradicts package bounds")
+    return geometry
 
 
 def js_stable_stringify(value: Any) -> str:
@@ -955,7 +1015,7 @@ def validate_components(
             if component[optional_id] is not None:
                 safe_identifier(component[optional_id], f"{label}.{optional_id}")
         safe_identifier(component["role"], f"{label}.role")
-        if component["geometryVariant"] not in {"box", "slab", "framed_panel", "glass_frame", "crown_profile_extrusion"}:
+        if component["geometryVariant"] not in {"box", "slab", "framed_panel", "glass_frame", "crown_profile_extrusion", "recessed_puck_light"}:
             fail("UNKNOWN_GEOMETRY_VARIANT", f"{component_id} geometry variant is unsupported")
         slot = safe_identifier(component["sourceMaterialSlot"], f"{label}.sourceMaterialSlot")
         material_id = safe_identifier(component["materialId"], f"{label}.materialId")
@@ -1007,11 +1067,20 @@ def validate_components(
                 submesh["sourceWorldBounds"], submesh["blenderWorldBounds"], sublabel
             )
             if geometry == "box":
-                if submesh["profileGeometry"] is not None:
+                if submesh["profileGeometry"] is not None or submesh["primitiveGeometry"] is not None:
                     fail("MALFORMED_BOX", f"{object_name} box cannot carry a crown profile")
-            else:
+            elif geometry == "crown_profile_extrusion":
+                if submesh["primitiveGeometry"] is not None:
+                    fail("MALFORMED_CROWN_PROFILE", f"{object_name} crown cannot carry primitive geometry")
                 validate_crown_profile(
                     submesh["profileGeometry"], subsource, subblender, object_name
+                )
+            else:
+                if submesh["profileGeometry"] is not None:
+                    fail("MALFORMED_CYLINDER", f"{object_name} cylinder cannot carry a crown profile")
+                validate_cylinder_geometry(
+                    submesh["primitiveGeometry"], subblender, subslot,
+                    component["role"], object_name
                 )
             submesh_bounds.append(subblender)
             submesh_count += 1
@@ -1085,8 +1154,8 @@ def validate_package(package: dict[str, Any]) -> dict[str, Any]:
     identity_expected = {
         "productId": "tv-unit", "layoutId": "clear-wall", "installationMode": "fitted",
         "engineVersion": "2026.08-tv-drawing-4-v1", "jobSchemaVersion": 1,
-        "packageSchemaVersion": 2, "renderContractVersion": 1,
-        "primitiveContractVersion": 1, "materialContractVersion": 1,
+        "packageSchemaVersion": PACKAGE_SCHEMA_VERSION, "renderContractVersion": 1,
+        "primitiveContractVersion": PRIMITIVE_CONTRACT_VERSION, "materialContractVersion": 1,
         "pipelineVersion": PIPELINE_VERSION, "materialLibraryVersion": MATERIAL_LIBRARY_VERSION,
         "sceneVersion": SCENE_VERSION, "cameraVersion": CAMERA_VERSION,
         "assetManifestSha256": ASSET_MANIFEST_SHA256,
@@ -1219,6 +1288,65 @@ def box_vertices_faces(
         (0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4),
         (3, 7, 6, 2), (0, 4, 7, 3), (1, 2, 6, 5),
     ]
+    return vertices, faces
+
+
+def cylinder_vertices_faces(
+    geometry: dict[str, Any],
+) -> tuple[list[tuple[float, float, float]], list[tuple[int, ...]]]:
+    center = geometry["center"]
+    radius = float(geometry["radius"])
+    inner_radius = float(geometry["innerRadius"])
+    depth = float(geometry["depth"])
+    segments = int(geometry["segments"])
+    bottom = float(center["z"]) - depth / 2.0
+    top = float(center["z"]) + depth / 2.0
+
+    def ring(ring_radius: float, z_value: float) -> list[tuple[float, float, float]]:
+        return [
+            (
+                float(center["x"]) + ring_radius * math.cos(2.0 * math.pi * index / segments),
+                float(center["y"]) + ring_radius * math.sin(2.0 * math.pi * index / segments),
+                z_value,
+            )
+            for index in range(segments)
+        ]
+
+    outer_bottom = ring(radius, bottom)
+    outer_top = ring(radius, top)
+    vertices = outer_bottom + outer_top
+    faces: list[tuple[int, ...]] = []
+    for index in range(segments):
+        following = (index + 1) % segments
+        faces.append((index, following, segments + following, segments + index))
+
+    if inner_radius == 0.0:
+        bottom_center = len(vertices)
+        vertices.append((float(center["x"]), float(center["y"]), bottom))
+        top_center = len(vertices)
+        vertices.append((float(center["x"]), float(center["y"]), top))
+        for index in range(segments):
+            following = (index + 1) % segments
+            faces.append((bottom_center, following, index))
+            faces.append((top_center, segments + index, segments + following))
+        return vertices, faces
+
+    inner_bottom_start = len(vertices)
+    vertices.extend(ring(inner_radius, bottom))
+    inner_top_start = len(vertices)
+    vertices.extend(ring(inner_radius, top))
+    for index in range(segments):
+        following = (index + 1) % segments
+        outer_bottom_index = index
+        outer_top_index = segments + index
+        inner_bottom_index = inner_bottom_start + index
+        inner_top_index = inner_top_start + index
+        faces.append((inner_bottom_index, inner_top_index,
+                      inner_top_start + following, inner_bottom_start + following))
+        faces.append((outer_bottom_index, inner_bottom_index,
+                      inner_bottom_start + following, following))
+        faces.append((outer_top_index, segments + following,
+                      inner_top_start + following, inner_top_index))
     return vertices, faces
 
 
@@ -1379,6 +1507,8 @@ def build_product(
                 vertices, faces = box_vertices_faces(item_bounds)
             elif submesh["geometry"] == "crown_profile_extrusion":
                 vertices, faces = crown_vertices_faces(item_bounds, submesh["profileGeometry"])
+            elif submesh["geometry"] == "cylinder":
+                vertices, faces = cylinder_vertices_faces(submesh["primitiveGeometry"])
             else:
                 fail("UNKNOWN_PRIMITIVE_KIND", f"Unknown primitive {submesh['geometry']}")
             assert_mesh_bounds(vertices, item_bounds, name)
