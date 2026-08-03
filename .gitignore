@@ -11,4 +11,5 @@ qa-*.png
 playwright-report/
 test-results/
 artifacts/blender-clay-worker/
+artifacts/blender-photoreal-matrix/
 __pycache__/
