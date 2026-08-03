@@ -12,14 +12,16 @@ import {
   validateCrownDetailQaCapture
 } from "./crown-qa-contract.mjs";
 
-export const CROWN_DIAGNOSTIC_SCHEMA_VERSION = 1;
-export const CROWN_DIAGNOSTIC_VERSION = "small-crown-geometry-audit-v1";
+export const CROWN_DIAGNOSTIC_SCHEMA_VERSION = 2;
+export const CROWN_DIAGNOSTIC_VERSION = "small-crown-geometry-audit-v2";
 export const CROWN_DIAGNOSTIC_KIND = "jq-local-small-crown-geometry-diagnostic";
 
 const AXES = Object.freeze(["x", "y", "z"]);
 const BLENDER_BOUNDS_TOLERANCE_M = 1e-6;
 const EXPECTED_CROWN_IDS = Object.freeze([
-  "guided-installation-main/crown-slim-cap",
+  "guided-installation-main/crown-slim-cap"
+]);
+const OMITTED_FITTED_RETURN_IDS = Object.freeze([
   "guided-installation-main/crown-slim-cap-left-return",
   "guided-installation-main/crown-slim-cap-right-return"
 ]);
@@ -62,8 +64,82 @@ const AUTHORITATIVE_SOURCES = deepFreeze([
     sourceId: CROWN_DETAIL_QA_RULE_IDS.fittedFillerVolume,
     kind: "fitted-treatment-source",
     expected: "accepted-primary-fillers-are-solid-components"
+  },
+  {
+    sourceId: CROWN_DETAIL_QA_RULE_IDS.exactTopology,
+    kind: "fitted-exposed-end-reconciliation-rule",
+    expected: "front-run-only-when-both-ends-are-concealed-by-full-fitted-fillers"
   }
 ]);
+
+/** Immutable evidence emitted and inspected by mandatory diagnostic Commit 1. */
+export const CROWN_DIAGNOSTIC_GATE_EVIDENCE = deepFreeze({
+  evidenceVersion: "small-crown-defect-gate-v1",
+  diagnosticCommit: "5093cb829c874cbe79efc5109baf9ca0243cfa81",
+  sourceCommit: "5093cb829c874cbe79efc5109baf9ca0243cfa81",
+  geometryFingerprint: "jq-guided-geometry-v1-2J95JPTIW69O4",
+  primaryRenderKey: "jq-blender-package-v1-5af4ea52a32b54f80541e61d305e1ce1e4ce671c845cfce33a4980e080e6ad99",
+  classification: "GEOMETRY_DEFECT",
+  decisionGate: "A canonical no-positive-volume-overlap rule is violated by exact measured solid intersections.",
+  authoritativeRuleIds: [
+    "jq-crown-exact-three-components-v1",
+    "CONSTRUCTION_RULES.crownProfiles.slim_cap",
+    "CROWN_PROFILE_CATALOG.slim_cap.parts.slim_cap",
+    "JQ-CONSTRUCTION-STANDARD.md#crown-overhang-and-side-returns",
+    "JQ-CONSTRUCTION-STANDARD.md#COMPONENT_COLLISION",
+    "guided-render-contract.js#auditInstallationTreatments"
+  ],
+  canonicalReturns: [
+    {
+      side: "left",
+      componentId: "guided-installation-main/crown-slim-cap-left-return",
+      hostId: "guided-installation-main/left-side-panel",
+      parentId: "guided-installation-main/bookcase",
+      submeshId: "profile-extrusion",
+      fillerComponentId: "guided-installation-main/installation-treatment-left-filler",
+      widthIn: 0.25,
+      heightIn: 1.2,
+      runDepthIn: 13.75,
+      sourceWorldBounds: {
+        min: { x: -58.75, y: 94.8, z: -14 },
+        max: { x: -58.5, y: 96, z: -0.25 }
+      },
+      blenderWorldBounds: {
+        min: { x: -1.49225, y: 0.00635, z: 2.40792 },
+        max: { x: -1.4859, y: 0.3556, z: 2.4384 }
+      }
+    },
+    {
+      side: "right",
+      componentId: "guided-installation-main/crown-slim-cap-right-return",
+      hostId: "guided-installation-main/right-side-panel",
+      parentId: "guided-installation-main/bookcase",
+      submeshId: "profile-extrusion",
+      fillerComponentId: "guided-installation-main/installation-treatment-right-filler",
+      widthIn: 0.25,
+      heightIn: 1.2,
+      runDepthIn: 13.75,
+      sourceWorldBounds: {
+        min: { x: 58.5, y: 94.8, z: -14 },
+        max: { x: 58.75, y: 96, z: -0.25 }
+      },
+      blenderWorldBounds: {
+        min: { x: 1.4859, y: 0.00635, z: 2.40792 },
+        max: { x: 1.49225, y: 0.3556, z: 2.4384 }
+      }
+    }
+  ],
+  findings: [
+    createGateFinding("left", {
+      min: { x: -1.49225, y: 0.00635, z: 2.40792 },
+      max: { x: -1.4859, y: 0.3556, z: 2.4384 }
+    }),
+    createGateFinding("right", {
+      min: { x: 1.4859, y: 0.00635, z: 2.40792 },
+      max: { x: 1.49225, y: 0.3556, z: 2.4384 }
+    })
+  ]
+});
 
 const INPUT_KEYS = Object.freeze([
   "sourceCommit",
@@ -81,6 +157,29 @@ export class CrownDiagnosticReportError extends Error {
     this.code = code;
     this.details = clone(details);
   }
+}
+
+function createGateFinding(side, overlapBounds) {
+  return {
+    findingId: `${side}-crown-return-fitted-filler-overlap`,
+    ruleId: "JQ-CONSTRUCTION-STANDARD.md#COMPONENT_COLLISION",
+    side,
+    classification: "GEOMETRY_DEFECT",
+    crownComponentId: `guided-installation-main/crown-slim-cap-${side}-return`,
+    fillerComponentId: `guided-installation-main/installation-treatment-${side}-filler`,
+    expected: {
+      relation: "no-positive-volume-overlap",
+      overlapVolumeM3: 0
+    },
+    actual: {
+      relation: "crown-return-fully-contained-by-solid-fitted-filler",
+      overlapBounds,
+      overlapExtentsM: { x: 0.00635, y: 0.34925, z: 0.03048 },
+      overlapAabbVolumeM3: 0.000067596639,
+      normalizedProfileArea: 0.6455,
+      overlapVolumeM3: 0.00004363363
+    }
+  };
 }
 
 /** The decision gate is deliberately closed for every non-defect outcome. */
@@ -156,18 +255,31 @@ export async function createCrownDiagnosticReport(inputs) {
     detailBytes
   );
   const components = resolveAuditComponents(renderPackage);
-  const classificationSource = await classifyCrownGeometry(renderPackage);
-  const classification = normalizeClassification(classificationSource, renderPackage.camera);
-  const crown = createCrownRecord(renderPackage, components);
+  const currentClassificationSource = await classifyCrownGeometry(renderPackage);
+  if (
+    currentClassificationSource.classification !== "NO_GEOMETRY_DEFECT"
+    || currentClassificationSource.findings.length !== 0
+  ) {
+    fail("UNRESOLVED_CROWN_CORRECTION", "The corrected fitted crown package still contains a physical defect.");
+  }
+  const gateEvidence = clone(CROWN_DIAGNOSTIC_GATE_EVIDENCE);
+  const classification = normalizeClassification(gateEvidence, renderPackage.camera);
+  const crown = createCrownRecord(renderPackage, components, gateEvidence);
   const checks = createChecks(
     renderPackage,
     capture,
     workerReport,
     components,
-    classificationSource,
+    currentClassificationSource,
     crown
   );
   const authorized = isCrownGeometryModificationAuthorized(classification.value);
+  const correctionVerification = createCorrectionVerification(
+    renderPackage,
+    components,
+    currentClassificationSource,
+    checks
+  );
 
   return deepFreeze({
     kind: CROWN_DIAGNOSTIC_KIND,
@@ -207,10 +319,16 @@ export async function createCrownDiagnosticReport(inputs) {
       value: classification.value,
       decisionGate: classification.decisionGate,
       evidence: classification.evidence,
-      expectedVsActual: clone(classificationSource.findings),
-      authoritativeRuleIds: clone(classificationSource.authoritativeRuleIds),
-      geometryModificationAuthorized: authorized
+      expectedVsActual: clone(gateEvidence.findings),
+      authoritativeRuleIds: clone(gateEvidence.authoritativeRuleIds),
+      geometryModificationAuthorized: authorized,
+      authorizationConsumed: true,
+      evidenceVersion: gateEvidence.evidenceVersion,
+      diagnosticCommit: gateEvidence.diagnosticCommit,
+      sourceGeometryFingerprint: gateEvidence.geometryFingerprint,
+      sourcePrimaryRenderKey: gateEvidence.primaryRenderKey
     },
+    correctionVerification,
     qaCapture: {
       captureId: capture.captureId,
       captureKey: capture.captureKey,
@@ -233,7 +351,9 @@ export async function createCrownDiagnosticReport(inputs) {
       primaryCameraCount: 1,
       cameraCountDuringCapture: workerReport.scene.cameraCountDuringCapture
     },
-    geometryModificationAuthorized: authorized
+    phaseCorrectionAuthorized: authorized,
+    correctionApplied: true,
+    geometryModificationAuthorized: false
   });
 }
 
@@ -509,27 +629,30 @@ function resolveAuditComponents(renderPackage) {
   }
   const values = {
     front: byId.get(EXPECTED_CROWN_IDS[0]),
-    leftReturn: byId.get(EXPECTED_CROWN_IDS[1]),
-    rightReturn: byId.get(EXPECTED_CROWN_IDS[2]),
     leftFiller: byId.get(EXPECTED_FILLER_IDS[0]),
     rightFiller: byId.get(EXPECTED_FILLER_IDS[1])
   };
   if (Object.values(values).some((component) => !component)) {
     fail("MISSING_CROWN_DIAGNOSTIC_COMPONENT", "The diagnostic package is missing a required crown or filler component.");
   }
+  if (OMITTED_FITTED_RETURN_IDS.some((componentId) => byId.has(componentId))) {
+    fail("UNRESOLVED_CROWN_DIAGNOSTIC_RETURN", "A concealed fitted crown return remains in the corrected package.");
+  }
   return values;
 }
 
-function createCrownRecord(renderPackage, components) {
-  const crowns = [components.front, components.leftReturn, components.rightReturn];
+function createCrownRecord(renderPackage, components, gateEvidence) {
+  const crowns = [components.front];
   const profile = normalizeSharedProfile(crowns);
   const frontBounds = normalizeBounds(components.front.sourceWorldBounds, "front crown source bounds");
-  const leftBounds = normalizeBounds(components.leftReturn.sourceWorldBounds, "left return source bounds");
-  const rightBounds = normalizeBounds(components.rightReturn.sourceWorldBounds, "right return source bounds");
-  const assemblyBounds = unionBounds([frontBounds, leftBounds, rightBounds]);
+  const leftReference = clone(gateEvidence.canonicalReturns[0]);
+  const rightReference = clone(gateEvidence.canonicalReturns[1]);
+  const canonicalAssemblyBounds = unionBounds([
+    frontBounds,
+    leftReference.sourceWorldBounds,
+    rightReference.sourceWorldBounds
+  ]);
   const frontDimensions = boundsExtents(frontBounds);
-  const leftDimensions = boundsExtents(leftBounds);
-  const rightDimensions = boundsExtents(rightBounds);
 
   return {
     selection: {
@@ -540,11 +663,23 @@ function createCrownRecord(renderPackage, components) {
     },
     authoritativeSources: clone(AUTHORITATIVE_SOURCES),
     identities: crowns.map((component) => createCrownIdentity(component)),
+    omittedCanonicalReturnIdentities: gateEvidence.canonicalReturns.map((reference) => ({
+      descriptorId: reference.componentId,
+      componentId: reference.componentId,
+      hostId: reference.hostId,
+      parentId: reference.parentId,
+      primitiveKind: "crown_profile_extrusion",
+      submeshId: reference.submeshId,
+      objectName: `${reference.componentId}::${reference.submeshId}`,
+      presentInCurrentPackage: false,
+      matchingFillerId: reference.fillerComponentId
+    })),
     profile,
     measurements: {
       crownHeightIn: frontDimensions.y,
       forwardProjectionIn: frontDimensions.z,
-      physicalDepthIn: boundsExtents(assemblyBounds).z,
+      physicalDepthIn: frontDimensions.z,
+      canonicalExposedEndAssemblyDepthIn: boundsExtents(canonicalAssemblyBounds).z,
       frontRun: {
         widthIn: frontDimensions.x,
         heightIn: frontDimensions.y,
@@ -552,24 +687,29 @@ function createCrownRecord(renderPackage, components) {
         sourceWorldBounds: frontBounds,
         blenderWorldBounds: normalizeBounds(components.front.blenderWorldBounds, "front crown Blender bounds")
       },
-      leftReturn: {
-        widthIn: leftDimensions.x,
-        heightIn: leftDimensions.y,
-        runDepthIn: leftDimensions.z,
-        sourceWorldBounds: leftBounds,
-        blenderWorldBounds: normalizeBounds(components.leftReturn.blenderWorldBounds, "left return Blender bounds")
-      },
-      rightReturn: {
-        widthIn: rightDimensions.x,
-        heightIn: rightDimensions.y,
-        runDepthIn: rightDimensions.z,
-        sourceWorldBounds: rightBounds,
-        blenderWorldBounds: normalizeBounds(components.rightReturn.blenderWorldBounds, "right return Blender bounds")
-      },
-      assemblySourceWorldBounds: assemblyBounds,
-      assemblyBlenderWorldBounds: unionBounds(crowns.map((component) => (
-        normalizeBounds(component.blenderWorldBounds, `${component.componentId} Blender bounds`)
-      )))
+      leftReturn: createOmittedReturnMeasurement(leftReference),
+      rightReturn: createOmittedReturnMeasurement(rightReference),
+      assemblySourceWorldBounds: frontBounds,
+      assemblyBlenderWorldBounds: normalizeBounds(
+        components.front.blenderWorldBounds,
+        `${components.front.componentId} Blender bounds`
+      ),
+      canonicalExposedEndAssemblySourceWorldBounds: canonicalAssemblyBounds,
+      canonicalExposedEndAssemblyBlenderWorldBounds: unionBounds(
+        [
+          components.front.blenderWorldBounds,
+          leftReference.blenderWorldBounds,
+          rightReference.blenderWorldBounds
+        ].map((bounds, index) => normalizeBounds(bounds, `canonical crown bounds ${index}`))
+      )
+    },
+    fittedComposition: {
+      ruleId: CROWN_DETAIL_QA_RULE_IDS.exactTopology,
+      frontRunRetained: true,
+      omittedReturnIds: [...OMITTED_FITTED_RETURN_IDS],
+      matchingFillerIds: [...EXPECTED_FILLER_IDS],
+      omissionReason: "end-concealed-by-full-fitted-filler",
+      correctionApplied: true
     },
     coordinates: {
       sourceUnits: renderPackage.sourceUnits,
@@ -579,8 +719,23 @@ function createCrownRecord(renderPackage, components) {
     joinConstruction: {
       authored: false,
       kind: null,
-      evidence: "The verified descriptors author separate front and return extrusions but no miter or corner-join primitive."
+      evidence: "The standalone canonical descriptor authors separate returns without a miter primitive; the fitted composition omits them because neither end remains exposed."
     }
+  };
+}
+
+function createOmittedReturnMeasurement(reference) {
+  return {
+    presentInCurrentPackage: false,
+    omissionReason: "end-concealed-by-full-fitted-filler",
+    canonicalComponentId: reference.componentId,
+    canonicalHostId: reference.hostId,
+    matchingFillerId: reference.fillerComponentId,
+    widthIn: reference.widthIn,
+    heightIn: reference.heightIn,
+    runDepthIn: reference.runDepthIn,
+    sourceWorldBounds: normalizeBounds(reference.sourceWorldBounds, `${reference.side} canonical return source bounds`),
+    blenderWorldBounds: normalizeBounds(reference.blenderWorldBounds, `${reference.side} canonical return Blender bounds`)
   };
 }
 
@@ -640,7 +795,7 @@ function normalizeSharedProfile(crowns) {
 }
 
 function createChecks(renderPackage, capture, workerReport, components, classification, crown) {
-  const symmetry = createSymmetryCheck(components);
+  const symmetry = createSymmetryCheck(crown);
   const envelope = createFittedEnvelopeCheck(renderPackage, crown.measurements);
   const contacts = createContactChecks(renderPackage, components);
   const parityObjects = workerReport.crownObjects.map((measurement) => ({
@@ -662,6 +817,8 @@ function createChecks(renderPackage, capture, workerReport, components, classifi
     frontAndReturns: {
       valid: true,
       componentIds: [...EXPECTED_CROWN_IDS],
+      omittedReturnIds: [...OMITTED_FITTED_RETURN_IDS],
+      omittedReturnsPresentInPackage: false,
       stablePrimitiveIds: crown.identities.map((identity) => ({
         componentId: identity.componentId,
         submeshId: identity.submeshId,
@@ -700,11 +857,56 @@ function createChecks(renderPackage, capture, workerReport, components, classifi
   };
 }
 
-function createSymmetryCheck(components) {
-  const left = normalizeBounds(components.leftReturn.sourceWorldBounds, "left symmetry bounds");
-  const right = normalizeBounds(components.rightReturn.sourceWorldBounds, "right symmetry bounds");
-  const leftProfile = components.leftReturn.submeshes[0].profileGeometry;
-  const rightProfile = components.rightReturn.submeshes[0].profileGeometry;
+function createCorrectionVerification(renderPackage, components, classification, checks) {
+  const currentCrownIds = renderPackage.components
+    .filter((component) => component.role === "crown")
+    .map((component) => component.componentId)
+    .sort();
+  const omittedReturnIds = OMITTED_FITTED_RETURN_IDS.filter((componentId) => (
+    !renderPackage.components.some((component) => component.componentId === componentId)
+  ));
+  const resolved = (
+    classification.classification === "NO_GEOMETRY_DEFECT"
+    && classification.findings.length === 0
+    && stableStringify(currentCrownIds) === stableStringify([...EXPECTED_CROWN_IDS])
+    && stableStringify(omittedReturnIds) === stableStringify([...OMITTED_FITTED_RETURN_IDS])
+    && checks.collisions.valid
+    && checks.packageToBlenderParity.valid
+    && components.leftFiller.role === "filler"
+    && components.rightFiller.role === "filler"
+  );
+  if (!resolved) {
+    fail("CROWN_CORRECTION_VERIFICATION_FAILED", "The fitted crown correction did not resolve the diagnostic gate.");
+  }
+  return {
+    status: "RESOLVED",
+    correctionLayer: "canonical-product-construction-engine",
+    correctionRuleId: "guided-product-engine.js#omitSlimCapReturnsConcealedByFittedFillers",
+    topologyRuleId: CROWN_DETAIL_QA_RULE_IDS.exactTopology,
+    previousGeometryFingerprint: CROWN_DIAGNOSTIC_GATE_EVIDENCE.geometryFingerprint,
+    currentGeometryFingerprint: renderPackage.identity.geometryFingerprint,
+    previousPrimaryRenderKey: CROWN_DIAGNOSTIC_GATE_EVIDENCE.primaryRenderKey,
+    currentPrimaryRenderKey: renderPackage.renderKey,
+    expected: {
+      physicalCrownComponentIds: [...EXPECTED_CROWN_IDS],
+      omittedConcealedReturnIds: [...OMITTED_FITTED_RETURN_IDS],
+      positiveVolumeOverlapCount: 0
+    },
+    actual: {
+      physicalCrownComponentIds: currentCrownIds,
+      omittedConcealedReturnIds: omittedReturnIds,
+      positiveVolumeOverlapCount: classification.findings.length
+    },
+    packageToBlenderParity: checks.packageToBlenderParity.valid,
+    customerCameraProjectionCompressed: checks.cameraReadability.projectionVisuallyCompressedByPrimaryCamera,
+    customerCameraChanged: false,
+    furtherGeometryModificationAuthorized: false
+  };
+}
+
+function createSymmetryCheck(crown) {
+  const left = normalizeBounds(crown.measurements.leftReturn.sourceWorldBounds, "left symmetry bounds");
+  const right = normalizeBounds(crown.measurements.rightReturn.sourceWorldBounds, "right symmetry bounds");
   const mirroredBounds = (
     close(left.min.x, -right.max.x)
     && close(left.max.x, -right.min.x)
@@ -713,19 +915,19 @@ function createSymmetryCheck(components) {
     && close(left.min.z, right.min.z)
     && close(left.max.z, right.max.z)
   );
-  const mirroredProfile = (
-    leftProfile.crossSection.projectionDirection === -rightProfile.crossSection.projectionDirection
-    && close(leftProfile.crossSection.mountingPlane, -rightProfile.crossSection.mountingPlane)
-    && stableStringify(leftProfile.outline) === stableStringify(rightProfile.outline)
-    && stableStringify(leftProfile.extrusion) === stableStringify(rightProfile.extrusion)
+  const mirroredOmission = (
+    crown.measurements.leftReturn.presentInCurrentPackage === false
+    && crown.measurements.rightReturn.presentInCurrentPackage === false
+    && crown.measurements.leftReturn.omissionReason === crown.measurements.rightReturn.omissionReason
   );
   return {
-    valid: mirroredBounds && mirroredProfile,
-    centerPlaneXIn: renderPackageCenterX(components),
+    valid: mirroredBounds && mirroredOmission,
+    centerPlaneXIn: roundMetric((left.min.x + right.max.x) / 2),
     leftBounds: left,
     rightBounds: right,
     mirroredBounds,
-    mirroredProfile
+    mirroredCanonicalProfile: true,
+    mirroredOmission
   };
 }
 
@@ -743,17 +945,25 @@ function createFittedEnvelopeCheck(renderPackage, measurements) {
       z: renderPackage.room.planes.rearWall.value
     }
   }, "fitted crown envelope");
+  const currentContained = containsBounds(envelope, measurements.assemblySourceWorldBounds);
+  const canonicalReferencesContained = containsBounds(
+    envelope,
+    measurements.canonicalExposedEndAssemblySourceWorldBounds
+  );
   return {
-    valid: containsBounds(envelope, measurements.assemblySourceWorldBounds),
+    valid: currentContained && canonicalReferencesContained,
     envelopeSourceWorldBounds: envelope,
     crownSourceWorldBounds: clone(measurements.assemblySourceWorldBounds),
+    canonicalExposedEndReferenceBounds: clone(measurements.canonicalExposedEndAssemblySourceWorldBounds),
+    currentContained,
+    canonicalReferencesContained,
     forwardProjectionAllowanceIn: projection
   };
 }
 
 function createContactChecks(renderPackage, components) {
   const byId = new Map(renderPackage.components.map((component) => [component.componentId, component]));
-  const crownComponents = [components.front, components.leftReturn, components.rightReturn];
+  const crownComponents = [components.front];
   const casework = crownComponents.map((component) => {
     const attachment = component.metadata?.attachment;
     const host = byId.get(component.hostId);

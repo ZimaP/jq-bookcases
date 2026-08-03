@@ -368,7 +368,7 @@ test("geometry, BOM, billable, pricing, and render quantities remain in parity",
     "assembly", "section", "section_group", "opening"
   ].includes(component.role));
 
-  assert.equal(evaluation.bom.physicalComponentIds.length, 42);
+  assert.equal(evaluation.bom.physicalComponentIds.length, 40);
   assert.equal(renderManifest.expectedCount, expectations.renderableComponents);
   assert.equal(evaluation.bom.doors.count, byRole(components, "door").length);
   assert.equal(evaluation.bom.hardware.handleCount, byRole(components, "handle").length);
@@ -377,7 +377,7 @@ test("geometry, BOM, billable, pricing, and render quantities remain in parity",
   assert.equal(billable.generatedCabinetDoors, evaluation.bom.doors.count);
   assert.equal(billable.hardwareUnits, evaluation.bom.hardware.handleCount);
   assert.equal(billable.continuousCountertopUnits, evaluation.bom.countertops.count);
-  assert.equal(evaluation.pricing.acceptedDescriptorGraph.componentCount, 45);
+  assert.equal(evaluation.pricing.acceptedDescriptorGraph.componentCount, 43);
   assert.equal(evaluation.pricing.acceptedDescriptorGraph.customerEquipmentIds.length, 1);
   assert.equal(
     evaluation.pricing.acceptedDescriptorGraph.componentCount

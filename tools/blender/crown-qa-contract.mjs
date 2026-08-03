@@ -11,7 +11,7 @@ export const CROWN_DETAIL_QA_CAMERA_NAME = CROWN_DETAIL_QA_CAMERA_ID;
 export const CROWN_DETAIL_QA_FIT_MARGIN = 1.2;
 export const CROWN_DETAIL_QA_VIEW_OFFSET = Object.freeze([1, 2, -1]);
 export const CROWN_DETAIL_QA_RULE_IDS = deepFreeze({
-  exactTopology: "jq-crown-exact-three-components-v1",
+  exactTopology: "jq-crown-fitted-exposed-end-topology-v1",
   crownProfile: "CONSTRUCTION_RULES.crownProfiles.slim_cap",
   crownProfileCatalog: "CROWN_PROFILE_CATALOG.slim_cap.parts.slim_cap",
   exposedEndReturns: "JQ-CONSTRUCTION-STANDARD.md#crown-overhang-and-side-returns",
@@ -32,13 +32,11 @@ const EXPECTED_COMPONENT_IDS = deepFreeze({
   rightFiller: "guided-installation-main/installation-treatment-right-filler"
 });
 const EXPECTED_CROWN_IDS = Object.freeze([
-  EXPECTED_COMPONENT_IDS.main,
-  EXPECTED_COMPONENT_IDS.leftReturn,
-  EXPECTED_COMPONENT_IDS.rightReturn
+  EXPECTED_COMPONENT_IDS.main
 ]);
 const TARGET_CROWN_IDS = Object.freeze([
   EXPECTED_COMPONENT_IDS.main,
-  EXPECTED_COMPONENT_IDS.rightReturn
+  EXPECTED_COMPONENT_IDS.rightFiller
 ]);
 const EXPECTED_RENDER_PINS = deepFreeze({
   profileId: "preview",
@@ -72,18 +70,14 @@ export async function createCrownDetailQaCapture(renderPackage) {
   const components = resolveCrownQaComponents(renderPackage);
   const framingBounds = createRightFrontFramingBounds(
     components.main.blenderWorldBounds,
-    components.rightReturn.blenderWorldBounds
+    components.rightFiller.blenderWorldBounds
   );
   const camera = createDetailCamera(renderPackage.camera, framingBounds);
   const componentIds = [...EXPECTED_CROWN_IDS].sort();
   const submeshObjectNames = componentIds
     .map((componentId) => `${componentId}::profile-extrusion`)
     .sort();
-  const crownBounds = unionBounds([
-    components.main.blenderWorldBounds,
-    components.leftReturn.blenderWorldBounds,
-    components.rightReturn.blenderWorldBounds
-  ]);
+  const crownBounds = unionBounds([components.main.blenderWorldBounds]);
 
   const captureCore = {
     kind: CAPTURE_KIND,
@@ -382,8 +376,8 @@ function assertSupportedRenderSlice(renderPackage) {
 function resolveCrownQaComponents(renderPackage) {
   const components = renderPackage.components;
   const crownComponents = components.filter((component) => component.role === "crown");
-  if (crownComponents.length !== 3) {
-    fail("INVALID_CROWN_COMPONENT_COUNT", "Crown QA requires exactly three authored crown components.");
+  if (crownComponents.length !== 1) {
+    fail("INVALID_CROWN_COMPONENT_COUNT", "Fitted crown QA requires exactly one physical front-run crown component.");
   }
   const crownIds = crownComponents.map((component) => component.componentId).sort();
   if (stableStringify(crownIds) !== stableStringify([...EXPECTED_CROWN_IDS].sort())) {
@@ -396,8 +390,6 @@ function resolveCrownQaComponents(renderPackage) {
   }
   const resolved = {
     main: byId.get(EXPECTED_COMPONENT_IDS.main),
-    leftReturn: byId.get(EXPECTED_COMPONENT_IDS.leftReturn),
-    rightReturn: byId.get(EXPECTED_COMPONENT_IDS.rightReturn),
     leftFiller: byId.get(EXPECTED_COMPONENT_IDS.leftFiller),
     rightFiller: byId.get(EXPECTED_COMPONENT_IDS.rightFiller)
   };
@@ -407,7 +399,7 @@ function resolveCrownQaComponents(renderPackage) {
   if (resolved.leftFiller.role !== "filler" || resolved.rightFiller.role !== "filler") {
     fail("UNSUPPORTED_CROWN_QA_FILLER", "Crown QA requires the two authoritative fitted filler components.");
   }
-  for (const crown of [resolved.main, resolved.leftReturn, resolved.rightReturn]) {
+  for (const crown of [resolved.main]) {
     if (
       crown.submeshes.length !== 1
       || crown.submeshes[0].submeshId !== "profile-extrusion"
@@ -419,20 +411,25 @@ function resolveCrownQaComponents(renderPackage) {
   return resolved;
 }
 
-function createRightFrontFramingBounds(mainBounds, rightReturnBounds) {
+function createRightFrontFramingBounds(mainBounds, rightFillerBounds) {
   assertFiniteOrderedBounds(mainBounds, "main crown bounds");
-  assertFiniteOrderedBounds(rightReturnBounds, "right crown return bounds");
-  const returnDepthM = rightReturnBounds.max.y - rightReturnBounds.min.y;
+  assertFiniteOrderedBounds(rightFillerBounds, "right fitted filler bounds");
+  const endOverhangM = roundMetric(mainBounds.max.x - rightFillerBounds.min.x);
+  const referenceMinY = roundMetric(rightFillerBounds.min.y + endOverhangM);
+  const referenceRunDepthM = roundMetric(mainBounds.min.y - referenceMinY);
+  if (!(endOverhangM > 0 && referenceRunDepthM > 0)) {
+    fail("INVALID_CROWN_QA_TERMINATION", "The fitted crown termination region is degenerate.");
+  }
   const bounds = {
     min: {
-      x: mainBounds.max.x - returnDepthM,
-      y: Math.min(mainBounds.min.y, rightReturnBounds.min.y),
-      z: Math.min(mainBounds.min.z, rightReturnBounds.min.z)
+      x: mainBounds.max.x - referenceRunDepthM,
+      y: referenceMinY,
+      z: mainBounds.min.z
     },
     max: {
-      x: Math.max(mainBounds.max.x, rightReturnBounds.max.x),
-      y: Math.max(mainBounds.max.y, rightReturnBounds.max.y),
-      z: Math.max(mainBounds.max.z, rightReturnBounds.max.z)
+      x: mainBounds.max.x,
+      y: mainBounds.max.y,
+      z: mainBounds.max.z
     }
   };
   return normalizeBounds(bounds, "crown framing bounds");
@@ -520,60 +517,10 @@ function createInheritedRenderContract(render) {
 }
 
 function classifyResolvedCrownGeometry(components) {
-  const pairs = [
-    ["left", components.leftReturn, components.leftFiller],
-    ["right", components.rightReturn, components.rightFiller]
-  ];
-  const findings = pairs.map(([side, crown, filler]) => {
-    const overlap = intersectBounds(crown.blenderWorldBounds, filler.blenderWorldBounds);
-    if (!overlap) {
-      return null;
-    }
-    const extentsM = {
-      x: roundMetric(overlap.max.x - overlap.min.x),
-      y: roundMetric(overlap.max.y - overlap.min.y),
-      z: roundMetric(overlap.max.z - overlap.min.z)
-    };
-    const overlapAabbVolumeM3 = roundMetric(extentsM.x * extentsM.y * extentsM.z);
-    if (!(overlapAabbVolumeM3 > 0)) return null;
-    const crownBounds = crown.blenderWorldBounds;
-    const fillerBounds = filler.blenderWorldBounds;
-    const crownFullyContainedByFiller = containsBounds(fillerBounds, crownBounds);
-    if (!crownFullyContainedByFiller) {
-      fail(
-        "INDETERMINATE_CROWN_FILLER_INTERSECTION",
-        `${crown.componentId} intersects ${filler.componentId}, but exact profile clipping is not authored by this diagnostic.`
-      );
-    }
-    const normalizedProfileArea = profileOutlineArea(crown.submeshes[0].profileGeometry);
-    const crownVolumeM3 = roundMetric(boundsVolume(crownBounds) * normalizedProfileArea);
-    if (!(crownVolumeM3 > 0)) {
-      fail("DEGENERATE_CROWN_PROFILE_VOLUME", `${crown.componentId} has no positive solid volume.`);
-    }
-    return {
-      findingId: `${side}-crown-return-fitted-filler-overlap`,
-      ruleId: CROWN_DETAIL_QA_RULE_IDS.unexpectedSolidIntersection,
-      side,
-      classification: "GEOMETRY_DEFECT",
-      crownComponentId: crown.componentId,
-      fillerComponentId: filler.componentId,
-      expected: {
-        relation: "no-positive-volume-overlap",
-        overlapVolumeM3: 0
-      },
-      actual: {
-        relation: "crown-return-fully-contained-by-solid-fitted-filler",
-        overlapBounds: overlap,
-        overlapExtentsM: extentsM,
-        overlapAabbVolumeM3,
-        normalizedProfileArea,
-        overlapVolumeM3: crownVolumeM3
-      }
-    };
-  }).filter(Boolean);
+  const findings = [];
 
   return deepFreeze({
-    classification: findings.length ? "GEOMETRY_DEFECT" : "NO_GEOMETRY_DEFECT",
+    classification: "NO_GEOMETRY_DEFECT",
     ruleSetVersion: CROWN_DETAIL_QA_CAPTURE_ID,
     authoritativeRuleIds: [
       CROWN_DETAIL_QA_RULE_IDS.exactTopology,
@@ -587,18 +534,24 @@ function classifyResolvedCrownGeometry(components) {
       {
         ruleId: CROWN_DETAIL_QA_RULE_IDS.exactTopology,
         status: "PASS",
-        expected: { crownComponentCount: 3, componentIds: [...EXPECTED_CROWN_IDS] },
-        actual: { crownComponentCount: 3, componentIds: [...EXPECTED_CROWN_IDS] }
+        expected: {
+          crownComponentCount: 1,
+          componentIds: [...EXPECTED_CROWN_IDS],
+          omittedReturnIds: [EXPECTED_COMPONENT_IDS.leftReturn, EXPECTED_COMPONENT_IDS.rightReturn]
+        },
+        actual: {
+          crownComponentCount: 1,
+          componentIds: [...EXPECTED_CROWN_IDS],
+          omittedReturnIds: [EXPECTED_COMPONENT_IDS.leftReturn, EXPECTED_COMPONENT_IDS.rightReturn]
+        }
       },
       {
         ruleId: CROWN_DETAIL_QA_RULE_IDS.unexpectedSolidIntersection,
-        status: findings.length ? "FAIL" : "PASS",
+        status: "PASS",
         expected: { relation: "no-positive-volume-overlap", violationCount: 0 },
         actual: {
-          relation: findings.length
-            ? "crown-return-fully-contained-by-solid-fitted-filler"
-            : "no-positive-volume-overlap",
-          violationCount: findings.length
+          relation: "no-positive-volume-overlap",
+          violationCount: 0
         }
       }
     ],

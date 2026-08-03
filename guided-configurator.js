@@ -33,7 +33,7 @@ import {
   prepareGuidedQuote,
   restoreGuidedAcceptedSnapshot,
   transactGuidedProject
-} from "./guided-project-engine.js?v=tv-drawing-4-geometry-v1-20260802a";
+} from "./guided-project-engine.js?v=fitted-slim-cap-return-v1-20260803a";
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),

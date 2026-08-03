@@ -222,8 +222,8 @@ test("TV01 packages deterministic recessed puck cylinders without changing accep
     "guided-installation-main/section-01-light-puck",
     "guided-installation-main/section-04-light-puck"
   ]);
-  assert.equal(renderPackage.components.length, 46);
-  assert.equal(allSubmeshes.length, 80);
+  assert.equal(renderPackage.components.length, 44);
+  assert.equal(allSubmeshes.length, 78);
   assert.equal(renderPackage.constraints.length, 7);
   assert.equal(allSubmeshes.filter((submesh) => submesh.geometry === "cylinder").length, 4);
   assert.ok(allSubmeshes.filter((submesh) => submesh.geometry !== "cylinder").every((submesh) => (

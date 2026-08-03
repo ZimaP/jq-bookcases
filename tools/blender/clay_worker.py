@@ -41,20 +41,20 @@ ENVIRONMENT_SHA256 = (
     "49db5b6e13c5b5239d8aca84c055c586dfc71aeaf1e1db64487f5bf8bab66db2"
 )
 EXPECTED_REQUEST_KEY = (
-    "jq-blender-v1-93be24a7f4d9031edef36401f38c2168907688f19065d1d04e2b466f914f2272"
+    "jq-blender-v1-5f4d9e42925a4a9bd0593e1007523cbeed66d57112f5c5b1e65ddecb3704ead7"
 )
 EXPECTED_RENDER_KEY = (
-    "jq-blender-package-v1-5af4ea52a32b54f80541e61d305e1ce1e4ce671c845cfce33a4980e080e6ad99"
+    "jq-blender-package-v1-f80f6b84cb804623613e3ecb55aa61461e71e7a4dc70816e37bae38bd5e5be15"
 )
 EXPECTED_IDENTITY_FINGERPRINTS = {
-    "geometryFingerprint": "jq-guided-geometry-v1-2J95JPTIW69O4",
+    "geometryFingerprint": "jq-guided-geometry-v1-028YPJG43EJF6",
     "selectionFingerprint": "jq-guided-selection-v1-0mnaift",
-    "descriptorFingerprint": "jq-guided-snapshot-descriptors-v1-1vl3c3s",
+    "descriptorFingerprint": "jq-guided-snapshot-descriptors-v1-04xxijj",
     "materialFingerprint": "jq-guided-snapshot-materials-v1-1fs7psz",
     "cameraFingerprint": "jq-guided-snapshot-camera-v1-1kj9fv5",
 }
-EXPECTED_COMPONENT_COUNT = 46
-EXPECTED_SUBMESH_OBJECT_COUNT = 80
+EXPECTED_COMPONENT_COUNT = 44
+EXPECTED_SUBMESH_OBJECT_COUNT = 78
 EXPECTED_CONSTRAINT_COUNT = 7
 MAX_PACKAGE_BYTES = 16 * 1024 * 1024
 MAX_BEAUTY_BYTES = 32 * 1024 * 1024
@@ -70,8 +70,14 @@ CROWN_QA_REPORT_KIND = "jq-local-blender-crown-qa-worker-report"
 CROWN_QA_REPORT_SCHEMA_VERSION = 1
 EXPECTED_CROWN_COMPONENT_IDS = [
     "guided-installation-main/crown-slim-cap",
+]
+OMITTED_FITTED_CROWN_RETURN_IDS = [
     "guided-installation-main/crown-slim-cap-left-return",
     "guided-installation-main/crown-slim-cap-right-return",
+]
+EXPECTED_CROWN_QA_FOCUS_IDS = [
+    "guided-installation-main/crown-slim-cap",
+    "guided-installation-main/installation-treatment-right-filler",
 ]
 
 TOP_LEVEL_KEYS = {
@@ -1187,7 +1193,7 @@ def validate_package(package: dict[str, Any]) -> dict[str, Any]:
     identity = exact_keys(package["identity"], IDENTITY_KEYS, "identity")
     identity_expected = {
         "productId": "tv-unit", "layoutId": "clear-wall", "installationMode": "fitted",
-        "engineVersion": "2026.08-tv-drawing-4-v1", "jobSchemaVersion": 1,
+        "engineVersion": "2026.08-fitted-slim-cap-return-v1", "jobSchemaVersion": 1,
         "packageSchemaVersion": PACKAGE_SCHEMA_VERSION, "renderContractVersion": 1,
         "primitiveContractVersion": PRIMITIVE_CONTRACT_VERSION, "materialContractVersion": 1,
         "pipelineVersion": PIPELINE_VERSION, "materialLibraryVersion": MATERIAL_LIBRARY_VERSION,
@@ -1388,7 +1394,9 @@ def validate_crown_qa_capture(
         if component["role"] == "crown"
     )
     if actual_crown_ids != EXPECTED_CROWN_COMPONENT_IDS:
-        fail("CROWN_QA_TARGET_DRIFT", "Package does not contain the exact Small Crown slice")
+        fail("CROWN_QA_TARGET_DRIFT", "Package does not contain the exact fitted Small Crown slice")
+    if any(component_id in components_by_id for component_id in OMITTED_FITTED_CROWN_RETURN_IDS):
+        fail("CROWN_QA_TARGET_DRIFT", "A concealed fitted crown return remains in the package")
     if target["componentIds"] != EXPECTED_CROWN_COMPONENT_IDS:
         fail("CROWN_QA_TARGET_DRIFT", "Capture crown component IDs drifted")
     crowns = [components_by_id[component_id] for component_id in EXPECTED_CROWN_COMPONENT_IDS]
@@ -1405,9 +1413,8 @@ def validate_crown_qa_capture(
     ])
     if target["submeshObjectNames"] != expected_object_names:
         fail("CROWN_QA_TARGET_DRIFT", "Capture crown object names drifted")
-    expected_focus_ids = [EXPECTED_CROWN_COMPONENT_IDS[0], EXPECTED_CROWN_COMPONENT_IDS[2]]
-    if target["focusComponentIds"] != expected_focus_ids:
-        fail("CROWN_QA_TARGET_DRIFT", "Capture must focus the front and right return")
+    if target["focusComponentIds"] != EXPECTED_CROWN_QA_FOCUS_IDS:
+        fail("CROWN_QA_TARGET_DRIFT", "Capture must focus the front and right fitted termination")
 
     crown_bounds = bounds(target["crownBounds"], "crownQaCapture.target.crownBounds")
     expected_crown_bounds = union_bounds(
@@ -1417,18 +1424,27 @@ def validate_crown_qa_capture(
     if not same_bounds(crown_bounds, expected_crown_bounds):
         fail("CROWN_QA_BOUNDS_DRIFT", "Capture crown union bounds drifted")
     front_bounds = bounds(crowns[0]["blenderWorldBounds"], "crownQaCapture.frontBounds")
-    right_return_bounds = bounds(crowns[2]["blenderWorldBounds"], "crownQaCapture.rightReturnBounds")
-    return_depth = right_return_bounds["max"]["y"] - right_return_bounds["min"]["y"]
+    right_filler = components_by_id.get(EXPECTED_CROWN_QA_FOCUS_IDS[1])
+    if right_filler is None or right_filler["role"] != "filler":
+        fail("CROWN_QA_TARGET_DRIFT", "The right fitted filler is missing")
+    right_filler_bounds = bounds(
+        right_filler["blenderWorldBounds"], "crownQaCapture.rightFillerBounds"
+    )
+    end_overhang = round_metric(front_bounds["max"]["x"] - right_filler_bounds["min"]["x"])
+    reference_min_y = round_metric(right_filler_bounds["min"]["y"] + end_overhang)
+    reference_run_depth = round_metric(front_bounds["min"]["y"] - reference_min_y)
+    if end_overhang <= 0 or reference_run_depth <= 0:
+        fail("CROWN_QA_BOUNDS_DRIFT", "The fitted crown termination region is degenerate")
     expected_framing = {
         "min": {
-            "x": round_metric(front_bounds["max"]["x"] - return_depth),
-            "y": min(front_bounds["min"]["y"], right_return_bounds["min"]["y"]),
-            "z": min(front_bounds["min"]["z"], right_return_bounds["min"]["z"]),
+            "x": round_metric(front_bounds["max"]["x"] - reference_run_depth),
+            "y": reference_min_y,
+            "z": front_bounds["min"]["z"],
         },
         "max": {
-            "x": max(front_bounds["max"]["x"], right_return_bounds["max"]["x"]),
-            "y": max(front_bounds["max"]["y"], right_return_bounds["max"]["y"]),
-            "z": max(front_bounds["max"]["z"], right_return_bounds["max"]["z"]),
+            "x": front_bounds["max"]["x"],
+            "y": front_bounds["max"]["y"],
+            "z": front_bounds["max"]["z"],
         },
     }
     framing = bounds(target["framingBounds"], "crownQaCapture.target.framingBounds")

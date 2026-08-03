@@ -2,7 +2,7 @@ import {
   GUIDED_PROJECT_ENGINE_VERSION,
   prepareGuidedProjectPersistence,
   restoreGuidedAcceptedSnapshot
-} from "./guided-project-engine.js?v=tv-drawing-4-geometry-v1-20260802a";
+} from "./guided-project-engine.js?v=fitted-slim-cap-return-v1-20260803a";
 import {
   GUIDED_RENDER_CONTRACT_VERSION,
   auditGuidedAcceptedSpecification,

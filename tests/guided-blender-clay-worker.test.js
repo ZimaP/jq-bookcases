@@ -26,9 +26,9 @@ import {
   writeDeterministicJson
 } from "../tools/blender/run-clay-worker.mjs";
 
-const EXPECTED_COMPONENT_COUNT = 46;
+const EXPECTED_COMPONENT_COUNT = 44;
 const EXPECTED_CONSTRAINT_COUNT = 7;
-const EXPECTED_SUBMESH_OBJECT_COUNT = 80;
+const EXPECTED_SUBMESH_OBJECT_COUNT = 78;
 const EXPECTED_WIDTH = 960;
 const EXPECTED_HEIGHT = 640;
 const PYTHON_WORKER_PATH = join(REPOSITORY_ROOT, "tools/blender/clay_worker.py");

@@ -22,19 +22,15 @@ import {
   createVerifiedClayRenderPackage
 } from "../tools/blender/run-clay-worker.mjs";
 
-const EXPECTED_CAPTURE_KEY = "jq-crown-detail-qa-v1-7c79dd65dcbdf941301eee6fde8f56e05679caede2102a96e91db2e2683a7ba6";
+const EXPECTED_CAPTURE_KEY = "jq-crown-detail-qa-v1-d57183ac1df8d49db962e9532e24e1f0c6ed9173963b46f62c8e5e258386a35b";
 const EXPECTED_CROWN_IDS = [
-  "guided-installation-main/crown-slim-cap",
-  "guided-installation-main/crown-slim-cap-left-return",
-  "guided-installation-main/crown-slim-cap-right-return"
+  "guided-installation-main/crown-slim-cap"
 ];
 const EXPECTED_FOCUS_IDS = [
   "guided-installation-main/crown-slim-cap",
-  "guided-installation-main/crown-slim-cap-right-return"
+  "guided-installation-main/installation-treatment-right-filler"
 ];
 const EXPECTED_OBJECT_NAMES = [
-  "guided-installation-main/crown-slim-cap-left-return::profile-extrusion",
-  "guided-installation-main/crown-slim-cap-right-return::profile-extrusion",
   "guided-installation-main/crown-slim-cap::profile-extrusion"
 ];
 
@@ -68,7 +64,7 @@ test("crown detail capture frames the deterministic right-front corner from belo
   const capture = await createCrownDetailQaCapture(renderPackage);
 
   assert.deepEqual(capture.target.crownBounds, {
-    min: { x: -1.49225, y: 0.00635, z: 2.40792 },
+    min: { x: -1.49225, y: 0.3556, z: 2.40792 },
     max: { x: 1.49225, y: 0.365125, z: 2.4384 }
   });
   assert.deepEqual(capture.target.framingBounds, {
@@ -157,25 +153,13 @@ test("the accepted customer camera remains the exact Drawing 4 baseline", async 
   assert.equal(capture.primaryRenderKey, renderPackage.renderKey);
 });
 
-test("Small Crown front run and returns retain exact identities, profile, hosts, and measurements", async () => {
+test("the fitted Small Crown retains the exact front-run identity, profile, host, and measurements", async () => {
   const { renderPackage } = await getGeneratedPackage();
   const crowns = renderPackage.components.filter((component) => component.role === "crown");
   assert.deepEqual(crowns.map((component) => component.componentId), EXPECTED_CROWN_IDS);
-  assert.deepEqual(crowns.map((component) => component.parentId), [
-    "guided-installation-main/bookcase",
-    "guided-installation-main/bookcase",
-    "guided-installation-main/bookcase"
-  ]);
-  assert.deepEqual(crowns.map((component) => component.hostId), [
-    "guided-installation-main/top-panel",
-    "guided-installation-main/left-side-panel",
-    "guided-installation-main/right-side-panel"
-  ]);
-  assert.deepEqual(crowns.map((component) => component.submeshes[0].submeshId), [
-    "profile-extrusion",
-    "profile-extrusion",
-    "profile-extrusion"
-  ]);
+  assert.deepEqual(crowns.map((component) => component.parentId), ["guided-installation-main/bookcase"]);
+  assert.deepEqual(crowns.map((component) => component.hostId), ["guided-installation-main/top-panel"]);
+  assert.deepEqual(crowns.map((component) => component.submeshes[0].submeshId), ["profile-extrusion"]);
   for (const crown of crowns) {
     assert.equal(crown.geometryVariant, "crown_profile_extrusion");
     assert.equal(crown.submeshes[0].geometry, "crown_profile_extrusion");
@@ -195,56 +179,34 @@ test("Small Crown front run and returns retain exact identities, profile, hosts,
     height: 1.2,
     depth: 0.375
   });
-  assert.deepEqual(sourceDimensions(crowns[1].sourceWorldBounds), {
-    width: 0.25,
-    height: 1.2,
-    depth: 13.75
-  });
-  assert.deepEqual(sourceDimensions(crowns[2].sourceWorldBounds), {
-    width: 0.25,
-    height: 1.2,
-    depth: 13.75
-  });
 });
 
-test("Small Crown returns are mirrored, inside the fitted envelope, and contact their authored hosts and ceiling", async () => {
+test("the fitted composition omits both concealed returns and preserves symmetric full fillers", async () => {
   const { renderPackage } = await getGeneratedPackage();
   const byId = new Map(renderPackage.components.map((component) => [component.componentId, component]));
   const front = byId.get(EXPECTED_CROWN_IDS[0]);
-  const left = byId.get(EXPECTED_CROWN_IDS[1]);
-  const right = byId.get(EXPECTED_CROWN_IDS[2]);
+  const left = byId.get("guided-installation-main/crown-slim-cap-left-return");
+  const right = byId.get("guided-installation-main/crown-slim-cap-right-return");
   const leftFiller = byId.get("guided-installation-main/installation-treatment-left-filler");
   const rightFiller = byId.get("guided-installation-main/installation-treatment-right-filler");
-  assert.ok(front && left && right && leftFiller && rightFiller);
-
-  assert.deepEqual(left.sourceWorldBounds, {
+  assert.ok(front && leftFiller && rightFiller);
+  assert.equal(left, undefined);
+  assert.equal(right, undefined);
+  const canonicalLeftReturnBounds = {
     min: { x: -58.75, y: 94.8, z: -14 },
     max: { x: -58.5, y: 96, z: -0.25 }
-  });
-  assert.deepEqual(right.sourceWorldBounds, {
+  };
+  const canonicalRightReturnBounds = {
     min: { x: 58.5, y: 94.8, z: -14 },
     max: { x: 58.75, y: 96, z: -0.25 }
-  });
-  assert.equal(left.sourceWorldBounds.min.x, -right.sourceWorldBounds.max.x);
-  assert.equal(left.sourceWorldBounds.max.x, -right.sourceWorldBounds.min.x);
-  assert.deepEqual(
-    { minY: left.sourceWorldBounds.min.y, maxY: left.sourceWorldBounds.max.y, minZ: left.sourceWorldBounds.min.z, maxZ: left.sourceWorldBounds.max.z },
-    { minY: right.sourceWorldBounds.min.y, maxY: right.sourceWorldBounds.max.y, minZ: right.sourceWorldBounds.min.z, maxZ: right.sourceWorldBounds.max.z }
-  );
-  assert.equal(left.submeshes[0].profileGeometry.crossSection.projectionDirection, -1);
-  assert.equal(right.submeshes[0].profileGeometry.crossSection.projectionDirection, 1);
-  assert.equal(left.sourceWorldBounds.max.x, -58.5);
-  assert.equal(right.sourceWorldBounds.min.x, 58.5);
+  };
+  assert.equal(canonicalLeftReturnBounds.min.x, -canonicalRightReturnBounds.max.x);
+  assert.equal(canonicalLeftReturnBounds.max.x, -canonicalRightReturnBounds.min.x);
+  assert.equal(contains(leftFiller.sourceWorldBounds, canonicalLeftReturnBounds), true);
+  assert.equal(contains(rightFiller.sourceWorldBounds, canonicalRightReturnBounds), true);
   assert.equal(front.sourceWorldBounds.max.z, -14);
   assert.equal(front.sourceWorldBounds.max.y, renderPackage.room.ceilingHeightIn);
-  assert.equal(left.sourceWorldBounds.max.y, renderPackage.room.ceilingHeightIn);
-  assert.equal(right.sourceWorldBounds.max.y, renderPackage.room.ceilingHeightIn);
-
-  for (const crown of [front, left, right]) {
-    assert.equal(contains(renderPackage.camera.framingBounds, crown.blenderWorldBounds), true);
-  }
-  assert.equal(contains(leftFiller.sourceWorldBounds, left.sourceWorldBounds), true);
-  assert.equal(contains(rightFiller.sourceWorldBounds, right.sourceWorldBounds), true);
+  assert.equal(contains(renderPackage.camera.framingBounds, front.blenderWorldBounds), true);
 });
 
 test("strict crown capture validation rejects unknown fields and key drift", async (t) => {
@@ -297,11 +259,11 @@ test("crown QA fails closed on malformed, duplicate, and unsupported source geom
   }
 });
 
-test("baseline return/filler intersections are classified as an authoritative GEOMETRY_DEFECT", async () => {
+test("the corrected fitted topology has no remaining physical crown/filler defect", async () => {
   const { renderPackage } = await getGeneratedPackage();
   const classification = await classifyCrownGeometry(renderPackage);
 
-  assert.equal(classification.classification, "GEOMETRY_DEFECT");
+  assert.equal(classification.classification, "NO_GEOMETRY_DEFECT");
   assert.deepEqual(classification.authoritativeRuleIds, [
     CROWN_DETAIL_QA_RULE_IDS.exactTopology,
     CROWN_DETAIL_QA_RULE_IDS.crownProfile,
@@ -310,23 +272,11 @@ test("baseline return/filler intersections are classified as an authoritative GE
     CROWN_DETAIL_QA_RULE_IDS.unexpectedSolidIntersection,
     CROWN_DETAIL_QA_RULE_IDS.fittedFillerVolume
   ]);
-  assert.equal(classification.findings.length, 2);
-  for (const finding of classification.findings) {
-    assert.equal(finding.ruleId, CROWN_DETAIL_QA_RULE_IDS.unexpectedSolidIntersection);
-    assert.deepEqual(finding.expected, {
-      relation: "no-positive-volume-overlap",
-      overlapVolumeM3: 0
-    });
-    assert.equal(finding.actual.relation, "crown-return-fully-contained-by-solid-fitted-filler");
-    assert.deepEqual(finding.actual.overlapExtentsM, {
-      x: 0.00635,
-      y: 0.34925,
-      z: 0.03048
-    });
-    assert.equal(finding.actual.overlapAabbVolumeM3, 0.000067596639);
-    assert.equal(finding.actual.normalizedProfileArea, 0.6455);
-    assert.equal(finding.actual.overlapVolumeM3, 0.00004363363);
-  }
+  assert.equal(classification.findings.length, 0);
+  assert.equal(classification.rules[0].status, "PASS");
+  assert.deepEqual(classification.rules[0].actual, classification.rules[0].expected);
+  assert.equal(classification.rules[1].status, "PASS");
+  assert.equal(classification.rules[1].actual.violationCount, 0);
 });
 
 test("diagnostic reports accept strict Blender parity and verify detail WebP integrity", async (t) => {
@@ -354,7 +304,7 @@ test("diagnostic reports accept strict Blender parity and verify detail WebP int
     blenderParity
   });
 
-  assert.equal(report.classification.classification, "GEOMETRY_DEFECT");
+  assert.equal(report.classification.classification, "NO_GEOMETRY_DEFECT");
   assert.equal((await validateCrownDetailQaReport(renderPackage, capture, report)).valid, true);
   assert.deepEqual(
     await verifyCrownDetailWebpIntegrity(renderPackage, capture, report, webp),

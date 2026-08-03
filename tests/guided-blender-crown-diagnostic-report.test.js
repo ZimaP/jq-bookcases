@@ -20,7 +20,7 @@ import { createVerifiedClayRenderPackage } from "../tools/blender/run-clay-worke
 const SOURCE_COMMIT = "4449724f6fc5780b53922b5f176fab7d53e6ed7a";
 const PRIMARY_BEAUTY = Object.freeze({
   pass: "beauty",
-  objectKey: "jq-blender-package-v1-5af4ea52a32b54f80541e61d305e1ce1e4ce671c845cfce33a4980e080e6ad99/beauty.webp",
+  objectKey: "jq-blender-package-v1-f80f6b84cb804623613e3ecb55aa61461e71e7a4dc70816e37bae38bd5e5be15/beauty.webp",
   mimeType: "image/webp",
   width: 960,
   height: 640,
@@ -63,7 +63,12 @@ test("the full crown diagnostic is deterministic, strict, and authorizes only th
   assert.equal(first.sourceCommit, SOURCE_COMMIT);
   assert.equal(first.classification.value, "GEOMETRY_DEFECT");
   assert.equal(first.classification.geometryModificationAuthorized, true);
-  assert.equal(first.geometryModificationAuthorized, true);
+  assert.equal(first.classification.authorizationConsumed, true);
+  assert.equal(first.phaseCorrectionAuthorized, true);
+  assert.equal(first.correctionApplied, true);
+  assert.equal(first.geometryModificationAuthorized, false);
+  assert.equal(first.correctionVerification.status, "RESOLVED");
+  assert.equal(first.correctionVerification.furtherGeometryModificationAuthorized, false);
   assert.equal(first.classification.expectedVsActual.length, 2);
   assert.ok(first.classification.authoritativeRuleIds.includes(
     CROWN_DETAIL_QA_RULE_IDS.unexpectedSolidIntersection
@@ -88,7 +93,8 @@ test("the report records the exact canonical Small Crown selection, profile, ide
     CROWN_DETAIL_QA_RULE_IDS.crownProfileCatalog,
     CROWN_DETAIL_QA_RULE_IDS.exposedEndReturns,
     CROWN_DETAIL_QA_RULE_IDS.unexpectedSolidIntersection,
-    CROWN_DETAIL_QA_RULE_IDS.fittedFillerVolume
+    CROWN_DETAIL_QA_RULE_IDS.fittedFillerVolume,
+    CROWN_DETAIL_QA_RULE_IDS.exactTopology
   ]);
   assert.equal(report.crown.profile.kind, "crown_profile_extrusion");
   assert.equal(report.crown.profile.contour, "beveled_cap");
@@ -102,12 +108,16 @@ test("the report records the exact canonical Small Crown selection, profile, ide
     { height: 0, projection: 0.3 }
   ]);
   assert.deepEqual(report.crown.identities.map((identity) => identity.componentId), [
-    "guided-installation-main/crown-slim-cap",
+    "guided-installation-main/crown-slim-cap"
+  ]);
+  assert.deepEqual(report.crown.omittedCanonicalReturnIdentities.map((identity) => identity.componentId), [
     "guided-installation-main/crown-slim-cap-left-return",
     "guided-installation-main/crown-slim-cap-right-return"
   ]);
   assert.deepEqual(report.crown.identities.map((identity) => identity.hostId), [
-    "guided-installation-main/top-panel",
+    "guided-installation-main/top-panel"
+  ]);
+  assert.deepEqual(report.crown.omittedCanonicalReturnIdentities.map((identity) => identity.hostId), [
     "guided-installation-main/left-side-panel",
     "guided-installation-main/right-side-panel"
   ]);
@@ -118,7 +128,8 @@ test("the report records the exact canonical Small Crown selection, profile, ide
   )));
   assert.equal(report.crown.measurements.crownHeightIn, 1.2);
   assert.equal(report.crown.measurements.forwardProjectionIn, 0.375);
-  assert.equal(report.crown.measurements.physicalDepthIn, 14.125);
+  assert.equal(report.crown.measurements.physicalDepthIn, 0.375);
+  assert.equal(report.crown.measurements.canonicalExposedEndAssemblyDepthIn, 14.125);
   assert.deepEqual(report.crown.measurements.frontRun, {
     widthIn: 117.5,
     heightIn: 1.2,
@@ -134,24 +145,26 @@ test("the report records the exact canonical Small Crown selection, profile, ide
   });
   assert.deepEqual(
     {
+      presentInCurrentPackage: report.crown.measurements.leftReturn.presentInCurrentPackage,
       widthIn: report.crown.measurements.leftReturn.widthIn,
       heightIn: report.crown.measurements.leftReturn.heightIn,
       runDepthIn: report.crown.measurements.leftReturn.runDepthIn
     },
-    { widthIn: 0.25, heightIn: 1.2, runDepthIn: 13.75 }
+    { presentInCurrentPackage: false, widthIn: 0.25, heightIn: 1.2, runDepthIn: 13.75 }
   );
   assert.deepEqual(
     {
+      presentInCurrentPackage: report.crown.measurements.rightReturn.presentInCurrentPackage,
       widthIn: report.crown.measurements.rightReturn.widthIn,
       heightIn: report.crown.measurements.rightReturn.heightIn,
       runDepthIn: report.crown.measurements.rightReturn.runDepthIn
     },
-    { widthIn: 0.25, heightIn: 1.2, runDepthIn: 13.75 }
+    { presentInCurrentPackage: false, widthIn: 0.25, heightIn: 1.2, runDepthIn: 13.75 }
   );
   assert.deepEqual(report.crown.joinConstruction, {
     authored: false,
     kind: null,
-    evidence: "The verified descriptors author separate front and return extrusions but no miter or corner-join primitive."
+    evidence: "The standalone canonical descriptor authors separate returns without a miter primitive; the fitted composition omits them because neither end remains exposed."
   });
 });
 
@@ -170,7 +183,8 @@ test("the report proves symmetry, contacts, envelope containment, collisions, an
       max: { x: 58.75, y: 96, z: -0.25 }
     },
     mirroredBounds: true,
-    mirroredProfile: true
+    mirroredCanonicalProfile: true,
+    mirroredOmission: true
   });
   assert.equal(report.checks.fittedEnvelope.valid, true);
   assert.deepEqual(report.checks.fittedEnvelope.envelopeSourceWorldBounds, {
@@ -178,21 +192,18 @@ test("the report proves symmetry, contacts, envelope containment, collisions, an
     max: { x: 60, y: 96, z: 0 }
   });
   assert.equal(report.checks.caseworkContact.valid, true);
-  assert.deepEqual(report.checks.caseworkContact.attachments.map((entry) => entry.gapIn), [0, 0, 0]);
+  assert.deepEqual(report.checks.caseworkContact.attachments.map((entry) => entry.gapIn), [0]);
   assert.equal(report.checks.ceilingContact.valid, true);
   assert.equal(report.checks.ceilingContact.gapIn, 0);
-  assert.equal(report.checks.collisions.valid, false);
-  assert.equal(report.checks.collisions.violationCount, 2);
-  assert.deepEqual(
-    report.checks.collisions.findings.map((finding) => finding.actual.overlapVolumeM3),
-    [0.00004363363, 0.00004363363]
-  );
+  assert.equal(report.checks.collisions.valid, true);
+  assert.equal(report.checks.collisions.violationCount, 0);
+  assert.deepEqual(report.checks.collisions.findings, []);
   assert.equal(report.checks.packageToBlenderParity.valid, true);
   assert.equal(report.checks.packageToBlenderParity.allObjectScalesApplied, true);
   assert.equal(report.checks.packageToBlenderParity.allObjectTransformsIdentity, true);
   assert.deepEqual(
     report.checks.packageToBlenderParity.objects.map((object) => object.maximumAbsoluteBoundsDeltaM),
-    [0, 0, 0]
+    [0]
   );
 });
 
@@ -221,9 +232,9 @@ test("the diagnostic preserves the primary camera, package key, and beauty while
   assert.deepEqual(report.outputs.primaryBeauty, PRIMARY_BEAUTY);
   assert.deepEqual(report.outputs.crownDetail, report.qaCapture.output);
   assert.deepEqual(report.sceneCounts, {
-    componentCount: 46,
-    submeshObjectCount: 80,
-    crownObjectCount: 3,
+    componentCount: 44,
+    submeshObjectCount: 78,
+    crownObjectCount: 1,
     constraintCount: 7,
     collectionCount: 4,
     primaryCameraCount: 1,
@@ -264,8 +275,8 @@ test("the builder and validator fail closed on unknown, inconsistent, or mutated
 
   await t.test("Blender bounds mismatch", async () => {
     const inputs = await getInputs();
-    inputs.workerReport.crownObjects[0].blenderMeshBounds.min.y += 0.01;
-    inputs.workerReport.crownObjects[0].maximumAbsoluteBoundsDeltaM = 0.01;
+    inputs.workerReport.crownObjects[0].blenderMeshBounds.min.y += 0.001;
+    inputs.workerReport.crownObjects[0].maximumAbsoluteBoundsDeltaM = 0.001;
     await assert.rejects(
       createCrownDiagnosticReport(inputs),
       (error) => error instanceof CrownDiagnosticReportError
@@ -293,11 +304,11 @@ test("the builder and validator fail closed on unknown, inconsistent, or mutated
     );
   });
 
-  await t.test("report cannot revoke authorization for a proven defect", async () => {
+  await t.test("report cannot grant an additional geometry correction after resolution", async () => {
     const inputs = await getInputs();
     const report = await createCrownDiagnosticReport(inputs);
     const candidate = structuredClone(report);
-    candidate.geometryModificationAuthorized = false;
+    candidate.geometryModificationAuthorized = true;
     const validation = await validateCrownDiagnosticReport(inputs, candidate);
     assert.equal(validation.valid, false);
     assert.ok(validation.errors.some((error) => error.code === "CROWN_DIAGNOSTIC_REPORT_MISMATCH"));

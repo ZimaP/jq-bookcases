@@ -41,8 +41,8 @@
     "countertopDepth": 14,
     "doorCount": 8,
     "hardwareCount": 8,
-    "renderableComponents": 46,
-    "renderableSubmeshes": 80,
+    "renderableComponents": 44,
+    "renderableSubmeshes": 78,
     "nonRenderableBlenderConstraints": 7
   }
 }

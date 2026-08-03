@@ -13,12 +13,12 @@ import {
 } from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
   evaluateGuidedProductCandidate
-} from "./guided-product-engine.js?v=tv-drawing-4-geometry-v1-20260802a";
+} from "./guided-product-engine.js?v=fitted-slim-cap-return-v1-20260803a";
 import {
   auditGuidedAcceptedSpecification
 } from "./guided-render-contract.js?v=luxury-configurator-engine-v1";
 
-export const GUIDED_PROJECT_ENGINE_VERSION = "2026.08-tv-drawing-4-v1";
+export const GUIDED_PROJECT_ENGINE_VERSION = "2026.08-fitted-slim-cap-return-v1";
 export const GUIDED_ACCEPTED_SPECIFICATION_SCHEMA_VERSION = 1;
 export const GUIDED_ACCEPTED_SNAPSHOT_SCHEMA_VERSION = 2;
 export const GUIDED_QUOTE_CONTRACT_SCHEMA_VERSION = 1;

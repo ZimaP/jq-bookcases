@@ -19,7 +19,7 @@ import {
   createGuidedProductCandidate
 } from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
 
-export const GUIDED_PRODUCT_ENGINE_VERSION = "2026.08-tv-drawing-4-v1";
+export const GUIDED_PRODUCT_ENGINE_VERSION = "2026.08-fitted-slim-cap-return-v1";
 export const GUIDED_PRODUCT_DESCRIPTOR_SCHEMA_VERSION = 1;
 export const GUIDED_GEOMETRY_FINGERPRINT_VERSION = 1;
 export const GUIDED_RENDER_MANIFEST_VERSION = 1;
@@ -296,7 +296,9 @@ function buildCanonicalDescriptorSet(plan, installation, config, index) {
     // solved installation treatments before that graph is counted so fillers,
     // finished ends, and any non-canonical fit trim are not omitted from its
     // auditable quantities.
-    components = promoteInstallationTreatments(augmented.components, installation);
+    components = promoteInstallationTreatments(augmented.components, installation, {
+      reconcileFittedSlimCapReturns: true
+    });
     const repriced = repriceFinalTvDescriptorGraph({
       evaluation,
       installation,
@@ -1331,7 +1333,9 @@ function createDescriptorSet({
   canonicalRenderContract = null
 }) {
   const setId = createDescriptorSetId(installation, index);
-  const promotedComponents = promoteInstallationTreatments(components, installation);
+  const promotedComponents = promoteInstallationTreatments(components, installation, {
+    reconcileFittedSlimCapReturns: productId === "tv-unit"
+  });
   const namespaced = namespaceComponents(promotedComponents, setId, {
     namespaceMetadataIds: productId === "tv-unit"
   });
@@ -1383,7 +1387,7 @@ function createDescriptorSet({
  * realization instead of adding a coincident box. Dedicated builders that do
  * not provide a corresponding part receive one deterministic fallback part.
  */
-function promoteInstallationTreatments(sourceComponents, installation) {
+function promoteInstallationTreatments(sourceComponents, installation, options = {}) {
   const components = clone(Array.isArray(sourceComponents) ? sourceComponents : []);
   const treatments = installation?.treatments || {};
   const casework = installation?.casework || {};
@@ -1432,7 +1436,82 @@ function promoteInstallationTreatments(sourceComponents, installation) {
     depth,
     halfWidth
   });
-  return components;
+  return options.reconcileFittedSlimCapReturns === true
+    ? omitSlimCapReturnsConcealedByFittedFillers(components, installation, {
+        width,
+        height,
+        depth,
+        halfWidth
+      })
+    : components;
+}
+
+/**
+ * A canonical crown return belongs on an exposed carcass end. Once the
+ * accepted fit adds a full-height physical filler around that complete return,
+ * the end is no longer exposed and retaining the return would create two
+ * solids in the same volume. Omit only a completely contained Small Crown
+ * return; partial intersections remain in the graph so validation rejects the
+ * contradictory fit instead of clipping or resizing authored geometry.
+ */
+function omitSlimCapReturnsConcealedByFittedFillers(components, installation, context) {
+  if (installation?.mode !== "fitted") return components;
+  const omittedIds = new Set();
+  for (const side of ["left", "right"]) {
+    const treatment = installation?.treatments?.[side];
+    if (treatment?.kind !== "filler") continue;
+    const filler = findPromotedTreatment(components, treatment, side);
+    if (!isAcceptedPrimaryFullFittedFiller(filler, treatment, side, context)) continue;
+    for (const component of components) {
+      if (
+        isSlimCapSideReturn(component, side)
+        && containsBounds(filler.bounds, component.bounds)
+      ) {
+        omittedIds.add(component.id);
+      }
+    }
+  }
+  return omittedIds.size
+    ? components.filter((component) => !omittedIds.has(component.id))
+    : components;
+}
+
+function isAcceptedPrimaryFullFittedFiller(component, treatment, side, context) {
+  if (
+    component?.role !== "filler"
+    || !validBounds(component.bounds)
+    || component.metadata?.purpose !== "scribed_installation_filler"
+  ) return false;
+  const metadata = component.metadata?.installationTreatment;
+  if (
+    metadata?.source !== "accepted-installation-fit"
+    || metadata.primary !== true
+    || metadata.position !== side
+    || metadata.kind !== "filler"
+  ) return false;
+  const width = Number(treatment?.width);
+  if (!Number.isFinite(width) || width <= 1e-6) return false;
+  const innerEdge = side === "left" ? -context.halfWidth : context.halfWidth;
+  const expectedBounds = box(
+    side === "left" ? innerEdge - width : innerEdge,
+    side === "left" ? innerEdge : innerEdge + width,
+    0,
+    context.height,
+    0,
+    context.depth
+  );
+  return containsBounds(expectedBounds, component.bounds)
+    && containsBounds(component.bounds, expectedBounds);
+}
+
+function isSlimCapSideReturn(component, side) {
+  return component?.role === "crown"
+    && component.metadata?.style === "slim_cap"
+    && component.metadata?.hostSurface === "side_panel"
+    && component.metadata?.side === side
+    && component.metadata?.profileGeometry?.kind === "crown_profile_extrusion"
+    && component.metadata?.purpose === `slim_cap_${side}_return`
+    && validBounds(component.bounds);
 }
 
 function promoteSideTreatment(position, treatment, context) {
@@ -1688,11 +1767,38 @@ function validateDescriptorSet(set) {
       errors.push(validationIssue("MISSING_MATERIAL_SLOT", item.id));
     }
   }
+  if (set?.productId === "tv-unit") {
+    validateFittedCrownReturnCollisions(components, errors);
+  }
   return {
     valid: errors.length === 0,
     errors,
     warnings: []
   };
+}
+
+function validateFittedCrownReturnCollisions(components, errors) {
+  const fillersBySide = new Map(components
+    .filter((component) => (
+      component?.role === "filler"
+      && component.metadata?.installationTreatment?.source === "accepted-installation-fit"
+      && component.metadata.installationTreatment.primary === true
+      && component.metadata.installationTreatment.kind === "filler"
+      && ["left", "right"].includes(component.metadata.installationTreatment.position)
+      && validBounds(component.bounds)
+    ))
+    .map((component) => [component.metadata.installationTreatment.position, component]));
+  for (const component of components) {
+    const side = component?.metadata?.side;
+    const filler = fillersBySide.get(side);
+    if (
+      filler
+      && isSlimCapSideReturn(component, side)
+      && boundsIntersect(component.bounds, filler.bounds)
+    ) {
+      errors.push(validationIssue("CROWN_RETURN_FILLER_COLLISION", component.id));
+    }
+  }
 }
 
 function namespaceComponents(components, namespace, { namespaceMetadataIds = false } = {}) {
