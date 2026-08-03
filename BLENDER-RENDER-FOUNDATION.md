@@ -1,8 +1,9 @@
 # JQ Bookcases Blender render foundation
 
-Status: Drawing 4 geometry v1 and circular puck-light primitive v1 implemented
-for the internal **TV Unit + Clear Wall + fitted installation** prototype. It
-remains a clay-render boundary, not a customer-approved beauty-render path.
+Status: Drawing 4 geometry v1, circular puck-light primitive v1, and the Small
+Crown diagnostic capture implemented for the internal **TV Unit + Clear Wall +
+fitted installation** prototype. It remains a clay-render boundary, not a
+customer-approved beauty-render path.
 
 ## Decision
 
@@ -103,6 +104,61 @@ bounds, surface role, and material binding from package schema 3; it does not
 infer or substitute any of those values. The pipeline identity is
 `2026.08-tv-puck-light-clay-worker-v1`.
 
+## Small Crown geometry audit and diagnostic capture v1
+
+Phase 5 adds a renderer-neutral diagnostic path outside the authoritative
+product graph. It does not replace the customer camera, mutate the verified
+package, or use Blender to derive camera values or product geometry. The
+accepted primary package and `beauty.webp` remain the customer-camera result;
+the dedicated capture writes `crown-detail.webp` and a versioned
+`crown-diagnostic.json` report under the same ignored local artifact directory.
+
+The authoritative Small Crown source chain is explicit:
+
+1. The fixture selects `small-crown`.
+2. `guided-product-adapter.js` maps that option to `slim_cap`.
+3. `CONSTRUCTION_RULES.slimCapProfileDrop` defines a 1.2 in drop, while
+   `CONSTRUCTION_RULES.crownProfiles.slim_cap` defines 0.25 in side, 0.375 in
+   front, and 0 in rear overhangs.
+4. `CROWN_PROFILE_CATALOG.slim_cap.parts.slim_cap` supplies the
+   `slim_beveled_cap` / `beveled_cap` renderer-neutral outline, with normalized
+   height/projection coordinates of `(0, 0)`, `(1, 0)`, `(1, 1)`,
+   `(0.82, 0.9)`, `(0.4, 0.55)`, and `(0, 0.3)`.
+
+That chain produces one 117.5 × 1.2 × 0.375 in front run and two nominal
+0.25 × 1.2 × 13.75 in side returns. The authored profile, total height,
+projection, physical depth, renderer-neutral bounds, world-space Blender mesh,
+and applied unit transforms agree. The straight-on customer camera does
+compress the apparent projection, but the audit classification is
+`GEOMETRY_DEFECT` because it also found a separate, measurable construction
+defect: each complete return solid is contained by the corresponding solid
+fitted filler. Each overlap is 2.6626875 in³ (0.00004363363 m³) using the exact
+profile solid, with an enclosing AABB overlap of 4.125 in³
+(0.000067596639 m³). This violates the construction standard's exposed-end
+return rule, the `COMPONENT_COLLISION` invariant, and the guided-render rule
+that a fitted filler is a full-volume solid rather than a visual surface.
+
+The evidence authorizes a later correction at the canonical source/composition
+layer. No crown dimensions, profile points, Blender transforms, customer camera,
+or product identities are changed by this diagnostic commit. The correction
+must remove the proved source-layer contradiction without resizing, clipping,
+or replacing the crown in Blender.
+
+The capture contract has stable ID `crown-detail-qa-v1` and independent key
+`jq-crown-detail-qa-v1-7c79dd65dcbdf941301eee6fde8f56e05679caede2102a96e91db2e2683a7ba6`.
+Its camera ID is `crown-detail-qa-camera-v1`, with position
+`(1.672575203881, 0.895637907763, 2.068209796119)`, target
+`(1.317625, 0.1857375, 2.42316)`, up vector `(0, 0, 1)`, 50 mm lens, 36 mm
+sensor width, 0.05 m / 25 m clipping planes, 1.2 framing margin, and 960 × 640
+resolution. Framing is derived deterministically from the verified crown bounds
+before Blender translation. The capture inherits the primary clay scene's
+render settings, materials, exposure, room, and world lighting unchanged.
+
+Diagnostic-only execution preserves the geometry fingerprint, primary package
+and render key, customer camera contract, primary beauty bytes, component and
+billable quantities, BOM, and pricing. The capture key is deliberately separate
+so diagnostic cache identity cannot replace or perturb the primary result.
+
 ## Remaining non-geometry blockers
 
 - Clear-UV prefinished maple is fixed for hidden cabinet interiors, but the
@@ -114,8 +170,17 @@ infer or substitute any of those values. The pipeline identity is
   against physical John Quinn samples.
 - Camera, HDRI/room shell, color pipeline, and Blender version must be locked by
   a reviewed reference render before the worker is production-ready.
-- The shallow straight-on crown appearance remains a later visual-detail task;
-  this phase intentionally preserves its authored profile and camera.
+- The Small Crown audit proves a source-layer return/fitted-filler collision.
+  Its exact correction remains a later commit, separate from the diagnostic
+  capture. Customer-camera readability remains a separate visual limitation;
+  Phase 5 does not move that camera.
+- TV Unit + Left/Right Niche compatibility remains deferred to a separate
+  phase.
+
+Production PBR/material authoring remains blocked by those semantic and
+reference-review requirements. Phase 5 does not authorize natural-oak, paint,
+or clear-UV-maple production materials, and
+`customerBeautyRenderApproved` remains `false`.
 
 ## Local clay worker
 
@@ -146,9 +211,9 @@ render, or assign production wood, paint, or clear-UV-maple materials.
 
 ## Next implementation slice
 
-1. Review the Drawing 4 clay elevation for visual discrepancies without
-   changing product rules in the renderer. Crown and straight-on camera
-   readability remain deferred visual-detail work.
+1. Correct the proved Small Crown return/fitted-filler contradiction at its
+   canonical source/composition layer, preserving the accepted profile and
+   customer camera.
 2. Author the clear-UV maple material and the versioned Clear Wall room/camera
    scene.
 3. Implement the Node gateway against the committed package schema. The gateway

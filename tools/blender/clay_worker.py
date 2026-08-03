@@ -59,6 +59,20 @@ EXPECTED_CONSTRAINT_COUNT = 7
 MAX_PACKAGE_BYTES = 16 * 1024 * 1024
 MAX_BEAUTY_BYTES = 32 * 1024 * 1024
 BOUNDS_TOLERANCE = 1e-9
+BLENDER_BOUNDS_TOLERANCE = 1e-6
+CROWN_QA_CAPTURE_KIND = "jq-local-crown-detail-qa-capture"
+CROWN_QA_CAPTURE_SCHEMA_VERSION = 1
+CROWN_QA_CAPTURE_ID = "crown-detail-qa-v1"
+CROWN_QA_CAMERA_ID = "crown-detail-qa-camera-v1"
+CROWN_QA_CAPTURE_KEY_RE = re.compile(r"^jq-crown-detail-qa-v1-[a-f0-9]{64}$")
+CROWN_QA_CAMERA_NAME = CROWN_QA_CAMERA_ID
+CROWN_QA_REPORT_KIND = "jq-local-blender-crown-qa-worker-report"
+CROWN_QA_REPORT_SCHEMA_VERSION = 1
+EXPECTED_CROWN_COMPONENT_IDS = [
+    "guided-installation-main/crown-slim-cap",
+    "guided-installation-main/crown-slim-cap-left-return",
+    "guided-installation-main/crown-slim-cap-right-return",
+]
 
 TOP_LEVEL_KEYS = {
     "kind", "schemaVersion", "contractVersion", "primitiveContractVersion",
@@ -91,6 +105,26 @@ CAMERA_KEYS = {
     "sensorFit", "depthOfField", "position", "target", "up", "clipStartM",
     "clipEndM", "framingBounds",
 }
+CROWN_QA_CAPTURE_KEYS = {
+    "kind", "schemaVersion", "captureId", "primaryRenderKey",
+    "pipelineVersion", "target", "camera", "render", "captureKey",
+}
+CROWN_QA_TARGET_KEYS = {
+    "componentIds", "submeshObjectNames", "focusComponentIds", "crownBounds",
+    "framingBounds",
+}
+CROWN_QA_CAMERA_KEYS = {
+    "cameraId", "type", "lensMm", "sensorWidthMm", "sensorFit",
+    "depthOfField", "fitMargin", "position", "target", "up", "clipStartM",
+    "clipEndM", "framingBounds", "resolution",
+}
+CROWN_QA_RESOLUTION_KEYS = {
+    "width", "height", "pixelAspectX", "pixelAspectY",
+}
+CROWN_QA_RENDER_KEYS = {
+    "inheritPackageRender", "sourceRenderSettings", "output",
+}
+CROWN_QA_OUTPUT_KEYS = {"filename", "mimeType", "maxBytes"}
 ROOM_KEYS = {
     "layoutId", "wallWidthIn", "ceilingHeightIn", "desiredDepthIn",
     "floorPlaneYIn", "rearWallPlaneZIn", "cameraIntent", "planes", "features",
@@ -1237,6 +1271,220 @@ def validate_package(package: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def round_metric(value: float) -> float:
+    rounded = round(float(value), 9)
+    return 0.0 if rounded == 0.0 else rounded
+
+
+def round_camera_metric(value: float) -> float:
+    rounded = round(float(value), 12)
+    return 0.0 if rounded == 0.0 else rounded
+
+
+def normalized(vector: tuple[float, float, float], label: str) -> tuple[float, float, float]:
+    magnitude = math.sqrt(sum(value * value for value in vector))
+    if not math.isfinite(magnitude) or magnitude <= 1e-12:
+        fail("MALFORMED_CROWN_QA_CAMERA", f"{label} is degenerate")
+    return tuple(value / magnitude for value in vector)
+
+
+def vector_cross(
+    left: tuple[float, float, float], right: tuple[float, float, float]
+) -> tuple[float, float, float]:
+    return (
+        left[1] * right[2] - left[2] * right[1],
+        left[2] * right[0] - left[0] * right[2],
+        left[0] * right[1] - left[1] * right[0],
+    )
+
+
+def vector_dot(left: tuple[float, float, float], right: tuple[float, float, float]) -> float:
+    return sum(left[index] * right[index] for index in range(3))
+
+
+def expected_crown_qa_camera(
+    framing: dict[str, dict[str, float]], package: dict[str, Any]
+) -> dict[str, Any]:
+    target = {
+        axis: round_camera_metric((framing["min"][axis] + framing["max"][axis]) / 2.0)
+        for axis in "xyz"
+    }
+    offset = normalized((1.0, 2.0, -1.0), "crown QA camera offset")
+    forward = tuple(-value for value in offset)
+    right = normalized(vector_cross(forward, (0.0, 0.0, 1.0)), "crown QA camera right axis")
+    camera_up = normalized(vector_cross(right, forward), "crown QA camera up axis")
+    lens = float(package["camera"]["lensMm"])
+    sensor_width = float(package["camera"]["sensorWidthMm"])
+    width = int(package["render"]["width"])
+    height = int(package["render"]["height"])
+    tan_horizontal = sensor_width / (2.0 * lens)
+    tan_vertical = (sensor_width / (width / height)) / (2.0 * lens)
+    fit_margin = 1.2
+    distance = 0.0
+    target_tuple = tuple(target[axis] for axis in "xyz")
+    for x_value in (framing["min"]["x"], framing["max"]["x"]):
+        for y_value in (framing["min"]["y"], framing["max"]["y"]):
+            for z_value in (framing["min"]["z"], framing["max"]["z"]):
+                relative = (
+                    x_value - target_tuple[0],
+                    y_value - target_tuple[1],
+                    z_value - target_tuple[2],
+                )
+                depth_offset = vector_dot(relative, forward)
+                distance = max(
+                    distance,
+                    fit_margin * abs(vector_dot(relative, right)) / tan_horizontal - depth_offset,
+                    fit_margin * abs(vector_dot(relative, camera_up)) / tan_vertical - depth_offset,
+                )
+    if not math.isfinite(distance) or distance <= 0:
+        fail("MALFORMED_CROWN_QA_CAMERA", "Crown QA camera fit distance is invalid")
+    position = {
+        axis: round_camera_metric(target[axis] + offset[index] * distance)
+        for index, axis in enumerate("xyz")
+    }
+    return {
+        "cameraId": CROWN_QA_CAMERA_ID,
+        "type": "PERSP",
+        "lensMm": package["camera"]["lensMm"],
+        "sensorWidthMm": package["camera"]["sensorWidthMm"],
+        "sensorFit": package["camera"]["sensorFit"],
+        "depthOfField": False,
+        "fitMargin": fit_margin,
+        "position": position,
+        "target": target,
+        "up": [0, 0, 1],
+        "clipStartM": package["camera"]["clipStartM"],
+        "clipEndM": package["camera"]["clipEndM"],
+        "framingBounds": framing,
+        "resolution": {
+            "width": width,
+            "height": height,
+            "pixelAspectX": package["render"]["renderOptions"]["pixelAspectX"],
+            "pixelAspectY": package["render"]["renderOptions"]["pixelAspectY"],
+        },
+    }
+
+
+def validate_crown_qa_capture(
+    capture: dict[str, Any], package: dict[str, Any], validated: dict[str, Any]
+) -> dict[str, Any]:
+    exact_keys(capture, CROWN_QA_CAPTURE_KEYS, "crownQaCapture")
+    if (
+        capture["kind"] != CROWN_QA_CAPTURE_KIND
+        or capture["schemaVersion"] != CROWN_QA_CAPTURE_SCHEMA_VERSION
+        or capture["captureId"] != CROWN_QA_CAPTURE_ID
+        or capture["primaryRenderKey"] != package["renderKey"]
+        or capture["pipelineVersion"] != package["pipelineVersion"]
+    ):
+        fail("UNSUPPORTED_CROWN_QA_CAPTURE", "Crown QA capture identity is unsupported")
+
+    target = exact_keys(capture["target"], CROWN_QA_TARGET_KEYS, "crownQaCapture.target")
+    components_by_id = {
+        component["componentId"]: component for component in validated["components"]
+    }
+    actual_crown_ids = sorted(
+        component["componentId"]
+        for component in validated["components"]
+        if component["role"] == "crown"
+    )
+    if actual_crown_ids != EXPECTED_CROWN_COMPONENT_IDS:
+        fail("CROWN_QA_TARGET_DRIFT", "Package does not contain the exact Small Crown slice")
+    if target["componentIds"] != EXPECTED_CROWN_COMPONENT_IDS:
+        fail("CROWN_QA_TARGET_DRIFT", "Capture crown component IDs drifted")
+    crowns = [components_by_id[component_id] for component_id in EXPECTED_CROWN_COMPONENT_IDS]
+    for component in crowns:
+        if (
+            component["geometryVariant"] != "crown_profile_extrusion"
+            or len(component["submeshes"]) != 1
+            or component["submeshes"][0]["geometry"] != "crown_profile_extrusion"
+            or component["submeshes"][0]["submeshId"] != "profile-extrusion"
+        ):
+            fail("CROWN_QA_TARGET_DRIFT", "Capture target is not the exact crown extrusion slice")
+    expected_object_names = sorted([
+        f"{component_id}::profile-extrusion" for component_id in EXPECTED_CROWN_COMPONENT_IDS
+    ])
+    if target["submeshObjectNames"] != expected_object_names:
+        fail("CROWN_QA_TARGET_DRIFT", "Capture crown object names drifted")
+    expected_focus_ids = [EXPECTED_CROWN_COMPONENT_IDS[0], EXPECTED_CROWN_COMPONENT_IDS[2]]
+    if target["focusComponentIds"] != expected_focus_ids:
+        fail("CROWN_QA_TARGET_DRIFT", "Capture must focus the front and right return")
+
+    crown_bounds = bounds(target["crownBounds"], "crownQaCapture.target.crownBounds")
+    expected_crown_bounds = union_bounds(
+        bounds(component["blenderWorldBounds"], f"{component['componentId']}.bounds")
+        for component in crowns
+    )
+    if not same_bounds(crown_bounds, expected_crown_bounds):
+        fail("CROWN_QA_BOUNDS_DRIFT", "Capture crown union bounds drifted")
+    front_bounds = bounds(crowns[0]["blenderWorldBounds"], "crownQaCapture.frontBounds")
+    right_return_bounds = bounds(crowns[2]["blenderWorldBounds"], "crownQaCapture.rightReturnBounds")
+    return_depth = right_return_bounds["max"]["y"] - right_return_bounds["min"]["y"]
+    expected_framing = {
+        "min": {
+            "x": round_metric(front_bounds["max"]["x"] - return_depth),
+            "y": min(front_bounds["min"]["y"], right_return_bounds["min"]["y"]),
+            "z": min(front_bounds["min"]["z"], right_return_bounds["min"]["z"]),
+        },
+        "max": {
+            "x": max(front_bounds["max"]["x"], right_return_bounds["max"]["x"]),
+            "y": max(front_bounds["max"]["y"], right_return_bounds["max"]["y"]),
+            "z": max(front_bounds["max"]["z"], right_return_bounds["max"]["z"]),
+        },
+    }
+    framing = bounds(target["framingBounds"], "crownQaCapture.target.framingBounds")
+    if not same_bounds(framing, expected_framing):
+        fail("CROWN_QA_BOUNDS_DRIFT", "Capture detail framing bounds drifted")
+
+    camera = exact_keys(capture["camera"], CROWN_QA_CAMERA_KEYS, "crownQaCapture.camera")
+    point(camera["position"], "crownQaCapture.camera.position")
+    point(camera["target"], "crownQaCapture.camera.target")
+    bounds(camera["framingBounds"], "crownQaCapture.camera.framingBounds")
+    resolution = exact_keys(
+        camera["resolution"], CROWN_QA_RESOLUTION_KEYS, "crownQaCapture.camera.resolution"
+    )
+    expected_camera = expected_crown_qa_camera(expected_framing, package)
+    camera_scalar_keys = {
+        "cameraId", "type", "lensMm", "sensorWidthMm", "sensorFit",
+        "depthOfField", "fitMargin", "up", "clipStartM", "clipEndM",
+    }
+    if any(camera[key] != expected_camera[key] for key in camera_scalar_keys):
+        fail("CROWN_QA_CAMERA_DRIFT", "Crown QA camera scalar contract drifted")
+    if resolution != expected_camera["resolution"]:
+        fail("CROWN_QA_CAMERA_DRIFT", "Crown QA camera resolution drifted")
+    if not same_bounds(camera["framingBounds"], expected_camera["framingBounds"]):
+        fail("CROWN_QA_CAMERA_DRIFT", "Crown QA camera framing bounds drifted")
+    if any(
+        not close(float(camera[point_key][axis]), float(expected_camera[point_key][axis]))
+        for point_key in ("position", "target")
+        for axis in "xyz"
+    ):
+        fail("CROWN_QA_CAMERA_DRIFT", "Crown QA camera pose drifted")
+    if float(camera["position"]["z"]) >= float(camera["target"]["z"]):
+        fail("CROWN_QA_CAMERA_DRIFT", "Crown QA camera must remain below crown centerline")
+
+    render = exact_keys(capture["render"], CROWN_QA_RENDER_KEYS, "crownQaCapture.render")
+    output = exact_keys(render["output"], CROWN_QA_OUTPUT_KEYS, "crownQaCapture.render.output")
+    if (
+        render["inheritPackageRender"] is not True
+        or render["sourceRenderSettings"] != package["render"]
+        or output != {
+            "filename": "crown-detail.webp",
+            "mimeType": "image/webp",
+            "maxBytes": MAX_BEAUTY_BYTES,
+        }
+    ):
+        fail("CROWN_QA_RENDER_DRIFT", "Crown QA must inherit the exact clay render settings")
+
+    capture_key = capture["captureKey"]
+    if not isinstance(capture_key, str) or not CROWN_QA_CAPTURE_KEY_RE.fullmatch(capture_key):
+        fail("INVALID_CROWN_QA_CAPTURE_KEY", "Crown QA capture key is malformed")
+    core = {key: value for key, value in capture.items() if key != "captureKey"}
+    digest = hashlib.sha256(js_stable_stringify(core).encode("utf-8")).hexdigest()
+    if capture_key != f"jq-crown-detail-qa-v1-{digest}":
+        fail("CROWN_QA_CAPTURE_KEY_MISMATCH", "Crown QA capture content does not match its key")
+    return capture
+
+
 def file_sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -1580,10 +1828,17 @@ def create_constraints(
     return names
 
 
-def create_camera(bpy: Any, camera_package: dict[str, Any], collection: Any) -> Any:
+def create_camera_object(
+    bpy: Any,
+    camera_package: dict[str, Any],
+    collection: Any,
+    object_name: str,
+    identity_key: str,
+    identity_property: str,
+) -> Any:
     from mathutils import Vector
 
-    camera_data = bpy.data.cameras.new("JQ_HERO_CAMERA")
+    camera_data = bpy.data.cameras.new(object_name)
     camera_data.type = "PERSP"
     camera_data.lens = float(camera_package["lensMm"])
     camera_data.sensor_width = float(camera_package["sensorWidthMm"])
@@ -1591,7 +1846,7 @@ def create_camera(bpy: Any, camera_package: dict[str, Any], collection: Any) -> 
     camera_data.dof.use_dof = camera_package["depthOfField"]
     camera_data.clip_start = float(camera_package["clipStartM"])
     camera_data.clip_end = float(camera_package["clipEndM"])
-    camera = bpy.data.objects.new("JQ_HERO_CAMERA", camera_data)
+    camera = bpy.data.objects.new(object_name, camera_data)
     collection.objects.link(camera)
     position = camera_package["position"]
     target = camera_package["target"]
@@ -1599,7 +1854,7 @@ def create_camera(bpy: Any, camera_package: dict[str, Any], collection: Any) -> 
     direction = Vector((target["x"], target["y"], target["z"])) - camera.location
     camera.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
     camera.scale = (1.0, 1.0, 1.0)
-    camera["jq_camera_version"] = camera_package["cameraVersion"]
+    camera[identity_property] = camera_package[identity_key]
     camera["jq_target"] = [target["x"], target["y"], target["z"]]
     if (
         camera_data.sensor_fit != camera_package["sensorFit"]
@@ -1607,6 +1862,17 @@ def create_camera(bpy: Any, camera_package: dict[str, Any], collection: Any) -> 
     ):
         fail("CAMERA_SETTING_DRIFT", "Blender camera defaults did not accept the package settings")
     return camera
+
+
+def create_camera(bpy: Any, camera_package: dict[str, Any], collection: Any) -> Any:
+    return create_camera_object(
+        bpy,
+        camera_package,
+        collection,
+        "JQ_HERO_CAMERA",
+        "cameraVersion",
+        "jq_camera_version",
+    )
 
 
 def configure_world(
@@ -1703,6 +1969,251 @@ def write_json(path: Path, value: dict[str, Any]) -> None:
     finally:
         if temporary.exists():
             temporary.unlink()
+
+
+def blender_mesh_world_bounds(obj: Any) -> dict[str, dict[str, float]]:
+    if obj.type != "MESH" or not obj.data.vertices:
+        fail("CROWN_QA_MESH_MISSING", f"{obj.name} is not a non-empty Blender mesh")
+    coordinates = [obj.matrix_world @ vertex.co for vertex in obj.data.vertices]
+    return {
+        "min": {
+            axis: round_metric(min(float(value[index]) for value in coordinates))
+            for index, axis in enumerate("xyz")
+        },
+        "max": {
+            axis: round_metric(max(float(value[index]) for value in coordinates))
+            for index, axis in enumerate("xyz")
+        },
+    }
+
+
+def maximum_bounds_delta(
+    actual: dict[str, dict[str, float]], expected: dict[str, dict[str, float]]
+) -> float:
+    return max(
+        abs(float(actual[side][axis]) - float(expected[side][axis]))
+        for side in ("min", "max")
+        for axis in "xyz"
+    )
+
+
+def webp_dimensions_with_blender(bpy: Any, path: Path, label: str) -> tuple[int, int]:
+    image = bpy.data.images.load(str(path), check_existing=False)
+    try:
+        dimensions = tuple(int(value) for value in image.size)
+    finally:
+        bpy.data.images.remove(image)
+    if len(dimensions) != 2 or dimensions[0] <= 0 or dimensions[1] <= 0:
+        fail("INVALID_WEBP_DIMENSIONS", f"{label} has invalid dimensions {dimensions}")
+    return dimensions
+
+
+def render_crown_qa_worker(
+    package: dict[str, Any],
+    validated: dict[str, Any],
+    capture: dict[str, Any],
+    environment_path: Path,
+    output_dir: Path,
+    crown_detail_path: Path,
+    primary_beauty_path: Path,
+    worker_report_path: Path,
+) -> None:
+    import bpy
+    import bmesh
+
+    if tuple(bpy.app.version[:2]) != (5, 2):
+        fail("UNSUPPORTED_BLENDER_VERSION", f"Blender 5.2 is required, found {bpy.app.version_string}")
+    if not primary_beauty_path.is_file():
+        fail("PRIMARY_BEAUTY_MISSING", f"Primary beauty is missing: {primary_beauty_path}")
+    primary_before = {
+        "bytes": primary_beauty_path.stat().st_size,
+        "sha256": file_sha256(primary_beauty_path),
+    }
+    if primary_before["bytes"] <= 0 or primary_before["bytes"] > MAX_BEAUTY_BYTES:
+        fail("PRIMARY_BEAUTY_SIZE_INVALID", "Primary beauty has an invalid byte count")
+
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    scene = bpy.context.scene
+    for collection in list(bpy.data.collections):
+        bpy.data.collections.remove(collection)
+    collection_names = ["JQ_CASEWORK", "JQ_ROOM", "JQ_CONSTRAINTS_DEBUG", "JQ_CAMERAS"]
+    collections: dict[str, Any] = {}
+    for name in collection_names:
+        collection = bpy.data.collections.new(name)
+        scene.collection.children.link(collection)
+        collections[name] = collection
+    shell = validated["scene"]["shell"]
+    clay_materials = create_materials(bpy, validated["clayMaterials"], shell)
+    product_names = build_product(
+        bpy, bmesh, validated["components"], collections["JQ_CASEWORK"], clay_materials
+    )
+    room_names = create_room(
+        bpy, bmesh, validated["room"], shell, collections["JQ_ROOM"],
+        clay_materials["room-wall"], clay_materials["room-floor"],
+    )
+    constraint_names = create_constraints(
+        bpy, bmesh, validated["constraints"], collections["JQ_CONSTRAINTS_DEBUG"]
+    )
+    hero_camera = create_camera(bpy, validated["camera"], collections["JQ_CAMERAS"])
+    scene.camera = hero_camera
+    configure_world(bpy, environment_path, validated["scene"]["environment"])
+    if sorted(collection.name for collection in bpy.data.collections) != sorted(collection_names):
+        fail("COLLECTION_DRIFT", "Crown QA scene contains collections outside the clay contract")
+    for name in product_names:
+        if tuple(bpy.data.objects[name].scale) != (1.0, 1.0, 1.0):
+            fail("PRODUCT_SCALE_DRIFT", f"Product object {name} has non-unit scale")
+
+    scene_object_names_before = sorted(obj.name for obj in scene.objects)
+    original_filepath = scene.render.filepath
+    qa_camera = None
+    cleanup = {
+        "heroCameraRestored": False,
+        "temporaryCameraRemoved": False,
+        "renderFilepathRestored": False,
+        "sceneObjectSetRestored": False,
+    }
+    try:
+        qa_camera = create_camera_object(
+            bpy,
+            capture["camera"],
+            collections["JQ_CAMERAS"],
+            CROWN_QA_CAMERA_NAME,
+            "cameraId",
+            "jq_capture_id",
+        )
+        scene.camera = qa_camera
+        configure_render(bpy, validated["render"], crown_detail_path)
+        bpy.ops.render.render(write_still=True)
+    finally:
+        scene.camera = hero_camera
+        cleanup["heroCameraRestored"] = scene.camera is hero_camera
+        scene.render.filepath = original_filepath
+        cleanup["renderFilepathRestored"] = scene.render.filepath == original_filepath
+        if qa_camera is not None:
+            camera_data = qa_camera.data
+            bpy.data.objects.remove(qa_camera, do_unlink=True)
+            if camera_data.users == 0:
+                bpy.data.cameras.remove(camera_data)
+        cleanup["temporaryCameraRemoved"] = (
+            bpy.data.objects.get(CROWN_QA_CAMERA_NAME) is None
+            and bpy.data.cameras.get(CROWN_QA_CAMERA_NAME) is None
+        )
+        cleanup["sceneObjectSetRestored"] = (
+            sorted(obj.name for obj in scene.objects) == scene_object_names_before
+        )
+
+    if not all(cleanup.values()):
+        fail("CROWN_QA_CLEANUP_FAILED", "Crown QA did not restore the primary scene state")
+    if not crown_detail_path.is_file():
+        fail("CROWN_DETAIL_OUTPUT_MISSING", f"Blender did not write {crown_detail_path}")
+    detail_bytes = crown_detail_path.stat().st_size
+    if detail_bytes <= 0 or detail_bytes > int(capture["render"]["output"]["maxBytes"]):
+        fail("CROWN_DETAIL_OUTPUT_SIZE_INVALID", f"Crown detail has invalid size {detail_bytes}")
+    detail_dimensions = webp_dimensions_with_blender(
+        bpy, crown_detail_path, "crown-detail.webp"
+    )
+    expected_dimensions = (
+        int(capture["camera"]["resolution"]["width"]),
+        int(capture["camera"]["resolution"]["height"]),
+    )
+    if detail_dimensions != expected_dimensions:
+        fail(
+            "CROWN_DETAIL_DIMENSIONS_MISMATCH",
+            f"Crown detail is {detail_dimensions}, expected {expected_dimensions}",
+        )
+    primary_after = {
+        "bytes": primary_beauty_path.stat().st_size,
+        "sha256": file_sha256(primary_beauty_path),
+    }
+    if primary_after != primary_before:
+        fail("PRIMARY_BEAUTY_CHANGED", "Crown QA changed the primary beauty bytes")
+
+    component_by_id = {
+        component["componentId"]: component for component in validated["components"]
+    }
+    crown_objects = []
+    for object_name in capture["target"]["submeshObjectNames"]:
+        component_id, separator, submesh_id = object_name.partition("::")
+        if separator != "::" or submesh_id != "profile-extrusion":
+            fail("CROWN_QA_OBJECT_NAME_INVALID", f"Invalid crown object name: {object_name}")
+        component = component_by_id[component_id]
+        obj = bpy.data.objects.get(object_name)
+        if obj is None:
+            fail("CROWN_QA_OBJECT_MISSING", f"Blender crown object is missing: {object_name}")
+        actual_bounds = blender_mesh_world_bounds(obj)
+        expected_bounds = bounds(
+            component["submeshes"][0]["blenderWorldBounds"], f"{object_name}.packageBounds"
+        )
+        delta = maximum_bounds_delta(actual_bounds, expected_bounds)
+        if delta > BLENDER_BOUNDS_TOLERANCE:
+            fail(
+                "CROWN_QA_BLENDER_BOUNDS_MISMATCH",
+                f"{object_name} differs from package bounds by {delta}",
+            )
+        transform = {
+            "location": [round_metric(value) for value in obj.location],
+            "rotationEuler": [round_metric(value) for value in obj.rotation_euler],
+            "scale": [round_metric(value) for value in obj.scale],
+        }
+        if (
+            transform["location"] != [0.0, 0.0, 0.0]
+            or transform["rotationEuler"] != [0.0, 0.0, 0.0]
+            or transform["scale"] != [1.0, 1.0, 1.0]
+        ):
+            fail("CROWN_QA_TRANSFORM_DRIFT", f"{object_name} has an unapplied transform")
+        crown_objects.append({
+            "componentId": component_id,
+            "submeshId": "profile-extrusion",
+            "objectName": object_name,
+            "packageBounds": expected_bounds,
+            "blenderMeshBounds": actual_bounds,
+            "maximumAbsoluteBoundsDeltaM": round_metric(delta),
+            "boundsToleranceM": BLENDER_BOUNDS_TOLERANCE,
+            "withinTolerance": True,
+            "transform": transform,
+        })
+
+    report = {
+        "kind": CROWN_QA_REPORT_KIND,
+        "schemaVersion": CROWN_QA_REPORT_SCHEMA_VERSION,
+        "status": "succeeded",
+        "blenderVersion": bpy.app.version_string,
+        "primaryRenderKey": package["renderKey"],
+        "pipelineVersion": package["pipelineVersion"],
+        "captureKey": capture["captureKey"],
+        "captureCamera": {
+            **capture["camera"],
+            "objectName": CROWN_QA_CAMERA_NAME,
+        },
+        "crownObjects": crown_objects,
+        "scene": {
+            "componentCount": len(validated["components"]),
+            "submeshObjectCount": len(product_names),
+            "constraintCount": len(constraint_names),
+            "collectionCount": len(collection_names),
+            "cameraCountDuringCapture": 2,
+            "componentObjectNames": product_names,
+            "roomObjectNames": room_names,
+            "constraintObjectNames": constraint_names,
+            "sceneObjectNames": scene_object_names_before,
+        },
+        "primaryBeauty": {
+            "before": primary_before,
+            "after": primary_after,
+            "unchanged": primary_before == primary_after,
+        },
+        "output": {
+            "filename": "crown-detail.webp",
+            "logicalObjectKey": f"{capture['captureKey']}/crown-detail.webp",
+            "mimeType": "image/webp",
+            "width": detail_dimensions[0],
+            "height": detail_dimensions[1],
+            "bytes": detail_bytes,
+            "sha256": file_sha256(crown_detail_path),
+        },
+        "cleanup": cleanup,
+    }
+    write_json(worker_report_path, report)
 
 
 def render_worker(
@@ -1817,11 +2328,33 @@ def parse_arguments(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--blend")
     parser.add_argument("--beauty")
     parser.add_argument("--result")
+    parser.add_argument("--crown-qa-capture")
+    parser.add_argument("--crown-detail")
+    parser.add_argument("--crown-worker-report")
+    parser.add_argument("--primary-beauty")
     raw_arguments = argv[argv.index("--") + 1 :] if "--" in argv else argv[1:]
     arguments = parser.parse_args(raw_arguments)
-    if not arguments.validate_only and not all(
-        (arguments.output_dir, arguments.blend, arguments.beauty, arguments.result)
-    ):
+    primary_values = (arguments.blend, arguments.beauty, arguments.result)
+    crown_values = (
+        arguments.crown_qa_capture,
+        arguments.crown_detail,
+        arguments.crown_worker_report,
+        arguments.primary_beauty,
+    )
+    has_primary = any(primary_values)
+    has_crown = any(crown_values)
+    if has_primary and has_crown:
+        parser.error("primary and crown-QA render arguments cannot be combined")
+    if arguments.validate_only:
+        if has_primary or any(crown_values[1:]):
+            parser.error("--validate-only accepts only an optional --crown-qa-capture")
+    elif has_crown:
+        if not arguments.output_dir or not all(crown_values):
+            parser.error(
+                "crown QA requires --output-dir, --crown-qa-capture, --crown-detail, "
+                "--crown-worker-report, and --primary-beauty"
+            )
+    elif not arguments.output_dir or not all(primary_values):
         parser.error("rendering requires --output-dir, --blend, --beauty, and --result")
     return arguments
 
@@ -1845,8 +2378,41 @@ def resolve_cli_paths(arguments: argparse.Namespace) -> dict[str, Path | None]:
         return {
             "package": package_path, "projectRoot": project_root, "outputDir": None,
             "blend": None, "beauty": None, "result": None,
+            "crownQaCapture": absolute(arguments.crown_qa_capture, "--crown-qa-capture")
+            if arguments.crown_qa_capture else None,
+            "crownDetail": None, "crownWorkerReport": None, "primaryBeauty": None,
         }
     output_dir = absolute(arguments.output_dir, "--output-dir")
+    if arguments.crown_qa_capture:
+        crown_capture_path = absolute(arguments.crown_qa_capture, "--crown-qa-capture")
+        crown_detail_path = absolute(arguments.crown_detail, "--crown-detail")
+        crown_worker_report_path = absolute(
+            arguments.crown_worker_report, "--crown-worker-report"
+        )
+        primary_beauty_path = absolute(arguments.primary_beauty, "--primary-beauty")
+        expected_names = {
+            crown_capture_path: "crown-qa-capture.json",
+            crown_detail_path: "crown-detail.webp",
+            crown_worker_report_path: "crown-worker-report.json",
+            primary_beauty_path: "beauty.webp",
+        }
+        for path, expected_name in expected_names.items():
+            if path.parent != output_dir or path.name != expected_name:
+                fail("INVALID_OUTPUT_PATH", f"Crown QA path must be {output_dir / expected_name}")
+        if package_path.name != "render-package.json" or package_path.parent != output_dir:
+            fail("INVALID_PACKAGE_PATH", "Package must be output-dir/render-package.json")
+        return {
+            "package": package_path,
+            "projectRoot": project_root,
+            "outputDir": output_dir,
+            "blend": None,
+            "beauty": None,
+            "result": None,
+            "crownQaCapture": crown_capture_path,
+            "crownDetail": crown_detail_path,
+            "crownWorkerReport": crown_worker_report_path,
+            "primaryBeauty": primary_beauty_path,
+        }
     blend_path = absolute(arguments.blend, "--blend")
     beauty_path = absolute(arguments.beauty, "--beauty")
     result_path = absolute(arguments.result, "--result")
@@ -1865,6 +2431,8 @@ def resolve_cli_paths(arguments: argparse.Namespace) -> dict[str, Path | None]:
     return {
         "package": package_path, "projectRoot": project_root, "outputDir": output_dir,
         "blend": blend_path, "beauty": beauty_path, "result": result_path,
+        "crownQaCapture": None, "crownDetail": None,
+        "crownWorkerReport": None, "primaryBeauty": None,
     }
 
 
@@ -1877,23 +2445,51 @@ def main(argv: list[str]) -> int:
     package = load_strict_json(package_path)
     validated = validate_package(package)
     environment_path = validate_assets(package, validated, project_root)
+    crown_capture_path = paths["crownQaCapture"]
+    capture = None
+    if isinstance(crown_capture_path, Path):
+        capture = load_strict_json(crown_capture_path)
+        validate_crown_qa_capture(capture, package, validated)
     if arguments.validate_only:
-        print(json.dumps({
+        summary = {
             "valid": True,
             "renderKey": package["renderKey"],
             "componentCount": len(validated["components"]),
             "submeshObjectCount": validated["submeshCount"],
             "constraintCount": len(validated["constraints"]),
-        }, separators=(",", ":")))
+        }
+        if capture is not None:
+            summary["captureKey"] = capture["captureKey"]
+            summary["captureCamera"] = capture["camera"]
+        print(json.dumps(summary, separators=(",", ":")))
         return 0
     output_dir = paths["outputDir"]
     blend_path = paths["blend"]
     beauty_path = paths["beauty"]
     result_path = paths["result"]
-    assert all(isinstance(path, Path) for path in (
-        output_dir, blend_path, beauty_path, result_path
-    ))
+    assert isinstance(output_dir, Path)
     output_dir.mkdir(parents=True, exist_ok=True)
+    if capture is not None:
+        crown_detail_path = paths["crownDetail"]
+        crown_worker_report_path = paths["crownWorkerReport"]
+        primary_beauty_path = paths["primaryBeauty"]
+        assert all(isinstance(path, Path) for path in (
+            crown_detail_path, crown_worker_report_path, primary_beauty_path
+        ))
+        render_crown_qa_worker(
+            package,
+            validated,
+            capture,
+            environment_path,
+            output_dir,
+            crown_detail_path,
+            primary_beauty_path,
+            crown_worker_report_path,
+        )
+        return 0
+    assert all(isinstance(path, Path) for path in (
+        blend_path, beauty_path, result_path
+    ))
     render_worker(
         package, validated, environment_path, output_dir, blend_path, beauty_path,
         result_path,
