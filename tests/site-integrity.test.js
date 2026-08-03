@@ -591,6 +591,7 @@ test("manual production release uses an allowlisted Pages artifact", () => {
   assert.match(productionWorkflowSource, /-name '\*\.html'/);
   assert.match(productionWorkflowSource, /guided-configurator\.css/);
   assert.match(productionWorkflowSource, /guided-configurator\.js/);
+  assert.match(productionWorkflowSource, /guided-published-preview-data\.js/);
   assert.match(productionWorkflowSource, /guided-configurator-data\.js/);
   assert.match(productionWorkflowSource, /guided-configurator-state\.js/);
   assert.match(productionWorkflowSource, /guided-room-topology\.js/);
@@ -615,6 +616,7 @@ test("manual production release uses an allowlisted Pages artifact", () => {
 
   for (const runtimeAsset of [
     "_site/guided-configurator.js",
+    "_site/guided-published-preview-data.js",
     "_site/guided-configurator.css",
     "_site/guided-scene-plan.js",
     "_site/guided-configurator-3d.js",
