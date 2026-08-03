@@ -140,6 +140,7 @@ jobs:
             site.js \
             icon-system.js \
             guided-configurator.js \
+            guided-published-preview-data.js \
             guided-configurator-data.js \
             guided-configurator-state.js \
             guided-room-topology.js \
@@ -180,6 +181,7 @@ jobs:
           test -f _site/index.html
           test -f _site/configurator.html
           test -f _site/guided-configurator.js
+          test -f _site/guided-published-preview-data.js
           test -f _site/guided-configurator.css
           for legacy_asset in \
             _site/configurator-3d.js \
