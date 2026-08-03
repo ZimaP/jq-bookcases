@@ -1,8 +1,13 @@
-import { evaluateBookcaseCandidate } from "./bookcase-engine.js?v=luxury-configurator-engine-v1-20260802c";
+import { evaluateBookcaseCandidate } from "./bookcase-engine.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
   PRICING_RATES,
   calculateBookcasePriceBreakdown
-} from "./bookcase-pricing.js?v=luxury-configurator-engine-v1-20260802c";
+} from "./bookcase-pricing.js?v=tv-drawing-4-geometry-v1-20260802a";
+import {
+  boundsIntersect,
+  resolveMdfShelfThickness,
+  validateBookcaseLayout
+} from "./bookcase-layout.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
   createExpectedRenderManifest,
   descriptorToSceneBounds,
@@ -12,9 +17,9 @@ import {
 import {
   GUIDED_PRODUCT_FAILURES,
   createGuidedProductCandidate
-} from "./guided-product-adapter.js?v=luxury-configurator-engine-v1";
+} from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
 
-export const GUIDED_PRODUCT_ENGINE_VERSION = "2026.08-guided-product-v1";
+export const GUIDED_PRODUCT_ENGINE_VERSION = "2026.08-fitted-slim-cap-return-v1";
 export const GUIDED_PRODUCT_DESCRIPTOR_SCHEMA_VERSION = 1;
 export const GUIDED_GEOMETRY_FINGERPRINT_VERSION = 1;
 export const GUIDED_RENDER_MANIFEST_VERSION = 1;
@@ -291,7 +296,9 @@ function buildCanonicalDescriptorSet(plan, installation, config, index) {
     // solved installation treatments before that graph is counted so fillers,
     // finished ends, and any non-canonical fit trim are not omitted from its
     // auditable quantities.
-    components = promoteInstallationTreatments(augmented.components, installation);
+    components = promoteInstallationTreatments(augmented.components, installation, {
+      reconcileFittedSlimCapReturns: true
+    });
     const repriced = repriceFinalTvDescriptorGraph({
       evaluation,
       installation,
@@ -328,10 +335,55 @@ function buildCanonicalDescriptorSet(plan, installation, config, index) {
 
 function repriceFinalTvDescriptorGraph({ evaluation, installation, index, components }) {
   const descriptorSetId = createDescriptorSetId(installation, index);
-  const finalComponents = namespaceComponents(components, descriptorSetId);
-  const finalLayout = {
+  const generatedDoorCount = components.filter((item) => item.role === "door").length;
+  const primaryDoorCount = components.filter((item) => (
+    item.role === "door" && item.metadata?.tier === "primary"
+  )).length;
+  const generatedDrawerCount = components.filter((item) => item.role === "drawer_front").length;
+  const constructionComponents = components.filter((item) => !(
+    item.metadata?.installationTreatment && item.metadata?.reusesCanonicalComponent !== true
+  ));
+  const canonicalFinalLayout = {
     ...clone(evaluation.layout),
-    components: finalComponents
+    config: {
+      ...clone(evaluation.layout.config),
+      doorCount: primaryDoorCount
+    },
+    metrics: {
+      ...clone(evaluation.layout.metrics),
+      generatedDoorCount,
+      primaryDoorCount,
+      generatedDrawerCount
+    },
+    components: clone(components),
+    componentOrder: components.map((item) => item.id),
+    sectionIds: components.filter((item) => item.role === "section").map((item) => item.id)
+  };
+  const canonicalValidationLayout = {
+    ...canonicalFinalLayout,
+    components: clone(constructionComponents),
+    componentOrder: constructionComponents.map((item) => item.id),
+    sectionIds: constructionComponents.filter((item) => item.role === "section").map((item) => item.id)
+  };
+  canonicalFinalLayout.validation = validateBookcaseLayout(canonicalValidationLayout);
+  if (!canonicalFinalLayout.validation.valid) {
+    return reject(GUIDED_PRODUCT_ENGINE_FAILURES.tvPricing, {
+      installationId: installation.id,
+      message: "The complete Drawing 4 descriptor graph failed canonical construction validation.",
+      validationErrors: clone(canonicalFinalLayout.validation.errors || [])
+    });
+  }
+
+  const finalComponents = namespaceComponents(
+    canonicalFinalLayout.components,
+    descriptorSetId,
+    { namespaceMetadataIds: true }
+  );
+  const finalLayout = {
+    ...canonicalFinalLayout,
+    components: finalComponents,
+    componentOrder: finalComponents.map((item) => item.id),
+    sectionIds: finalComponents.filter((item) => item.role === "section").map((item) => item.id)
   };
   const pricing = calculateBookcasePriceBreakdown(evaluation.state, finalLayout);
   if (!pricing.valid) {
@@ -538,15 +590,32 @@ function addTvContractDescriptors(sourceComponents, layout, tv) {
   const components = clone(sourceComponents);
   const featureOpening = components.find((component) => component.id === "feature-opening");
   const featureZone = components.find((component) => component.id === "feature-zone");
-  if (!featureOpening || !featureZone) {
+  const countertop = components.find((component) => (
+    component.role === "fixed_shelf" && component.metadata?.purpose === "continuous_countertop"
+  ));
+  if (!featureOpening || !featureZone || !countertop) {
     return reject(GUIDED_PRODUCT_ENGINE_FAILURES.tvOpeningFit, {
-      message: "The canonical media layout did not expose a designated media opening.",
+      message: "The Drawing 4 canonical layout did not expose its media zone and continuous countertop.",
       resolutions: ["choose-media-layout", "design-review"]
     });
   }
 
-  const availableWidth = dimension(featureOpening.bounds, "x");
-  const availableHeight = dimension(featureOpening.bounds, "y");
+  const centerSectionIds = Array.isArray(featureZone.metadata?.memberSectionIds)
+    ? featureZone.metadata.memberSectionIds
+    : [];
+  const centerSections = centerSectionIds
+    .map((id) => components.find((component) => component.id === id))
+    .filter(Boolean)
+    .sort((left, right) => left.bounds.min.x - right.bounds.min.x);
+  if (centerSections.length !== 2) {
+    return reject(GUIDED_PRODUCT_ENGINE_FAILURES.tvOpeningFit, {
+      message: "Drawing 4 requires exactly two canonical center display bays.",
+      centerSectionIds
+    });
+  }
+
+  const availableWidth = dimension(featureZone.bounds, "x");
+  const availableHeight = featureZone.bounds.max.y - countertop.bounds.max.y;
   if (tv.opening.width > availableWidth + 1e-6 || tv.requiredAssemblyHeight > availableHeight + 1e-6) {
     return reject(GUIDED_PRODUCT_ENGINE_FAILURES.tvOpeningFit, {
       message: "The measured TV, service clearances, and equipment zone do not fit the accepted media span.",
@@ -556,8 +625,12 @@ function addTvContractDescriptors(sourceComponents, layout, tv) {
     });
   }
 
-  const centerX = midpoint(featureOpening.bounds.min.x, featureOpening.bounds.max.x);
-  const assemblyBottom = midpoint(featureOpening.bounds.min.y, featureOpening.bounds.max.y) - tv.requiredAssemblyHeight / 2;
+  const centerX = midpoint(featureZone.bounds.min.x, featureZone.bounds.max.x);
+  // Drawing 4 fixes the complete equipment stack directly above the one
+  // continuous lower-cabinet countertop. This preserves two usable display
+  // rows above the exact TV service opening instead of aesthetically centering
+  // the media stack inside the remaining height.
+  const assemblyBottom = countertop.bounds.max.y;
   const soundbarHeight = tv.soundbar.required ? tv.soundbar.zoneHeight : 0;
   const ventHeight = tv.soundbar.required ? tv.soundbar.ventilationClearance : 0;
   const openingBottom = assemblyBottom + soundbarHeight + ventHeight;
@@ -570,11 +643,34 @@ function addTvContractDescriptors(sourceComponents, layout, tv) {
   const bodyTop = bodyBottom + tv.body.height;
   const clearDepth = featureOpening.bounds.max.z;
 
-  components.push(component({
+  const shelfRules = centerSections.map((section) => resolveMdfShelfThickness(dimension(section.bounds, "x")));
+  const rejectedShelfRule = shelfRules.find((rule) => !rule?.accepted);
+  if (rejectedShelfRule) {
+    return reject(GUIDED_PRODUCT_ENGINE_FAILURES.tvOpeningFit, {
+      message: "A Drawing 4 center display bay exceeds the authored MDF shelf-span rules.",
+      shelfRule: rejectedShelfRule
+    });
+  }
+  const upperDisplayHeight = featureZone.bounds.max.y - openingTop;
+  const minimumShelfClearance = Number(layout.rules?.minShelfClearance) || 4;
+  const centerShelfThickness = shelfRules[0].thickness;
+  if (
+    shelfRules.some((rule) => !nearlyEqual(rule.thickness, centerShelfThickness)) ||
+    upperDisplayHeight + 1e-6 < centerShelfThickness + minimumShelfClearance * 2
+  ) {
+    return reject(GUIDED_PRODUCT_ENGINE_FAILURES.tvOpeningFit, {
+      message: "The Drawing 4 media stack does not leave two usable center display rows.",
+      upperDisplayHeight,
+      centerShelfThickness,
+      minimumShelfClearance
+    });
+  }
+
+  const serviceOpening = component({
     id: "tv-service-opening",
     role: "opening",
-    parentId: featureOpening.id,
-    hostId: featureOpening.id,
+    parentId: featureZone.id,
+    hostId: featureZone.id,
     bounds: box(openingLeft, openingRight, openingBottom, openingTop, 0, clearDepth),
     metadata: {
       kind: "tv_service_opening",
@@ -583,12 +679,13 @@ function addTvContractDescriptors(sourceComponents, layout, tv) {
       serviceClearance: tv.serviceClearance,
       noDecorativeFrame: true
     }
-  }));
+  });
+  components.push(serviceOpening);
   components.push(component({
     id: "tv-mount-backing",
     role: "backing_panel",
-    parentId: featureOpening.id,
-    hostId: featureOpening.id,
+    parentId: serviceOpening.id,
+    hostId: serviceOpening.id,
     bounds: box(bodyLeft, bodyRight, bodyBottom, bodyTop, Math.max(0, clearDepth - 0.75), clearDepth),
     metadata: {
       physical: true,
@@ -600,8 +697,8 @@ function addTvContractDescriptors(sourceComponents, layout, tv) {
   components.push(component({
     id: "tv-body",
     role: "screen",
-    parentId: featureOpening.id,
-    hostId: featureOpening.id,
+    parentId: serviceOpening.id,
+    hostId: serviceOpening.id,
     bounds: box(bodyLeft, bodyRight, bodyBottom, bodyTop, 0, 0.75),
     metadata: {
       physical: true,
@@ -618,8 +715,8 @@ function addTvContractDescriptors(sourceComponents, layout, tv) {
     components.push(component({
       id: "soundbar-equipment-zone",
       role: "opening",
-      parentId: featureOpening.id,
-      hostId: featureOpening.id,
+      parentId: featureZone.id,
+      hostId: featureZone.id,
       bounds: box(
         openingLeft,
         openingRight,
@@ -638,8 +735,8 @@ function addTvContractDescriptors(sourceComponents, layout, tv) {
     components.push(component({
       id: "equipment-ventilation-zone",
       role: "opening",
-      parentId: featureOpening.id,
-      hostId: featureOpening.id,
+      parentId: featureZone.id,
+      hostId: featureZone.id,
       bounds: box(
         openingLeft,
         openingRight,
@@ -652,73 +749,101 @@ function addTvContractDescriptors(sourceComponents, layout, tv) {
     }));
   }
 
-  addContinuousMediaConsole(components, layout, featureZone, featureOpening);
-  return { accepted: true, components };
-}
-
-function addContinuousMediaConsole(components, layout, featureZone, featureOpening) {
-  const panel = Number(layout.rules?.fixedSeparatorThickness) || 0.75;
-  const reveal = Number(layout.rules?.doorReveal) || 0.125;
-  const bottomPanel = components.find((item) => item.id === "bottom-panel");
-  const doorBottom = (bottomPanel?.bounds.max.y || layout.metrics.baseHeight + panel) + reveal;
-  const separatorBottom = featureOpening.bounds.min.y - panel;
-  if (separatorBottom <= doorBottom) return;
-  const opening = component({
-    id: "media-console-opening",
-    role: "opening",
-    parentId: featureZone.id,
-    hostId: featureZone.id,
-    bounds: box(
-      featureZone.bounds.min.x,
-      featureZone.bounds.max.x,
-      doorBottom - reveal,
-      separatorBottom,
-      0,
-      featureOpening.bounds.max.z
-    ),
-    metadata: { kind: "continuous_media_console", renderable: false, physical: false }
-  });
-  components.push(opening);
+  const centerBoundaryMinX = centerSections[0].bounds.max.x;
+  const centerBoundaryMaxX = centerSections[1].bounds.min.x;
   components.push(component({
-    id: "media-console-top",
-    role: "fixed_shelf",
-    parentId: featureZone.id,
-    hostId: featureZone.id,
+    id: "divider-02-upper-support",
+    role: "divider",
+    parentId: "bookcase",
+    hostId: "bookcase",
     bounds: box(
-      featureZone.bounds.min.x,
-      featureZone.bounds.max.x,
-      separatorBottom,
-      featureOpening.bounds.min.y,
+      centerBoundaryMinX,
+      centerBoundaryMaxX,
+      openingTop,
+      featureZone.bounds.max.y,
       0,
-      featureOpening.bounds.max.z
+      clearDepth
     ),
-    metadata: { fixed: true, purpose: "continuous_media_console_top", physical: true }
+    metadata: {
+      physical: true,
+      boundaryIndex: 2,
+      partial: true,
+      purpose: "upper_media_support",
+      specialKind: "media"
+    }
   }));
 
-  const width = dimension(featureZone.bounds, "x");
-  const leafCount = clamp(Math.ceil(width / 24), 1, 6);
-  const gap = Number(layout.rules?.doubleDoorCenterGap) || 0.125;
-  const available = width - reveal * 2 - gap * (leafCount - 1);
-  const leafWidth = available / leafCount;
-  for (let index = 0; index < leafCount; index += 1) {
-    const minX = featureZone.bounds.min.x + reveal + index * (leafWidth + gap);
+  const shelfSideClearance = Number(layout.rules?.shelfSideClearance) || 0.125;
+  const shelfFrontSetback = Number(layout.rules?.openShelfFrontSetback) || 0.125;
+  const displayGap = (upperDisplayHeight - centerShelfThickness) / 2;
+  centerSections.forEach((section, index) => {
+    const shelfRule = shelfRules[index];
     components.push(component({
-      id: `media-console-door-${pad(index + 1)}`,
-      role: "door",
-      parentId: opening.id,
-      hostId: opening.id,
-      bounds: box(minX, minX + leafWidth, doorBottom, separatorBottom - reveal, 0, 0.75),
+      id: `${section.id}-upper-shelf-01`,
+      role: "shelf",
+      parentId: section.id,
+      hostId: section.id,
+      bounds: box(
+        section.bounds.min.x + shelfSideClearance,
+        section.bounds.max.x - shelfSideClearance,
+        openingTop + displayGap,
+        openingTop + displayGap + shelfRule.thickness,
+        shelfFrontSetback,
+        clearDepth
+      ),
       metadata: {
         physical: true,
-        style: "flat",
-        mounting: "inset",
-        tier: "primary",
-        openingKind: "media_console",
-        hardware: "push_latch",
-        materialSlot: "cabinet_finish"
+        adjustable: true,
+        ordinal: 1,
+        displayRows: 2,
+        clearSpan: dimension(section.bounds, "x"),
+        constructionThickness: shelfRule.thickness,
+        maximumApprovedClearSpan: shelfRule.maximumSpan,
+        shelfSpanRuleId: shelfRule.ruleId,
+        unsupportedSpan: false,
+        purpose: "center_upper_display"
       }
     }));
+  });
+
+  const finalComponents = components.filter((item) => item.id !== featureOpening.id);
+  const constraints = finalComponents.filter((item) => item.role === "opening");
+  const clearanceConstraints = constraints.filter((item) => [
+    "tv_service_opening",
+    "soundbar_equipment_zone",
+    "equipment_ventilation"
+  ].includes(item.metadata?.kind));
+  const forbiddenRoles = new Set([
+    "divider",
+    "shelf",
+    "door",
+    "drawer_front",
+    "handle",
+    "crown",
+    "trim",
+    "filler",
+    "fascia"
+  ]);
+  const clearanceConflict = finalComponents.find((item) => (
+    forbiddenRoles.has(item.role) &&
+    clearanceConstraints.some((constraint) => boundsIntersect(item.bounds, constraint.bounds))
+  ));
+  if (clearanceConflict) {
+    return reject(GUIDED_PRODUCT_ENGINE_FAILURES.tvOpeningFit, {
+      message: "A physical Drawing 4 component enters a reserved TV equipment volume.",
+      componentId: clearanceConflict.id
+    });
   }
+  const expectedConstraintCount = tv.soundbar.required ? 7 : 5;
+  if (constraints.length !== expectedConstraintCount) {
+    return reject(GUIDED_PRODUCT_ENGINE_FAILURES.descriptorInvalid, {
+      message: tv.soundbar.required
+        ? "Drawing 4 requires exactly four lower openings and three media clearances for a soundbar installation."
+        : "Drawing 4 requires exactly four lower openings and one TV service clearance when no soundbar is installed.",
+      constraintIds: constraints.map((item) => item.id)
+    });
+  }
+  return { accepted: true, components: finalComponents };
 }
 
 function buildFloatingStorageDescriptorSet(plan, installation, index) {
@@ -1208,8 +1333,12 @@ function createDescriptorSet({
   canonicalRenderContract = null
 }) {
   const setId = createDescriptorSetId(installation, index);
-  const promotedComponents = promoteInstallationTreatments(components, installation);
-  const namespaced = namespaceComponents(promotedComponents, setId);
+  const promotedComponents = promoteInstallationTreatments(components, installation, {
+    reconcileFittedSlimCapReturns: productId === "tv-unit"
+  });
+  const namespaced = namespaceComponents(promotedComponents, setId, {
+    namespaceMetadataIds: productId === "tv-unit"
+  });
   const transform = createInstallationTransform(installation, translationY, nominalDepth);
   const setBounds = unionBounds(namespaced.map((item) => item.bounds));
   const physicalComponents = namespaced
@@ -1258,7 +1387,7 @@ function createDescriptorSet({
  * realization instead of adding a coincident box. Dedicated builders that do
  * not provide a corresponding part receive one deterministic fallback part.
  */
-function promoteInstallationTreatments(sourceComponents, installation) {
+function promoteInstallationTreatments(sourceComponents, installation, options = {}) {
   const components = clone(Array.isArray(sourceComponents) ? sourceComponents : []);
   const treatments = installation?.treatments || {};
   const casework = installation?.casework || {};
@@ -1307,7 +1436,82 @@ function promoteInstallationTreatments(sourceComponents, installation) {
     depth,
     halfWidth
   });
-  return components;
+  return options.reconcileFittedSlimCapReturns === true
+    ? omitSlimCapReturnsConcealedByFittedFillers(components, installation, {
+        width,
+        height,
+        depth,
+        halfWidth
+      })
+    : components;
+}
+
+/**
+ * A canonical crown return belongs on an exposed carcass end. Once the
+ * accepted fit adds a full-height physical filler around that complete return,
+ * the end is no longer exposed and retaining the return would create two
+ * solids in the same volume. Omit only a completely contained Small Crown
+ * return; partial intersections remain in the graph so validation rejects the
+ * contradictory fit instead of clipping or resizing authored geometry.
+ */
+function omitSlimCapReturnsConcealedByFittedFillers(components, installation, context) {
+  if (installation?.mode !== "fitted") return components;
+  const omittedIds = new Set();
+  for (const side of ["left", "right"]) {
+    const treatment = installation?.treatments?.[side];
+    if (treatment?.kind !== "filler") continue;
+    const filler = findPromotedTreatment(components, treatment, side);
+    if (!isAcceptedPrimaryFullFittedFiller(filler, treatment, side, context)) continue;
+    for (const component of components) {
+      if (
+        isSlimCapSideReturn(component, side)
+        && containsBounds(filler.bounds, component.bounds)
+      ) {
+        omittedIds.add(component.id);
+      }
+    }
+  }
+  return omittedIds.size
+    ? components.filter((component) => !omittedIds.has(component.id))
+    : components;
+}
+
+function isAcceptedPrimaryFullFittedFiller(component, treatment, side, context) {
+  if (
+    component?.role !== "filler"
+    || !validBounds(component.bounds)
+    || component.metadata?.purpose !== "scribed_installation_filler"
+  ) return false;
+  const metadata = component.metadata?.installationTreatment;
+  if (
+    metadata?.source !== "accepted-installation-fit"
+    || metadata.primary !== true
+    || metadata.position !== side
+    || metadata.kind !== "filler"
+  ) return false;
+  const width = Number(treatment?.width);
+  if (!Number.isFinite(width) || width <= 1e-6) return false;
+  const innerEdge = side === "left" ? -context.halfWidth : context.halfWidth;
+  const expectedBounds = box(
+    side === "left" ? innerEdge - width : innerEdge,
+    side === "left" ? innerEdge : innerEdge + width,
+    0,
+    context.height,
+    0,
+    context.depth
+  );
+  return containsBounds(expectedBounds, component.bounds)
+    && containsBounds(component.bounds, expectedBounds);
+}
+
+function isSlimCapSideReturn(component, side) {
+  return component?.role === "crown"
+    && component.metadata?.style === "slim_cap"
+    && component.metadata?.hostSurface === "side_panel"
+    && component.metadata?.side === side
+    && component.metadata?.profileGeometry?.kind === "crown_profile_extrusion"
+    && component.metadata?.purpose === `slim_cap_${side}_return`
+    && validBounds(component.bounds);
 }
 
 function promoteSideTreatment(position, treatment, context) {
@@ -1563,6 +1767,9 @@ function validateDescriptorSet(set) {
       errors.push(validationIssue("MISSING_MATERIAL_SLOT", item.id));
     }
   }
+  if (set?.productId === "tv-unit") {
+    validateFittedCrownReturnCollisions(components, errors);
+  }
   return {
     valid: errors.length === 0,
     errors,
@@ -1570,14 +1777,63 @@ function validateDescriptorSet(set) {
   };
 }
 
-function namespaceComponents(components, namespace) {
+function validateFittedCrownReturnCollisions(components, errors) {
+  const fillersBySide = new Map(components
+    .filter((component) => (
+      component?.role === "filler"
+      && component.metadata?.installationTreatment?.source === "accepted-installation-fit"
+      && component.metadata.installationTreatment.primary === true
+      && component.metadata.installationTreatment.kind === "filler"
+      && ["left", "right"].includes(component.metadata.installationTreatment.position)
+      && validBounds(component.bounds)
+    ))
+    .map((component) => [component.metadata.installationTreatment.position, component]));
+  for (const component of components) {
+    const side = component?.metadata?.side;
+    const filler = fillersBySide.get(side);
+    if (
+      filler
+      && isSlimCapSideReturn(component, side)
+      && boundsIntersect(component.bounds, filler.bounds)
+    ) {
+      errors.push(validationIssue("CROWN_RETURN_FILLER_COLLISION", component.id));
+    }
+  }
+}
+
+function namespaceComponents(components, namespace, { namespaceMetadataIds = false } = {}) {
   const idMap = new Map(components.map((item) => [item.id, `${namespace}/${item.id}`]));
-  return components.map((item) => ({
-    ...clone(item),
-    id: idMap.get(item.id),
-    parentId: item.parentId ? idMap.get(item.parentId) || `${namespace}/${item.parentId}` : null,
-    hostId: item.hostId ? idMap.get(item.hostId) || `${namespace}/${item.hostId}` : null
-  }));
+  return components.map((item) => {
+    const namespaced = {
+      ...clone(item),
+      id: idMap.get(item.id),
+      parentId: item.parentId ? idMap.get(item.parentId) || `${namespace}/${item.parentId}` : null,
+      hostId: item.hostId ? idMap.get(item.hostId) || `${namespace}/${item.hostId}` : null
+    };
+    if (namespaceMetadataIds) {
+      namespaced.metadata = namespaceComponentMetadata(item.metadata, idMap);
+    }
+    return namespaced;
+  });
+}
+
+function namespaceComponentMetadata(metadata, idMap) {
+  const value = clone(metadata || {});
+  for (const key of [
+    "sectionId",
+    "leftBoundaryId",
+    "rightBoundaryId",
+    "topBoundaryId",
+    "bottomBoundaryId"
+  ]) {
+    if (typeof value[key] === "string" && idMap.has(value[key])) {
+      value[key] = idMap.get(value[key]);
+    }
+  }
+  if (Array.isArray(value.memberSectionIds)) {
+    value.memberSectionIds = value.memberSectionIds.map((id) => idMap.get(id) || id);
+  }
+  return value;
 }
 
 function createInstallationTransform(installation, translationY, descriptorDepth) {

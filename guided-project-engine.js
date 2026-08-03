@@ -10,15 +10,15 @@ import {
   createGuidedProductIntent,
   resolveGuidedProductId,
   resolveProductLayoutCompatibility
-} from "./guided-product-adapter.js?v=luxury-configurator-engine-v1";
+} from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
   evaluateGuidedProductCandidate
-} from "./guided-product-engine.js?v=luxury-configurator-engine-v1";
+} from "./guided-product-engine.js?v=fitted-slim-cap-return-v1-20260803a";
 import {
   auditGuidedAcceptedSpecification
 } from "./guided-render-contract.js?v=luxury-configurator-engine-v1";
 
-export const GUIDED_PROJECT_ENGINE_VERSION = "2026.08-luxury-configurator-v1";
+export const GUIDED_PROJECT_ENGINE_VERSION = "2026.08-fitted-slim-cap-return-v1";
 export const GUIDED_ACCEPTED_SPECIFICATION_SCHEMA_VERSION = 1;
 export const GUIDED_ACCEPTED_SNAPSHOT_SCHEMA_VERSION = 2;
 export const GUIDED_QUOTE_CONTRACT_SCHEMA_VERSION = 1;
@@ -429,14 +429,20 @@ function compactQuotePricing(specification) {
         pricingVersion: installation.pricingVersion || breakdown.pricingVersion || null,
         basis: installation.basis || breakdown.basis || null,
         total: finiteOrNull(installation.total),
-        lineItems: (breakdown.lineItems || []).map((item) => ({
-          code: item.code || null,
-          label: item.label || null,
-          quantity: finiteOrNull(item.quantity),
-          unit: item.unit || null,
-          unitRate: finiteOrNull(item.unitRate),
-          amount: finiteOrNull(item.amount)
-        })),
+        lineItems: (breakdown.lineItems || []).map((item) => {
+          const compactItem = {
+            code: item.code || null,
+            label: item.label || null,
+            quantity: finiteOrNull(item.quantity),
+            unit: item.unit || null,
+            unitRate: finiteOrNull(item.unitRate),
+            amount: finiteOrNull(item.amount)
+          };
+          if (Number.isFinite(item.thicknessIn)) {
+            compactItem.thicknessIn = item.thicknessIn;
+          }
+          return compactItem;
+        }),
         subtotalBeforeMultipliers: finiteOrNull(breakdown.subtotalBeforeMultipliers),
         multipliers: clone(breakdown.multipliers || {}),
         subtotal: finiteOrNull(breakdown.subtotal),
@@ -502,6 +508,7 @@ function compactCanonicalBom(bom) {
     overall: clone(bom.overall || null),
     sections: clone(bom.sections || null),
     shelves: clone(bom.shelves || null),
+    countertops: clone(bom.countertops || null),
     doors: clone(bom.doors || null),
     drawers: clone(bom.drawers || null),
     hardware: {

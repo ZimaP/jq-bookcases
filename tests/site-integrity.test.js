@@ -542,8 +542,10 @@ test("the build syntax-checks every guided accepted-specification module", () =>
     "guided-product-adapter.js",
     "guided-product-engine.js",
     "guided-render-contract.js",
+    "guided-render-primitives.js",
     "guided-materials.js",
     "guided-project-engine.js",
+    "guided-blender-render-contract.js",
     "guided-scene-plan.js",
     "guided-configurator-3d.js",
     "guided-configurator.js",
@@ -596,6 +598,7 @@ test("manual production release uses an allowlisted Pages artifact", () => {
   assert.match(productionWorkflowSource, /guided-product-adapter\.js/);
   assert.match(productionWorkflowSource, /guided-product-engine\.js/);
   assert.match(productionWorkflowSource, /guided-render-contract\.js/);
+  assert.match(productionWorkflowSource, /guided-render-primitives\.js/);
   assert.match(productionWorkflowSource, /guided-materials\.js/);
   assert.match(productionWorkflowSource, /guided-project-engine\.js/);
   assert.match(productionWorkflowSource, /bookcase-render-contract\.js/);
@@ -620,6 +623,7 @@ test("manual production release uses an allowlisted Pages artifact", () => {
     "_site/guided-product-adapter.js",
     "_site/guided-product-engine.js",
     "_site/guided-render-contract.js",
+    "_site/guided-render-primitives.js",
     "_site/guided-materials.js",
     "_site/guided-project-engine.js",
     "_site/bookcase-render-contract.js",

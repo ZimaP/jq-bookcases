@@ -471,7 +471,7 @@ async function initQuoteForm() {
     /^JQ-[A-Z0-9-]{5,20}$/.test(storedDesign.id)
   ) {
     try {
-      const { restoreAcceptedDesignSnapshot } = await import("./bookcase-engine.js?v=luxury-configurator-engine-v1-20260802c");
+      const { restoreAcceptedDesignSnapshot } = await import("./bookcase-engine.js?v=tv-drawing-4-geometry-v1-20260802a");
       const restored = restoreAcceptedDesignSnapshot(storedDesign);
       if (restored.accepted && restored.compatible) acceptedStoredDesign = { snapshot: storedDesign, restored };
     } catch (error) {

@@ -847,6 +847,8 @@ test("one accepted 3D scene persists and separates geometry rebuilds from materi
   await continueToLayouts(page, "TV Unit");
   await chooseLayout(page, "Right Niche");
   await page.locator("[data-continue]").click();
+  await page.locator('[data-measurement="wallWidth"]').fill("144");
+  await page.locator('[data-measurement="nicheWidth"]').fill("120");
 
   const measurementCanvas = page.locator('.measurement-room[data-guided3d-state="ready"] .guided-3d-canvas');
   await expect(measurementCanvas).toHaveCount(1);
@@ -859,6 +861,7 @@ test("one accepted 3D scene persists and separates geometry rebuilds from materi
   const initialGeometryFingerprint = await measurementCanvas.getAttribute("data-geometry-fingerprint");
 
   await page.locator('[data-measurement="wallWidth"]').fill("126");
+  await page.locator('[data-measurement="rightReturn"]').fill("6");
   await expect.poll(() => measurementCanvas.getAttribute("data-geometry-fingerprint"))
     .not.toBe(initialGeometryFingerprint);
 
@@ -891,6 +894,91 @@ test("one accepted 3D scene persists and separates geometry rebuilds from materi
   await expect(reviewCanvas).toHaveAttribute("data-geometry-fingerprint", geometryFingerprint);
   await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
   expect(obsoleteSceneRequests).toEqual([]);
+});
+
+test("the exact TV01 Natural Oak Review uses the versioned photoreal preview without changing Step 4", async ({ page }) => {
+  const previewResponses = [];
+  page.on("response", (response) => {
+    if (response.url().endsWith("/tv01-clear-wall-photoreal-preview-v1.webp")) {
+      previewResponses.push(response.status());
+    }
+  });
+
+  await openFreshProject(page);
+  await continueToLayouts(page, "TV Unit");
+  await chooseLayout(page, "Clear Wall");
+  await page.locator("[data-continue]").click();
+  await page.locator("[data-continue]").click();
+
+  const customizationPreview = page.locator(".concept-preview");
+  await expectAcceptedGeometryPreview(customizationPreview);
+  await expect(customizationPreview).toHaveAttribute("data-finish", "natural-oak");
+  await page.getByRole("tab", { name: "Details" }).click();
+  await page.locator('[data-detail-key="hardware"][data-detail="black-pull"]').click();
+  await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
+  await page.locator("[data-continue]").click();
+
+  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+  const reviewPreview = page.locator(
+    '[data-customer-preview-id="tv01-clear-wall-photoreal-preview-v1"]'
+  );
+  await expect(reviewPreview).toHaveCount(1);
+  await expect(reviewPreview).toHaveAttribute("data-preview-render-mode", "published-photoreal");
+  await expect(reviewPreview).toHaveAttribute("data-customer-preview-capture", "photoreal-beauty-v1");
+  await expect(reviewPreview).toHaveAttribute(
+    "data-geometry-fingerprint",
+    "jq-guided-geometry-v1-028YPJG43EJF6"
+  );
+  await expect(reviewPreview).toHaveAttribute(
+    "data-specification-fingerprint",
+    "jq-guided-spec-v1-0qpej5s"
+  );
+  await expect(reviewPreview.locator("canvas")).toHaveCount(0);
+  await expect(reviewPreview.locator(".guided-3d-mount")).toHaveCount(0);
+  await expect(reviewPreview.locator(".preview-controls")).toHaveCount(0);
+
+  const image = reviewPreview.locator(".published-customer-preview-image");
+  await expect(image).toHaveCount(1);
+  await expect(image).toHaveAttribute(
+    "src",
+    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/tv01-clear-wall-photoreal-preview-v1.webp"
+  );
+  await expect(image).toHaveAttribute("width", "1920");
+  await expect(image).toHaveAttribute("height", "1280");
+  await expect.poll(() => image.evaluate((node) => ({
+    complete: node.complete,
+    width: node.naturalWidth,
+    height: node.naturalHeight
+  }))).toEqual({ complete: true, width: 1920, height: 1280 });
+
+  const mediaGeometry = await reviewPreview.evaluate((preview) => {
+    const frame = preview.querySelector(".concept-scene-frame").getBoundingClientRect();
+    const imageRect = preview.querySelector(".published-customer-preview-image").getBoundingClientRect();
+    const imageStyle = getComputedStyle(preview.querySelector(".published-customer-preview-image"));
+    return {
+      frameRatio: frame.width / frame.height,
+      widthDelta: Math.abs(frame.width - imageRect.width),
+      heightDelta: Math.abs(frame.height - imageRect.height),
+      objectFit: imageStyle.objectFit,
+      documentOverflow: document.documentElement.scrollWidth - window.innerWidth
+    };
+  });
+  expect(Math.abs(mediaGeometry.frameRatio - 1.5)).toBeLessThan(0.01);
+  expect(mediaGeometry.widthDelta).toBeLessThanOrEqual(1);
+  expect(mediaGeometry.heightDelta).toBeLessThanOrEqual(1);
+  expect(mediaGeometry.objectFit).toBe("contain");
+  expect(mediaGeometry.documentOverflow).toBeLessThanOrEqual(1);
+  expect(previewResponses).toContain(200);
+
+  const summary = page.locator(".project-summary-card");
+  await expect(summary).toContainText("Natural Oak");
+  await expect(summary).toContainText("Black Pull");
+  await expect(summary).toContainText("$15,050");
+
+  await page.getByRole("button", { name: "Customization, completed" }).click();
+  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+  await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
+  await expect(page.locator("[data-customer-preview-id]")).toHaveCount(0);
 });
 
 test("all ten bookcase layouts keep architectural dimension lines and labels valid at desktop and iPad landscape sizes", async ({ page }) => {
@@ -1613,7 +1701,13 @@ test("representative topology branches preserve generated product identity throu
     { product: "Cabinets + Shelves", style: "cabinet-base-shelves", layout: "Fireplace Wall", layoutId: "fireplace-wall" },
     { product: "Drawers + Shelves", style: "drawer-base-shelves", layout: "Door Wall", layoutId: "door-wall" },
     { product: "Full Open Shelving", style: "full-open-shelving", layout: "Between Openings", layoutId: "double-opening" },
-    { product: "TV Unit", style: "framed-tv-wall", layout: "Right Niche", layoutId: "right-niche" },
+    {
+      product: "TV Unit",
+      style: "framed-tv-wall",
+      layout: "Right Niche",
+      layoutId: "right-niche",
+      measurements: { wallWidth: "144", nicheWidth: "120" }
+    },
     { product: "Floating Storage", style: "floating-drawer-bank", layout: "Corner Wall", layoutId: "corner-wall" },
     { product: "Window Storage", style: "window-seat-storage", layout: "Window Wall", layoutId: "window-wall" },
     { product: "Radiator Cover", style: "clean-slat-cover", layout: "Window Wall", layoutId: "window-wall" }
@@ -1625,6 +1719,9 @@ test("representative topology branches preserve generated product identity throu
     await chooseLayout(page, entry.layout);
     await page.locator("[data-continue]").click();
     await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+    for (const [fieldId, value] of Object.entries(entry.measurements || {})) {
+      await page.locator(`[data-measurement="${fieldId}"]`).fill(value);
+    }
     await page.locator("[data-continue]").click();
 
     const preview = page.locator(".concept-preview");

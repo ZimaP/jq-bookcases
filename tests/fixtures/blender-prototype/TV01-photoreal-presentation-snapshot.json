@@ -1,0 +1,359 @@
+{
+  "camera": {
+    "cameraId": "beauty-camera-v1",
+    "cameraVersion": "jq-photoreal-presentation-camera-v1",
+    "clipEndM": 25,
+    "clipStartM": 0.050000000745,
+    "dataName": "JQ_PHOTOREAL_BEAUTY_CAMERA",
+    "depthOfField": false,
+    "lensMm": 52,
+    "location": [
+      -0.850000023842,
+      5.75,
+      1.55999994278
+    ],
+    "objectName": "JQ_PHOTOREAL_BEAUTY_CAMERA",
+    "rotationEuler": [
+      1.510504364967,
+      3.1358e-8,
+      -2.981114149094
+    ],
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "sensorFit": "HORIZONTAL",
+    "sensorWidthMm": 36,
+    "target": [
+      0.05,
+      0.19,
+      1.22
+    ],
+    "type": "PERSP",
+    "up": [
+      0,
+      0,
+      1
+    ]
+  },
+  "cyclesDevices": {
+    "computeDeviceType": "METAL",
+    "devices": [
+      {
+        "name": "Apple M4",
+        "type": "CPU",
+        "use": false
+      },
+      {
+        "name": "Apple M4 (GPU - 10 cores)",
+        "type": "METAL",
+        "use": true
+      }
+    ]
+  },
+  "lights": [
+    {
+      "color": [
+        1,
+        0.930000007153,
+        0.839999973774
+      ],
+      "dataName": "JQ_PRESENTATION_KEY_DAYLIGHT",
+      "diffuseFactor": 1,
+      "energyW": 420,
+      "lightId": "presentation-key-daylight-v1",
+      "location": [
+        -2.299999952316,
+        3,
+        2.450000047684
+      ],
+      "normalize": true,
+      "objectName": "JQ_PRESENTATION_KEY_DAYLIGHT",
+      "role": "soft-daylight-key",
+      "rotationEuler": [
+        1.225057840347,
+        1.07262e-7,
+        -2.509618520737
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "shape": "RECTANGLE",
+      "sizeM": 2.200000047684,
+      "sizeYM": 1.600000023842,
+      "specularFactor": 1,
+      "spreadRadians": 3.141592741013,
+      "type": "AREA",
+      "useShadow": true,
+      "volumeFactor": 1
+    },
+    {
+      "color": [
+        0.839999973774,
+        0.910000026226,
+        1
+      ],
+      "dataName": "JQ_PRESENTATION_FILL_DAYLIGHT",
+      "diffuseFactor": 1,
+      "energyW": 110,
+      "lightId": "presentation-fill-daylight-v1",
+      "location": [
+        2.200000047684,
+        2.400000095367,
+        1.75
+      ],
+      "normalize": true,
+      "objectName": "JQ_PRESENTATION_FILL_DAYLIGHT",
+      "role": "cool-neutral-fill",
+      "rotationEuler": [
+        1.349549055099,
+        9.6059e-8,
+        2.446854352951
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "shape": "RECTANGLE",
+      "sizeM": 2.5,
+      "sizeYM": 1.799999952316,
+      "specularFactor": 1,
+      "spreadRadians": 3.141592741013,
+      "type": "AREA",
+      "useShadow": true,
+      "volumeFactor": 1
+    },
+    {
+      "color": [
+        1,
+        0.896269381046,
+        0.7379103899
+      ],
+      "dataName": "JQ_PRESENTATION_PUCK_LEFT",
+      "diffuseFactor": 1,
+      "energyW": 18,
+      "lightId": "presentation-puck-left-v1",
+      "location": [
+        -1.123950004578,
+        0.285750001669,
+        2.40499997139
+      ],
+      "normalize": true,
+      "objectName": "JQ_PRESENTATION_PUCK_LEFT",
+      "role": "warm-puck-left",
+      "rotationEuler": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "shadowSoftSizeM": 0.025000000373,
+      "specularFactor": 1,
+      "spotBlend": 0.649999976158,
+      "spotSizeRadians": 1.221730470657,
+      "type": "SPOT",
+      "useShadow": true,
+      "volumeFactor": 1
+    },
+    {
+      "color": [
+        1,
+        0.896269381046,
+        0.7379103899
+      ],
+      "dataName": "JQ_PRESENTATION_PUCK_RIGHT",
+      "diffuseFactor": 1,
+      "energyW": 18,
+      "lightId": "presentation-puck-right-v1",
+      "location": [
+        1.123950004578,
+        0.285750001669,
+        2.40499997139
+      ],
+      "normalize": true,
+      "objectName": "JQ_PRESENTATION_PUCK_RIGHT",
+      "role": "warm-puck-right",
+      "rotationEuler": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "shadowSoftSizeM": 0.025000000373,
+      "specularFactor": 1,
+      "spotBlend": 0.649999976158,
+      "spotSizeRadians": 1.221730470657,
+      "type": "SPOT",
+      "useShadow": true,
+      "volumeFactor": 1
+    }
+  ],
+  "render": {
+    "colorDepth": "16",
+    "colorMode": "RGB",
+    "compression": 15,
+    "cycles": {
+      "adaptiveMinSamples": 32,
+      "adaptiveSampling": true,
+      "adaptiveThreshold": 0.009999999776,
+      "animatedSeed": false,
+      "denoising": {
+        "denoiser": "OPENIMAGEDENOISE",
+        "enabled": true,
+        "inputPasses": "RGB_ALBEDO_NORMAL",
+        "prefilter": "ACCURATE",
+        "quality": "HIGH",
+        "useGpu": false
+      },
+      "device": "GPU",
+      "diffuseBounces": 4,
+      "directClamp": 0,
+      "filterWidth": 1.5,
+      "glossyBounces": 4,
+      "indirectClamp": 5,
+      "maxBounces": 8,
+      "reflectiveCaustics": false,
+      "refractiveCaustics": false,
+      "samples": 256,
+      "samplingSeed": 170219,
+      "transmissionBounces": 6,
+      "transparentBounces": 4,
+      "useGuiding": false,
+      "useLightTree": true,
+      "volumeBounces": 0
+    },
+    "displayDevice": "sRGB",
+    "ditherIntensity": 1,
+    "engine": "CYCLES",
+    "exposure": 0,
+    "fileFormat": "PNG",
+    "filmTransparent": false,
+    "filmTransparentGlass": false,
+    "filmTransparentRoughness": 0,
+    "gamma": 1,
+    "height": 1280,
+    "imageColorManagement": "FOLLOW_SCENE",
+    "look": "AgX - Medium High Contrast",
+    "pixelAspectX": 1,
+    "pixelAspectY": 1,
+    "quality": 90,
+    "resolutionPercentage": 100,
+    "useBorder": false,
+    "useCompositing": false,
+    "useCropToBorder": false,
+    "useCurveMapping": false,
+    "useFileExtension": true,
+    "useSequencer": false,
+    "useStamp": false,
+    "viewTransform": "AgX",
+    "width": 1920
+  },
+  "roomAssignments": {
+    "room-floor": {
+      "materialName": "JQ_PRESENTATION_ROOM_FLOOR",
+      "nodeTreeSha256": "a400f157ffaf5894644bf273dbca2af3a31fcc6d528c45efb44f046161eaa510"
+    },
+    "room-rear-wall": {
+      "materialName": "JQ_PRESENTATION_ROOM_WALL",
+      "nodeTreeSha256": "3912d65c4ab75f31300c1dfe5ec6c9dfeca372bb631f903ab703ed6c849a8bc8"
+    }
+  },
+  "world": {
+    "name": "JQ_BEAUTY_WORLD",
+    "nodeTree": {
+      "links": [
+        "Background:Background->World Output:Surface",
+        "Environment Texture:Color->Background:Color",
+        "Mapping:Vector->Environment Texture:Vector",
+        "Texture Coordinate:Generated->Mapping:Vector"
+      ],
+      "nodes": [
+        {
+          "inputs": [
+            {
+              "default": null,
+              "name": "Volume"
+            }
+          ],
+          "name": "World Output",
+          "properties": {},
+          "type": "ShaderNodeOutputWorld"
+        },
+        {
+          "inputs": [
+            {
+              "default": 0.319999992847,
+              "name": "Strength"
+            },
+            {
+              "default": 0,
+              "name": "Weight"
+            }
+          ],
+          "name": "Background",
+          "properties": {},
+          "type": "ShaderNodeBackground"
+        },
+        {
+          "inputs": [],
+          "name": "Environment Texture",
+          "properties": {},
+          "type": "ShaderNodeTexEnvironment"
+        },
+        {
+          "inputs": [],
+          "name": "Texture Coordinate",
+          "properties": {
+            "fromInstancer": false,
+            "object": null
+          },
+          "type": "ShaderNodeTexCoord"
+        },
+        {
+          "inputs": [
+            {
+              "default": [
+                0,
+                0,
+                0
+              ],
+              "name": "Location"
+            },
+            {
+              "default": [
+                0,
+                0,
+                0.34999999404
+              ],
+              "name": "Rotation"
+            },
+            {
+              "default": [
+                1,
+                1,
+                1
+              ],
+              "name": "Scale"
+            }
+          ],
+          "name": "Mapping",
+          "properties": {},
+          "type": "ShaderNodeMapping"
+        }
+      ]
+    },
+    "nodeTreeSha256": "063c134a5f00e5a6a4537a42653f1bf45201e3c2ac9bcabe2151b0b7090d03d2"
+  }
+}

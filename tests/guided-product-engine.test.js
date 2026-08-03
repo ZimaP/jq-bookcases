@@ -310,7 +310,7 @@ test("single-zone project pricing remains identical to its canonical breakdown",
   assert.deepEqual(repeated.pricing, first.pricing);
 });
 
-test("the 120 by 96 right-niche TV golden keeps a measured opening and no random frame", () => {
+test("a 93-inch right-niche TV fails closed instead of replacing Drawing 4 with a smaller topology", () => {
   const result = evaluateGuidedProductCandidate({
     project: project("tv-unit", "right-niche", {
       measurements: {
@@ -326,79 +326,13 @@ test("the 120 by 96 right-niche TV golden keeps a measured opening and no random
     topology: room("right-niche"),
     fit: acceptedFit(installation({ width: 93, height: 96, depth: 14 }))
   });
-  assert.equal(result.accepted, true, JSON.stringify(result.errors));
-  assert.equal(result.engine, "existing-bookcase-media-adapter");
-
-  assert.deepEqual(result.tv.body, {
-    width: 56,
-    height: 33,
-    derivation: {
-      width: "diagonal-and-explicit-height",
-      height: null
-    }
-  });
-  assert.deepEqual(result.tv.opening, { width: 60, height: 37 });
-  assert.deepEqual(result.tv.soundbar, {
-    required: true,
-    zoneHeight: 4.5,
-    ventilationClearance: 1
-  });
-  assert.equal(result.tv.requiredAssemblyHeight, 42.5);
-
-  const tv = findBySuffix(result, "tv-body");
-  const opening = findBySuffix(result, "tv-service-opening");
-  const soundbar = findBySuffix(result, "soundbar-equipment-zone");
-  assert.equal(size(tv, "x"), 56);
-  assert.equal(size(tv, "y"), 33);
-  assert.equal(size(opening, "x"), 60);
-  assert.equal(size(opening, "y"), 37);
-  assert.equal(size(soundbar, "y"), 4.5);
-  assert.equal(opening.metadata.noDecorativeFrame, true);
-  assert.equal(result.descriptorSets.flatMap((set) => set.components).some((item) => /tv.*frame|frame.*tv/i.test(item.id)), false);
-  assert.ok(findBySuffix(result, "media-console-top"));
-  assert.ok(byRole(result, "door").some((item) => item.id.includes("media-console-door")));
-  assert.equal(findBySuffix(result, "feature-zone").metadata.memberSectionIds.length, 1);
-  assert.equal(byRole(result, "section").length, 3);
-
-  const manifestIds = new Set(result.renderManifest.entries.map((entry) => entry.componentId));
-  assert.ok(manifestIds.has(tv.id));
-  assert.equal(manifestIds.has(opening.id), false);
-
-  const descriptorSet = result.descriptorSets[0];
-  const evaluation = result.canonicalEvaluations[0].evaluation;
-  const pricing = result.pricing.installations[0];
-  const quantities = pricing.breakdown.acceptedDescriptorGraph;
-  assert.equal(result.pricingStatus, "canonical");
-  assert.equal(result.pricing.basis, "final-accepted-descriptor-graph");
-  assert.equal(pricing.basis, "final-accepted-descriptor-graph");
-  assert.deepEqual(evaluation.layout.components, descriptorSet.components);
-  assert.equal(evaluation.layoutFingerprint, evaluation.bom.layoutFingerprint);
-  assert.equal(evaluation.layoutFingerprint, pricing.breakdown.bom.layoutFingerprint);
-  assert.equal(quantities.source, "final-accepted-descriptor-graph");
-  assert.equal(quantities.componentCount, 32);
-  assert.equal(quantities.byRole.door, 5);
-  assert.equal(quantities.byRole.fixed_shelf, 3);
-  assert.equal(quantities.byRole.door, byRole(result, "door").length);
-  assert.equal(quantities.byRole.fixed_shelf, byRole(result, "fixed_shelf").length);
-  assert.equal(quantities.byRole.backing_panel, 1);
-  assert.equal(quantities.byRole.screen, undefined);
-  assert.equal(quantities.componentCount, quantities.componentIds.length);
-  assert.ok(quantities.componentIds.every((id) => descriptorSet.components.some((item) => item.id === id)));
-  assert.deepEqual(quantities.customerEquipmentIds, [tv.id]);
-  assert.equal(evaluation.bom.doors.count, quantities.byRole.door);
-  assert.equal(evaluation.bom.shelves.fixedCount, quantities.byRole.fixed_shelf);
-  assert.equal(
-    pricing.breakdown.lineItems.find((item) => item.code === "DOOR_STYLE_FLAT").quantity,
-    quantities.byRole.door
-  );
-  assert.equal(result.pricing.total, pricing.breakdown.total);
-  assert.equal(
-    result.pricing.lineItems.find((item) => item.code === "DOOR_STYLE_FLAT").quantity,
-    quantities.byRole.door
-  );
-  for (const projectCode of ["BASE_PROJECT", "INSTALLATION", "DELIVERY"]) {
-    assert.equal(result.pricing.lineItems.filter((item) => item.code === projectCode).length, 1);
-  }
+  assert.equal(result.accepted, false);
+  assert.equal(result.errors[0]?.code, GUIDED_PRODUCT_FAILURES.tvDrawing4TemplateFit);
+  assert.equal(result.errors[0]?.reason, "SIDE_MODULE_PAIRED_DOORS_UNBUILDABLE");
+  assert.equal(result.errors[0]?.caseworkWidth, 93);
+  assert.equal(result.errors[0]?.serviceOpeningWidth, 60);
+  assert.equal(result.descriptorSets, undefined);
+  assert.equal(result.renderManifest, undefined);
 });
 
 test("TV changes rebuild the media geometry, while cabinet finish does not", () => {
@@ -800,8 +734,8 @@ test("named failures reject invalid fit, impossible TV, and canonical dimension 
     fit: acceptedFit(installation({ width: 50 }))
   });
   assert.equal(impossibleTv.accepted, false);
-  assert.equal(impossibleTv.errors[0].code, GUIDED_PRODUCT_ENGINE_FAILURES.tvOpeningFit);
-  assert.ok(impossibleTv.errors[0].resolutions.includes("smaller-tv"));
+  assert.equal(impossibleTv.errors[0].code, GUIDED_PRODUCT_FAILURES.tvDrawing4TemplateFit);
+  assert.equal(impossibleTv.errors[0].reason, "SIDE_MODULE_PAIRED_DOORS_UNBUILDABLE");
 
   const corrected = evaluateGuidedProductCandidate({
     project: project("cabinet-shelves", "clear-wall"),

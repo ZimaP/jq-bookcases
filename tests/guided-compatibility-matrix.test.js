@@ -75,6 +75,16 @@ test("supported defaults accept, conditionals are UI-reachable, and impossible p
         continue;
       }
 
+      if (
+        choice.id === "tv-unit"
+        && result.errors?.[0]?.code === "TV_DRAWING_4_TEMPLATE_FIT_REJECTED"
+      ) {
+        assert.equal(result.accepted, false, key);
+        assert.equal(result.stage, "product-geometry", key);
+        assert.match(result.errors[0]?.reason || "", /^[A-Z][A-Z0-9_]+$/, key);
+        continue;
+      }
+
       assert.equal(result.accepted, true, `${key}: ${JSON.stringify(result.errors || [])}`);
       if (status === "review-only" || key === "tv-unit:fireplace-wall") {
         assert.ok(

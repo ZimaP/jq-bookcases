@@ -1,8 +1,12 @@
-import { layoutPresets } from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
+import {
+  TV_DRAWING_4_TEMPLATE_ID,
+  layoutPresets
+} from "./bookcase-config.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
   CONSTRUCTION_RULES,
-  getSectionCountLimits
-} from "./bookcase-layout.js?v=luxury-configurator-engine-v1-20260802c";
+  getSectionCountLimits,
+  resolveDoorArrangement
+} from "./bookcase-layout.js?v=tv-drawing-4-geometry-v1-20260802a";
 import { DEFAULT_INSTALLATION_FIT_POLICY } from "./guided-installation-solver.js?v=luxury-configurator-engine-v1";
 
 /**
@@ -13,7 +17,7 @@ import { DEFAULT_INSTALLATION_FIT_POLICY } from "./guided-installation-solver.js
  * mesh, pricing, or room-fit behavior.
  */
 
-export const GUIDED_PRODUCT_ADAPTER_VERSION = 1;
+export const GUIDED_PRODUCT_ADAPTER_VERSION = 2;
 
 export const GUIDED_PRODUCT_FAILURES = deepFreeze({
   unknownProduct: "UNKNOWN_PRODUCT_ARCHETYPE",
@@ -28,6 +32,7 @@ export const GUIDED_PRODUCT_FAILURES = deepFreeze({
   globalScale: "GLOBAL_SCALE_NOT_ALLOWED",
   tvMeasurements: "TV_MEASUREMENTS_REQUIRED",
   tvDimensions: "INVALID_TV_DIMENSIONS",
+  tvDrawing4TemplateFit: "TV_DRAWING_4_TEMPLATE_FIT_REJECTED",
   tvZone: "TV_REQUIRES_SINGLE_MEDIA_ZONE",
   windowZone: "WINDOW_STORAGE_REQUIRES_BELOW_WINDOW_ZONE",
   radiatorZone: "RADIATOR_COVER_REQUIRES_FEATURE_ZONE"
@@ -523,19 +528,20 @@ export function createGuidedProductCandidate({ project = {}, topology = {}, fit 
     }] : []),
     ...(tv?.warnings || [])
   ];
-  const canonicalConfigs = archetype.engine.startsWith("existing-bookcase")
-    ? selection.installations
-      .filter((installation) => installation.role !== "corner-join")
-      .map((installation) => {
-        const built = buildCanonicalBookcaseConfig({ productId, project, installation, tv });
-        warnings.push(...built.warnings);
-        return {
-          installationId: installation.id,
-          zoneId: installation.zoneId,
-          config: built.config
-        };
-      })
-    : [];
+  const canonicalConfigs = [];
+  if (archetype.engine.startsWith("existing-bookcase")) {
+    for (const installation of selection.installations) {
+      if (installation.role === "corner-join") continue;
+      const built = buildCanonicalBookcaseConfig({ productId, project, installation, tv });
+      if (built.accepted === false) return built;
+      warnings.push(...built.warnings);
+      canonicalConfigs.push({
+        installationId: installation.id,
+        zoneId: installation.zoneId,
+        config: built.config
+      });
+    }
+  }
 
   return deepFreeze({
     accepted: true,
@@ -578,17 +584,16 @@ export function buildCanonicalBookcaseConfig({ productId, project = {}, installa
   let layoutMetadata;
 
   if (productId === "tv-unit") {
-    const media = resolveMediaSectionPlan(width, tv.opening.width);
+    const media = solveDrawing4TvModulePlan(width, tv?.opening?.width);
+    if (!media.accepted) return media;
     sections = media.sections;
     layoutMetadata = {
+      constructionTemplateId: TV_DRAWING_4_TEMPLATE_ID,
       specialSpan: media.specialSpan,
-      sectionRatios: media.ratios,
-      sectionTypes: Array.from({ length: sections }, (_, index) => (
-        media.specialIndices.includes(index) ? "media" : "lower_doors"
-      )),
-      sectionDoorLayouts: Array.from({ length: sections }, () => ({ arrangement: "auto" }))
+      sectionRatios: media.clearWidths,
+      sectionTypes: Array.from({ length: sections }, () => "lower_doors"),
+      sectionDoorLayouts: Array.from({ length: sections }, () => ({ arrangement: "pair" }))
     };
-    warnings.push(...media.warnings);
   } else {
     sections = chooseCanonicalSectionCount(width);
     const sectionType = productId === "drawer-shelves"
@@ -621,7 +626,7 @@ export function buildCanonicalBookcaseConfig({ productId, project = {}, installa
     deskOpening: false,
     featureOpening: false,
     tallDoors: false,
-    doorStyle: productId === "tv-unit" ? "flat" : doorStyle,
+    doorStyle,
     drawerFrontStyle: doorStyle === "glass" ? "flat" : doorStyle,
     hardware: productId === "open-shelving" ? "push_latch" : hardware,
     lighting,
@@ -637,34 +642,114 @@ export function buildCanonicalBookcaseConfig({ productId, project = {}, installa
     delivery: project.delivery || "standard"
   };
 
-  return { config, warnings };
+  return { accepted: true, config, warnings };
 }
 
-function resolveMediaSectionPlan(width, openingWidth) {
-  const panel = CONSTRUCTION_RULES.panelThickness;
-  const sections = 3;
-  const totalClear = width - panel * (sections + 1);
-  const sideClear = (totalClear - openingWidth) / 2;
-  if (sideClear + 1e-6 >= CONSTRUCTION_RULES.minSectionClearWidth) {
-    return {
-      sections,
-      specialSpan: 1,
-      specialIndices: [1],
-      ratios: [round(sideClear), round(openingWidth), round(sideClear)],
-      warnings: []
-    };
+/**
+ * Resolve the Drawing 4 horizontal module contract without generating any
+ * geometry. The central service opening is authoritative: it includes the
+ * reserved center structural-panel width, while each returned value is a
+ * clear module width. Unsupported candidates fail closed instead of falling
+ * back to a different media-wall arrangement.
+ */
+export function solveDrawing4TvModulePlan(caseworkWidth, serviceOpeningWidth) {
+  const width = Number(caseworkWidth);
+  const opening = Number(serviceOpeningWidth);
+  const rules = CONSTRUCTION_RULES;
+  const panel = rules.panelThickness;
+  const minimumPairOpening = round(
+    rules.minDoorLeafWidth * 2 + rules.doorReveal * 2 + rules.doubleDoorCenterGap
+  );
+  const minimumSideWidth = Math.max(rules.minSectionClearWidth, minimumPairOpening);
+  const maximumShelfSpan = 36;
+  const minimumCaseworkWidth = round(opening + panel * 4 + minimumSideWidth * 2);
+  const maximumCaseworkWidth = round(opening + panel * 4 + maximumShelfSpan * 2);
+  const failure = (reason, detail = {}) => reject(
+    GUIDED_PRODUCT_FAILURES.tvDrawing4TemplateFit,
+    {
+      reason,
+      message: "The fitted TV run cannot preserve the Drawing 4 module, paired-door, and shelf-span contract.",
+      caseworkWidth: Number.isFinite(width) ? round(width) : null,
+      serviceOpeningWidth: Number.isFinite(opening) ? round(opening) : null,
+      minimumCaseworkWidth: Number.isFinite(minimumCaseworkWidth) ? minimumCaseworkWidth : null,
+      maximumCaseworkWidth: Number.isFinite(maximumCaseworkWidth) ? maximumCaseworkWidth : null,
+      ...detail
+    }
+  );
+
+  if (!Number.isFinite(width) || width <= 0 || !Number.isFinite(opening) || opening <= panel) {
+    return failure("INVALID_TEMPLATE_DIMENSIONS");
   }
-  return {
-    sections: 1,
-    specialSpan: 1,
-    specialIndices: [0],
-    ratios: [1],
-    warnings: [{
-      code: "TV_SIDE_SECTIONS_REMOVED",
-      severity: "warning",
-      message: "Optional side shelf sections were removed to preserve the measured TV and service opening."
-    }]
-  };
+
+  const centerClear = round((opening - panel) / 2);
+  const sideClear = round((width - opening - panel * 4) / 2);
+  const clearWidths = [sideClear, centerClear, centerClear, sideClear];
+  const closure = round(clearWidths.reduce((sum, value) => sum + value, 0) + panel * 5);
+  // Each persisted symmetric clear width is rounded to six places. Two pairs
+  // can therefore accumulate up to four half-steps without representing a
+  // physical closure failure.
+  if (Math.abs(closure - width) > 0.0000021) {
+    return failure("MODULE_WIDTH_CLOSURE_MISMATCH", { closure });
+  }
+  if (sideClear + 1e-6 < minimumSideWidth) {
+    return failure("SIDE_MODULE_PAIRED_DOORS_UNBUILDABLE", {
+      sideClearWidth: sideClear,
+      minimumSideWidth
+    });
+  }
+  if (sideClear > maximumShelfSpan + 1e-6) {
+    return failure("SIDE_MODULE_SHELF_SPAN_EXCEEDED", {
+      sideClearWidth: sideClear,
+      maximumShelfSpan
+    });
+  }
+  if (centerClear + 1e-6 < rules.minSectionClearWidth) {
+    return failure("CENTER_MODULE_BELOW_MINIMUM_WIDTH", {
+      centerClearWidth: centerClear,
+      minimumSectionClearWidth: rules.minSectionClearWidth
+    });
+  }
+  if (centerClear > maximumShelfSpan + 1e-6) {
+    return failure("CENTER_MODULE_SHELF_SPAN_EXCEEDED", {
+      centerClearWidth: centerClear,
+      maximumShelfSpan
+    });
+  }
+
+  const arrangements = clearWidths.map((clearWidth, index) => resolveDoorArrangement({
+    opening: { size: { x: clearWidth } },
+    requested: "pair",
+    openingKind: "lower_cabinet",
+    sectionIndex: index,
+    sectionCount: 4
+  }));
+  const invalidArrangement = arrangements.findIndex((arrangement) => !arrangement.valid);
+  if (invalidArrangement >= 0) {
+    return failure("MODULE_PAIRED_DOORS_UNBUILDABLE", {
+      moduleIndex: invalidArrangement,
+      clearWidth: clearWidths[invalidArrangement],
+      arrangementReason: arrangements[invalidArrangement].reason
+    });
+  }
+
+  return deepFreeze({
+    accepted: true,
+    templateId: TV_DRAWING_4_TEMPLATE_ID,
+    units: "inches",
+    sections: 4,
+    specialSpan: 2,
+    specialIndices: [1, 2],
+    serviceOpeningWidth: round(opening),
+    panelThickness: panel,
+    clearWidths,
+    sideClearWidth: sideClear,
+    centerClearWidth: centerClear,
+    minimumCaseworkWidth,
+    maximumCaseworkWidth,
+    pairedDoorLeafWidths: arrangements.map((arrangement) => arrangement.leafWidth),
+    warnings: [],
+    errors: []
+  });
 }
 
 function resolvePreferredZoneIds(productId, topology, project = {}) {

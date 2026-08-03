@@ -2,20 +2,20 @@ import {
   CONSTRUCTION_PROFILE_IDS,
   migrateLegacyConstructionConfig,
   normalizeBookcaseConfig
-} from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=luxury-configurator-engine-v1-20260802c";
+} from "./bookcase-config.js?v=tv-drawing-4-geometry-v1-20260802a";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
   createLayoutFingerprint,
   createLegacyLayoutFingerprint
-} from "./bookcase-bom.js?v=engine-polish-20260716a";
+} from "./bookcase-bom.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
   PRICING_VERSION,
   PRICING_RATES,
   calculateBookcasePriceBreakdown
-} from "./bookcase-pricing.js?v=luxury-configurator-engine-v1-20260802c";
+} from "./bookcase-pricing.js?v=tv-drawing-4-geometry-v1-20260802a";
 import { HARDWARE_CATALOG_VERSION } from "./hardware-catalog.js?v=engine-polish-20260716a";
 
-export const ENGINE_VERSION = "2026.07-direct-hardware-v2";
+export const ENGINE_VERSION = "2026.08-tv-drawing-4-v1";
 export const DESIGN_SCHEMA_VERSION = 5;
 export const DESIGN_SELECTION_FINGERPRINT_VERSION = 2;
 const SCHEMA_FOUR_PRICING_VERSIONS = new Set([
@@ -24,6 +24,12 @@ const SCHEMA_FOUR_PRICING_VERSIONS = new Set([
   "2026.07-hardware-catalog-v2",
   PRICING_VERSION
 ]);
+const SCHEMA_FIVE_BOM_PRICING_MIGRATION = Object.freeze({
+  engineVersion: "2026.07-direct-hardware-v2",
+  pricingVersion: "2026.07-section-storage-v1",
+  bomSchemaVersion: 1,
+  currentBomSchemaVersion: 2
+});
 
 /**
  * Evaluate a customer change without mutating the currently accepted design.
@@ -250,9 +256,17 @@ export function restoreAcceptedDesignSnapshot(payload) {
       expectedSelectionFingerprint,
       selectionFingerprint
     });
+  const verifiedLegacyBomPricingSnapshot = payloadSchemaVersion === 5
+    && verifyLegacySchemaFiveBomPricingSnapshot({
+      payload,
+      evaluation,
+      expectedFingerprint,
+      expectedSelectionFingerprint,
+      selectionFingerprint
+    });
   const verifiedLegacyPricingMigration = payloadSchemaVersion === 4
     && isSchemaFourLegacyPricingMigration(payload, evaluation);
-  if (savedArtifactIssue && !verifiedLegacySectionStorageSnapshot) {
+  if (savedArtifactIssue && !verifiedLegacySectionStorageSnapshot && !verifiedLegacyBomPricingSnapshot) {
     return {
       ...evaluation,
       accepted: false,
@@ -321,7 +335,8 @@ export function restoreAcceptedDesignSnapshot(payload) {
     expectedSelectionFingerprint &&
     typeof payload.id === "string" &&
     payload.id !== regeneratedId &&
-    !verifiedLegacySectionStorageSnapshot
+    !verifiedLegacySectionStorageSnapshot &&
+    !verifiedLegacyBomPricingSnapshot
   ) {
     return {
       ...evaluation,
@@ -340,7 +355,7 @@ export function restoreAcceptedDesignSnapshot(payload) {
     ...evaluation,
     compatible: true,
     selectionFingerprint,
-    ...(savedConfigMigration.migrated || savedConfigMigration.hardwareMigrated || verifiedLegacySectionStorageSnapshot || verifiedLegacyPricingMigration ? {
+    ...(savedConfigMigration.migrated || savedConfigMigration.hardwareMigrated || verifiedLegacySectionStorageSnapshot || verifiedLegacyBomPricingSnapshot || verifiedLegacyPricingMigration ? {
       migration: {
         ...(savedConfigMigration.migrated ? {
           constructionProfile: CONSTRUCTION_PROFILE_IDS.legacyOverlay,
@@ -356,6 +371,13 @@ export function restoreAcceptedDesignSnapshot(payload) {
           preservedLegacySectionIntent: true,
           repricedFromVerifiedSchemaFive: Number(payload.total) !== evaluation.pricing.total
         } : {}),
+        ...(verifiedLegacyBomPricingSnapshot ? {
+          priorBomSchemaVersion: payload.bom.schemaVersion,
+          bomSchemaVersion: evaluation.bom.schemaVersion,
+          priorPricingVersion: payload.pricingVersion,
+          pricingVersion: evaluation.pricing.pricingVersion,
+          regeneratedFromVerifiedSchemaFive: true
+        } : {}),
         ...(verifiedLegacyPricingMigration ? {
           priorPricingVersion: payload.pricingVersion,
           pricingVersion: evaluation.pricing.pricingVersion,
@@ -366,6 +388,102 @@ export function restoreAcceptedDesignSnapshot(payload) {
     } : {}),
     errors: []
   };
+}
+
+/**
+ * Phase 3 added an empty countertop projection to schema-5 direct saves and
+ * advanced the pricing identity. A pre-Phase-3 non-TV save may cross that
+ * boundary only when every other canonical artifact and its original ID chain
+ * still verifies exactly. Media/TV layouts are deliberately excluded because
+ * their Phase-3 descriptor geometry changed.
+ */
+function verifyLegacySchemaFiveBomPricingSnapshot({
+  payload,
+  evaluation,
+  expectedFingerprint,
+  expectedSelectionFingerprint,
+  selectionFingerprint
+}) {
+  const migration = SCHEMA_FIVE_BOM_PRICING_MIGRATION;
+  if (Number(payload?.schemaVersion) !== 5) return false;
+  if (payload?.engineVersion !== migration.engineVersion) return false;
+  if (payload?.pricingVersion !== migration.pricingVersion) return false;
+  if (payload?.bom?.schemaVersion !== migration.bomSchemaVersion) return false;
+  if (evaluation?.bom?.schemaVersion !== migration.currentBomSchemaVersion) return false;
+  if (evaluation?.pricing?.pricingVersion !== PRICING_VERSION) return false;
+  if (!expectedFingerprint || expectedFingerprint !== evaluation.layoutFingerprint) return false;
+  if (payload?.bom?.layoutFingerprint !== expectedFingerprint) return false;
+  if (!expectedSelectionFingerprint || expectedSelectionFingerprint !== selectionFingerprint) return false;
+  if (hasTvOrMediaSemantics(evaluation)) return false;
+  if (stableStringify(payload.canonicalConfig) !== stableStringify(evaluation.state)) return false;
+  if (payload?.catalogVersion !== (evaluation.state.hardwareSelections?.catalogVersion || HARDWARE_CATALOG_VERSION)) return false;
+  if (Number(payload?.total) !== Number(evaluation.pricing.total)) return false;
+
+  const legacyPriceBreakdown = cloneArtifact(serializePriceBreakdown(evaluation.pricing));
+  legacyPriceBreakdown.pricingVersion = migration.pricingVersion;
+  if (stableStringify(payload?.priceBreakdown) !== stableStringify(legacyPriceBreakdown)) return false;
+
+  const legacyBom = createSchemaFiveLegacyBomProjection(evaluation.bom);
+  if (!legacyBom || stableStringify(payload.bom) !== stableStringify(legacyBom)) return false;
+
+  const schedule = evaluation.bom.hardware?.schedule || [];
+  if (!Array.isArray(payload?.hardwareSchedule)
+    || stableStringify(payload.hardwareSchedule) !== stableStringify(schedule)) return false;
+  const snapshots = schedule.map((entry) => ({
+    variantId: entry.variantId,
+    factualSnapshot: entry.factualSnapshot
+  }));
+  if (!Array.isArray(payload?.hardwareSnapshots)
+    || stableStringify(payload.hardwareSnapshots) !== stableStringify(snapshots)) return false;
+  if (!Array.isArray(payload?.reviewWarnings)
+    || stableStringify(payload.reviewWarnings) !== stableStringify(evaluation.warnings || [])) return false;
+
+  const expectedId = createAcceptedDesignId(
+    expectedFingerprint,
+    payload.total,
+    migration.pricingVersion,
+    expectedSelectionFingerprint
+  );
+  return typeof payload?.id === "string" && payload.id === expectedId;
+}
+
+function createSchemaFiveLegacyBomProjection(currentBom) {
+  const emptyCountertop = (value) => value
+    && value.count === 0
+    && value.linearIn === 0
+    && value.faceAreaSqIn === 0
+    && stableStringify(value.byThicknessIn) === "{}"
+    && Array.isArray(value.items)
+    && value.items.length === 0;
+  if (!emptyCountertop(currentBom?.countertops)) return null;
+
+  const legacy = cloneArtifact(currentBom);
+  legacy.schemaVersion = SCHEMA_FIVE_BOM_PRICING_MIGRATION.bomSchemaVersion;
+  delete legacy.countertops;
+  for (const section of Object.values(legacy.bySectionId || {})) {
+    if (!emptyCountertop(section.countertops)) return null;
+    delete section.countertops;
+  }
+  for (const group of Object.values(legacy.bySectionGroupId || {})) {
+    if (!emptyCountertop(group.countertops)) return null;
+    delete group.countertops;
+  }
+  return legacy;
+}
+
+function hasTvOrMediaSemantics(evaluation) {
+  const state = evaluation?.state || {};
+  const specialKinds = Object.keys(evaluation?.bom?.openings?.specialByKind || {});
+  return state.layoutPreset === "media-wall"
+    || state.layoutType === "media_wall"
+    || state.centerOpening === true
+    || specialKinds.some((kind) => [
+      "media",
+      "tv_service_opening",
+      "continuous_media_console",
+      "soundbar_equipment_zone",
+      "equipment_ventilation"
+    ].includes(kind));
 }
 
 /**
@@ -664,7 +782,6 @@ function getLegacyBomCompatibilitySignature(bom = {}) {
       .filter(([kind]) => kind !== "toe_kick_void")
   );
   return {
-    schemaVersion: bom.schemaVersion,
     overall: {
       widthIn: bom.overall?.widthIn,
       heightIn: bom.overall?.heightIn,

@@ -10,3 +10,5 @@ qa/
 qa-*.png
 playwright-report/
 test-results/
+artifacts/blender-clay-worker/
+__pycache__/

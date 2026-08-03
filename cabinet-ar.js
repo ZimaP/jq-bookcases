@@ -2,7 +2,7 @@ import {
   createDesignId,
   migrateLegacyConstructionConfig,
   normalizeBookcaseConfig
-} from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
+} from "./bookcase-config.js?v=tv-drawing-4-geometry-v1-20260802a";
 import { createHardwareVariantSnapshot } from "./hardware-catalog.js?v=engine-polish-20260716a";
 
 export const CABINET_AR_SCHEMA_VERSION = 1;

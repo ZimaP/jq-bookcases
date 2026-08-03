@@ -61,6 +61,7 @@ test("all reachable product/topology candidates pass the physical quality gate a
   const failures = [];
   let acceptedCount = 0;
   let unavailableCount = 0;
+  let drawing4RejectedCount = 0;
 
   for (const matrixCase of cases) {
     try {
@@ -73,6 +74,19 @@ test("all reachable product/topology candidates pass the physical quality gate a
           specification.errors?.[0]?.code,
           "UNSUPPORTED_PRODUCT_LAYOUT",
           `${matrixCase.key} did not fail with the closed compatibility diagnostic`
+        );
+        continue;
+      }
+
+      if (specification.errors?.[0]?.code === "TV_DRAWING_4_TEMPLATE_FIT_REJECTED") {
+        drawing4RejectedCount += 1;
+        assert.equal(matrixCase.productId, "tv-unit", matrixCase.key);
+        assert.equal(specification.accepted, false, matrixCase.key);
+        assert.equal(specification.stage, "product-geometry", matrixCase.key);
+        assert.match(
+          specification.errors[0]?.reason || "",
+          /^(SIDE_MODULE_PAIRED_DOORS_UNBUILDABLE|SIDE_MODULE_SHELF_SPAN_EXCEEDED)$/,
+          matrixCase.key
         );
         continue;
       }
@@ -99,7 +113,8 @@ test("all reachable product/topology candidates pass the physical quality gate a
     }
   }
 
-  assert.equal(acceptedCount, 300, "matrix drift changed the expected reachable-case count");
+  assert.equal(acceptedCount, 284, "matrix drift changed the expected accepted reachable-case count");
+  assert.equal(drawing4RejectedCount, 16, "matrix drift changed the expected Drawing 4 fit-rejection count");
   assert.equal(unavailableCount, 120, "matrix drift changed the expected unavailable-case count");
   assert.equal(failures.length, 0, summarizeFailures(failures));
 });

@@ -1,0 +1,48 @@
+{
+  "id": "TV01-clear-wall-foundation",
+  "approvalStatus": "internal-drawing-4-prototype",
+  "purpose": "Drawing 4 internal prototype contract fixture; this is not an approved customer beauty-render template.",
+  "project": {
+    "productId": "tv-unit",
+    "layoutId": "clear-wall",
+    "measurements": {
+      "wallWidth": 120,
+      "ceilingHeight": 96,
+      "desiredDepth": 14,
+      "tvScreenSize": 65,
+      "tvHeight": 33,
+      "soundbarRequired": "yes",
+      "tvMounting": "wall-mounted",
+      "outletLocation": "behind-tv"
+    },
+    "finish": "natural-oak",
+    "accentFinish": "no-accent",
+    "doorStyle": "shaker",
+    "hardware": "black-pull",
+    "lighting": "warm-led",
+    "baseStyle": "flush-base",
+    "topTreatment": "small-crown"
+  },
+  "currentContractExpectations": {
+    "caseworkWidth": 117,
+    "caseworkHeight": 96,
+    "caseworkDepth": 14,
+    "leftFiller": 1.5,
+    "rightFiller": 1.5,
+    "tvBodyWidth": 56,
+    "tvBodyHeight": 33,
+    "tvOpeningWidth": 60,
+    "tvOpeningHeight": 37,
+    "moduleClearWidths": [27, 29.625, 29.625, 27],
+    "outerShelfThickness": 1,
+    "centerShelfThickness": 1.25,
+    "countertopWidth": 117,
+    "countertopThickness": 1.25,
+    "countertopDepth": 14,
+    "doorCount": 8,
+    "hardwareCount": 8,
+    "renderableComponents": 44,
+    "renderableSubmeshes": 78,
+    "nonRenderableBlenderConstraints": 7
+  }
+}

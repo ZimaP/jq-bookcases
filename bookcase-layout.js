@@ -2,12 +2,13 @@ import {
   CONSTRUCTION_PROFILE_IDS as CONFIG_CONSTRUCTION_PROFILE_IDS,
   DOOR_ARRANGEMENTS as CONFIG_DOOR_ARRANGEMENTS,
   SECTION_STORAGE_LIMITS,
+  TV_DRAWING_4_TEMPLATE_ID,
   getHardwareType,
   normalizeBookcaseConfig,
   normalizeHardwareConfiguration,
   normalizeDrawerFrontStyleValue,
   normalizeSectionTypeValue
-} from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
+} from "./bookcase-config.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
   getHardwareProxySpec,
   projectVariantToLegacyHardware,
@@ -120,6 +121,39 @@ export const CONSTRUCTION_RULES = Object.freeze({
   minShelves: 2,
   maxShelves: 8
 });
+
+const MDF_SHELF_SPAN_RULES = Object.freeze([
+  Object.freeze({ ruleId: "john-mdf-1in-27in-v1", thickness: 1, maximumSpan: 27 }),
+  Object.freeze({ ruleId: "john-mdf-1_25in-31in-v1", thickness: 1.25, maximumSpan: 31 }),
+  Object.freeze({ ruleId: "john-mdf-1_5in-36in-v1", thickness: 1.5, maximumSpan: 36 })
+]);
+const TV_DRAWING_4_COUNTERTOP_THICKNESS = 1.25;
+
+/** Resolve John's supplied MDF shelf schedule from one clear unsupported span. */
+export function resolveMdfShelfThickness(clearSpan) {
+  const span = Number(clearSpan);
+  if (!Number.isFinite(span) || span <= 0) {
+    return Object.freeze({
+      accepted: false,
+      code: "MDF_SHELF_SPAN_RULE_REJECTED",
+      reason: "INVALID_CLEAR_SPAN"
+    });
+  }
+  const rule = MDF_SHELF_SPAN_RULES.find((candidate) => span <= candidate.maximumSpan);
+  if (!rule) {
+    return Object.freeze({
+      accepted: false,
+      code: "MDF_SHELF_SPAN_RULE_REJECTED",
+      reason: "CLEAR_SPAN_EXCEEDS_36_INCHES"
+    });
+  }
+  return Object.freeze({
+    accepted: true,
+    thickness: rule.thickness,
+    maximumSpan: rule.maximumSpan,
+    ruleId: rule.ruleId
+  });
+}
 
 export const CROWN_PROFILE_GEOMETRY_SCHEMA_VERSION = 1;
 
@@ -956,6 +990,7 @@ export function generateBookcaseLayout(input = {}, options = {}) {
   const config = normalized.config;
   const corrections = normalized.corrections.slice();
   const rules = CONSTRUCTION_RULES;
+  const drawing4Template = isDrawing4TvTemplate(config);
   const components = [];
   const componentIndex = new Map();
   const sections = [];
@@ -991,9 +1026,12 @@ export function generateBookcaseLayout(input = {}, options = {}) {
     sectionRanges.push({ minX, maxX });
     sectionCursorX = round(maxX + panel);
   }
+  const lowerSurfaceThickness = drawing4Template
+    ? TV_DRAWING_4_COUNTERTOP_THICKNESS
+    : config.shelfThickness;
   const lowerOpeningTop = Math.min(
     clearBottom + rules.lowerCabinetClearHeight,
-    clearTop - rules.minUpperClearHeight - config.shelfThickness
+    clearTop - rules.minUpperClearHeight - lowerSurfaceThickness
   );
 
   const root = add({
@@ -1051,6 +1089,30 @@ export function generateBookcaseLayout(input = {}, options = {}) {
   });
   addCrownDescriptors(add, config, root, frame.top, frame.leftSide, frame.rightSide);
 
+  const continuousCountertop = drawing4Template
+    ? add({
+        id: "continuous-countertop",
+        role: "fixed_shelf",
+        parentId: root.id,
+        hostId: root.id,
+        bounds: bounds(
+          -config.width / 2,
+          config.width / 2,
+          lowerOpeningTop,
+          lowerOpeningTop + TV_DRAWING_4_COUNTERTOP_THICKNESS,
+          0,
+          config.depth
+        ),
+        metadata: {
+          fixed: true,
+          purpose: "continuous_countertop",
+          constructionTemplateId: TV_DRAWING_4_TEMPLATE_ID,
+          constructionThickness: TV_DRAWING_4_COUNTERTOP_THICKNESS,
+          joinery: "continuous_through_verticals"
+        }
+      })
+    : null;
+
   const special = getSpecialZone(config);
   const skippedDividers = new Set();
   for (let index = 1; index < config.sections; index += 1) {
@@ -1073,7 +1135,7 @@ export function generateBookcaseLayout(input = {}, options = {}) {
             x,
             x + panel,
             clearBottom,
-            lowerOpeningTop + config.shelfThickness,
+            drawing4Template ? lowerOpeningTop : lowerOpeningTop + config.shelfThickness,
             0,
             clearDepth
           ),
@@ -1159,7 +1221,7 @@ export function generateBookcaseLayout(input = {}, options = {}) {
     });
     const openingMinY = special.kind === "desk" || special.kind === "feature"
       ? clearBottom
-      : lowerOpeningTop + config.shelfThickness;
+      : lowerOpeningTop + lowerSurfaceThickness;
     add({
       id: "feature-opening",
       role: "opening",
@@ -1208,7 +1270,9 @@ export function generateBookcaseLayout(input = {}, options = {}) {
       lowerOpeningTop,
       shelves,
       referencePlanes,
-      corrections
+      corrections,
+      continuousCountertop,
+      drawing4Template
     });
   }
 
@@ -1289,7 +1353,9 @@ function buildSectionContents(context) {
     lowerOpeningTop,
     shelves,
     referencePlanes,
-    corrections
+    corrections,
+    continuousCountertop,
+    drawing4Template
   } = context;
   const index = section.metadata.index;
   const sectionConfig = getSectionConfig(config, index, section.metadata.type);
@@ -1300,7 +1366,9 @@ function buildSectionContents(context) {
   const frontOpeningTop = getFrontOpeningTop(config, clearTop);
   const requestedLowerOpeningTop = section.bounds.min.y + sectionConfig.lowerStorageHeight;
   const maximumLowerOpeningTop = clearTop - rules.minUpperClearHeight - rules.fixedSeparatorThickness;
-  const sectionLowerOpeningTop = round(Math.min(requestedLowerOpeningTop, maximumLowerOpeningTop));
+  const sectionLowerOpeningTop = drawing4Template
+    ? round(lowerOpeningTop)
+    : round(Math.min(requestedLowerOpeningTop, maximumLowerOpeningTop));
   const appliedLowerStorageHeight = round(sectionLowerOpeningTop - section.bounds.min.y);
   if (
     (sectionType === "lower_doors" || sectionType === "drawers")
@@ -1373,26 +1441,31 @@ function buildSectionContents(context) {
         frontPlaneZ: referencePlanes.carcassFrontPlaneZ
       }
     });
-    const separator = add({
-      id: section.id + "-lower-separator",
-      role: "fixed_shelf",
-      parentId: section.id,
-      hostId: section.id,
-      bounds: bounds(
-        section.bounds.min.x,
-        section.bounds.max.x,
-        sectionLowerOpeningTop,
-        sectionLowerOpeningTop + rules.fixedSeparatorThickness,
-        referencePlanes.fixedSeparatorFrontPlaneZ,
-        clearDepth
-      ),
-      metadata: {
-        fixed: true,
-        purpose: "lower_separator",
-        frontPlaneZ: referencePlanes.fixedSeparatorFrontPlaneZ,
-        constructionThickness: rules.fixedSeparatorThickness
-      }
-    });
+    const separator = drawing4Template
+      ? continuousCountertop
+      : add({
+          id: section.id + "-lower-separator",
+          role: "fixed_shelf",
+          parentId: section.id,
+          hostId: section.id,
+          bounds: bounds(
+            section.bounds.min.x,
+            section.bounds.max.x,
+            sectionLowerOpeningTop,
+            sectionLowerOpeningTop + rules.fixedSeparatorThickness,
+            referencePlanes.fixedSeparatorFrontPlaneZ,
+            clearDepth
+          ),
+          metadata: {
+            fixed: true,
+            purpose: "lower_separator",
+            frontPlaneZ: referencePlanes.fixedSeparatorFrontPlaneZ,
+            constructionThickness: rules.fixedSeparatorThickness
+          }
+        });
+    if (!separator) {
+      throw new Error("Drawing 4 lower storage requires its continuous countertop descriptor.");
+    }
     shelfRegionBottom = separator.bounds.max.y;
 
     if (sectionType === "drawers") {
@@ -1414,6 +1487,21 @@ function buildSectionContents(context) {
 
   if (isDesk || isSpecial) return;
 
+  const shelfRule = drawing4Template
+    ? resolveMdfShelfThickness(section.size.x)
+    : null;
+  if (shelfRule && !shelfRule.accepted) {
+    section.metadata.shelfSpanRule = shelfRule;
+    return;
+  }
+  const shelfThickness = shelfRule?.accepted
+    ? shelfRule.thickness
+    : config.shelfThickness;
+  if (shelfRule?.accepted) {
+    section.metadata.shelfSpanRule = shelfRule;
+    section.metadata.shelfThickness = shelfThickness;
+  }
+
   const shelfBounds = distributeShelves({
     section,
     count: resolveSectionShelfCount({
@@ -1422,12 +1510,12 @@ function buildSectionContents(context) {
       sectionIndex: index,
       minY: shelfRegionBottom,
       maxY: clearTop,
-      thickness: config.shelfThickness,
+      thickness: shelfThickness,
       rules,
       corrections,
       section
     }),
-    thickness: config.shelfThickness,
+    thickness: shelfThickness,
     minY: shelfRegionBottom,
     maxY: clearTop,
     clearDepth,
@@ -1454,7 +1542,13 @@ function buildSectionContents(context) {
       metadata: {
         adjustable: true,
         ordinal: shelfIndex + 1,
-        unsupportedSpan: sizeFromBounds(shelfBox).x > rules.maxUnsupportedShelfSpan
+        unsupportedSpan: sizeFromBounds(shelfBox).x > rules.maxUnsupportedShelfSpan,
+        ...(shelfRule?.accepted ? {
+          clearSpan: section.size.x,
+          constructionThickness: shelfRule.thickness,
+          shelfSpanRuleId: shelfRule.ruleId,
+          maximumApprovedClearSpan: shelfRule.maximumSpan
+        } : {})
       }
     });
     shelves.push(shelf);
@@ -2202,9 +2296,22 @@ function getSpecialZone(config) {
   };
 }
 
+function isDrawing4TvTemplate(config) {
+  return config?.layoutMetadata?.constructionTemplateId === TV_DRAWING_4_TEMPLATE_ID;
+}
+
 function resolveSectionType(config, index, special) {
-  if (special.indices.includes(index)) return special.kind;
   const explicitTypes = config.layoutMetadata.sectionTypes;
+  if (
+    isDrawing4TvTemplate(config)
+    && special.kind === "media"
+    && special.indices.includes(index)
+    && Array.isArray(explicitTypes)
+    && explicitTypes[index] === "lower_doors"
+  ) {
+    return "lower_doors";
+  }
+  if (special.indices.includes(index)) return special.kind;
   if (Array.isArray(explicitTypes) && typeof explicitTypes[index] === "string") {
     return explicitTypes[index];
   }
@@ -2487,6 +2594,7 @@ export function validateBookcaseLayout(layout) {
     }
   }
 
+  validateDrawing4TvTemplate(layout, components, map, issues);
   validateShelfSpacing(components, issues);
   validateBaseAssembly(layout, components, map, referencePlanes, issues);
   validateHardwareCompleteness(layout, components, issues);
@@ -2501,6 +2609,113 @@ export function validateBookcaseLayout(layout) {
     warnings,
     issues
   };
+}
+
+function validateDrawing4TvTemplate(layout, components, map, issues) {
+  if (!isDrawing4TvTemplate(layout?.config)) return;
+  const templateIssue = (code, componentId, relatedId, message) => {
+    issues.push(issue(code, "error", componentId, relatedId, message));
+  };
+  const sections = components.filter((component) => component.role === "section");
+  if (sections.length !== 4) {
+    templateIssue(
+      "TV_DRAWING_4_SECTION_COUNT",
+      "bookcase",
+      null,
+      "Drawing 4 requires exactly four canonical module identities."
+    );
+  }
+  const lowerOpenings = components.filter((component) => (
+    component.role === "opening" && component.metadata?.kind === "lower_cabinet"
+  ));
+  if (lowerOpenings.length !== 4) {
+    templateIssue(
+      "TV_DRAWING_4_LOWER_OPENING_COUNT",
+      "bookcase",
+      null,
+      "Drawing 4 requires one paired-door opening in each of its four modules."
+    );
+  }
+  const doors = components.filter((component) => (
+    component.role === "door" && component.metadata?.tier === "primary"
+  ));
+  if (
+    doors.length !== 8
+    || doors.some((door) => door.metadata?.arrangement !== "pair" || door.metadata?.leafCount !== 2)
+  ) {
+    templateIssue(
+      "TV_DRAWING_4_PAIRED_DOOR_COUNT",
+      "bookcase",
+      null,
+      "Drawing 4 requires four valid paired lower openings and eight physical door leaves."
+    );
+  }
+  const countertops = components.filter((component) => (
+    component.role === "fixed_shelf" && component.metadata?.purpose === "continuous_countertop"
+  ));
+  const countertop = countertops[0];
+  if (
+    countertops.length !== 1
+    || !countertop
+    || !nearlyEqual(countertop.size.x, layout.config.width)
+    || !nearlyEqual(countertop.size.y, TV_DRAWING_4_COUNTERTOP_THICKNESS)
+    || !nearlyEqual(countertop.size.z, layout.config.depth)
+  ) {
+    templateIssue(
+      "TV_DRAWING_4_COUNTERTOP_INVALID",
+      countertop?.id || "continuous-countertop",
+      "bookcase",
+      "Drawing 4 requires one continuous full-width, full-depth 1.25-inch countertop."
+    );
+  }
+  if (components.some((component) => component.metadata?.purpose === "lower_separator")) {
+    templateIssue(
+      "TV_DRAWING_4_SEGMENTED_COUNTERTOP",
+      "bookcase",
+      null,
+      "Drawing 4 must not retain per-module lower separator slabs."
+    );
+  }
+
+  for (const section of sections) {
+    const rule = resolveMdfShelfThickness(section.size.x);
+    if (!rule.accepted) {
+      templateIssue(
+        rule.code,
+        section.id,
+        null,
+        "This Drawing 4 module exceeds the approved 36-inch unsupported MDF shelf span."
+      );
+      continue;
+    }
+    const sectionShelves = components.filter((component) => (
+      component.role === "shelf" && component.parentId === section.id
+    ));
+    for (const shelf of sectionShelves) {
+      if (!nearlyEqual(shelf.size.y, rule.thickness)) {
+        templateIssue(
+          "TV_DRAWING_4_SHELF_THICKNESS_INVALID",
+          shelf.id,
+          section.id,
+          "Drawing 4 shelf thickness must be selected from its clear-span rule."
+        );
+      }
+    }
+  }
+
+  const lowerSupport = map.get("divider-02-lower-support");
+  if (
+    !lowerSupport
+    || !countertop
+    || !nearlyEqual(lowerSupport.bounds.max.y, countertop.bounds.min.y)
+  ) {
+    templateIssue(
+      "TV_DRAWING_4_CENTER_SUPPORT_INVALID",
+      lowerSupport?.id || "divider-02-lower-support",
+      countertop?.id || "continuous-countertop",
+      "The center lower divider must stop exactly at the countertop underside."
+    );
+  }
 }
 
 function validateDescriptorShape(component, issues) {
@@ -3118,6 +3333,7 @@ function validateCollisions(components, issues) {
       const left = solids[leftIndex];
       const right = solids[rightIndex];
       if (!boundsIntersect(left.bounds, right.bounds)) continue;
+      if (isContinuousCountertopJoinery(left, right)) continue;
       issues.push(issue(
         "COMPONENT_COLLISION",
         "error",
@@ -3127,6 +3343,22 @@ function validateCollisions(components, issues) {
       ));
     }
   }
+}
+
+function isContinuousCountertopJoinery(left, right) {
+  const countertop = left.metadata?.purpose === "continuous_countertop"
+    ? left
+    : right.metadata?.purpose === "continuous_countertop"
+      ? right
+      : null;
+  if (
+    !countertop
+    || countertop.role !== "fixed_shelf"
+    || countertop.metadata?.constructionTemplateId !== TV_DRAWING_4_TEMPLATE_ID
+    || countertop.metadata?.joinery !== "continuous_through_verticals"
+  ) return false;
+  const joined = countertop === left ? right : left;
+  return ["side_panel", "divider", "back_panel"].includes(joined.role);
 }
 
 export function findComponent(layout, id) {

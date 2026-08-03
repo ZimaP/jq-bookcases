@@ -1,9 +1,9 @@
-import { normalizeBookcaseConfig } from "./bookcase-config.js?v=luxury-configurator-engine-v1-20260802c";
-import { generateBookcaseLayout } from "./bookcase-layout.js?v=luxury-configurator-engine-v1-20260802c";
-import { deriveBookcaseBOM } from "./bookcase-bom.js?v=engine-polish-20260716a";
-import { deriveBillableComponents } from "./bookcase-billable.js?v=engine-polish-20260716a";
+import { normalizeBookcaseConfig } from "./bookcase-config.js?v=tv-drawing-4-geometry-v1-20260802a";
+import { generateBookcaseLayout } from "./bookcase-layout.js?v=tv-drawing-4-geometry-v1-20260802a";
+import { deriveBookcaseBOM } from "./bookcase-bom.js?v=tv-drawing-4-geometry-v1-20260802a";
+import { deriveBillableComponents } from "./bookcase-billable.js?v=tv-drawing-4-geometry-v1-20260802a";
 
-export const PRICING_VERSION = "2026.07-section-storage-v1";
+export const PRICING_VERSION = "2026.08-continuous-countertop-v2";
 
 export const PRICING_RATES = Object.freeze({
   baseProject: 1900,
@@ -128,16 +128,18 @@ export function calculateBookcasePriceBreakdown(config, precomputedLayout = null
     PRICING_RATES.adjustableShelf
   );
 
-  const shelfThicknessPremiumPerShelf = Math.max(0, state.shelfThickness - 0.75) *
-    PRICING_RATES.shelfThicknessPremiumPerInchPerShelf;
-  addLine(
-    lineItems,
-    "SHELF_THICKNESS",
-    "Shelf thickness premium",
-    bom.shelves.adjustableCount,
-    "shelf",
-    shelfThicknessPremiumPerShelf
-  );
+  if (bom.countertops.count > 0) {
+    addLine(
+      lineItems,
+      "CONTINUOUS_COUNTERTOP",
+      "Generated continuous countertop",
+      bom.countertops.count,
+      "countertop",
+      PRICING_RATES.adjustableShelf
+    );
+  }
+
+  addShelfThicknessPremiumLines(lineItems, bom, state.shelfThickness);
 
   addLine(
     lineItems,
@@ -328,6 +330,53 @@ function addLine(target, code, label, quantity, unit, unitRate) {
   };
   target.push(item);
   return item;
+}
+
+function addShelfThicknessPremiumLines(target, bom, fallbackThickness) {
+  const groups = Object.entries(bom.shelves.byThicknessIn || {})
+    .map(([thickness, quantity]) => ({
+      thickness: Number(thickness),
+      quantity: Number(quantity)
+    }))
+    .filter((group) => Number.isFinite(group.thickness) && Number.isFinite(group.quantity))
+    .sort((left, right) => left.thickness - right.thickness);
+
+  if (groups.length <= 1) {
+    const group = groups[0] || {
+      thickness: Number(fallbackThickness),
+      quantity: bom.shelves.adjustableCount
+    };
+    addLine(
+      target,
+      "SHELF_THICKNESS",
+      "Shelf thickness premium",
+      group.quantity,
+      "shelf",
+      shelfThicknessPremiumRate(group.thickness)
+    );
+    return;
+  }
+
+  for (const group of groups) {
+    const item = addLine(
+      target,
+      `SHELF_THICKNESS_${formatThicknessCode(group.thickness)}`,
+      `${roundQuantity(group.thickness)} in shelf thickness premium`,
+      group.quantity,
+      "shelf",
+      shelfThicknessPremiumRate(group.thickness)
+    );
+    item.thicknessIn = roundQuantity(group.thickness);
+  }
+}
+
+function shelfThicknessPremiumRate(thickness) {
+  return Math.max(0, Number(thickness) - 0.75) *
+    PRICING_RATES.shelfThicknessPremiumPerInchPerShelf;
+}
+
+function formatThicknessCode(thickness) {
+  return `${roundQuantity(thickness)}`.replace(".", "_") + "_IN";
 }
 
 function addCatalogHardwarePricingLines(target, schedule) {

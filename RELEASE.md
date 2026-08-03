@@ -24,8 +24,8 @@ addition to the public HTML, shell, generated color data, and photography, the
 guided configurator release must include:
 
 - the room-topology, installation-fit, product adapter/product engine, project
-  transaction, render-contract, material, scene-plan, renderer, state, data, and
-  UI modules;
+  transaction, accepted render-contract, renderer-neutral primitive, material,
+  scene-plan, renderer, state, data, and UI modules;
 - the canonical bookcase engine dependencies used by guided products, including
   `bookcase-render-contract.js`;
 - `config/` with the v1 fit, topology, compatibility, archetype, material,

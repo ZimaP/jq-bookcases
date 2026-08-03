@@ -15,7 +15,7 @@ const PHYSICAL_ROLES = new Set([
   "light"
 ]);
 
-export const BOM_SCHEMA_VERSION = 1;
+export const BOM_SCHEMA_VERSION = 2;
 export const LAYOUT_FINGERPRINT_VERSION = 1;
 
 /**
@@ -70,6 +70,7 @@ export function deriveBookcaseBOM(layout) {
   const sections = components.filter((component) => component.role === "section");
   const adjustableShelves = components.filter((component) => component.role === "shelf");
   const fixedShelves = components.filter((component) => component.role === "fixed_shelf");
+  const continuousCountertops = fixedShelves.filter(isContinuousCountertop);
   const doors = components.filter((component) => component.role === "door");
   const drawers = components.filter((component) => component.role === "drawer_front");
   const handles = components.filter((component) => component.role === "handle");
@@ -132,6 +133,7 @@ export function deriveBookcaseBOM(layout) {
       adjustableFaceAreaSqIn: round(sum(adjustableShelves, largestFaceArea)),
       byThicknessIn: shelfThicknesses
     },
+    countertops: summarizeContinuousCountertops(continuousCountertops),
     doors: {
       count: doors.length,
       primaryCount: doors.filter((component) => component.metadata?.tier === "primary").length,
@@ -251,6 +253,7 @@ function summarizeOwnedBOMComponents(owned) {
   const physical = owned.filter((component) => PHYSICAL_ROLES.has(component.role));
   const adjustableShelves = owned.filter((component) => component.role === "shelf");
   const fixedShelves = owned.filter((component) => component.role === "fixed_shelf");
+  const continuousCountertops = fixedShelves.filter(isContinuousCountertop);
   const doors = owned.filter((component) => component.role === "door");
   const drawers = owned.filter((component) => component.role === "drawer_front");
   const handles = owned.filter((component) => component.role === "handle");
@@ -270,6 +273,7 @@ function summarizeOwnedBOMComponents(owned) {
       fixedLinearIn: round(sum(fixedShelves, (component) => component.size.x)),
       byThicknessIn: countBy(adjustableShelves, (component) => String(component.size.y))
     },
+    countertops: summarizeContinuousCountertops(continuousCountertops),
     doors: {
       count: doors.length,
       primaryCount: doors.filter((component) => component.metadata?.tier === "primary").length,
@@ -298,6 +302,30 @@ function summarizeOwnedBOMComponents(owned) {
     },
     byRole: countBy(physical, (component) => component.role),
     physicalComponentIds: physical.map((component) => component.id)
+  };
+}
+
+function isContinuousCountertop(component) {
+  return component.role === "fixed_shelf"
+    && component.metadata?.purpose === "continuous_countertop";
+}
+
+function summarizeContinuousCountertops(countertops) {
+  return {
+    count: countertops.length,
+    linearIn: round(sum(countertops, (component) => component.size.x)),
+    faceAreaSqIn: round(sum(countertops, (component) => component.size.x * component.size.z)),
+    byThicknessIn: countBy(countertops, (component) => String(component.size.y)),
+    items: countertops.map((component) => ({
+      componentId: component.id,
+      purpose: component.metadata.purpose,
+      quantity: 1,
+      dimensionsIn: {
+        width: round(component.size.x),
+        thickness: round(component.size.y),
+        depth: round(component.size.z)
+      }
+    }))
   };
 }
 
