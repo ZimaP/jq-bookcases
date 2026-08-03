@@ -536,6 +536,8 @@ test("browser modules use one cache identity for every shared dependency", () =>
 });
 
 test("the build syntax-checks every guided accepted-specification module", () => {
+  assert.match(packageSource, /"preview:check-registry": "node scripts\/generate-photoreal-preview-registry\.mjs --check"/);
+  assert.match(packageSource, /"build": "[^"]*npm run preview:check-registry/);
   for (const moduleName of [
     "guided-room-topology.js",
     "guided-installation-solver.js",
@@ -549,6 +551,11 @@ test("the build syntax-checks every guided accepted-specification module", () =>
     "guided-scene-plan.js",
     "guided-configurator-3d.js",
     "guided-configurator.js",
+    "guided-published-preview-registry.generated.js",
+    "guided-published-preview-data.js",
+    "scripts/generate-photoreal-preview-registry.mjs",
+    "tools/blender/photoreal-matrix-contract.mjs",
+    "tools/blender/run-photoreal-matrix.mjs",
   ]) {
     assert.match(
       packageSource,
@@ -591,6 +598,7 @@ test("manual production release uses an allowlisted Pages artifact", () => {
   assert.match(productionWorkflowSource, /-name '\*\.html'/);
   assert.match(productionWorkflowSource, /guided-configurator\.css/);
   assert.match(productionWorkflowSource, /guided-configurator\.js/);
+  assert.match(productionWorkflowSource, /guided-published-preview-registry\.generated\.js/);
   assert.match(productionWorkflowSource, /guided-published-preview-data\.js/);
   assert.match(productionWorkflowSource, /guided-configurator-data\.js/);
   assert.match(productionWorkflowSource, /guided-configurator-state\.js/);
@@ -616,6 +624,7 @@ test("manual production release uses an allowlisted Pages artifact", () => {
 
   for (const runtimeAsset of [
     "_site/guided-configurator.js",
+    "_site/guided-published-preview-registry.generated.js",
     "_site/guided-published-preview-data.js",
     "_site/guided-configurator.css",
     "_site/guided-scene-plan.js",
@@ -662,8 +671,10 @@ test("manual production release uses an allowlisted Pages artifact", () => {
     "_site/config/materials.json",
     "_site/config/product-archetypes.json",
     "_site/config/product-layout-compatibility.json",
+    "_site/config/photoreal-preview-matrix-provenance.json",
     "_site/config/provisional-decisions.json",
     "_site/config/room-topologies.json",
+    "_site/assets/photos/configurator/integrated/tv-unit/framed-tv-wall/tv01-clear-wall-photoreal-preview-v1.webp",
     "_site/data/generated/benjamin-moore-colors.json",
   ]) {
     assert.match(
@@ -672,6 +683,19 @@ test("manual production release uses an allowlisted Pages artifact", () => {
       runtimeAsset + " must be verified before upload",
     );
   }
+  assert.match(productionWorkflowSource, /node --input-type=module <<'NODE'/);
+  assert.match(productionWorkflowSource, /manifest\.entries\.length !== expectedCounts\.total/);
+  assert.match(productionWorkflowSource, /published: 50/);
+  assert.match(productionWorkflowSource, /pending: 0/);
+  assert.match(productionWorkflowSource, /failed: 0/);
+  assert.match(productionWorkflowSource, /manifest\.failures\.length !== expectedCounts\.failed/);
+  assert.match(productionWorkflowSource, /entry\.renderStatus !== "published" \|\| !entry\.provenance/);
+  assert.match(productionWorkflowSource, /assets\/photos\/configurator\/photoreal-matrix\//);
+  assert.match(productionWorkflowSource, /Published photoreal matrix asset is missing/);
+  assert.match(productionWorkflowSource, /deployedBytes\.length !== publishedAsset\.bytes/);
+  assert.match(productionWorkflowSource, /createHash\("sha256"\)\.update\(deployedBytes\)\.digest\("hex"\)/);
+  assert.match(productionWorkflowSource, /deployedSha256 !== publishedAsset\.sha256/);
+  assert.match(productionWorkflowSource, /verifiedPublishedAssets !== expectedCounts\.published/);
   assert.match(productionWorkflowSource, /test ! -e _site\/configurator-3d\.js/);
 });
 

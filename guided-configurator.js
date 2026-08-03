@@ -29,7 +29,7 @@ import {
 } from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
   resolvePublishedCustomerPreview
-} from "./guided-published-preview-data.js?v=tv01-photoreal-preview-v1-20260803a";
+} from "./guided-published-preview-data.js?v=universal-photoreal-preview-v1-20260803a";
 import {
   createGuidedAcceptedSnapshot,
   prepareGuidedProjectPersistence,
@@ -97,6 +97,7 @@ let toastTimer = 0;
 let draftTimer = 0;
 let storageWarningShown = false;
 const previewPreloadCache = new Set();
+const failedPublishedPreviewIds = new Set();
 let guidedSceneController = null;
 let guidedSceneImportPromise = null;
 let guidedSceneSyncToken = 0;
@@ -293,6 +294,9 @@ function syncSaveControlState() {
 
 function scheduleLikelyNextStepImages() {
   let assets = [];
+  const publishedPreview = resolveCurrentPublishedPreview(project);
+  if (publishedPreview) preloadPublishedPreview(publishedPreview);
+
   if (project.currentStep === 1 && project.productSelected) {
     assets = SHARED_ROOM_LAYOUTS.map((layout) => layout.previewAsset);
   }
@@ -301,6 +305,24 @@ function scheduleLikelyNextStepImages() {
   window.setTimeout(() => {
     [...new Set(assets)].forEach(preloadPreviewAsset);
   }, 0);
+}
+
+function preloadPublishedPreview(preview) {
+  if (!preview?.asset || failedPublishedPreviewIds.has(preview.previewId)) return;
+  const source = preview.asset;
+  if (previewPreloadCache.has(source)) return;
+  previewPreloadCache.add(source);
+  const image = new Image();
+  image.decoding = "async";
+  image.addEventListener("error", () => markPublishedPreviewFailed(preview.previewId), { once: true });
+  image.src = source;
+}
+
+function markPublishedPreviewFailed(previewId) {
+  if (!previewId || failedPublishedPreviewIds.has(previewId)) return;
+  const currentPreview = resolveCurrentPublishedPreview(project);
+  failedPublishedPreviewIds.add(previewId);
+  if (currentPreview?.previewId === previewId) renderApp();
 }
 
 function preloadPreviewAsset(asset) {
@@ -443,11 +465,33 @@ function renderCategoryIcon(icon) {
 }
 
 function renderCurrentStep() {
+  const publishedPreview = project.currentStep >= 3
+    ? resolveCurrentPublishedPreview(project)
+    : null;
   if (project.currentStep === 1) return renderProductStep();
   if (project.currentStep === 2) return renderLayoutStep();
-  if (project.currentStep === 3) return renderMeasurementStep();
-  if (project.currentStep === 4) return renderCustomizationStep();
-  return renderReviewStep();
+  if (project.currentStep === 3) return renderMeasurementStep(publishedPreview);
+  if (project.currentStep === 4) return renderCustomizationStep(publishedPreview);
+  return renderReviewStep(publishedPreview);
+}
+
+function resolveCurrentPublishedPreview(currentProject = project) {
+  const selectedProduct = getProductChoiceForSelection(
+    currentProject?.category,
+    currentProject?.style
+  );
+  const candidate = {
+    productId: selectedProduct?.id || null,
+    layoutId: currentProject?.layout || null,
+    finishId: currentProject?.finish || null
+  };
+  let preview = resolvePublishedCustomerPreview(candidate);
+  if (preview?.finishOverrideId && failedPublishedPreviewIds.has(preview.previewId)) {
+    preview = resolvePublishedCustomerPreview({ ...candidate, finishId: null });
+  }
+  return preview && !failedPublishedPreviewIds.has(preview.previewId)
+    ? preview
+    : null;
 }
 
 function renderProductStep() {
@@ -723,7 +767,7 @@ function renderRadiatorFeature(y = 81) {
   `;
 }
 
-function renderMeasurementStep() {
+function renderMeasurementStep(publishedPreview) {
   const selectedLayout = getLayout(project.category, project.layout);
   const diagramFields = getMeasurementFields(project.category, project.layout);
   const fields = selectedLayout?.feature === "window"
@@ -744,6 +788,7 @@ function renderMeasurementStep() {
     previousGroup = field.group;
     return `${groupHeading}${renderMeasurementField(field, warning, diagramFieldIds.has(field.id))}`;
   }).join("");
+  const measurementDiagramFields = selectMeasurementDiagramFields(fields, selectedLayout);
 
   return `
     <div class="measurement-layout${denseMeasurements ? " measurement-layout--dense" : ""}">
@@ -777,8 +822,22 @@ function renderMeasurementStep() {
           </button>
         </div>
       </div>
-      <div class="measurement-diagram-column">
-        ${renderMeasurementDiagram(selectMeasurementDiagramFields(fields, selectedLayout), selectedLayout)}
+      <div class="measurement-diagram-column${publishedPreview ? " measurement-diagram-column--preview measurement-diagram-column--published" : ""}">
+        ${publishedPreview ? `
+          ${renderConceptPreview({ publishedPreview, includeFitSummary: false })}
+          <details class="measurement-guidance" data-measurement-guidance>
+            <summary>
+              <span>
+                <strong>Measurement guide</strong>
+                <small>Open the annotated room reference</small>
+              </span>
+              <i data-icon="chevron-down" aria-hidden="true"></i>
+            </summary>
+            <div class="measurement-guidance-body">
+              ${renderMeasurementDiagram(measurementDiagramFields, selectedLayout, { staticGuidance: true })}
+            </div>
+          </details>
+        ` : renderMeasurementDiagram(measurementDiagramFields, selectedLayout)}
       </div>
     </div>
   `;
@@ -861,7 +920,7 @@ function renderMeasurementField(field, warning, showDiagramCode = true) {
   `;
 }
 
-function renderMeasurementDiagram(fields, selectedLayout) {
+function renderMeasurementDiagram(fields, selectedLayout, options = {}) {
   const diagramSpec = getMeasurementDiagramSpec(project.category, selectedLayout?.id);
   const fieldsById = new Map(
     fields
@@ -876,7 +935,7 @@ function renderMeasurementDiagram(fields, selectedLayout) {
     {
       pictureClass: "measurement-room-image",
       imageClass: "measurement-room-image",
-      deferredFallback: true
+      deferredFallback: options.staticGuidance !== true
     }
   );
   const syntheticFeature = (
@@ -894,7 +953,7 @@ function renderMeasurementDiagram(fields, selectedLayout) {
       aria-label="Measurement diagram for ${escapeAttribute(selectedLayout?.label || "selected layout")}"
     >
       <div
-        class="measurement-room measurement-room--photo"
+        class="measurement-room measurement-room--photo${options.staticGuidance ? " measurement-room--static-guidance" : ""}"
         data-layout="${escapeAttribute(selectedLayout?.id || "clear-wall")}"
         data-condition="${escapeAttribute(selectedLayout?.condition || "clear-wall")}"
         data-feature="${escapeAttribute(diagramSpec.feature)}"
@@ -902,12 +961,14 @@ function renderMeasurementDiagram(fields, selectedLayout) {
         ${roomVisual}
         ${syntheticFeature}
         ${renderDimensionDrawing(dimensions, diagramSpec)}
-        <div
-          class="guided-3d-mount guided-3d-mount--measurements"
-          data-guided-3d-mount
-          data-guided-3d-mode="measurements"
-          aria-label="Interactive three-dimensional room measurement preview"
-        ></div>
+        ${options.staticGuidance ? "" : `
+          <div
+            class="guided-3d-mount guided-3d-mount--measurements"
+            data-guided-3d-mount
+            data-guided-3d-mode="measurements"
+            aria-label="Interactive three-dimensional room measurement preview"
+          ></div>
+        `}
       </div>
     </figure>
   `;
@@ -1071,7 +1132,7 @@ function renderDimensionArrowheads(line, diagramWidth) {
   `;
 }
 
-function renderCustomizationStep() {
+function renderCustomizationStep(publishedPreview) {
   return `
     <div class="customization-layout">
       <div class="customization-controls-column">
@@ -1090,7 +1151,7 @@ function renderCustomizationStep() {
           </button>
         </div>
       </div>
-      ${renderConceptPreview()}
+      ${renderConceptPreview({ publishedPreview })}
     </div>
   `;
 }
@@ -1243,20 +1304,10 @@ function renderConceptPreview(options = {}) {
   const finish = getFinish(project.finish);
   const diagnostic = guidedProjectTransaction?.errors?.[0] || null;
   const accepted = acceptedSpecification?.accepted === true;
-  const publishedPreview = options.customerPresentation === true
-    ? resolvePublishedCustomerPreview({
-        accepted,
-        categoryId: category.id,
-        productId: acceptedSpecification?.productId || selectedProduct?.id || null,
-        styleId: selectedStyle.id,
-        layoutId: acceptedSpecification?.layoutId || layout?.id || null,
-        finishId: finish.id,
-        geometryFingerprint: acceptedSpecification?.geometryFingerprint || null,
-        selectionFingerprint: acceptedSpecification?.selectionFingerprint || null,
-        specificationFingerprint: acceptedSpecification?.specificationFingerprint || null,
-        totalPrice: acceptedSpecification?.pricing?.total ?? null
-      })
-    : null;
+  const publishedPreview = Object.hasOwn(options, "publishedPreview")
+    ? options.publishedPreview
+    : resolveCurrentPublishedPreview(project);
+  const previewLabel = selectedProduct?.label || selectedStyle.label;
   const publishedPreviewAttributes = publishedPreview
     ? `data-customer-preview-id="${escapeAttribute(publishedPreview.previewId)}" data-customer-preview-capture="${escapeAttribute(publishedPreview.captureId)}"`
     : "";
@@ -1276,17 +1327,19 @@ function renderConceptPreview(options = {}) {
       data-specification-fingerprint="${escapeAttribute(acceptedSpecification?.specificationFingerprint || "")}"
       ${publishedPreviewAttributes}
       style="--finish-color:${escapeAttribute(finish.color)}"
-      aria-label="${escapeAttribute(`${selectedProduct?.label || selectedStyle.label} for ${layout?.label || category.label} in ${finish.label}`)}"
+      aria-label="${escapeAttribute(publishedPreview
+        ? `Photoreal preview of ${previewLabel} for ${layout?.label || category.label}`
+        : `${previewLabel} for ${layout?.label || category.label} in ${finish.label}`)}"
     >
       <div class="concept-preview-meta">
-        <div class="concept-finish-caption" aria-live="polite">
-          <span class="concept-finish-caption-swatch" aria-hidden="true"></span>
+        <div class="concept-finish-caption${publishedPreview ? " concept-finish-caption--published" : ""}" aria-live="polite">
+          ${publishedPreview ? "" : '<span class="concept-finish-caption-swatch" aria-hidden="true"></span>'}
           <span>
-            <small>Live finish</small>
-            <strong>${escapeHtml(finish.label)}</strong>
+            <small>${publishedPreview ? "Photoreal preview" : "Live finish"}</small>
+            <strong>${escapeHtml(publishedPreview ? previewLabel : finish.label)}</strong>
           </span>
         </div>
-        ${renderConceptLayoutContext(layout)}
+        ${renderConceptLayoutContext(layout, publishedPreview ? "published-preview" : "accepted-geometry")}
       </div>
       <div class="concept-scene-frame"${publishedPreview
         ? ` style="--published-preview-aspect-ratio:${escapeAttribute(publishedPreview.aspectRatio)};--published-preview-media-fit:${escapeAttribute(publishedPreview.mediaFit)};--published-preview-object-position:${escapeAttribute(publishedPreview.mediaObjectPosition)}"`
@@ -1311,7 +1364,7 @@ function renderConceptPreview(options = {}) {
             ${renderPreviewControls()}
           `}
       </div>
-      ${renderAcceptedFitSummary()}
+      ${options.includeFitSummary === false ? "" : renderAcceptedFitSummary()}
     </figure>
   `;
 }
@@ -1324,6 +1377,8 @@ function renderPublishedCustomerPreview(preview) {
     >
       <img
         class="published-customer-preview-image"
+        data-published-preview-image
+        data-published-preview-id="${escapeAttribute(preview.previewId)}"
         src="${escapeAttribute(preview.asset)}"
         alt="${escapeAttribute(preview.alt)}"
         width="${preview.width}"
@@ -1336,13 +1391,13 @@ function renderPublishedCustomerPreview(preview) {
   `;
 }
 
-function renderConceptLayoutContext(layout) {
+function renderConceptLayoutContext(layout, mode = "accepted-geometry") {
   if (!layout) return "";
   return `
     <div
       class="concept-layout-context"
       data-layout-context="${escapeAttribute(layout.id)}"
-      data-layout-context-mode="accepted-geometry"
+      data-layout-context-mode="${escapeAttribute(mode)}"
       role="note"
       aria-label="${escapeAttribute(`Selected room condition: ${layout.label}`)}"
     >
@@ -1383,7 +1438,7 @@ function renderPreviewControls() {
   `;
 }
 
-function renderReviewStep() {
+function renderReviewStep(publishedPreview) {
   const summary = buildProjectSummary(project, { acceptedSpecification });
   const summaryKeys = [
     "product",
@@ -1443,7 +1498,7 @@ function renderReviewStep() {
           </button>
         </div>
       </div>
-      ${renderConceptPreview({ customerPresentation: true })}
+      ${renderConceptPreview({ publishedPreview })}
     </div>
     <p class="guided-support">
       <i data-icon="help-center" aria-hidden="true"></i>
@@ -1453,6 +1508,12 @@ function renderReviewStep() {
 }
 
 function bindAppEvents() {
+  app.addEventListener("error", (event) => {
+    const image = event.target.closest?.("[data-published-preview-image]");
+    if (!image) return;
+    markPublishedPreviewFailed(image.dataset.publishedPreviewId);
+  }, true);
+
   app.addEventListener("click", (event) => {
     const target = event.target.closest("button, a");
     if (!target) return;
@@ -1612,6 +1673,8 @@ function selectLayout(layoutId) {
       : prepareMeasurementsForLayout(project, layoutId),
     updatedAt: new Date().toISOString()
   });
+  const publishedPreview = resolveCurrentPublishedPreview(project);
+  if (publishedPreview) preloadPublishedPreview(publishedPreview);
   renderApp();
 }
 

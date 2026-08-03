@@ -140,6 +140,7 @@ jobs:
             site.js \
             icon-system.js \
             guided-configurator.js \
+            guided-published-preview-registry.generated.js \
             guided-published-preview-data.js \
             guided-configurator-data.js \
             guided-configurator-state.js \
@@ -181,6 +182,7 @@ jobs:
           test -f _site/index.html
           test -f _site/configurator.html
           test -f _site/guided-configurator.js
+          test -f _site/guided-published-preview-registry.generated.js
           test -f _site/guided-published-preview-data.js
           test -f _site/guided-configurator.css
           for legacy_asset in \
@@ -243,8 +245,96 @@ jobs:
           test -f _site/config/materials.json
           test -f _site/config/product-archetypes.json
           test -f _site/config/product-layout-compatibility.json
+          test -f _site/config/photoreal-preview-matrix-provenance.json
           test -f _site/config/provisional-decisions.json
           test -f _site/config/room-topologies.json
+          test -f _site/assets/photos/configurator/integrated/tv-unit/framed-tv-wall/tv01-clear-wall-photoreal-preview-v1.webp
+          node --input-type=module <<'NODE'
+          import { createHash } from "node:crypto";
+          import { existsSync, readFileSync, statSync } from "node:fs";
+          import { isAbsolute, posix } from "node:path";
+
+          const manifestPath = "_site/config/photoreal-preview-matrix-provenance.json";
+          const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+          const expectedCounts = {
+            products: 7,
+            layouts: 10,
+            total: 70,
+            valid: 50,
+            unavailable: 20,
+            published: 50,
+            pending: 0,
+            failed: 0
+          };
+          for (const [field, expected] of Object.entries(expectedCounts)) {
+            if (manifest.counts?.[field] !== expected) {
+              throw new Error(`Photoreal matrix count ${field} must be ${expected}; received ${manifest.counts?.[field]}.`);
+            }
+          }
+          if (!Array.isArray(manifest.entries) || manifest.entries.length !== expectedCounts.total) {
+            throw new Error("Photoreal matrix manifest must enumerate all 70 authoritative combinations.");
+          }
+          if (!Array.isArray(manifest.failures) || manifest.failures.length !== expectedCounts.failed) {
+            throw new Error("Final photoreal matrix provenance must contain zero render failures.");
+          }
+
+          const keys = new Set();
+          let verifiedPublishedAssets = 0;
+          for (const entry of manifest.entries) {
+            if (!entry?.key || keys.has(entry.key)) {
+              throw new Error(`Missing or duplicate photoreal matrix key: ${entry?.key || "(missing)"}.`);
+            }
+            keys.add(entry.key);
+            if (!entry.valid) {
+              if (entry.renderStatus !== "unavailable" || entry.provenance !== null) {
+                throw new Error(`Unavailable matrix pair ${entry.key} must not be published.`);
+              }
+              continue;
+            }
+            if (entry.renderStatus !== "published" || !entry.provenance) {
+              throw new Error(`Valid matrix pair ${entry.key} is missing published provenance.`);
+            }
+            const publishedPath = entry.publishedPath;
+            if (
+              typeof publishedPath !== "string"
+              || isAbsolute(publishedPath)
+              || publishedPath !== posix.normalize(publishedPath)
+              || publishedPath.includes("..")
+              || !publishedPath.startsWith("assets/photos/configurator/photoreal-matrix/")
+              || !publishedPath.endsWith("/preview-v1.webp")
+            ) {
+              throw new Error(`Unsafe published asset path for ${entry.key}: ${publishedPath}.`);
+            }
+            const deployedPath = `_site/${publishedPath}`;
+            if (!existsSync(deployedPath) || !statSync(deployedPath).isFile()) {
+              throw new Error(`Published photoreal matrix asset is missing: ${deployedPath}.`);
+            }
+            const publishedAsset = entry.provenance.publishedAsset;
+            if (
+              publishedAsset?.path !== publishedPath
+              || publishedAsset?.mimeType !== "image/webp"
+              || publishedAsset?.width !== 1920
+              || publishedAsset?.height !== 1280
+              || !Number.isSafeInteger(publishedAsset?.bytes)
+              || publishedAsset.bytes <= 0
+              || !/^[a-f0-9]{64}$/.test(publishedAsset?.sha256 || "")
+            ) {
+              throw new Error(`Published provenance is incomplete for ${entry.key}.`);
+            }
+            const deployedBytes = readFileSync(deployedPath);
+            if (deployedBytes.length !== publishedAsset.bytes) {
+              throw new Error(`Published byte count does not match provenance for ${entry.key}.`);
+            }
+            const deployedSha256 = createHash("sha256").update(deployedBytes).digest("hex");
+            if (deployedSha256 !== publishedAsset.sha256) {
+              throw new Error(`Published SHA-256 does not match provenance for ${entry.key}.`);
+            }
+            verifiedPublishedAssets += 1;
+          }
+          if (verifiedPublishedAssets !== expectedCounts.published) {
+            throw new Error(`Expected ${expectedCounts.published} published assets; verified ${verifiedPublishedAssets}.`);
+          }
+          NODE
           test -f _site/data/generated/benjamin-moore-colors.json
           test -f _site/data/hardware/jq-hardware-catalog.seed.json
           test -f _site/styles/icons.css
