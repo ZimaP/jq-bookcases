@@ -28,6 +28,9 @@ import {
   resolveProductLayoutCompatibility
 } from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
+  resolvePublishedCustomerPreview
+} from "./guided-published-preview-data.js?v=tv01-photoreal-preview-v1-20260803a";
+import {
   createGuidedAcceptedSnapshot,
   prepareGuidedProjectPersistence,
   prepareGuidedQuote,
@@ -1232,7 +1235,7 @@ function renderDetailChoices({ compact = false } = {}) {
   `;
 }
 
-function renderConceptPreview() {
+function renderConceptPreview(options = {}) {
   const category = getCategory(project.category);
   const layout = getLayout(project.category, project.layout);
   const selectedStyle = getStyle(project.category, project.style);
@@ -1240,20 +1243,38 @@ function renderConceptPreview() {
   const finish = getFinish(project.finish);
   const diagnostic = guidedProjectTransaction?.errors?.[0] || null;
   const accepted = acceptedSpecification?.accepted === true;
+  const publishedPreview = options.customerPresentation === true
+    ? resolvePublishedCustomerPreview({
+        accepted,
+        categoryId: category.id,
+        productId: acceptedSpecification?.productId || selectedProduct?.id || null,
+        styleId: selectedStyle.id,
+        layoutId: acceptedSpecification?.layoutId || layout?.id || null,
+        finishId: finish.id,
+        geometryFingerprint: acceptedSpecification?.geometryFingerprint || null,
+        selectionFingerprint: acceptedSpecification?.selectionFingerprint || null,
+        specificationFingerprint: acceptedSpecification?.specificationFingerprint || null,
+        totalPrice: acceptedSpecification?.pricing?.total ?? null
+      })
+    : null;
+  const publishedPreviewAttributes = publishedPreview
+    ? `data-customer-preview-id="${escapeAttribute(publishedPreview.previewId)}" data-customer-preview-capture="${escapeAttribute(publishedPreview.captureId)}"`
+    : "";
 
   return `
     <figure
-      class="concept-preview"
+      class="concept-preview${publishedPreview ? " concept-preview--published-beauty" : ""}"
       data-category="${escapeAttribute(category.id)}"
       data-layout="${escapeAttribute(layout?.id || "unselected")}"
       data-style="${escapeAttribute(selectedStyle.id)}"
       data-finish="${escapeAttribute(finish.id)}"
       data-finish-family="${escapeAttribute(finish.family)}"
-      data-preview-render-mode="accepted-geometry"
+      data-preview-render-mode="${publishedPreview ? "published-photoreal" : "accepted-geometry"}"
       data-finish-mask-mode="none"
       data-accepted-specification="${accepted}"
       data-geometry-fingerprint="${escapeAttribute(acceptedSpecification?.geometryFingerprint || "")}"
       data-specification-fingerprint="${escapeAttribute(acceptedSpecification?.specificationFingerprint || "")}"
+      ${publishedPreviewAttributes}
       style="--finish-color:${escapeAttribute(finish.color)}"
       aria-label="${escapeAttribute(`${selectedProduct?.label || selectedStyle.label} for ${layout?.label || category.label} in ${finish.label}`)}"
     >
@@ -1267,25 +1288,51 @@ function renderConceptPreview() {
         </div>
         ${renderConceptLayoutContext(layout)}
       </div>
-      <div class="concept-scene-frame">
-        <div class="concept-scene" data-concept-scene>
-          <div class="guided-engine-status" data-guided-engine-status role="status" aria-live="polite">
-            <strong>${diagnostic ? "Last accepted design preserved" : "Building your fitted design"}</strong>
-            <span>${diagnostic
-              ? escapeHtml(`${diagnostic.message} (${diagnostic.code})`)
-              : "The room, installation, and product descriptors are being rendered."}</span>
-          </div>
-          <div
-            class="guided-3d-mount guided-3d-mount--concept"
-            data-guided-3d-mount
-            data-guided-3d-mode="accepted-specification"
-            aria-label="${escapeAttribute(`Interactive three-dimensional ${selectedProduct?.label || selectedStyle.label} preview in the selected ${layout?.label || "room"}`)}"
-          ></div>
-        </div>
-        ${renderPreviewControls()}
+      <div class="concept-scene-frame"${publishedPreview
+        ? ` style="--published-preview-aspect-ratio:${escapeAttribute(publishedPreview.aspectRatio)};--published-preview-media-fit:${escapeAttribute(publishedPreview.mediaFit)};--published-preview-object-position:${escapeAttribute(publishedPreview.mediaObjectPosition)}"`
+        : ""}>
+        ${publishedPreview
+          ? renderPublishedCustomerPreview(publishedPreview)
+          : `
+            <div class="concept-scene" data-concept-scene>
+              <div class="guided-engine-status" data-guided-engine-status role="status" aria-live="polite">
+                <strong>${diagnostic ? "Last accepted design preserved" : "Building your fitted design"}</strong>
+                <span>${diagnostic
+                  ? escapeHtml(`${diagnostic.message} (${diagnostic.code})`)
+                  : "The room, installation, and product descriptors are being rendered."}</span>
+              </div>
+              <div
+                class="guided-3d-mount guided-3d-mount--concept"
+                data-guided-3d-mount
+                data-guided-3d-mode="accepted-specification"
+                aria-label="${escapeAttribute(`Interactive three-dimensional ${selectedProduct?.label || selectedStyle.label} preview in the selected ${layout?.label || "room"}`)}"
+              ></div>
+            </div>
+            ${renderPreviewControls()}
+          `}
       </div>
       ${renderAcceptedFitSummary()}
     </figure>
+  `;
+}
+
+function renderPublishedCustomerPreview(preview) {
+  return `
+    <div
+      class="concept-scene concept-scene--published-beauty"
+      data-published-customer-preview
+    >
+      <img
+        class="published-customer-preview-image"
+        src="${escapeAttribute(preview.asset)}"
+        alt="${escapeAttribute(preview.alt)}"
+        width="${preview.width}"
+        height="${preview.height}"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      >
+    </div>
   `;
 }
 
@@ -1396,7 +1443,7 @@ function renderReviewStep() {
           </button>
         </div>
       </div>
-      ${renderConceptPreview()}
+      ${renderConceptPreview({ customerPresentation: true })}
     </div>
     <p class="guided-support">
       <i data-icon="help-center" aria-hidden="true"></i>

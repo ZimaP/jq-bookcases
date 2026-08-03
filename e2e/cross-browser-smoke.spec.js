@@ -72,10 +72,13 @@ test("the guided accepted-geometry flow rebuilds dimensions and TV data across m
   await page.locator('[data-layout="right-niche"]').click();
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+  await page.getByLabel("Wall width").fill("144");
+  await page.getByLabel("Niche width").fill("120");
   const measurementCanvas = page.locator('.measurement-room[data-guided3d-state="ready"] .guided-3d-canvas');
   await expect(measurementCanvas).toHaveCount(1);
   const initialRoomFingerprint = await measurementCanvas.getAttribute("data-geometry-fingerprint");
   await page.getByLabel("Wall width").fill("126 1/2");
+  await page.getByLabel("Right return").fill("6 1/2");
   await expect.poll(() => measurementCanvas.getAttribute("data-geometry-fingerprint"))
     .not.toBe(initialRoomFingerprint);
   const widerRoomFingerprint = await measurementCanvas.getAttribute("data-geometry-fingerprint");
