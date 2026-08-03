@@ -29,8 +29,8 @@ import {
 
 export const PHOTOREAL_MATRIX_KIND = "jq-photoreal-preview-matrix-render-package";
 export const PHOTOREAL_MATRIX_SCHEMA_VERSION = 1;
-export const PHOTOREAL_MATRIX_PIPELINE_VERSION = "2026.08-universal-photoreal-preview-matrix-v1";
-export const PHOTOREAL_MATRIX_PRESENTATION_VERSION = "phase7-warm-residential-matrix-v1";
+export const PHOTOREAL_MATRIX_PIPELINE_VERSION = "2026.08-universal-photoreal-preview-matrix-v2";
+export const PHOTOREAL_MATRIX_PRESENTATION_VERSION = "phase7-warm-residential-matrix-v2";
 export const PHOTOREAL_MATRIX_CAPTURE_VERSION = "cycles-1920x1280-256-v1";
 export const PHOTOREAL_MATRIX_MANIFEST_KIND = "jq-photoreal-preview-matrix-provenance";
 export const PHOTOREAL_MATRIX_MANIFEST_SCHEMA_VERSION = 1;

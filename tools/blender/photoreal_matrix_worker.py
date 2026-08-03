@@ -25,8 +25,8 @@ from typing import Any, Iterable
 
 PACKAGE_KIND = "jq-photoreal-preview-matrix-render-package"
 PACKAGE_SCHEMA_VERSION = 1
-PIPELINE_VERSION = "2026.08-universal-photoreal-preview-matrix-v1"
-PRESENTATION_VERSION = "phase7-warm-residential-matrix-v1"
+PIPELINE_VERSION = "2026.08-universal-photoreal-preview-matrix-v2"
+PRESENTATION_VERSION = "phase7-warm-residential-matrix-v2"
 CAPTURE_VERSION = "cycles-1920x1280-256-v1"
 PACKAGE_KEY_RE = re.compile(r"^jq-photoreal-preview-matrix-v1-[a-f0-9]{64}$")
 SAFE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/+:\-]{0,511}$")
@@ -791,10 +791,12 @@ def build_room_context(bpy: Any, bmesh: Any, package: dict[str, Any], collection
     if layout_id in {"niche-layout", "left-niche", "right-niche"} and features.get("niche"):
         niche = features["niche"]["bounds"]
         wall_depth = max(3.0, float(features["niche"].get("depth", 14)))
-        for side, x0, x1 in (
-            ("left", niche["min"]["x"] - 1.25, niche["min"]["x"]),
-            ("right", niche["max"]["x"], niche["max"]["x"] + 1.25),
-        ):
+        return_bounds = {
+            "left": (niche["min"]["x"] - 1.25, niche["min"]["x"]),
+            "right": (niche["max"]["x"], niche["max"]["x"] + 1.25),
+        }
+        for side in niche_return_sides(layout_id):
+            x0, x1 = return_bounds[side]
             obj = world_box(bpy, bmesh, f"room-niche-{side}-return", {
                 "min": {"x": x0, "y": 0, "z": -wall_depth},
                 "max": {"x": x1, "y": topology["ceilingHeight"], "z": niche["max"]["z"]},
@@ -898,6 +900,15 @@ def build_room_context(bpy: Any, bmesh: Any, package: dict[str, Any], collection
                 }, collection, materials["room-opening"])
                 names.append(obj.name)
     return names
+
+
+def niche_return_sides(layout_id: str) -> tuple[str, ...]:
+    """Return only the authoritative physical niche boundaries for a layout."""
+    return {
+        "niche-layout": ("left", "right"),
+        "left-niche": ("left",),
+        "right-niche": ("right",),
+    }.get(layout_id, ())
 
 
 def track_to(obj: Any, target: dict[str, float]) -> None:

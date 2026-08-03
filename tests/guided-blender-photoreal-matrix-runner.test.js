@@ -60,9 +60,11 @@ test("strict provenance rejects an arbitrary key-only record", async () => {
 });
 
 test("validate-only regenerates all 50 packages without invoking Blender", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "jq-matrix-validate-"));
   const result = await runPhotorealMatrix({
     validateOnly: true,
-    sourceCommit: SOURCE_COMMIT
+    sourceCommit: SOURCE_COMMIT,
+    manifestPath: join(directory, "absent-manifest.json")
   });
   assert.equal(result.mode, "validate-only");
   assert.equal(result.selectedCount, 50);

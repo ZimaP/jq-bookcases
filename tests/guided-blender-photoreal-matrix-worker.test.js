@@ -56,3 +56,21 @@ test("matrix worker honors Blender's double-dash argument boundary", async () =>
   assert.equal(validation.status, 0, validation.stderr);
   assert.equal(JSON.parse(validation.stdout.trim()).key, "open-shelving:right-niche");
 });
+
+test("matrix room context preserves unilateral niche boundaries", () => {
+  const script = [
+    "import importlib.util,json;",
+    `p=${JSON.stringify(WORKER)};`,
+    "s=importlib.util.spec_from_file_location('matrix_worker',p);",
+    "m=importlib.util.module_from_spec(s);s.loader.exec_module(m);",
+    "print(json.dumps({k:m.niche_return_sides(k) for k in ['niche-layout','left-niche','right-niche','clear-wall']}))"
+  ].join("");
+  const result = spawnSync("python3", ["-c", script], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), {
+    "niche-layout": ["left", "right"],
+    "left-niche": ["left"],
+    "right-niche": ["right"],
+    "clear-wall": []
+  });
+});
