@@ -1,26 +1,97 @@
 import { test, expect } from "@playwright/test";
-const products = [
-  { id: "cabinet-shelves", label: "Cabinets + Shelves", category: "bookcase", style: "cabinet-base-shelves" },
-  { id: "drawer-shelves", label: "Drawers + Shelves", category: "bookcase", style: "drawer-base-shelves" },
-  { id: "open-shelving", label: "Full Open Shelving", category: "bookcase", style: "full-open-shelving" },
-  { id: "tv-unit", label: "TV Unit", category: "tv-unit", style: "framed-tv-wall" },
-  { id: "floating-storage", label: "Floating Storage", category: "floating-storage", style: "floating-drawer-bank" },
-  { id: "window-storage", label: "Window Storage", category: "window-storage", style: "window-seat-storage" },
-  { id: "radiator-cover", label: "Radiator Cover", category: "radiator-cover", style: "clean-slat-cover" }
-];
+import {
+  PRODUCT_CHOICES,
+  SHARED_ROOM_LAYOUTS
+} from "../guided-configurator-data.js";
+import {
+  PUBLISHED_CUSTOMER_PREVIEWS
+} from "../guided-published-preview-data.js";
 
-const sharedLayouts = [
-  { id: "niche-layout", label: "Niche Layout" },
-  { id: "left-niche", label: "Left Niche" },
-  { id: "right-niche", label: "Right Niche" },
-  { id: "clear-wall", label: "Clear Wall" },
-  { id: "fireplace-wall", label: "Fireplace Wall" },
-  { id: "center-recess", label: "Center Projection" },
-  { id: "window-wall", label: "Window Wall" },
-  { id: "door-wall", label: "Door Wall" },
-  { id: "corner-wall", label: "Corner Wall" },
-  { id: "double-opening", label: "Between Openings" }
-];
+const products = PRODUCT_CHOICES;
+const sharedLayouts = SHARED_ROOM_LAYOUTS;
+const productsById = new Map(products.map((product) => [product.id, product]));
+const layoutsById = new Map(sharedLayouts.map((layout) => [layout.id, layout]));
+
+const TV_MATRIX_MEASUREMENTS = Object.freeze({
+  "niche-layout": Object.freeze({
+    wallWidth: "132",
+    ceilingHeight: "108",
+    nicheWidth: "108",
+    nicheHeight: "108",
+    nicheDepth: "14",
+    leftReturn: "12",
+    rightReturn: "12",
+    tvScreenSize: "55",
+    tvHeight: "28",
+    soundbarRequired: "no"
+  }),
+  "left-niche": Object.freeze({
+    wallWidth: "132",
+    ceilingHeight: "108",
+    nicheWidth: "108",
+    nicheHeight: "108",
+    nicheDepth: "14",
+    leftReturn: "24",
+    tvScreenSize: "55",
+    tvHeight: "28",
+    soundbarRequired: "no"
+  }),
+  "right-niche": Object.freeze({
+    wallWidth: "132",
+    ceilingHeight: "108",
+    nicheWidth: "108",
+    nicheHeight: "108",
+    nicheDepth: "14",
+    rightReturn: "24",
+    tvScreenSize: "55",
+    tvHeight: "28",
+    soundbarRequired: "no"
+  }),
+  "clear-wall": Object.freeze({
+    tvScreenSize: "55",
+    tvHeight: "28",
+    soundbarRequired: "no"
+  }),
+  "fireplace-wall": Object.freeze({
+    wallWidth: "144",
+    ceilingHeight: "120",
+    desiredDepth: "14",
+    fireplaceWidth: "42",
+    fireplaceHeight: "24",
+    mantelWidth: "96",
+    mantelHeight: "36",
+    fireplaceDepth: "8",
+    tvAboveFireplace: "yes",
+    tvScreenSize: "55",
+    tvHeight: "28",
+    tvMounting: "wall-mounted",
+    outletLocation: "behind-tv",
+    soundbarRequired: "no"
+  }),
+  "door-wall": Object.freeze({
+    wallWidth: "144",
+    ceilingHeight: "108",
+    doorWidth: "36",
+    doorLeftDistance: "104",
+    tvScreenSize: "55",
+    tvHeight: "28",
+    soundbarRequired: "no"
+  }),
+  "corner-wall": Object.freeze({
+    tvScreenSize: "55",
+    tvHeight: "28",
+    soundbarRequired: "no"
+  }),
+  "double-opening": Object.freeze({
+    wallWidth: "144",
+    ceilingHeight: "108",
+    openingLeftDistance: "30",
+    openingRightDistance: "12",
+    tvScreenSize: "55",
+    tvHeight: "28",
+    soundbarRequired: "no"
+  })
+});
 
 const bookcaseMeasurementDimensions = Object.freeze({
   "niche-layout": [
@@ -117,7 +188,7 @@ function monitorRuntime(page) {
 }
 
 async function openFreshProject(page) {
-  await page.goto("/configurator.html?start=new", { waitUntil: "networkidle" });
+  await page.goto("configurator.html?start=new", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: "What would you like us to build?" })).toBeVisible();
   await expect(page).toHaveURL(/configurator\.html#step-1$/);
 }
@@ -143,6 +214,112 @@ async function chooseLayout(page, label) {
   const card = page.locator(`[data-layout="${layoutId}"]`);
   await card.click();
   await expect(page.locator(`[data-layout="${layoutId}"]`)).toHaveAttribute("aria-pressed", "true");
+}
+
+function publishedPreviewFor(productId, layoutId) {
+  const preview = PUBLISHED_CUSTOMER_PREVIEWS.find((candidate) => (
+    candidate.key?.productId === productId
+    && candidate.key?.layoutId === layoutId
+    && !candidate.finishOverrideId
+  ));
+  if (!preview) throw new Error(`Missing base published preview: ${productId}:${layoutId}`);
+  return preview;
+}
+
+async function expectPublishedPreview(page, expectedPreview, expectedSource = expectedPreview.asset) {
+  const preview = page.locator(
+    `.concept-preview[data-customer-preview-id="${expectedPreview.previewId}"]`
+  );
+  await expect(preview).toHaveCount(1);
+  await expect(preview).toHaveAttribute("data-preview-render-mode", "published-photoreal");
+  await expect(preview).toHaveAttribute("data-layout", expectedPreview.key.layoutId);
+  await expect(preview.locator("[data-layout-context]")).toHaveAttribute(
+    "data-layout-context-mode",
+    "published-preview"
+  );
+  await expect(preview.locator(".concept-finish-caption small")).toHaveText("Photoreal preview");
+  await expect(preview.locator("canvas, .guided-3d-mount, .preview-controls")).toHaveCount(0);
+
+  const image = preview.locator("[data-published-preview-image]");
+  await expect(image).toHaveCount(1);
+  await expect(image).toHaveAttribute("src", expectedSource);
+  await expect(image).toHaveAttribute("width", String(expectedPreview.width));
+  await expect(image).toHaveAttribute("height", String(expectedPreview.height));
+  await expect.poll(() => image.evaluate((node) => ({
+    complete: node.complete,
+    width: node.naturalWidth,
+    height: node.naturalHeight
+  }))).toEqual({
+    complete: true,
+    width: expectedPreview.width,
+    height: expectedPreview.height
+  });
+
+  const mediaGeometry = await preview.evaluate((node) => {
+    const figure = node.getBoundingClientRect();
+    const frame = node.querySelector(".concept-scene-frame").getBoundingClientRect();
+    const media = node.querySelector("[data-published-preview-image]").getBoundingClientRect();
+    const mediaStyle = getComputedStyle(node.querySelector("[data-published-preview-image]"));
+    const tolerance = 1;
+    return {
+      frameRatio: frame.width / frame.height,
+      mediaRatio: media.width / media.height,
+      frameInsideFigure: (
+        frame.left >= figure.left - tolerance
+        && frame.right <= figure.right + tolerance
+        && frame.top >= figure.top - tolerance
+        && frame.bottom <= figure.bottom + tolerance
+      ),
+      mediaFillsFrame: (
+        Math.abs(media.left - frame.left) <= tolerance
+        && Math.abs(media.right - frame.right) <= tolerance
+        && Math.abs(media.top - frame.top) <= tolerance
+        && Math.abs(media.bottom - frame.bottom) <= tolerance
+      ),
+      objectFit: mediaStyle.objectFit
+    };
+  });
+  const expectedRatio = expectedPreview.width / expectedPreview.height;
+  expect(Math.abs(mediaGeometry.frameRatio - expectedRatio)).toBeLessThan(0.01);
+  expect(Math.abs(mediaGeometry.mediaRatio - expectedRatio)).toBeLessThan(0.01);
+  expect(mediaGeometry.frameInsideFigure).toBe(true);
+  expect(mediaGeometry.mediaFillsFrame).toBe(true);
+  expect(mediaGeometry.objectFit).toBe("contain");
+  return { preview, image };
+}
+
+async function forcePublishedPreviewLoadFailure(page) {
+  let interceptedRequestCount = 0;
+  const publishedAssets = PUBLISHED_CUSTOMER_PREVIEWS
+    .map((preview) => preview.asset.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|");
+  await page.route(
+    new RegExp(`/(?:${publishedAssets})(?:\\?.*)?$`),
+    (route) => {
+      interceptedRequestCount += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: "image/webp",
+        body: "not-a-decodable-webp"
+      });
+    }
+  );
+  return () => interceptedRequestCount;
+}
+
+async function applyMeasurementOverrides(page, overrides = {}) {
+  for (const [fieldId, value] of Object.entries(overrides)) {
+    const controls = page.locator(`[data-measurement="${fieldId}"]`);
+    await expect(controls.first(), `measurement ${fieldId}`).toBeAttached();
+    if (await controls.count() > 1) {
+      await page.locator(`[data-measurement="${fieldId}"][value="${value}"]`).check();
+      continue;
+    }
+    const control = controls.first();
+    const tagName = await control.evaluate((node) => node.tagName);
+    if (tagName === "SELECT") await control.selectOption(value);
+    else await control.fill(value);
+  }
 }
 
 async function expectAcceptedGeometryPreview(preview) {
@@ -257,7 +434,10 @@ async function expectMeasurementWorkspaceInOneScreen(page, context) {
     ".guided-info",
     ".guided-actions",
     ".guided-actions .guided-button",
-    ".measurement-diagram-card"
+    ".concept-preview",
+    ".concept-preview .concept-scene-frame",
+    ".published-customer-preview-image",
+    ".measurement-guidance > summary"
   ], context);
 
   const geometry = await page.evaluate(() => {
@@ -266,7 +446,8 @@ async function expectMeasurementWorkspaceInOneScreen(page, context) {
     const panel = panelElement.getBoundingClientRect();
     const information = rect(".guided-info");
     const actions = rect(".guided-actions");
-    const diagram = rect(".measurement-diagram-card");
+    const diagram = rect(".concept-preview");
+    const sceneFrame = rect(".concept-preview .concept-scene-frame");
     const overlap = (first, second) => (
       first.left < second.right - 1
       && first.right > second.left + 1
@@ -293,7 +474,7 @@ async function expectMeasurementWorkspaceInOneScreen(page, context) {
           && elementRect.bottom <= panel.bottom + 1
         );
       }),
-      diagramRatio: diagram.width / diagram.height,
+      diagramRatio: sceneFrame.width / sceneFrame.height,
       buttonHeights: [...document.querySelectorAll(".guided-actions .guided-button")]
         .map((button) => button.getBoundingClientRect().height),
       controlHeights: [...document.querySelectorAll(
@@ -327,7 +508,70 @@ async function expectCustomizationWorkspaceInOneScreen(page, context) {
     ".concept-preview",
     ".concept-preview-meta",
     ".concept-scene",
-    ".preview-controls"
+    ".concept-scene-frame",
+    ".published-customer-preview-image"
+  ], context);
+}
+
+async function expectOpenedMeasurementGuideInOneScreen(page, context) {
+  const report = await expectOneScreenWorkspace(page, [
+    ".guided-header",
+    ".guided-stepper",
+    ".guided-content-head",
+    ".measurement-panel",
+    ".guided-info",
+    ".guided-actions",
+    ".measurement-guidance[open]",
+    ".measurement-guidance[open] > summary",
+    ".measurement-guidance[open] .measurement-guidance-body",
+    ".measurement-guidance[open] .measurement-diagram-card",
+    ".measurement-guidance[open] .measurement-room--static-guidance"
+  ], context);
+
+  const geometry = await page.evaluate(() => {
+    const guide = document.querySelector(".measurement-guidance[open]");
+    const card = guide.querySelector(".measurement-diagram-card");
+    const room = guide.querySelector(".measurement-room--static-guidance");
+    const cardRect = card.getBoundingClientRect();
+    const roomRect = room.getBoundingClientRect();
+    return {
+      cardRatio: cardRect.width / cardRect.height,
+      cardHasArea: cardRect.width > 0 && cardRect.height > 0,
+      roomHasArea: roomRect.width > 0 && roomRect.height > 0,
+      roomInsideCard: (
+        roomRect.left >= cardRect.left - 1
+        && roomRect.right <= cardRect.right + 1
+        && roomRect.top >= cardRect.top - 1
+        && roomRect.bottom <= cardRect.bottom + 1
+      ),
+      technicalSurfaceCount: guide.querySelectorAll("canvas, .guided-3d-mount").length,
+      publishedPreviewDisplay: getComputedStyle(document.querySelector(".concept-preview")).display
+    };
+  });
+
+  expect(Math.abs(geometry.cardRatio - 1.5), `${context} guide ratio`).toBeLessThan(0.01);
+  expect(geometry.cardHasArea, `${context} guide has area`).toBe(true);
+  expect(geometry.roomHasArea, `${context} room reference has area`).toBe(true);
+  expect(geometry.roomInsideCard, `${context} room stays inside guide`).toBe(true);
+  expect(geometry.technicalSurfaceCount, `${context} has no technical surface`).toBe(0);
+  expect(geometry.publishedPreviewDisplay, `${context} temporarily replaces preview`).toBe("none");
+  return report;
+}
+
+async function expectReviewWorkspaceInOneScreen(page, context) {
+  return expectOneScreenWorkspace(page, [
+    ".guided-header",
+    ".guided-stepper",
+    ".guided-content-head",
+    ".review-layout",
+    ".project-summary-card",
+    ".summary-actions",
+    ".summary-actions .guided-button",
+    ".concept-preview",
+    ".concept-preview-meta",
+    ".concept-scene-frame",
+    ".published-customer-preview-image",
+    ".guided-support"
   ], context);
 }
 
@@ -816,7 +1060,7 @@ test("measurement fields adapt to the layout, accept fractions, warn gently, and
   await width.fill("190");
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
-  await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
+  await expectPublishedPreview(page, publishedPreviewFor("cabinet-shelves", "window-wall"));
   await page.locator("[data-back]").click();
   await expect(width).toHaveValue("190");
 
@@ -824,7 +1068,7 @@ test("measurement fields adapt to the layout, accept fractions, warn gently, and
 
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
-  await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
+  await expectPublishedPreview(page, publishedPreviewFor("cabinet-shelves", "window-wall"));
   await page.locator("[data-back]").click();
   await expect(width).toHaveValue("121.5");
 
@@ -836,9 +1080,13 @@ test("measurement fields adapt to the layout, accept fractions, warn gently, and
 });
 
 test("one accepted 3D scene persists and separates geometry rebuilds from material updates", async ({ page }) => {
+  const interceptedPublishedPreviewCount = await forcePublishedPreviewLoadFailure(page);
   const obsoleteSceneRequests = [];
   page.on("request", (request) => {
-    if (/\/assets\/photos\/configurator\/(?:integrated|furniture)\//.test(request.url()) || /-finish-mask-/.test(request.url())) {
+    if (
+      (/\/assets\/photos\/configurator\/(?:integrated|furniture)\//.test(request.url()) && !/\.webp(?:\?|$)/.test(request.url()))
+      || /-finish-mask-/.test(request.url())
+    ) {
       obsoleteSceneRequests.push(request.url());
     }
   });
@@ -850,13 +1098,17 @@ test("one accepted 3D scene persists and separates geometry rebuilds from materi
   await page.locator('[data-measurement="wallWidth"]').fill("144");
   await page.locator('[data-measurement="nicheWidth"]').fill("120");
 
-  const measurementCanvas = page.locator('.measurement-room[data-guided3d-state="ready"] .guided-3d-canvas');
+  const measurementCanvas = page.locator(
+    '.measurement-room[data-guided3d-state="ready"] .guided-3d-canvas[data-rendered="true"]'
+  );
   await expect(measurementCanvas).toHaveCount(1);
+  expect(interceptedPublishedPreviewCount()).toBeGreaterThan(0);
   await expect(measurementCanvas).toHaveAttribute("data-rendered", "true");
   await expect(measurementCanvas).toHaveAttribute("data-scene-layout", "right-niche");
   await expect(measurementCanvas).toHaveAttribute("data-show-product", "false");
   await expect(measurementCanvas).toHaveAttribute("data-show-dimensions", "true");
   await expect(measurementCanvas).toHaveAttribute("data-geometry-fingerprint", /.+/);
+  await expect(measurementCanvas).toHaveAttribute("data-guided3d-instance", /.+/);
   const instanceId = await measurementCanvas.getAttribute("data-guided3d-instance");
   const initialGeometryFingerprint = await measurementCanvas.getAttribute("data-geometry-fingerprint");
 
@@ -896,60 +1148,44 @@ test("one accepted 3D scene persists and separates geometry rebuilds from materi
   expect(obsoleteSceneRequests).toEqual([]);
 });
 
-test("the exact TV01 Natural Oak Review uses the versioned photoreal preview without changing Step 4", async ({ page }) => {
+test("a published TV preview appears immediately on Step 3 and persists through Steps 4 and 5", async ({ page }) => {
+  const expectedPreview = publishedPreviewFor("tv-unit", "clear-wall");
   const previewResponses = [];
   page.on("response", (response) => {
-    if (response.url().endsWith("/tv01-clear-wall-photoreal-preview-v1.webp")) {
+    if (response.url().endsWith(`/${expectedPreview.asset}`)) {
       previewResponses.push(response.status());
     }
   });
 
   await openFreshProject(page);
   await continueToLayouts(page, "TV Unit");
+  const preloadRequestPromise = page.waitForRequest((request) => (
+    request.url().endsWith(`/${expectedPreview.asset}`)
+  ));
   await chooseLayout(page, "Clear Wall");
+  const preloadRequest = await preloadRequestPromise;
+  expect(preloadRequest.resourceType()).toBe("image");
+  await expect(page).toHaveURL(/configurator\.html#step-2$/);
   await page.locator("[data-continue]").click();
-  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
 
-  const customizationPreview = page.locator(".concept-preview");
-  await expectAcceptedGeometryPreview(customizationPreview);
-  await expect(customizationPreview).toHaveAttribute("data-finish", "natural-oak");
+  const stepThree = await expectPublishedPreview(page, expectedPreview);
+  const publishedSource = await stepThree.image.getAttribute("src");
+  await expect(page.locator("[data-measurement-guidance]")).toHaveCount(1);
+  await expect(page.locator(".guided-3d-canvas, .guided-3d-mount, .preview-controls")).toHaveCount(0);
+
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+  await expectPublishedPreview(page, expectedPreview, publishedSource);
+  await page.getByRole("button", { name: "Dark Walnut", exact: true }).click();
+  await expectPublishedPreview(page, expectedPreview, publishedSource);
   await page.getByRole("tab", { name: "Details" }).click();
   await page.locator('[data-detail-key="hardware"][data-detail="black-pull"]').click();
-  await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
+  await expectPublishedPreview(page, expectedPreview, publishedSource);
   await page.locator("[data-continue]").click();
 
   await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
-  const reviewPreview = page.locator(
-    '[data-customer-preview-id="tv01-clear-wall-photoreal-preview-v1"]'
-  );
-  await expect(reviewPreview).toHaveCount(1);
-  await expect(reviewPreview).toHaveAttribute("data-preview-render-mode", "published-photoreal");
-  await expect(reviewPreview).toHaveAttribute("data-customer-preview-capture", "photoreal-beauty-v1");
-  await expect(reviewPreview).toHaveAttribute(
-    "data-geometry-fingerprint",
-    "jq-guided-geometry-v1-028YPJG43EJF6"
-  );
-  await expect(reviewPreview).toHaveAttribute(
-    "data-specification-fingerprint",
-    "jq-guided-spec-v1-0qpej5s"
-  );
-  await expect(reviewPreview.locator("canvas")).toHaveCount(0);
-  await expect(reviewPreview.locator(".guided-3d-mount")).toHaveCount(0);
-  await expect(reviewPreview.locator(".preview-controls")).toHaveCount(0);
-
-  const image = reviewPreview.locator(".published-customer-preview-image");
-  await expect(image).toHaveCount(1);
-  await expect(image).toHaveAttribute(
-    "src",
-    "assets/photos/configurator/integrated/tv-unit/framed-tv-wall/tv01-clear-wall-photoreal-preview-v1.webp"
-  );
-  await expect(image).toHaveAttribute("width", "1920");
-  await expect(image).toHaveAttribute("height", "1280");
-  await expect.poll(() => image.evaluate((node) => ({
-    complete: node.complete,
-    width: node.naturalWidth,
-    height: node.naturalHeight
-  }))).toEqual({ complete: true, width: 1920, height: 1280 });
+  const { preview: reviewPreview } = await expectPublishedPreview(page, expectedPreview, publishedSource);
 
   const mediaGeometry = await reviewPreview.evaluate((preview) => {
     const frame = preview.querySelector(".concept-scene-frame").getBoundingClientRect();
@@ -971,14 +1207,103 @@ test("the exact TV01 Natural Oak Review uses the versioned photoreal preview wit
   expect(previewResponses).toContain(200);
 
   const summary = page.locator(".project-summary-card");
-  await expect(summary).toContainText("Natural Oak");
+  await expect(summary).toContainText("Dark Walnut");
   await expect(summary).toContainText("Black Pull");
-  await expect(summary).toContainText("$15,050");
 
   await page.getByRole("button", { name: "Customization, completed" }).click();
   await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
-  await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
-  await expect(page.locator("[data-customer-preview-id]")).toHaveCount(0);
+  await expectPublishedPreview(page, expectedPreview, publishedSource);
+  await page.locator("[data-back]").click();
+  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+  await expectPublishedPreview(page, expectedPreview, publishedSource);
+});
+
+test("the browser matrix covers one base preview for every valid product and layout pair", async () => {
+  const basePreviews = PUBLISHED_CUSTOMER_PREVIEWS.filter((preview) => !preview.finishOverrideId);
+  expect(basePreviews).toHaveLength(50);
+  expect(new Set(basePreviews.map((preview) => (
+    `${preview.key.productId}:${preview.key.layoutId}`
+  ))).size).toBe(basePreviews.length);
+  for (const preview of basePreviews) {
+    expect(productsById.has(preview.key.productId), preview.previewId).toBe(true);
+    expect(layoutsById.has(preview.key.layoutId), preview.previewId).toBe(true);
+  }
+});
+
+for (const expectedPreview of PUBLISHED_CUSTOMER_PREVIEWS.filter((preview) => !preview.finishOverrideId)) {
+  const product = productsById.get(expectedPreview.key.productId);
+  const layout = layoutsById.get(expectedPreview.key.layoutId);
+
+  test(`published matrix: ${product?.label} + ${layout?.label} stays primary on Steps 3–5`, async ({ page }) => {
+    expect(product, expectedPreview.previewId).toBeTruthy();
+    expect(layout, expectedPreview.previewId).toBeTruthy();
+
+    await openFreshProject(page);
+    await continueToLayouts(page, product.label);
+    await chooseLayout(page, layout.label);
+    await page.locator("[data-continue]").click();
+    await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+
+    const stepThree = await expectPublishedPreview(page, expectedPreview);
+    const publishedSource = await stepThree.image.getAttribute("src");
+    if (process.env.PHOTOREAL_MATRIX_QA_SCREENSHOTS === "1") {
+      await page.screenshot({
+        path: `test-results/live-matrix/${expectedPreview.previewId}-step3-desktop.png`,
+        fullPage: true
+      });
+    }
+    await applyMeasurementOverrides(
+      page,
+      product.id === "tv-unit" ? TV_MATRIX_MEASUREMENTS[layout.id] : undefined
+    );
+    await expectPublishedPreview(page, expectedPreview, publishedSource);
+
+    await page.locator("[data-continue]").click();
+    await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+    await expectPublishedPreview(page, expectedPreview, publishedSource);
+
+    await page.locator("[data-continue]").click();
+    await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+    await expectPublishedPreview(page, expectedPreview, publishedSource);
+    await expect(page.locator(".project-summary-card")).toContainText(product.label);
+    await expect(page.locator(".project-summary-card")).toContainText(layout.label);
+
+    await page.getByRole("button", { name: "Customization, completed" }).click();
+    await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+    await expectPublishedPreview(page, expectedPreview, publishedSource);
+    await page.locator("[data-back]").click();
+    await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+    await expectPublishedPreview(page, expectedPreview, publishedSource);
+  });
+}
+
+test("a saved project restores its published preview identity on Steps 3–5", async ({ page }) => {
+  const expectedPreview = publishedPreviewFor("drawer-shelves", "door-wall");
+  await openFreshProject(page);
+  await continueToReview(page, "Door Wall", "Drawers + Shelves");
+  const { image } = await expectPublishedPreview(page, expectedPreview);
+  const publishedSource = await image.getAttribute("src");
+
+  await page.locator("[data-save-project]").click();
+  const saveDialog = page.locator("[data-save-dialog]");
+  await saveDialog.getByLabel("Project name").fill("Restored Photoreal Library");
+  await saveDialog.getByRole("button", { name: "Save Project", exact: true }).click();
+  const savedProjectId = await page.evaluate(() => (
+    JSON.parse(localStorage.getItem("jqGuidedConfiguratorProjectsV1") || "[]")[0]?.projectId
+  ));
+  expect(savedProjectId).toBeTruthy();
+
+  await page.goto(`configurator.html?project=${encodeURIComponent(savedProjectId)}#step-5`, {
+    waitUntil: "networkidle"
+  });
+  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+  await expectPublishedPreview(page, expectedPreview, publishedSource);
+  await page.getByRole("button", { name: "Customization, completed" }).click();
+  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+  await expectPublishedPreview(page, expectedPreview, publishedSource);
+  await page.locator("[data-back]").click();
+  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+  await expectPublishedPreview(page, expectedPreview, publishedSource);
 });
 
 test("all ten bookcase layouts keep architectural dimension lines and labels valid at desktop and iPad landscape sizes", async ({ page }) => {
@@ -997,6 +1322,14 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
       await chooseLayout(page, roomLayout.label);
       await page.locator("[data-continue]").click();
 
+      await expectPublishedPreview(
+        page,
+        publishedPreviewFor("cabinet-shelves", roomLayout.id)
+      );
+      const guidance = page.locator("[data-measurement-guidance]");
+      await guidance.locator("summary").click();
+      await expect(guidance).toHaveAttribute("open", "");
+
       const room = page.locator(`.measurement-room[data-layout="${roomLayout.id}"]`);
       const drawing = room.locator("[data-dimension-drawing]");
       const spans = drawing.locator("[data-dimension-span]");
@@ -1004,6 +1337,8 @@ test("all ten bookcase layouts keep architectural dimension lines and labels val
       const context = `${viewport.width}x${viewport.height} ${roomLayout.label}`;
 
       await expect(room, `${context} room`).toBeVisible();
+      await expect(room).toHaveClass(/measurement-room--static-guidance/);
+      await expect(room.locator(".guided-3d-mount, canvas")).toHaveCount(0);
       await expect(drawing, `${context} drawing`).toBeVisible();
       await expect(spans, `${context} spans`).toHaveCount(expectedDimensions.length);
       await expect(labels, `${context} labels`).toHaveCount(expectedDimensions.length);
@@ -1174,10 +1509,18 @@ test("Door Wall dimension overlay stays on the measured architecture at desktop 
     await chooseLayout(page, "Door Wall");
     await page.locator("[data-continue]").click();
 
+    await expectPublishedPreview(
+      page,
+      publishedPreviewFor("cabinet-shelves", "door-wall")
+    );
+    await page.locator("[data-measurement-guidance] > summary").click();
+
     const room = page.locator('.measurement-room[data-layout="door-wall"]');
     const drawing = room.locator("svg[data-dimension-overlay]");
     const context = `${viewport.width}x${viewport.height} Door Wall`;
     await expect(drawing, `${context} overlay`).toHaveCount(1);
+    await expect(room).toHaveClass(/measurement-room--static-guidance/);
+    await expect(room.locator(".guided-3d-mount, canvas")).toHaveCount(0);
     await expect(drawing).toHaveAttribute("viewBox", "0 0 1536 1024");
     await expect(drawing).toHaveAttribute("preserveAspectRatio", "xMidYMid slice");
     await expect(room.locator(":scope > [data-dimension-label]")).toHaveCount(0);
@@ -1319,7 +1662,7 @@ test("Door Wall dimension overlay stays on the measured architecture at desktop 
   }
 });
 
-test("landscape tablet keeps Steps 1–4 and every navigation action in one screen", async ({ page }) => {
+test("landscape tablet keeps Steps 1–5 and every navigation action in one screen", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await openFreshProject(page);
   await chooseProduct(page);
@@ -1356,28 +1699,42 @@ test("landscape tablet keeps Steps 1–4 and every navigation action in one scre
 
   await chooseLayout(page, "Clear Wall");
   await page.locator("[data-continue]").click();
+  const expectedPreview = publishedPreviewFor("cabinet-shelves", "clear-wall");
+  await expectPublishedPreview(page, expectedPreview);
   await expectMeasurementWorkspaceInOneScreen(page, "1280x720 Clear Wall Room & Size");
 
+  const measurementGuidance = page.locator("[data-measurement-guidance]");
+  await measurementGuidance.locator("summary").click();
+  await expect(measurementGuidance).toHaveAttribute("open", "");
+  await expectOpenedMeasurementGuideInOneScreen(
+    page,
+    "1280x720 Clear Wall opened measurement guide"
+  );
+  await measurementGuidance.locator("summary").click();
+  await expect(measurementGuidance).not.toHaveAttribute("open", "");
+  await expectPublishedPreview(page, expectedPreview);
+
   await page.locator("[data-continue]").click();
-  await expectOneScreenWorkspace(page, [
-    ".customization-panel",
-    ".concept-preview",
-    ".customization-actions"
-  ], "1280x720 Clear Wall Customization");
-  await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
+  await expectCustomizationWorkspaceInOneScreen(page, "1280x720 Clear Wall Customization");
+  await expectPublishedPreview(page, expectedPreview);
 
   for (const tab of ["Details", "Finish"]) {
     await page.getByRole("tab", { name: tab }).click();
-    await expectOneScreenWorkspace(page, [
-      ".customization-panel",
-      ".concept-preview",
-      ".customization-actions"
-    ], "1280x720 Clear Wall " + tab + " tab");
-    await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
+    await expectCustomizationWorkspaceInOneScreen(
+      page,
+      "1280x720 Clear Wall " + tab + " tab"
+    );
+    await expectPublishedPreview(page, expectedPreview);
   }
+
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+  await expectReviewWorkspaceInOneScreen(page, "1280x720 Clear Wall Review");
+  await expectPublishedPreview(page, expectedPreview);
 });
 
 test("product, finish, compatibility, accepted geometry, and review summary stay synchronized", async ({ page }) => {
+  await forcePublishedPreviewLoadFailure(page);
   await openFreshProject(page);
   await continueToLayouts(page);
   await chooseLayout(page, "Clear Wall");
@@ -1433,6 +1790,7 @@ test("product, finish, compatibility, accepted geometry, and review summary stay
 });
 
 test("Clear Wall freestanding selection commits a distinct fractional accepted fit", async ({ page }) => {
+  await forcePublishedPreviewLoadFailure(page);
   await openFreshProject(page);
   await continueToLayouts(page);
   await chooseLayout(page, "Clear Wall");
@@ -1477,7 +1835,14 @@ test("automatic draft saving restores the active step and values after refresh",
   await page.locator("[data-continue]").click();
   await page.locator('[data-measurement="wallWidth"]').fill("137 3/8");
   await page.locator('[data-measurement="fireplaceWidth"]').fill("45.5");
-  await page.waitForTimeout(300);
+  await expect.poll(() => page.evaluate(() => {
+    const draft = JSON.parse(localStorage.getItem("jqGuidedConfiguratorDraftV1") || "null");
+    return {
+      currentStep: draft?.currentStep,
+      wallWidth: draft?.measurements?.wallWidth,
+      fireplaceWidth: draft?.measurements?.fireplaceWidth
+    };
+  })).toEqual({ currentStep: 3, wallWidth: 137.375, fireplaceWidth: 45.5 });
   await page.reload({ waitUntil: "networkidle" });
 
   await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
@@ -1490,6 +1855,7 @@ test("automatic draft saving restores the active step and values after refresh",
 });
 
 test("a rejected edit cannot overwrite the last accepted saved project or drift after reload", async ({ page }) => {
+  await forcePublishedPreviewLoadFailure(page);
   await openFreshProject(page);
   await continueToLayouts(page);
   await chooseLayout(page, "Clear Wall");
@@ -1510,7 +1876,12 @@ test("a rejected edit cannot overwrite the last accepted saved project or drift 
   await page.locator("[data-back]").click();
   await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
   await page.locator('[data-measurement="wallWidth"]').fill("-1");
-  await page.waitForTimeout(350);
+  await expect(page.getByRole("button", { name: "Save Project", exact: true }))
+    .toHaveAttribute("data-persistence-state", "rejected-candidate");
+  await expect.poll(() => page.evaluate(() => (
+    JSON.parse(localStorage.getItem("jqGuidedConfiguratorDraftV1") || "null")
+      ?.measurements?.wallWidth
+  ))).toBe(132);
 
   await page.getByRole("button", { name: "Save Project", exact: true }).click();
   await expect(saveDialog).not.toBeVisible();
@@ -1538,14 +1909,22 @@ test("a rejected edit cannot overwrite the last accepted saved project or drift 
 });
 
 test("inspiration presets apply once and then restore edits after refresh", async ({ page }) => {
-  await page.goto("/configurator.html?preset=media-wall", { waitUntil: "networkidle" });
+  await page.goto("configurator.html?preset=media-wall", { waitUntil: "networkidle" });
   await expect(page.locator('[data-product-choice="tv-unit"]')).toHaveAttribute("aria-pressed", "true");
   await expect(page).toHaveURL(/configurator\.html#step-1$/);
   await page.locator("[data-continue]").click();
   await expect(page.locator('button[data-layout="clear-wall"]')).toHaveAttribute("aria-pressed", "true");
   await page.locator("[data-continue]").click();
   await page.locator('[data-measurement="wallWidth"]').fill("129.5");
-  await page.waitForTimeout(250);
+  await expect.poll(() => page.evaluate(() => {
+    const draft = JSON.parse(localStorage.getItem("jqGuidedConfiguratorDraftV1") || "null");
+    return {
+      currentStep: draft?.currentStep,
+      category: draft?.category,
+      layout: draft?.layout,
+      wallWidth: draft?.measurements?.wallWidth
+    };
+  })).toEqual({ currentStep: 3, category: "tv-unit", layout: "clear-wall", wallWidth: 129.5 });
   await page.reload({ waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
   await expect(page.locator('[data-measurement="wallWidth"]')).toHaveValue("129.5");
@@ -1680,7 +2059,7 @@ test("keyboard interaction covers product and layout cards, tabs, completed step
   await expect(menu).toBeFocused();
 });
 
-test("one complete accepted-geometry flow works for every product category", async ({ page }) => {
+test("one complete published-preview flow works for every product category", async ({ page }) => {
   const compatibleLayout = {
     "window-storage": "Window Wall",
     "radiator-cover": "Window Wall"
@@ -1691,12 +2070,14 @@ test("one complete accepted-geometry flow works for every product category", asy
     await continueToReview(page, layout, product.label);
     await expect(page.locator(".project-summary-card")).toContainText(product.label);
     await expect(page.locator(".project-summary-card")).toContainText(layout);
-    await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
+    const layoutId = sharedLayouts.find((candidate) => candidate.label === layout).id;
+    await expectPublishedPreview(page, publishedPreviewFor(product.id, layoutId));
   }
 });
 
 test("representative topology branches preserve generated product identity through review and reload", async ({ page }) => {
   const runtime = monitorRuntime(page);
+  await forcePublishedPreviewLoadFailure(page);
   const cases = [
     { product: "Cabinets + Shelves", style: "cabinet-base-shelves", layout: "Fireplace Wall", layoutId: "fireplace-wall" },
     { product: "Drawers + Shelves", style: "drawer-base-shelves", layout: "Door Wall", layoutId: "door-wall" },
@@ -1738,7 +2119,13 @@ test("representative topology branches preserve generated product identity throu
     await expect(summary).toContainText(geometryFingerprint);
     await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
 
-    await page.waitForTimeout(300);
+    await expect.poll(() => page.evaluate(() => {
+      const draft = JSON.parse(localStorage.getItem("jqGuidedConfiguratorDraftV1") || "null");
+      return {
+        currentStep: draft?.currentStep,
+        geometryFingerprint: draft?.acceptedSnapshot?.geometryFingerprint
+      };
+    })).toEqual({ currentStep: 5, geometryFingerprint });
     await page.reload({ waitUntil: "networkidle" });
     await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
     const restored = await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
@@ -1749,9 +2136,13 @@ test("representative topology branches preserve generated product identity throu
 });
 
 test("renderer failure is visible and fail-closed without substituting a concept image", async ({ page }) => {
+  await forcePublishedPreviewLoadFailure(page);
   const obsoleteSceneRequests = [];
   page.on("request", (request) => {
-    if (/\/assets\/photos\/configurator\/(?:integrated|furniture)\//.test(request.url()) || /-finish-mask-/.test(request.url())) {
+    if (
+      (/\/assets\/photos\/configurator\/(?:integrated|furniture)\//.test(request.url()) && !/\.webp(?:\?|$)/.test(request.url()))
+      || /-finish-mask-/.test(request.url())
+    ) {
       obsoleteSceneRequests.push(request.url());
     }
   });
@@ -1814,31 +2205,33 @@ test("desktop, iPad, and phone layouts are overflow-free with usable mobile cont
   expect(Math.min(...cardTargets)).toBeGreaterThanOrEqual(44);
   await chooseLayout(page, "Window Wall");
   await page.locator("[data-continue]").click();
+  await expectPublishedPreview(page, publishedPreviewFor("radiator-cover", "window-wall"));
   await expect(page.locator("[data-dimension-chip]")).toHaveCount(6);
   expect(await page.locator("[data-dimension-chip]").evaluateAll((chips) => (
     chips.map((chip) => chip.dataset.dimensionChip)
   ))).toEqual(["wallWidth", "ceilingHeight", "desiredDepth", "windowWidth", "windowHeight", "sillHeight"]);
   const mobileOrder = await page.evaluate(() => {
-    const diagram = document.querySelector(".measurement-diagram-card").getBoundingClientRect();
+    const preview = document.querySelector(".concept-preview").getBoundingClientRect();
     const form = document.querySelector(".measurement-panel").getBoundingClientRect();
     const actions = document.querySelector(".guided-actions");
     const information = document.querySelector(".guided-info").getBoundingClientRect();
     const actionsRect = actions.getBoundingClientRect();
     const style = getComputedStyle(actions);
     return {
-      diagramBeforeForm: diagram.top < form.top,
+      previewBeforeForm: preview.top < form.top,
       actionsPosition: style.position,
       actionsBottom: style.bottom,
       actionsFollowContent: actionsRect.top >= information.bottom - 1
     };
   });
-  expect(mobileOrder.diagramBeforeForm).toBe(true);
+  expect(mobileOrder.previewBeforeForm).toBe(true);
   expect(mobileOrder.actionsPosition).toBe("static");
   expect(mobileOrder.actionsBottom).toBe("auto");
   expect(mobileOrder.actionsFollowContent).toBe(true);
   await expectNoHorizontalOverflow(page, [
     ".measurement-panel",
-    ".measurement-diagram-card",
+    ".concept-preview",
+    ".measurement-guidance",
     ".guided-info",
     ".guided-actions"
   ]);

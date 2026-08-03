@@ -1,7 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const testPort = Number(process.env.PLAYWRIGHT_PORT || 5173);
-const testBaseUrl = `http://127.0.0.1:${testPort}`;
+const externalBaseUrlValue = String(process.env.PLAYWRIGHT_BASE_URL || "").trim();
+const externalBaseUrl = externalBaseUrlValue
+  ? `${externalBaseUrlValue.replace(/\/+$/, "")}/`
+  : "";
+const testBaseUrl = externalBaseUrl || `http://127.0.0.1:${testPort}/`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -47,13 +51,15 @@ export default defineConfig({
       use: { ...devices["Desktop Safari"] }
     }
   ],
-  webServer: {
-    command: `python3 -m http.server ${testPort} --bind 127.0.0.1`,
-    url: `${testBaseUrl}/configurator.html`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    stdout: "ignore",
-    stderr: "pipe"
-  },
+  webServer: externalBaseUrl
+    ? undefined
+    : {
+        command: `python3 -m http.server ${testPort} --bind 127.0.0.1`,
+        url: `${testBaseUrl}configurator.html`,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+        stdout: "ignore",
+        stderr: "pipe"
+      },
   outputDir: "test-results"
 });

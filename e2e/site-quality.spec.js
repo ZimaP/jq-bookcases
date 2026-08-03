@@ -2,16 +2,16 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 const routes = [
-  "/index.html",
-  "/configurator.html?start=new",
-  "/how-it-works.html",
-  "/materials.html",
-  "/inspiration.html",
-  "/about.html",
-  "/faq.html",
-  "/request-quote.html",
-  "/privacy.html",
-  "/terms.html"
+  "index.html",
+  "configurator.html?start=new",
+  "how-it-works.html",
+  "materials.html",
+  "inspiration.html",
+  "about.html",
+  "faq.html",
+  "request-quote.html",
+  "privacy.html",
+  "terms.html"
 ];
 
 const auditViewports = [
@@ -102,7 +102,7 @@ for (const route of routes) {
 
 test("mobile navigation manages focus on both the site shell and guided configurator", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/faq.html", { waitUntil: "networkidle" });
+  await page.goto("faq.html", { waitUntil: "networkidle" });
   const toggle = page.locator(".nav-toggle");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-expanded", "true");
@@ -111,7 +111,7 @@ test("mobile navigation manages focus on both the site shell and guided configur
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await expect(toggle).toBeFocused();
 
-  await page.goto("/configurator.html?start=new", { waitUntil: "networkidle" });
+  await page.goto("configurator.html?start=new", { waitUntil: "networkidle" });
   const guidedToggle = page.locator("[data-guided-menu-button]");
   await guidedToggle.click();
   await expect(guidedToggle).toHaveAttribute("aria-expanded", "true");
@@ -122,7 +122,7 @@ test("mobile navigation manages focus on both the site shell and guided configur
 });
 
 test("FAQ filtering, empty state, accordion state, and deep links remain synchronized", async ({ page }) => {
-  await page.goto("/faq.html", { waitUntil: "networkidle" });
+  await page.goto("faq.html", { waitUntil: "networkidle" });
   await page.getByRole("button", { name: "Finishes" }).click();
   await expect(page.locator(".accordion-item:visible")).toHaveCount(1);
   await expect(page.locator("[data-faq-result-count]")).toHaveText("Showing 1 question");
@@ -132,7 +132,7 @@ test("FAQ filtering, empty state, accordion state, and deep links remain synchro
   await expect(page.locator("[data-faq-empty]")).toBeVisible();
   await expect(page.locator("[data-faq-result-count]")).toHaveText("Showing 0 questions");
 
-  await page.goto("/faq.html#faq-6", { waitUntil: "networkidle" });
+  await page.goto("faq.html#faq-6", { waitUntil: "networkidle" });
   await expect(page.locator("#faq-6")).toBeVisible();
   await expect(page.locator('[aria-controls="faq-6"]')).toHaveAttribute("aria-expanded", "true");
 });
@@ -150,7 +150,7 @@ test("public pages retain useful navigation when JavaScript is unavailable", asy
 });
 
 test("the standalone quote preview validates data without pretending to transmit it", async ({ page }) => {
-  await page.goto("/request-quote.html", { waitUntil: "networkidle" });
+  await page.goto("request-quote.html", { waitUntil: "networkidle" });
   await expect(page.locator("#quote-preview-notice")).toContainText("does not currently transmit");
   const projectFiles = page.locator("#quote-project-files");
   await expect(projectFiles).toBeEnabled();
@@ -174,7 +174,7 @@ test("corrupted guided draft data recovers safely to a new project", async ({ pa
     localStorage.setItem("jqGuidedConfiguratorDraftV1", "{ definitely not valid json");
   });
   const runtime = monitorPage(page);
-  await page.goto("/configurator.html?start=resume", { waitUntil: "networkidle" });
+  await page.goto("configurator.html?start=resume", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: "What would you like us to build?" })).toBeVisible();
   await expect(page.locator("[data-continue]")).toBeDisabled();
   await expect(page.locator("canvas, [data-3d-viewer]")).toHaveCount(0);
@@ -183,7 +183,7 @@ test("corrupted guided draft data recovers safely to a new project", async ({ pa
 });
 
 test("selected choices expose a non-color state and visible keyboard focus", async ({ page }) => {
-  await page.goto("/configurator.html?start=new", { waitUntil: "networkidle" });
+  await page.goto("configurator.html?start=new", { waitUntil: "networkidle" });
   await page.locator('[data-product-choice="cabinet-shelves"]').click();
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();

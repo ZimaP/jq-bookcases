@@ -6370,15 +6370,25 @@ body.guided-page {
   display: block;
 }
 
-/* Exact-match customer beauty: keep the Review image on its authored 3:2
-   canvas without changing the Step 4 renderer or any other preview surface. */
-.guided-shell--step-5 .concept-preview.concept-preview--published-beauty {
+/* Published customer previews share one intrinsic-ratio presentation from
+   Room & Size through Review. The technical canvas is never mounted inside
+   this branch, so the photograph is the sole primary visual. */
+.guided-shell:is(
+    .guided-shell--step-3,
+    .guided-shell--step-4,
+    .guided-shell--step-5
+  ) .concept-preview.concept-preview--published-beauty {
   height: auto;
   min-height: 0;
   grid-template-rows: auto auto auto;
+  background: #e9e4dc;
 }
 
-.guided-shell--step-5
+.guided-shell:is(
+    .guided-shell--step-3,
+    .guided-shell--step-4,
+    .guided-shell--step-5
+  )
   .concept-preview--published-beauty
   > .concept-scene-frame {
   width: 100%;
@@ -6386,23 +6396,187 @@ body.guided-page {
   aspect-ratio: var(--published-preview-aspect-ratio);
 }
 
-.guided-shell--step-5
+.guided-shell:is(
+    .guided-shell--step-3,
+    .guided-shell--step-4,
+    .guided-shell--step-5
+  )
   .concept-preview--published-beauty
   .concept-scene--published-beauty {
   width: 100%;
-  height: 100%;
+  height: auto;
   min-height: 0;
   aspect-ratio: var(--published-preview-aspect-ratio);
   transform: none;
   transition: none;
 }
 
-.guided-shell--step-5
+.guided-shell:is(
+    .guided-shell--step-3,
+    .guided-shell--step-4,
+    .guided-shell--step-5
+  )
   .concept-preview--published-beauty
   .published-customer-preview-image {
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: var(--published-preview-aspect-ratio);
   object-fit: var(--published-preview-media-fit);
   object-position: var(--published-preview-object-position);
+}
+
+.concept-finish-caption--published {
+  padding-inline: 11px;
+}
+
+.measurement-diagram-column--preview {
+  align-content: start;
+  gap: 10px;
+  grid-template-rows: max-content max-content;
+  justify-items: stretch;
+}
+
+.measurement-guidance {
+  overflow: hidden;
+  border: 1px solid var(--guided-line);
+  border-radius: var(--guided-radius);
+  background: var(--guided-surface);
+}
+
+.measurement-guidance > summary {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 8px 13px;
+  color: var(--guided-ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.measurement-guidance > summary::-webkit-details-marker {
+  display: none;
+}
+
+.measurement-guidance > summary > span {
+  display: grid;
+  gap: 2px;
+}
+
+.measurement-guidance > summary strong {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.measurement-guidance > summary small {
+  color: var(--guided-muted);
+  font-size: 0.61rem;
+}
+
+.measurement-guidance > summary [data-icon] {
+  --icon-size: 18px;
+  flex: 0 0 auto;
+  color: var(--guided-accent-dark);
+  transition: transform 160ms ease;
+}
+
+.measurement-guidance[open] > summary [data-icon] {
+  transform: rotate(180deg);
+}
+
+.measurement-guidance-body {
+  padding: 0 10px 10px;
+}
+
+.measurement-guidance .measurement-diagram-card {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 3 / 2;
+  border-radius: calc(var(--guided-radius) - 2px);
+}
+
+.measurement-guidance .measurement-room--static-guidance {
+  display: block;
+}
+
+/* Opening the annotated guide temporarily gives that reference the full
+   preview column. Keeping both authored 3:2 canvases stacked would force one
+   of them to crop at landscape-tablet heights. */
+.measurement-diagram-column--published:has(> .measurement-guidance[open])
+  > .concept-preview--published-beauty {
+  display: none;
+}
+
+.measurement-diagram-column--published > .measurement-guidance[open] {
+  width: 100%;
+  align-self: start;
+  justify-self: center;
+}
+
+@media (max-width: 900px) {
+  .measurement-diagram-column--preview {
+    order: -1;
+  }
+}
+
+/* The short-desktop shell deliberately has no page scroll. Bound each
+   published 3:2 canvas by the available vertical space, then center it at its
+   intrinsic ratio so crown, base, and both side edges stay visible. */
+@media (min-width: 1181px) and (max-width: 1350px), (min-width: 1181px) and (max-height: 900px) {
+  .guided-shell:is(
+      .guided-shell--step-3,
+      .guided-shell--step-4,
+      .guided-shell--step-5
+    ) .concept-preview.concept-preview--published-beauty {
+    width: min(100%, calc(150dvh - 459px));
+    align-self: start;
+    justify-self: center;
+  }
+
+  .measurement-diagram-column--published > .measurement-guidance:not([open]) {
+    width: min(100%, calc(150dvh - 459px));
+    justify-self: center;
+  }
+
+  .measurement-diagram-column--published > .measurement-guidance[open] {
+    width: min(100%, calc(150dvh - 385.5px));
+  }
+
+  .guided-shell--step-5
+    .review-layout:has(> .concept-preview--published-beauty)
+    .project-summary-card {
+    height: min(488px, calc(100dvh - 278px));
+    max-height: min(488px, calc(100dvh - 278px));
+  }
+
+  .guided-shell--step-5
+    .review-layout:has(> .concept-preview--published-beauty)
+    .summary-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    margin-top: 7px;
+  }
+
+  .guided-shell--step-5
+    .review-layout:has(> .concept-preview--published-beauty)
+    .summary-actions
+    .guided-button {
+    min-width: 0;
+    min-height: 44px;
+    padding: 6px 10px;
+    font-size: 0.72rem;
+  }
+
+  .guided-shell--step-5
+    .guided-main:has(.review-layout > .concept-preview--published-beauty)
+    > .guided-support {
+    min-height: 0;
+    margin-top: 7px;
+    padding-top: 5px;
+    font-size: 0.7rem;
+    line-height: 1.15;
+  }
 }
