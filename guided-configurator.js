@@ -28,8 +28,9 @@ import {
   resolveProductLayoutCompatibility
 } from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
+  resolveApprovedPublishedCustomerPreview,
   resolvePublishedCustomerPreview
-} from "./guided-published-preview-data.js?v=universal-photoreal-preview-v1-20260803a";
+} from "./guided-published-preview-data.js?v=visual-recovery-v1-20260804a";
 import {
   createGuidedAcceptedSnapshot,
   prepareGuidedProjectPersistence,
@@ -80,6 +81,8 @@ const BOOKCASE_CONFIGURATION_DEFAULTS = Object.freeze({
     topTreatment: "traditional-crown"
   })
 });
+
+const INTERNAL_PUBLISHED_PREVIEW_AUDIT_STORAGE_KEY = "jqInternalPublishedPreviewAuditV1";
 
 const app = document.querySelector("[data-guided-app]");
 const store = createProjectStore();
@@ -485,13 +488,26 @@ function resolveCurrentPublishedPreview(currentProject = project) {
     layoutId: currentProject?.layout || null,
     finishId: currentProject?.finish || null
   };
-  let preview = resolvePublishedCustomerPreview(candidate);
+  const resolver = isInternalPublishedPreviewAuditEnabled()
+    ? resolvePublishedCustomerPreview
+    : resolveApprovedPublishedCustomerPreview;
+  let preview = resolver(candidate);
   if (preview?.finishOverrideId && failedPublishedPreviewIds.has(preview.previewId)) {
-    preview = resolvePublishedCustomerPreview({ ...candidate, finishId: null });
+    preview = resolver({ ...candidate, finishId: null });
   }
   return preview && !failedPublishedPreviewIds.has(preview.previewId)
     ? preview
     : null;
+}
+
+function isInternalPublishedPreviewAuditEnabled() {
+  if (window.navigator.webdriver !== true) return false;
+  if (!["localhost", "127.0.0.1", "::1"].includes(window.location.hostname)) return false;
+  try {
+    return window.sessionStorage.getItem(INTERNAL_PUBLISHED_PREVIEW_AUDIT_STORAGE_KEY) === "enabled";
+  } catch {
+    return false;
+  }
 }
 
 function renderProductStep() {

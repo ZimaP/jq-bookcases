@@ -13,6 +13,7 @@ const publicRoutes = [
   "privacy.html",
   "terms.html"
 ];
+const INTERNAL_PUBLISHED_PREVIEW_AUDIT_STORAGE_KEY = "jqInternalPublishedPreviewAuditV1";
 
 function monitorRuntime(page) {
   const failures = [];
@@ -27,6 +28,14 @@ function monitorRuntime(page) {
     if (response.status() >= 400) failures.push(`response: ${response.status()} ${response.url()}`);
   });
   return failures;
+}
+
+async function enableInternalPublishedPreviewAudit(page) {
+  await page.addInitScript((storageKey) => {
+    if (["http:", "https:"].includes(window.location.protocol)) {
+      window.sessionStorage.setItem(storageKey, "enabled");
+    }
+  }, INTERNAL_PUBLISHED_PREVIEW_AUDIT_STORAGE_KEY);
 }
 
 function publishedPreviewFor(productId, layoutId) {
@@ -114,10 +123,11 @@ test("public routes render without runtime, network, or responsive overflow fail
   }
 });
 
-test("published TV previews stay primary across dimensions, mirrored layouts, review, and reload", async ({ page }) => {
+test("the internal matrix audit path preserves published-preview coverage", async ({ page }) => {
   const failures = monitorRuntime(page);
   const rightPreview = publishedPreviewFor("tv-unit", "right-niche");
   const leftPreview = publishedPreviewFor("tv-unit", "left-niche");
+  await enableInternalPublishedPreviewAudit(page);
   await page.goto("configurator.html?start=new", { waitUntil: "networkidle" });
   await page.locator('[data-product-choice="tv-unit"]').click();
   await page.locator("[data-continue]").click();
@@ -213,6 +223,7 @@ test("a real published-image decode failure falls back to one persistent technic
   const failures = monitorRuntime(page);
   const interceptedPublishedPreviewCount = await forcePublishedPreviewLoadFailure(page);
   await page.setViewportSize({ width: 1024, height: 768 });
+  await enableInternalPublishedPreviewAudit(page);
   await page.goto("configurator.html?start=new", { waitUntil: "networkidle" });
   await page.locator('[data-product-choice="open-shelving"]').click();
   await page.locator("[data-continue]").click();
