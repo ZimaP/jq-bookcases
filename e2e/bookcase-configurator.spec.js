@@ -11,6 +11,7 @@ const products = PRODUCT_CHOICES;
 const sharedLayouts = SHARED_ROOM_LAYOUTS;
 const productsById = new Map(products.map((product) => [product.id, product]));
 const layoutsById = new Map(sharedLayouts.map((layout) => [layout.id, layout]));
+const INTERNAL_PUBLISHED_PREVIEW_AUDIT_STORAGE_KEY = "jqInternalPublishedPreviewAuditV1";
 
 const TV_MATRIX_MEASUREMENTS = Object.freeze({
   "niche-layout": Object.freeze({
@@ -187,7 +188,16 @@ function monitorRuntime(page) {
   return failures;
 }
 
+async function enableInternalPublishedPreviewAudit(page) {
+  await page.addInitScript((storageKey) => {
+    if (["http:", "https:"].includes(window.location.protocol)) {
+      window.sessionStorage.setItem(storageKey, "enabled");
+    }
+  }, INTERNAL_PUBLISHED_PREVIEW_AUDIT_STORAGE_KEY);
+}
+
 async function openFreshProject(page) {
+  await enableInternalPublishedPreviewAudit(page);
   await page.goto("configurator.html?start=new", { waitUntil: "networkidle" });
   await expect(page.getByRole("heading", { name: "What would you like us to build?" })).toBeVisible();
   await expect(page).toHaveURL(/configurator\.html#step-1$/);
@@ -365,6 +375,37 @@ async function expectNoHorizontalOverflow(page, selectors) {
     expect(element.right, `${element.selector} right`).toBeLessThanOrEqual(report.viewportWidth + 1);
   }
 }
+
+test("customer-facing previews default to the technical viewer without loading matrix assets", async ({ page }) => {
+  const matrixRequests = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/assets/photos/configurator/photoreal-matrix/")) {
+      matrixRequests.push(request.url());
+    }
+  });
+
+  await page.goto("configurator.html?start=new", { waitUntil: "networkidle" });
+  await page.locator('[data-product-choice="tv-unit"]').click();
+  await page.locator("[data-continue]").click();
+  await page.locator('[data-layout="right-niche"]').click();
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
+  await expect(page.locator("[data-published-customer-preview]")).toHaveCount(0);
+  await expect(page.locator(".measurement-diagram-column--published")).toHaveCount(0);
+
+  await applyMeasurementOverrides(page, TV_MATRIX_MEASUREMENTS["right-niche"]);
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+
+  const preview = page.locator(".concept-preview");
+  await expectAcceptedGeometryPreview(preview);
+  await expect(preview).not.toHaveAttribute("data-customer-preview-id", /.+/);
+  await expect(preview.locator("[data-published-preview-image]")).toHaveCount(0);
+  await expect(preview.locator(".concept-finish-caption small")).toHaveText("Live finish");
+  await expect(preview.locator("[data-layout-context]"))
+    .toHaveAttribute("data-layout-context-mode", "accepted-geometry");
+  expect(matrixRequests).toEqual([]);
+});
 
 async function expectOneScreenWorkspace(page, selectors, context) {
   const report = await page.evaluate((targets) => {

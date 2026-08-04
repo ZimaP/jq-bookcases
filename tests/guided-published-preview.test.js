@@ -7,7 +7,9 @@ import { fileURLToPath } from "node:url";
 
 import { evaluateGuidedProjectCandidate } from "../guided-project-engine.js";
 import {
+  PUBLISHED_CUSTOMER_PREVIEW_POLICY,
   PUBLISHED_CUSTOMER_PREVIEWS,
+  resolveApprovedPublishedCustomerPreview,
   resolvePublishedCustomerPreview
 } from "../guided-published-preview-data.js";
 import { readWebpDimensions } from "../tools/blender/run-clay-worker.mjs";
@@ -102,6 +104,27 @@ test("the published TV clear-wall preview resolves by product and layout only", 
   assert.equal(resolvePublishedCustomerPreview([]), null);
 });
 
+test("customer-facing published previews are disabled with an empty approval list", async () => {
+  assert.equal(PUBLISHED_CUSTOMER_PREVIEW_POLICY.publishedPreviewModeEnabled, false);
+  assert.deepEqual(PUBLISHED_CUSTOMER_PREVIEW_POLICY.approvedPublishedPreviewKeys, []);
+
+  const candidate = await exactCandidate();
+  assert.ok(resolvePublishedCustomerPreview(candidate), "the historical registry remains auditable");
+  assert.equal(resolveApprovedPublishedCustomerPreview(candidate), null);
+
+  for (const preview of PUBLISHED_CUSTOMER_PREVIEWS) {
+    assert.equal(
+      resolveApprovedPublishedCustomerPreview({
+        productId: preview.key.productId,
+        layoutId: preview.key.layoutId,
+        finishId: preview.finishOverrideId
+      }),
+      null,
+      `${preview.previewId} must stay on the technical-viewer fallback until approved`
+    );
+  }
+});
+
 test("the tracked website asset is the exact unrecompressed Phase 7 WebP", async () => {
   const bytes = await readFile(LEGACY_ASSET_PATH);
   const metadata = await stat(LEGACY_ASSET_PATH);
@@ -111,7 +134,7 @@ test("the tracked website asset is the exact unrecompressed Phase 7 WebP", async
   assert.deepEqual(readWebpDimensions(bytes), { width: 1920, height: 1280 });
 });
 
-test("Steps 3–5 share one immediate published-preview path with narrow load-error fallback", async () => {
+test("Steps 3–5 share one policy-gated published-preview path with technical-viewer fallback", async () => {
   const [registrySource, generatedSource, configuratorSource, dataSource, cssSource, htmlSource] = await Promise.all([
     readFile(join(REPOSITORY_ROOT, "guided-published-preview-data.js"), "utf8"),
     readFile(join(REPOSITORY_ROOT, "guided-published-preview-registry.generated.js"), "utf8"),
@@ -129,8 +152,14 @@ test("Steps 3–5 share one immediate published-preview path with narrow load-er
   assert.match(dataSource, /"clear-wall": "assets\/photos\/configurator\/concept-tv-wall-v2\.png"/);
   assert.match(registrySource, /key: Object\.freeze\(\{\s*productId: record\.productId,\s*layoutId: record\.layoutId/);
   assert.match(registrySource, /BASE_PREVIEW_BY_KEY\.get\(key\)/);
+  assert.match(registrySource, /publishedPreviewModeEnabled: false/);
+  assert.match(registrySource, /approvedPublishedPreviewKeys: Object\.freeze\(\[\]\)/);
+  assert.match(registrySource, /function resolveApprovedPublishedCustomerPreview/);
   assert.doesNotMatch(registrySource, /Object\.entries\(preview\.match\)/);
   assert.match(configuratorSource, /function resolveCurrentPublishedPreview\(currentProject = project\)/);
+  assert.match(configuratorSource, /resolveApprovedPublishedCustomerPreview/);
+  assert.match(configuratorSource, /isInternalPublishedPreviewAuditEnabled/);
+  assert.match(configuratorSource, /window\.navigator\.webdriver !== true/);
   assert.match(configuratorSource, /renderMeasurementStep\(publishedPreview\)/);
   assert.match(configuratorSource, /renderCustomizationStep\(publishedPreview\)/);
   assert.match(configuratorSource, /renderReviewStep\(publishedPreview\)/);
@@ -156,5 +185,5 @@ test("Steps 3–5 share one immediate published-preview path with narrow load-er
   assert.match(cssSource, /object-fit: var\(--published-preview-media-fit\)/);
   assert.match(cssSource, /\.published-customer-preview-image \{[\s\S]+display: block;[\s\S]+width: 100%;[\s\S]+height: auto;/);
   assert.match(htmlSource, /guided-configurator\.css\?v=universal-photoreal-preview-v1-20260803a/);
-  assert.match(htmlSource, /guided-configurator\.js\?v=universal-photoreal-preview-v1-20260803a/);
+  assert.match(htmlSource, /guided-configurator\.js\?v=visual-recovery-v1-20260804a/);
 });

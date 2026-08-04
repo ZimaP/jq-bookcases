@@ -6,6 +6,14 @@ import {
 const PREVIEW_SCHEMA = "jq-published-customer-preview-v1";
 const CAPTURE_ID = "universal-photoreal-preview-matrix-v1";
 
+// Phase 7.4 recovery: registry entries remain available for provenance and
+// controlled QA, but no image is customer-facing until both this mode is
+// enabled and its exact preview ID has been approved.
+export const PUBLISHED_CUSTOMER_PREVIEW_POLICY = Object.freeze({
+  publishedPreviewModeEnabled: false,
+  approvedPublishedPreviewKeys: Object.freeze([])
+});
+
 export const PUBLISHED_CUSTOMER_PREVIEWS = Object.freeze(
   PUBLISHED_PHOTOREAL_MATRIX_ASSETS.map((record) => Object.freeze({
     schema: PREVIEW_SCHEMA,
@@ -84,6 +92,20 @@ export function resolvePublishedCustomerPreview(candidate = {}) {
   return (finishId && FINISH_PREVIEW_BY_KEY.get(`${key}\u0000${finishId}`))
     || BASE_PREVIEW_BY_KEY.get(key)
     || null;
+}
+
+/**
+ * Resolve only a preview that is explicitly approved for the public
+ * configurator. Keeping this gate separate preserves the generated matrix as
+ * an auditable historical registry without making it the default experience.
+ */
+export function resolveApprovedPublishedCustomerPreview(candidate = {}) {
+  if (!PUBLISHED_CUSTOMER_PREVIEW_POLICY.publishedPreviewModeEnabled) return null;
+  const preview = resolvePublishedCustomerPreview(candidate);
+  if (!preview) return null;
+  return PUBLISHED_CUSTOMER_PREVIEW_POLICY.approvedPublishedPreviewKeys.includes(preview.previewId)
+    ? preview
+    : null;
 }
 
 function previewKey(productId, layoutId) {
