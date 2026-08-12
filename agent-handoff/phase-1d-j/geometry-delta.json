@@ -1,0 +1,1446 @@
+{
+  "schemaVersion": 1,
+  "kind": "jq-phase1d-j-owner-clay-geometry-delta",
+  "status": "pass",
+  "phase": "1D-J",
+  "previewOnly": true,
+  "ownerApproved": false,
+  "productionAuthority": false,
+  "fabricationAuthority": false,
+  "inventoriesCompared": {
+    "phaseI": {
+      "path": "artifacts/review-phase1d-preview-geometry-proof/object-inventory.json",
+      "geometryFingerprint": "jq-phase1d-i-preview-v1-351588ce11922cf3be35c309d8e0ae07df7f81d1eab04ad40337d93e391b9ec1"
+    },
+    "phaseJ": {
+      "path": "artifacts/review-phase1d-owner-clay-correction/object-inventory.json",
+      "geometryFingerprint": "jq-phase1d-j-owner-clay-v1-65b68a61694e0e197bd41edc85306b196a5c3e6abda2928c786e16e0d465de3f"
+    }
+  },
+  "correctedOverlapCount": 42,
+  "overlapAccounting": {
+    "phase1DIPositiveVolumePairsExcludingA104": 42,
+    "phase1DJPositiveVolumePairsExcludingA104": 0,
+    "retainedIntentionalA104ConstituentPairs": 48,
+    "independentInventoryAabbRecomputation": {
+      "method": "strict positive interval on all three actual-inch AABB axes; same-pull A104 hardware constituent joins separated from cabinetry defects",
+      "toleranceInches": 0.0001,
+      "phase1DIDefectPairs": [
+        {
+          "semanticIds": [
+            "LOWER_BOTTOM_PANEL",
+            "LOWER_CARCASS_PANEL_01"
+          ],
+          "roles": [
+            "carcass-panel",
+            "carcass-panel"
+          ],
+          "overlapInches": [
+            0.75,
+            0.75,
+            17.25
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_BOTTOM_PANEL",
+            "LOWER_CARCASS_PANEL_02"
+          ],
+          "roles": [
+            "carcass-panel",
+            "carcass-panel"
+          ],
+          "overlapInches": [
+            0.75,
+            0.75,
+            17.25
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_BOTTOM_PANEL",
+            "LOWER_CARCASS_PANEL_03"
+          ],
+          "roles": [
+            "carcass-panel",
+            "carcass-panel"
+          ],
+          "overlapInches": [
+            0.75,
+            0.75,
+            17.25
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_BOTTOM_PANEL",
+            "LOWER_CARCASS_PANEL_04"
+          ],
+          "roles": [
+            "carcass-panel",
+            "carcass-panel"
+          ],
+          "overlapInches": [
+            0.75,
+            0.75,
+            17.25
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_BOTTOM_PANEL",
+            "LOWER_CARCASS_PANEL_05"
+          ],
+          "roles": [
+            "carcass-panel",
+            "carcass-panel"
+          ],
+          "overlapInches": [
+            0.75,
+            0.75,
+            17.25
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_BOTTOM_PANEL",
+            "LOWER_FACE_FRAME_BOTTOM_RAIL"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            117.000004,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_BOTTOM_PANEL",
+            "LOWER_FACE_FRAME_STILE_01"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_BOTTOM_PANEL",
+            "LOWER_FACE_FRAME_STILE_02"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_BOTTOM_PANEL",
+            "LOWER_FACE_FRAME_STILE_03"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_BOTTOM_PANEL",
+            "LOWER_FACE_FRAME_STILE_04"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_BOTTOM_PANEL",
+            "LOWER_FACE_FRAME_STILE_05"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_01",
+            "LOWER_FACE_FRAME_BOTTOM_RAIL"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_01",
+            "LOWER_FACE_FRAME_STILE_01"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            30.000000999999997,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_01",
+            "LOWER_FACE_FRAME_TOP_RAIL"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_02",
+            "LOWER_FACE_FRAME_BOTTOM_RAIL"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_02",
+            "LOWER_FACE_FRAME_STILE_02"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            30.000000999999997,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_02",
+            "LOWER_FACE_FRAME_TOP_RAIL"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_03",
+            "LOWER_FACE_FRAME_BOTTOM_RAIL"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_03",
+            "LOWER_FACE_FRAME_STILE_03"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            30.000000999999997,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_03",
+            "LOWER_FACE_FRAME_TOP_RAIL"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_04",
+            "LOWER_FACE_FRAME_BOTTOM_RAIL"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_04",
+            "LOWER_FACE_FRAME_STILE_04"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            30.000000999999997,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_04",
+            "LOWER_FACE_FRAME_TOP_RAIL"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_05",
+            "LOWER_FACE_FRAME_BOTTOM_RAIL"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_05",
+            "LOWER_FACE_FRAME_STILE_05"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            30.000000999999997,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_CARCASS_PANEL_05",
+            "LOWER_FACE_FRAME_TOP_RAIL"
+          ],
+          "roles": [
+            "carcass-panel",
+            "face-frame"
+          ],
+          "overlapInches": [
+            0.75,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_BOTTOM_RAIL",
+            "LOWER_FACE_FRAME_STILE_01"
+          ],
+          "roles": [
+            "face-frame",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_BOTTOM_RAIL",
+            "LOWER_FACE_FRAME_STILE_02"
+          ],
+          "roles": [
+            "face-frame",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_BOTTOM_RAIL",
+            "LOWER_FACE_FRAME_STILE_03"
+          ],
+          "roles": [
+            "face-frame",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_BOTTOM_RAIL",
+            "LOWER_FACE_FRAME_STILE_04"
+          ],
+          "roles": [
+            "face-frame",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_BOTTOM_RAIL",
+            "LOWER_FACE_FRAME_STILE_05"
+          ],
+          "roles": [
+            "face-frame",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_STILE_01",
+            "LOWER_FACE_FRAME_TOP_RAIL"
+          ],
+          "roles": [
+            "face-frame",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_STILE_01",
+            "LOWER_TOP_PANEL"
+          ],
+          "roles": [
+            "face-frame",
+            "carcass-panel"
+          ],
+          "overlapInches": [
+            1.5,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_STILE_02",
+            "LOWER_FACE_FRAME_TOP_RAIL"
+          ],
+          "roles": [
+            "face-frame",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_STILE_02",
+            "LOWER_TOP_PANEL"
+          ],
+          "roles": [
+            "face-frame",
+            "carcass-panel"
+          ],
+          "overlapInches": [
+            1.5,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_STILE_03",
+            "LOWER_FACE_FRAME_TOP_RAIL"
+          ],
+          "roles": [
+            "face-frame",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_STILE_03",
+            "LOWER_TOP_PANEL"
+          ],
+          "roles": [
+            "face-frame",
+            "carcass-panel"
+          ],
+          "overlapInches": [
+            1.5,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_STILE_04",
+            "LOWER_FACE_FRAME_TOP_RAIL"
+          ],
+          "roles": [
+            "face-frame",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_STILE_04",
+            "LOWER_TOP_PANEL"
+          ],
+          "roles": [
+            "face-frame",
+            "carcass-panel"
+          ],
+          "overlapInches": [
+            1.5,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_STILE_05",
+            "LOWER_FACE_FRAME_TOP_RAIL"
+          ],
+          "roles": [
+            "face-frame",
+            "face-frame"
+          ],
+          "overlapInches": [
+            1.5,
+            1.5,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_STILE_05",
+            "LOWER_TOP_PANEL"
+          ],
+          "roles": [
+            "face-frame",
+            "carcass-panel"
+          ],
+          "overlapInches": [
+            1.5,
+            0.75,
+            0.75
+          ]
+        },
+        {
+          "semanticIds": [
+            "LOWER_FACE_FRAME_TOP_RAIL",
+            "LOWER_TOP_PANEL"
+          ],
+          "roles": [
+            "face-frame",
+            "carcass-panel"
+          ],
+          "overlapInches": [
+            117.000004,
+            0.75,
+            0.75
+          ]
+        }
+      ],
+      "phase1DJDefectPairs": [],
+      "phase1DIIntentionalA104PairCount": 48,
+      "phase1DJIntentionalA104PairCount": 48
+    },
+    "breakdown": {
+      "lowerCarcassToFaceFrameDepthClosure": 27,
+      "segmentedRailsBetweenContinuousStiles": 10,
+      "verticalPanelStartY4ToY4_75": 5
+    }
+  },
+  "declaredCorrections": [
+    {
+      "correctionId": "P1DJ-GEO-001",
+      "title": "Separate lower carcass core from the visible face-frame layer",
+      "before": {
+        "carcassCoreFront": 18.5,
+        "faceFrameDepth": [
+          17.75,
+          18.5
+        ],
+        "positiveVolumePairs": 27
+      },
+      "after": {
+        "carcassCoreFront": 17.75,
+        "faceFrameDepth": [
+          17.75,
+          18.5
+        ],
+        "positiveVolumePairs": 0,
+        "visibleFrontPlane": 18.5
+      },
+      "exactRemovedPairCount": 27,
+      "lockedDimensionChanged": false
+    },
+    {
+      "correctionId": "P1DJ-GEO-002",
+      "title": "Segment lower face-frame rails between the five continuous stiles",
+      "before": {
+        "continuousRails": 2,
+        "railStilePositiveVolumePairs": 10
+      },
+      "after": {
+        "bayRailSegments": 8,
+        "railStilePositiveVolumePairs": 0,
+        "visibleRailWidth": 1.5
+      },
+      "exactRemovedPairCount": 10,
+      "lockedDimensionChanged": false
+    }
+  ],
+  "supportingCorrection": {
+    "correctionId": "P1DJ-GEO-003",
+    "disposition": "supporting isolated-spec correction required by the lower-core closure; included with P1DJ-GEO-001/002 in the exact 42-pair accounting",
+    "before": {
+      "verticalPanelAff": [
+        4,
+        34
+      ],
+      "bottomPanelAff": [
+        4,
+        4.75
+      ],
+      "positiveVolumePairs": 5
+    },
+    "after": {
+      "verticalPanelAff": [
+        4.75,
+        34
+      ],
+      "bottomPanelAff": [
+        4,
+        4.75
+      ],
+      "positiveVolumePairs": 0
+    },
+    "exactRemovedPairCount": 5
+  },
+  "observedPhysicalInventoryDeltas": [
+    {
+      "semanticId": "LOWER_BOTTOM_PANEL",
+      "changeType": "changed",
+      "declaredCorrectionId": "P1DJ-GEO-001/P1DJ-GEO-003",
+      "phaseI": {
+        "semanticId": "LOWER_BOTTOM_PANEL",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          -58.500002,
+          58.500002,
+          4,
+          4.75,
+          1.25,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      },
+      "phaseJ": {
+        "semanticId": "LOWER_BOTTOM_PANEL",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          -58.500002,
+          58.500002,
+          4,
+          4.75,
+          1.25,
+          17.75
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_CARCASS_PANEL_01",
+      "changeType": "changed",
+      "declaredCorrectionId": "P1DJ-GEO-001/P1DJ-GEO-003",
+      "phaseI": {
+        "semanticId": "LOWER_CARCASS_PANEL_01",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "actualBoundsInches": [
+          -58.500002,
+          -57.750002,
+          4,
+          34.000001,
+          1.25,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      },
+      "phaseJ": {
+        "semanticId": "LOWER_CARCASS_PANEL_01",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "actualBoundsInches": [
+          -58.500002,
+          -57.750002,
+          4.75,
+          34.000001,
+          1.25,
+          17.75
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_CARCASS_PANEL_02",
+      "changeType": "changed",
+      "declaredCorrectionId": "P1DJ-GEO-001/P1DJ-GEO-003",
+      "phaseI": {
+        "semanticId": "LOWER_CARCASS_PANEL_02",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "actualBoundsInches": [
+          -29.4375,
+          -28.6875,
+          4,
+          34.000001,
+          1.25,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      },
+      "phaseJ": {
+        "semanticId": "LOWER_CARCASS_PANEL_02",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "actualBoundsInches": [
+          -29.4375,
+          -28.6875,
+          4.75,
+          34.000001,
+          1.25,
+          17.75
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_CARCASS_PANEL_03",
+      "changeType": "changed",
+      "declaredCorrectionId": "P1DJ-GEO-001/P1DJ-GEO-003",
+      "phaseI": {
+        "semanticId": "LOWER_CARCASS_PANEL_03",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "actualBoundsInches": [
+          -0.375,
+          0.375,
+          4,
+          34.000001,
+          1.25,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      },
+      "phaseJ": {
+        "semanticId": "LOWER_CARCASS_PANEL_03",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "actualBoundsInches": [
+          -0.375,
+          0.375,
+          4.75,
+          34.000001,
+          1.25,
+          17.75
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_CARCASS_PANEL_04",
+      "changeType": "changed",
+      "declaredCorrectionId": "P1DJ-GEO-001/P1DJ-GEO-003",
+      "phaseI": {
+        "semanticId": "LOWER_CARCASS_PANEL_04",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "actualBoundsInches": [
+          28.6875,
+          29.4375,
+          4,
+          34.000001,
+          1.25,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      },
+      "phaseJ": {
+        "semanticId": "LOWER_CARCASS_PANEL_04",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "actualBoundsInches": [
+          28.6875,
+          29.4375,
+          4.75,
+          34.000001,
+          1.25,
+          17.75
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_CARCASS_PANEL_05",
+      "changeType": "changed",
+      "declaredCorrectionId": "P1DJ-GEO-001/P1DJ-GEO-003",
+      "phaseI": {
+        "semanticId": "LOWER_CARCASS_PANEL_05",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "actualBoundsInches": [
+          57.750002,
+          58.500002,
+          4,
+          34.000001,
+          1.25,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      },
+      "phaseJ": {
+        "semanticId": "LOWER_CARCASS_PANEL_05",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "actualBoundsInches": [
+          57.750002,
+          58.500002,
+          4.75,
+          34.000001,
+          1.25,
+          17.75
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_FACE_FRAME_BOTTOM_RAIL",
+      "changeType": "removed",
+      "declaredCorrectionId": "P1DJ-GEO-002",
+      "phaseI": {
+        "semanticId": "LOWER_FACE_FRAME_BOTTOM_RAIL",
+        "role": "face-frame",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          -58.500002,
+          58.500002,
+          4,
+          5.5,
+          17.75,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      },
+      "phaseJ": null
+    },
+    {
+      "semanticId": "LOWER_FACE_FRAME_BOTTOM_RAIL_01",
+      "changeType": "added",
+      "declaredCorrectionId": "P1DJ-GEO-002",
+      "phaseI": null,
+      "phaseJ": {
+        "semanticId": "LOWER_FACE_FRAME_BOTTOM_RAIL_01",
+        "role": "face-frame",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          -57.000002,
+          -29.625001,
+          4,
+          5.5,
+          17.75,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_FACE_FRAME_BOTTOM_RAIL_02",
+      "changeType": "added",
+      "declaredCorrectionId": "P1DJ-GEO-002",
+      "phaseI": null,
+      "phaseJ": {
+        "semanticId": "LOWER_FACE_FRAME_BOTTOM_RAIL_02",
+        "role": "face-frame",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          -28.125001,
+          -0.75,
+          4,
+          5.5,
+          17.75,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_FACE_FRAME_BOTTOM_RAIL_03",
+      "changeType": "added",
+      "declaredCorrectionId": "P1DJ-GEO-002",
+      "phaseI": null,
+      "phaseJ": {
+        "semanticId": "LOWER_FACE_FRAME_BOTTOM_RAIL_03",
+        "role": "face-frame",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          0.75,
+          28.125001,
+          4,
+          5.5,
+          17.75,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_FACE_FRAME_BOTTOM_RAIL_04",
+      "changeType": "added",
+      "declaredCorrectionId": "P1DJ-GEO-002",
+      "phaseI": null,
+      "phaseJ": {
+        "semanticId": "LOWER_FACE_FRAME_BOTTOM_RAIL_04",
+        "role": "face-frame",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          29.625001,
+          57.000002,
+          4,
+          5.5,
+          17.75,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_FACE_FRAME_TOP_RAIL",
+      "changeType": "removed",
+      "declaredCorrectionId": "P1DJ-GEO-002",
+      "phaseI": {
+        "semanticId": "LOWER_FACE_FRAME_TOP_RAIL",
+        "role": "face-frame",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          -58.500002,
+          58.500002,
+          33.250001,
+          34.750001,
+          17.75,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      },
+      "phaseJ": null
+    },
+    {
+      "semanticId": "LOWER_FACE_FRAME_TOP_RAIL_01",
+      "changeType": "added",
+      "declaredCorrectionId": "P1DJ-GEO-002",
+      "phaseI": null,
+      "phaseJ": {
+        "semanticId": "LOWER_FACE_FRAME_TOP_RAIL_01",
+        "role": "face-frame",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          -57.000002,
+          -29.625001,
+          33.250001,
+          34.750001,
+          17.75,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_FACE_FRAME_TOP_RAIL_02",
+      "changeType": "added",
+      "declaredCorrectionId": "P1DJ-GEO-002",
+      "phaseI": null,
+      "phaseJ": {
+        "semanticId": "LOWER_FACE_FRAME_TOP_RAIL_02",
+        "role": "face-frame",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          -28.125001,
+          -0.75,
+          33.250001,
+          34.750001,
+          17.75,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_FACE_FRAME_TOP_RAIL_03",
+      "changeType": "added",
+      "declaredCorrectionId": "P1DJ-GEO-002",
+      "phaseI": null,
+      "phaseJ": {
+        "semanticId": "LOWER_FACE_FRAME_TOP_RAIL_03",
+        "role": "face-frame",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          0.75,
+          28.125001,
+          33.250001,
+          34.750001,
+          17.75,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_FACE_FRAME_TOP_RAIL_04",
+      "changeType": "added",
+      "declaredCorrectionId": "P1DJ-GEO-002",
+      "phaseI": null,
+      "phaseJ": {
+        "semanticId": "LOWER_FACE_FRAME_TOP_RAIL_04",
+        "role": "face-frame",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          29.625001,
+          57.000002,
+          33.250001,
+          34.750001,
+          17.75,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    },
+    {
+      "semanticId": "LOWER_TOP_PANEL",
+      "changeType": "changed",
+      "declaredCorrectionId": "P1DJ-GEO-001/P1DJ-GEO-003",
+      "phaseI": {
+        "semanticId": "LOWER_TOP_PANEL",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          -58.500002,
+          58.500002,
+          34.000001,
+          34.750001,
+          1.25,
+          18.5
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      },
+      "phaseJ": {
+        "semanticId": "LOWER_TOP_PANEL",
+        "role": "carcass-panel",
+        "classification": "DRAWING_DIRECT",
+        "actualBoundsInches": [
+          -58.500002,
+          58.500002,
+          34.000001,
+          34.750001,
+          1.25,
+          17.75
+        ],
+        "mesh": {
+          "vertices": 8,
+          "edges": 12,
+          "polygons": 6
+        }
+      }
+    }
+  ],
+  "lockedAnchorChecks": [
+    {
+      "key": "BASE_FLUSH_PLINTH::base height",
+      "phaseI": {
+        "target": 4,
+        "actual": 4
+      },
+      "phaseJ": {
+        "target": 4,
+        "actual": 4
+      },
+      "change": 0,
+      "computationallyUnchanged": true
+    },
+    {
+      "key": "CONSTRUCTION_CARCASS_THICKNESS::carcass thickness",
+      "phaseI": {
+        "target": 0.75,
+        "actual": 0.75
+      },
+      "phaseJ": {
+        "target": 0.75,
+        "actual": 0.75
+      },
+      "change": 0,
+      "computationallyUnchanged": true
+    },
+    {
+      "key": "CONSTRUCTION_FACE_FRAME_WIDTH::visible face-frame width",
+      "phaseI": {
+        "target": 1.5,
+        "actual": 1.5
+      },
+      "phaseJ": {
+        "target": 1.5,
+        "actual": 1.5
+      },
+      "change": 0,
+      "computationallyUnchanged": true
+    },
+    {
+      "key": "COUNTER_THICKNESS::counter thickness",
+      "phaseI": {
+        "target": 1.25,
+        "actual": 1.25
+      },
+      "phaseJ": {
+        "target": 1.25,
+        "actual": 1.249998000000005
+      },
+      "change": -0.0000019999999949504854,
+      "computationallyUnchanged": true
+    },
+    {
+      "key": "DEPTH_UPPER_FINISHED::upper finished depth",
+      "phaseI": {
+        "target": 11.625,
+        "actual": 11.625
+      },
+      "phaseJ": {
+        "target": 11.625,
+        "actual": 11.625
+      },
+      "change": 0,
+      "computationallyUnchanged": true
+    },
+    {
+      "key": "HEIGHT_TOTAL::total height",
+      "phaseI": {
+        "target": 96,
+        "actual": 96
+      },
+      "phaseJ": {
+        "target": 96,
+        "actual": 96.000001
+      },
+      "change": 9.999999974752427e-7,
+      "computationallyUnchanged": true
+    },
+    {
+      "key": "TV_OPENING::TV opening height",
+      "phaseI": {
+        "target": 37,
+        "actual": 37
+      },
+      "phaseJ": {
+        "target": 37,
+        "actual": 37.000001
+      },
+      "change": 9.999999974752427e-7,
+      "computationallyUnchanged": true
+    },
+    {
+      "key": "TV_OPENING::TV opening width",
+      "phaseI": {
+        "target": 60,
+        "actual": 60
+      },
+      "phaseJ": {
+        "target": 60,
+        "actual": 60.000002
+      },
+      "change": 0.0000020000000020559128,
+      "computationallyUnchanged": true
+    },
+    {
+      "key": "VERT_COUNTER_TOP::counter top AFF",
+      "phaseI": {
+        "target": 36,
+        "actual": 36
+      },
+      "phaseJ": {
+        "target": 36,
+        "actual": 35.999999
+      },
+      "change": -9.999999974752427e-7,
+      "computationallyUnchanged": true
+    },
+    {
+      "key": "WIDTH_CASEWORK::casework width",
+      "phaseI": {
+        "target": 117,
+        "actual": 117
+      },
+      "phaseJ": {
+        "target": 117,
+        "actual": 117.000004
+      },
+      "change": 0.0000040000000041118255,
+      "computationallyUnchanged": true
+    },
+    {
+      "key": "WIDTH_INSTALLED::installed width",
+      "phaseI": {
+        "target": 120,
+        "actual": 120
+      },
+      "phaseJ": {
+        "target": 120,
+        "actual": 120.000004
+      },
+      "change": 0.0000040000000041118255,
+      "computationallyUnchanged": true
+    }
+  ],
+  "topologyChecks": [
+    {
+      "field": "outerShelfCount",
+      "phaseIActual": 8,
+      "phaseJActual": 8,
+      "change": 0
+    },
+    {
+      "field": "bridgeShelfCount",
+      "phaseIActual": 2,
+      "phaseJActual": 2,
+      "change": 0
+    },
+    {
+      "field": "lowerShelfCount",
+      "phaseIActual": 12,
+      "phaseJActual": 12,
+      "change": 0
+    },
+    {
+      "field": "doorLeafCount",
+      "phaseIActual": 8,
+      "phaseJActual": 8,
+      "change": 0
+    },
+    {
+      "field": "hardwarePullCount",
+      "phaseIActual": 8,
+      "phaseJActual": 8,
+      "change": 0
+    }
+  ],
+  "lockedAnchorChangeCount": 0,
+  "undeclaredDeltas": [],
+  "undeclaredDeltaCount": 0
+}

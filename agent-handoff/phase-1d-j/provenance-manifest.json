@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "kind": "jq-golden-hero-phase1d-j-owner-clay-sanitized-provenance",
+  "phase": "1D-J",
+  "status": "pass",
+  "previewOnly": true,
+  "ownerApproved": false,
+  "productionAuthority": false,
+  "fabricationAuthority": false,
+  "repository": {
+    "name": "ZimaP/jq-bookcases",
+    "branch": "codex/golden-hero-authoritative-drawings-v1",
+    "head": "9f289165e4d52dc27c792b36acdccfe1d37c9e17",
+    "protectedScopeStillExactAfterSeal": true
+  },
+  "sourcePackage": {
+    "original_provenance_manifest_sha256": "d521fac42aecead112adce6f1af0717d50539cd8e9693b23d5fb4ade9f3998cc",
+    "original_validation_report_sha256": "2865c3c3e234dd2301de2f2245a9935cdb6e68953876a625802475b04ce7aae5",
+    "source_payload_sha256": [
+      {
+        "filename": "component-separation-front.png",
+        "sha256": "d9318eaa8d2b02f3a9f871f4a30933cccbbb750a872ad56a5cbe95350d563973"
+      },
+      {
+        "filename": "depth-plane-evidence.png",
+        "sha256": "18fdac20ce03511cfdd2839070326507d6803a025ee0dc05dc85221e5fd5af7c"
+      },
+      {
+        "filename": "front-registered-overlay.png",
+        "sha256": "8432e6432f40d6a949ba81790d137f8b5d5e457c60cd24d5502c80da4ee40000"
+      },
+      {
+        "filename": "geometry-delta.json",
+        "sha256": "25d784bab947df1b4e59067857738a6d6a55af350fce384fa0ce13b07f48bd61"
+      },
+      {
+        "filename": "neutral-front-empty-tv-opening.png",
+        "sha256": "300a583d36cace8e99125dd5321ea197dc05be16799867fde370905c6b1897cf"
+      },
+      {
+        "filename": "neutral-front-full-orthographic.png",
+        "sha256": "5f9caa469cfb42916a8bd4e47d78a928cf0cb9b853d2ea4fc7941fa00fd29dad"
+      },
+      {
+        "filename": "neutral-s2-actual-section.png",
+        "sha256": "aa6c839dcb74dfe11e593e6bca5b7125f5584953369fd43d3366b7a55a2ea037"
+      },
+      {
+        "filename": "neutral-three-quarter-eye-level.png",
+        "sha256": "71fef3db9f9982a05232c31bcd935678bbe581904b7dee97a972fc870874c4b9"
+      },
+      {
+        "filename": "provenance-manifest.json",
+        "sha256": "d521fac42aecead112adce6f1af0717d50539cd8e9693b23d5fb4ade9f3998cc"
+      },
+      {
+        "filename": "s2-registered-overlay.png",
+        "sha256": "572d0451ab5b2d2d0c1e75fa7b0e6188c64c58c301f4d54019ad69251e796e09"
+      },
+      {
+        "filename": "validation-report.json",
+        "sha256": "2865c3c3e234dd2301de2f2245a9935cdb6e68953876a625802475b04ce7aae5"
+      },
+      {
+        "filename": "visual-issue-audit.json",
+        "sha256": "6538ef0a2ed349d2b1bc906a646230286d2adfbe639abb09ea4d028d28d8963c"
+      },
+      {
+        "filename": "visual-issue-audit.md",
+        "sha256": "e7eaf434c4534eaf43d11bb979163c54ec1a73d875b578cd124704c8020feaf5"
+      }
+    ]
+  },
+  "protectedPhase1DI": {
+    "exactFileCount": 25,
+    "manifestSha256": "df41f2cd70a4fba1204d8614be915488d5943ed3461c68d87ebbd43a53885d35",
+    "geometryFingerprint": "jq-phase1d-i-preview-v1-351588ce11922cf3be35c309d8e0ae07df7f81d1eab04ad40337d93e391b9ec1",
+    "unchanged": true
+  },
+  "authoritySources": {
+    "source_documents_withheld": true,
+    "private_correspondence_withheld": true,
+    "local_attachment_identifiers_withheld": true,
+    "scene_containers_withheld": true
+  },
+  "geometryFingerprint": "jq-phase1d-j-owner-clay-v1-65b68a61694e0e197bd41edc85306b196a5c3e6abda2928c786e16e0d465de3f",
+  "determinism": {
+    "runs": 2,
+    "geometry": {
+      "runAFingerprint": "jq-phase1d-j-owner-clay-v1-65b68a61694e0e197bd41edc85306b196a5c3e6abda2928c786e16e0d465de3f",
+      "runBFingerprint": "jq-phase1d-j-owner-clay-v1-65b68a61694e0e197bd41edc85306b196a5c3e6abda2928c786e16e0d465de3f",
+      "match": true
+    },
+    "canonicalReports": 7,
+    "decodedRenderComparisons": 11,
+    "withheldSceneContainersValidated": 2
+  },
+  "handoffSanitization": {
+    "status": "pass",
+    "transfer_copy_only": true,
+    "source_package_modified": false,
+    "png_ancillary_metadata_removed": true,
+    "decoded_png_pixels_unchanged": true,
+    "local_paths_removed": true,
+    "source_document_identifiers_removed": true,
+    "scene_container_references_removed": true,
+    "full_nonhandoff_package_inventory_removed": true,
+    "exact_handoff_hashes_are_in": "agent-handoff/phase-1d-j/manifest.json"
+  },
+  "manifestSelfHash": null,
+  "manifestSelfHashNotice": "The transport manifest hashes this sanitized provenance file; this file does not hash itself.",
+  "terminalStatus": "OWNER CLAY REVIEW READY — evidence is decision-grade"
+}
