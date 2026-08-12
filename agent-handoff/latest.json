@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "project": "JQ Bookcases",
+  "handoff_branch": "agent/jq-review-handoff",
+  "draft_pr": 44,
+  "state": "AWAITING_PRODUCER_UPLOAD",
+  "latest_phase": null,
+  "latest_commit": null,
+  "package_path": null,
+  "owner_review_status": "NOT_REVIEWED",
+  "instructions": "Producer must publish the sanitized Phase 1D-J package and replace this file in the same commit."
+}
