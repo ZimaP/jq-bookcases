@@ -3,6 +3,10 @@ import {
   createAuthorityRegistry
 } from "./jq-authority-registry.js";
 import { JQ_AUTHORITY_RECORDS_V1 } from "./jq-authority-manifest.js";
+import {
+  JQ_DRAWING_AUTHORITY_ADDENDUM_RECORDS_V1,
+  JQ_DRAWING_AUTHORITY_OVERRIDE_IDS_V1
+} from "./jq-authority-drawing-addendum.js";
 import { JQ_OWNER_AUTHORITY_RECORDS_V1 } from "./jq-authority-owner-manifest.js";
 
 export const JQ_PROJECT_AUTHORITY_VERSION = 1;
@@ -12,8 +16,11 @@ export const JQ_PROJECT_AUTHORITY_STAGES = Object.freeze({
   final: "final"
 });
 
+const DRAWING_OVERRIDE_IDS = new Set(JQ_DRAWING_AUTHORITY_OVERRIDE_IDS_V1);
+
 export const JQ_PROJECT_AUTHORITY_REGISTRY_V1 = createAuthorityRegistry([
-  ...JQ_AUTHORITY_RECORDS_V1,
+  ...JQ_AUTHORITY_RECORDS_V1.filter((record) => !DRAWING_OVERRIDE_IDS.has(record.id)),
+  ...JQ_DRAWING_AUTHORITY_ADDENDUM_RECORDS_V1,
   ...JQ_OWNER_AUTHORITY_RECORDS_V1
 ]);
 
