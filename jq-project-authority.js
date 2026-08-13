@@ -21,6 +21,10 @@ const FIXED_GEOMETRY_AUTHORITY_IDS = Object.freeze([
   "material:interior-clear-maple-uv"
 ]);
 
+const FIXED_FINAL_AUTHORITY_IDS = Object.freeze([
+  "pricing:jq-schedule-v1"
+]);
+
 function token(value) {
   return String(value ?? "").trim().toLowerCase();
 }
@@ -39,10 +43,11 @@ function finalSelectionAuthorityIds(project = {}) {
   const lighting = token(project.lighting);
   const crown = token(project.topTreatment || project.crownStyle);
 
-  if (finish) ids.push(`finish:${finish}`);
+  ids.push(finish ? `finish:${finish}` : "finish:<missing>");
   if (hardware) ids.push(`hardware:${hardware}`);
   if (lighting) ids.push(`lighting:${lighting}`);
   if (crown) ids.push(`crown:${crown}`);
+  ids.push(...FIXED_FINAL_AUTHORITY_IDS);
   return ids;
 }
 
@@ -51,8 +56,10 @@ function finalSelectionAuthorityIds(project = {}) {
  *
  * Geometry authority is deliberately small and hard: the product, the room
  * layout, their exact combination, and the fixed clear-maple interior rule.
- * Final authority adds customer-facing finish/hardware/lighting/crown choices;
- * until those exact records exist they reject by default.
+ * Final authority adds customer-facing finish/hardware/lighting/crown choices
+ * plus the pricing schedule; until those exact records exist they reject by
+ * default. This keeps geometry development possible without pretending a
+ * provisional finish or placeholder rate is ready for manufacturing/quote.
  */
 export function resolveJqProjectAuthorityIds(project = {}, options = {}) {
   const stage = options.stage || JQ_PROJECT_AUTHORITY_STAGES.geometry;
