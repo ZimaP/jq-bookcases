@@ -32,6 +32,20 @@ const FIXED_FINAL_AUTHORITY_IDS = Object.freeze([
   "pricing:jq-schedule-v1"
 ]);
 
+const PRODUCT_ID_BY_SELECTION = Object.freeze({
+  "bookcase:cabinet-base-shelves": "cabinet-shelves",
+  "bookcase:drawer-base-shelves": "drawer-shelves",
+  "bookcase:full-open-shelving": "open-shelving",
+  "bookcase:tv-wall-cabinets": "tv-unit"
+});
+
+const PRODUCT_ID_BY_CATEGORY = Object.freeze({
+  "tv-unit": "tv-unit",
+  "floating-storage": "floating-storage",
+  "window-storage": "window-storage",
+  "radiator-cover": "radiator-cover"
+});
+
 function token(value) {
   return String(value ?? "").trim().toLowerCase();
 }
@@ -41,6 +55,21 @@ function deepFreeze(value) {
   Object.freeze(value);
   for (const item of Object.values(value)) deepFreeze(item);
   return value;
+}
+
+/**
+ * Resolve the public authority product identity from either engine fixture
+ * state (`productId`) or the browser project's canonical category/style pair.
+ * Authority must not depend on a UI-only field being present.
+ */
+export function resolveJqAuthorityProductId(project = {}) {
+  const direct = token(project.productId || project.productChoiceId);
+  if (direct) return direct;
+
+  const category = token(project.category);
+  const style = token(project.style);
+  const selection = category && style ? PRODUCT_ID_BY_SELECTION[`${category}:${style}`] : null;
+  return selection || PRODUCT_ID_BY_CATEGORY[category] || null;
 }
 
 function finalSelectionAuthorityIds(project = {}) {
@@ -70,7 +99,7 @@ function finalSelectionAuthorityIds(project = {}) {
  */
 export function resolveJqProjectAuthorityIds(project = {}, options = {}) {
   const stage = options.stage || JQ_PROJECT_AUTHORITY_STAGES.geometry;
-  const productId = token(project.productId || project.productChoiceId);
+  const productId = resolveJqAuthorityProductId(project);
   const layoutId = token(project.layoutId || project.layout);
   const ids = [
     productId ? `product:${productId}` : "product:<missing>",
