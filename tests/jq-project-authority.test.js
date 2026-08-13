@@ -18,7 +18,7 @@ const EXPECTED_GEOMETRY_AUTHORITY = Object.freeze({
   "G01-right-niche-tv": "reject",
   "G02-center-niche-cabinets": "allow",
   "G03-clear-drawers-wide": "allow",
-  "G04-clear-open": "reject",
+  "G04-clear-open": "allow",
   "G05-fireplace": "review",
   "G06-window-storage": "reject",
   "G07-door-wall": "reject",
@@ -26,7 +26,7 @@ const EXPECTED_GEOMETRY_AUTHORITY = Object.freeze({
   "G09-corner": "reject",
   "G10-floating": "reject",
   "G11-radiator": "reject",
-  "G12-round-trip": "reject"
+  "G12-round-trip": "allow"
 });
 
 test("all twelve legacy golden projects have an explicit authority disposition", () => {
@@ -43,14 +43,27 @@ test("all twelve legacy golden projects have an explicit authority disposition",
   }
 });
 
-test("drawing-authorized cabinet alcove and drawer clear-wall projects pass geometry authority", () => {
-  for (const id of ["G02-center-niche-cabinets", "G03-clear-drawers-wide"]) {
+test("drawing-authorized customer geometry passes the composite authority registry", () => {
+  for (const id of [
+    "G02-center-niche-cabinets",
+    "G03-clear-drawers-wide",
+    "G04-clear-open",
+    "G12-round-trip"
+  ]) {
     const result = evaluateJqProjectAuthority(goldenById.get(id));
     assert.equal(result.accepted, true, id);
     assert.equal(result.decision, "allow", id);
     assert.ok(result.authorityIds.includes("material:interior-clear-maple-uv"), id);
     assert.equal(result.failures.length, 0, id);
   }
+});
+
+test("drawing addendum promotes only evidence-backed open shelving and drawer alcove facts", () => {
+  const open = evaluateJqProjectAuthority(goldenById.get("G04-clear-open"));
+  const drawerAlcove = evaluateJqProjectAuthority(goldenById.get("G12-round-trip"));
+  assert.ok(open.results.some(({ id, accepted }) => id === "product:open-shelving" && accepted));
+  assert.ok(open.results.some(({ id, accepted }) => id === "combination:open-shelving+clear-wall" && accepted));
+  assert.ok(drawerAlcove.results.some(({ id, accepted }) => id === "combination:drawer-shelves+niche-layout" && accepted));
 });
 
 test("fireplace geometry is review-only rather than silently accepted", () => {
@@ -63,13 +76,16 @@ test("fireplace geometry is review-only rather than silently accepted", () => {
 });
 
 test("a known product and known layout still reject when their exact combination is missing", () => {
-  const result = evaluateJqProjectAuthority(goldenById.get("G12-round-trip"));
+  const result = evaluateJqProjectAuthority({
+    productId: "tv-unit",
+    layoutId: "niche-layout"
+  });
   assert.equal(result.accepted, false);
   assert.equal(result.decision, "reject");
-  assert.ok(result.results.some(({ id, accepted }) => id === "product:drawer-shelves" && accepted));
+  assert.ok(result.results.some(({ id, accepted }) => id === "product:tv-unit" && accepted));
   assert.ok(result.results.some(({ id, accepted }) => id === "layout:niche-layout" && accepted));
   assert.ok(result.failures.some(({ id, code }) => (
-    id === "combination:drawer-shelves+niche-layout"
+    id === "combination:tv-unit+niche-layout"
     && code === "AUTHORITY_RECORD_MISSING"
   )));
 });
