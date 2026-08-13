@@ -83,7 +83,7 @@ test("missing product or layout identifiers reject by default", () => {
   assert.ok(result.authorityIds.includes("combination:<missing>"));
 });
 
-test("final authority adds exact customer-facing selections and therefore blocks unapproved finishes", () => {
+test("final authority blocks unapproved finish and pricing even when geometry is approved", () => {
   const project = goldenById.get("G02-center-niche-cabinets");
   const geometry = evaluateJqProjectAuthority(project, {
     stage: JQ_PROJECT_AUTHORITY_STAGES.geometry
@@ -96,7 +96,18 @@ test("final authority adds exact customer-facing selections and therefore blocks
   assert.equal(final.accepted, false);
   assert.equal(final.decision, "reject");
   assert.ok(final.authorityIds.includes("finish:warm-white"));
+  assert.ok(final.authorityIds.includes("pricing:jq-schedule-v1"));
   assert.ok(final.failures.some(({ id }) => id === "finish:warm-white"));
+  assert.ok(final.failures.some(({ id }) => id === "pricing:jq-schedule-v1"));
+});
+
+test("final authority rejects a project with no finish rather than treating omission as approval", () => {
+  const project = structuredClone(goldenById.get("G02-center-niche-cabinets"));
+  delete project.finish;
+  const final = evaluateJqProjectAuthority(project, { stage: "final" });
+  assert.equal(final.accepted, false);
+  assert.ok(final.authorityIds.includes("finish:<missing>"));
+  assert.ok(final.failures.some(({ id }) => id === "finish:<missing>"));
 });
 
 test("authority ID resolution is deterministic and duplicate-free", () => {
@@ -120,6 +131,7 @@ test("authority ID resolution is deterministic and duplicate-free", () => {
     "finish:warm-white",
     "hardware:brass-pull",
     "lighting:warm-led",
-    "crown:small-crown"
+    "crown:small-crown",
+    "pricing:jq-schedule-v1"
   ]);
 });
