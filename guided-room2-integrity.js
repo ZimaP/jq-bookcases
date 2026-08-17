@@ -1,5 +1,6 @@
 const GLB_MAGIC = 0x46546c67;
 const JSON_CHUNK = 0x4e4f534a;
+const BIN_CHUNK = 0x004e4942;
 const TEXTURE_SLOTS = Object.freeze([
   "alphaMap", "aoMap", "bumpMap", "clearcoatMap", "clearcoatNormalMap",
   "clearcoatRoughnessMap", "displacementMap", "emissiveMap", "envMap",
@@ -21,6 +22,7 @@ export function inspectRoom2Glb(arrayBuffer) {
   }
 
   let json = null;
+  let binary = null;
   let offset = 12;
   while (offset < bytes.byteLength) {
     const length = view.getUint32(offset, true);
@@ -30,10 +32,13 @@ export function inspectRoom2Glb(arrayBuffer) {
     if (end > bytes.byteLength) throw new Error("A Room 2 GLB chunk is truncated.");
     if (type === JSON_CHUNK) {
       json = JSON.parse(new TextDecoder().decode(bytes.subarray(start, end)).replace(/[\u0000\u0020]+$/u, ""));
+    } else if (type === BIN_CHUNK) {
+      binary = bytes.subarray(start, end);
     }
     offset = end;
   }
   if (!json) throw new Error("The Room 2 GLB has no JSON chunk.");
+  if (!binary) throw new Error("The Room 2 GLB has no embedded binary chunk.");
 
   const externalUris = [
     ...(json.buffers || []).map((buffer) => buffer.uri),
@@ -47,8 +52,10 @@ export function inspectRoom2Glb(arrayBuffer) {
     throw new Error("Every Room 2 GLB image must be embedded.");
   }
 
+  const metrics = countGeometry(json);
   return Object.freeze({
     json,
+    binary,
     externalUris: Object.freeze(externalUris),
     counts: Object.freeze({
       scenes: (json.scenes || []).length,
@@ -57,7 +64,14 @@ export function inspectRoom2Glb(arrayBuffer) {
       primitives: (json.meshes || []).reduce((sum, mesh) => sum + (mesh.primitives || []).length, 0),
       materials: (json.materials || []).length,
       textures: (json.textures || []).length,
-      images: (json.images || []).length
+      images: (json.images || []).length,
+      accessors: (json.accessors || []).length,
+      vertices: metrics.vertices,
+      triangles: metrics.triangles,
+      animations: (json.animations || []).length,
+      cameras: (json.cameras || []).length,
+      skins: (json.skins || []).length,
+      lights: json.extensions?.KHR_lights_punctual?.lights?.length || 0
     })
   });
 }
@@ -75,6 +89,44 @@ export async function createRawMaterialDigest(json) {
   return sha256Text(canonicalSerialize(records));
 }
 
+export async function createEmbeddedImagePayloadSnapshot(inspection) {
+  if (!inspection?.json || !(inspection.binary instanceof Uint8Array)) {
+    throw new TypeError("A parsed Room 2 GLB inspection is required for embedded image proof.");
+  }
+  const records = [];
+  for (let imageIndex = 0; imageIndex < (inspection.json.images || []).length; imageIndex += 1) {
+    const image = inspection.json.images[imageIndex];
+    const view = inspection.json.bufferViews?.[image.bufferView];
+    if (!view || view.buffer !== 0) throw new Error(`Room 2 image ${imageIndex} does not use the embedded buffer.`);
+    const start = view.byteOffset || 0;
+    const end = start + view.byteLength;
+    if (end > inspection.binary.byteLength) throw new Error(`Room 2 image ${imageIndex} exceeds the embedded buffer.`);
+    const payload = inspection.binary.subarray(start, end);
+    records.push({
+      imageIndex,
+      bufferView: image.bufferView,
+      mimeType: image.mimeType || null,
+      byteLength: payload.byteLength,
+      sha256: await sha256Bytes(payload)
+    });
+  }
+  const textureSources = (inspection.json.textures || []).map((texture, textureIndex) => ({
+    textureIndex,
+    imageIndex: Number.isInteger(texture.source) ? texture.source : null,
+    sampler: Number.isInteger(texture.sampler) ? texture.sampler : null
+  }));
+  const canonical = canonicalSerialize({ records, textureSources });
+  return Object.freeze({
+    schema: "jq-room2-embedded-image-payload-snapshot-v1",
+    imageCount: records.length,
+    textureCount: textureSources.length,
+    canonical,
+    aggregateSha256: await sha256Text(canonical),
+    records: deepFreeze(records),
+    textureSources: deepFreeze(textureSources)
+  });
+}
+
 export async function createRuntimeMaterialSnapshot(gltf, json) {
   const canonical = createRuntimeMaterialCanonical(gltf, json);
   const records = JSON.parse(canonical);
@@ -88,7 +140,28 @@ export async function createRuntimeMaterialSnapshot(gltf, json) {
   });
 }
 
+export async function createRuntimeMaterialAppearanceSnapshot(gltf, json) {
+  const canonical = createRuntimeMaterialAppearanceCanonical(gltf, json);
+  const records = JSON.parse(canonical);
+  return Object.freeze({
+    schema: "jq-room2-public-runtime-material-appearance-snapshot-v2",
+    threeRevision: String(globalThis.__JQ_THREE_REVISION__ || "166"),
+    materialCount: records.length,
+    canonical,
+    aggregateSha256: await sha256Text(canonical),
+    records: deepFreeze(records)
+  });
+}
+
 export function createRuntimeMaterialCanonical(gltf, json) {
+  return canonicalSerialize(createRuntimeMaterialRecords(gltf, json, runtimeMaterialRecord));
+}
+
+export function createRuntimeMaterialAppearanceCanonical(gltf, json) {
+  return canonicalSerialize(createRuntimeMaterialRecords(gltf, json, runtimeMaterialAppearanceRecord));
+}
+
+function createRuntimeMaterialRecords(gltf, json, recordFactory) {
   if (!(gltf?.parser?.associations instanceof Map)) throw new Error("GLTF parser associations are unavailable.");
   const runtimeByIndex = new Map();
   for (const scene of gltf.scenes || []) {
@@ -105,9 +178,9 @@ export function createRuntimeMaterialCanonical(gltf, json) {
   const records = (json.materials || []).map((_, materialIndex) => {
     const material = runtimeByIndex.get(materialIndex);
     if (!material) throw new Error(`Room 2 runtime material ${materialIndex} is unavailable.`);
-    return runtimeMaterialRecord(material, materialIndex, gltf.parser);
+    return recordFactory(material, materialIndex, gltf.parser);
   });
-  return canonicalSerialize(records);
+  return records;
 }
 
 export function createDeferredModelSnapshot(gltf) {
@@ -186,6 +259,24 @@ function normalizeRawMaterial(material, materialIndex) {
   };
 }
 
+function countGeometry(json) {
+  let vertices = 0;
+  let triangles = 0;
+  for (const mesh of json.meshes || []) {
+    for (const primitive of mesh.primitives || []) {
+      const positions = json.accessors?.[primitive.attributes?.POSITION];
+      const elementCount = primitive.indices == null
+        ? positions?.count || 0
+        : json.accessors?.[primitive.indices]?.count || 0;
+      const mode = primitive.mode ?? 4;
+      vertices += positions?.count || 0;
+      if (mode === 4) triangles += Math.floor(elementCount / 3);
+      else if (mode === 5 || mode === 6) triangles += Math.max(0, elementCount - 2);
+    }
+  }
+  return { vertices, triangles };
+}
+
 function runtimeMaterialRecord(material, materialIndex, parser) {
   const textures = {};
   for (const slot of TEXTURE_SLOTS) textures[slot] = runtimeTextureRecord(material[slot], parser);
@@ -238,6 +329,48 @@ function runtimeMaterialRecord(material, materialIndex, parser) {
     normalScale: runtimeVector(material.normalScale),
     clearcoatNormalScale: runtimeVector(material.clearcoatNormalScale),
     textures
+  };
+}
+
+function runtimeMaterialAppearanceRecord(material, materialIndex, parser) {
+  return {
+    ...runtimeMaterialRecord(material, materialIndex, parser),
+    precision: material.precision ?? null,
+    blendColor: runtimeColor(material.blendColor),
+    blendAlpha: finiteField(material, "blendAlpha"),
+    alphaToCoverage: booleanField(material, "alphaToCoverage"),
+    depthFunc: finiteField(material, "depthFunc"),
+    clippingPlanes: Array.isArray(material.clippingPlanes)
+      ? material.clippingPlanes.map((plane) => ({ normal: runtimeVector(plane.normal), constant: canonicalFinite(plane.constant) }))
+      : null,
+    clipIntersection: booleanField(material, "clipIntersection"),
+    clipShadows: booleanField(material, "clipShadows"),
+    polygonOffset: booleanField(material, "polygonOffset"),
+    polygonOffsetFactor: finiteField(material, "polygonOffsetFactor"),
+    polygonOffsetUnits: finiteField(material, "polygonOffsetUnits"),
+    stencilWrite: booleanField(material, "stencilWrite"),
+    stencilWriteMask: finiteField(material, "stencilWriteMask"),
+    stencilFunc: finiteField(material, "stencilFunc"),
+    stencilRef: finiteField(material, "stencilRef"),
+    stencilFuncMask: finiteField(material, "stencilFuncMask"),
+    stencilFail: finiteField(material, "stencilFail"),
+    stencilZFail: finiteField(material, "stencilZFail"),
+    stencilZPass: finiteField(material, "stencilZPass"),
+    visible: booleanField(material, "visible"),
+    forceSinglePass: booleanField(material, "forceSinglePass"),
+    lightMapIntensity: finiteField(material, "lightMapIntensity"),
+    aoMapIntensity: finiteField(material, "aoMapIntensity"),
+    emissiveIntensity: finiteField(material, "emissiveIntensity"),
+    bumpScale: finiteField(material, "bumpScale"),
+    normalMapType: finiteField(material, "normalMapType"),
+    displacementScale: finiteField(material, "displacementScale"),
+    displacementBias: finiteField(material, "displacementBias"),
+    envMapIntensity: finiteField(material, "envMapIntensity"),
+    envMapRotation: runtimeEuler(material.envMapRotation),
+    wireframeLinewidth: finiteField(material, "wireframeLinewidth"),
+    wireframeLinecap: material.wireframeLinecap ?? null,
+    wireframeLinejoin: material.wireframeLinejoin ?? null,
+    defines: runtimeJsonRecord(material.defines)
   };
 }
 
@@ -313,6 +446,15 @@ function runtimeColor(value) {
 
 function runtimeVector(value) {
   return value?.toArray ? value.toArray().map(canonicalFinite) : null;
+}
+
+function runtimeEuler(value) {
+  return value?.isEuler ? [value.x, value.y, value.z].map(canonicalFinite).concat(value.order) : null;
+}
+
+function runtimeJsonRecord(value) {
+  if (value == null) return null;
+  return canonicalNormalize(JSON.parse(JSON.stringify(value)));
 }
 
 function runtimeMatrix(value) {

@@ -175,5 +175,5 @@ test("the four-step public path always uses the accepted 3D viewer while dormant
   assert.match(cssSource, /Public Room 2 fixed-reference integration/);
   assert.match(cssSource, /\.measurement-guidance/);
   assert.match(htmlSource, /guided-configurator\.css\?v=public-room2-glb-layout-restore-v1-20260817a/);
-  assert.match(htmlSource, /guided-configurator\.js\?v=public-room2-glb-layout-restore-v1-20260817a/);
+  assert.match(htmlSource, /guided-configurator\.js\?v=room2-studio-neutral-v1-20260817a/);
 });

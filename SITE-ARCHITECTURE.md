@@ -39,10 +39,12 @@ or separate quote drawer.
 - `guided-configurator.js` owns the four-step public workflow (Choose Product,
   Choose Layout, Customization, Review & Details) and keeps one Room 2 viewer
   controller across steps 3–4.
-- `guided-room2-appearance.js` owns the versioned, provisional camera, local
-  light, background, ground, tone-mapping, exposure, and shadow configuration.
+- `guided-room2-appearance.js` owns the versioned `room2-studio-neutral-v1`
+  camera, local RoomEnvironment/PMREM base, scene-space key/fill/rim roles,
+  background, ground, ACES Filmic tone mapping, fixed exposure, and static shadow
+  configuration. Owner visual acceptance remains open.
 - `guided-room2-integrity.js` owns GLB container checks and deterministic raw,
-  runtime-material, and deferred-model snapshots.
+  embedded-image-payload, runtime-material, and deferred-model snapshots.
 - `guided-room2-viewer.js` owns the one-session Three.js renderer, GLTF parse,
   exact-model integrity gates, camera controls, responsive projection, and
   disposal lifecycle.

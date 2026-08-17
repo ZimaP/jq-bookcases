@@ -37,6 +37,14 @@ falls back to the prior generated scene or to a photograph. Schema-v4
 persistence migrates older five-step drafts without deleting unsupported saved
 projects or coercing them into Cabinets + Shelves.
 
+The fixed model is presented by the provisional `room2-studio-neutral-v1`
+lighting profile: a local r166 RoomEnvironment/PMREM indirect base, three
+scene-space key/fill/rim DirectionalLights, one on-demand shadow caster,
+Linear-sRGB lighting, one sRGB output transform, ACES Filmic tone mapping, and a
+fixed exposure. This release changes lighting only. Embedded GLB materials and
+textures remain untouched; owner visual acceptance is still open and the
+texture/material quality phase has not started.
+
 The guided engine architecture, installation invariants, PBR material contract,
 save/reload behavior, and shop-review boundary are documented in
 `GUIDED-3D-SCENE.md`. The separate CAD-like workspace remains documented in
