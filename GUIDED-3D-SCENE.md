@@ -76,14 +76,22 @@ If the requested product cannot fit after the permitted treatment and section
 reductions, the solver rejects it. The renderer does not shrink the accepted
 model or display a near-enough visual approximation.
 
-## Product and TV geometry
+## Product geometry and public availability
 
-The guided adapter maps the public product/style selection to one of seven
-physical archetypes and evaluates its room-layout compatibility before product
-generation. Supported bookcase and media variants pass through the canonical
-bookcase engine and render contract. Floating storage, window storage, radiator
-covers, and corner transitions use product-specific descriptor builders while
-obeying the same fit references, IDs, bounds, validation, and fingerprint rules.
+The engine package retains seven physical archetypes for compatibility,
+persistence, and future product work. The v1 public flow exposes only Cabinets
++ Shelves as an active product and evaluates each layout against the checked-in
+compatibility matrix before product generation. Other archetypes are disabled
+Coming soon references and cannot be selected through UI, keyboard, query,
+preset, or restored draft injection. Legacy saved projects that name one remain
+stored but are marked unavailable and routed safely to Choose Product.
+
+Supported bookcase and media variants inside the engine pass through the
+canonical bookcase engine and render contract. Floating storage, window
+storage, radiator covers, and corner transitions use product-specific
+descriptor builders while obeying the same fit references, IDs, bounds,
+validation, and fingerprint rules. Keeping those internal contracts does not
+make those products available in the public v1 flow.
 
 TV geometry is derived from the entered diagonal and aspect ratio, or from
 explicit body dimensions when supplied. The black TV body is a separate
@@ -99,10 +107,17 @@ an estimate.
 
 ## Persistent rendering contract
 
-Steps 3–5 share one lazily created scene controller, WebGL renderer, canvas,
+Steps 3–4 share one lazily created scene controller, WebGL renderer, canvas,
 camera, and scene. The canvas may move between step hosts, but a second viewer
 is not created. The room and product share camera, lighting, depth, occlusion,
 and shadows.
+
+The accepted scene mounts immediately when Customization opens. Dimensions,
+Finish, and Details share the same controller; the compact measurement guide is
+static contextual imagery and never creates another renderer. Browser QA
+diagnostics expose mount/unmount counts plus render-frame, resize-frame,
+ResizeObserver-or-resize-listener, control-listener, and host debounce-timer
+ownership.
 
 Before display, `guided-render-contract.js` audits the accepted specification,
 including root scale, installation references, component bounds, floor/floating
@@ -120,8 +135,8 @@ fingerprints and rebuild counters as diagnostic data attributes for browser QA.
 The normal path fails closed. A missing, rejected, or unauditable accepted
 specification leaves the renderer in a named error state and does not hydrate an
 integrated room/product photograph as a substitute. Static imagery remains
-appropriate for product and room-selection cards, but it is not step 4 or step
-5 geometry.
+appropriate for product and layout-selection cards, but it is not
+Customization or Review & Details geometry.
 
 ## PBR material contract
 
@@ -149,6 +164,11 @@ identities: geometry, selection, and complete specification fingerprints.
 `guided-configurator-state.js` stores an accepted snapshot with the project.
 Reload restores and revalidates that snapshot against current state before it
 can become the displayed result.
+
+Schema-v4 normalization migrates legacy five-step positions as 1→1, 2→2,
+3/4→3, and 5→4. `currentStep` and `maxVisitedStep` remain bounded by the active
+product/layout guards. Unsupported saved products are retained verbatim as
+unavailable records and never coerced into Cabinets + Shelves.
 
 Review and quote summaries receive the accepted specification rather than
 reconstructing dimensions from labels. A rejected edit never mutates the last

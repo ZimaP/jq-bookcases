@@ -853,6 +853,23 @@ export const PRODUCT_CHOICES = Object.freeze([
   })
 ]);
 
+/**
+ * Public progress-release availability is intentionally narrower than the
+ * internal product catalog. The catalog remains intact for saved-project
+ * fidelity and deterministic engine contracts, while this identifier is the
+ * only product that a customer can start or resume as an active configuration
+ * in the four-step preview.
+ */
+export const PUBLIC_CONFIGURATOR_PRODUCT_ID = "cabinet-shelves";
+
+export const PUBLIC_CONFIGURATOR_PRODUCT_CHOICES = Object.freeze(
+  PRODUCT_CHOICES.filter((choice) => choice.id === PUBLIC_CONFIGURATOR_PRODUCT_ID)
+);
+
+export const PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES = Object.freeze(
+  PRODUCT_CHOICES.filter((choice) => choice.id !== PUBLIC_CONFIGURATOR_PRODUCT_ID)
+);
+
 const NATIVE_PRODUCT_SCENES = Object.freeze({
   "tv-unit": Object.freeze({
     "clear-wall": "assets/photos/configurator/concept-tv-wall-v2.png"
@@ -1125,6 +1142,10 @@ export function getProductChoiceForSelection(categoryId, styleId) {
   return PRODUCT_CHOICES.find((choice) => (
     choice.categoryId === category.id && choice.styleId === selectedStyle.id
   )) || null;
+}
+
+export function isPublicConfiguratorProduct(categoryId, styleId) {
+  return getProductChoiceForSelection(categoryId, styleId)?.id === PUBLIC_CONFIGURATOR_PRODUCT_ID;
 }
 
 const finishOption = (id, label, family, color, preview) => Object.freeze({

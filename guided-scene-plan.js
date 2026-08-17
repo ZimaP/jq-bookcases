@@ -8,7 +8,7 @@ import {
   getMeasurementFields,
   getProductChoiceForSelection,
   getStyle
-} from "./guided-configurator-data.js?v=luxury-configurator-engine-v1-20260802b";
+} from "./guided-configurator-data.js?v=public-four-step-v1-20260816a";
 
 const DEFAULTS = Object.freeze({
   wallWidth: 120,

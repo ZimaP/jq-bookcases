@@ -20,14 +20,21 @@ Premium static website and parametric 3D configurator for JQ Bookcases — Built
 `request-quote.html`. The shared header, footer, navigation, icons, tokens, and
 responsive primitives are owned by `site.js` and `styles.css`.
 
-`configurator.html` hosts the five-step public guided project flow. The public
-flow resolves each complete edit through room-topology, installation-fit, and
-product engines before it may replace the last accepted specification. Steps
-3–5 share one persistent Three.js renderer: room presentation and callouts come
-from the resolved topology, while every product mesh comes from the accepted
-physical descriptor graph. A rejected candidate keeps the prior accepted
-specification visible and reports a named diagnostic; it is never replaced by
-an unrelated product photograph.
+`configurator.html` hosts the four-step public guided project flow: Choose
+Product, Choose Layout, Customization, and Review & Details. Cabinets + Shelves
+is the only active public product; the remaining catalog entries are compact,
+disabled Coming soon references. Customization combines dimensions, finish,
+hardware, lighting, and details around the accepted live 3D scene.
+
+The public flow resolves each complete edit through room-topology,
+installation-fit, and product engines before it may replace the last accepted
+specification. Steps 3–4 share one persistent Three.js renderer: room
+presentation and callouts come from the resolved topology, while every product
+mesh comes from the accepted physical descriptor graph. A rejected candidate
+keeps the prior accepted specification visible and reports a named diagnostic;
+it is never replaced by an unrelated product photograph. Schema-v4 persistence
+migrates older five-step drafts without deleting unsupported saved projects or
+coercing them into Cabinets + Shelves.
 
 The guided engine architecture, installation invariants, PBR material contract,
 save/reload behavior, and shop-review boundary are documented in

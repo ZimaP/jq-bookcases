@@ -146,6 +146,7 @@ export class GuidedSceneController {
     this.content = null;
     this.dimensionLabels = [];
     this.resizeObserver = null;
+    this.resizeObserverActive = false;
     this.resizeAbortController = null;
     this.resizeFrame = null;
     this.controlAbortController = null;
@@ -167,6 +168,8 @@ export class GuidedSceneController {
     this.geometryRebuildCount = 0;
     this.appearanceUpdateCount = 0;
     this.materialUpdateCount = 0;
+    this.mountCount = 0;
+    this.unmountCount = 0;
     this.userAdjustedCamera = false;
     this.resourceWarnings = new Map();
     this.activeMaterialLoad = null;
@@ -195,6 +198,7 @@ export class GuidedSceneController {
     this.notifyState("loading");
     try {
       this.ensureRuntime(target.ownerDocument || globalThis.document);
+      if (this.mountTarget !== target) this.mountCount += 1;
       this.mountTarget = target;
       this.ownerWindow = target.ownerDocument?.defaultView || globalThis.window || null;
       if (this.runtime.parentNode !== target) target.appendChild(this.runtime);
@@ -214,8 +218,10 @@ export class GuidedSceneController {
     this.cancelScheduledRender();
     this.cancelScheduledResize();
     this.resizeObserver?.disconnect();
+    this.resizeObserverActive = false;
     this.resizeAbortController?.abort();
     this.resizeAbortController = null;
+    if (this.mountTarget) this.unmountCount += 1;
     this.runtime?.remove();
     this.mountTarget = null;
   }
@@ -339,6 +345,7 @@ export class GuidedSceneController {
     this.cancelScheduledRender();
     this.cancelScheduledResize();
     this.resizeObserver?.disconnect();
+    this.resizeObserverActive = false;
     this.resizeAbortController?.abort();
     this.controlAbortController?.abort();
     this.activePointers.clear();
@@ -655,6 +662,7 @@ export class GuidedSceneController {
 
   observeMountTarget() {
     this.resizeObserver?.disconnect();
+    this.resizeObserverActive = false;
     this.resizeAbortController?.abort();
     this.resizeAbortController = null;
     if (!this.mountTarget) return;
@@ -663,6 +671,7 @@ export class GuidedSceneController {
     if (typeof ResizeObserverClass === "function") {
       this.resizeObserver ||= new ResizeObserverClass(() => this.scheduleResize());
       this.resizeObserver.observe(this.mountTarget);
+      this.resizeObserverActive = true;
       return;
     }
 
@@ -1050,6 +1059,13 @@ export class GuidedSceneController {
       geometryRebuildCount: String(this.geometryRebuildCount),
       appearanceUpdateCount: String(this.appearanceUpdateCount),
       materialUpdateCount: String(this.materialUpdateCount),
+      mountCount: String(this.mountCount),
+      unmountCount: String(this.unmountCount),
+      renderFrameOwnership: String(this.animationFrame === null ? 0 : 1),
+      resizeFrameOwnership: String(this.resizeFrame === null ? 0 : 1),
+      resizeObserverOwnership: String(this.resizeObserverActive ? 1 : 0),
+      resizeListenerOwnership: String(this.resizeAbortController?.signal?.aborted === false ? 1 : 0),
+      controlListenerOwnership: String(this.controlAbortController?.signal?.aborted === false ? 1 : 0),
       renderContractValid: String(this.renderAudit?.valid === true),
       resourceFallbackActive: String(warnings.length > 0),
       resourceWarningCount: String(warnings.length),
