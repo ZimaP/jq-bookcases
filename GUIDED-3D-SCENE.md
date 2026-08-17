@@ -1,200 +1,165 @@
-# Guided Accepted-Specification Scene
+# Guided Room 2 Fixed-Reference Scene
 
-## Purpose
+## Purpose and release boundary
 
-The public guided configurator is driven by one accepted, immutable physical
-specification. The UI proposes a complete project candidate; pure room,
-installation, and product engines either accept it or return named diagnostics.
-The Three.js renderer displays the accepted product descriptors and never
-invents cabinetry from UI labels, scales a stock model to fit, or substitutes a
-photograph for rejected geometry.
+The public guided configurator keeps the accepted four-step journey: Choose
+Product, Choose Layout, Customization, and Review & Details. This release makes
+Cabinets + Shelves / Fireplace Wall the only active public product-layout pair
+and displays the exact, self-contained SketchUp-derived Room 2 GLB for that
+pair. No other product, layout, preset, draft, query, hash, or injected state
+may enter this viewer path.
 
-“Accepted” means internally consistent under this guided engine contract. It is
-not a shop drawing, structural approval, site verification, or authorization to
-manufacture. Field dimensions, attachment conditions, service clearances, and
-the provisional decisions listed in `config/provisional-decisions.json` still
-require JQ Bookcases review.
+The model is a fixed reference design. Measurements, finish, hardware,
+lighting, and detail values continue to validate, save, reload, and appear in
+the project summary, but they do not deform, scale, regenerate, recolor,
+relight, or replace the GLB. Customer-visible disclosures state that these
+connections are deferred. The presentation is provisional and owner appearance
+acceptance remains open.
 
-## One transaction from input to output
+The reference view is not a shop drawing, site verification, finish sample,
+structural approval, manufacturing authorization, BOM, or price. Final field
+conditions and all project decisions still require JQ Bookcases review.
 
-| Phase | Owner | Result |
-| --- | --- | --- |
-| Guided state | `guided-configurator.js` and `guided-configurator-state.js` | Product, layout, measurements, finish, hardware, and lighting intent |
-| Room topology | `guided-room-topology.js` | Physical planes, returns, features, exclusions, installation zones, and camera intent |
-| Installation fit | `guided-installation-solver.js` | Casework envelope, separate treatments, anchors, and fit invariants |
-| Product geometry | `guided-product-adapter.js` and `guided-product-engine.js` | Audited physical descriptor sets, render manifest, geometry fingerprint, and supported pricing |
-| Accepted specification | `guided-project-engine.js` | Atomic room + fit + product result with selection and specification fingerprints |
-| Display | `guided-render-contract.js`, `guided-materials.js`, and `guided-configurator-3d.js` | A persistent renderer that displays only accepted product descriptors |
-| Downstream state | `guided-configurator-state.js` | The same accepted snapshot used by review, save/reload, and quote summaries |
+## Exact asset contract
 
-`transactGuidedProject` commits a candidate only after every phase succeeds. A
-rejected edit exposes its stage and diagnostic codes while keeping the last
-accepted specification available. The same normalized input produces the same
-geometry and specification fingerprints.
+The public asset is
+`assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb`.
 
-## Room topology contract
+| Property | Required value |
+| --- | --- |
+| Bytes | `6,712,076` |
+| SHA-256 | `251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5` |
+| Geometry fingerprint | `8762fe4326e22e46a163343e5fde410e231d651b48d1b1c9be8391febec8f6ff` |
+| Raw material digest | `b31d96b3a248fb8d33af236e6e03f414481c907553cbcfbf482ca58a0109676d` |
+| Scenes / nodes / meshes / primitives | `1 / 455 / 185 / 185` |
+| Materials / textures / images | `8 / 6 / 6` |
 
-Room topology is geometry rather than a card label. The engine resolves all ten
-public conditions:
+It is a regular, non-symlink GLB, not a Git LFS pointer. Its one buffer and all
+six images are embedded; the container declares no external URI. Source,
+committed, prepared-artifact, and freshly downloaded live bytes must remain
+byte-identical. The GLB must never be optimized, converted, re-exported,
+embedded in JavaScript, or modified in place.
 
-- center niche;
-- left niche and right niche with physically distinct one-sided returns;
-- clear wall;
-- fireplace wall;
-- center projection;
-- window wall;
-- door wall;
-- two-run corner wall;
-- the wall zone between two openings.
+The source-branch fingerprint implementation is `room2-glb-integrity.js`
+(SHA-256
+`a9a5f2cb758872d9913104d3b256f4e31becf1156749cd15c446c45c10537d19`).
+The source-branch raw/runtime material authority implementation is
+`renderer-v1/material-authority.js` (SHA-256
+`659f79b763685acae2cf969127c385e49624d03960d28369db1b3f57eb2d7aaf`).
+Release evidence records the exact commands used against each byte source.
 
-Every accepted topology uses inches and explicit X/Y/Z planes. Features such as
-windows, doors, fireplaces, projections, radiators, open edges, and returns
-produce exclusion volumes and bounded installation zones. A multi-zone layout
-remains multi-zone downstream; it is not collapsed into one centered image.
-Invalid or intersecting feature dimensions reject with named errors.
+The preserved source branch has its own Three.js r185 runtime-material digest.
+That value remains preservation evidence, not an equality gate for this public
+Three.js r166 runtime. `guided-room2-integrity.js` independently records the
+public runtime-material snapshot and requires it to remain stable across clean
+loads and all deferred-control edits.
 
-`guided-scene-plan.js` remains the renderer-neutral source for room
-presentation, architecture, dimension lines, and camera framing. It is not the
-source of product geometry. Product target bounds and placement come from the
-accepted topology and fit contracts.
+## Viewer session and loading contract
 
-## Installation fit contract
+A viewer session lasts for the mounted configurator in one document. On first
+Customization entry, `guided-configurator.js` lazily imports
+`guided-room2-viewer.js`, which creates exactly one controller, renderer,
+canvas, camera, scene, resize owner, control-listener set, and parsed GLB root.
+It issues one same-origin model request and parses once. The same canvas moves
+between Customization and Review & Details; tab changes, browser history, and
+saved-project restoration within that document do not remount or reparse it.
 
-The installation solver supports fitted, freestanding, and floating modes. It
-never uses a global scale transform: every accepted descriptor set has root
-scale `[1, 1, 1]` and physical inch dimensions.
+The viewer reports bounded loading progress, validates byte length and SHA-256,
+audits the self-contained GLB schema and raw materials, parses with the pinned
+local Three.js r166 `GLTFLoader`, and validates the source bounds and identity
+root transform before display. A failure stays visible and fail-closed. It does
+not import or display the old generated scene, a photograph, or another model.
 
-For fitted work, the room boundaries determine the generated casework width,
-base, top scribe, fillers, end panels, and back/floor/ceiling anchors. Fillers
-and end panels are separate auditable treatments. Equivalent boundaries must
-balance within the policy tolerance; an open edge receives a finished end
-condition instead of a fictional wall filler. Floor-mounted work meets the
-finished floor, fitted work meets its top boundary, and floating work retains
-its explicit mounting height and floor clearance.
+Orbit, zoom, keyboard operation, and Reset affect only the camera. Camera pose
+persists across controls, tabs, Review, Back/Forward, and deferred project edits;
+only Reset restores the configured fit view. Responsive host changes update the
+projection aspect and may increase the fit distance before user interaction,
+without transforming the model.
 
-If the requested product cannot fit after the permitted treatment and section
-reductions, the solver rejects it. The renderer does not shrink the accepted
-model or display a near-enough visual approximation.
+A full document reload, explicit configurator teardown, or navigation away ends
+the session. Teardown aborts an in-flight request, cancels pending frames,
+disconnects resize and input ownership, disposes model/ground GPU resources and
+the renderer, removes the canvas, and loses the WebGL context. A later document
+mount begins a new session.
 
-## Product geometry and public availability
+## Model and material immutability
 
-The engine package retains seven physical archetypes for compatibility,
-persistence, and future product work. The v1 public flow exposes only Cabinets
-+ Shelves as an active product and evaluates each layout against the checked-in
-compatibility matrix before product generation. Other archetypes are disabled
-Coming soon references and cannot be selected through UI, keyboard, query,
-preset, or restored draft injection. Legacy saved projects that name one remain
-stored but are marked unavailable and routed safely to Choose Product.
+The parsed `gltf.scene` is attached directly to the presentation scene. The
+viewer does not set a wrapper scale, rotate the root, alter local/world node
+matrices, replace geometry, or change material/texture properties or slots.
+Mesh `castShadow` and `receiveShadow` flags are presentation metadata only; the
+embedded geometry and material assignments remain untouched.
 
-Supported bookcase and media variants inside the engine pass through the
-canonical bookcase engine and render contract. Floating storage, window
-storage, radiator covers, and corner transitions use product-specific
-descriptor builders while obeying the same fit references, IDs, bounds,
-validation, and fingerprint rules. Keeping those internal contracts does not
-make those products available in the public v1 flow.
+`guided-room2-integrity.js` creates two deterministic runtime contracts:
 
-TV geometry is derived from the entered diagonal and aspect ratio, or from
-explicit body dimensions when supplied. The black TV body is a separate
-descriptor. The surrounding opening is generated from that body plus the
-centralized side, top, bottom, soundbar, equipment, and ventilation clearances.
-Towers and shelves occupy the remaining accepted envelope. An impossible media
-fit rejects instead of drawing a decorative frame unrelated to the TV data.
+- the runtime-material snapshot records every material property and texture
+  association produced by the pinned loader;
+- the deferred-model snapshot records object identity locators, node and mesh
+  counts, geometry associations and attributes, local/world matrices, and
+  material slots.
 
-Canonical-engine products retain canonical pricing and layout fingerprints.
-Product-specific descriptor builders currently report pricing as unavailable;
-the UI and saved specification must preserve that status rather than fabricate
-an estimate.
+Browser tests compare these contracts, the parsed root identity, asset URL,
+viewer/controller identity, and camera pose before and after every class of
+deferred edit. Project edits may change saved data and summaries only.
 
-## Persistent rendering contract
+## Project transaction and persistence boundary
 
-Steps 3–4 share one lazily created scene controller, WebGL renderer, canvas,
-camera, and scene. The canvas may move between step hosts, but a second viewer
-is not created. The room and product share camera, lighting, depth, occlusion,
-and shadows.
+The existing room-topology, installation-fit, product, and project engines
+continue to validate project data and preserve the last accepted specification.
+A rejected candidate reports its named diagnostic and cannot replace that saved
+snapshot. For this fixed-reference phase, accepted descriptor geometry and
+material choices are deliberately not sent to the viewer.
 
-The accepted scene mounts immediately when Customization opens. Dimensions,
-Finish, and Details share the same controller; the compact measurement guide is
-static contextual imagery and never creates another renderer. Browser QA
-diagnostics expose mount/unmount counts plus render-frame, resize-frame,
-ResizeObserver-or-resize-listener, control-listener, and host debounce-timer
-ownership.
+Schema-v4 normalization continues to migrate legacy five-step positions as
+1→1, 2→2, 3/4→3, and 5→4. Current and maximum visited steps remain bounded by
+the active selection. Unsupported saved products and layouts remain stored,
+are marked unavailable, and route to Choose Product or Choose Layout; they are
+never deleted, coerced, or shown with the Room 2 model.
 
-Before display, `guided-render-contract.js` audits the accepted specification,
-including root scale, installation references, component bounds, floor/floating
-anchors, and width reconciliation. It converts the accepted descriptor graph
-to scene records and verifies the rendered manifest. The renderer creates one
-mesh per renderable accepted descriptor; no product-layout calculation belongs
-in `guided-configurator-3d.js`.
+## Provisional appearance ownership
 
-Geometry and appearance have separate identities. A changed geometry
-fingerprint rebuilds descriptor-driven scene content. A finish, hardware, or
-lighting-only change updates materials on the existing product meshes without
-changing their fitted dimensions. The renderer exposes its accepted
-fingerprints and rebuild counters as diagnostic data attributes for browser QA.
+`guided-room2-appearance.js` is the single versioned production configuration
+for the presentation around the immutable GLB. It may own only:
 
-The normal path fails closed. A missing, rejected, or unauditable accepted
-specification leaves the renderer in a named error state and does not hydrate an
-integrated room/product photograph as a substitute. Static imagery remains
-appropriate for product and layout-selection cards, but it is not
-Customization or Review & Details geometry.
+- background and a flat, non-repeating ground;
+- renderer output color space, tone mapping, exposure, and shadow mode;
+- a small deterministic local light rig; and
+- the default fit camera and bounded orbit/zoom limits.
 
-## PBR material contract
+It does not own or mutate runtime materials, texture assignments, product
+geometry, or customer finish/lighting values. It exposes no customer debug
+panel. Its status is `PROVISIONAL — OWNER ACCEPTANCE OPEN`; it must not be
+described as final, photorealistic, finish-accurate, or owner approved.
 
-`guided-materials.js` provides five wood families and four sprayed-paint
-families. Wood uses separate albedo, normal, roughness, and ambient-occlusion
-maps. Paint uses shared sprayed normal and roughness maps plus its selected base
-color. The assets are under `assets/textures/`.
+## Production artifact and network boundary
 
-UV repeats are computed from the physical descriptor dimensions. Grain follows
-the part: side panels, doors, drawer fronts, and backs are vertical; shelves and
-tops follow their long axis; crown and trim follow the extrusion axis. Room,
-screen, glass, hardware, and light materials remain independent of the selected
-millwork finish.
+The static artifact allowlist includes the three Room 2 runtime modules, the
+existing local Three.js core, matching r166 `GLTFLoader` and
+`BufferGeometryUtils`, and the exact GLB. Pre-upload assertions check the model
+path, regular-file status, byte length, SHA-256, and non-LFS header. The old
+guided parametric scene plan and renderer are intentionally absent from the
+public artifact.
 
-Warm customer and neutral material-QA environment sources are under
-`assets/environments/`. The manifest retains the HDR sources and browser-ready
-preview images. Shared textures and environment maps are cached across material
-updates and are not disposed when only product geometry is refreshed.
-
-## State, save, and review integrity
-
-The accepted specification contains the room, fit, product descriptor graph,
-material state, pricing or explicit pricing status, diagnostics, and three
-identities: geometry, selection, and complete specification fingerprints.
-`guided-configurator-state.js` stores an accepted snapshot with the project.
-Reload restores and revalidates that snapshot against current state before it
-can become the displayed result.
-
-Schema-v4 normalization migrates legacy five-step positions as 1→1, 2→2,
-3/4→3, and 5→4. `currentStep` and `maxVisitedStep` remain bounded by the active
-product/layout guards. Unsupported saved products are retained verbatim as
-unavailable records and never coerced into Cabinets + Shelves.
-
-Review and quote summaries receive the accepted specification rather than
-reconstructing dimensions from labels. A rejected edit never mutates the last
-accepted snapshot. Price, when available, comes from the same canonical product
-evaluation that produced the rendered geometry.
-
-## Shipped policy and evidence
-
-`config/` contains the engine package's room, fit, compatibility, archetype,
-material, provisional-decision, golden-project, and asset-manifest contracts.
-The production Pages artifact deliberately allowlists this directory together
-with the guided engine modules, canonical render contract, textures, and
-environments. The release workflow verifies every required module, config, and
-material/environment file before upload.
+All model and runtime requests are same-origin. There is no CDN, remote model
+host, analytics endpoint, fallback image request, second Three.js runtime, or
+external GLB buffer/texture request in this path.
 
 ## File ownership
 
-- `guided-configurator-data.js` — public catalog, measurement, and selection definitions.
-- `guided-configurator-state.js` — normalization, warnings, accepted snapshots, persistence, and summaries.
-- `guided-room-topology.js` — ten physical room topologies, features, exclusions, zones, and camera intent.
-- `guided-installation-solver.js` — fitted, freestanding, and floating installation contracts.
-- `guided-product-adapter.js` — product archetypes, compatibility, TV derivation, and canonical inputs.
-- `guided-product-engine.js` — product descriptors, validation, pricing status, manifests, and geometry fingerprints.
-- `guided-project-engine.js` — atomic accepted-specification transactions and snapshot restoration.
-- `guided-render-contract.js` — descriptor conversion and pre/post-render audits.
-- `guided-materials.js` — PBR assets, physical UVs, part-aware grain, and environments.
-- `guided-scene-plan.js` — room presentation, dimensions, and camera planning only.
-- `guided-configurator-3d.js` — persistent display of accepted descriptors.
-- `guided-configurator.js` — public flow orchestration and last-valid transaction handling.
+- `guided-configurator-data.js` — strict active product/layout policy and the
+  retained project catalogs.
+- `guided-configurator-state.js` — normalization, validation, unavailable-state
+  preservation, accepted snapshots, persistence, and summaries.
+- `guided-configurator.js` — four-step orchestration, deferred disclosures, and
+  movement of one viewer session between steps 3–4.
+- `guided-room2-appearance.js` — provisional presentation-only configuration.
+- `guided-room2-integrity.js` — GLB and deterministic runtime snapshot checks.
+- `guided-room2-viewer.js` — exact asset load, pinned GLTF parse, camera,
+  interaction, one-session ownership, diagnostics, and disposal.
+- `guided-room-topology.js`, `guided-installation-solver.js`,
+  `guided-product-adapter.js`, `guided-product-engine.js`, and
+  `guided-project-engine.js` — project-data validation and transaction state;
+  not public GLB geometry generation in this phase.
+- `guided-scene-plan.js`, `guided-configurator-3d.js`, and
+  `guided-materials.js` — retained internal parametric contracts; excluded from
+  the active public Room 2 runtime path.

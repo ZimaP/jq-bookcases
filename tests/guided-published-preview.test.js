@@ -161,8 +161,8 @@ test("the four-step public path always uses the accepted 3D viewer while dormant
   assert.doesNotMatch(configuratorSource, /isInternalPublishedPreviewAuditEnabled/);
   assert.match(configuratorSource, /if \(project\.currentStep === 3\) return renderCustomizationStep\(\)/);
   assert.match(configuratorSource, /return renderReviewStep\(\)/);
-  assert.match(configuratorSource, /data-preview-render-mode="accepted-geometry"/);
-  assert.match(configuratorSource, /data-guided-3d-mode="accepted-specification"/);
+  assert.match(configuratorSource, /data-preview-render-mode="fixed-room2-glb"/);
+  assert.match(configuratorSource, /data-guided-3d-mode="fixed-room2-reference"/);
   assert.match(configuratorSource, /renderConceptPreview\(\)/);
   assert.doesNotMatch(configuratorSource, /customerPresentation/);
   assert.doesNotMatch(configuratorSource, /published-customer-preview-image/);
@@ -170,9 +170,10 @@ test("the four-step public path always uses the accepted 3D viewer while dormant
   assert.doesNotMatch(configuratorSource, /failedPublishedPreviewIds/);
   assert.match(configuratorSource, /options\.staticGuidance \? "" :/);
   assert.match(configuratorSource, /renderMeasurementDiagram\(measurementDiagramFields, selectedLayout, \{ staticGuidance: true \}\)/);
-  assert.match(configuratorSource, /Live accepted design/);
-  assert.match(cssSource, /Public four-step configurator v1/);
+  assert.match(configuratorSource, /Reference 3D model — fixed Room 2 design/);
+  assert.match(configuratorSource, /Provisional appearance · owner acceptance open/);
+  assert.match(cssSource, /Public Room 2 fixed-reference integration/);
   assert.match(cssSource, /\.measurement-guidance/);
-  assert.match(htmlSource, /guided-configurator\.css\?v=public-four-step-v1-20260816a/);
-  assert.match(htmlSource, /guided-configurator\.js\?v=public-four-step-v1-20260816a/);
+  assert.match(htmlSource, /guided-configurator\.css\?v=public-room2-glb-v1-20260817a/);
+  assert.match(htmlSource, /guided-configurator\.js\?v=public-room2-glb-v1-20260817a/);
 });

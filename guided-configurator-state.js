@@ -9,9 +9,10 @@ import {
   getMeasurementFields,
   getProductChoiceForSelection,
   getStyle,
+  isPublicConfiguratorLayout,
   isPublicConfiguratorProduct,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=public-four-step-v1-20260816a";
+} from "./guided-configurator-data.js?v=public-room2-glb-v1-20260817a";
 
 export const GUIDED_PROJECT_SCHEMA_VERSION = 4;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
@@ -89,6 +90,7 @@ export function createProject(options = {}) {
       ? isPublicConfiguratorProduct(category.id, selectedStyle.id) ? "available" : "unavailable"
       : "unselected",
     layout: null,
+    layoutAvailability: "unselected",
     measurements: defaultMeasurements(category.id, null),
     style: selectedStyle.id,
     finish: finish.id,
@@ -430,11 +432,14 @@ export function normalizeProject(candidate, options = {}) {
   const productAvailability = !productSelected
     ? "unselected"
     : isPublicConfiguratorProduct(category.id, selectedStyle.id) ? "available" : "unavailable";
+  const layoutAvailability = !layout
+    ? "unselected"
+    : isPublicConfiguratorLayout(category.id, selectedStyle.id, layout.id) ? "available" : "unavailable";
   const requiredMeasurementsPresent = Boolean(layout) && getMeasurementFields(category.id, layout.id)
     .every((field) => field.type === "select" || !field.required || parseInches(measurements[field.id]) !== null);
-  const workflowPositionLimit = !productSelected
+  const workflowPositionLimit = !productSelected || productAvailability === "unavailable"
     ? 1
-    : !layout ? 2 : requiredMeasurementsPresent ? 4 : 3;
+    : !layout || layoutAvailability === "unavailable" ? 2 : requiredMeasurementsPresent ? 4 : 3;
   const safeCurrentStep = Math.min(workflowPositionLimit, migratedCurrentStep);
   const safeMaxVisitedStep = Math.max(
     safeCurrentStep,
@@ -455,6 +460,7 @@ export function normalizeProject(candidate, options = {}) {
     category: category.id,
     productSelected,
     productAvailability,
+    layoutAvailability,
     workflowMigrationSource: sourceSchemaVersion < GUIDED_PROJECT_SCHEMA_VERSION
       ? sourceSchemaVersion >= 2 ? "five-step" : "legacy-category-flow"
       : null,

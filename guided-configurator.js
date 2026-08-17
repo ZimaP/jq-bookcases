@@ -3,20 +3,22 @@ import {
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
   PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES,
+  PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS,
+  PUBLIC_CONFIGURATOR_LAYOUT_CHOICES,
+  PUBLIC_CONFIGURATOR_LAYOUT_ID,
   PUBLIC_CONFIGURATOR_PRODUCT_CHOICES,
   PUBLIC_CONFIGURATOR_PRODUCT_ID,
-  SHARED_ROOM_LAYOUTS,
   getCategory,
   getCompatibleDetails,
-  getFinish,
   getLayout,
   getMeasurementDiagramSpec,
   getMeasurementFields,
   getProductChoice,
   getProductChoiceForSelection,
   getStyle,
+  isPublicConfiguratorLayout,
   isPublicConfiguratorProduct
-} from "./guided-configurator-data.js?v=public-four-step-v1-20260816a";
+} from "./guided-configurator-data.js?v=public-room2-glb-v1-20260817a";
 import {
   buildProjectSummary,
   createProject,
@@ -26,7 +28,7 @@ import {
   parseInches,
   prepareMeasurementsForLayout,
   validateMeasurements
-} from "./guided-configurator-state.js?v=public-four-step-v1-20260816a";
+} from "./guided-configurator-state.js?v=public-room2-glb-v1-20260817a";
 import {
   resolveProductLayoutCompatibility
 } from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
@@ -40,13 +42,13 @@ import {
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "Choose your product", description: "Cabinets + Shelves is available in this public preview. More fitted-furniture options are coming soon." }),
-  Object.freeze({ id: 2, label: "Choose Layout", mobileLabel: "Layout", title: "Choose the layout that matches your space", description: "Select the wall layout you want to plan. Any measurements it needs will appear next." }),
-  Object.freeze({ id: 3, label: "Customization", mobileLabel: "Customize", title: "Customize your fitted design", description: "Adjust dimensions, finish, hardware, lighting, and details while the accepted 3D design stays in view." }),
-  Object.freeze({ id: 4, label: "Review & Details", mobileLabel: "Review", title: "Review your custom concept", description: "Check the same product, layout, dimensions, finish, and details before saving or preparing a quote." })
+  Object.freeze({ id: 2, label: "Choose Layout", mobileLabel: "Layout", title: "Choose the available Room 2 layout", description: "Fireplace Wall is the fixed-reference layout available in this preview. Other room layouts are coming soon." }),
+  Object.freeze({ id: 3, label: "Customization", mobileLabel: "Customize", title: "Plan details beside the Room 2 reference", description: "Save dimensions, finish, hardware, lighting, and details while the fixed SketchUp-derived Room 2 model stays in view." }),
+  Object.freeze({ id: 4, label: "Review & Details", mobileLabel: "Review", title: "Review your project details", description: "Check your saved project selections beside the same fixed Room 2 reference model before saving or preparing a quote." })
 ]);
 
 const GUIDED_DIAGNOSTIC_MESSAGES = Object.freeze({
-  MISSING_BASE_ROOM_DIMENSIONS: "Enter Wall Width, Ceiling Height, and Desired Built-In Depth to update the design.",
+  MISSING_BASE_ROOM_DIMENSIONS: "Enter Wall Width, Ceiling Height, and Desired Built-In Depth to validate the project details.",
   MISSING_FEATURE_MEASUREMENTS: "Complete the opening, obstacle, or return measurements required by this layout.",
   MISSING_CORNER_RETURN: "Enter the corner return measurement required by this layout.",
   NICHE_WIDTH_EXCEEDS_WALL: "Reduce the niche width or increase the wall width so the layout fits.",
@@ -189,6 +191,12 @@ function initializeProject() {
     // deletes it.
     initial.currentStep = 1;
     initial.maxVisitedStep = 1;
+  } else if (initial.layoutAvailability === "unavailable") {
+    // Preserve the unsupported layout and its measurements in the working
+    // copy, but never let a stale draft, project, preset, or hash enter the
+    // fixed Room 2 viewer path.
+    initial.currentStep = 2;
+    initial.maxVisitedStep = Math.min(2, Math.max(2, initial.maxVisitedStep || 2));
   }
 
   if (explicitStart || preset) {
@@ -217,6 +225,26 @@ function normalizeWorkflowStep(rawStep, options = {}) {
 }
 
 function normalizeInitialProjectReachability() {
+  if (project.productAvailability === "unavailable") {
+    project.currentStep = 1;
+    project.maxVisitedStep = 1;
+    history.replaceState(
+      { step: 1 },
+      "",
+      `${window.location.pathname}${window.location.search}#step-1`
+    );
+    return;
+  }
+  if (project.layoutAvailability === "unavailable") {
+    project.currentStep = 2;
+    project.maxVisitedStep = Math.min(2, project.maxVisitedStep);
+    history.replaceState(
+      { step: 2 },
+      "",
+      `${window.location.pathname}${window.location.search}#step-2`
+    );
+    return;
+  }
   if (project.currentStep < 4) return;
   const transaction = transactGuidedProject(project, acceptedSpecification);
   if (transaction.accepted) return;
@@ -233,6 +261,12 @@ function isActivePublicProject(candidate = project) {
   return candidate?.productSelected === true
     && candidate.productAvailability === "available"
     && isPublicConfiguratorProduct(candidate.category, candidate.style);
+}
+
+function isActivePublicLayout(candidate = project) {
+  return isActivePublicProject(candidate)
+    && candidate?.layoutAvailability === "available"
+    && isPublicConfiguratorLayout(candidate.category, candidate.style, candidate.layout);
 }
 
 function getGuidedDiagnosticMessage(diagnostic) {
@@ -348,15 +382,18 @@ function prepareCurrentProjectPersistence() {
 
 function syncSaveControlState() {
   const unavailableProduct = project.productAvailability === "unavailable";
-  const blocked = guidedProjectTransaction?.accepted === false || unavailableProduct;
+  const unavailableLayout = project.layoutAvailability === "unavailable";
+  const blocked = guidedProjectTransaction?.accepted === false || unavailableProduct || unavailableLayout;
   const diagnostic = guidedProjectTransaction?.errors?.[0];
   document.querySelectorAll("[data-guided-save], [data-save-project]").forEach((button) => {
     button.dataset.persistenceState = blocked ? "rejected-candidate" : "ready";
     if (blocked) {
       button.setAttribute(
         "title",
-        unavailableProduct
-          ? "This saved product is unavailable in the public preview. Its existing record remains in My Projects."
+        unavailableProduct || unavailableLayout
+          ? unavailableProduct
+            ? "This saved product is unavailable in the public preview. Its existing record remains in My Projects."
+            : "This saved layout is unavailable with the fixed Room 2 model. Its existing record remains in My Projects."
           : `${getGuidedDiagnosticMessage(diagnostic)} Save is unavailable until this edit is corrected.`
       );
     } else {
@@ -369,7 +406,7 @@ function scheduleLikelyNextStepImages() {
   let assets = [];
 
   if (project.currentStep === 1 && isActivePublicProject()) {
-    assets = SHARED_ROOM_LAYOUTS.map((layout) => layout.previewAsset);
+    assets = PUBLIC_CONFIGURATOR_LAYOUT_CHOICES.map((layout) => layout.previewAsset);
   }
 
   if (!assets.length) return;
@@ -545,7 +582,7 @@ function renderProductStep() {
       <div class="available-product-heading">
         <span class="guided-eyebrow">Available now</span>
         <h2 id="available-product-title">Cabinets + Shelves</h2>
-        <p>Open shelving with concealed lower cabinets, configured around one of the supported layouts.</p>
+        <p>Open shelving with concealed lower cabinets, shown with the available fixed Room 2 Fireplace Wall reference.</p>
       </div>
       <button
         class="product-card product-card--primary${selected ? " is-selected" : ""}"
@@ -607,6 +644,9 @@ function renderLayoutStep() {
   const selectedStyle = getStyle(category.id, project.style);
   const selectedProduct = getProductChoiceForSelection(category.id, selectedStyle.id);
   const showProductFamily = selectedProduct?.label !== category.label;
+  const unavailableLayout = project.layoutAvailability === "unavailable"
+    ? getLayout(project.category, project.layout)
+    : null;
   return `
     <div class="selected-product-banner">
       <span class="selected-product-banner-icon">${renderCategoryIcon(category.icon)}</span>
@@ -617,8 +657,20 @@ function renderLayoutStep() {
       </span>
       <button type="button" data-step="1">Change product</button>
     </div>
-    <div class="layout-grid" role="group" aria-label="Layout choices">
-      ${SHARED_ROOM_LAYOUTS.map((layout) => ({
+    ${unavailableLayout ? `
+      <aside class="unavailable-project-notice" role="status" data-unavailable-layout>
+        <i data-icon="information" aria-hidden="true"></i>
+        <span><strong>${escapeHtml(unavailableLayout.label)} is not available with the fixed Room 2 model.</strong> Its saved measurements remain in My Projects. Choose Fireplace Wall to continue this preview.</span>
+      </aside>
+    ` : ""}
+    <section class="available-layout" aria-labelledby="available-layout-title">
+      <div class="available-layout-heading">
+        <span class="guided-eyebrow">Available now</span>
+        <h2 id="available-layout-title">Fireplace Wall</h2>
+        <p>The exact Room 2 SketchUp-derived reference model is available for this layout. Complete its approximate dimensions next.</p>
+      </div>
+      <div class="layout-grid layout-grid--available" role="group" aria-label="Available layout choice">
+      ${PUBLIC_CONFIGURATOR_LAYOUT_CHOICES.map((layout) => ({
         layout,
         compatibility: resolveProductLayoutCompatibility({
           project: { ...project, layout: layout.id },
@@ -626,14 +678,13 @@ function renderLayoutStep() {
         })
       })).filter(({ compatibility }) => compatibility.status !== "unavailable").map(({ layout, compatibility }) => {
         const selected = layout.id === project.layout;
-        const statusLabel = compatibility.status === "conditional"
-          ? "Measurements required"
-          : compatibility.status === "review-only" ? "Design review" : "";
+        const statusLabel = "Dimensions completed next";
         return `
           <button
             class="layout-card layout-card--${escapeAttribute(compatibility.status)}${selected ? " is-selected" : ""}"
             type="button"
             data-layout="${layout.id}"
+            data-layout-availability="available"
             data-compatibility="${escapeAttribute(compatibility.status)}"
             aria-pressed="${selected}"
             aria-label="${escapeAttribute(`${layout.label}${statusLabel ? `, ${statusLabel}` : ""}`)}"
@@ -647,16 +698,37 @@ function renderLayoutStep() {
           </button>
         `;
       }).join("")}
-    </div>
+      </div>
+    </section>
+    <section class="coming-soon-layouts" aria-labelledby="coming-soon-layouts-title">
+      <div>
+        <span class="guided-eyebrow">Coming soon</span>
+        <h2 id="coming-soon-layouts-title">More room layouts</h2>
+      </div>
+      <div class="coming-soon-layout-list" aria-label="Room layouts coming soon">
+        ${PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS.map((layout) => `
+          <button
+            class="coming-soon-layout"
+            type="button"
+            data-coming-soon-layout="${escapeAttribute(layout.id)}"
+            aria-label="${escapeAttribute(`${layout.label}, coming soon`)}"
+            disabled
+          >
+            <span>${escapeHtml(layout.label)}</span>
+            <small>Coming soon</small>
+          </button>
+        `).join("")}
+      </div>
+    </section>
     <aside class="guided-info">
       <i data-icon="information" aria-hidden="true"></i>
-      <span>Every layout shown is approved for Cabinets + Shelves. Choices marked “Measurements required” will add the applicable opening, obstacle, or return fields in Customization.</span>
+      <span>Fireplace Wall is the only layout connected to the fixed Room 2 reference model in this phase. The fireplace and wall measurement fields appear in Customization.</span>
     </aside>
     <div class="guided-actions">
       <button class="guided-button guided-button-secondary" type="button" data-back>
         <i data-icon="chevron-left" aria-hidden="true"></i> Back
       </button>
-      <button class="guided-button guided-button-primary" type="button" data-continue ${project.layout ? "" : "disabled"}>
+      <button class="guided-button guided-button-primary" type="button" data-continue ${isActivePublicLayout() ? "" : "disabled"}>
         Continue <i data-icon="arrow-right" aria-hidden="true"></i>
       </button>
     </div>
@@ -875,6 +947,7 @@ function renderDimensionsChoices() {
           <span>${escapeHtml(selectedLayout?.label || "Select a layout")}</span>
         </p>
       </div>
+      ${renderDeferredModelDisclosure("Dimensions")}
       <div
         class="measurement-panel measurement-panel--customization${denseMeasurements ? " measurement-panel--dense" : ""}"
         data-measurement-field-count="${fields.length}"
@@ -886,7 +959,7 @@ function renderDimensionsChoices() {
           ${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}
         </p>
         <p class="transaction-diagnostic" data-transaction-diagnostic role="alert" ${diagnostic ? "" : "hidden"}>
-          ${diagnostic ? escapeHtml(`Last accepted design preserved. ${formatGuidedDiagnostic(diagnostic)}`) : ""}
+          ${diagnostic ? escapeHtml(`Last accepted project specification preserved. ${formatGuidedDiagnostic(diagnostic)} The fixed Room 2 reference model is unchanged.`) : ""}
         </p>
       </div>
       <aside class="measurement-disclosure">
@@ -1281,6 +1354,7 @@ function renderFinishChoices() {
     .filter(Boolean);
   return `
     <h3 class="customization-group-heading">Finish</h3>
+    ${renderDeferredModelDisclosure("Finish")}
     ${renderFinishGroup("Wood finishes", "wood", FINISH_OPTIONS.wood)}
     ${renderFinishGroup("Paint / Accent Colors", "paint", referencePaintFinishes)}
   `;
@@ -1334,6 +1408,7 @@ function renderDetailChoices({ compact = false } = {}) {
 
   return `
     <h3 class="customization-group-heading">Details</h3>
+    ${renderDeferredModelDisclosure("Details, hardware, and lighting")}
     ${groups.map((group) => `
       <section class="choice-section choice-section--${escapeAttribute(group.key)}">
         <h3>${escapeHtml(group.label)}</h3>
@@ -1371,14 +1446,20 @@ function renderDetailChoices({ compact = false } = {}) {
   `;
 }
 
+function renderDeferredModelDisclosure(groupLabel) {
+  return `
+    <aside class="fixed-reference-disclosure" role="note" data-deferred-model-disclosure="${escapeAttribute(groupLabel.toLowerCase())}">
+      <i data-icon="information" aria-hidden="true"></i>
+      <span><strong>Your ${escapeHtml(groupLabel.toLowerCase())} selections are saved with this project.</strong> They are not yet shown on the fixed Room 2 reference model; dimension-driven geometry and configurable appearance will be connected later.</span>
+    </aside>
+  `;
+}
+
 function renderConceptPreview(options = {}) {
   const category = getCategory(project.category);
   const layout = getLayout(project.category, project.layout);
   const selectedStyle = getStyle(project.category, project.style);
   const selectedProduct = getProductChoiceForSelection(category.id, selectedStyle.id);
-  const finish = getFinish(project.finish);
-  const diagnostic = guidedProjectTransaction?.errors?.[0] || null;
-  const accepted = acceptedSpecification?.accepted === true;
   const previewLabel = selectedProduct?.label || selectedStyle.label;
 
   return `
@@ -1387,49 +1468,47 @@ function renderConceptPreview(options = {}) {
       data-category="${escapeAttribute(category.id)}"
       data-layout="${escapeAttribute(layout?.id || "unselected")}"
       data-style="${escapeAttribute(selectedStyle.id)}"
-      data-finish="${escapeAttribute(finish.id)}"
-      data-finish-family="${escapeAttribute(finish.family)}"
-      data-preview-render-mode="accepted-geometry"
+      data-preview-render-mode="fixed-room2-glb"
+      data-model-asset="assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb"
       data-finish-mask-mode="none"
-      data-accepted-specification="${accepted}"
-      data-geometry-fingerprint="${escapeAttribute(acceptedSpecification?.geometryFingerprint || "")}"
-      data-specification-fingerprint="${escapeAttribute(acceptedSpecification?.specificationFingerprint || "")}"
-      style="--finish-color:${escapeAttribute(finish.color)}"
-      aria-label="${escapeAttribute(`${previewLabel} for ${layout?.label || category.label} in ${finish.label}`)}"
+      data-project-specification-accepted="${acceptedSpecification?.accepted === true}"
+      data-geometry-fingerprint="8762fe4326e22e46a163343e5fde410e231d651b48d1b1c9be8391febec8f6ff"
+      aria-label="${escapeAttribute(`Fixed Room 2 reference model for ${previewLabel} and ${layout?.label || "Fireplace Wall"}`)}"
     >
       <div class="concept-preview-meta">
-        <div class="concept-finish-caption" aria-live="polite">
-          <span class="concept-finish-caption-swatch" aria-hidden="true"></span>
+        <div class="fixed-reference-heading">
+          <span class="fixed-reference-mark" aria-hidden="true">R2</span>
           <span>
-            <small>Live accepted design</small>
-            <strong>${escapeHtml(finish.label)}</strong>
+            <small>Reference 3D model — fixed Room 2 design</small>
+            <strong>SketchUp-derived Fireplace Wall</strong>
           </span>
         </div>
-        ${renderConceptLayoutContext(layout)}
+        ${renderConceptLayoutContext(layout, "fixed-room2-reference")}
       </div>
       <div class="concept-scene-frame">
         <div class="concept-scene" data-concept-scene>
           <div class="guided-engine-status" data-guided-engine-status role="status" aria-live="polite">
-            <strong>${diagnostic ? "Last accepted design preserved" : "Building your fitted design"}</strong>
-            <span>${diagnostic
-              ? escapeHtml(formatGuidedDiagnostic(diagnostic))
-              : "The accepted room, installation, and product descriptors are being rendered."}</span>
+            <strong>Loading fixed Room 2 reference</strong>
+            <span>The exact SketchUp-derived GLB is being verified and parsed. No substitute model or image will be used.</span>
           </div>
           <div
             class="guided-3d-mount guided-3d-mount--concept"
             data-guided-3d-mount
-            data-guided-3d-mode="accepted-specification"
-            aria-label="${escapeAttribute(`Interactive three-dimensional ${previewLabel} preview in the selected ${layout?.label || "layout"}`)}"
+            data-guided-3d-mode="fixed-room2-reference"
+            aria-label="${escapeAttribute(`Interactive fixed Room 2 reference model for ${previewLabel} and Fireplace Wall`)}"
           ></div>
         </div>
         ${renderPreviewControls()}
       </div>
-      ${options.includeFitSummary === false ? "" : renderAcceptedFitSummary()}
+      <figcaption class="fixed-reference-model-disclosure" data-fixed-reference-model-disclosure>
+        <strong>Provisional appearance · owner acceptance open.</strong>
+        <span>This fixed reference does not yet change with dimensions, finish, hardware, lighting, or detail selections. Those values are saved for the project and summarized for design review.</span>
+      </figcaption>
     </figure>
   `;
 }
 
-function renderConceptLayoutContext(layout, mode = "accepted-geometry") {
+function renderConceptLayoutContext(layout, mode = "fixed-room2-reference") {
   if (!layout) return "";
   return `
     <div
@@ -1447,25 +1526,6 @@ function renderConceptLayoutContext(layout, mode = "accepted-geometry") {
   `;
 }
 
-function renderAcceptedFitSummary() {
-  if (!acceptedSpecification?.accepted) return "";
-  const installations = acceptedSpecification.fit?.installations || [];
-  const tv = acceptedSpecification.product?.tv;
-  return `
-    <figcaption class="accepted-fit-summary" data-accepted-fit-summary aria-label="Accepted installation dimensions">
-      <strong>Accepted fit</strong>
-      ${installations.map((installation) => `
-        <span>
-          ${installations.length > 1 ? `${escapeHtml(installation.role || installation.zoneId)} · ` : ""}
-          ${escapeHtml(`${formatInches(installation.casework.width)} × ${formatInches(installation.casework.overallHeight)} × ${formatInches(installation.casework.depth)} in`)}
-        </span>
-      `).join("")}
-      ${tv?.accepted ? `<span>TV opening · ${escapeHtml(`${formatInches(tv.opening.width)} × ${formatInches(tv.opening.height)} in`)}</span>` : ""}
-      <small>${escapeHtml(acceptedSpecification.geometryFingerprint)}</small>
-    </figcaption>
-  `;
-}
-
 function renderPreviewControls() {
   return `
     <div class="preview-controls" aria-label="Preview controls">
@@ -1480,11 +1540,7 @@ function renderReviewStep() {
   const summary = buildProjectSummary(project, { acceptedSpecification });
   const rowsByKey = new Map(summary.map((row) => [row.key, row]));
   const dimensionKeys = [
-    ...getMeasurementFields(project.category, project.layout).map((field) => field.id),
-    "fittedSize",
-    "fitTreatments",
-    "tvBody",
-    "tvOpening"
+    ...getMeasurementFields(project.category, project.layout).map((field) => field.id)
   ];
   const rowsFor = (keys) => keys.map((key) => rowsByKey.get(key)).filter(Boolean);
   const summaryLabels = {
@@ -1532,7 +1588,7 @@ function renderReviewStep() {
           ${renderSection("Dimensions", rowsFor(dimensionKeys), { section: "dimensions" })}
           ${renderSection("Finish", rowsFor(["finish", "accentFinish"]), { section: "finish" })}
           ${renderSection("Details", rowsFor(["doorStyle", "hardware", "lighting", "baseStyle", "topTreatment"]), { section: "details" })}
-          ${renderSection("Design reference", rowsFor(["pricing", "warnings", "geometryFingerprint"]))}
+          ${renderSection("Validation notes", rowsFor(["warnings"]))}
           ${renderSection("Notes", rowsFor(["notes"]))}
         </section>
         <div class="summary-actions">
@@ -1714,6 +1770,7 @@ function selectProductChoice(productId) {
 
 function selectLayout(layoutId) {
   if (!isActivePublicProject()) return;
+  if (layoutId !== PUBLIC_CONFIGURATOR_LAYOUT_ID) return;
   const compatibility = resolveProductLayoutCompatibility({
     project: { ...project, layout: layoutId },
     topology: { layoutId }
@@ -1737,6 +1794,10 @@ function continueFromStep() {
   }
   if (project.currentStep === 2 && !project.layout) {
     showToast("Please choose the layout that best matches your space.");
+    return;
+  }
+  if (project.currentStep === 2 && !isActivePublicLayout()) {
+    showToast("Fireplace Wall is the layout available with the fixed Room 2 reference model.");
     return;
   }
   if (project.currentStep === 3) {
@@ -1781,9 +1842,12 @@ function navigateToStep(step, options = {}) {
     renderApp({ focusHeading: true });
     return;
   }
-  if (targetStep > 2 && !project.layout) {
+  if (targetStep > 2 && !isActivePublicLayout()) {
     project.currentStep = 2;
-    showToast("Choose a layout before moving to Customization.");
+    project.maxVisitedStep = Math.min(2, project.maxVisitedStep);
+    showToast(project.layoutAvailability === "unavailable"
+      ? "That saved layout is retained but is not available with the fixed Room 2 model. Choose Fireplace Wall to continue."
+      : "Choose Fireplace Wall before moving to Customization.");
     renderApp({ focusHeading: true });
     return;
   }
@@ -1922,23 +1986,21 @@ function syncTransactionDiagnostic(transaction = guidedProjectTransaction) {
   if (message) {
     message.hidden = !diagnostic;
     message.textContent = diagnostic
-      ? `Last accepted design preserved. ${formatGuidedDiagnostic(diagnostic)}`
+      ? `Last accepted project specification preserved. ${formatGuidedDiagnostic(diagnostic)} The fixed Room 2 reference model is unchanged.`
       : "";
   }
   const status = app?.querySelector("[data-guided-engine-status]");
   if (status) {
     status.querySelector("strong").textContent = diagnostic
-      ? "Last accepted design preserved"
-      : "Live accepted design";
+      ? "Project edit needs attention"
+      : "Fixed Room 2 reference model";
     status.querySelector("span").textContent = diagnostic
-      ? formatGuidedDiagnostic(diagnostic)
-      : "The accepted room, installation, and product descriptors are rendered.";
+      ? `${formatGuidedDiagnostic(diagnostic)} The fixed reference model remains unchanged.`
+      : "Project values are saved separately; this fixed reference model does not change in this phase.";
   }
   const preview = app?.querySelector(".concept-preview");
   if (preview) {
-    preview.dataset.acceptedSpecification = String(acceptedSpecification?.accepted === true);
-    preview.dataset.geometryFingerprint = acceptedSpecification?.geometryFingerprint || "";
-    preview.dataset.specificationFingerprint = acceptedSpecification?.specificationFingerprint || "";
+    preview.dataset.projectSpecificationAccepted = String(acceptedSpecification?.accepted === true);
   }
 }
 
@@ -1974,12 +2036,7 @@ function applyPreviewScale() {
     );
   });
   app?.querySelectorAll("[data-preview-zoom]").forEach((button) => {
-    const action = button.dataset.previewZoom;
-    button.disabled = (
-      (action === "out" && previewScale <= 1)
-      || (action === "in" && previewScale >= 1.2)
-      || (action === "reset" && previewScale === 1)
-    );
+    button.disabled = false;
   });
 }
 
@@ -1992,20 +2049,23 @@ function getGuidedSceneOptions() {
   };
 }
 
-function updateGuidedSceneState(state) {
+function updateGuidedSceneState(state, details = {}) {
   const mount = app?.querySelector("[data-guided-3d-mount]");
   const scene = mount?.closest(".measurement-room, .concept-scene");
   if (!scene) return;
+  const status = scene.querySelector("[data-guided-engine-status]");
+  if (status) status.hidden = state === "ready";
   if (state === "fallback") {
-    const status = scene.querySelector("[data-guided-engine-status]");
-    const diagnostic = guidedProjectTransaction?.errors?.[0];
     if (status) {
-      status.querySelector("strong").textContent = diagnostic
-        ? "Last accepted design preserved"
-        : "3D preview unavailable";
-      status.querySelector("span").textContent = diagnostic
-        ? formatGuidedDiagnostic(diagnostic)
-        : "The renderer failed closed; no unrelated product or room image was substituted.";
+      status.querySelector("strong").textContent = "Fixed Room 2 model unavailable";
+      status.querySelector("span").textContent = details.message
+        || "The viewer failed closed; no old generated model, photograph, or different GLB was substituted.";
+    }
+  } else if (state === "loading") {
+    if (status) {
+      status.querySelector("strong").textContent = "Loading fixed Room 2 reference";
+      status.querySelector("span").textContent = details.message
+        || "The exact SketchUp-derived GLB is being verified and parsed.";
     }
   }
   scene.dataset.guided3dState = state;
@@ -2021,12 +2081,20 @@ function syncGuidedScene() {
     return;
   }
 
+  if (!isActivePublicLayout()) {
+    guidedSceneController?.unmount?.();
+    updateGuidedSceneState("fallback", {
+      message: "The fixed Room 2 reference model is available only for Cabinets + Shelves / Fireplace Wall."
+    });
+    return;
+  }
+
   updateGuidedSceneState("loading");
-  guidedSceneImportPromise ||= import("./guided-configurator-3d.js?v=public-four-step-v1-20260816a");
+  guidedSceneImportPromise ||= import("./guided-room2-viewer.js?v=public-room2-glb-v1-20260817a");
   guidedSceneImportPromise
-    .then(({ createGuidedSceneController }) => {
+    .then(({ createGuidedRoom2ViewerController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;
-      guidedSceneController ||= createGuidedSceneController({
+      guidedSceneController ||= createGuidedRoom2ViewerController({
         onStateChange: updateGuidedSceneState
       });
       guidedSceneController.mount(mount);
@@ -2102,8 +2170,8 @@ function openSaveDialog() {
   const dialog = document.querySelector("[data-save-dialog]");
   const form = dialog?.querySelector("[data-save-form]");
   if (!dialog || !form) return;
-  if (project.productAvailability === "unavailable") {
-    showToast("This unavailable product remains in My Projects and cannot be resaved as an active public preview.");
+  if (project.productAvailability === "unavailable" || project.layoutAvailability === "unavailable") {
+    showToast(`This unavailable ${project.productAvailability === "unavailable" ? "product" : "layout"} remains in My Projects and cannot be resaved as an active public preview.`);
     return;
   }
   const preparation = prepareCurrentProjectPersistence();
@@ -2199,12 +2267,13 @@ function renderProjectsList() {
     const category = getCategory(saved.category);
     const selectedProduct = getProductChoiceForSelection(saved.category, saved.style);
     const layout = getLayout(saved.category, saved.layout);
+    const unavailableSelection = saved.productAvailability === "unavailable" || saved.layoutAvailability === "unavailable";
     return `
-      <article class="saved-project${saved.productAvailability === "unavailable" ? " saved-project--unavailable" : ""}" data-saved-product-availability="${escapeAttribute(saved.productAvailability)}">
+      <article class="saved-project${unavailableSelection ? " saved-project--unavailable" : ""}" data-saved-product-availability="${escapeAttribute(saved.productAvailability)}" data-saved-layout-availability="${escapeAttribute(saved.layoutAvailability)}">
         <div class="saved-project-copy">
           <strong>${escapeHtml(saved.projectName)}</strong>
           <small>${escapeHtml([selectedProduct?.label || category.label, layout?.label, formatSavedDate(saved.updatedAt)].filter(Boolean).join(" · "))}</small>
-          ${saved.productAvailability === "unavailable" ? "<em>Unavailable in this public preview · saved record retained</em>" : ""}
+          ${unavailableSelection ? `<em>${saved.productAvailability === "unavailable" ? "Product" : "Layout"} unavailable in this public preview · saved record retained</em>` : ""}
         </div>
         <div class="saved-project-actions">
           <button type="button" data-project-action="resume" data-project-id="${escapeAttribute(saved.projectId)}" aria-label="Resume ${escapeAttribute(saved.projectName)}"><i data-icon="chevron-right" aria-hidden="true"></i></button>
@@ -2232,14 +2301,17 @@ function handleProjectListAction(event) {
     if (project.productAvailability === "unavailable") {
       project.currentStep = 1;
       project.maxVisitedStep = 1;
+    } else if (project.layoutAvailability === "unavailable") {
+      project.currentStep = 2;
+      project.maxVisitedStep = 2;
     }
     document.querySelector("[data-projects-dialog]")?.close();
     previewScale = 1;
     activeCustomizationTab = "dimensions";
     renderApp({ focusHeading: true });
     history.replaceState({ step: project.currentStep }, "", `${window.location.pathname}?project=${encodeURIComponent(project.projectId)}#step-${project.currentStep}`);
-    showToast(project.productAvailability === "unavailable"
-      ? `“${project.projectName}” is retained but its product is not available in this preview.`
+    showToast(project.productAvailability === "unavailable" || project.layoutAvailability === "unavailable"
+      ? `“${project.projectName}” is retained but its ${project.productAvailability === "unavailable" ? "product" : "layout"} is not available in this preview.`
       : `Resumed “${project.projectName}.”`);
     return;
   }
@@ -2353,7 +2425,7 @@ async function handleQuoteSubmit(event) {
   const quotePreparation = prepareGuidedQuote(project, project.acceptedSnapshot);
   if (!quotePreparation.accepted) {
     if (error) {
-      error.textContent = "We couldn’t verify the accepted design for quoting. Return to the review step, confirm the design, and try again.";
+      error.textContent = "We couldn’t verify the accepted project specification for quoting. Return to the review step, confirm the details, and try again.";
       error.hidden = false;
     }
     return;

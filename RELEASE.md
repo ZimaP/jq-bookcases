@@ -1,8 +1,30 @@
-# Production release contract
+# Publication and production release contracts
 
-Merging code and publishing the website are separate actions. Pull requests and
+The repository has two distinct public publication paths. They are not
+interchangeable, and one must never be used as proof that the other updated.
+
+## Existing Render publication path
+
+`https://jq-bookcases.onrender.com/` is the customer-inspection target for the
+Room 2 fixed-reference release. The existing service publishes from accepted
+`main` history through its already established GitHub-to-Render integration.
+That relationship must be proved for a release by an authenticated deployment
+record, an exact build marker, or byte-identical post-merge runtime assets; UI
+similarity alone is not proof.
+
+Do not create, reconfigure, transfer, rename, or directly trigger a Render
+service from this repository. After a reviewed pull request is merged, wait for
+the existing publication path and verify the final redirected Render URL,
+post-merge runtime bytes, model bytes, cache headers, and browser behavior in a
+fresh context. If the build cannot be tied to the exact merge commit, or if
+updating it requires a dashboard, credential, environment, billing, or deploy-
+hook mutation, stop. A GitHub Pages deployment is not a substitute.
+
+## GitHub Pages release contract
+
+Merging code and publishing GitHub Pages are separate actions. Pull requests and
 pushes to `main` run validation only; neither event may upload a GitHub Pages
-artifact, target the production environment, or request a deployment.
+artifact, target its production environment, or request a Pages deployment.
 
 ## Validation
 
@@ -30,7 +52,9 @@ guided configurator release must include:
   `bookcase-render-contract.js`;
 - `config/` with the v1 fit, topology, compatibility, archetype, material,
   provisional-decision, golden-project, and asset-manifest contracts;
-- all allowlisted assets under `assets/textures/` and `assets/environments/`.
+- all allowlisted assets under `assets/textures/` and `assets/environments/`;
+- the public Room 2 appearance, integrity, and viewer modules, the pinned local
+  Three.js GLTF loader utilities, and the exact allowlisted Room 2 GLB.
 
 The production workflow checks each required runtime module, config file,
 texture map, and environment file before it uploads the artifact. Developer
@@ -38,7 +62,7 @@ tools, tests, package metadata, and the legacy configurator workspace remain
 excluded. Any new customer-facing runtime dependency must be added to both the
 copy allowlist and the pre-upload assertions in the same change.
 
-## Manual production release
+## Manual GitHub Pages production release
 
 Production is published only by `Deploy GitHub Pages — Manual Production
 Release`. The workflow accepts only an explicit `workflow_dispatch` from a tag
@@ -75,6 +99,8 @@ normal pull request. Do not blindly rerun, change the tag, roll back code, or
 dispatch another production release without confirming the intended SHA and
 the current production state.
 
-Codex coding tasks must never dispatch the production workflow unless the user
-explicitly authorizes deployment in that task. A request to commit, push, open
-or merge a pull request is not deployment authorization.
+Codex coding tasks must never dispatch the Pages production workflow unless the
+user explicitly authorizes that exact publication path in the task and the
+current release contract requires it. A request to commit, push, open or merge
+a pull request—or authorization to verify Render—is not authorization to use
+GitHub Pages as a substitute.

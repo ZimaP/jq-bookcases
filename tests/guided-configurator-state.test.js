@@ -9,6 +9,9 @@ import {
   PREVIEW_FINISH_MASK_ASSETS,
   PRODUCT_CHOICES,
   PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES,
+  PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS,
+  PUBLIC_CONFIGURATOR_LAYOUT_CHOICES,
+  PUBLIC_CONFIGURATOR_LAYOUT_ID,
   PUBLIC_CONFIGURATOR_PRODUCT_CHOICES,
   PUBLIC_CONFIGURATOR_PRODUCT_ID,
   PRODUCT_INTEGRATED_PREVIEW_ASSETS,
@@ -486,7 +489,7 @@ test("five-step positions migrate into the four-step workflow without losing a p
     ...createProject({ now: 4, random: 0.12, productSelected: true }),
     currentStep: 5,
     maxVisitedStep: 5,
-    layout: "clear-wall"
+    layout: "fireplace-wall"
   }, { now: 5 });
   assert.equal(modern.currentStep, 4);
   assert.equal(modern.maxVisitedStep, 4);
@@ -500,7 +503,7 @@ test("five-step positions migrate into the four-step workflow without losing a p
       schemaVersion: 3,
       currentStep: oldStep,
       maxVisitedStep: oldStep,
-      layout: oldStep > 1 ? "clear-wall" : null
+      layout: oldStep > 1 ? "fireplace-wall" : null
     }, { now: 5 });
     assert.equal(migrated.currentStep, newStep, `old step ${oldStep}`);
     assert.equal(migrated.maxVisitedStep, newStep, `old maxVisitedStep ${oldStep}`);
@@ -512,7 +515,7 @@ test("five-step positions migrate into the four-step workflow without losing a p
     schemaVersion: 3,
     currentStep: 5,
     maxVisitedStep: 5,
-    layout: "clear-wall",
+    layout: "fireplace-wall",
     measurements: { wallWidth: null, ceilingHeight: 96, desiredDepth: 14 }
   }, { now: 5 });
   assert.equal(incompleteReview.currentStep, 3);
@@ -534,8 +537,8 @@ test("five-step positions migrate into the four-step workflow without losing a p
   }, { now: 6 });
   assert.equal(legacy.productSelected, true);
   assert.equal(legacy.layout, "clear-wall");
-  assert.equal(legacy.currentStep, 4);
-  assert.equal(legacy.maxVisitedStep, 4);
+  assert.equal(legacy.currentStep, 1);
+  assert.equal(legacy.maxVisitedStep, 1);
   assert.equal(legacy.productAvailability, "unavailable");
   assert.equal(legacy.workflowMigrationSource, "legacy-category-flow");
 
@@ -624,7 +627,13 @@ test("project summaries reflect normalized measurements and curated selections",
 
 test("public availability keeps the full catalog intact while exposing one active product", () => {
   assert.equal(PUBLIC_CONFIGURATOR_PRODUCT_ID, "cabinet-shelves");
+  assert.equal(PUBLIC_CONFIGURATOR_LAYOUT_ID, "fireplace-wall");
   assert.deepEqual(PUBLIC_CONFIGURATOR_PRODUCT_CHOICES.map(({ id }) => id), ["cabinet-shelves"]);
+  assert.deepEqual(PUBLIC_CONFIGURATOR_LAYOUT_CHOICES.map(({ id }) => id), ["fireplace-wall"]);
+  assert.deepEqual(
+    PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS.map(({ id }) => id),
+    SHARED_ROOM_LAYOUTS.filter(({ id }) => id !== "fireplace-wall").map(({ id }) => id)
+  );
   assert.deepEqual(
     PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES.map(({ id }) => id),
     PRODUCT_CHOICES.filter(({ id }) => id !== "cabinet-shelves").map(({ id }) => id)
@@ -644,8 +653,9 @@ test("public availability keeps the full catalog intact while exposing one activ
   assert.equal(unsupported.style, "framed-tv-wall");
   assert.equal(unsupported.productSelected, true);
   assert.equal(unsupported.productAvailability, "unavailable");
-  assert.equal(unsupported.currentStep, 4);
-  assert.equal(unsupported.maxVisitedStep, 4);
+  assert.equal(unsupported.layout, "clear-wall");
+  assert.equal(unsupported.currentStep, 1);
+  assert.equal(unsupported.maxVisitedStep, 1);
 });
 
 test("every public Bookcase construction maps to the selected room scene", async () => {
@@ -1178,22 +1188,28 @@ test("project store reports blocked writes instead of fabricating save success",
   assert.equal(projects.deleteProject(project.projectId), false);
 });
 
-test("the public configurator lazily ships its unified guided 3D scene without the legacy workspace runtime", async () => {
-  const [html, guidedUi, guidedState, guidedScene, workflow] = await Promise.all([
+test("the public configurator lazily ships the fixed Room 2 GLB viewer without the old generated scene", async () => {
+  const [html, guidedUi, guidedState, room2Viewer, appearance, workflow] = await Promise.all([
     readFile(new URL("../configurator.html", import.meta.url), "utf8"),
     readFile(new URL("../guided-configurator.js", import.meta.url), "utf8"),
     readFile(new URL("../guided-configurator-state.js", import.meta.url), "utf8"),
-    readFile(new URL("../guided-configurator-3d.js", import.meta.url), "utf8"),
+    readFile(new URL("../guided-room2-viewer.js", import.meta.url), "utf8"),
+    readFile(new URL("../guided-room2-appearance.js", import.meta.url), "utf8"),
     readFile(new URL("../.github/workflows/deploy-pages-production.yml", import.meta.url), "utf8")
   ]);
 
   assert.match(html, /guided-configurator\.js/);
-  assert.doesNotMatch(html, /assets\/vendor\/three\.module|src=["']configurator-3d|cabinet-ar|direct-hardware/);
-  assert.match(guidedUi, /import\(["']\.\/guided-configurator-3d\.js/);
-  assert.match(guidedScene, /assets\/vendor\/three\.module\.js/);
+  assert.match(html, /"three": "\.\/assets\/vendor\/three\.module\.js"/);
+  assert.doesNotMatch(html, /src=["']configurator-3d|cabinet-ar|direct-hardware/);
+  assert.match(guidedUi, /import\(["']\.\/guided-room2-viewer\.js/);
+  assert.doesNotMatch(guidedUi, /import\(["']\.\/guided-configurator-3d\.js/);
+  assert.match(room2Viewer, /assets\/vendor\/three\.module\.js/);
+  assert.match(room2Viewer, /GLTFLoader/);
+  assert.match(appearance, /Room2-Fireplace-bookcases-source-v1\.glb/);
   assert.doesNotMatch(`${guidedUi}\n${guidedState}`, /bookcase-engine|cabinet-ar/);
   assert.match(workflow, /test ! -e _site\/configurator-3d\.js/);
-  assert.match(workflow, /test -f _site\/guided-configurator-3d\.js/);
-  assert.match(workflow, /test -f _site\/guided-scene-plan\.js/);
+  assert.match(workflow, /test ! -e _site\/guided-configurator-3d\.js/);
+  assert.match(workflow, /test -f _site\/guided-room2-viewer\.js/);
+  assert.match(workflow, /Room2-Fireplace-bookcases-source-v1\.glb/);
   assert.match(workflow, /test -f _site\/assets\/vendor\/three\.module\.js/);
 });
