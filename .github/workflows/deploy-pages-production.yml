@@ -154,6 +154,7 @@ jobs:
             guided-project-engine.js \
             guided-room2-appearance.js \
             guided-room2-integrity.js \
+            guided-room2-materials.js \
             guided-room2-viewer.js \
             quote-prefill.js \
             benjamin-moore-colors.js \
@@ -171,13 +172,17 @@ jobs:
           cp assets/favicon.svg _site/assets/
           mkdir -p _site/assets/vendor
           cp assets/vendor/three.module.js _site/assets/vendor/
-          mkdir -p _site/assets/vendor/three-addons/environments _site/assets/vendor/three-addons/loaders _site/assets/vendor/three-addons/utils
+          mkdir -p _site/assets/vendor/three-addons/environments _site/assets/vendor/three-addons/lights _site/assets/vendor/three-addons/loaders _site/assets/vendor/three-addons/utils _site/assets/vendor/licenses
           cp assets/vendor/three-addons/environments/RoomEnvironment.js _site/assets/vendor/three-addons/environments/
           cp assets/vendor/three-addons/loaders/GLTFLoader.js _site/assets/vendor/three-addons/loaders/
+          cp assets/vendor/three-addons/loaders/RGBELoader.js _site/assets/vendor/three-addons/loaders/
+          cp assets/vendor/three-addons/lights/RectAreaLightUniformsLib.js _site/assets/vendor/three-addons/lights/
           cp assets/vendor/three-addons/utils/BufferGeometryUtils.js _site/assets/vendor/three-addons/utils/
+          cp assets/vendor/licenses/three-0.166.1-LICENSE.txt _site/assets/vendor/licenses/
           mkdir -p _site/assets/models/room2
           cp assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb _site/assets/models/room2/
           cp -R assets/environments _site/assets/
+          cp -R assets/room2-commercial-pbr-v1 _site/assets/
           cp -R assets/textures _site/assets/
           cp -R assets/photos _site/assets/
           cp -R config _site/
@@ -212,6 +217,7 @@ jobs:
           test ! -e _site/guided-configurator-3d.js
           test -f _site/guided-room2-appearance.js
           test -f _site/guided-room2-integrity.js
+          test -f _site/guided-room2-materials.js
           test -f _site/guided-room2-viewer.js
           test -f _site/guided-room-topology.js
           test -f _site/guided-installation-solver.js
@@ -227,7 +233,29 @@ jobs:
           test "$(wc -c < _site/assets/vendor/three-addons/environments/RoomEnvironment.js | tr -d ' ')" = "3623"
           test "$(shasum -a 256 _site/assets/vendor/three-addons/environments/RoomEnvironment.js | cut -d ' ' -f 1)" = "e1b92c4dd2d89752293546790bfda9828a630a79700c66f5b736fad7a88cb7e4"
           test -f _site/assets/vendor/three-addons/loaders/GLTFLoader.js
+          test -f _site/assets/vendor/three-addons/loaders/RGBELoader.js
+          test "$(shasum -a 256 _site/assets/vendor/three-addons/loaders/RGBELoader.js | cut -d ' ' -f 1)" = "f0e87d0008d9484d31358b32befd1bf80e4301f77573cc9a7cf7d871cc3f64b4"
+          test -f _site/assets/vendor/three-addons/lights/RectAreaLightUniformsLib.js
+          test "$(shasum -a 256 _site/assets/vendor/three-addons/lights/RectAreaLightUniformsLib.js | cut -d ' ' -f 1)" = "08085bc942253cd54948bf936fecb66b54514a135872656e475a1cab09b55214"
+          test -f _site/assets/vendor/licenses/three-0.166.1-LICENSE.txt
+          test "$(shasum -a 256 _site/assets/vendor/licenses/three-0.166.1-LICENSE.txt | cut -d ' ' -f 1)" = "4c40a1ef62450b857c3b2aaf294936304cd552d965fbcd9d32d4c5bcf4ba4454"
           test -f _site/assets/vendor/three-addons/utils/BufferGeometryUtils.js
+          test -f _site/assets/room2-commercial-pbr-v1/textures/oak/base-color.webp
+          test "$(shasum -a 256 _site/assets/room2-commercial-pbr-v1/textures/oak/base-color.webp | cut -d ' ' -f 1)" = "9d868390072a01f89eddc0f9aeeee73135feefdd1496ca2cccef8efe828fe496"
+          test -f _site/assets/room2-commercial-pbr-v1/textures/oak/normal.webp
+          test "$(shasum -a 256 _site/assets/room2-commercial-pbr-v1/textures/oak/normal.webp | cut -d ' ' -f 1)" = "5876cf5a642253061668ede0d40dca16a96fe302388d065a9bfc9a181fb2f4a2"
+          test -f _site/assets/room2-commercial-pbr-v1/textures/oak/roughness.webp
+          test "$(shasum -a 256 _site/assets/room2-commercial-pbr-v1/textures/oak/roughness.webp | cut -d ' ' -f 1)" = "3b1da3c01676cf303062c7c177bf3a83368a19b0dc0d7d495e9b5df648a5caa4"
+          test -f _site/assets/room2-commercial-pbr-v1/ASSET-LICENSES.md
+          test "$(shasum -a 256 _site/assets/room2-commercial-pbr-v1/ASSET-LICENSES.md | cut -d ' ' -f 1)" = "16a1ba6570137d7d53170a72882439cc2d39e5cf30db3f54097f5c73a00aa787"
+          test -f _site/assets/room2-commercial-pbr-v1/textures/walnut/base-color.webp
+          test "$(shasum -a 256 _site/assets/room2-commercial-pbr-v1/textures/walnut/base-color.webp | cut -d ' ' -f 1)" = "caf5e2eddf95b3699766bae7c2f96d7384b4d28c0cd9ddea41fc7d17ce738092"
+          test -f _site/assets/room2-commercial-pbr-v1/textures/walnut/roughness.webp
+          test "$(shasum -a 256 _site/assets/room2-commercial-pbr-v1/textures/walnut/roughness.webp | cut -d ' ' -f 1)" = "0126bb4a12727c128af5f5e94edeb5857d14035b2c99346312bc59e02c88864a"
+          test -f _site/assets/room2-commercial-pbr-v1/textures/paint/normal.webp
+          test "$(shasum -a 256 _site/assets/room2-commercial-pbr-v1/textures/paint/normal.webp | cut -d ' ' -f 1)" = "aec29593bc52ccba406455191b4d5162b035eec35f0e888f46c161ea4fb2fb89"
+          test -f _site/assets/room2-commercial-pbr-v1/textures/paint/roughness.webp
+          test "$(shasum -a 256 _site/assets/room2-commercial-pbr-v1/textures/paint/roughness.webp | cut -d ' ' -f 1)" = "cd612085b10c1c7b7e78e2b74baa1f80d247ecf73d1ab3fada6ff5b9953a61a7"
           test -f _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb
           test ! -L _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb
           test "$(wc -c < _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb | tr -d ' ')" = "6712076"
@@ -267,6 +295,8 @@ jobs:
           test -f _site/config/product-layout-compatibility.json
           test -f _site/config/photoreal-preview-matrix-provenance.json
           test -f _site/config/provisional-decisions.json
+          test -f _site/config/room2-commercial-pbr-v1-assets.json
+          test -f _site/config/room2-commercial-pbr-v1-semantic-audit.json
           test -f _site/config/room-topologies.json
           test -f _site/assets/photos/configurator/integrated/tv-unit/framed-tv-wall/tv01-clear-wall-photoreal-preview-v1.webp
           node --input-type=module <<'NODE'

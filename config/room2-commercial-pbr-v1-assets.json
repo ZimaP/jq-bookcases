@@ -1,0 +1,210 @@
+{
+  "schema": "jq-room2-commercial-pbr-v1-asset-provenance-v1",
+  "profile": "room2-commercial-pbr-v1",
+  "status": "PROVISIONAL DIGITAL APPEARANCE — OWNER ACCEPTANCE OPEN",
+  "policy": {
+    "remoteRuntimeDependencies": 0,
+    "maximumTextureDimension": 2048,
+    "selectedTextureDimension": 512,
+    "ktx2Decision": "A pinned KTX2/Basis encoder was not present in the repository and neither toktx nor basisu was available. No system tool was installed. Local WebP sidecars are the explicit measured fallback.",
+    "webpEncoder": "cwebp 1.6.0",
+    "runtimeMipPolicy": "WebGL generates the complete mip chain from each 512x512 WebP source; minification is LinearMipmapLinearFilter.",
+    "grainMirroringPolicy": "No production wood derivative uses pixel flips or reflections. Walnut wrap continuity is produced only from cyclic translations and deterministic edge-band blending; runtime UV transforms never use negative scale.",
+    "sourceRightsBasis": "Oak Veneer 01 is CC0. Texture de noyer is used and attributed under CC BY-SA 3.0, with the walnut derivatives shared on the same terms. Paint maps and the neutral studio environment are existing JQ Bookcases repository-owned visualization starters. Three.js r166 add-ons are MIT licensed.",
+    "finishAccuracy": "Existing finish names and swatches are provisional digital color targets only. They do not establish species, grain, pore, sheen, chemistry, or installed-sample accuracy.",
+    "licenseNoticePath": "assets/room2-commercial-pbr-v1/ASSET-LICENSES.md",
+    "licenseNoticeBytes": 2198,
+    "licenseNoticeSha256": "16a1ba6570137d7d53170a72882439cc2d39e5cf30db3f54097f5c73a00aa787"
+  },
+  "sources": [
+    {
+      "id": "poly-haven-oak-veneer-01",
+      "title": "Oak Veneer 01",
+      "author": "Jenelle van Heerden",
+      "sourceUrl": "https://polyhaven.com/a/oak_veneer_01",
+      "license": "CC0 1.0 Universal",
+      "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "declaredPhysicalSizeMeters": [1.83, 1.83],
+      "externalFiles": [
+        {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg",
+          "bytes": 641756,
+          "sha256": "c14681f72f59f17bff568cae7a837641443b607b899f0c279cd64a5638f877a7",
+          "dimensions": [1024, 1024],
+          "role": "sRGB diffuse source"
+        },
+        {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg",
+          "bytes": 484844,
+          "sha256": "1297acf7b4476d5ccd83cc8b27be96aa6110f7a9c3a40be0bd767bf81b17db01",
+          "dimensions": [1024, 1024],
+          "role": "OpenGL tangent-space normal source"
+        },
+        {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_rough_1k.jpg",
+          "bytes": 865194,
+          "sha256": "ca2af5649b628ef05f196793d68cdca874c12ceb6e9ae566976546d9dd5a2604",
+          "dimensions": [1024, 1024],
+          "role": "linear roughness source"
+        }
+      ]
+    },
+    {
+      "id": "wikimedia-texture-de-noyer",
+      "title": "Texture de noyer.jpg",
+      "author": "Cyril5555",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/File:Texture_de_noyer.jpg",
+      "downloadUrl": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Texture%20de%20noyer.jpg",
+      "license": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "licenseNoticePath": "assets/room2-commercial-pbr-v1/ASSET-LICENSES.md",
+      "externalFiles": [
+        {
+          "url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Texture%20de%20noyer.jpg",
+          "bytes": 3546447,
+          "sha256": "0176ebaed980d0b37dd81df07715a63efbccc40d1196362283478d996e3595c2",
+          "dimensions": [3072, 2304],
+          "role": "sRGB walnut surface photograph"
+        }
+      ]
+    },
+    {
+      "id": "repository-sprayed-paint-procedural-starter",
+      "author": "JQ Bookcases repository maintainers",
+      "license": "Repository-owned; commercial redistribution and modification authorized for this repository by the current work order",
+      "repositoryCommit": "2cc0ef884953e6a63d6cd26c98abf2fa1cd84ec4",
+      "files": [
+        { "path": "assets/textures/paint/sprayed-normal.png", "bytes": 6356184, "sha256": "6a9fca85f8a7de65419b44741cc44dbbfacdbb3f7ac0998929ec5b74e886b244" },
+        { "path": "assets/textures/paint/sprayed-roughness.png", "bytes": 1817404, "sha256": "555aa83c2ba12f5d8c7f6aa8cf1b08aab5ccf41045e674fd3de4d86bda367280" }
+      ]
+    },
+    {
+      "id": "repository-neutral-studio-hdri",
+      "author": "JQ Bookcases repository maintainers",
+      "license": "Repository-owned; commercial redistribution and modification authorized for this repository by the current work order",
+      "repositoryCommit": "2cc0ef884953e6a63d6cd26c98abf2fa1cd84ec4",
+      "files": [
+        {
+          "path": "assets/environments/jq-neutral-studio.hdr",
+          "bytes": 1341884,
+          "sha256": "0ff81b73774abc781428340a56a0c0170447c7919be9b451c05cf15b4c90a931",
+          "dimensions": [1536, 768],
+          "role": "linear RGBE equirectangular environment input"
+        }
+      ]
+    },
+    {
+      "id": "three-r166-addons",
+      "sourceUrl": "https://registry.npmjs.org/three/-/three-0.166.1.tgz",
+      "author": "Three.js authors",
+      "license": "MIT",
+      "packageVersion": "0.166.1",
+      "packageBytes": 5914160,
+      "packageSha256": "ce585bcc9ce8a33c82b98472cc4ec2e7dae9c6a0435e38eaf0d2874a8d09bd1f",
+      "licensePath": "assets/vendor/licenses/three-0.166.1-LICENSE.txt",
+      "files": [
+        { "path": "assets/vendor/three-addons/loaders/RGBELoader.js", "bytes": 11377, "sha256": "f0e87d0008d9484d31358b32befd1bf80e4301f77573cc9a7cf7d871cc3f64b4" },
+        { "path": "assets/vendor/three-addons/lights/RectAreaLightUniformsLib.js", "bytes": 313854, "sha256": "08085bc942253cd54948bf936fecb66b54514a135872656e475a1cab09b55214" },
+        { "path": "assets/vendor/licenses/three-0.166.1-LICENSE.txt", "bytes": 1081, "sha256": "4c40a1ef62450b857c3b2aaf294936304cd552d965fbcd9d32d4c5bcf4ba4454" }
+      ]
+    }
+  ],
+  "derivedAssets": [
+    {
+      "path": "assets/room2-commercial-pbr-v1/textures/oak/base-color.webp",
+      "sourceId": "poly-haven-oak-veneer-01",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_diff_1k.jpg",
+      "bytes": 20074,
+      "sha256": "9d868390072a01f89eddc0f9aeeee73135feefdd1496ca2cccef8efe828fe496",
+      "dimensions": [512, 512],
+      "channels": "RGB",
+      "colorSpace": "sRGB",
+      "role": "neutralized oak-family base color",
+      "physicalScaleMetersPerRepeat": [2.4384, 2.4384],
+      "runtimeScaleNote": "The licensed 1.83 m source is presented at one repeat per 2.4384 m model height to suppress visible repetition while preserving the source aspect and grain direction.",
+      "command": "ffmpeg -i oak_veneer_01_diff_1k.jpg -vf scale=512:512:flags=lanczos,eq=saturation=0.18:contrast=0.58:brightness=0.30,gblur=sigma=0.55 oak-base.png; cwebp -q 92 -m 6 -sharp_yuv oak-base.png -o base-color.webp"
+    },
+    {
+      "path": "assets/room2-commercial-pbr-v1/textures/oak/normal.webp",
+      "sourceId": "poly-haven-oak-veneer-01",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_nor_gl_1k.jpg",
+      "bytes": 233944,
+      "sha256": "5876cf5a642253061668ede0d40dca16a96fe302388d065a9bfc9a181fb2f4a2",
+      "dimensions": [512, 512],
+      "channels": "RGB",
+      "colorSpace": "NoColorSpace",
+      "role": "oak-family OpenGL tangent-space normal",
+      "normalScale": [0.16, 0.16],
+      "physicalScaleMetersPerRepeat": [2.4384, 2.4384],
+      "runtimeScaleNote": "Uses the exact base-color transform so tangent response stays aligned without a second texture source.",
+      "command": "cwebp -lossless -z 6 -resize 512 512 oak_veneer_01_nor_gl_1k.jpg -o normal.webp"
+    },
+    {
+      "path": "assets/room2-commercial-pbr-v1/textures/oak/roughness.webp",
+      "sourceId": "poly-haven-oak-veneer-01",
+      "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_veneer_01/oak_veneer_01_rough_1k.jpg",
+      "bytes": 156034,
+      "sha256": "3b1da3c01676cf303062c7c177bf3a83368a19b0dc0d7d495e9b5df648a5caa4",
+      "dimensions": [512, 512],
+      "channels": "grayscale RGB (green channel used)",
+      "colorSpace": "NoColorSpace",
+      "role": "oak-family roughness",
+      "physicalScaleMetersPerRepeat": [2.4384, 2.4384],
+      "runtimeScaleNote": "Uses the exact base-color transform so roughness response stays aligned without a second texture source.",
+      "command": "ffmpeg -i oak_veneer_01_rough_1k.jpg -vf scale=512:512:flags=lanczos,format=gray,eq=contrast=0.28:brightness=0.24 oak-rough.png; cwebp -lossless -z 6 oak-rough.png -o roughness.webp"
+    },
+    {
+      "path": "assets/room2-commercial-pbr-v1/textures/walnut/base-color.webp",
+      "sourceId": "wikimedia-texture-de-noyer",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Texture%20de%20noyer.jpg",
+      "bytes": 66382,
+      "sha256": "caf5e2eddf95b3699766bae7c2f96d7384b4d28c0cd9ddea41fc7d17ce738092",
+      "dimensions": [512, 512],
+      "channels": "RGB",
+      "colorSpace": "sRGB",
+      "role": "neutralized walnut-family base color",
+      "physicalScaleMetersPerRepeat": [2.4384, 2.4384],
+      "command": "ffmpeg -hide_banner -loglevel error -i Texture-de-noyer.jpg -filter_complex \"[0:v]crop=2048:2048:512:128,transpose=clock,scale=1024:1024:flags=lanczos,eq=saturation=0.32:contrast=0.82:brightness=0.10,split=2[xbase][xroll];[xroll]scroll=horizontal=0:vertical=0:hpos=0.5:vpos=0[xshift];[xbase][xshift]blend=all_expr='A*min(1,sin(PI*X/W)*5)+B*(1-min(1,sin(PI*X/W)*5))',split=2[ybase][yroll];[yroll]scroll=horizontal=0:vertical=0:hpos=0:vpos=0.5[yshift];[ybase][yshift]blend=all_expr='A*min(1,sin(PI*Y/H)*5)+B*(1-min(1,sin(PI*Y/H)*5))',scale=512:512:flags=lanczos,format=rgb24\" -frames:v 1 walnut-base.png; cwebp -q 92 -m 6 -sharp_yuv walnut-base.png -o base-color.webp"
+    },
+    {
+      "path": "assets/room2-commercial-pbr-v1/textures/walnut/roughness.webp",
+      "sourceId": "wikimedia-texture-de-noyer",
+      "sourceUrl": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Texture%20de%20noyer.jpg",
+      "bytes": 65572,
+      "sha256": "0126bb4a12727c128af5f5e94edeb5857d14035b2c99346312bc59e02c88864a",
+      "dimensions": [512, 512],
+      "channels": "grayscale RGB (green channel used)",
+      "colorSpace": "NoColorSpace",
+      "role": "walnut-family roughness derived from the neutralized photograph",
+      "physicalScaleMetersPerRepeat": [2.4384, 2.4384],
+      "command": "ffmpeg -i walnut-base.png -vf format=gray,eq=contrast=0.18:brightness=0.28 walnut-rough.png; cwebp -lossless -z 6 walnut-rough.png -o roughness.webp"
+    },
+    {
+      "path": "assets/room2-commercial-pbr-v1/textures/paint/normal.webp",
+      "sourceId": "repository-sprayed-paint-procedural-starter",
+      "sourcePath": "assets/textures/paint/sprayed-normal.png",
+      "bytes": 134340,
+      "sha256": "aec29593bc52ccba406455191b4d5162b035eec35f0e888f46c161ea4fb2fb89",
+      "dimensions": [512, 512],
+      "channels": "RGB",
+      "colorSpace": "NoColorSpace",
+      "role": "paint-family tangent-space micro-normal",
+      "normalScale": [0.055, 0.055],
+      "physicalScaleMetersPerRepeat": [0.0762, 0.0762],
+      "command": "cwebp -lossless -z 6 -resize 512 512 assets/textures/paint/sprayed-normal.png -o normal.webp"
+    },
+    {
+      "path": "assets/room2-commercial-pbr-v1/textures/paint/roughness.webp",
+      "sourceId": "repository-sprayed-paint-procedural-starter",
+      "sourcePath": "assets/textures/paint/sprayed-roughness.png",
+      "bytes": 64074,
+      "sha256": "cd612085b10c1c7b7e78e2b74baa1f80d247ecf73d1ab3fada6ff5b9953a61a7",
+      "dimensions": [512, 512],
+      "channels": "RGB (green channel used)",
+      "colorSpace": "NoColorSpace",
+      "role": "paint-family micro-roughness",
+      "physicalScaleMetersPerRepeat": [0.0762, 0.0762],
+      "command": "cwebp -lossless -z 6 -resize 512 512 assets/textures/paint/sprayed-roughness.png -o roughness.webp"
+    }
+  ]
+}

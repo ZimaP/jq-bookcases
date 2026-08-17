@@ -5177,6 +5177,11 @@ body.guided-page {
   opacity: 1;
 }
 
+.measurement-room:not([data-guided3d-state="ready"]) > .guided-3d-mount,
+.concept-scene:not([data-guided3d-state="ready"]) > .guided-3d-mount {
+  pointer-events: none;
+}
+
 .measurement-room > :is(
     picture.measurement-room-image,
     .measurement-feature,
@@ -5323,14 +5328,7 @@ body.guided-page {
   }
 
   .guided-3d-hint {
-    bottom: 10px;
-    gap: 8px;
-    padding: 6px 9px;
-    font-size: 0.52rem;
-  }
-
-  .guided-3d-hint span + span::before {
-    margin-right: 8px;
+    display: none;
   }
 }
 
@@ -6616,6 +6614,33 @@ body.guided-page {
   .guided-shell--step-3 .concept-preview {
     height: 390px;
     min-height: 390px;
+  }
+
+  /* Keep the 44px preview controls off the phone-sized hero image. The
+     control rail remains inside the fixed preview card without shrinking the
+     projected product width or changing the desktop/tablet composition. */
+  .guided-shell--step-3 .concept-scene-frame,
+  .guided-shell--step-4 .concept-scene-frame {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) 54px;
+    background: #eee9e2;
+  }
+
+  .guided-shell--step-3 .concept-scene,
+  .guided-shell--step-4 .concept-scene {
+    grid-row: 1;
+  }
+
+  .guided-shell--step-3 .preview-controls,
+  .guided-shell--step-4 .preview-controls {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    grid-row: 2;
+    align-self: center;
+    justify-self: end;
+    margin-right: 10px;
+    transform: none;
   }
 
   .guided-shell--step-3 .customization-tabs {

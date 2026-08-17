@@ -1420,10 +1420,13 @@ function renderDetailChoices({ compact = false } = {}) {
 }
 
 function renderDeferredModelDisclosure(groupLabel) {
+  const isFinish = groupLabel === "Finish";
   return `
     <aside class="fixed-reference-disclosure" role="note" data-deferred-model-disclosure="${escapeAttribute(groupLabel.toLowerCase())}">
       <i data-icon="information" aria-hidden="true"></i>
-      <span><strong>Your ${escapeHtml(groupLabel.toLowerCase())} selections are saved with this project.</strong> They are not yet shown on the fixed Room 2 reference model; dimension-driven geometry and configurable appearance will be connected later.</span>
+      <span>${isFinish
+        ? `<strong>The selected Finish is previewed digitally on the proven millwork surfaces.</strong> This provisional appearance is not a calibrated or approved physical sample; owner acceptance remains open.`
+        : `<strong>Your ${escapeHtml(groupLabel.toLowerCase())} selections are saved with this project.</strong> Dimensions and Details do not alter the fixed Room 2 geometry or construction in this phase.`}</span>
     </aside>
   `;
 }
@@ -1443,7 +1446,7 @@ function renderConceptPreview(options = {}) {
       data-style="${escapeAttribute(selectedStyle.id)}"
       data-preview-render-mode="fixed-room2-glb"
       data-model-asset="assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb"
-      data-finish-mask-mode="none"
+      data-finish-mask-mode="proven-material-3-only"
       data-project-specification-accepted="${acceptedSpecification?.accepted === true}"
       data-geometry-fingerprint="8762fe4326e22e46a163343e5fde410e231d651b48d1b1c9be8391febec8f6ff"
       aria-label="${escapeAttribute(`Fixed Room 2 reference model for ${previewLabel} and ${layout?.label || "Fireplace Wall"}`)}"
@@ -1452,7 +1455,7 @@ function renderConceptPreview(options = {}) {
         <div class="fixed-reference-heading">
           <span class="fixed-reference-mark" aria-hidden="true">R2</span>
           <span>
-            <small>Reference 3D model — fixed Room 2 design</small>
+            <small>Commercial PBR review candidate — fixed Room 2 design</small>
             <strong>SketchUp-derived Fireplace Wall</strong>
           </span>
         </div>
@@ -1475,7 +1478,7 @@ function renderConceptPreview(options = {}) {
       </div>
       <figcaption class="fixed-reference-model-disclosure" data-fixed-reference-model-disclosure>
         <strong>Provisional appearance · owner acceptance open.</strong>
-        <span>This fixed reference does not yet change with dimensions, finish, hardware, lighting, or detail selections. Those values are saved for the project and summarized for design review.</span>
+        <span>The selected Finish is previewed digitally on proven millwork zones and is not a calibrated or approved physical sample. Dimensions and Details remain saved project data and do not alter this fixed geometry.</span>
       </figcaption>
     </figure>
   `;
@@ -1969,7 +1972,7 @@ function syncTransactionDiagnostic(transaction = guidedProjectTransaction) {
       : "Fixed Room 2 reference model";
     status.querySelector("span").textContent = diagnostic
       ? `${formatGuidedDiagnostic(diagnostic)} The fixed reference model remains unchanged.`
-      : "Project values are saved separately; this fixed reference model does not change in this phase.";
+      : "The selected Finish is previewed digitally; dimensions and Details remain saved data and do not alter the fixed geometry.";
   }
   const preview = app?.querySelector(".concept-preview");
   if (preview) {
@@ -2026,6 +2029,10 @@ function updateGuidedSceneState(state, details = {}) {
   const mount = app?.querySelector("[data-guided-3d-mount]");
   const scene = mount?.closest(".measurement-room, .concept-scene");
   if (!scene) return;
+  const interactive = state === "ready";
+  mount.inert = !interactive;
+  if (interactive) mount.removeAttribute("aria-hidden");
+  else mount.setAttribute("aria-hidden", "true");
   const status = scene.querySelector("[data-guided-engine-status]");
   if (status) status.hidden = state === "ready";
   if (state === "fallback") {
@@ -2039,6 +2046,18 @@ function updateGuidedSceneState(state, details = {}) {
       status.querySelector("strong").textContent = "Loading fixed Room 2 reference";
       status.querySelector("span").textContent = details.message
         || "The exact SketchUp-derived GLB is being verified and parsed.";
+    }
+  } else if (state === "finish-loading") {
+    if (status) {
+      status.querySelector("strong").textContent = "Loading selected Finish";
+      status.querySelector("span").textContent = details.message
+        || "The new provisional digital material is loading and will appear atomically when ready.";
+    }
+  } else if (state === "finish-error") {
+    if (status) {
+      status.querySelector("strong").textContent = "Selected Finish unavailable";
+      status.querySelector("span").textContent = details.message
+        || "The material could not be loaded. Select a verified Finish to continue or select this option again to retry.";
     }
   }
   scene.dataset.guided3dState = state;
@@ -2062,16 +2081,16 @@ function syncGuidedScene() {
     return;
   }
 
-  updateGuidedSceneState("loading");
-  guidedSceneImportPromise ||= import("./guided-room2-viewer.js?v=room2-studio-neutral-v1-20260817a");
+  if (!guidedSceneController) updateGuidedSceneState("loading");
+  guidedSceneImportPromise ||= import("./guided-room2-viewer.js?v=room2-commercial-pbr-v1-20260817g");
   guidedSceneImportPromise
     .then(({ createGuidedRoom2ViewerController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;
       guidedSceneController ||= createGuidedRoom2ViewerController({
         onStateChange: updateGuidedSceneState
       });
-      guidedSceneController.mount(mount);
       guidedSceneController.update(project, getGuidedSceneOptions());
+      guidedSceneController.mount(mount);
     })
     .catch(() => {
       if (token === guidedSceneSyncToken) updateGuidedSceneState("fallback");

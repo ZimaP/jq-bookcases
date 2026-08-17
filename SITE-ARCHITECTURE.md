@@ -39,10 +39,14 @@ or separate quote drawer.
 - `guided-configurator.js` owns the four-step public workflow (Choose Product,
   Choose Layout, Customization, Review & Details) and keeps one Room 2 viewer
   controller across steps 3–4.
-- `guided-room2-appearance.js` owns the versioned `room2-studio-neutral-v1`
-  camera, local RoomEnvironment/PMREM base, scene-space key/fill/rim roles,
-  background, ground, ACES Filmic tone mapping, fixed exposure, and static shadow
-  configuration. Owner visual acceptance remains open.
+- `guided-room2-appearance.js` owns the versioned `room2-commercial-pbr-v1`
+  semantic mapping, Finish-family recipes, texture transforms, hero-bounds
+  camera, local HDR/PMREM environment, broad key/fill roles, Neutral tone
+  mapping, exposure, and static shadow configuration. Owner visual acceptance
+  remains open.
+- `guided-room2-materials.js` owns selected-family preload, atomic lazy Finish
+  switching, source-sharing texture transforms, runtime material fingerprints,
+  exact proven-zone coverage, and owned-resource disposal.
 - `guided-room2-integrity.js` owns GLB container checks and deterministic raw,
   embedded-image-payload, runtime-material, and deferred-model snapshots.
 - `guided-room2-viewer.js` owns the one-session Three.js renderer, GLTF parse,
@@ -88,13 +92,15 @@ saved project that uses one remains intact, is marked unavailable, and is
 routed to the applicable selection step rather than silently coerced.
 
 Customization contains the layout-specific measurements, finish, and detail
-controls. Their values validate, persist, and appear in summaries, but are not
-yet shown on the fixed Room 2 reference model. Customization and Review &
-Details move the same canvas and preserve the same renderer, controller, parsed
-GLB root, and camera pose for the lifetime of the mounted configurator. Guided
-drafts remain approximate project briefs; displaying the reference model does
-not create manufacturing, BOM, pricing, final-measurement, or appearance-
-accuracy authority. Schema-v4 state explicitly maps legacy five-step positions
+controls. Their values validate, persist, and appear in summaries. Finish is
+previewed digitally on the 118 proven millwork primitives; dimensions, Details,
+hardware, and saved lighting choices do not alter the fixed geometry or scene
+construction. Customization and Review & Details move the same canvas and
+preserve the same renderer, controller, parsed GLB root, and camera pose for the
+lifetime of the mounted configurator. Guided drafts remain approximate project
+briefs; displaying the reference model does not create manufacturing, BOM,
+pricing, final-measurement, calibrated-finish, or appearance-accuracy authority.
+Schema-v4 state explicitly maps legacy five-step positions
 1→1, 2→2, 3/4→3, and 5→4 while preserving the last accepted snapshot and
 capping reachable progress to the normalized selection.
 

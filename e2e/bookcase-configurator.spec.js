@@ -402,12 +402,13 @@ test("Customization immediately owns one controller, canvas, RAF, timer, and lis
   await assertSingleOwnership();
 });
 
-test("the studio-neutral profile owns one PMREM, three scene lights, and one static shadow refresh", async ({ page }) => {
+test("the commercial PBR profile owns one local PMREM, two light roles, and one static shadow refresh", async ({ page }) => {
   await openFreshProject(page);
   await continueToCustomization(page);
   const canvas = await expectAcceptedScene(page);
   const materialDigest = await canvas.getAttribute("data-room2-runtime-material-digest");
   const materialAppearanceDigest = await canvas.getAttribute("data-room2-runtime-material-appearance-digest");
+  const appearanceFingerprint = await canvas.getAttribute("data-room2-runtime-appearance-fingerprint");
   const modelFingerprint = await canvas.getAttribute("data-room2-runtime-model-fingerprint");
   const imageDigest = await canvas.getAttribute("data-room2-embedded-image-payload-digest");
   const readJsonAttribute = async (name) => JSON.parse(await canvas.getAttribute(name));
@@ -416,33 +417,50 @@ test("the studio-neutral profile owns one PMREM, three scene lights, and one sta
   const environment = await readJsonAttribute("data-room2-environment-state");
   const initialShadows = await readJsonAttribute("data-room2-shadow-state");
 
-  expect(await canvas.getAttribute("data-room2-appearance-profile")).toBe("room2-studio-neutral-v1");
+  expect(await canvas.getAttribute("data-room2-appearance-profile")).toBe("room2-commercial-pbr-v1");
   expect(materialAppearanceDigest).toMatch(/^[a-f0-9]{64}$/);
+  expect(appearanceFingerprint).toMatch(/^[a-f0-9]{64}$/);
   expect(imageDigest).toBe("6c737d2ff899087b3227f9202dcf95c874474d65dfbc6ec83c778748feced153");
   expect(renderer).toMatchObject({
     className: "WebGLRenderer",
     backend: "webgl2",
     threeRevision: "166",
+    browserUserAgent: /Chrome\//,
+    browserPlatform: /.+/,
     colorManagementEnabled: true,
     workingColorSpace: "srgb-linear",
     outputColorSpace: "srgb",
     outputTransformCount: 1,
-    toneMapping: "aces-filmic",
-    exposure: 0.82,
+    toneMapping: "neutral",
+    exposure: 1.02,
     shadowType: "pcf-soft"
   });
   expect(lighting.directLightCount).toBe(3);
-  expect(lighting.semanticRoleCount).toBe(3);
-  expect(Object.keys(lighting.roles)).toEqual(["key", "fill", "rim"]);
-  expect(Object.values(lighting.roles).filter(({ castShadow }) => castShadow)).toHaveLength(1);
+  expect(lighting.semanticRoleCount).toBe(2);
+  expect(lighting.rectAreaUniformsInitializationCount).toBe(1);
+  expect(lighting.rectAreaLtcLookup).toMatchObject({
+    dimensions: [64, 64],
+    textureCount: 2
+  });
+  expect(["RGBA32F", "RGBA16F"]).toContain(lighting.rectAreaLtcLookup.gpuFormat);
+  expect(lighting.rectAreaLtcLookup.estimatedBytes).toBe(
+    lighting.rectAreaLtcLookup.gpuFormat === "RGBA32F" ? 131072 : 65536
+  );
+  expect(Object.keys(lighting.roles)).toEqual(["key", "fill"]);
+  expect(lighting.roles.key.area).toMatchObject({ type: "RectAreaLight", castShadow: false });
+  expect(lighting.roles.key.shadowProxy).toMatchObject({ type: "DirectionalLight", castShadow: true });
+  expect(lighting.roles.fill.area).toMatchObject({ type: "RectAreaLight", castShadow: false });
   expect(environment).toMatchObject({
-    type: "three-r166-room-environment-pmrem",
-    intensity: 0.55,
-    rotationRadians: 0,
+    type: "local-rgbe-equirectangular-pmrem",
+    sha256: "0ff81b73774abc781428340a56a0c0170447c7919be9b451c05cf15b4c90a931",
+    requestCount: 1,
+    successfulRequestCount: 1,
+    intensity: 0.92,
+    rotationRadians: 0.52,
     generationCount: 1,
     retainedRenderTargets: 1
   });
-  expect(initialShadows).toMatchObject({ casterCount: 1, casterRole: "key", refreshCount: 1, autoUpdate: false });
+  expect(initialShadows).toMatchObject({ casterCount: 1, casterRole: "key.shadowProxy", refreshCount: 1, autoUpdate: false });
 
   const initialCamera = await canvas.getAttribute("data-room2-camera-state");
   await canvas.focus();
@@ -454,6 +472,7 @@ test("the studio-neutral profile owns one PMREM, three scene lights, and one sta
   expect(afterOrbitShadows.refreshCount).toBe(initialShadows.refreshCount);
   await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", materialDigest);
   await expect(canvas).toHaveAttribute("data-room2-runtime-material-appearance-digest", materialAppearanceDigest);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-appearance-fingerprint", appearanceFingerprint);
   await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", modelFingerprint);
   await expect(canvas).toHaveAttribute("data-room2-embedded-image-payload-digest", imageDigest);
 });
@@ -574,29 +593,101 @@ test("fraction parsing, bounds guidance, and the compact measurement guide remai
   await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
 });
 
-test("deferred finish and details persist without changing the fixed Room 2 scene or camera", async ({ page }) => {
+test("Finish loads atomically, changes only proven millwork, caches by family, and persists", async ({ page }) => {
+  await page.route("**/assets/room2-commercial-pbr-v1/textures/paint/*.webp", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await route.continue();
+  });
   await openFreshProject(page);
   await continueToCustomization(page);
   let canvas = await expectAcceptedScene(page);
-  await expect(page.locator('[data-deferred-model-disclosure="dimensions"]')).toContainText("not yet shown on the fixed Room 2 reference model");
+  await expect(page.locator('[data-deferred-model-disclosure="dimensions"]')).toContainText("do not alter the fixed Room 2 geometry");
   const instance = await canvas.getAttribute("data-guided3d-instance");
   const geometryBefore = await canvas.getAttribute("data-room2-runtime-model-fingerprint");
   const materialsBefore = await canvas.getAttribute("data-room2-runtime-material-digest");
   const materialAppearanceBefore = await canvas.getAttribute("data-room2-runtime-material-appearance-digest");
+  const appearanceBefore = await canvas.getAttribute("data-room2-runtime-appearance-fingerprint");
   const rootBefore = await canvas.getAttribute("data-room2-parsed-root-identity");
   const cameraBefore = await canvas.getAttribute("data-room2-camera-state");
+  const naturalPixels = await canvas.screenshot();
+  const initialMaterials = JSON.parse(await canvas.getAttribute("data-room2-material-system-state"));
+  expect(initialMaterials).toMatchObject({
+    selectedFinishId: "natural-oak",
+    pendingFinishId: null,
+    finishApplicationCount: 1,
+    families: { oak: { state: "ready", attempts: 1, textureCount: 3 } },
+    cutMapping: {
+      stableIdentityAlgorithm: "fnv1a-stable-primitive-plus-supporting-runtime-role-v1",
+      roleCounts: {
+        "back-panel": 12,
+        "bottom-panel": 6,
+        "cabinet-door": 8,
+        "end-panel": 24,
+        nailer: 4,
+        shelf: 20,
+        "side-member": 8,
+        stile: 10,
+        "toe-skin": 2,
+        "top-panel": 14,
+        "top-rail": 4,
+        trim: 6
+      },
+      runtimeUvMirroring: false,
+      alignedTextureTransforms: true
+    }
+  });
+  expect(initialMaterials.cutMapping.uniquePhaseBucketCount).toBeGreaterThanOrEqual(110);
+  expect(initialMaterials.cutMapping.halfTurnCounts[0]).toBeGreaterThan(0);
+  expect(initialMaterials.cutMapping.halfTurnCounts[1]).toBeGreaterThan(0);
+  expect(Object.keys(initialMaterials.families)).toEqual(["oak"]);
+  expect(Object.values(initialMaterials.textureRequests)).toEqual([1, 1, 1]);
   await page.getByRole("tab", { name: "Finish" }).click();
-  await expect(page.locator('[data-deferred-model-disclosure="finish"]')).toContainText("saved with this project");
+  await expect(page.locator('[data-deferred-model-disclosure="finish"]')).toContainText("previewed digitally on the proven millwork surfaces");
   await page.locator('[data-finish-key="paint"][data-finish="charcoal"]').click();
+  await expect(page.locator(".concept-scene")).toHaveAttribute("data-guided3d-state", "finish-loading");
+  await expect(page.locator("[data-guided-engine-status]")).toContainText("Loading selected Finish");
+  const mount = page.locator(".guided-3d-mount");
+  await expect(mount).toHaveCSS("opacity", "0");
+  await expect(mount).toHaveAttribute("inert", "");
+  await expect(mount).toHaveAttribute("aria-hidden", "true");
+  await expect(page.locator(".concept-scene")).toHaveAttribute("data-guided3d-state", "ready");
+  await expect(mount).not.toHaveAttribute("inert", "");
+  await expect(mount).not.toHaveAttribute("aria-hidden", "true");
   canvas = page.locator(".guided-3d-canvas");
+  await expect(canvas).toHaveAttribute("data-room2-selected-finish", "charcoal");
+  await expect.poll(() => canvas.getAttribute("data-room2-runtime-appearance-fingerprint")).not.toBe(appearanceBefore);
+  const charcoalFingerprint = await canvas.getAttribute("data-room2-runtime-appearance-fingerprint");
+  const charcoalPixels = await canvas.screenshot();
+  expect(charcoalPixels.equals(naturalPixels)).toBe(false);
   await expect(canvas).toHaveAttribute("data-guided3d-instance", instance);
   await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", geometryBefore);
   await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", materialsBefore);
   await expect(canvas).toHaveAttribute("data-room2-runtime-material-appearance-digest", materialAppearanceBefore);
   await expect(canvas).toHaveAttribute("data-room2-parsed-root-identity", rootBefore);
   await expect(canvas).toHaveAttribute("data-room2-camera-state", cameraBefore);
+  const paintLoaded = JSON.parse(await canvas.getAttribute("data-room2-material-system-state"));
+  expect(paintLoaded.families).toMatchObject({
+    oak: { state: "ready", attempts: 1, textureCount: 3 },
+    paint: { state: "ready", attempts: 1, textureCount: 2 }
+  });
+  expect(Object.values(paintLoaded.textureRequests)).toEqual([1, 1, 1, 1, 1]);
+  await page.locator('[data-finish-key="paint"][data-finish="warm-white"]').click();
+  await expect(page.locator(".concept-scene")).toHaveAttribute("data-guided3d-state", "ready");
+  await expect(canvas).toHaveAttribute("data-room2-selected-finish", "warm-white");
+  await expect.poll(() => canvas.getAttribute("data-room2-runtime-appearance-fingerprint")).not.toBe(charcoalFingerprint);
+  const cachedPaint = JSON.parse(await canvas.getAttribute("data-room2-material-system-state"));
+  expect(Object.values(cachedPaint.textureRequests)).toEqual([1, 1, 1, 1, 1]);
+  await page.locator('[data-finish-key="paint"][data-finish="charcoal"]').click();
+  await expect(canvas).toHaveAttribute("data-room2-selected-finish", "charcoal");
+  await expect.poll(() => canvas.getAttribute("data-room2-runtime-appearance-fingerprint")).toBe(charcoalFingerprint);
+  await page.evaluate(() => {
+    document.querySelector('[data-finish-key="paint"][data-finish="warm-white"]')?.click();
+    document.querySelector('[data-finish-key="paint"][data-finish="charcoal"]')?.click();
+  });
+  await expect(canvas).toHaveAttribute("data-room2-selected-finish", "charcoal");
+  await expect.poll(() => canvas.getAttribute("data-room2-runtime-appearance-fingerprint")).toBe(charcoalFingerprint);
   await page.getByRole("tab", { name: "Details" }).click();
-  await expect(page.locator('[data-deferred-model-disclosure="details, hardware, and lighting"]')).toContainText("not yet shown on the fixed Room 2 reference model");
+  await expect(page.locator('[data-deferred-model-disclosure="details, hardware, and lighting"]')).toContainText("do not alter the fixed Room 2 geometry");
   await page.locator('[data-detail-key="hardware"][data-detail="black-pull"]').click();
   for (const key of ["doorStyle", "lighting", "baseStyle", "topTreatment"]) {
     const alternative = page.locator(`[data-detail-key="${key}"][aria-pressed="false"]`).first();
@@ -605,6 +696,7 @@ test("deferred finish and details persist without changing the fixed Room 2 scen
     await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", geometryBefore);
     await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", materialsBefore);
     await expect(canvas).toHaveAttribute("data-room2-runtime-material-appearance-digest", materialAppearanceBefore);
+    await expect(canvas).toHaveAttribute("data-room2-runtime-appearance-fingerprint", charcoalFingerprint);
     await expect(canvas).toHaveAttribute("data-room2-parsed-root-identity", rootBefore);
     await expect(canvas).toHaveAttribute("data-room2-camera-state", cameraBefore);
   }
@@ -617,11 +709,77 @@ test("deferred finish and details persist without changing the fixed Room 2 scen
   await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-guided3d-instance", instance);
   await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-room2-runtime-material-digest", materialsBefore);
   await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-room2-runtime-material-appearance-digest", materialAppearanceBefore);
+  await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-room2-runtime-appearance-fingerprint", charcoalFingerprint);
   await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-room2-camera-state", cameraBefore);
   await page.locator('[data-edit-section="finish"]').click();
   await expect(page.getByRole("tab", { name: "Finish" })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator('[data-finish-key="paint"][data-finish="charcoal"]'))
     .toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => page.evaluate((key) => JSON.parse(localStorage.getItem(key) || "null")?.finish, DRAFT_KEY)).toBe("charcoal");
+  await page.reload({ waitUntil: "networkidle" });
+  canvas = await expectAcceptedScene(page);
+  await expect(canvas).toHaveAttribute("data-room2-selected-finish", "charcoal");
+  const reloadedMaterials = JSON.parse(await canvas.getAttribute("data-room2-material-system-state"));
+  expect(Object.keys(reloadedMaterials.families)).toEqual(["paint"]);
+  expect(reloadedMaterials).toMatchObject({
+    selectedFinishId: "charcoal",
+    pendingFinishId: null,
+    finishApplicationCount: 1,
+    successfulTextureRequestCount: 2
+  });
+  expect(Object.values(reloadedMaterials.textureRequests)).toEqual([1, 1]);
+});
+
+test("a failed lazy Finish retries only the failed map and never exposes an invisible focus stop", async ({ page }) => {
+  const paintAttempts = { normal: 0, roughness: 0 };
+  await page.route("**/assets/room2-commercial-pbr-v1/textures/paint/*.webp", async (route) => {
+    const key = route.request().url().endsWith("/normal.webp") ? "normal" : "roughness";
+    paintAttempts[key] += 1;
+    if (key === "normal" && paintAttempts[key] === 1) await route.abort("failed");
+    else await route.continue();
+  });
+  await openFreshProject(page);
+  await continueToCustomization(page);
+  const canvas = await expectAcceptedScene(page);
+  await page.getByRole("tab", { name: "Finish" }).click();
+  const charcoal = page.locator('[data-finish-key="paint"][data-finish="charcoal"]');
+  await charcoal.click();
+  const scene = page.locator(".concept-scene");
+  const mount = page.locator(".guided-3d-mount");
+  await expect(scene).toHaveAttribute("data-guided3d-state", "finish-error");
+  await expect(page.locator("[data-guided-engine-status]")).toContainText("No substitute material is shown");
+  await expect(mount).toHaveCSS("opacity", "0");
+  await expect(mount).toHaveAttribute("inert", "");
+  await expect(mount).toHaveAttribute("aria-hidden", "true");
+  await canvas.focus();
+  await expect(canvas).not.toBeFocused();
+
+  const failed = JSON.parse(await canvas.getAttribute("data-room2-material-system-state"));
+  expect(failed.families.paint).toMatchObject({ state: "failed", attempts: 1, textureCount: 0 });
+  expect(failed.failedTextureRequestCount).toBe(1);
+  expect(paintAttempts).toEqual({ normal: 1, roughness: 1 });
+
+  await charcoal.click();
+  await expect(scene).toHaveAttribute("data-guided3d-state", "ready");
+  await expect(canvas).toHaveAttribute("data-room2-selected-finish", "charcoal");
+  await expect(mount).not.toHaveAttribute("inert", "");
+  await canvas.focus();
+  await expect(canvas).toBeFocused();
+  expect(paintAttempts).toEqual({ normal: 2, roughness: 1 });
+  const recovered = JSON.parse(await canvas.getAttribute("data-room2-material-system-state"));
+  expect(recovered.families.paint).toMatchObject({ state: "ready", attempts: 2, textureCount: 2 });
+  expect(Object.values(recovered.textureSuccessfulRequests).every((count) => count === 1)).toBe(true);
+  expect(Object.values(recovered.textureCache).filter(({ state }) => state === "ready")).toHaveLength(5);
+  expect(recovered.textureCache["assets/room2-commercial-pbr-v1/textures/paint/normal.webp"]).toMatchObject({
+    state: "ready",
+    attempts: 2,
+    successfulRequests: 1
+  });
+  expect(recovered.textureCache["assets/room2-commercial-pbr-v1/textures/paint/roughness.webp"]).toMatchObject({
+    state: "ready",
+    attempts: 1,
+    successfulRequests: 1
+  });
 });
 
 test("five-step drafts and stale hashes normalize while Back and Forward remain stable", async ({ page }) => {
@@ -746,7 +904,18 @@ test("the public runtime material snapshot is deterministic across clean documen
 });
 
 test("renderer failure is visible and fail-closed without substituting a photograph", async ({ page }) => {
-  await page.route("**/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb", (route) => route.fulfill({ status: 503 }));
+  await page.route("**/assets/environments/jq-neutral-studio.hdr", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await route.continue().catch(() => {});
+  });
+  await page.route("**/assets/room2-commercial-pbr-v1/textures/oak/*.webp", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await route.continue().catch(() => {});
+  });
+  await page.route("**/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    await route.fulfill({ status: 503 });
+  });
   await openFreshProject(page);
   await continueToCustomization(page);
   const preview = page.locator(".concept-preview");
@@ -758,9 +927,84 @@ test("renderer failure is visible and fail-closed without substituting a photogr
   );
   await expect(preview.locator("canvas")).toBeHidden();
   await expect(preview.locator("img.concept-photo, [data-published-preview-image]")).toHaveCount(0);
+  await page.waitForTimeout(850);
+  const diagnostics = await page.evaluate(() => globalThis.__JQ_ROOM2_VIEWER_DIAGNOSTICS__);
+  expect(diagnostics.state).toBe("fallback");
+  expect(diagnostics.ownership).toMatchObject({
+    renderers: 0,
+    materialSystems: 0,
+    parsedRoots: 0,
+    renderFrames: 0,
+    resizeObservers: 0,
+    resizeListeners: 0,
+    controlListenerSets: 0
+  });
+  expect(diagnostics.environment.retainedRenderTargets).toBe(0);
+  expect(diagnostics.lighting.directLightCount).toBe(0);
+  expect(diagnostics.shadows.casterCount).toBe(0);
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
   await expect(page.locator('.concept-scene[data-guided3d-state="fallback"]')).toBeVisible();
+});
+
+test("a post-parse material-binding failure releases every GPU and runtime resource owner", async ({ page }) => {
+  let injectedModules = 0;
+  await page.route("**/guided-room2-materials.js*", async (route) => {
+    const response = await route.fetch();
+    const source = await response.text();
+    const marker = "    this.captureSourceOwnership();";
+    expect(source).toContain(marker);
+    injectedModules += 1;
+    await route.fulfill({
+      response,
+      body: source.replace(
+        marker,
+        `${marker}\n    throw Object.assign(new Error("Injected post-parse material binding failure."), { code: "ROOM2_TEST_POST_PARSE_BIND_FAILURE" });`
+      ),
+      headers: {
+        ...response.headers(),
+        "content-type": "text/javascript; charset=utf-8"
+      }
+    });
+  });
+
+  await openFreshProject(page);
+  await continueToCustomization(page);
+  const preview = page.locator(".concept-preview");
+  const scene = preview.locator('.concept-scene[data-guided3d-state="fallback"]');
+  await expect(scene).toBeVisible();
+  await expect(scene.locator("[data-guided-engine-status]")).toContainText(
+    "No substitute model or image was loaded"
+  );
+  await expect(preview.locator("canvas")).toBeHidden();
+  expect(injectedModules).toBe(1);
+
+  const diagnostics = await page.evaluate(() => globalThis.__JQ_ROOM2_VIEWER_DIAGNOSTICS__);
+  expect(diagnostics.parseCount).toBe(1);
+  expect(diagnostics.ownership).toMatchObject({
+    canvases: 1,
+    renderers: 0,
+    materialSystems: 0,
+    controllers: 1,
+    parsedRoots: 0,
+    renderFrames: 0,
+    resizeObservers: 0,
+    resizeListeners: 0,
+    controlListenerSets: 0
+  });
+  expect(diagnostics.materialSystem).toMatchObject({
+    residentFamilyCount: 0,
+    textureCacheEntryCount: 0,
+    ownedSourceMaterialCount: 0,
+    ownedSourceTextureCount: 0,
+    ownedStaticMaterialCount: 0,
+    ownedStaticTextureCloneCount: 0,
+    ownedActiveFinishMaterialCount: 0,
+    ownedActiveTextureCloneCount: 0
+  });
+  expect(diagnostics.environment.retainedRenderTargets).toBe(0);
+  expect(diagnostics.lighting.directLightCount).toBe(0);
+  expect(diagnostics.shadows.casterCount).toBe(0);
 });
 
 test("keyboard and focus behavior covers cards, tabs, completed steps, and menu dismissal", async ({ page }) => {
@@ -804,12 +1048,25 @@ test("desktop, tablet, and phone Customization layouts are overflow-free and kee
     await continueToCustomization(page);
     const canvas = await expectAcceptedScene(page);
     const shadowState = JSON.parse(await canvas.getAttribute("data-room2-shadow-state"));
+    const projectionState = JSON.parse(await canvas.getAttribute("data-room2-projection-state"));
+    const cameraState = JSON.parse(await canvas.getAttribute("data-room2-camera-state"));
     expect(shadowState.mapSize, `${viewport.name} shadow tier`).toBe(viewport.name === "phone" ? 1024 : 2048);
     expect(shadowState.refreshCount, `${viewport.name} initial shadow refresh`).toBe(1);
     expect(shadowState.autoUpdate, `${viewport.name} static shadow mode`).toBe(false);
+    expect(projectionState.occupancyTier.id, `${viewport.name} semantic occupancy tier`).toBe(viewport.name);
+    expect(projectionState.occupancyTier.widthPass, `${viewport.name} hero-width occupancy`).toBe(true);
+    expect(projectionState.hero.withinViewport, `${viewport.name} unclipped hero bounds`).toBe(true);
+    expect(projectionState.hero.width).toBeGreaterThanOrEqual(projectionState.occupancyTier.acceptedWidth[0]);
+    expect(projectionState.hero.width).toBeLessThanOrEqual(projectionState.occupancyTier.acceptedWidth[1]);
+    expect(projectionState.hero.height).toBeGreaterThan(0);
+    expect(projectionState.hero.area).toBeGreaterThan(0);
+    expect(cameraState.filmGauge).toBe(35);
+    expect(cameraState.focalLengthMillimeters).toBeCloseTo(49.418475, 5);
     const geometry = await page.evaluate(() => {
       const preview = document.querySelector(".concept-preview").getBoundingClientRect();
       const controls = document.querySelector(".customization-controls-column").getBoundingClientRect();
+      const heroCanvas = document.querySelector("[data-guided-3d-mount] canvas").getBoundingClientRect();
+      const previewControls = document.querySelector(".preview-controls").getBoundingClientRect();
       const actions = [...document.querySelectorAll(".customization-actions .guided-button")]
         .map((button) => button.getBoundingClientRect());
       const referenceLabels = [...document.querySelectorAll(
@@ -826,6 +1083,8 @@ test("desktop, tablet, and phone Customization layouts are overflow-free and kee
         scrollWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
         preview: { top: preview.top, bottom: preview.bottom, width: preview.width, height: preview.height },
+        heroCanvas: { top: heroCanvas.top, bottom: heroCanvas.bottom },
+        previewControls: { top: previewControls.top, bottom: previewControls.bottom },
         visiblePreviewArea: visibleWidth * visibleHeight,
         controls: { top: controls.top, width: controls.width },
         actionMinHeight: Math.min(...actions.map(({ height }) => height)),
@@ -886,8 +1145,48 @@ test("desktop, tablet, and phone Customization layouts are overflow-free and kee
         fullPage: true
       });
     }
-    if (viewport.name === "phone") expect(geometry.preview.top).toBeLessThan(geometry.controls.top);
+    if (viewport.name === "phone") {
+      expect(geometry.preview.top).toBeLessThan(geometry.controls.top);
+      expect(geometry.previewControls.top, "phone preview controls remain below the hero canvas").toBeGreaterThanOrEqual(
+        geometry.heroCanvas.bottom - 1
+      );
+    }
   }
+});
+
+test("a live desktop-phone-desktop resize reapplies the capability-clamped texture tier", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openFreshProject(page);
+  await continueToCustomization(page);
+  const canvas = await expectAcceptedScene(page);
+  const desktop = JSON.parse(await canvas.getAttribute("data-room2-material-system-state"));
+  expect(desktop).toMatchObject({
+    maximumAnisotropy: 8,
+    anisotropyUpdateCount: 0,
+    highAnisotropyValues: [8]
+  });
+  expect(desktop.highAnisotropyTextureCount).toBeGreaterThan(0);
+  const desktopFingerprint = await canvas.getAttribute("data-room2-runtime-appearance-fingerprint");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => JSON.parse(
+    await canvas.getAttribute("data-room2-material-system-state")
+  )).toMatchObject({
+    maximumAnisotropy: 4,
+    anisotropyUpdateCount: 1,
+    highAnisotropyValues: [4]
+  });
+  await expect.poll(() => canvas.getAttribute("data-room2-runtime-appearance-fingerprint")).not.toBe(desktopFingerprint);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect.poll(async () => JSON.parse(
+    await canvas.getAttribute("data-room2-material-system-state")
+  )).toMatchObject({
+    maximumAnisotropy: 8,
+    anisotropyUpdateCount: 2,
+    highAnisotropyValues: [8]
+  });
+  await expect.poll(() => canvas.getAttribute("data-room2-runtime-appearance-fingerprint")).toBe(desktopFingerprint);
 });
 
 test("the supported four-step path has no serious accessibility violations", async ({ page }) => {

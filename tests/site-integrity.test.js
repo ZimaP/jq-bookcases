@@ -588,7 +588,11 @@ test("the build syntax-checks every guided accepted-specification module", () =>
     "guided-configurator-3d.js",
     "guided-room2-appearance.js",
     "guided-room2-integrity.js",
+    "guided-room2-materials.js",
     "guided-room2-viewer.js",
+    "assets/vendor/three-addons/loaders/RGBELoader.js",
+    "assets/vendor/three-addons/lights/RectAreaLightUniformsLib.js",
+    "tools/generate-room2-commercial-audit.mjs",
     "assets/vendor/three-addons/loaders/GLTFLoader.js",
     "assets/vendor/three-addons/utils/BufferGeometryUtils.js",
     "guided-configurator.js",
@@ -653,10 +657,12 @@ test("manual production release uses an allowlisted Pages artifact", () => {
   assert.match(productionWorkflowSource, /guided-project-engine\.js/);
   assert.match(productionWorkflowSource, /guided-room2-appearance\.js/);
   assert.match(productionWorkflowSource, /guided-room2-integrity\.js/);
+  assert.match(productionWorkflowSource, /guided-room2-materials\.js/);
   assert.match(productionWorkflowSource, /guided-room2-viewer\.js/);
   assert.match(productionWorkflowSource, /bookcase-render-contract\.js/);
   assert.match(productionWorkflowSource, /cp assets\/favicon\.svg _site\/assets\//);
   assert.match(productionWorkflowSource, /cp -R assets\/environments _site\/assets\//);
+  assert.match(productionWorkflowSource, /cp -R assets\/room2-commercial-pbr-v1 _site\/assets\//);
   assert.match(productionWorkflowSource, /cp -R assets\/textures _site\/assets\//);
   assert.match(productionWorkflowSource, /cp -R assets\/photos _site\/assets\//);
   assert.match(productionWorkflowSource, /cp -R config _site\//);
@@ -673,6 +679,7 @@ test("manual production release uses an allowlisted Pages artifact", () => {
     "_site/guided-configurator.css",
     "_site/guided-room2-appearance.js",
     "_site/guided-room2-integrity.js",
+    "_site/guided-room2-materials.js",
     "_site/guided-room2-viewer.js",
     "_site/guided-room-topology.js",
     "_site/guided-installation-solver.js",
@@ -685,8 +692,19 @@ test("manual production release uses an allowlisted Pages artifact", () => {
     "_site/bookcase-render-contract.js",
     "_site/assets/vendor/three.module.js",
     "_site/assets/vendor/three-addons/loaders/GLTFLoader.js",
+    "_site/assets/vendor/three-addons/loaders/RGBELoader.js",
+    "_site/assets/vendor/three-addons/lights/RectAreaLightUniformsLib.js",
+    "_site/assets/vendor/licenses/three-0.166.1-LICENSE.txt",
     "_site/assets/vendor/three-addons/utils/BufferGeometryUtils.js",
     "_site/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb",
+    "_site/assets/room2-commercial-pbr-v1/textures/oak/base-color.webp",
+    "_site/assets/room2-commercial-pbr-v1/textures/oak/normal.webp",
+    "_site/assets/room2-commercial-pbr-v1/textures/oak/roughness.webp",
+    "_site/assets/room2-commercial-pbr-v1/ASSET-LICENSES.md",
+    "_site/assets/room2-commercial-pbr-v1/textures/walnut/base-color.webp",
+    "_site/assets/room2-commercial-pbr-v1/textures/walnut/roughness.webp",
+    "_site/assets/room2-commercial-pbr-v1/textures/paint/normal.webp",
+    "_site/assets/room2-commercial-pbr-v1/textures/paint/roughness.webp",
     "_site/assets/environments/jq-warm-interior.hdr",
     "_site/assets/environments/jq-warm-interior.jpg",
     "_site/assets/environments/jq-neutral-studio.hdr",
@@ -721,6 +739,8 @@ test("manual production release uses an allowlisted Pages artifact", () => {
     "_site/config/product-layout-compatibility.json",
     "_site/config/photoreal-preview-matrix-provenance.json",
     "_site/config/provisional-decisions.json",
+    "_site/config/room2-commercial-pbr-v1-assets.json",
+    "_site/config/room2-commercial-pbr-v1-semantic-audit.json",
     "_site/config/room-topologies.json",
     "_site/assets/photos/configurator/integrated/tv-unit/framed-tv-wall/tv01-clear-wall-photoreal-preview-v1.webp",
     "_site/data/generated/benjamin-moore-colors.json",

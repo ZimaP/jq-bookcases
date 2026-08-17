@@ -88,6 +88,7 @@ test("the public Cabinets + Shelves journey reaches the accepted scene and revie
   const instanceId = await canvas.getAttribute("data-guided3d-instance");
   const originalGeometry = await canvas.getAttribute("data-room2-runtime-model-fingerprint");
   const originalMaterial = await canvas.getAttribute("data-room2-runtime-material-digest");
+  const originalAppearance = await canvas.getAttribute("data-room2-runtime-appearance-fingerprint");
   const originalCamera = await canvas.getAttribute("data-room2-camera-state");
   await expect(page.getByRole("tab", { name: "Dimensions" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: "Finish" })).toBeVisible();
@@ -99,6 +100,10 @@ test("the public Cabinets + Shelves journey reaches the accepted scene and revie
   await expect(canvas).toHaveAttribute("data-room2-camera-state", originalCamera);
   await page.getByRole("tab", { name: "Finish" }).click();
   await page.getByRole("button", { name: "Charcoal", exact: true }).click();
+  await expect(page.locator(".concept-scene")).toHaveAttribute("data-guided3d-state", "ready");
+  await expect(canvas).toHaveAttribute("data-room2-selected-finish", "charcoal");
+  await expect.poll(() => canvas.getAttribute("data-room2-runtime-appearance-fingerprint"))
+    .not.toBe(originalAppearance);
   await expect(canvas).toHaveAttribute("data-guided3d-instance", instanceId);
   await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", originalGeometry);
   await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", originalMaterial);
@@ -130,11 +135,16 @@ test("Customization and Review retain one accepted controller across navigation"
   const instanceId = await canvas.getAttribute("data-guided3d-instance");
   const geometryFingerprint = await canvas.getAttribute("data-room2-runtime-model-fingerprint");
   const materialDigest = await canvas.getAttribute("data-room2-runtime-material-digest");
+  const appearanceFingerprint = await canvas.getAttribute("data-room2-runtime-appearance-fingerprint");
   const rootIdentity = await canvas.getAttribute("data-room2-parsed-root-identity");
   const cameraState = await canvas.getAttribute("data-room2-camera-state");
 
   await page.getByRole("tab", { name: "Finish" }).click();
   await page.getByRole("button", { name: "Charcoal", exact: true }).click();
+  await expect(page.locator(".concept-scene")).toHaveAttribute("data-guided3d-state", "ready");
+  await expect(canvas).toHaveAttribute("data-room2-selected-finish", "charcoal");
+  await expect.poll(() => canvas.getAttribute("data-room2-runtime-appearance-fingerprint"))
+    .not.toBe(appearanceFingerprint);
   await expect(canvas).toHaveAttribute("data-guided3d-instance", instanceId);
   await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", geometryFingerprint);
   await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", materialDigest);
