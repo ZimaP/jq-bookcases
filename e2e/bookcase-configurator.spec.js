@@ -402,6 +402,62 @@ test("Customization immediately owns one controller, canvas, RAF, timer, and lis
   await assertSingleOwnership();
 });
 
+test("the studio-neutral profile owns one PMREM, three scene lights, and one static shadow refresh", async ({ page }) => {
+  await openFreshProject(page);
+  await continueToCustomization(page);
+  const canvas = await expectAcceptedScene(page);
+  const materialDigest = await canvas.getAttribute("data-room2-runtime-material-digest");
+  const materialAppearanceDigest = await canvas.getAttribute("data-room2-runtime-material-appearance-digest");
+  const modelFingerprint = await canvas.getAttribute("data-room2-runtime-model-fingerprint");
+  const imageDigest = await canvas.getAttribute("data-room2-embedded-image-payload-digest");
+  const readJsonAttribute = async (name) => JSON.parse(await canvas.getAttribute(name));
+  const renderer = await readJsonAttribute("data-room2-renderer-state");
+  const lighting = await readJsonAttribute("data-room2-lighting-state");
+  const environment = await readJsonAttribute("data-room2-environment-state");
+  const initialShadows = await readJsonAttribute("data-room2-shadow-state");
+
+  expect(await canvas.getAttribute("data-room2-appearance-profile")).toBe("room2-studio-neutral-v1");
+  expect(materialAppearanceDigest).toMatch(/^[a-f0-9]{64}$/);
+  expect(imageDigest).toBe("6c737d2ff899087b3227f9202dcf95c874474d65dfbc6ec83c778748feced153");
+  expect(renderer).toMatchObject({
+    className: "WebGLRenderer",
+    backend: "webgl2",
+    threeRevision: "166",
+    colorManagementEnabled: true,
+    workingColorSpace: "srgb-linear",
+    outputColorSpace: "srgb",
+    outputTransformCount: 1,
+    toneMapping: "aces-filmic",
+    exposure: 0.82,
+    shadowType: "pcf-soft"
+  });
+  expect(lighting.directLightCount).toBe(3);
+  expect(lighting.semanticRoleCount).toBe(3);
+  expect(Object.keys(lighting.roles)).toEqual(["key", "fill", "rim"]);
+  expect(Object.values(lighting.roles).filter(({ castShadow }) => castShadow)).toHaveLength(1);
+  expect(environment).toMatchObject({
+    type: "three-r166-room-environment-pmrem",
+    intensity: 0.55,
+    rotationRadians: 0,
+    generationCount: 1,
+    retainedRenderTargets: 1
+  });
+  expect(initialShadows).toMatchObject({ casterCount: 1, casterRole: "key", refreshCount: 1, autoUpdate: false });
+
+  const initialCamera = await canvas.getAttribute("data-room2-camera-state");
+  await canvas.focus();
+  await canvas.press("ArrowLeft");
+  await expect.poll(() => canvas.getAttribute("data-room2-camera-state")).not.toBe(initialCamera);
+  await canvas.press("ArrowRight");
+  await expect.poll(async () => (await readJsonAttribute("data-room2-shadow-state")).refreshPending).toBe(false);
+  const afterOrbitShadows = await readJsonAttribute("data-room2-shadow-state");
+  expect(afterOrbitShadows.refreshCount).toBe(initialShadows.refreshCount);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", materialDigest);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-material-appearance-digest", materialAppearanceDigest);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", modelFingerprint);
+  await expect(canvas).toHaveAttribute("data-room2-embedded-image-payload-digest", imageDigest);
+});
+
 test("orbit, zoom, reset, Review, and browser history preserve the one viewer session", async ({ page }) => {
   await openFreshProject(page);
   await continueToCustomization(page);
@@ -458,6 +514,9 @@ test("explicit document teardown disposes the Room 2 viewer and removes its canv
     resizeListeners: 0,
     controlListenerSets: 0
   });
+  expect(diagnostics.environment).toMatchObject({ generationCount: 1, retainedRenderTargets: 0 });
+  expect(diagnostics.lighting.directLightCount).toBe(0);
+  expect(diagnostics.shadows.casterCount).toBe(0);
 });
 
 test("a rejected dimension edit preserves the last accepted scene and names the diagnostic", async ({ page }) => {
@@ -523,6 +582,7 @@ test("deferred finish and details persist without changing the fixed Room 2 scen
   const instance = await canvas.getAttribute("data-guided3d-instance");
   const geometryBefore = await canvas.getAttribute("data-room2-runtime-model-fingerprint");
   const materialsBefore = await canvas.getAttribute("data-room2-runtime-material-digest");
+  const materialAppearanceBefore = await canvas.getAttribute("data-room2-runtime-material-appearance-digest");
   const rootBefore = await canvas.getAttribute("data-room2-parsed-root-identity");
   const cameraBefore = await canvas.getAttribute("data-room2-camera-state");
   await page.getByRole("tab", { name: "Finish" }).click();
@@ -532,6 +592,7 @@ test("deferred finish and details persist without changing the fixed Room 2 scen
   await expect(canvas).toHaveAttribute("data-guided3d-instance", instance);
   await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", geometryBefore);
   await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", materialsBefore);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-material-appearance-digest", materialAppearanceBefore);
   await expect(canvas).toHaveAttribute("data-room2-parsed-root-identity", rootBefore);
   await expect(canvas).toHaveAttribute("data-room2-camera-state", cameraBefore);
   await page.getByRole("tab", { name: "Details" }).click();
@@ -543,6 +604,7 @@ test("deferred finish and details persist without changing the fixed Room 2 scen
     await alternative.click();
     await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", geometryBefore);
     await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", materialsBefore);
+    await expect(canvas).toHaveAttribute("data-room2-runtime-material-appearance-digest", materialAppearanceBefore);
     await expect(canvas).toHaveAttribute("data-room2-parsed-root-identity", rootBefore);
     await expect(canvas).toHaveAttribute("data-room2-camera-state", cameraBefore);
   }
@@ -554,6 +616,7 @@ test("deferred finish and details persist without changing the fixed Room 2 scen
   await expect(summary.locator('[data-summary-value="hardware"]')).toHaveText("Black Pull");
   await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-guided3d-instance", instance);
   await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-room2-runtime-material-digest", materialsBefore);
+  await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-room2-runtime-material-appearance-digest", materialAppearanceBefore);
   await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-room2-camera-state", cameraBefore);
   await page.locator('[data-edit-section="finish"]').click();
   await expect(page.getByRole("tab", { name: "Finish" })).toHaveAttribute("aria-selected", "true");
@@ -671,10 +734,13 @@ test("the public runtime material snapshot is deterministic across clean documen
   await continueToCustomization(page);
   let canvas = await expectAcceptedScene(page);
   const firstDigest = await canvas.getAttribute("data-room2-runtime-material-digest");
+  const firstAppearanceDigest = await canvas.getAttribute("data-room2-runtime-material-appearance-digest");
   expect(firstDigest).toMatch(/^[a-f0-9]{64}$/);
+  expect(firstAppearanceDigest).toMatch(/^[a-f0-9]{64}$/);
   await page.reload({ waitUntil: "networkidle" });
   canvas = await expectAcceptedScene(page);
   await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", firstDigest);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-material-appearance-digest", firstAppearanceDigest);
   await expect(canvas).toHaveAttribute("data-room2-request-count", "1");
   await expect(canvas).toHaveAttribute("data-room2-parse-count", "1");
 });
@@ -737,6 +803,10 @@ test("desktop, tablet, and phone Customization layouts are overflow-free and kee
     await openFreshProject(page);
     await continueToCustomization(page);
     const canvas = await expectAcceptedScene(page);
+    const shadowState = JSON.parse(await canvas.getAttribute("data-room2-shadow-state"));
+    expect(shadowState.mapSize, `${viewport.name} shadow tier`).toBe(viewport.name === "phone" ? 1024 : 2048);
+    expect(shadowState.refreshCount, `${viewport.name} initial shadow refresh`).toBe(1);
+    expect(shadowState.autoUpdate, `${viewport.name} static shadow mode`).toBe(false);
     const geometry = await page.evaluate(() => {
       const preview = document.querySelector(".concept-preview").getBoundingClientRect();
       const controls = document.querySelector(".customization-controls-column").getBoundingClientRect();

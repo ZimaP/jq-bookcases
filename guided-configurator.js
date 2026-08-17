@@ -2063,7 +2063,7 @@ function syncGuidedScene() {
   }
 
   updateGuidedSceneState("loading");
-  guidedSceneImportPromise ||= import("./guided-room2-viewer.js?v=public-room2-glb-v1-20260817a");
+  guidedSceneImportPromise ||= import("./guided-room2-viewer.js?v=room2-studio-neutral-v1-20260817a");
   guidedSceneImportPromise
     .then(({ createGuidedRoom2ViewerController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;

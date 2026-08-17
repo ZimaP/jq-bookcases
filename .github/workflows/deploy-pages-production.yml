@@ -171,7 +171,8 @@ jobs:
           cp assets/favicon.svg _site/assets/
           mkdir -p _site/assets/vendor
           cp assets/vendor/three.module.js _site/assets/vendor/
-          mkdir -p _site/assets/vendor/three-addons/loaders _site/assets/vendor/three-addons/utils
+          mkdir -p _site/assets/vendor/three-addons/environments _site/assets/vendor/three-addons/loaders _site/assets/vendor/three-addons/utils
+          cp assets/vendor/three-addons/environments/RoomEnvironment.js _site/assets/vendor/three-addons/environments/
           cp assets/vendor/three-addons/loaders/GLTFLoader.js _site/assets/vendor/three-addons/loaders/
           cp assets/vendor/three-addons/utils/BufferGeometryUtils.js _site/assets/vendor/three-addons/utils/
           mkdir -p _site/assets/models/room2
@@ -222,6 +223,9 @@ jobs:
           test -f _site/guided-project-engine.js
           test -f _site/bookcase-render-contract.js
           test -f _site/assets/vendor/three.module.js
+          test -f _site/assets/vendor/three-addons/environments/RoomEnvironment.js
+          test "$(wc -c < _site/assets/vendor/three-addons/environments/RoomEnvironment.js | tr -d ' ')" = "3623"
+          test "$(shasum -a 256 _site/assets/vendor/three-addons/environments/RoomEnvironment.js | cut -d ' ' -f 1)" = "e1b92c4dd2d89752293546790bfda9828a630a79700c66f5b736fad7a88cb7e4"
           test -f _site/assets/vendor/three-addons/loaders/GLTFLoader.js
           test -f _site/assets/vendor/three-addons/utils/BufferGeometryUtils.js
           test -f _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb
