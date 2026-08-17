@@ -3,11 +3,11 @@ import {
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
   PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES,
-  PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS,
   PUBLIC_CONFIGURATOR_LAYOUT_CHOICES,
   PUBLIC_CONFIGURATOR_LAYOUT_ID,
   PUBLIC_CONFIGURATOR_PRODUCT_CHOICES,
   PUBLIC_CONFIGURATOR_PRODUCT_ID,
+  SHARED_ROOM_LAYOUTS,
   getCategory,
   getCompatibleDetails,
   getLayout,
@@ -42,7 +42,7 @@ import {
 
 const STEP_DEFINITIONS = Object.freeze([
   Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "Choose your product", description: "Cabinets + Shelves is available in this public preview. More fitted-furniture options are coming soon." }),
-  Object.freeze({ id: 2, label: "Choose Layout", mobileLabel: "Layout", title: "Choose the available Room 2 layout", description: "Fireplace Wall is the fixed-reference layout available in this preview. Other room layouts are coming soon." }),
+  Object.freeze({ id: 2, label: "Choose Layout", mobileLabel: "Layout", title: "Choose the layout that matches your space", description: "Select the wall layout you want to plan. Any measurements it needs will appear next." }),
   Object.freeze({ id: 3, label: "Customization", mobileLabel: "Customize", title: "Plan details beside the Room 2 reference", description: "Save dimensions, finish, hardware, lighting, and details while the fixed SketchUp-derived Room 2 model stays in view." }),
   Object.freeze({ id: 4, label: "Review & Details", mobileLabel: "Review", title: "Review your project details", description: "Check your saved project selections beside the same fixed Room 2 reference model before saving or preparing a quote." })
 ]);
@@ -582,7 +582,7 @@ function renderProductStep() {
       <div class="available-product-heading">
         <span class="guided-eyebrow">Available now</span>
         <h2 id="available-product-title">Cabinets + Shelves</h2>
-        <p>Open shelving with concealed lower cabinets, shown with the available fixed Room 2 Fireplace Wall reference.</p>
+        <p>Open shelving with concealed lower cabinets, configured around one of the supported layouts.</p>
       </div>
       <button
         class="product-card product-card--primary${selected ? " is-selected" : ""}"
@@ -663,34 +663,28 @@ function renderLayoutStep() {
         <span><strong>${escapeHtml(unavailableLayout.label)} is not available with the fixed Room 2 model.</strong> Its saved measurements remain in My Projects. Choose Fireplace Wall to continue this preview.</span>
       </aside>
     ` : ""}
-    <section class="available-layout" aria-labelledby="available-layout-title">
-      <div class="available-layout-heading">
-        <span class="guided-eyebrow">Available now</span>
-        <h2 id="available-layout-title">Fireplace Wall</h2>
-        <p>The exact Room 2 SketchUp-derived reference model is available for this layout. Complete its approximate dimensions next.</p>
-      </div>
-      <div class="layout-grid layout-grid--available" role="group" aria-label="Available layout choice">
-      ${PUBLIC_CONFIGURATOR_LAYOUT_CHOICES.map((layout) => ({
-        layout,
-        compatibility: resolveProductLayoutCompatibility({
-          project: { ...project, layout: layout.id },
-          topology: { layoutId: layout.id }
-        })
-      })).filter(({ compatibility }) => compatibility.status !== "unavailable").map(({ layout, compatibility }) => {
-        const selected = layout.id === project.layout;
-        const statusLabel = "Dimensions completed next";
+    <div class="layout-grid" role="group" aria-label="Layout choices">
+      ${SHARED_ROOM_LAYOUTS.map((layout) => {
+        const available = isPublicConfiguratorLayout(project.category, project.style, layout.id);
+        const compatibility = available
+          ? resolveProductLayoutCompatibility({
+            project: { ...project, layout: layout.id },
+            topology: { layoutId: layout.id }
+          })
+          : { status: "unavailable" };
+        const selected = available && layout.id === project.layout;
+        const statusLabel = available ? "Measurements required" : "Coming soon";
         return `
           <button
             class="layout-card layout-card--${escapeAttribute(compatibility.status)}${selected ? " is-selected" : ""}"
             type="button"
-            data-layout="${layout.id}"
-            data-layout-availability="available"
+            ${available ? `data-layout="${escapeAttribute(layout.id)}" data-layout-availability="available"` : `data-coming-soon-layout="${escapeAttribute(layout.id)}"`}
             data-compatibility="${escapeAttribute(compatibility.status)}"
-            aria-pressed="${selected}"
-            aria-label="${escapeAttribute(`${layout.label}${statusLabel ? `, ${statusLabel}` : ""}`)}"
+            ${available ? `aria-pressed="${selected}"` : "disabled"}
+            aria-label="${escapeAttribute(`${layout.label}, ${statusLabel}`)}"
           >
             ${selected ? '<span class="layout-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
-            ${statusLabel ? `<span class="layout-compatibility-badge">${escapeHtml(statusLabel)}</span>` : ""}
+            <span class="layout-compatibility-badge${available ? "" : " layout-compatibility-badge--unavailable"}">${escapeHtml(statusLabel)}</span>
             ${renderLayoutPreview(layout)}
             <span class="layout-card-copy">
               <span class="layout-card-title">${escapeHtml(layout.label)}</span>
@@ -698,28 +692,7 @@ function renderLayoutStep() {
           </button>
         `;
       }).join("")}
-      </div>
-    </section>
-    <section class="coming-soon-layouts" aria-labelledby="coming-soon-layouts-title">
-      <div>
-        <span class="guided-eyebrow">Coming soon</span>
-        <h2 id="coming-soon-layouts-title">More room layouts</h2>
-      </div>
-      <div class="coming-soon-layout-list" aria-label="Room layouts coming soon">
-        ${PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS.map((layout) => `
-          <button
-            class="coming-soon-layout"
-            type="button"
-            data-coming-soon-layout="${escapeAttribute(layout.id)}"
-            aria-label="${escapeAttribute(`${layout.label}, coming soon`)}"
-            disabled
-          >
-            <span>${escapeHtml(layout.label)}</span>
-            <small>Coming soon</small>
-          </button>
-        `).join("")}
-      </div>
-    </section>
+    </div>
     <aside class="guided-info">
       <i data-icon="information" aria-hidden="true"></i>
       <span>Fireplace Wall is the only layout connected to the fixed Room 2 reference model in this phase. The fireplace and wall measurement fields appear in Customization.</span>

@@ -5,6 +5,7 @@ import {
   PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS,
   PUBLIC_CONFIGURATOR_LAYOUT_ID,
   PUBLIC_CONFIGURATOR_PRODUCT_CHOICES,
+  SHARED_ROOM_LAYOUTS,
   getMeasurementFields
 } from "../guided-configurator-data.js";
 
@@ -48,7 +49,7 @@ async function chooseActiveProduct(page) {
 async function continueToLayouts(page) {
   await chooseActiveProduct(page);
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Choose the available Room 2 layout" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
   await expect(page).toHaveURL(/#step-2$/);
 }
 
@@ -269,6 +270,48 @@ test("only the authorized Cabinets + Shelves / Fireplace Wall path is selectable
   )).toBe(true);
   await chooseLayout(page);
   await expect(page.locator("[data-continue]")).toBeEnabled();
+});
+
+test("Choose Product and Choose Layout retain the accepted card compositions at every supported breakpoint", async ({ page }) => {
+  for (const viewport of [
+    { name: "desktop", width: 1440, height: 900, columns: 5, minCardWidth: 180 },
+    { name: "reported tablet", width: 1280, height: 960, columns: 5, minCardWidth: 180 },
+    { name: "tablet", width: 1024, height: 768, columns: 4, minCardWidth: 170 },
+    { name: "phone", width: 390, height: 844, columns: 2, minCardWidth: 140 }
+  ]) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await openFreshProject(page);
+    await expect(page.getByRole("heading", { name: "Choose your product" })).toBeVisible();
+    await expect(page.locator(".available-product")).toHaveCount(1);
+    await expect(page.locator(".product-card--primary")).toHaveCount(1);
+    await expect(page.locator(".coming-soon-products")).toHaveCount(1);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+
+    await continueToLayouts(page);
+    await expect(page.locator(".available-layout, .coming-soon-layouts, .layout-grid--available")).toHaveCount(0);
+    await expect(page.locator(".layout-grid .layout-card")).toHaveCount(SHARED_ROOM_LAYOUTS.length);
+    await expect(page.locator(".layout-grid .layout-card-title")).toHaveText(
+      SHARED_ROOM_LAYOUTS.map(({ label }) => label)
+    );
+
+    const geometry = await page.locator(".layout-grid").evaluate((grid) => {
+      const gridRect = grid.getBoundingClientRect();
+      const cards = [...grid.querySelectorAll(".layout-card")];
+      const cardRects = cards.map((card) => card.getBoundingClientRect());
+      return {
+        columns: getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length,
+        gridWidth: gridRect.width,
+        minCardWidth: Math.min(...cardRects.map(({ width }) => width)),
+        maxCardWidth: Math.max(...cardRects.map(({ width }) => width)),
+        horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+      };
+    });
+    expect(geometry.columns, viewport.name).toBe(viewport.columns);
+    expect(geometry.gridWidth, `${viewport.name} full-width layout grid`).toBeGreaterThan(viewport.width * 0.82);
+    expect(geometry.minCardWidth, `${viewport.name} usable layout cards`).toBeGreaterThanOrEqual(viewport.minCardWidth);
+    expect(geometry.maxCardWidth - geometry.minCardWidth, `${viewport.name} equal layout cards`).toBeLessThan(2);
+    expect(geometry.horizontalOverflow, viewport.name).toBeLessThanOrEqual(1);
+  }
 });
 
 test("Coming soon layouts cannot activate through pointer, keyboard, preset, hash, or saved-state injection", async ({ page }) => {
@@ -661,7 +704,7 @@ test("keyboard and focus behavior covers cards, tabs, completed steps, and menu 
   await page.keyboard.press("Space");
   await expect(product).toHaveAttribute("aria-pressed", "true");
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Choose the available Room 2 layout" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeFocused();
   const layout = page.locator(`[data-layout="${ACTIVE_LAYOUT_ID}"]`);
   await layout.focus();
   await page.keyboard.press("Enter");
@@ -675,7 +718,7 @@ test("keyboard and focus behavior covers cards, tabs, completed steps, and menu 
   await page.getByRole("tab", { name: "Finish" }).press("End");
   await expect(page.getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("button", { name: /Choose Layout, completed/ }).click();
-  await expect(page.getByRole("heading", { name: "Choose the available Room 2 layout" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
   const menuButton = page.getByRole("button", { name: "Open menu" });
   await menuButton.click();
   await expect(page.getByRole("navigation", { name: "Configurator menu" })).toBeVisible();

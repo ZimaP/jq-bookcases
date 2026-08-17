@@ -45,7 +45,7 @@ async function openCustomization(page, layoutId = "fireplace-wall") {
   await page.goto("configurator.html?start=new", { waitUntil: "networkidle" });
   await page.locator('[data-product-choice="cabinet-shelves"]').click();
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Choose the available Room 2 layout" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
   await page.locator(`[data-layout="${layoutId}"]`).click();
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Plan details beside the Room 2 reference" })).toBeVisible();
