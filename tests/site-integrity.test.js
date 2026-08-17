@@ -31,6 +31,14 @@ const guidedConfiguratorSource = readFileSync(
   path.join(rootDir, "guided-configurator.js"),
   "utf8",
 );
+const guidedConfiguratorDataSource = readFileSync(
+  path.join(rootDir, "guided-configurator-data.js"),
+  "utf8",
+);
+const guidedConfiguratorStateSource = readFileSync(
+  path.join(rootDir, "guided-configurator-state.js"),
+  "utf8",
+);
 const productionWorkflowSource = readFileSync(
   path.join(rootDir, ".github", "workflows", "deploy-pages-production.yml"),
   "utf8",
@@ -427,6 +435,34 @@ test("every public page uses the shared JQ Bookcases lockup and canonical produc
   for (const [pattern, label] of retiredVocabulary) {
     assert.doesNotMatch(publicSource, pattern, "public sources still contain noncanonical wording: " + label);
   }
+});
+
+test("the public configurator source locks the four-step Cabinets + Shelves policy", () => {
+  const stepDefinition = guidedConfiguratorSource.match(
+    /const STEP_DEFINITIONS = Object\.freeze\(\[([\s\S]*?)\]\);/,
+  )?.[1] || "";
+  const labels = [...stepDefinition.matchAll(/label: "([^"]+)"/g)]
+    .map((match) => match[1]);
+  assert.deepEqual(labels, [
+    "Choose Product",
+    "Choose Layout",
+    "Customization",
+    "Review & Details",
+  ]);
+  assert.doesNotMatch(guidedConfiguratorSource, /Room & Size/);
+  assert.match(
+    guidedConfiguratorDataSource,
+    /PUBLIC_CONFIGURATOR_PRODUCT_ID = "cabinet-shelves"/,
+  );
+  assert.match(
+    guidedConfiguratorSource,
+    /data-coming-soon-product="\$\{escapeAttribute\(choice\.id\)\}"/,
+  );
+  assert.match(guidedConfiguratorSource, /disabled/);
+  assert.match(guidedConfiguratorStateSource, /export const GUIDED_PROJECT_SCHEMA_VERSION = 4/);
+  assert.match(guidedConfiguratorStateSource, /if \(step <= 2\) return step;/);
+  assert.match(guidedConfiguratorStateSource, /if \(step <= 4\) return 3;/);
+  assert.match(guidedConfiguratorStateSource, /return 4;/);
 });
 
 test("canonical design and quote routes have inbound links", () => {

@@ -9,10 +9,11 @@ import {
   getMeasurementFields,
   getProductChoiceForSelection,
   getStyle,
+  isPublicConfiguratorProduct,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=luxury-configurator-engine-v1-20260802b";
+} from "./guided-configurator-data.js?v=public-four-step-v1-20260816a";
 
-export const GUIDED_PROJECT_SCHEMA_VERSION = 3;
+export const GUIDED_PROJECT_SCHEMA_VERSION = 4;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
 export const GUIDED_PROJECTS_STORAGE_KEY = "jqGuidedConfiguratorProjectsV1";
 
@@ -84,6 +85,9 @@ export function createProject(options = {}) {
     maxVisitedStep: 1,
     category: category.id,
     productSelected: options.productSelected === true,
+    productAvailability: options.productSelected === true
+      ? isPublicConfiguratorProduct(category.id, selectedStyle.id) ? "available" : "unavailable"
+      : "unselected",
     layout: null,
     measurements: defaultMeasurements(category.id, null),
     style: selectedStyle.id,
@@ -399,11 +403,23 @@ export function normalizeProject(candidate, options = {}) {
     const selected = list.find((option) => option.id === source[key]);
     return selected?.id || defaultId;
   };
+  const mapFiveStepPosition = (rawStep) => {
+    const step = Math.max(1, Number(rawStep) || 1);
+    if (step <= 2) return step;
+    if (step <= 4) return 3;
+    return 4;
+  };
   const migrateStep = (rawStep) => {
     const step = Math.max(1, Number(rawStep) || 1);
-    if (sourceSchemaVersion >= 2) return Math.min(5, step);
-    if (step === 1) return layout ? 2 : 1;
-    return Math.min(5, step + 1);
+    if (sourceSchemaVersion >= GUIDED_PROJECT_SCHEMA_VERSION) return Math.min(4, step);
+    if (sourceSchemaVersion >= 2) return mapFiveStepPosition(step);
+
+    // Schema 1 predated the product-first five-step flow. Compose its original
+    // category/layout migration with the new five-to-four-step position map.
+    const productFirstStep = step === 1
+      ? layout ? 2 : 1
+      : Math.min(5, step + 1);
+    return mapFiveStepPosition(productFirstStep);
   };
   const migratedCurrentStep = migrateStep(source.currentStep);
   const migratedMaxVisitedStep = Math.max(
@@ -411,6 +427,19 @@ export function normalizeProject(candidate, options = {}) {
     migrateStep(source.maxVisitedStep || source.currentStep)
   );
   const productSelected = sourceProductSelected;
+  const productAvailability = !productSelected
+    ? "unselected"
+    : isPublicConfiguratorProduct(category.id, selectedStyle.id) ? "available" : "unavailable";
+  const requiredMeasurementsPresent = Boolean(layout) && getMeasurementFields(category.id, layout.id)
+    .every((field) => field.type === "select" || !field.required || parseInches(measurements[field.id]) !== null);
+  const workflowPositionLimit = !productSelected
+    ? 1
+    : !layout ? 2 : requiredMeasurementsPresent ? 4 : 3;
+  const safeCurrentStep = Math.min(workflowPositionLimit, migratedCurrentStep);
+  const safeMaxVisitedStep = Math.max(
+    safeCurrentStep,
+    Math.min(workflowPositionLimit, migratedMaxVisitedStep)
+  );
 
   const normalized = {
     ...fallback,
@@ -421,10 +450,14 @@ export function normalizeProject(candidate, options = {}) {
     projectName: typeof source.projectName === "string" && source.projectName.trim()
       ? source.projectName.trim().slice(0, 80)
       : fallback.projectName,
-    currentStep: migratedCurrentStep,
-    maxVisitedStep: Math.min(5, migratedMaxVisitedStep),
+    currentStep: safeCurrentStep,
+    maxVisitedStep: safeMaxVisitedStep,
     category: category.id,
     productSelected,
+    productAvailability,
+    workflowMigrationSource: sourceSchemaVersion < GUIDED_PROJECT_SCHEMA_VERSION
+      ? sourceSchemaVersion >= 2 ? "five-step" : "legacy-category-flow"
+      : null,
     layout: layout?.id || null,
     measurements,
     style: selectedStyle.id,
@@ -673,7 +706,7 @@ export function buildProjectSummary(project, options = {}) {
       value: acceptedQuote?.identity?.geometryFingerprint
         || accepted?.geometryFingerprint
         || normalized.acceptedSnapshot?.geometryFingerprint,
-      step: 5
+      step: 4
     });
     const acceptedPricing = acceptedQuote?.pricing || accepted?.pricing;
     const preliminaryTotal = Number(acceptedPricing?.total);
@@ -687,14 +720,14 @@ export function buildProjectSummary(project, options = {}) {
             maximumFractionDigits: 0
           }).format(preliminaryTotal)
         : "Design review required",
-      step: 5
+      step: 4
     });
     if (acceptedQuote?.pricing?.fingerprint) {
       rows.push({
         key: "pricingFingerprint",
         label: "Pricing reference",
         value: acceptedQuote.pricing.fingerprint,
-        step: 5
+        step: 4
       });
     }
     const acceptedWarnings = acceptedQuote?.warnings?.items || accepted?.warnings;
@@ -705,17 +738,17 @@ export function buildProjectSummary(project, options = {}) {
         value: acceptedWarnings
           .map((warning) => `${warning.message || "Design review note"} (${warning.code || "REVIEW"})`)
           .join(" · "),
-        step: 5
+        step: 4
       });
     } else if (acceptedQuote) {
-      rows.push({ key: "warnings", label: "Accepted warnings", value: "None", step: 5 });
+      rows.push({ key: "warnings", label: "Accepted warnings", value: "None", step: 4 });
     }
     if (acceptedQuote?.warnings?.fingerprint) {
       rows.push({
         key: "warningsFingerprint",
         label: "Warnings reference",
         value: acceptedQuote.warnings.fingerprint,
-        step: 5
+        step: 4
       });
     }
     if (acceptedQuote?.bom) {
@@ -723,34 +756,34 @@ export function buildProjectSummary(project, options = {}) {
         key: "bom",
         label: "Accepted BOM",
         value: formatQuoteBom(acceptedQuote.bom),
-        step: 5
+        step: 4
       });
       rows.push({
         key: "bomFingerprint",
         label: "BOM reference",
         value: acceptedQuote.bom.fingerprint,
-        step: 5
+        step: 4
       });
       rows.push({
         key: "quoteFingerprint",
         label: "Verified quote reference",
         value: acceptedQuote.integrity.quoteFingerprint,
-        step: 5
+        step: 4
       });
     }
   }
 
   rows.push(
-    { key: "finish", label: "Finish", value: getFinish(normalized.finish).label, step: 4 },
-    { key: "accentFinish", label: "Accent / interior", value: getFinish(normalized.accentFinish).label, step: 4 }
+    { key: "finish", label: "Finish", value: getFinish(normalized.finish).label, step: 3 },
+    { key: "accentFinish", label: "Accent / interior", value: getFinish(normalized.accentFinish).label, step: 3 }
   );
 
-  if (normalized.doorStyle) rows.push({ key: "doorStyle", label: "Door style", value: labelFor(DETAIL_OPTIONS.doorStyle, normalized.doorStyle), step: 4 });
-  if (normalized.hardware) rows.push({ key: "hardware", label: "Hardware", value: labelFor(DETAIL_OPTIONS.hardware, normalized.hardware), step: 4 });
-  if (normalized.lighting) rows.push({ key: "lighting", label: "Lighting", value: labelFor(DETAIL_OPTIONS.lighting, normalized.lighting), step: 4 });
-  if (normalized.baseStyle) rows.push({ key: "baseStyle", label: "Installation", value: labelFor(DETAIL_OPTIONS.baseStyle, normalized.baseStyle), step: 4 });
-  if (normalized.topTreatment) rows.push({ key: "topTreatment", label: "Top treatment", value: labelFor(DETAIL_OPTIONS.topTreatment, normalized.topTreatment), step: 4 });
-  rows.push({ key: "notes", label: "Notes", value: normalized.notes || "—", step: 5 });
+  if (normalized.doorStyle) rows.push({ key: "doorStyle", label: "Door style", value: labelFor(DETAIL_OPTIONS.doorStyle, normalized.doorStyle), step: 3 });
+  if (normalized.hardware) rows.push({ key: "hardware", label: "Hardware", value: labelFor(DETAIL_OPTIONS.hardware, normalized.hardware), step: 3 });
+  if (normalized.lighting) rows.push({ key: "lighting", label: "Lighting", value: labelFor(DETAIL_OPTIONS.lighting, normalized.lighting), step: 3 });
+  if (normalized.baseStyle) rows.push({ key: "baseStyle", label: "Installation", value: labelFor(DETAIL_OPTIONS.baseStyle, normalized.baseStyle), step: 3 });
+  if (normalized.topTreatment) rows.push({ key: "topTreatment", label: "Top treatment", value: labelFor(DETAIL_OPTIONS.topTreatment, normalized.topTreatment), step: 3 });
+  rows.push({ key: "notes", label: "Notes", value: normalized.notes || "—", step: 4 });
 
   return rows;
 }

@@ -8,6 +8,9 @@ import {
   FINISH_OPTIONS,
   PREVIEW_FINISH_MASK_ASSETS,
   PRODUCT_CHOICES,
+  PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES,
+  PUBLIC_CONFIGURATOR_PRODUCT_CHOICES,
+  PUBLIC_CONFIGURATOR_PRODUCT_ID,
   PRODUCT_INTEGRATED_PREVIEW_ASSETS,
   PUBLIC_BOOKCASE_STYLE_IDS,
   SHARED_ROOM_LAYOUTS,
@@ -478,16 +481,42 @@ test("core measurements are required while unusual values remain non-blocking wa
   assert.match(result.errors[0].message, /approximate wall width/i);
 });
 
-test("five-step state and legacy category layouts migrate without losing a project", () => {
+test("five-step positions migrate into the four-step workflow without losing a project", () => {
   const modern = normalizeProject({
     ...createProject({ now: 4, random: 0.12, productSelected: true }),
     currentStep: 5,
     maxVisitedStep: 5,
     layout: "clear-wall"
   }, { now: 5 });
-  assert.equal(modern.currentStep, 5);
-  assert.equal(modern.maxVisitedStep, 5);
+  assert.equal(modern.currentStep, 4);
+  assert.equal(modern.maxVisitedStep, 4);
   assert.equal(modern.productSelected, true);
+  assert.equal(modern.productAvailability, "available");
+  assert.equal(modern.workflowMigrationSource, null);
+
+  for (const [oldStep, newStep] of [[1, 1], [2, 2], [3, 3], [4, 3], [5, 4]]) {
+    const migrated = normalizeProject({
+      ...createProject({ now: 4, random: 0.12, productSelected: true }),
+      schemaVersion: 3,
+      currentStep: oldStep,
+      maxVisitedStep: oldStep,
+      layout: oldStep > 1 ? "clear-wall" : null
+    }, { now: 5 });
+    assert.equal(migrated.currentStep, newStep, `old step ${oldStep}`);
+    assert.equal(migrated.maxVisitedStep, newStep, `old maxVisitedStep ${oldStep}`);
+    assert.equal(migrated.workflowMigrationSource, "five-step");
+  }
+
+  const incompleteReview = normalizeProject({
+    ...createProject({ now: 4, random: 0.12, productSelected: true }),
+    schemaVersion: 3,
+    currentStep: 5,
+    maxVisitedStep: 5,
+    layout: "clear-wall",
+    measurements: { wallWidth: null, ceilingHeight: 96, desiredDepth: 14 }
+  }, { now: 5 });
+  assert.equal(incompleteReview.currentStep, 3);
+  assert.equal(incompleteReview.maxVisitedStep, 3);
 
   const legacy = normalizeProject({
     schemaVersion: 1,
@@ -505,8 +534,10 @@ test("five-step state and legacy category layouts migrate without losing a proje
   }, { now: 6 });
   assert.equal(legacy.productSelected, true);
   assert.equal(legacy.layout, "clear-wall");
-  assert.equal(legacy.currentStep, 5);
-  assert.equal(legacy.maxVisitedStep, 5);
+  assert.equal(legacy.currentStep, 4);
+  assert.equal(legacy.maxVisitedStep, 4);
+  assert.equal(legacy.productAvailability, "unavailable");
+  assert.equal(legacy.workflowMigrationSource, "legacy-category-flow");
 
   const legacyProjection = normalizeProject({
     ...createProject({ now: 7, productSelected: true }),
@@ -586,7 +617,35 @@ test("project summaries reflect normalized measurements and curated selections",
   assert.equal(summarySteps.category, 1);
   assert.equal(summarySteps.layout, 2);
   assert.equal(summarySteps.wallWidth, 3);
-  assert.equal(summarySteps.notes, 5);
+  assert.equal(summarySteps.finish, 3);
+  assert.equal(summarySteps.hardware, 3);
+  assert.equal(summarySteps.notes, 4);
+});
+
+test("public availability keeps the full catalog intact while exposing one active product", () => {
+  assert.equal(PUBLIC_CONFIGURATOR_PRODUCT_ID, "cabinet-shelves");
+  assert.deepEqual(PUBLIC_CONFIGURATOR_PRODUCT_CHOICES.map(({ id }) => id), ["cabinet-shelves"]);
+  assert.deepEqual(
+    PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES.map(({ id }) => id),
+    PRODUCT_CHOICES.filter(({ id }) => id !== "cabinet-shelves").map(({ id }) => id)
+  );
+
+  const unsupported = normalizeProject({
+    ...createProject({ now: 25, random: 0.2 }),
+    schemaVersion: 3,
+    category: "tv-unit",
+    style: "framed-tv-wall",
+    productSelected: true,
+    layout: "clear-wall",
+    currentStep: 5,
+    maxVisitedStep: 5
+  }, { now: 26 });
+  assert.equal(unsupported.category, "tv-unit");
+  assert.equal(unsupported.style, "framed-tv-wall");
+  assert.equal(unsupported.productSelected, true);
+  assert.equal(unsupported.productAvailability, "unavailable");
+  assert.equal(unsupported.currentStep, 4);
+  assert.equal(unsupported.maxVisitedStep, 4);
 });
 
 test("every public Bookcase construction maps to the selected room scene", async () => {

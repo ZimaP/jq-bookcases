@@ -1,175 +1,18 @@
 import { test, expect } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import {
-  PRODUCT_CHOICES,
-  SHARED_ROOM_LAYOUTS
+  PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES,
+  PUBLIC_CONFIGURATOR_PRODUCT_CHOICES,
+  SHARED_ROOM_LAYOUTS,
+  getMeasurementFields
 } from "../guided-configurator-data.js";
 import {
-  PUBLISHED_CUSTOMER_PREVIEWS
-} from "../guided-published-preview-data.js";
+  GUIDED_PRODUCT_LAYOUT_COMPATIBILITY
+} from "../guided-product-adapter.js";
 
-const products = PRODUCT_CHOICES;
-const sharedLayouts = SHARED_ROOM_LAYOUTS;
-const productsById = new Map(products.map((product) => [product.id, product]));
-const layoutsById = new Map(sharedLayouts.map((layout) => [layout.id, layout]));
-const INTERNAL_PUBLISHED_PREVIEW_AUDIT_STORAGE_KEY = "jqInternalPublishedPreviewAuditV1";
-
-const TV_MATRIX_MEASUREMENTS = Object.freeze({
-  "niche-layout": Object.freeze({
-    wallWidth: "132",
-    ceilingHeight: "108",
-    nicheWidth: "108",
-    nicheHeight: "108",
-    nicheDepth: "14",
-    leftReturn: "12",
-    rightReturn: "12",
-    tvScreenSize: "55",
-    tvHeight: "28",
-    soundbarRequired: "no"
-  }),
-  "left-niche": Object.freeze({
-    wallWidth: "132",
-    ceilingHeight: "108",
-    nicheWidth: "108",
-    nicheHeight: "108",
-    nicheDepth: "14",
-    leftReturn: "24",
-    tvScreenSize: "55",
-    tvHeight: "28",
-    soundbarRequired: "no"
-  }),
-  "right-niche": Object.freeze({
-    wallWidth: "132",
-    ceilingHeight: "108",
-    nicheWidth: "108",
-    nicheHeight: "108",
-    nicheDepth: "14",
-    rightReturn: "24",
-    tvScreenSize: "55",
-    tvHeight: "28",
-    soundbarRequired: "no"
-  }),
-  "clear-wall": Object.freeze({
-    tvScreenSize: "55",
-    tvHeight: "28",
-    soundbarRequired: "no"
-  }),
-  "fireplace-wall": Object.freeze({
-    wallWidth: "144",
-    ceilingHeight: "120",
-    desiredDepth: "14",
-    fireplaceWidth: "42",
-    fireplaceHeight: "24",
-    mantelWidth: "96",
-    mantelHeight: "36",
-    fireplaceDepth: "8",
-    tvAboveFireplace: "yes",
-    tvScreenSize: "55",
-    tvHeight: "28",
-    tvMounting: "wall-mounted",
-    outletLocation: "behind-tv",
-    soundbarRequired: "no"
-  }),
-  "door-wall": Object.freeze({
-    wallWidth: "144",
-    ceilingHeight: "108",
-    doorWidth: "36",
-    doorLeftDistance: "104",
-    tvScreenSize: "55",
-    tvHeight: "28",
-    soundbarRequired: "no"
-  }),
-  "corner-wall": Object.freeze({
-    tvScreenSize: "55",
-    tvHeight: "28",
-    soundbarRequired: "no"
-  }),
-  "double-opening": Object.freeze({
-    wallWidth: "144",
-    ceilingHeight: "108",
-    openingLeftDistance: "30",
-    openingRightDistance: "12",
-    tvScreenSize: "55",
-    tvHeight: "28",
-    soundbarRequired: "no"
-  })
-});
-
-const bookcaseMeasurementDimensions = Object.freeze({
-  "niche-layout": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["nicheWidth", "D"],
-    ["nicheHeight", "E"],
-    ["nicheDepth", "F"]
-  ],
-  "left-niche": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["nicheWidth", "D"],
-    ["nicheHeight", "E"],
-    ["nicheDepth", "F"]
-  ],
-  "right-niche": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["nicheWidth", "D"],
-    ["nicheHeight", "E"],
-    ["nicheDepth", "F"]
-  ],
-  "clear-wall": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"]
-  ],
-  "fireplace-wall": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["fireplaceWidth", "D"],
-    ["fireplaceHeight", "E"],
-    ["mantelWidth", "F"]
-  ],
-  "center-recess": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["projectionWidth", "D"],
-    ["projectionHeight", "E"],
-    ["projectionDepth", "F"]
-  ],
-  "window-wall": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["windowWidth", "D"],
-    ["windowHeight", "E"],
-    ["sillHeight", "F"]
-  ],
-  "door-wall": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["doorWidth", "D"],
-    ["doorHeight", "E"],
-    ["doorLeftDistance", "F"]
-  ],
-  "corner-wall": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["cornerReturn", "D"]
-  ],
-  "double-opening": [
-    ["wallWidth", "A"],
-    ["ceilingHeight", "B"],
-    ["desiredDepth", "C"],
-    ["openingLeftDistance", "D"],
-    ["openingRightDistance", "E"]
-  ]
-});
+const ACTIVE_PRODUCT = PUBLIC_CONFIGURATOR_PRODUCT_CHOICES[0];
+const DRAFT_KEY = "jqGuidedConfiguratorDraftV1";
+const PROJECTS_KEY = "jqGuidedConfiguratorProjectsV1";
 
 function monitorRuntime(page) {
   const failures = [];
@@ -188,1836 +31,441 @@ function monitorRuntime(page) {
   return failures;
 }
 
-async function enableInternalPublishedPreviewAudit(page) {
-  await page.addInitScript((storageKey) => {
-    if (["http:", "https:"].includes(window.location.protocol)) {
-      window.sessionStorage.setItem(storageKey, "enabled");
-    }
-  }, INTERNAL_PUBLISHED_PREVIEW_AUDIT_STORAGE_KEY);
-}
-
 async function openFreshProject(page) {
-  await enableInternalPublishedPreviewAudit(page);
   await page.goto("configurator.html?start=new", { waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: "What would you like us to build?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose your product" })).toBeVisible();
   await expect(page).toHaveURL(/configurator\.html#step-1$/);
 }
 
-async function chooseProduct(page, label = "Cabinets + Shelves") {
-  const product = products.find((candidate) => candidate.label === label);
-  if (!product) throw new Error(`Unknown product: ${label}`);
-  const card = page.locator(`[data-product-choice="${product.id}"]`);
+async function chooseActiveProduct(page) {
+  const card = page.locator(`[data-product-choice="${ACTIVE_PRODUCT.id}"]`);
+  await card.click();
+  await expect(card).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("[data-continue]")).toBeEnabled();
+}
+
+async function continueToLayouts(page) {
+  await chooseActiveProduct(page);
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
+  await expect(page).toHaveURL(/#step-2$/);
+}
+
+async function chooseLayout(page, layoutId = "clear-wall") {
+  const card = page.locator(`[data-layout="${layoutId}"]`);
   await card.click();
   await expect(card).toHaveAttribute("aria-pressed", "true");
 }
 
-async function continueToLayouts(page, product = "Cabinets + Shelves") {
-  await chooseProduct(page, product);
+async function continueToCustomization(page, layoutId = "clear-wall") {
+  await continueToLayouts(page);
+  await chooseLayout(page, layoutId);
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
-  await expect(page).toHaveURL(/configurator\.html#step-2$/);
+  await expect(page.getByRole("heading", { name: "Customize your fitted design" })).toBeVisible();
+  await expect(page).toHaveURL(/#step-3$/);
+  await expect(page.getByRole("tab", { name: "Dimensions" })).toHaveAttribute("aria-selected", "true");
 }
 
-async function chooseLayout(page, label) {
-  const layoutId = sharedLayouts.find((layout) => layout.label === label)?.id;
-  if (!layoutId) throw new Error(`Unknown room layout: ${label}`);
-  const card = page.locator(`[data-layout="${layoutId}"]`);
-  await card.click();
-  await expect(page.locator(`[data-layout="${layoutId}"]`)).toHaveAttribute("aria-pressed", "true");
-}
-
-function publishedPreviewFor(productId, layoutId) {
-  const preview = PUBLISHED_CUSTOMER_PREVIEWS.find((candidate) => (
-    candidate.key?.productId === productId
-    && candidate.key?.layoutId === layoutId
-    && !candidate.finishOverrideId
-  ));
-  if (!preview) throw new Error(`Missing base published preview: ${productId}:${layoutId}`);
-  return preview;
-}
-
-async function expectPublishedPreview(page, expectedPreview, expectedSource = expectedPreview.asset) {
-  const preview = page.locator(
-    `.concept-preview[data-customer-preview-id="${expectedPreview.previewId}"]`
-  );
+async function expectAcceptedScene(page) {
+  const preview = page.locator(".concept-preview");
   await expect(preview).toHaveCount(1);
-  await expect(preview).toHaveAttribute("data-preview-render-mode", "published-photoreal");
-  await expect(preview).toHaveAttribute("data-layout", expectedPreview.key.layoutId);
-  await expect(preview.locator("[data-layout-context]")).toHaveAttribute(
-    "data-layout-context-mode",
-    "published-preview"
-  );
-  await expect(preview.locator(".concept-finish-caption small")).toHaveText("Photoreal preview");
-  await expect(preview.locator("canvas, .guided-3d-mount, .preview-controls")).toHaveCount(0);
-
-  const image = preview.locator("[data-published-preview-image]");
-  await expect(image).toHaveCount(1);
-  await expect(image).toHaveAttribute("src", expectedSource);
-  await expect(image).toHaveAttribute("width", String(expectedPreview.width));
-  await expect(image).toHaveAttribute("height", String(expectedPreview.height));
-  await expect.poll(() => image.evaluate((node) => ({
-    complete: node.complete,
-    width: node.naturalWidth,
-    height: node.naturalHeight
-  }))).toEqual({
-    complete: true,
-    width: expectedPreview.width,
-    height: expectedPreview.height
-  });
-
-  const mediaGeometry = await preview.evaluate((node) => {
-    const figure = node.getBoundingClientRect();
-    const frame = node.querySelector(".concept-scene-frame").getBoundingClientRect();
-    const media = node.querySelector("[data-published-preview-image]").getBoundingClientRect();
-    const mediaStyle = getComputedStyle(node.querySelector("[data-published-preview-image]"));
-    const tolerance = 1;
-    return {
-      frameRatio: frame.width / frame.height,
-      mediaRatio: media.width / media.height,
-      frameInsideFigure: (
-        frame.left >= figure.left - tolerance
-        && frame.right <= figure.right + tolerance
-        && frame.top >= figure.top - tolerance
-        && frame.bottom <= figure.bottom + tolerance
-      ),
-      mediaFillsFrame: (
-        Math.abs(media.left - frame.left) <= tolerance
-        && Math.abs(media.right - frame.right) <= tolerance
-        && Math.abs(media.top - frame.top) <= tolerance
-        && Math.abs(media.bottom - frame.bottom) <= tolerance
-      ),
-      objectFit: mediaStyle.objectFit
-    };
-  });
-  const expectedRatio = expectedPreview.width / expectedPreview.height;
-  expect(Math.abs(mediaGeometry.frameRatio - expectedRatio)).toBeLessThan(0.01);
-  expect(Math.abs(mediaGeometry.mediaRatio - expectedRatio)).toBeLessThan(0.01);
-  expect(mediaGeometry.frameInsideFigure).toBe(true);
-  expect(mediaGeometry.mediaFillsFrame).toBe(true);
-  expect(mediaGeometry.objectFit).toBe("contain");
-  return { preview, image };
-}
-
-async function forcePublishedPreviewLoadFailure(page) {
-  let interceptedRequestCount = 0;
-  const publishedAssets = PUBLISHED_CUSTOMER_PREVIEWS
-    .map((preview) => preview.asset.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-    .join("|");
-  await page.route(
-    new RegExp(`/(?:${publishedAssets})(?:\\?.*)?$`),
-    (route) => {
-      interceptedRequestCount += 1;
-      return route.fulfill({
-        status: 200,
-        contentType: "image/webp",
-        body: "not-a-decodable-webp"
-      });
-    }
-  );
-  return () => interceptedRequestCount;
-}
-
-async function applyMeasurementOverrides(page, overrides = {}) {
-  for (const [fieldId, value] of Object.entries(overrides)) {
-    const controls = page.locator(`[data-measurement="${fieldId}"]`);
-    await expect(controls.first(), `measurement ${fieldId}`).toBeAttached();
-    if (await controls.count() > 1) {
-      await page.locator(`[data-measurement="${fieldId}"][value="${value}"]`).check();
-      continue;
-    }
-    const control = controls.first();
-    const tagName = await control.evaluate((node) => node.tagName);
-    if (tagName === "SELECT") await control.selectOption(value);
-    else await control.fill(value);
-  }
-}
-
-async function expectAcceptedGeometryPreview(preview) {
   await expect(preview).toHaveAttribute("data-preview-render-mode", "accepted-geometry");
-  await expect(preview).toHaveAttribute("data-finish-mask-mode", "none");
   await expect(preview).toHaveAttribute("data-accepted-specification", "true");
   await expect(preview).toHaveAttribute("data-geometry-fingerprint", /.+/);
-  await expect(preview).toHaveAttribute("data-specification-fingerprint", /.+/);
-  await expect(preview.locator(
-    "picture.concept-photo, picture.concept-room-photo, img.concept-photo, img.concept-room-photo, img.concept-furniture-photo, svg.concept-finish-overlay"
-  )).toHaveCount(0);
-  await expect(preview.locator("[data-accepted-fit-summary]")).toBeVisible();
-
+  await expect(preview.locator("[data-published-preview-image], picture.concept-photo, img.concept-photo")).toHaveCount(0);
   const canvas = preview.locator('.guided-3d-canvas[data-rendered="true"]');
   await expect(canvas).toHaveCount(1);
+  await expect(canvas).toHaveAttribute("data-render-contract-valid", "true");
   await expect(canvas).toHaveAttribute("data-geometry-fingerprint", /.+/);
   await expect(canvas).toHaveAttribute("data-specification-fingerprint", /.+/);
-  await expect(canvas).toHaveAttribute("data-render-contract-valid", "true");
   return canvas;
 }
 
-async function expectNoHorizontalOverflow(page, selectors) {
-  const report = await page.evaluate((targets) => ({
-    viewportWidth: window.innerWidth,
-    documentOverflow: document.documentElement.scrollWidth - window.innerWidth,
-    elements: targets.map((selector) => {
-      const element = document.querySelector(selector);
-      if (!element) return { selector, missing: true };
-      const rect = element.getBoundingClientRect();
-      return {
-        selector,
-        missing: false,
-        left: rect.left,
-        right: rect.right
-      };
-    })
-  }), selectors);
-
-  expect(report.documentOverflow).toBeLessThanOrEqual(1);
-  for (const element of report.elements) {
-    expect(element.missing, element.selector).toBe(false);
-    expect(element.left, `${element.selector} left`).toBeGreaterThanOrEqual(-1);
-    expect(element.right, `${element.selector} right`).toBeLessThanOrEqual(report.viewportWidth + 1);
-  }
-}
-
-test("customer-facing previews default to the technical viewer without loading matrix assets", async ({ page }) => {
-  const matrixRequests = [];
-  page.on("request", (request) => {
-    if (request.url().includes("/assets/photos/configurator/photoreal-matrix/")) {
-      matrixRequests.push(request.url());
-    }
-  });
-
-  await page.goto("configurator.html?start=new", { waitUntil: "networkidle" });
-  await page.locator('[data-product-choice="tv-unit"]').click();
-  await page.locator("[data-continue]").click();
-  await page.locator('[data-layout="right-niche"]').click();
-  await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
-  await expect(page.locator("[data-published-customer-preview]")).toHaveCount(0);
-  await expect(page.locator(".measurement-diagram-column--published")).toHaveCount(0);
-
-  await applyMeasurementOverrides(page, TV_MATRIX_MEASUREMENTS["right-niche"]);
-  await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
-
-  const preview = page.locator(".concept-preview");
-  await expectAcceptedGeometryPreview(preview);
-  await expect(preview).not.toHaveAttribute("data-customer-preview-id", /.+/);
-  await expect(preview.locator("[data-published-preview-image]")).toHaveCount(0);
-  await expect(preview.locator(".concept-finish-caption small")).toHaveText("Live finish");
-  await expect(preview.locator("[data-layout-context]"))
-    .toHaveAttribute("data-layout-context-mode", "accepted-geometry");
-  expect(matrixRequests).toEqual([]);
-});
-
-async function expectOneScreenWorkspace(page, selectors, context) {
-  const report = await page.evaluate((targets) => {
-    const isRendered = (element) => {
-      const style = getComputedStyle(element);
-      const rect = element.getBoundingClientRect();
-      return (
-        style.display !== "none"
-        && style.visibility !== "hidden"
-        && Number(style.opacity) > 0
-        && rect.width > 0
-        && rect.height > 0
-      );
-    };
-    return {
-      viewportWidth: window.innerWidth,
-      viewportHeight: window.innerHeight,
-      horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
-      verticalOverflow: document.documentElement.scrollHeight - window.innerHeight,
-      scrollX: window.scrollX,
-      scrollY: window.scrollY,
-      groups: targets.map((selector) => ({
-        selector,
-        elements: [...document.querySelectorAll(selector)]
-          .filter(isRendered)
-          .map((element, index) => {
-            const rect = element.getBoundingClientRect();
-            return {
-              index,
-              left: rect.left,
-              right: rect.right,
-              top: rect.top,
-              bottom: rect.bottom,
-              width: rect.width,
-              height: rect.height
-            };
-          })
-      }))
-    };
-  }, selectors);
-
-  expect(report.horizontalOverflow, `${context} horizontal document overflow`).toBeLessThanOrEqual(1);
-  expect(report.verticalOverflow, `${context} vertical document overflow`).toBeLessThanOrEqual(1);
-  expect(report.scrollX, `${context} horizontal scroll position`).toBe(0);
-  expect(report.scrollY, `${context} vertical scroll position`).toBe(0);
-  for (const group of report.groups) {
-    expect(group.elements.length, `${context} ${group.selector} rendered`).toBeGreaterThan(0);
-    for (const element of group.elements) {
-      const label = `${context} ${group.selector}[${element.index}]`;
-      expect(element.left, `${label} left`).toBeGreaterThanOrEqual(-1);
-      expect(element.right, `${label} right`).toBeLessThanOrEqual(report.viewportWidth + 1);
-      expect(element.top, `${label} top`).toBeGreaterThanOrEqual(-1);
-      expect(element.bottom, `${label} bottom`).toBeLessThanOrEqual(report.viewportHeight + 1);
-    }
-  }
-  return report;
-}
-
-async function expectMeasurementWorkspaceInOneScreen(page, context) {
-  const report = await expectOneScreenWorkspace(page, [
-    ".guided-header",
-    ".guided-stepper",
-    ".guided-content-head",
-    ".measurement-panel",
-    ".measurement-panel [data-measurement-row]",
-    ".measurement-panel [data-measurement]",
-    ".guided-info",
-    ".guided-actions",
-    ".guided-actions .guided-button",
-    ".concept-preview",
-    ".concept-preview .concept-scene-frame",
-    ".published-customer-preview-image",
-    ".measurement-guidance > summary"
-  ], context);
-
-  const geometry = await page.evaluate(() => {
-    const panelElement = document.querySelector(".measurement-panel");
-    const rect = (selector) => document.querySelector(selector).getBoundingClientRect();
-    const panel = panelElement.getBoundingClientRect();
-    const information = rect(".guided-info");
-    const actions = rect(".guided-actions");
-    const diagram = rect(".concept-preview");
-    const sceneFrame = rect(".concept-preview .concept-scene-frame");
-    const overlap = (first, second) => (
-      first.left < second.right - 1
-      && first.right > second.left + 1
-      && first.top < second.bottom - 1
-      && first.bottom > second.top + 1
-    );
-    return {
-      panelBeforeInformation: panel.bottom <= information.top + 1,
-      informationBeforeActions: information.bottom <= actions.top + 1,
-      controlsClearDiagram: (
-        !overlap(panel, diagram)
-        && !overlap(information, diagram)
-        && !overlap(actions, diagram)
-      ),
-      panelHasNoClippedOverflow: panelElement.scrollHeight <= panelElement.clientHeight + 1,
-      fieldsInsidePanel: [
-        ...panelElement.querySelectorAll("[data-measurement-row], .measurement-input-wrap")
-      ].every((element) => {
-        const elementRect = element.getBoundingClientRect();
-        return (
-          elementRect.left >= panel.left - 1
-          && elementRect.right <= panel.right + 1
-          && elementRect.top >= panel.top - 1
-          && elementRect.bottom <= panel.bottom + 1
-        );
-      }),
-      diagramRatio: sceneFrame.width / sceneFrame.height,
-      buttonHeights: [...document.querySelectorAll(".guided-actions .guided-button")]
-        .map((button) => button.getBoundingClientRect().height),
-      controlHeights: [...document.querySelectorAll(
-        '.measurement-panel input:not([type="radio"]), .measurement-panel select, .measurement-panel .measurement-toggle'
-      )]
-        .filter((control) => getComputedStyle(control).display !== "none")
-        .map((control) => control.getBoundingClientRect().height)
-    };
-  });
-
-  expect(geometry.panelBeforeInformation, `${context} panel precedes note`).toBe(true);
-  expect(geometry.informationBeforeActions, `${context} note precedes actions`).toBe(true);
-  expect(geometry.controlsClearDiagram, `${context} controls do not overlap diagram`).toBe(true);
-  expect(geometry.panelHasNoClippedOverflow, `${context} panel has no clipped fields`).toBe(true);
-  expect(geometry.fieldsInsidePanel, `${context} fields stay inside panel`).toBe(true);
-  expect(geometry.diagramRatio, `${context} usable diagram ratio`).toBeGreaterThanOrEqual(1.25);
-  expect(geometry.diagramRatio, `${context} usable diagram ratio`).toBeLessThanOrEqual(1.8);
-  expect(Math.min(...geometry.buttonHeights), `${context} action target height`).toBeGreaterThanOrEqual(43);
-  expect(Math.min(...geometry.controlHeights), `${context} measurement control height`).toBeGreaterThanOrEqual(35);
-  return report;
-}
-
-async function expectCustomizationWorkspaceInOneScreen(page, context) {
-  return expectOneScreenWorkspace(page, [
-    ".guided-header",
-    ".guided-stepper",
-    ".guided-content-head",
-    ".customization-panel",
-    ".customization-actions",
-    ".customization-actions .guided-button",
-    ".concept-preview",
-    ".concept-preview-meta",
-    ".concept-scene",
-    ".concept-scene-frame",
-    ".published-customer-preview-image"
-  ], context);
-}
-
-async function expectOpenedMeasurementGuideInOneScreen(page, context) {
-  const report = await expectOneScreenWorkspace(page, [
-    ".guided-header",
-    ".guided-stepper",
-    ".guided-content-head",
-    ".measurement-panel",
-    ".guided-info",
-    ".guided-actions",
-    ".measurement-guidance[open]",
-    ".measurement-guidance[open] > summary",
-    ".measurement-guidance[open] .measurement-guidance-body",
-    ".measurement-guidance[open] .measurement-diagram-card",
-    ".measurement-guidance[open] .measurement-room--static-guidance"
-  ], context);
-
-  const geometry = await page.evaluate(() => {
-    const guide = document.querySelector(".measurement-guidance[open]");
-    const card = guide.querySelector(".measurement-diagram-card");
-    const room = guide.querySelector(".measurement-room--static-guidance");
-    const cardRect = card.getBoundingClientRect();
-    const roomRect = room.getBoundingClientRect();
-    return {
-      cardRatio: cardRect.width / cardRect.height,
-      cardHasArea: cardRect.width > 0 && cardRect.height > 0,
-      roomHasArea: roomRect.width > 0 && roomRect.height > 0,
-      roomInsideCard: (
-        roomRect.left >= cardRect.left - 1
-        && roomRect.right <= cardRect.right + 1
-        && roomRect.top >= cardRect.top - 1
-        && roomRect.bottom <= cardRect.bottom + 1
-      ),
-      technicalSurfaceCount: guide.querySelectorAll("canvas, .guided-3d-mount").length,
-      publishedPreviewDisplay: getComputedStyle(document.querySelector(".concept-preview")).display
-    };
-  });
-
-  expect(Math.abs(geometry.cardRatio - 1.5), `${context} guide ratio`).toBeLessThan(0.01);
-  expect(geometry.cardHasArea, `${context} guide has area`).toBe(true);
-  expect(geometry.roomHasArea, `${context} room reference has area`).toBe(true);
-  expect(geometry.roomInsideCard, `${context} room stays inside guide`).toBe(true);
-  expect(geometry.technicalSurfaceCount, `${context} has no technical surface`).toBe(0);
-  expect(geometry.publishedPreviewDisplay, `${context} temporarily replaces preview`).toBe("none");
-  return report;
-}
-
-async function expectReviewWorkspaceInOneScreen(page, context) {
-  return expectOneScreenWorkspace(page, [
-    ".guided-header",
-    ".guided-stepper",
-    ".guided-content-head",
-    ".review-layout",
-    ".project-summary-card",
-    ".summary-actions",
-    ".summary-actions .guided-button",
-    ".concept-preview",
-    ".concept-preview-meta",
-    ".concept-scene-frame",
-    ".published-customer-preview-image",
-    ".guided-support"
-  ], context);
-}
-
-async function continueToReview(page, layout = "Clear Wall", product = "Cabinets + Shelves") {
-  await continueToLayouts(page, product);
-  await chooseLayout(page, layout);
-  await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
-  await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
+async function continueToReview(page, layoutId = "clear-wall") {
+  await continueToCustomization(page, layoutId);
+  await expectAcceptedScene(page);
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+  await expect(page).toHaveURL(/#step-4$/);
 }
 
-async function fillQuoteContact(page) {
-  const dialog = page.locator("[data-quote-dialog]");
-  const contact = {
+function legacyProject(overrides = {}) {
+  return {
+    schemaVersion: 3,
+    projectId: "JQ-LEGACY-FOUR-STEP",
+    projectName: "Legacy saved project",
+    currentStep: 5,
+    maxVisitedStep: 5,
+    category: "bookcase",
+    productSelected: true,
+    layout: "clear-wall",
+    measurements: { wallWidth: 120, ceilingHeight: 96, desiredDepth: 14 },
+    style: "cabinet-base-shelves",
+    finish: "white-oak",
+    accentFinish: "natural-oak",
+    doorStyle: "shaker",
+    hardware: "brass-pull",
+    lighting: "warm-led",
+    baseStyle: "flush-base",
+    topTreatment: "small-crown",
+    notes: "",
+    uploadedFiles: [],
+    customerDetails: {},
+    acceptedSnapshot: null,
+    createdAt: "2026-07-01T00:00:00.000Z",
+    updatedAt: "2026-08-01T00:00:00.000Z",
+    status: "saved",
+    ...overrides
+  };
+}
+
+async function seedStorage(page, { draft = null, projects = [] } = {}) {
+  await page.addInitScript(({ draftKey, projectsKey, draftValue, projectValues }) => {
+    if (draftValue) localStorage.setItem(draftKey, JSON.stringify(draftValue));
+    else localStorage.removeItem(draftKey);
+    localStorage.setItem(projectsKey, JSON.stringify(projectValues));
+  }, {
+    draftKey: DRAFT_KEY,
+    projectsKey: PROJECTS_KEY,
+    draftValue: draft,
+    projectValues: projects
+  });
+}
+
+async function fillQuoteContact(dialog) {
+  for (const [name, value] of Object.entries({
     fullName: "Alex Morgan",
     email: "alex@example.com",
     phone: "5165550188",
     zip: "11570"
-  };
-  for (const [name, value] of Object.entries(contact)) {
-    const field = dialog.locator(`input[name="${name}"]`);
-    await field.fill(value);
-    await expect(field).toHaveValue(value);
+  })) {
+    await dialog.locator(`[name="${name}"]`).fill(value);
   }
-  return dialog;
 }
 
-async function serveWithQuoteEndpoint(page, status, body) {
-  await page.route("**/configurator.html*", async (route) => {
-    const response = await route.fetch();
-    const html = (await response.text()).replace(
-      '<meta name="jq-quote-endpoint" content="">',
-      '<meta name="jq-quote-endpoint" content="/api/quote">'
-    );
-    await route.fulfill({
-      response,
-      body: html,
-      headers: { ...response.headers(), "content-type": "text/html; charset=utf-8" }
-    });
-  });
-  await page.route("**/api/quote", (route) => route.fulfill({
-    status,
-    contentType: "application/json",
-    body: JSON.stringify(body)
-  }));
-}
-
-test("public route presents the accepted-geometry five-step configurator", async ({ page }) => {
+test("the public route exposes exactly the authorized four-step journey", async ({ page }) => {
   const runtime = monitorRuntime(page);
   await openFreshProject(page);
-
-  await expect(page.locator("[data-guided-app]")).toHaveCount(1);
-  await expect(page.getByRole("navigation", { name: "Project steps" }).getByRole("button")).toHaveCount(5);
-  await expect(page.locator(".guided-category-nav")).toHaveCount(0);
-  await expect(page.locator("[data-product-choice]")).toHaveCount(7);
-  await expect(page.locator("[data-product-choice] .product-card-title")).toHaveText([
-    "Cabinets + Shelves",
-    "Drawers + Shelves",
-    "Full Open Shelving",
-    "TV Unit",
-    "Floating Storage",
-    "Window Storage",
-    "Radiator Cover"
+  const stepper = page.getByRole("navigation", { name: "Project steps" });
+  await expect(stepper.getByRole("button")).toHaveCount(4);
+  await expect(stepper.locator(".guided-step-label--full")).toHaveText([
+    "Choose Product",
+    "Choose Layout",
+    "Customization",
+    "Review & Details"
   ]);
-  await expect(page.locator("[data-product-choice] picture source[type='image/avif']")).toHaveCount(7);
-  await expect.poll(() => page.locator("[data-product-choice] img").evaluateAll((images) => (
-    images.every((image) => image.complete && image.naturalWidth > 0 && image.currentSrc.endsWith(".avif"))
-  ))).toBe(true);
+  await expect(page.getByText("Room & Size", { exact: true })).toHaveCount(0);
+  await expect(page.locator("[data-product-choice]")).toHaveCount(1);
+  await expect(page.locator("[data-product-choice] .product-card-title")).toHaveText("Cabinets + Shelves");
+  await expect(page.locator("[data-coming-soon-product]")).toHaveCount(
+    PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES.length
+  );
+  expect(await page.locator("[data-coming-soon-product]").evaluateAll(
+    (buttons) => buttons.every((button) => button.disabled)
+  )).toBe(true);
+  await expect(page.locator("[data-continue]")).toBeDisabled();
   expect(runtime).toEqual([]);
 });
 
-test("Step 1 product cards use one edge-to-edge 13:10 media format without changing room-card fitting", async ({ page }) => {
-  for (const viewport of [
-    { name: "desktop", width: 1280, height: 720 },
-    { name: "iPad landscape", width: 1024, height: 768 },
-    { name: "phone", width: 390, height: 844 }
-  ]) {
-    await test.step(viewport.name, async () => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await openFreshProject(page);
-
-      const images = page.locator(".guided-shell--step-1 .product-grid--catalog [data-product-choice] img");
-      await expect(images).toHaveCount(products.length);
-      await expect.poll(() => images.evaluateAll((elements) => elements.every((image) => (
-        image.complete
-        && image.naturalWidth > 0
-        && image.naturalHeight > 0
-        && getComputedStyle(image).objectFit === "cover"
-      )))).toBe(true);
-
-      const geometry = await page.locator("[data-product-choice]").evaluateAll((cards) => cards.map((card) => {
-        const cardRect = card.getBoundingClientRect();
-        const mediaRect = card.querySelector(".product-card-image").getBoundingClientRect();
-        const copyRect = card.querySelector(".product-card-copy").getBoundingClientRect();
-        const image = card.querySelector("img");
-        const imageRect = image.getBoundingClientRect();
-        const scale = Math.max(
-          mediaRect.width / image.naturalWidth,
-          mediaRect.height / image.naturalHeight
-        );
-        return {
-          cardWidth: cardRect.width,
-          cardHeight: cardRect.height,
-          mediaWidth: mediaRect.width,
-          mediaHeight: mediaRect.height,
-          copyHeight: copyRect.height,
-          imageEdges: {
-            left: Math.abs(imageRect.left - mediaRect.left),
-            top: Math.abs(imageRect.top - mediaRect.top),
-            right: Math.abs(imageRect.right - mediaRect.right),
-            bottom: Math.abs(imageRect.bottom - mediaRect.bottom)
-          },
-          paintedWidth: image.naturalWidth * scale,
-          paintedHeight: image.naturalHeight * scale,
-          objectPosition: getComputedStyle(image).objectPosition
-        };
-      }));
-
-      const spread = (values) => Math.max(...values) - Math.min(...values);
-      expect(spread(geometry.map(({ cardWidth }) => cardWidth))).toBeLessThanOrEqual(1);
-      expect(spread(geometry.map(({ cardHeight }) => cardHeight))).toBeLessThanOrEqual(1);
-      expect(spread(geometry.map(({ mediaWidth }) => mediaWidth))).toBeLessThanOrEqual(1);
-      expect(spread(geometry.map(({ mediaHeight }) => mediaHeight))).toBeLessThanOrEqual(1);
-      expect(spread(geometry.map(({ copyHeight }) => copyHeight))).toBeLessThanOrEqual(1);
-      expect(geometry.every(({
-        cardWidth,
-        cardHeight,
-        mediaWidth,
-        mediaHeight,
-        imageEdges,
-        paintedWidth,
-        paintedHeight
-      }) => (
-        cardWidth > 0
-        && cardHeight > 0
-        && Math.abs(mediaWidth / mediaHeight - 1.3) <= 0.01
-        && Math.abs(mediaWidth - cardWidth) <= 2
-        && mediaHeight > 0
-        && mediaHeight < cardHeight
-        && Object.values(imageEdges).every((edge) => edge <= 1)
-        && paintedWidth >= mediaWidth - 1
-        && paintedHeight >= mediaHeight - 1
-      ))).toBe(true);
-      expect(geometry.map(({ objectPosition }) => objectPosition)).toEqual([
-        "50% 25%",
-        "50% 50%",
-        "50% 50%",
-        "50% 50%",
-        "50% 50%",
-        "50% 50%",
-        "50% 50%"
-      ]);
-      expect(await page.evaluate(() => (
-        document.documentElement.scrollWidth - window.innerWidth
-      ))).toBeLessThanOrEqual(1);
-    });
-  }
-
-  await continueToLayouts(page);
-  const layoutImages = page.locator(".layout-grid .layout-illustration img");
-  await expect(layoutImages).toHaveCount(sharedLayouts.length);
-  await expect.poll(() => layoutImages.evaluateAll((images) => (
-    images.every((image) => getComputedStyle(image).objectFit === "cover")
-  ))).toBe(true);
-});
-
-test("Step 2 room cards use one consistent edge-to-edge media format without selected-state shifts", async ({ page }) => {
-  const readGeometry = () => page.locator("[data-layout]").evaluateAll((cards) => cards.map((card) => {
-    const cardRect = card.getBoundingClientRect();
-    const mediaRect = card.querySelector(".layout-illustration").getBoundingClientRect();
-    const image = card.querySelector("img");
-    const imageRect = image.getBoundingClientRect();
-    const scale = Math.max(
-      mediaRect.width / image.naturalWidth,
-      mediaRect.height / image.naturalHeight
-    );
-    return {
-      id: card.dataset.layout,
-      offsetLeft: card.offsetLeft,
-      offsetTop: card.offsetTop,
-      cardWidth: cardRect.width,
-      cardHeight: cardRect.height,
-      mediaWidth: mediaRect.width,
-      mediaHeight: mediaRect.height,
-      imageEdges: {
-        left: Math.abs(imageRect.left - mediaRect.left),
-        top: Math.abs(imageRect.top - mediaRect.top),
-        right: Math.abs(imageRect.right - mediaRect.right),
-        bottom: Math.abs(imageRect.bottom - mediaRect.bottom)
-      },
-      objectFit: getComputedStyle(image).objectFit,
-      sourceAspectRatio: image.naturalWidth / image.naturalHeight,
-      visibleWidthFraction: mediaRect.width / (image.naturalWidth * scale),
-      visibleHeightFraction: mediaRect.height / (image.naturalHeight * scale)
-    };
-  }));
-
-  for (const viewport of [
-    { name: "desktop", width: 1280, height: 720 },
-    { name: "iPad landscape", width: 1024, height: 768 }
-  ]) {
-    await test.step(viewport.name, async () => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await openFreshProject(page);
-      await continueToLayouts(page);
-
-      const cards = page.locator("[data-layout]");
-      const images = cards.locator(".layout-illustration img");
-      await expect(cards).toHaveCount(sharedLayouts.length);
-      await expect.poll(() => images.evaluateAll((elements) => elements.every((image) => (
-        image.complete
-        && image.naturalWidth > 0
-        && image.naturalHeight > 0
-      )))).toBe(true);
-
-      const beforeSelection = await readGeometry();
-      const spread = (values) => Math.max(...values) - Math.min(...values);
-      expect(beforeSelection.map(({ id }) => id)).toEqual(sharedLayouts.map(({ id }) => id));
-      expect(spread(beforeSelection.map(({ cardWidth }) => cardWidth))).toBeLessThanOrEqual(1);
-      expect(spread(beforeSelection.map(({ cardHeight }) => cardHeight))).toBeLessThanOrEqual(1);
-      expect(spread(beforeSelection.map(({ mediaWidth }) => mediaWidth))).toBeLessThanOrEqual(1);
-      expect(spread(beforeSelection.map(({ mediaHeight }) => mediaHeight))).toBeLessThanOrEqual(1);
-      expect(beforeSelection.every(({
-        mediaWidth,
-        mediaHeight,
-        imageEdges,
-        objectFit,
-        sourceAspectRatio,
-        visibleWidthFraction,
-        visibleHeightFraction
-      }) => (
-        mediaWidth / mediaHeight >= 1
-        && mediaWidth / mediaHeight <= 1.65
-        && Object.values(imageEdges).every((edge) => edge <= 1)
-        && objectFit === "cover"
-        // Four legacy room references are square while the responsive card is
-        // landscape. Preserve at least 60% of square references and 90% of
-        // authored landscape references without allowing letterboxing.
-        && visibleWidthFraction >= (sourceAspectRatio <= 1.05 ? 0.6 : 0.9)
-        && visibleHeightFraction >= (sourceAspectRatio <= 1.05 ? 0.6 : 0.9)
-      ))).toBe(true);
-      expect(await page.evaluate(() => (
-        document.documentElement.scrollWidth - window.innerWidth
-      ))).toBeLessThanOrEqual(1);
-
-      const selectedCard = page.locator('[data-layout="double-opening"]');
-      await selectedCard.focus();
-      await selectedCard.press("Space");
-      await expect(selectedCard).toHaveAttribute("aria-pressed", "true");
-      await expect(selectedCard).toHaveCSS("border-left-width", "1px");
-      await expect(selectedCard).toHaveCSS("border-right-width", "1px");
-
-      const afterSelection = await readGeometry();
-      for (const cardBefore of beforeSelection) {
-        const cardAfter = afterSelection.find(({ id }) => id === cardBefore.id);
-        for (const property of [
-          "offsetLeft",
-          "offsetTop",
-          "cardWidth",
-          "cardHeight",
-          "mediaWidth",
-          "mediaHeight"
-        ]) {
-          expect(Math.abs(cardAfter[property] - cardBefore[property])).toBeLessThanOrEqual(1);
-        }
-      }
-    });
-  }
-});
-
-test("Step 1 centers the three-card bottom row without selected-state geometry shifts", async ({ page }) => {
-  const readLayout = () => page.evaluate(() => {
-    const grid = document.querySelector(".guided-shell--step-1 .product-grid--catalog");
-    const gridRect = grid.getBoundingClientRect();
-    const cards = [...grid.querySelectorAll("[data-product-choice]")].map((card) => {
-      const rect = card.getBoundingClientRect();
-      return {
-        id: card.dataset.productChoice,
-        left: rect.left - gridRect.left,
-        right: rect.right - gridRect.left,
-        top: rect.top - gridRect.top,
-        width: rect.width,
-        height: rect.height
-      };
-    });
-    return {
-      gridWidth: gridRect.width,
-      columnGap: parseFloat(getComputedStyle(grid).columnGap),
-      cards
-    };
-  });
-
-  for (const viewport of [
-    { name: "desktop", width: 1280, height: 720 },
-    { name: "iPad landscape", width: 1024, height: 768 }
-  ]) {
-    await test.step(viewport.name, async () => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await openFreshProject(page);
-
-      const beforeSelection = await readLayout();
-      const topRow = beforeSelection.cards.slice(0, 4);
-      const bottomRow = beforeSelection.cards.slice(4);
-      const spread = (values) => Math.max(...values) - Math.min(...values);
-      const gaps = (cards) => cards.slice(1).map((card, index) => (
-        card.left - cards[index].right
-      ));
-
-      expect(topRow.map(({ id }) => id)).toEqual([
-        "cabinet-shelves",
-        "drawer-shelves",
-        "open-shelving",
-        "tv-unit"
-      ]);
-      expect(bottomRow.map(({ id }) => id)).toEqual([
-        "floating-storage",
-        "window-storage",
-        "radiator-cover"
-      ]);
-      expect(spread(topRow.map(({ top }) => top))).toBeLessThanOrEqual(1);
-      expect(spread(bottomRow.map(({ top }) => top))).toBeLessThanOrEqual(1);
-      expect(spread(beforeSelection.cards.map(({ width }) => width))).toBeLessThanOrEqual(1);
-      expect(spread(beforeSelection.cards.map(({ height }) => height))).toBeLessThanOrEqual(1);
-      expect(topRow[0].left).toBeLessThanOrEqual(1);
-      expect(Math.abs(topRow[3].right - beforeSelection.gridWidth)).toBeLessThanOrEqual(1);
-      for (const gap of gaps(topRow)) {
-        expect(Math.abs(gap - beforeSelection.columnGap)).toBeLessThanOrEqual(1);
-      }
-      for (const gap of gaps(bottomRow)) {
-        expect(Math.abs(gap - beforeSelection.columnGap)).toBeLessThanOrEqual(1);
-      }
-      expect(Math.abs(bottomRow[0].left - (
-        beforeSelection.gridWidth - bottomRow[2].right
-      ))).toBeLessThanOrEqual(1);
-
-      const radiator = page.locator('[data-product-choice="radiator-cover"]');
-      await radiator.focus();
-      await radiator.press("Space");
-      await expect(radiator).toHaveAttribute("aria-pressed", "true");
-      await expect(radiator).toHaveClass(/is-selected/);
-      await expect(radiator).toHaveCSS("border-left-width", "1px");
-      await expect(radiator).toHaveCSS("border-right-width", "1px");
-
-      const afterSelection = await readLayout();
-      for (const cardBefore of beforeSelection.cards) {
-        const cardAfter = afterSelection.cards.find(({ id }) => id === cardBefore.id);
-        for (const property of ["left", "right", "top", "width", "height"]) {
-          expect(Math.abs(cardAfter[property] - cardBefore[property])).toBeLessThanOrEqual(1);
-        }
-      }
-    });
-  }
-});
-
-test("wide desktop keeps all seven product cards equal and horizontally contained", async ({ page }) => {
-  await page.setViewportSize({ width: 2491, height: 1146 });
+test("Coming soon products cannot activate by pointer, keyboard, query, or preset", async ({ page }) => {
   await openFreshProject(page);
-
-  const cards = page.locator("[data-product-choice]");
-  await expect(cards).toHaveCount(7);
-  await expect.poll(() => cards.locator("img").evaluateAll((images) => (
-    images.every((image) => image.complete && image.naturalWidth > 0)
-  ))).toBe(true);
-
-  const geometry = await page.evaluate(() => {
-    const tolerance = 1;
-    const grid = document.querySelector(".product-grid--catalog").getBoundingClientRect();
-    const cardReports = [...document.querySelectorAll("[data-product-choice]")].map((card) => {
-      const cardRect = bounds(card);
-      const imageRect = bounds(card.querySelector(".product-card-image"));
-      const titleRect = bounds(card.querySelector(".product-card-title"));
-      return {
-        card: cardRect,
-        image: imageRect,
-        title: titleRect,
-        insideGrid: (
-          cardRect.top >= grid.top - tolerance
-          && cardRect.right <= grid.right + tolerance
-          && cardRect.bottom <= grid.bottom + tolerance
-          && cardRect.left >= grid.left - tolerance
-        ),
-        noInternalOverflow: (
-          card.scrollWidth <= card.clientWidth + tolerance
-          && card.scrollHeight <= card.clientHeight + tolerance
-        )
-      };
-    });
-    const widths = cardReports.map(({ card }) => card.width);
-    const rowTops = cardReports
-      .map(({ card }) => card.top)
-      .sort((a, b) => a - b)
-      .reduce((rows, top) => {
-        if (!rows.some((rowTop) => Math.abs(rowTop - top) <= 2)) rows.push(top);
-        return rows;
-      }, []);
-    return {
-      horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
-      verticalOverflow: document.documentElement.scrollHeight - window.innerHeight,
-      widthSpread: Math.max(...widths) - Math.min(...widths),
-      rowTops,
-      cards: cardReports
-    };
-
-    function bounds(element) {
-      const rect = element.getBoundingClientRect();
-      return {
-        top: rect.top,
-        right: rect.right,
-        bottom: rect.bottom,
-        left: rect.left,
-        width: rect.width,
-        height: rect.height
-      };
-    }
-  });
-
-  expect(geometry.horizontalOverflow).toBeLessThanOrEqual(1);
-  expect(geometry.verticalOverflow).toBeGreaterThanOrEqual(0);
-  expect(geometry.widthSpread).toBeLessThanOrEqual(2);
-  expect(geometry.rowTops).toHaveLength(2);
-  for (const [index, card] of geometry.cards.entries()) {
-    const label = `product card ${index + 1}`;
-    expect(card.insideGrid, `${label} inside grid`).toBe(true);
-    expect(card.noInternalOverflow, `${label} internal overflow`).toBe(true);
-    expect(card.card.width, `${label} width`).toBeGreaterThanOrEqual(250);
-    expect(card.card.height, `${label} height`).toBeGreaterThanOrEqual(180);
-    expect(card.image.width, `${label} image width`).toBeGreaterThanOrEqual(240);
-    expect(card.title.left, `${label} title left`).toBeGreaterThanOrEqual(card.card.left - 1);
-    expect(card.title.right, `${label} title right`).toBeLessThanOrEqual(card.card.right + 1);
-  }
-
-  await chooseProduct(page);
-  await expect(page.locator("[data-continue]")).toBeEnabled();
-  await page.locator("[data-continue]").scrollIntoViewIfNeeded();
-  await expect(page.locator("[data-continue]")).toBeVisible();
-});
-
-test("Continue requires explicit choices and every product uses the same ten room layouts", async ({ page }) => {
-  await openFreshProject(page);
+  const comingSoon = page.locator('[data-coming-soon-product="tv-unit"]');
+  await expect(comingSoon).toBeDisabled();
+  await comingSoon.evaluate((button) => button.click());
+  await comingSoon.dispatchEvent("click");
+  await expect(page.locator("[data-product-choice]")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("[data-continue]")).toBeDisabled();
+  await comingSoon.focus();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Space");
   await expect(page.locator("[data-continue]")).toBeDisabled();
 
-  for (const product of products) {
-    await openFreshProject(page);
-    await continueToLayouts(page, product.label);
-    const cards = page.locator("[data-layout]");
-    await expect(cards).toHaveCount(sharedLayouts.length);
-    await expect(cards.locator(".layout-card-title")).toHaveText(sharedLayouts.map((layout) => layout.label));
-    expect(await cards.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-layout"))))
-      .toEqual(sharedLayouts.map((layout) => layout.id));
-    await expect(page.locator("[data-continue]")).toBeDisabled();
+  await page.goto("configurator.html?start=new&product=tv-unit#step-4", { waitUntil: "networkidle" });
+  await expect(page).toHaveURL(/#step-1$/);
+  await expect(page.locator("[data-product-choice]")).toHaveAttribute("aria-pressed", "false");
+  await page.goto("configurator.html?start=new&preset=media-wall#step-5", { waitUntil: "networkidle" });
+  await expect(page).toHaveURL(/configurator\.html#step-1$/);
+  await expect(page.locator("[data-product-choice]")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("[data-continue]")).toBeDisabled();
+});
+
+test("direct unsupported draft injection is retained but routed safely to Choose Product", async ({ page }) => {
+  const unsupported = legacyProject({
+    projectId: "JQ-UNSUPPORTED-DRAFT",
+    projectName: "Legacy TV wall",
+    category: "tv-unit",
+    style: "framed-tv-wall"
+  });
+  await seedStorage(page, { draft: unsupported });
+  await page.goto("configurator.html#step-5", { waitUntil: "networkidle" });
+  await expect(page).toHaveURL(/#step-1$/);
+  await expect(page.locator("[data-unavailable-product]")).toContainText("TV Unit is not available");
+  await expect(page.locator("[data-product-choice]")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("[data-continue]")).toBeDisabled();
+  const stored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), DRAFT_KEY);
+  expect(stored).toMatchObject({
+    category: "tv-unit",
+    style: "framed-tv-wall",
+    productSelected: true,
+    productAvailability: "unavailable"
+  });
+});
+
+test("unsupported saved projects remain intact and starting Cabinets + Shelves creates a separate draft", async ({ page }) => {
+  const unsupported = legacyProject({
+    projectId: "JQ-UNSUPPORTED-SAVED",
+    projectName: "Saved media room",
+    category: "tv-unit",
+    style: "framed-tv-wall"
+  });
+  await seedStorage(page, { projects: [unsupported] });
+  await openFreshProject(page);
+  await page.getByRole("button", { name: "My Projects", exact: true }).click();
+  const dialog = page.locator("[data-projects-dialog]");
+  const saved = dialog.locator('[data-saved-product-availability="unavailable"]');
+  await expect(saved).toContainText("Saved media room");
+  await expect(saved).toContainText("Unavailable in this public preview");
+  await dialog.getByRole("button", { name: "Resume Saved media room" }).click();
+  await expect(page.locator("[data-unavailable-product]")).toContainText("saved project remains");
+  await expect(page).toHaveURL(/project=JQ-UNSUPPORTED-SAVED#step-1$/);
+
+  const before = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), PROJECTS_KEY);
+  expect(before[0]).toMatchObject({
+    projectId: "JQ-UNSUPPORTED-SAVED",
+    category: "tv-unit",
+    style: "framed-tv-wall"
+  });
+  await chooseActiveProduct(page);
+  await expect.poll(() => page.evaluate((key) => {
+    const draft = JSON.parse(localStorage.getItem(key) || "null");
+    return draft?.projectId || null;
+  }, DRAFT_KEY)).not.toBe("JQ-UNSUPPORTED-SAVED");
+  const after = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), PROJECTS_KEY);
+  expect(after).toEqual(before);
+});
+
+test("only compatibility-approved Cabinets + Shelves layouts are selectable", async ({ page }) => {
+  await openFreshProject(page);
+  await continueToLayouts(page);
+  const approvedLayoutIds = SHARED_ROOM_LAYOUTS
+    .filter(({ id }) => GUIDED_PRODUCT_LAYOUT_COMPATIBILITY[ACTIVE_PRODUCT.id][id] !== "unavailable")
+    .map(({ id }) => id);
+  const renderedLayoutIds = await page.locator("[data-layout]").evaluateAll(
+    (cards) => cards.map((card) => card.dataset.layout)
+  );
+  expect(renderedLayoutIds).toEqual(approvedLayoutIds);
+  await expect(page.locator("[data-layout]:disabled")).toHaveCount(0);
+  for (const layoutId of approvedLayoutIds) {
+    await chooseLayout(page, layoutId);
+    await expect(page.locator("[data-continue]")).toBeEnabled();
   }
 });
 
-test("measurement fields adapt to the layout, accept fractions, warn gently, and retain values", async ({ page }) => {
+test("every approved layout puts all applicable measurement fields inside Customization", async ({ page }) => {
   await openFreshProject(page);
   await continueToLayouts(page);
-  await chooseLayout(page, "Window Wall");
-  await page.locator("[data-continue]").click();
-
-  for (const fieldId of [
-    "wallWidth",
-    "ceilingHeight",
-    "desiredDepth",
-    "windowWidth",
-    "windowHeight",
-    "sillHeight",
-    "radiatorBelowWindow"
-  ]) {
-    await expect(page.locator('[data-measurement-row="' + fieldId + '"]')).toBeVisible();
+  const approvedLayouts = SHARED_ROOM_LAYOUTS.filter(
+    ({ id }) => GUIDED_PRODUCT_LAYOUT_COMPATIBILITY[ACTIVE_PRODUCT.id][id] !== "unavailable"
+  );
+  for (const [index, layout] of approvedLayouts.entries()) {
+    await chooseLayout(page, layout.id);
+    await page.locator("[data-continue]").click();
+    await expect(page.getByRole("heading", { name: "Customize your fitted design" })).toBeVisible();
+    const expectedFields = getMeasurementFields("bookcase", layout.id).map(({ id }) => id);
+    const renderedFields = await page.locator("[data-measurement-row]").evaluateAll(
+      (rows) => rows.map((row) => row.dataset.measurementRow)
+    );
+    expect(renderedFields, layout.label).toEqual(expectedFields);
+    await expect(page.locator("[data-measurement-guidance]")).toBeVisible();
+    await expectAcceptedScene(page);
+    if (index < approvedLayouts.length - 1) {
+      await page.locator('[data-step="2"]').click();
+      await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
+    }
   }
+});
 
+test("Customization immediately owns one controller, canvas, RAF, timer, and listener set", async ({ page }) => {
+  await openFreshProject(page);
+  await continueToCustomization(page, "niche-layout");
+  let canvas = await expectAcceptedScene(page);
+  const instance = await canvas.getAttribute("data-guided-3d-instance");
+  const assertSingleOwnership = async () => {
+    canvas = page.locator(".guided-3d-canvas");
+    await expect(canvas).toHaveCount(1);
+    await expect(canvas).toHaveAttribute("data-guided-3d-instance", instance);
+    const ownership = await canvas.evaluate((element) => ({
+      renderFrame: Number(element.dataset.renderFrameOwnership),
+      resizeFrame: Number(element.dataset.resizeFrameOwnership),
+      resizeObserver: Number(element.dataset.resizeObserverOwnership),
+      resizeListener: Number(element.dataset.resizeListenerOwnership),
+      controlListener: Number(element.dataset.controlListenerOwnership)
+    }));
+    expect(ownership.renderFrame).toBeLessThanOrEqual(1);
+    expect(ownership.resizeFrame).toBeLessThanOrEqual(1);
+    expect(ownership.resizeObserver + ownership.resizeListener).toBe(1);
+    expect(ownership.controlListener).toBe(1);
+    await expect(page.locator("[data-guided-app]")).toHaveAttribute("data-measurement-timer-ownership", "0");
+  };
+  await assertSingleOwnership();
+  await page.getByRole("tab", { name: "Finish" }).click();
+  await assertSingleOwnership();
+  await page.getByRole("tab", { name: "Details" }).click();
+  await assertSingleOwnership();
+  await page.locator("[data-continue]").click();
+  await expect(page).toHaveURL(/#step-4$/);
+  await assertSingleOwnership();
+  await page.locator('[data-edit-section="dimensions"]').click();
+  await expect(page).toHaveURL(/#step-3$/);
+  await assertSingleOwnership();
+});
+
+test("a rejected dimension edit preserves the last accepted scene and names the diagnostic", async ({ page }) => {
+  await openFreshProject(page);
+  await continueToCustomization(page);
+  const canvas = await expectAcceptedScene(page);
+  const acceptedGeometry = await canvas.getAttribute("data-geometry-fingerprint");
+  const acceptedSpecification = await canvas.getAttribute("data-specification-fingerprint");
+  const wallWidth = page.locator('[data-measurement="wallWidth"]');
+  await wallWidth.fill("");
+  await expect(page.locator("[data-transaction-diagnostic]")).toBeVisible();
+  await expect(page.locator("[data-transaction-diagnostic]")).toContainText("Last accepted design preserved");
+  await expect(page.locator("[data-transaction-diagnostic]")).toContainText(
+    "Enter Wall Width, Ceiling Height, and Desired Built-In Depth"
+  );
+  await expect(page.locator("[data-transaction-diagnostic]")).not.toContainText("undefined");
+  await expect(page.locator("[data-transaction-diagnostic]")).toContainText(/\([A-Z0-9_]+\)/);
+  await expect(canvas).toHaveAttribute("data-geometry-fingerprint", acceptedGeometry);
+  await expect(canvas).toHaveAttribute("data-specification-fingerprint", acceptedSpecification);
+  await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Save Project", exact: true }))
+    .toHaveAttribute("data-persistence-state", "rejected-candidate");
+  await page.locator("[data-continue]").click();
+  await expect(page).toHaveURL(/#step-3$/);
+  await expect(wallWidth).toBeFocused();
+  await wallWidth.fill("121 1/2");
+  await wallWidth.blur();
+  await expect(page.locator("[data-transaction-diagnostic]")).toBeHidden();
+});
+
+test("fraction parsing, bounds guidance, and the compact measurement guide remain accessible", async ({ page }) => {
+  await openFreshProject(page);
+  await continueToCustomization(page, "window-wall");
   const width = page.locator('[data-measurement="wallWidth"]');
   await width.fill("121 1/2");
-  await expect(page.locator('[data-dimension-chip="wallWidth"]')).toContainText("121 1/2 in");
-  await width.fill("190");
-  await expect(page.locator('[data-measurement-row="wallWidth"] .measurement-warning')).toContainText("outside our usual");
-  const optionalWindowWidth = page.locator('[data-measurement="windowWidth"]');
-  await optionalWindowWidth.fill("about four feet");
-  await expect(page.locator('[data-measurement-row="windowWidth"] .measurement-input-error')).toContainText("decimal, or a common fraction");
-  await expect(optionalWindowWidth).toHaveAttribute("aria-invalid", "");
-  await optionalWindowWidth.fill("48");
-
-  await width.fill("190");
-  await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
-  await expectPublishedPreview(page, publishedPreviewFor("cabinet-shelves", "window-wall"));
-  await page.locator("[data-back]").click();
-  await expect(width).toHaveValue("190");
-
-  await width.fill("121 1/2");
-
-  await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
-  await expectPublishedPreview(page, publishedPreviewFor("cabinet-shelves", "window-wall"));
-  await page.locator("[data-back]").click();
+  await width.blur();
   await expect(width).toHaveValue("121.5");
-
-  await width.fill("");
-  await expect(width).toHaveValue("");
-  await page.locator("[data-continue]").click();
-  await expect(page.locator("[data-measurement-error]")).toContainText("approximate wall width");
-  await expect(width).toBeFocused();
-});
-
-test("one accepted 3D scene persists and separates geometry rebuilds from material updates", async ({ page }) => {
-  const interceptedPublishedPreviewCount = await forcePublishedPreviewLoadFailure(page);
-  const obsoleteSceneRequests = [];
-  page.on("request", (request) => {
-    if (
-      (/\/assets\/photos\/configurator\/(?:integrated|furniture)\//.test(request.url()) && !/\.webp(?:\?|$)/.test(request.url()))
-      || /-finish-mask-/.test(request.url())
-    ) {
-      obsoleteSceneRequests.push(request.url());
-    }
-  });
-
-  await openFreshProject(page);
-  await continueToLayouts(page, "TV Unit");
-  await chooseLayout(page, "Right Niche");
-  await page.locator("[data-continue]").click();
-  await page.locator('[data-measurement="wallWidth"]').fill("144");
-  await page.locator('[data-measurement="nicheWidth"]').fill("120");
-
-  const measurementCanvas = page.locator(
-    '.measurement-room[data-guided3d-state="ready"] .guided-3d-canvas[data-rendered="true"]'
-  );
-  await expect(measurementCanvas).toHaveCount(1);
-  expect(interceptedPublishedPreviewCount()).toBeGreaterThan(0);
-  await expect(measurementCanvas).toHaveAttribute("data-rendered", "true");
-  await expect(measurementCanvas).toHaveAttribute("data-scene-layout", "right-niche");
-  await expect(measurementCanvas).toHaveAttribute("data-show-product", "false");
-  await expect(measurementCanvas).toHaveAttribute("data-show-dimensions", "true");
-  await expect(measurementCanvas).toHaveAttribute("data-geometry-fingerprint", /.+/);
-  await expect(measurementCanvas).toHaveAttribute("data-guided3d-instance", /.+/);
-  const instanceId = await measurementCanvas.getAttribute("data-guided3d-instance");
-  const initialGeometryFingerprint = await measurementCanvas.getAttribute("data-geometry-fingerprint");
-
-  await page.locator('[data-measurement="wallWidth"]').fill("126");
-  await page.locator('[data-measurement="rightReturn"]').fill("6");
-  await expect.poll(() => measurementCanvas.getAttribute("data-geometry-fingerprint"))
-    .not.toBe(initialGeometryFingerprint);
-
-  await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
-  const preview = page.locator(".concept-preview");
-  const customizationCanvas = await expectAcceptedGeometryPreview(preview);
-  await expect(customizationCanvas).toHaveAttribute("data-guided3d-instance", instanceId);
-  await expect(customizationCanvas).toHaveAttribute("data-show-product", "true");
-  await expect(customizationCanvas).toHaveAttribute("data-show-dimensions", "false");
+  await width.fill("190");
+  await expect(page.locator('[data-measurement-row="wallWidth"] .measurement-warning'))
+    .toContainText("outside our usual");
+  const windowWidth = page.locator('[data-measurement="windowWidth"]');
+  await windowWidth.fill("about four feet");
+  await expect(windowWidth).toHaveAttribute("aria-invalid", "");
+  await expect(page.locator('[data-measurement-row="windowWidth"] .measurement-input-error'))
+    .toContainText("decimal, or a common fraction");
+  await expect(page.locator("[data-guided-app]"))
+    .toHaveAttribute("data-measurement-timer-ownership", "0");
+  const guide = page.locator("[data-measurement-guidance]");
+  await guide.locator("summary").click();
+  await expect(guide).toHaveAttribute("open", "");
+  await expect(guide.locator(".measurement-room--static-guidance")).toBeVisible();
+  await expect(guide.locator("canvas, [data-guided-3d-mount]")).toHaveCount(0);
   await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
-
-  const geometryFingerprint = await customizationCanvas.getAttribute("data-geometry-fingerprint");
-  const geometryRebuildCount = Number(await customizationCanvas.getAttribute("data-geometry-rebuild-count"));
-  const materialUpdateCount = Number(await customizationCanvas.getAttribute("data-material-update-count"));
-  const specificationFingerprint = await customizationCanvas.getAttribute("data-specification-fingerprint");
-
-  await page.getByRole("button", { name: "Dark Walnut", exact: true }).click();
-  await expect.poll(async () => Number(await customizationCanvas.getAttribute("data-material-update-count")))
-    .toBeGreaterThan(materialUpdateCount);
-  await expect(customizationCanvas).toHaveAttribute("data-geometry-fingerprint", geometryFingerprint);
-  await expect(customizationCanvas).toHaveAttribute("data-geometry-rebuild-count", String(geometryRebuildCount));
-  await expect(customizationCanvas).not.toHaveAttribute("data-specification-fingerprint", specificationFingerprint);
-  await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
-
-  await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
-  const reviewCanvas = await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
-  await expect(reviewCanvas).toHaveAttribute("data-guided3d-instance", instanceId);
-  await expect(reviewCanvas).toHaveAttribute("data-geometry-fingerprint", geometryFingerprint);
-  await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
-  expect(obsoleteSceneRequests).toEqual([]);
 });
 
-test("a published TV preview appears immediately on Step 3 and persists through Steps 4 and 5", async ({ page }) => {
-  const expectedPreview = publishedPreviewFor("tv-unit", "clear-wall");
-  const previewResponses = [];
-  page.on("response", (response) => {
-    if (response.url().endsWith(`/${expectedPreview.asset}`)) {
-      previewResponses.push(response.status());
-    }
-  });
-
+test("finish and details update the accepted scene and Review without losing state", async ({ page }) => {
   await openFreshProject(page);
-  await continueToLayouts(page, "TV Unit");
-  const preloadRequestPromise = page.waitForRequest((request) => (
-    request.url().endsWith(`/${expectedPreview.asset}`)
-  ));
-  await chooseLayout(page, "Clear Wall");
-  const preloadRequest = await preloadRequestPromise;
-  expect(preloadRequest.resourceType()).toBe("image");
-  await expect(page).toHaveURL(/configurator\.html#step-2$/);
-  await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
-
-  const stepThree = await expectPublishedPreview(page, expectedPreview);
-  const publishedSource = await stepThree.image.getAttribute("src");
-  await expect(page.locator("[data-measurement-guidance]")).toHaveCount(1);
-  await expect(page.locator(".guided-3d-canvas, .guided-3d-mount, .preview-controls")).toHaveCount(0);
-
-  await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
-  await expectPublishedPreview(page, expectedPreview, publishedSource);
-  await page.getByRole("button", { name: "Dark Walnut", exact: true }).click();
-  await expectPublishedPreview(page, expectedPreview, publishedSource);
-  await page.getByRole("tab", { name: "Details" }).click();
-  await page.locator('[data-detail-key="hardware"][data-detail="black-pull"]').click();
-  await expectPublishedPreview(page, expectedPreview, publishedSource);
-  await page.locator("[data-continue]").click();
-
-  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
-  const { preview: reviewPreview } = await expectPublishedPreview(page, expectedPreview, publishedSource);
-
-  const mediaGeometry = await reviewPreview.evaluate((preview) => {
-    const frame = preview.querySelector(".concept-scene-frame").getBoundingClientRect();
-    const imageRect = preview.querySelector(".published-customer-preview-image").getBoundingClientRect();
-    const imageStyle = getComputedStyle(preview.querySelector(".published-customer-preview-image"));
-    return {
-      frameRatio: frame.width / frame.height,
-      widthDelta: Math.abs(frame.width - imageRect.width),
-      heightDelta: Math.abs(frame.height - imageRect.height),
-      objectFit: imageStyle.objectFit,
-      documentOverflow: document.documentElement.scrollWidth - window.innerWidth
-    };
-  });
-  expect(Math.abs(mediaGeometry.frameRatio - 1.5)).toBeLessThan(0.01);
-  expect(mediaGeometry.widthDelta).toBeLessThanOrEqual(1);
-  expect(mediaGeometry.heightDelta).toBeLessThanOrEqual(1);
-  expect(mediaGeometry.objectFit).toBe("contain");
-  expect(mediaGeometry.documentOverflow).toBeLessThanOrEqual(1);
-  expect(previewResponses).toContain(200);
-
-  const summary = page.locator(".project-summary-card");
-  await expect(summary).toContainText("Dark Walnut");
-  await expect(summary).toContainText("Black Pull");
-
-  await page.getByRole("button", { name: "Customization, completed" }).click();
-  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
-  await expectPublishedPreview(page, expectedPreview, publishedSource);
-  await page.locator("[data-back]").click();
-  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
-  await expectPublishedPreview(page, expectedPreview, publishedSource);
-});
-
-test("the browser matrix covers one base preview for every valid product and layout pair", async () => {
-  const basePreviews = PUBLISHED_CUSTOMER_PREVIEWS.filter((preview) => !preview.finishOverrideId);
-  expect(basePreviews).toHaveLength(50);
-  expect(new Set(basePreviews.map((preview) => (
-    `${preview.key.productId}:${preview.key.layoutId}`
-  ))).size).toBe(basePreviews.length);
-  for (const preview of basePreviews) {
-    expect(productsById.has(preview.key.productId), preview.previewId).toBe(true);
-    expect(layoutsById.has(preview.key.layoutId), preview.previewId).toBe(true);
-  }
-});
-
-for (const expectedPreview of PUBLISHED_CUSTOMER_PREVIEWS.filter((preview) => !preview.finishOverrideId)) {
-  const product = productsById.get(expectedPreview.key.productId);
-  const layout = layoutsById.get(expectedPreview.key.layoutId);
-
-  test(`published matrix: ${product?.label} + ${layout?.label} stays primary on Steps 3–5`, async ({ page }) => {
-    expect(product, expectedPreview.previewId).toBeTruthy();
-    expect(layout, expectedPreview.previewId).toBeTruthy();
-
-    await openFreshProject(page);
-    await continueToLayouts(page, product.label);
-    await chooseLayout(page, layout.label);
-    await page.locator("[data-continue]").click();
-    await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
-
-    const stepThree = await expectPublishedPreview(page, expectedPreview);
-    const publishedSource = await stepThree.image.getAttribute("src");
-    if (process.env.PHOTOREAL_MATRIX_QA_SCREENSHOTS === "1") {
-      await page.screenshot({
-        path: `test-results/live-matrix/${expectedPreview.previewId}-step3-desktop.png`,
-        fullPage: true
-      });
-    }
-    await applyMeasurementOverrides(
-      page,
-      product.id === "tv-unit" ? TV_MATRIX_MEASUREMENTS[layout.id] : undefined
-    );
-    await expectPublishedPreview(page, expectedPreview, publishedSource);
-
-    await page.locator("[data-continue]").click();
-    await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
-    await expectPublishedPreview(page, expectedPreview, publishedSource);
-
-    await page.locator("[data-continue]").click();
-    await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
-    await expectPublishedPreview(page, expectedPreview, publishedSource);
-    await expect(page.locator(".project-summary-card")).toContainText(product.label);
-    await expect(page.locator(".project-summary-card")).toContainText(layout.label);
-
-    await page.getByRole("button", { name: "Customization, completed" }).click();
-    await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
-    await expectPublishedPreview(page, expectedPreview, publishedSource);
-    await page.locator("[data-back]").click();
-    await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
-    await expectPublishedPreview(page, expectedPreview, publishedSource);
-  });
-}
-
-test("a saved project restores its published preview identity on Steps 3–5", async ({ page }) => {
-  const expectedPreview = publishedPreviewFor("drawer-shelves", "door-wall");
-  await openFreshProject(page);
-  await continueToReview(page, "Door Wall", "Drawers + Shelves");
-  const { image } = await expectPublishedPreview(page, expectedPreview);
-  const publishedSource = await image.getAttribute("src");
-
-  await page.locator("[data-save-project]").click();
-  const saveDialog = page.locator("[data-save-dialog]");
-  await saveDialog.getByLabel("Project name").fill("Restored Photoreal Library");
-  await saveDialog.getByRole("button", { name: "Save Project", exact: true }).click();
-  const savedProjectId = await page.evaluate(() => (
-    JSON.parse(localStorage.getItem("jqGuidedConfiguratorProjectsV1") || "[]")[0]?.projectId
-  ));
-  expect(savedProjectId).toBeTruthy();
-
-  await page.goto(`configurator.html?project=${encodeURIComponent(savedProjectId)}#step-5`, {
-    waitUntil: "networkidle"
-  });
-  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
-  await expectPublishedPreview(page, expectedPreview, publishedSource);
-  await page.getByRole("button", { name: "Customization, completed" }).click();
-  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
-  await expectPublishedPreview(page, expectedPreview, publishedSource);
-  await page.locator("[data-back]").click();
-  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
-  await expectPublishedPreview(page, expectedPreview, publishedSource);
-});
-
-test("all ten bookcase layouts keep architectural dimension lines and labels valid at desktop and iPad landscape sizes", async ({ page }) => {
-  test.slow();
-
-  for (const viewport of [
-    { width: 1280, height: 720 },
-    { width: 1180, height: 820 }
-  ]) {
-    await page.setViewportSize(viewport);
-    await openFreshProject(page);
-    await continueToLayouts(page);
-
-    for (const roomLayout of sharedLayouts) {
-      const expectedDimensions = bookcaseMeasurementDimensions[roomLayout.id];
-      await chooseLayout(page, roomLayout.label);
-      await page.locator("[data-continue]").click();
-
-      await expectPublishedPreview(
-        page,
-        publishedPreviewFor("cabinet-shelves", roomLayout.id)
-      );
-      const guidance = page.locator("[data-measurement-guidance]");
-      await guidance.locator("summary").click();
-      await expect(guidance).toHaveAttribute("open", "");
-
-      const room = page.locator(`.measurement-room[data-layout="${roomLayout.id}"]`);
-      const drawing = room.locator("[data-dimension-drawing]");
-      const spans = drawing.locator("[data-dimension-span]");
-      const labels = room.locator("[data-dimension-label]");
-      const context = `${viewport.width}x${viewport.height} ${roomLayout.label}`;
-
-      await expect(room, `${context} room`).toBeVisible();
-      await expect(room).toHaveClass(/measurement-room--static-guidance/);
-      await expect(room.locator(".guided-3d-mount, canvas")).toHaveCount(0);
-      await expect(drawing, `${context} drawing`).toBeVisible();
-      await expect(spans, `${context} spans`).toHaveCount(expectedDimensions.length);
-      await expect(labels, `${context} labels`).toHaveCount(expectedDimensions.length);
-      expect(
-        await spans.evaluateAll((elements) => elements.map((element) => [
-          element.dataset.dimensionSpan,
-          element.dataset.dimensionCode
-        ])),
-        `${context} ordered fields and codes`
-      ).toEqual(expectedDimensions);
-      expect(
-        await labels.evaluateAll((elements) => elements.map((element) => [
-          element.dataset.dimensionLabel,
-          element.dataset.dimensionCode
-        ])),
-        `${context} ordered label fields and codes`
-      ).toEqual(expectedDimensions);
-
-      const geometry = await room.evaluate((element, expectedCount) => {
-        const tolerance = 1;
-        const roomRect = element.getBoundingClientRect();
-        const drawingElement = element.querySelector("[data-dimension-drawing]");
-        const spanElements = [...element.querySelectorAll("[data-dimension-span]")];
-        const visibleLabels = [...element.querySelectorAll("[data-dimension-label] .measurement-annotation-copy")]
-          .filter((label) => {
-            const style = getComputedStyle(label);
-            const rect = label.getBoundingClientRect();
-            return (
-              style.display !== "none"
-              && style.visibility !== "hidden"
-              && Number(style.opacity) > 0
-              && rect.width > 0
-              && rect.height > 0
-            );
-          })
-          .map((label) => {
-            const rect = label.getBoundingClientRect();
-            return {
-              fieldId: label.closest("[data-dimension-label]").dataset.dimensionLabel,
-              left: rect.left,
-              right: rect.right,
-              top: rect.top,
-              bottom: rect.bottom
-            };
-          });
-        const overlaps = (first, second) => (
-          first.left < second.right - tolerance
-          && first.right > second.left + tolerance
-          && first.top < second.bottom - tolerance
-          && first.bottom > second.top + tolerance
-        );
-        const lineLength = (line) => {
-          const matrix = line.getScreenCTM();
-          const point = (x, y) => {
-            const svgPoint = line.ownerSVGElement.createSVGPoint();
-            svgPoint.x = x;
-            svgPoint.y = y;
-            return svgPoint.matrixTransform(matrix);
-          };
-          const start = point(line.x1.baseVal.value, line.y1.baseVal.value);
-          const end = point(line.x2.baseVal.value, line.y2.baseVal.value);
-          return Math.hypot(end.x - start.x, end.y - start.y);
-        };
-        const spanReports = spanElements.map((span) => {
-          const fieldId = span.dataset.dimensionSpan;
-          const line = span.querySelector(`[data-dimension-line="${CSS.escape(fieldId)}"]`);
-          const extensions = [...span.querySelectorAll(`[data-dimension-extension="${CSS.escape(fieldId)}"]`)];
-          const lineStyle = getComputedStyle(line);
-          return {
-            fieldId,
-            endStyle: span.dataset.dimensionEndStyle,
-            lineCount: span.querySelectorAll(`[data-dimension-line="${CSS.escape(fieldId)}"]`).length,
-            extensionCount: extensions.length,
-            ticks: extensions.map((extension) => extension.dataset.dimensionTick),
-            endTickCount: extensions.filter((extension) => extension.classList.contains("is-end-tick")).length,
-            arrowCount: span.querySelectorAll("[data-dimension-end]").length,
-            nestedLabelCount: span.querySelectorAll(":scope [data-dimension-label]").length,
-            visibleStroke: lineStyle.stroke !== "none" && Number(lineStyle.opacity) > 0,
-            lineLength: lineLength(line)
-          };
-        });
-        const overlappingPairs = visibleLabels.flatMap((first, index) => (
-          visibleLabels.slice(index + 1)
-            .filter((second) => overlaps(first, second))
-            .map((second) => `${first.fieldId}/${second.fieldId}`)
-        ));
-
-        return {
-          expectedCount,
-          drawingInsideRoom: (() => {
-            const rect = drawingElement.getBoundingClientRect();
-            return (
-              rect.left >= roomRect.left - tolerance
-              && rect.right <= roomRect.right + tolerance
-              && rect.top >= roomRect.top - tolerance
-              && rect.bottom <= roomRect.bottom + tolerance
-            );
-          })(),
-          oneResponsiveOverlay: element.querySelectorAll(":scope > svg[data-dimension-overlay]").length === 1,
-          finiteArchitecturalViewBox: (() => {
-            const viewBox = drawingElement.viewBox.baseVal;
-            return Number.isFinite(viewBox.width)
-              && Number.isFinite(viewBox.height)
-              && viewBox.width > 0
-              && viewBox.height > 0;
-          })(),
-          responsiveTransform: drawingElement.getAttribute("preserveAspectRatio") === "xMidYMid slice",
-          pointerEventsDisabled: (
-            getComputedStyle(drawingElement).pointerEvents === "none"
-            && spanElements.every((span) => getComputedStyle(span).pointerEvents === "none")
-          ),
-          visibleLabelCount: visibleLabels.length,
-          labelsInsideRoom: visibleLabels.every((rect) => (
-            rect.left >= roomRect.left - tolerance
-            && rect.right <= roomRect.right + tolerance
-            && rect.top >= roomRect.top - tolerance
-            && rect.bottom <= roomRect.bottom + tolerance
-          )),
-          overlappingPairs,
-          spanReports,
-          horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
-          verticalOverflow: document.documentElement.scrollHeight - window.innerHeight
-        };
-      }, expectedDimensions.length);
-
-      expect(geometry.drawingInsideRoom, `${context} drawing stays inside room`).toBe(true);
-      expect(geometry.oneResponsiveOverlay, `${context} uses one SVG overlay`).toBe(true);
-      expect(geometry.finiteArchitecturalViewBox, `${context} SVG keeps a finite authored viewBox`).toBe(true);
-      expect(geometry.responsiveTransform, `${context} SVG keeps one responsive transform`).toBe(true);
-      expect(geometry.pointerEventsDisabled, `${context} overlay ignores pointer events`).toBe(true);
-      expect(geometry.visibleLabelCount, `${context} visible label count`).toBe(expectedDimensions.length);
-      expect(geometry.labelsInsideRoom, `${context} labels stay inside room`).toBe(true);
-      expect(geometry.overlappingPairs, `${context} labels do not overlap`).toEqual([]);
-      expect(geometry.horizontalOverflow, `${context} horizontal overflow`).toBeLessThanOrEqual(1);
-      if (viewport.width === 1280 && viewport.height === 720) {
-        expect(geometry.verticalOverflow, `${context} vertical overflow`).toBeLessThanOrEqual(1);
-      }
-      for (const span of geometry.spanReports) {
-        expect(span.lineCount, `${context} ${span.fieldId} main line`).toBe(1);
-        expect(span.extensionCount, `${context} ${span.fieldId} witness lines`).toBe(2);
-        expect(span.ticks, `${context} ${span.fieldId} witness endpoints`).toEqual(["start", "end"]);
-        expect(span.nestedLabelCount, `${context} ${span.fieldId} nested label`).toBe(1);
-        if (span.endStyle === "tick") {
-          expect(span.endTickCount, `${context} ${span.fieldId} architectural end ticks`).toBe(2);
-          expect(span.arrowCount, `${context} ${span.fieldId} omits arrowheads`).toBe(0);
-        } else {
-          expect(span.endStyle, `${context} ${span.fieldId} arrow end style`).toBe("arrow");
-          expect(span.arrowCount, `${context} ${span.fieldId} arrowheads`).toBe(2);
-        }
-        expect(span.visibleStroke, `${context} ${span.fieldId} stroke`).toBe(true);
-        expect(span.lineLength, `${context} ${span.fieldId} rendered line length`).toBeGreaterThan(10);
-      }
-
-      await page.locator("[data-back]").click();
-      await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
-    }
-  }
-});
-
-test("Door Wall dimension overlay stays on the measured architecture at desktop and iPad landscape sizes", async ({ page }) => {
-  for (const viewport of [
-    { width: 1280, height: 720 },
-    { width: 1180, height: 820 }
-  ]) {
-    await page.setViewportSize(viewport);
-    await openFreshProject(page);
-    await continueToLayouts(page);
-    await chooseLayout(page, "Door Wall");
-    await page.locator("[data-continue]").click();
-
-    await expectPublishedPreview(
-      page,
-      publishedPreviewFor("cabinet-shelves", "door-wall")
-    );
-    await page.locator("[data-measurement-guidance] > summary").click();
-
-    const room = page.locator('.measurement-room[data-layout="door-wall"]');
-    const drawing = room.locator("svg[data-dimension-overlay]");
-    const context = `${viewport.width}x${viewport.height} Door Wall`;
-    await expect(drawing, `${context} overlay`).toHaveCount(1);
-    await expect(room).toHaveClass(/measurement-room--static-guidance/);
-    await expect(room.locator(".guided-3d-mount, canvas")).toHaveCount(0);
-    await expect(drawing).toHaveAttribute("viewBox", "0 0 1536 1024");
-    await expect(drawing).toHaveAttribute("preserveAspectRatio", "xMidYMid slice");
-    await expect(room.locator(":scope > [data-dimension-label]")).toHaveCount(0);
-
-    const geometry = await room.evaluate((element) => {
-      const svg = element.querySelector("svg[data-dimension-overlay]");
-      const roomRect = element.getBoundingClientRect();
-      const sourcePoint = (x, y) => {
-        const point = svg.createSVGPoint();
-        point.x = x;
-        point.y = y;
-        const screenPoint = point.matrixTransform(svg.getScreenCTM());
-        return { x: screenPoint.x, y: screenPoint.y };
-      };
-      const lineReport = (fieldId) => {
-        const line = svg.querySelector(`[data-dimension-line="${CSS.escape(fieldId)}"]`);
-        const start = sourcePoint(line.x1.baseVal.value, line.y1.baseVal.value);
-        const end = sourcePoint(line.x2.baseVal.value, line.y2.baseVal.value);
-        return {
-          source: [
-            line.x1.baseVal.value,
-            line.y1.baseVal.value,
-            line.x2.baseVal.value,
-            line.y2.baseVal.value
-          ],
-          start,
-          end,
-          dx: end.x - start.x,
-          dy: end.y - start.y
-        };
-      };
-      const labels = [...svg.querySelectorAll("[data-dimension-label]")].map((label) => {
-        const rect = label.querySelector(".measurement-annotation-card").getBoundingClientRect();
-        return {
-          fieldId: label.dataset.dimensionLabel,
-          left: rect.left,
-          right: rect.right,
-          top: rect.top,
-          bottom: rect.bottom
-        };
-      });
-      const overlaps = (first, second) => (
-        first.left < second.right - 1
-        && first.right > second.left + 1
-        && first.top < second.bottom - 1
-        && first.bottom > second.top + 1
-      );
-      const openingTopLeft = sourcePoint(659, 279);
-      const openingBottomRight = sourcePoint(880, 758);
-      const doorOpening = {
-        left: openingTopLeft.x,
-        right: openingBottomRight.x,
-        top: openingTopLeft.y,
-        bottom: openingBottomRight.y
-      };
-      const rightFloorCorner = sourcePoint(1295, 758);
-
-      return {
-        lines: {
-          wallWidth: lineReport("wallWidth"),
-          ceilingHeight: lineReport("ceilingHeight"),
-          desiredDepth: lineReport("desiredDepth"),
-          doorWidth: lineReport("doorWidth"),
-          doorHeight: lineReport("doorHeight"),
-          doorLeftDistance: lineReport("doorLeftDistance")
-        },
-        labelsInsideRoom: labels.every((label) => (
-          label.left >= roomRect.left - 1
-          && label.right <= roomRect.right + 1
-          && label.top >= roomRect.top - 1
-          && label.bottom <= roomRect.bottom + 1
-        )),
-        labelOverlaps: labels.flatMap((first, index) => (
-          labels.slice(index + 1)
-            .filter((second) => overlaps(first, second))
-            .map((second) => `${first.fieldId}/${second.fieldId}`)
-        )),
-        labelsOverDoor: labels
-          .filter((label) => overlaps(label, doorOpening))
-          .map((label) => label.fieldId),
-        rightFloorCorner,
-        depthEndStyle: svg.querySelector('[data-dimension-span="desiredDepth"]').dataset.dimensionEndStyle,
-        depthTickCount: svg.querySelectorAll(
-          '[data-dimension-span="desiredDepth"] .measurement-dimension-extension.is-end-tick'
-        ).length,
-        depthArrowCount: svg.querySelectorAll(
-          '[data-dimension-span="desiredDepth"] [data-dimension-end]'
-        ).length,
-        trimDimensionCount: svg.querySelectorAll('[data-dimension-span="doorTrimWidth"]').length,
-        swingDimensionCount: svg.querySelectorAll('[data-dimension-span="doorSwing"]').length
-      };
-    });
-
-    expect(geometry.lines.wallWidth.source, `${context} wall-width source anchors`).toEqual([240, 178, 1295, 178]);
-    expect(geometry.lines.ceilingHeight.source, `${context} ceiling-height source anchors`).toEqual([270, 157, 270, 758]);
-    expect(geometry.lines.desiredDepth.source, `${context} depth source anchors`).toEqual([1295, 758, 1452, 840]);
-    expect(geometry.lines.doorWidth.source, `${context} door-width jamb anchors`).toEqual([659, 232, 880, 232]);
-    expect(geometry.lines.doorHeight.source, `${context} door-height opening anchors`).toEqual([940, 279, 940, 758]);
-    expect(geometry.lines.doorLeftDistance.source, `${context} left-distance trim anchors`).toEqual([240, 638, 639, 638]);
-    expect(Math.abs(geometry.lines.wallWidth.dy), `${context} wall width is horizontal`).toBeLessThan(0.01);
-    expect(Math.abs(geometry.lines.ceilingHeight.dx), `${context} ceiling height is vertical`).toBeLessThan(0.01);
-    expect(Math.abs(geometry.lines.doorWidth.dy), `${context} door width is horizontal`).toBeLessThan(0.01);
-    expect(Math.abs(geometry.lines.doorHeight.dx), `${context} door height is vertical`).toBeLessThan(0.01);
-    expect(Math.abs(geometry.lines.doorLeftDistance.dy), `${context} left distance is horizontal`).toBeLessThan(0.01);
-    expect(geometry.lines.desiredDepth.dx, `${context} depth moves forward`).toBeGreaterThan(0);
-    expect(geometry.lines.desiredDepth.dy, `${context} depth follows floor perspective`).toBeGreaterThan(0);
-    expect(
-      Math.abs(geometry.lines.desiredDepth.start.x - geometry.rightFloorCorner.x),
-      `${context} depth begins at the back-wall face`
-    ).toBeLessThan(0.01);
-    expect(
-      Math.abs(geometry.lines.desiredDepth.start.y - geometry.rightFloorCorner.y),
-      `${context} depth begins at the right wall-floor junction`
-    ).toBeLessThan(0.01);
-    expect(geometry.labelsInsideRoom, `${context} cards remain inside the room`).toBe(true);
-    expect(geometry.labelOverlaps, `${context} cards do not overlap`).toEqual([]);
-    expect(geometry.labelsOverDoor, `${context} cards do not cover the door opening`).toEqual([]);
-    expect(geometry.depthEndStyle, `${context} depth uses ticks`).toBe("tick");
-    expect(geometry.depthTickCount, `${context} depth endpoint ticks`).toBe(2);
-    expect(geometry.depthArrowCount, `${context} depth has no linear arrows`).toBe(0);
-    expect(geometry.trimDimensionCount, `${context} trim is not a long wall dimension`).toBe(0);
-    expect(geometry.swingDimensionCount, `${context} swing is not a linear dimension`).toBe(0);
-
-    const updates = new Map([
-      ["wallWidth", ["132", "132 in"]],
-      ["ceilingHeight", ["101", "101 in"]],
-      ["desiredDepth", ["16", "16 in"]],
-      ["doorWidth", ["38", "38 in"]],
-      ["doorHeight", ["84", "84 in"]],
-      ["doorLeftDistance", ["27", "27 in"]]
-    ]);
-    for (const [fieldId, [inputValue, expectedValue]] of updates) {
-      await page.locator(`[data-measurement="${fieldId}"]`).fill(inputValue);
-      await expect(
-        drawing.locator(`[data-dimension-label="${fieldId}"] [data-dimension-value]`),
-        `${context} ${fieldId} value`
-      ).toHaveText(expectedValue);
-    }
-  }
-});
-
-test("landscape tablet keeps Steps 1–5 and every navigation action in one screen", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 720 });
-  await openFreshProject(page);
-  await chooseProduct(page);
-  const stepOneOverflow = await page.evaluate(() => ({
-    horizontal: document.documentElement.scrollWidth - window.innerWidth,
-    vertical: document.documentElement.scrollHeight - window.innerHeight
-  }));
-  expect(stepOneOverflow.horizontal).toBeLessThanOrEqual(1);
-  expect(stepOneOverflow.vertical).toBeLessThanOrEqual(1);
-
-  await page.locator("[data-continue]").click();
-  const stepTwoOverflow = await page.evaluate(() => ({
-    horizontal: document.documentElement.scrollWidth - window.innerWidth,
-    vertical: document.documentElement.scrollHeight - window.innerHeight
-  }));
-  expect(stepTwoOverflow.horizontal).toBeLessThanOrEqual(1);
-  expect(stepTwoOverflow.vertical).toBeLessThanOrEqual(1);
-  const layoutRows = await page.locator("[data-layout]").evaluateAll((cards) => (
-    cards
-      .map((card) => card.getBoundingClientRect().top)
-      .sort((a, b) => a - b)
-      .reduce((rows, top) => {
-        if (!rows.some((rowTop) => Math.abs(rowTop - top) <= 2)) rows.push(top);
-        return rows;
-      }, [])
-  ));
-  expect(layoutRows).toHaveLength(2);
-  await expect(page.locator(".layout-illustration--sprite")).toHaveCount(0);
-  const roomImages = page.locator(".layout-grid .layout-illustration img");
-  await expect(roomImages).toHaveCount(10);
-  await expect.poll(() => roomImages.evaluateAll((images) => (
-    images.every((image) => image.complete && image.naturalWidth > 0)
-  ))).toBe(true);
-
-  await chooseLayout(page, "Clear Wall");
-  await page.locator("[data-continue]").click();
-  const expectedPreview = publishedPreviewFor("cabinet-shelves", "clear-wall");
-  await expectPublishedPreview(page, expectedPreview);
-  await expectMeasurementWorkspaceInOneScreen(page, "1280x720 Clear Wall Room & Size");
-
-  const measurementGuidance = page.locator("[data-measurement-guidance]");
-  await measurementGuidance.locator("summary").click();
-  await expect(measurementGuidance).toHaveAttribute("open", "");
-  await expectOpenedMeasurementGuideInOneScreen(
-    page,
-    "1280x720 Clear Wall opened measurement guide"
-  );
-  await measurementGuidance.locator("summary").click();
-  await expect(measurementGuidance).not.toHaveAttribute("open", "");
-  await expectPublishedPreview(page, expectedPreview);
-
-  await page.locator("[data-continue]").click();
-  await expectCustomizationWorkspaceInOneScreen(page, "1280x720 Clear Wall Customization");
-  await expectPublishedPreview(page, expectedPreview);
-
-  for (const tab of ["Details", "Finish"]) {
-    await page.getByRole("tab", { name: tab }).click();
-    await expectCustomizationWorkspaceInOneScreen(
-      page,
-      "1280x720 Clear Wall " + tab + " tab"
-    );
-    await expectPublishedPreview(page, expectedPreview);
-  }
-
-  await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
-  await expectReviewWorkspaceInOneScreen(page, "1280x720 Clear Wall Review");
-  await expectPublishedPreview(page, expectedPreview);
-});
-
-test("product, finish, compatibility, accepted geometry, and review summary stay synchronized", async ({ page }) => {
-  await forcePublishedPreviewLoadFailure(page);
-  await openFreshProject(page);
-  await continueToLayouts(page);
-  await chooseLayout(page, "Clear Wall");
-  await page.locator("[data-continue]").click();
-  await page.locator('[data-measurement="wallWidth"]').fill("132.25");
-  await page.locator("[data-continue]").click();
-
-  const customizationPreview = page.locator(".concept-preview");
-  await expect(customizationPreview).toHaveAttribute("data-style", "cabinet-base-shelves");
-  const canvas = await expectAcceptedGeometryPreview(customizationPreview);
-  const geometryFingerprint = await canvas.getAttribute("data-geometry-fingerprint");
-  const geometryRebuildCount = await canvas.getAttribute("data-geometry-rebuild-count");
-  const materialUpdateCount = Number(await canvas.getAttribute("data-material-update-count"));
-
+  await continueToCustomization(page);
+  let canvas = await expectAcceptedScene(page);
+  const instance = await canvas.getAttribute("data-guided-3d-instance");
+  const geometryBefore = await canvas.getAttribute("data-geometry-fingerprint");
+  const rebuildsBefore = await canvas.getAttribute("data-geometry-rebuild-count");
+  const materialsBefore = Number(await canvas.getAttribute("data-material-update-count"));
   await page.getByRole("tab", { name: "Finish" }).click();
-  await page.getByRole("button", { name: "Charcoal", exact: true }).click();
-  await expect(customizationPreview).toHaveAttribute("data-finish", "charcoal");
-  await expect(customizationPreview).toHaveAttribute("data-finish-family", "paint");
-  await expect(customizationPreview.locator(".concept-finish-caption")).toContainText("Charcoal");
+  await page.locator('[data-finish-key="paint"][data-finish="charcoal"]').click();
+  canvas = page.locator(".guided-3d-canvas");
+  await expect(canvas).toHaveAttribute("data-guided-3d-instance", instance);
+  await expect(canvas).toHaveAttribute("data-geometry-fingerprint", geometryBefore);
+  await expect(canvas).toHaveAttribute("data-geometry-rebuild-count", rebuildsBefore);
   await expect.poll(async () => Number(await canvas.getAttribute("data-material-update-count")))
-    .toBeGreaterThan(materialUpdateCount);
-  await expect(canvas).toHaveAttribute("data-geometry-fingerprint", geometryFingerprint);
-  await expect(canvas).toHaveAttribute("data-geometry-rebuild-count", geometryRebuildCount);
-  await expect(customizationPreview.locator("svg.concept-finish-overlay")).toHaveCount(0);
-
-  await page.getByRole("button", { name: "Zoom in" }).click();
-  await expect(page.locator("[data-concept-scene]")).toHaveCSS("--preview-scale", "1");
-  await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-rendered", "true");
-  await page.getByRole("button", { name: "Reset preview" }).click();
-
+    .toBeGreaterThan(materialsBefore);
   await page.getByRole("tab", { name: "Details" }).click();
-  await expect(page.getByRole("heading", { name: "Installation" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Hardware" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Door style" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Lighting" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Top treatment" })).toBeVisible();
   await page.locator('[data-detail-key="hardware"][data-detail="black-pull"]').click();
   await page.locator("[data-continue]").click();
-
   const summary = page.locator(".project-summary-card");
-  await expect(summary).toContainText("Bookcase");
-  await expect(summary).toContainText("Clear Wall");
-  await expect(summary).toContainText("132 1/4 in");
-  await expect(summary).toContainText("Cabinets + Shelves");
-  await expect(summary).toContainText("Charcoal");
-  await expect(summary).toContainText("Black Pull");
-  await expect(summary).toContainText(geometryFingerprint);
-  await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
-  await page.getByRole("button", { name: "Edit project notes" }).click();
-  await page.getByLabel("Notes for our design team").fill("Keep the original picture rail.");
-  await page.getByRole("button", { name: "Save Notes" }).click();
-  await expect(summary.locator('[data-summary-value="notes"]')).toHaveText("Keep the original picture rail.");
+  await expect(summary.locator('[data-summary-value="product"]')).toHaveText("Cabinets + Shelves");
+  await expect(summary.locator('[data-summary-value="layout"]')).toHaveText("Clear Wall");
+  await expect(summary.locator('[data-summary-value="finish"]')).toHaveText("Charcoal");
+  await expect(summary.locator('[data-summary-value="hardware"]')).toHaveText("Black Pull");
+  await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-guided-3d-instance", instance);
+  await page.locator('[data-edit-section="finish"]').click();
+  await expect(page.getByRole("tab", { name: "Finish" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator('[data-finish-key="paint"][data-finish="charcoal"]'))
+    .toHaveAttribute("aria-pressed", "true");
 });
 
-test("Clear Wall freestanding selection commits a distinct fractional accepted fit", async ({ page }) => {
-  await forcePublishedPreviewLoadFailure(page);
-  await openFreshProject(page);
-  await continueToLayouts(page);
-  await chooseLayout(page, "Clear Wall");
-  await page.locator("[data-continue]").click();
-  await page.locator('[data-measurement="wallWidth"]').fill("120");
-  await page.locator('[data-measurement="ceilingHeight"]').fill("96");
-  await page.locator('[data-measurement="desiredDepth"]').fill("14.25");
-  await page.locator("[data-continue]").click();
-
-  const canvas = await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
-  const fittedGeometry = await canvas.getAttribute("data-geometry-fingerprint");
-  const fittedSpecification = await canvas.getAttribute("data-specification-fingerprint");
-  await expect(page.locator("[data-accepted-fit-summary]")).toContainText("117 × 96 × 14 1/4 in");
-
-  await page.getByRole("tab", { name: "Details" }).click();
-  const freestandingChoice = page.locator(
-    '[data-detail-key="baseStyle"][data-detail="furniture-base"]'
-  );
-  await freestandingChoice.click();
-  await expect(freestandingChoice).toHaveAttribute("aria-pressed", "true");
-  await expect(canvas).not.toHaveAttribute("data-geometry-fingerprint", fittedGeometry);
-  await expect(canvas).not.toHaveAttribute("data-specification-fingerprint", fittedSpecification);
-  await expect(page.locator("[data-accepted-fit-summary]")).toContainText(
-    "119 × 95 1/2 × 14 1/4 in"
-  );
-  await expect(page.locator("[data-guided-engine-status]")).not.toContainText(
-    "Last accepted design preserved"
-  );
-
-  const freestandingGeometry = await canvas.getAttribute("data-geometry-fingerprint");
-  await page.locator("[data-continue]").click();
-  await expect(page.locator(".project-summary-card")).toContainText("Freestanding · No fillers");
-  await expect(page.locator(".project-summary-card")).toContainText(freestandingGeometry);
-  const reviewCanvas = await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
-  await expect(reviewCanvas).toHaveAttribute("data-geometry-fingerprint", freestandingGeometry);
-});
-
-test("automatic draft saving restores the active step and values after refresh", async ({ page }) => {
-  await openFreshProject(page);
-  await continueToLayouts(page);
-  await chooseLayout(page, "Fireplace Wall");
-  await page.locator("[data-continue]").click();
-  await page.locator('[data-measurement="wallWidth"]').fill("137 3/8");
-  await page.locator('[data-measurement="fireplaceWidth"]').fill("45.5");
-  await expect.poll(() => page.evaluate(() => {
-    const draft = JSON.parse(localStorage.getItem("jqGuidedConfiguratorDraftV1") || "null");
-    return {
-      currentStep: draft?.currentStep,
-      wallWidth: draft?.measurements?.wallWidth,
-      fireplaceWidth: draft?.measurements?.fireplaceWidth
-    };
-  })).toEqual({ currentStep: 3, wallWidth: 137.375, fireplaceWidth: 45.5 });
-  await page.reload({ waitUntil: "networkidle" });
-
-  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
-  await expect(page.locator('[data-measurement="wallWidth"]')).toHaveValue("137.38");
-  await expect(page.locator('[data-measurement="fireplaceWidth"]')).toHaveValue("45.5");
+test("five-step drafts and stale hashes normalize while Back and Forward remain stable", async ({ page }) => {
+  await seedStorage(page, { draft: legacyProject() });
+  await page.goto("configurator.html#step-5", { waitUntil: "networkidle" });
+  await expect(page).toHaveURL(/#step-4$/);
+  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Project steps" }).getByRole("button")).toHaveCount(4);
+  await page.locator('[data-edit-section="finish"]').click();
+  await expect(page).toHaveURL(/#step-3$/);
   await page.goBack();
-  await expect(page.getByRole("button", { name: /Fireplace Wall/ })).toHaveAttribute("aria-pressed", "true");
+  await expect(page).toHaveURL(/#step-4$/);
   await page.goForward();
-  await expect(page.locator('[data-measurement="fireplaceWidth"]')).toHaveValue("45.5");
+  await expect(page).toHaveURL(/#step-3$/);
+  const stored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), DRAFT_KEY);
+  expect(stored.schemaVersion).toBe(4);
+  expect(stored.currentStep).toBe(3);
+  expect(stored.maxVisitedStep).toBeLessThanOrEqual(4);
+  expect(stored).toMatchObject({ category: "bookcase", style: "cabinet-base-shelves" });
 });
 
-test("a rejected edit cannot overwrite the last accepted saved project or drift after reload", async ({ page }) => {
-  await forcePublishedPreviewLoadFailure(page);
+test("an invalid legacy review position is capped at Customization", async ({ page }) => {
+  await seedStorage(page, {
+    draft: legacyProject({
+      measurements: { wallWidth: null, ceilingHeight: 96, desiredDepth: 14 }
+    })
+  });
+  await page.goto("configurator.html#step-5", { waitUntil: "networkidle" });
+  await expect(page).toHaveURL(/#step-3$/);
+  await expect(page.getByRole("heading", { name: "Customize your fitted design" })).toBeVisible();
+  await expect(page.locator('[data-step="4"]')).toBeDisabled();
+  const stored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), DRAFT_KEY);
+  expect(stored.currentStep).toBe(3);
+  expect(stored.maxVisitedStep).toBe(3);
+});
+
+test("save, reload, My Projects, rename, duplicate, delete, and resume retain state", async ({ page }) => {
   await openFreshProject(page);
-  await continueToLayouts(page);
-  await chooseLayout(page, "Clear Wall");
-  await page.locator("[data-continue]").click();
-  await page.locator('[data-measurement="wallWidth"]').fill("132");
-  await page.locator("[data-continue]").click();
-
-  const acceptedCanvas = await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
-  const acceptedGeometryFingerprint = await acceptedCanvas.getAttribute("data-geometry-fingerprint");
-  const acceptedSpecificationFingerprint = await acceptedCanvas.getAttribute("data-specification-fingerprint");
-
-  await page.getByRole("button", { name: "Save Project", exact: true }).click();
-  const saveDialog = page.locator("[data-save-dialog]");
-  await saveDialog.getByLabel("Project name").fill("Atomic Library");
-  await saveDialog.getByRole("button", { name: "Save Project", exact: true }).click();
-  await expect(page.locator("[data-guided-toast]")).toContainText("was saved on this device");
-
-  await page.locator("[data-back]").click();
-  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
-  await page.locator('[data-measurement="wallWidth"]').fill("-1");
-  await expect(page.getByRole("button", { name: "Save Project", exact: true }))
-    .toHaveAttribute("data-persistence-state", "rejected-candidate");
-  await expect.poll(() => page.evaluate(() => (
-    JSON.parse(localStorage.getItem("jqGuidedConfiguratorDraftV1") || "null")
-      ?.measurements?.wallWidth
-  ))).toBe(132);
-
-  await page.getByRole("button", { name: "Save Project", exact: true }).click();
-  await expect(saveDialog).not.toBeVisible();
-  await expect(page.locator("[data-guided-toast]")).toContainText("GUIDED_SAVE_REJECTED_CANDIDATE");
-  await expect(page.getByRole("button", { name: "Save Project", exact: true }))
-    .toHaveAttribute("data-persistence-state", "rejected-candidate");
-
-  const storedBeforeReload = await page.evaluate(() => ({
-    draft: JSON.parse(localStorage.getItem("jqGuidedConfiguratorDraftV1")),
-    projects: JSON.parse(localStorage.getItem("jqGuidedConfiguratorProjectsV1"))
-  }));
-  expect(storedBeforeReload.draft.measurements.wallWidth).toBe(132);
-  expect(storedBeforeReload.projects[0].measurements.wallWidth).toBe(132);
-  expect(storedBeforeReload.projects[0].acceptedSnapshot.geometryFingerprint)
-    .toBe(acceptedGeometryFingerprint);
-  expect(storedBeforeReload.projects[0].acceptedSnapshot.specificationFingerprint)
-    .toBe(acceptedSpecificationFingerprint);
-
-  await page.reload({ waitUntil: "networkidle" });
-  await expect(page.locator('[data-measurement="wallWidth"]')).toHaveValue("132");
-  await page.locator("[data-continue]").click();
-  const reloadedCanvas = await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
-  await expect(reloadedCanvas).toHaveAttribute("data-geometry-fingerprint", acceptedGeometryFingerprint);
-  await expect(reloadedCanvas).toHaveAttribute("data-specification-fingerprint", acceptedSpecificationFingerprint);
-});
-
-test("inspiration presets apply once and then restore edits after refresh", async ({ page }) => {
-  await page.goto("configurator.html?preset=media-wall", { waitUntil: "networkidle" });
-  await expect(page.locator('[data-product-choice="tv-unit"]')).toHaveAttribute("aria-pressed", "true");
-  await expect(page).toHaveURL(/configurator\.html#step-1$/);
-  await page.locator("[data-continue]").click();
-  await expect(page.locator('button[data-layout="clear-wall"]')).toHaveAttribute("aria-pressed", "true");
-  await page.locator("[data-continue]").click();
-  await page.locator('[data-measurement="wallWidth"]').fill("129.5");
-  await expect.poll(() => page.evaluate(() => {
-    const draft = JSON.parse(localStorage.getItem("jqGuidedConfiguratorDraftV1") || "null");
-    return {
-      currentStep: draft?.currentStep,
-      category: draft?.category,
-      layout: draft?.layout,
-      wallWidth: draft?.measurements?.wallWidth
-    };
-  })).toEqual({ currentStep: 3, category: "tv-unit", layout: "clear-wall", wallWidth: 129.5 });
-  await page.reload({ waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
-  await expect(page.locator('[data-measurement="wallWidth"]')).toHaveValue("129.5");
-  await expect(page.locator('[data-measurement="tvScreenSize"]')).toBeVisible();
-});
-
-test("saved projects can be renamed, duplicated, deleted, and resumed", async ({ page }) => {
-  await openFreshProject(page);
-  await continueToLayouts(page);
-  await chooseLayout(page, "Niche Layout");
-  await page.getByRole("button", { name: "Save Project", exact: true }).click();
+  await continueToReview(page, "niche-layout");
+  await page.locator("[data-save-project]").click();
   const saveDialog = page.locator("[data-save-dialog]");
   await saveDialog.getByLabel("Project name").fill("Park Avenue Library");
   await saveDialog.getByRole("button", { name: "Save Project", exact: true }).click();
-
+  await expect(page.locator("[data-guided-toast]")).toContainText("saved on this device");
+  await page.reload({ waitUntil: "networkidle" });
+  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+  await expect(page.locator('[data-summary-value="layout"]')).toHaveText("Niche Layout");
   await page.getByRole("button", { name: "My Projects", exact: true }).click();
   const projectsDialog = page.locator("[data-projects-dialog]");
-  await expect(projectsDialog.getByText("Park Avenue Library", { exact: true })).toBeVisible();
   await projectsDialog.getByRole("button", { name: "Duplicate Park Avenue Library" }).click();
   await expect(projectsDialog.locator(".saved-project")).toHaveCount(2);
   await projectsDialog.getByRole("button", { name: "Rename Park Avenue Library", exact: true }).click();
   await saveDialog.getByLabel("Project name").fill("Garden Library");
   await saveDialog.getByRole("button", { name: "Save Project", exact: true }).click();
   await expect(projectsDialog.getByText("Garden Library", { exact: true })).toBeVisible();
-
   page.once("dialog", (dialog) => dialog.accept());
   await projectsDialog.getByRole("button", { name: "Delete Park Avenue Library Copy" }).click();
   await expect(projectsDialog.locator(".saved-project")).toHaveCount(1);
   await projectsDialog.getByRole("button", { name: "Resume Garden Library" }).click();
-  await expect(page.getByRole("button", { name: /Niche Layout/ })).toHaveAttribute("aria-pressed", "true");
-  await expect(page).toHaveURL(/project=JQ-/);
+  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+  await expect(page).toHaveURL(/project=JQ-.+#step-4$/);
 });
 
-test("blocked local storage never reports a project as saved", async ({ page }) => {
-  await page.addInitScript(() => {
-    Storage.prototype.setItem = () => {
-      throw new DOMException("Storage unavailable", "QuotaExceededError");
-    };
-  });
-  await openFreshProject(page);
-  await continueToLayouts(page);
-  await chooseLayout(page, "Clear Wall");
-  await page.getByRole("button", { name: "Save Project", exact: true }).click();
-  const dialog = page.locator("[data-save-dialog]");
-  await dialog.getByLabel("Project name").fill("Unsaved Library");
-  await dialog.getByRole("button", { name: "Save Project", exact: true }).click();
-  await expect(dialog).toBeVisible();
-  await expect(page.locator("[data-guided-toast]")).toContainText("couldn’t save this project");
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("jqGuidedConfiguratorProjectsV1"))).toBeNull();
-});
-
-test("the static quote path validates contact details and honestly prepares an email", async ({ page }) => {
+test("the non-transmitting quote preview keeps verified project prefill and privacy boundaries", async ({ page }) => {
   await openFreshProject(page);
   await continueToReview(page);
   await page.getByRole("button", { name: "Request a Quote" }).click();
@@ -2025,273 +473,124 @@ test("the static quote path validates contact details and honestly prepares an e
   await expect(dialog).toContainText("Online submission is not connected");
   await dialog.getByRole("button", { name: "Prepare Email Request" }).click();
   await expect(dialog.locator("[data-quote-error]")).toContainText("required contact details");
-
-  await fillQuoteContact(page);
-  await dialog.locator('[name="photos"]').setInputFiles({
-    name: "oversized-room.png",
-    mimeType: "image/png",
-    buffer: Buffer.alloc(10 * 1024 * 1024 + 1)
-  });
-  await dialog.getByRole("button", { name: "Prepare Email Request" }).click();
-  await expect(dialog.locator("[data-quote-error]")).toContainText("larger than 10 MB");
-  await dialog.locator('[name="photos"]').setInputFiles([]);
+  await fillQuoteContact(dialog);
   await dialog.getByRole("button", { name: "Prepare Email Request" }).click();
   await expect(dialog.locator("[data-quote-mode]")).toContainText("email draft is ready");
-  await expect(dialog.locator("[data-email-fallback]")).toHaveAttribute("href", /^mailto:info@jqwoodworking\.com/);
-  await expect(dialog.locator("[data-email-fallback]")).toHaveAttribute("href", /JQ%20Project%20Quote%20Request/);
+  await expect(dialog.locator("[data-email-fallback]")).toHaveAttribute("href", /Cabinets%20%2B%20Shelves/);
+  await expect(dialog.locator("[data-email-fallback]")).toHaveAttribute("href", /Clear%20Wall/);
 });
 
-test("a connected quote endpoint shows a real success state and project reference", async ({ page }) => {
-  await serveWithQuoteEndpoint(page, 200, { reference: "JQ-WEB-2607" });
-  await openFreshProject(page);
-  await continueToReview(page);
-  await page.getByRole("button", { name: "Request a Quote" }).click();
-  const dialog = await fillQuoteContact(page);
-  await dialog.getByRole("button", { name: "Send Quote Request" }).click();
-  await expect(dialog.locator("[data-quote-success]")).toContainText("Your project request was sent.");
-  await expect(dialog.locator("[data-quote-success]")).toContainText("JQ-WEB-2607");
-  await expect(dialog.locator("[data-quote-success]")).toContainText("design team will review");
-});
-
-test("a failed connected quote request keeps the project and reports an honest error", async ({ page }) => {
-  await serveWithQuoteEndpoint(page, 503, { error: "temporarily unavailable" });
-  await openFreshProject(page);
-  await continueToReview(page);
-  await page.getByRole("button", { name: "Request a Quote" }).click();
-  const dialog = await fillQuoteContact(page);
-  await dialog.getByRole("button", { name: "Send Quote Request" }).click();
-  await expect(dialog.locator("[data-quote-error]")).toContainText("couldn’t send your request");
-  await expect(dialog.locator("[data-quote-form]")).toBeVisible();
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("jqGuidedConfiguratorDraftV1"))).not.toBeNull();
-});
-
-test("keyboard interaction covers product and layout cards, tabs, completed steps, and menu dismissal", async ({ page }) => {
-  await openFreshProject(page);
-  const firstProduct = page.locator('[data-product-choice="cabinet-shelves"]');
-  await firstProduct.focus();
-  await expect(firstProduct).toBeFocused();
-  await page.keyboard.press("Space");
-  await expect(firstProduct).toHaveAttribute("aria-pressed", "true");
-  await page.locator("[data-continue]").click();
-  await expect(
-    page.getByRole("heading", { name: "Choose the room condition that matches your space" })
-  ).toBeFocused();
-
-  const firstLayout = page.getByRole("button", { name: "Niche Layout", exact: true });
-  await firstLayout.focus();
-  await expect(firstLayout).toBeFocused();
-  await page.keyboard.press("Enter");
-  await expect(page.locator('button[data-layout="niche-layout"]')).toHaveAttribute("aria-pressed", "true");
-  await page.locator("[data-continue]").click();
-  await page.locator("[data-continue]").click();
-
-  const finishTab = page.getByRole("tab", { name: "Finish" });
-  await finishTab.focus();
-  await finishTab.press("ArrowRight");
-  await expect(page.getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
-  await page.getByRole("button", { name: /Choose Layout, completed/ }).click();
-  await expect(page.getByRole("heading", { name: "Choose the room condition that matches your space" })).toBeVisible();
-
-  const menu = page.getByRole("button", { name: "Open menu" });
-  await menu.click();
-  await expect(page.getByRole("navigation", { name: "Configurator menu" })).toBeVisible();
-  await page.keyboard.press("Escape");
-  await expect(page.getByRole("navigation", { name: "Configurator menu" })).toBeHidden();
-  await expect(menu).toBeFocused();
-});
-
-test("one complete published-preview flow works for every product category", async ({ page }) => {
-  const compatibleLayout = {
-    "window-storage": "Window Wall",
-    "radiator-cover": "Window Wall"
-  };
-  for (const product of products) {
-    const layout = compatibleLayout[product.id] || "Clear Wall";
-    await openFreshProject(page);
-    await continueToReview(page, layout, product.label);
-    await expect(page.locator(".project-summary-card")).toContainText(product.label);
-    await expect(page.locator(".project-summary-card")).toContainText(layout);
-    const layoutId = sharedLayouts.find((candidate) => candidate.label === layout).id;
-    await expectPublishedPreview(page, publishedPreviewFor(product.id, layoutId));
-  }
-});
-
-test("representative topology branches preserve generated product identity through review and reload", async ({ page }) => {
-  const runtime = monitorRuntime(page);
-  await forcePublishedPreviewLoadFailure(page);
-  const cases = [
-    { product: "Cabinets + Shelves", style: "cabinet-base-shelves", layout: "Fireplace Wall", layoutId: "fireplace-wall" },
-    { product: "Drawers + Shelves", style: "drawer-base-shelves", layout: "Door Wall", layoutId: "door-wall" },
-    { product: "Full Open Shelving", style: "full-open-shelving", layout: "Between Openings", layoutId: "double-opening" },
-    {
-      product: "TV Unit",
-      style: "framed-tv-wall",
-      layout: "Right Niche",
-      layoutId: "right-niche",
-      measurements: { wallWidth: "144", nicheWidth: "120" }
-    },
-    { product: "Floating Storage", style: "floating-drawer-bank", layout: "Corner Wall", layoutId: "corner-wall" },
-    { product: "Window Storage", style: "window-seat-storage", layout: "Window Wall", layoutId: "window-wall" },
-    { product: "Radiator Cover", style: "clean-slat-cover", layout: "Window Wall", layoutId: "window-wall" }
-  ];
-
-  for (const entry of cases) {
-    await openFreshProject(page);
-    await continueToLayouts(page, entry.product);
-    await chooseLayout(page, entry.layout);
-    await page.locator("[data-continue]").click();
-    await expect(page.getByRole("heading", { name: "Tell us about your space" })).toBeVisible();
-    for (const [fieldId, value] of Object.entries(entry.measurements || {})) {
-      await page.locator(`[data-measurement="${fieldId}"]`).fill(value);
-    }
-    await page.locator("[data-continue]").click();
-
-    const preview = page.locator(".concept-preview");
-    await expect(preview).toHaveAttribute("data-layout", entry.layoutId);
-    await expect(preview).toHaveAttribute("data-style", entry.style);
-    const canvas = await expectAcceptedGeometryPreview(preview);
-    const geometryFingerprint = await canvas.getAttribute("data-geometry-fingerprint");
-    await expect(preview.locator("[data-layout-context]")).toHaveAttribute("data-layout-context", entry.layoutId);
-
-    await page.locator("[data-continue]").click();
-    const summary = page.locator(".project-summary-card");
-    await expect(summary).toContainText(entry.product);
-    await expect(summary).toContainText(entry.layout);
-    await expect(summary).toContainText(geometryFingerprint);
-    await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
-
-    await expect.poll(() => page.evaluate(() => {
-      const draft = JSON.parse(localStorage.getItem("jqGuidedConfiguratorDraftV1") || "null");
-      return {
-        currentStep: draft?.currentStep,
-        geometryFingerprint: draft?.acceptedSnapshot?.geometryFingerprint
-      };
-    })).toEqual({ currentStep: 5, geometryFingerprint });
-    await page.reload({ waitUntil: "networkidle" });
-    await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
-    const restored = await expectAcceptedGeometryPreview(page.locator(".concept-preview"));
-    await expect(restored).toHaveAttribute("data-geometry-fingerprint", geometryFingerprint);
-  }
-
-  expect(runtime).toEqual([]);
-});
-
-test("renderer failure is visible and fail-closed without substituting a concept image", async ({ page }) => {
-  await forcePublishedPreviewLoadFailure(page);
-  const obsoleteSceneRequests = [];
-  page.on("request", (request) => {
-    if (
-      (/\/assets\/photos\/configurator\/(?:integrated|furniture)\//.test(request.url()) && !/\.webp(?:\?|$)/.test(request.url()))
-      || /-finish-mask-/.test(request.url())
-    ) {
-      obsoleteSceneRequests.push(request.url());
-    }
-  });
+test("renderer failure is visible and fail-closed without substituting a photograph", async ({ page }) => {
   await page.route("**/guided-configurator-3d.js*", (route) => route.fulfill({
     contentType: "text/javascript",
     body: 'export function createGuidedSceneController() { throw new Error("WebGL unavailable in fail-closed test"); }'
   }));
-
   await openFreshProject(page);
-  await continueToLayouts(page, "TV Unit");
-  await chooseLayout(page, "Clear Wall");
-  await page.locator("[data-continue]").click();
-  await page.locator("[data-continue]").click();
-
+  await continueToCustomization(page);
   const preview = page.locator(".concept-preview");
   const scene = preview.locator('.concept-scene[data-guided3d-state="fallback"]');
   await expect(scene).toBeVisible();
-  await expect(preview).toHaveAttribute("data-preview-render-mode", "accepted-geometry");
-  await expect(preview).toHaveAttribute("data-accepted-specification", "true");
   await expect(scene.locator("[data-guided-engine-status] strong")).toHaveText("3D preview unavailable");
   await expect(scene.locator("[data-guided-engine-status]")).toContainText(
     "failed closed; no unrelated product or room image was substituted"
   );
-  await expect(preview.locator(
-    "picture.concept-photo, picture.concept-room-photo, img.concept-photo, img.concept-room-photo, img.concept-furniture-photo, svg.concept-finish-overlay"
-  )).toHaveCount(0);
-  await expect(preview.locator("canvas")).toHaveCount(0);
-
+  await expect(preview.locator("canvas, img.concept-photo, [data-published-preview-image]")).toHaveCount(0);
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
   await expect(page.locator('.concept-scene[data-guided3d-state="fallback"]')).toBeVisible();
-  await expect(page.locator(".concept-preview").locator(
-    "picture.concept-photo, img.concept-photo, svg.concept-finish-overlay"
-  )).toHaveCount(0);
-  expect(obsoleteSceneRequests).toEqual([]);
 });
 
-test("desktop, iPad, and phone layouts are overflow-free with usable mobile controls", async ({ page }) => {
-  for (const viewport of [
-    { width: 1920, height: 1080 },
-    { width: 1440, height: 900 },
-    { width: 1366, height: 768 },
-    { width: 1280, height: 720 },
-    { width: 1180, height: 820 },
-    { width: 820, height: 1180 },
-    { width: 390, height: 844 }
-  ]) {
-    await page.setViewportSize(viewport);
-    await openFreshProject(page);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), `${viewport.width}x${viewport.height}`).toBeLessThanOrEqual(1);
-  }
-
-  const productTargets = await page.locator("[data-product-choice]").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
-  expect(Math.min(...productTargets)).toBeGreaterThanOrEqual(44);
-  await expect(page.locator(".guided-step-label--mobile")).toHaveText(["Product", "Layout", "Size", "Finish", "Review"]);
-  await continueToLayouts(page, "Radiator Cover");
-  await expect(page.locator(".guided-category-nav")).toHaveCount(0);
-  await expect(page.locator(".layout-grid")).toHaveCSS("grid-template-columns", /.+ .+/);
-  const cardTargets = await page.locator("[data-layout]").evaluateAll((cards) => cards.map((card) => card.getBoundingClientRect().height));
-  expect(Math.min(...cardTargets)).toBeGreaterThanOrEqual(44);
-  await chooseLayout(page, "Window Wall");
-  await page.locator("[data-continue]").click();
-  await expectPublishedPreview(page, publishedPreviewFor("radiator-cover", "window-wall"));
-  await expect(page.locator("[data-dimension-chip]")).toHaveCount(6);
-  expect(await page.locator("[data-dimension-chip]").evaluateAll((chips) => (
-    chips.map((chip) => chip.dataset.dimensionChip)
-  ))).toEqual(["wallWidth", "ceilingHeight", "desiredDepth", "windowWidth", "windowHeight", "sillHeight"]);
-  const mobileOrder = await page.evaluate(() => {
-    const preview = document.querySelector(".concept-preview").getBoundingClientRect();
-    const form = document.querySelector(".measurement-panel").getBoundingClientRect();
-    const actions = document.querySelector(".guided-actions");
-    const information = document.querySelector(".guided-info").getBoundingClientRect();
-    const actionsRect = actions.getBoundingClientRect();
-    const style = getComputedStyle(actions);
-    return {
-      previewBeforeForm: preview.top < form.top,
-      actionsPosition: style.position,
-      actionsBottom: style.bottom,
-      actionsFollowContent: actionsRect.top >= information.bottom - 1
-    };
-  });
-  expect(mobileOrder.previewBeforeForm).toBe(true);
-  expect(mobileOrder.actionsPosition).toBe("static");
-  expect(mobileOrder.actionsBottom).toBe("auto");
-  expect(mobileOrder.actionsFollowContent).toBe(true);
-  await expectNoHorizontalOverflow(page, [
-    ".measurement-panel",
-    ".concept-preview",
-    ".measurement-guidance",
-    ".guided-info",
-    ".guided-actions"
-  ]);
-  await page.screenshot({ path: "test-results/guided-configurator-phone.png", fullPage: true });
-  await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Refine your concept" })).toBeVisible();
-  await expectNoHorizontalOverflow(page, [
-    ".customization-panel",
-    ".concept-preview",
-    ".customization-actions"
-  ]);
-
-  await page.setViewportSize({ width: 1280, height: 720 });
+test("keyboard and focus behavior covers cards, tabs, completed steps, and menu dismissal", async ({ page }) => {
   await openFreshProject(page);
-  await continueToLayouts(page);
-  await chooseLayout(page, "Clear Wall");
+  const product = page.locator('[data-product-choice="cabinet-shelves"]');
+  await product.focus();
+  await page.keyboard.press("Space");
+  await expect(product).toHaveAttribute("aria-pressed", "true");
   await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeFocused();
+  const layout = page.locator('[data-layout="niche-layout"]');
+  await layout.focus();
+  await page.keyboard.press("Enter");
+  await expect(layout).toHaveAttribute("aria-pressed", "true");
   await page.locator("[data-continue]").click();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), "1280x720 customization").toBeLessThanOrEqual(1);
-  await page.locator("[data-continue]").click();
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), "1280x720 review").toBeLessThanOrEqual(1);
+  await expect(page.getByRole("heading", { name: "Customize your fitted design" })).toBeFocused();
+  const dimensions = page.getByRole("tab", { name: "Dimensions" });
+  await dimensions.focus();
+  await dimensions.press("ArrowRight");
+  await expect(page.getByRole("tab", { name: "Finish" })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("tab", { name: "Finish" }).press("End");
+  await expect(page.getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
+  await page.getByRole("button", { name: /Choose Layout, completed/ }).click();
+  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
+  const menuButton = page.getByRole("button", { name: "Open menu" });
+  await menuButton.click();
+  await expect(page.getByRole("navigation", { name: "Configurator menu" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("navigation", { name: "Configurator menu" })).toBeHidden();
+  await expect(menuButton).toBeFocused();
+});
+
+test("desktop, tablet, and phone Customization layouts are overflow-free and keep the preview useful", async ({ page }) => {
+  for (const viewport of [
+    { name: "desktop", width: 1440, height: 900 },
+    { name: "tablet", width: 1024, height: 768 },
+    { name: "phone", width: 390, height: 844 }
+  ]) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await openFreshProject(page);
+    await continueToCustomization(page, "window-wall");
+    await expectAcceptedScene(page);
+    const geometry = await page.evaluate(() => {
+      const preview = document.querySelector(".concept-preview").getBoundingClientRect();
+      const controls = document.querySelector(".customization-controls-column").getBoundingClientRect();
+      const actions = [...document.querySelectorAll(".customization-actions .guided-button")]
+        .map((button) => button.getBoundingClientRect());
+      return {
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        preview: { top: preview.top, bottom: preview.bottom, width: preview.width, height: preview.height },
+        controls: { top: controls.top, width: controls.width },
+        actionMinHeight: Math.min(...actions.map(({ height }) => height))
+      };
+    });
+    expect(geometry.overflow, viewport.name).toBeLessThanOrEqual(1);
+    expect(geometry.preview.width, viewport.name).toBeGreaterThan(viewport.name === "phone" ? 340 : 480);
+    expect(geometry.preview.height, viewport.name).toBeGreaterThanOrEqual(viewport.name === "phone" ? 360 : 490);
+    expect(geometry.actionMinHeight, viewport.name).toBeGreaterThanOrEqual(44);
+    if (viewport.name === "desktop") {
+      expect(geometry.preview.bottom).toBeLessThanOrEqual(viewport.height + 1);
+      expect(geometry.preview.width).toBeGreaterThan(geometry.controls.width);
+      await page.screenshot({
+        path: "test-results/public-four-step-configurator-customization-desktop.png",
+        fullPage: true
+      });
+    }
+    if (viewport.name === "phone") expect(geometry.preview.top).toBeLessThan(geometry.controls.top);
+  }
+});
+
+test("the supported four-step path has no serious accessibility violations", async ({ page }) => {
+  await openFreshProject(page);
+  let results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  expect(results.violations.filter(({ impact }) => ["critical", "serious"].includes(impact))).toEqual([]);
+  await continueToCustomization(page, "door-wall");
+  await expectAcceptedScene(page);
+  results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  expect(results.violations.filter(({ impact }) => ["critical", "serious"].includes(impact))).toEqual([]);
+});
+
+test("the complete public flow makes no forbidden remote or preview-matrix requests", async ({ page }) => {
+  const runtime = monitorRuntime(page);
+  const remoteRequests = [];
+  const matrixRequests = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (!["127.0.0.1", "localhost"].includes(url.hostname)) remoteRequests.push(request.url());
+    if (url.pathname.includes("/assets/photos/configurator/photoreal-matrix/")) matrixRequests.push(request.url());
+  });
+  await openFreshProject(page);
+  await continueToReview(page, "double-opening");
+  await expectAcceptedScene(page);
+  expect(remoteRequests).toEqual([]);
+  expect(matrixRequests).toEqual([]);
+  expect(runtime).toEqual([]);
 });

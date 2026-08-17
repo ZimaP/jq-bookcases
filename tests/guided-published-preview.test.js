@@ -134,7 +134,7 @@ test("the tracked website asset is the exact unrecompressed Phase 7 WebP", async
   assert.deepEqual(readWebpDimensions(bytes), { width: 1920, height: 1280 });
 });
 
-test("Steps 3–5 share one policy-gated published-preview path with technical-viewer fallback", async () => {
+test("the four-step public path always uses the accepted 3D viewer while dormant preview evidence stays excluded", async () => {
   const [registrySource, generatedSource, configuratorSource, dataSource, cssSource, htmlSource] = await Promise.all([
     readFile(join(REPOSITORY_ROOT, "guided-published-preview-data.js"), "utf8"),
     readFile(join(REPOSITORY_ROOT, "guided-published-preview-registry.generated.js"), "utf8"),
@@ -156,34 +156,23 @@ test("Steps 3–5 share one policy-gated published-preview path with technical-v
   assert.match(registrySource, /approvedPublishedPreviewKeys: Object\.freeze\(\[\]\)/);
   assert.match(registrySource, /function resolveApprovedPublishedCustomerPreview/);
   assert.doesNotMatch(registrySource, /Object\.entries\(preview\.match\)/);
-  assert.match(configuratorSource, /function resolveCurrentPublishedPreview\(currentProject = project\)/);
-  assert.match(configuratorSource, /resolveApprovedPublishedCustomerPreview/);
-  assert.match(configuratorSource, /isInternalPublishedPreviewAuditEnabled/);
-  assert.match(configuratorSource, /window\.navigator\.webdriver !== true/);
-  assert.match(configuratorSource, /renderMeasurementStep\(publishedPreview\)/);
-  assert.match(configuratorSource, /renderCustomizationStep\(publishedPreview\)/);
-  assert.match(configuratorSource, /renderReviewStep\(publishedPreview\)/);
-  assert.match(configuratorSource, /renderConceptPreview\(\{ publishedPreview, includeFitSummary: false \}\)/);
-  assert.match(configuratorSource, /renderConceptPreview\(\{ publishedPreview \}\)/);
+  assert.doesNotMatch(configuratorSource, /guided-published-preview-data/);
+  assert.doesNotMatch(configuratorSource, /resolveApprovedPublishedCustomerPreview/);
+  assert.doesNotMatch(configuratorSource, /isInternalPublishedPreviewAuditEnabled/);
+  assert.match(configuratorSource, /if \(project\.currentStep === 3\) return renderCustomizationStep\(\)/);
+  assert.match(configuratorSource, /return renderReviewStep\(\)/);
+  assert.match(configuratorSource, /data-preview-render-mode="accepted-geometry"/);
+  assert.match(configuratorSource, /data-guided-3d-mode="accepted-specification"/);
+  assert.match(configuratorSource, /renderConceptPreview\(\)/);
   assert.doesNotMatch(configuratorSource, /customerPresentation/);
-  assert.match(configuratorSource, /data-preview-render-mode="\$\{publishedPreview \? "published-photoreal" : "accepted-geometry"\}"/);
-  assert.match(configuratorSource, /class="published-customer-preview-image"/);
-  assert.match(configuratorSource, /data-published-preview-image/);
-  assert.match(configuratorSource, /failedPublishedPreviewIds/);
-  assert.match(configuratorSource, /markPublishedPreviewFailed/);
+  assert.doesNotMatch(configuratorSource, /published-customer-preview-image/);
+  assert.doesNotMatch(configuratorSource, /data-published-preview-image/);
+  assert.doesNotMatch(configuratorSource, /failedPublishedPreviewIds/);
   assert.match(configuratorSource, /options\.staticGuidance \? "" :/);
-  assert.match(configuratorSource, /: renderMeasurementDiagram\(measurementDiagramFields, selectedLayout\)/);
-  assert.match(configuratorSource, /Photoreal preview/);
-  assert.match(configuratorSource, /width="\$\{preview\.width\}"/);
-  assert.match(configuratorSource, /height="\$\{preview\.height\}"/);
-  assert.match(cssSource, /\.guided-shell:is\([\s\S]+\.guided-shell--step-3,[\s\S]+\.guided-shell--step-4,[\s\S]+\.guided-shell--step-5[\s\S]+\.concept-preview\.concept-preview--published-beauty/);
-  assert.match(cssSource, /\.measurement-diagram-column--preview/);
+  assert.match(configuratorSource, /renderMeasurementDiagram\(measurementDiagramFields, selectedLayout, \{ staticGuidance: true \}\)/);
+  assert.match(configuratorSource, /Live accepted design/);
+  assert.match(cssSource, /Public four-step configurator v1/);
   assert.match(cssSource, /\.measurement-guidance/);
-  assert.match(configuratorSource, /--published-preview-aspect-ratio:\$\{escapeAttribute\(publishedPreview\.aspectRatio\)\}/);
-  assert.match(configuratorSource, /--published-preview-media-fit:\$\{escapeAttribute\(publishedPreview\.mediaFit\)\}/);
-  assert.match(cssSource, /aspect-ratio: var\(--published-preview-aspect-ratio\)/);
-  assert.match(cssSource, /object-fit: var\(--published-preview-media-fit\)/);
-  assert.match(cssSource, /\.published-customer-preview-image \{[\s\S]+display: block;[\s\S]+width: 100%;[\s\S]+height: auto;/);
-  assert.match(htmlSource, /guided-configurator\.css\?v=universal-photoreal-preview-v1-20260803a/);
-  assert.match(htmlSource, /guided-configurator\.js\?v=visual-recovery-v1-20260804a/);
+  assert.match(htmlSource, /guided-configurator\.css\?v=public-four-step-v1-20260816a/);
+  assert.match(htmlSource, /guided-configurator\.js\?v=public-four-step-v1-20260816a/);
 });

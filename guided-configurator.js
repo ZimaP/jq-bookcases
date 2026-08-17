@@ -2,7 +2,9 @@ import { mountIcons } from "./icon-system.js?v=product-first-20260727a";
 import {
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
-  PRODUCT_CHOICES,
+  PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES,
+  PUBLIC_CONFIGURATOR_PRODUCT_CHOICES,
+  PUBLIC_CONFIGURATOR_PRODUCT_ID,
   SHARED_ROOM_LAYOUTS,
   getCategory,
   getCompatibleDetails,
@@ -12,8 +14,9 @@ import {
   getMeasurementFields,
   getProductChoice,
   getProductChoiceForSelection,
-  getStyle
-} from "./guided-configurator-data.js?v=luxury-configurator-engine-v1-20260802b";
+  getStyle,
+  isPublicConfiguratorProduct
+} from "./guided-configurator-data.js?v=public-four-step-v1-20260816a";
 import {
   buildProjectSummary,
   createProject,
@@ -23,14 +26,10 @@ import {
   parseInches,
   prepareMeasurementsForLayout,
   validateMeasurements
-} from "./guided-configurator-state.js?v=luxury-configurator-engine-v1-20260802b";
+} from "./guided-configurator-state.js?v=public-four-step-v1-20260816a";
 import {
   resolveProductLayoutCompatibility
 } from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
-import {
-  resolveApprovedPublishedCustomerPreview,
-  resolvePublishedCustomerPreview
-} from "./guided-published-preview-data.js?v=visual-recovery-v1-20260804a";
 import {
   createGuidedAcceptedSnapshot,
   prepareGuidedProjectPersistence,
@@ -40,12 +39,25 @@ import {
 } from "./guided-project-engine.js?v=fitted-slim-cap-return-v1-20260803a";
 
 const STEP_DEFINITIONS = Object.freeze([
-  Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "What would you like us to build?", description: "Start with the type of fitted furniture you need. We’ll shape it around your room in the next step." }),
-  Object.freeze({ id: 2, label: "Choose Layout", mobileLabel: "Layout", title: "Choose the room condition that matches your space", description: "Select the wall or room condition where your fitted furniture will be built." }),
-  Object.freeze({ id: 3, label: "Room & Size", mobileLabel: "Size", title: "Tell us about your space", description: "Enter the basic measurements so we can build a pre-designed concept for your wall." }),
-  Object.freeze({ id: 4, label: "Customization", mobileLabel: "Finish", title: "Refine your concept", description: "Choose the finish, hardware, and lighting for the design you selected." }),
-  Object.freeze({ id: 5, label: "Review & Details", mobileLabel: "Review", title: "Review your custom concept", description: "Check your selections and request a quote or save the project for later." })
+  Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "Choose your product", description: "Cabinets + Shelves is available in this public preview. More fitted-furniture options are coming soon." }),
+  Object.freeze({ id: 2, label: "Choose Layout", mobileLabel: "Layout", title: "Choose the layout that matches your space", description: "Select the wall layout you want to plan. Any measurements it needs will appear next." }),
+  Object.freeze({ id: 3, label: "Customization", mobileLabel: "Customize", title: "Customize your fitted design", description: "Adjust dimensions, finish, hardware, lighting, and details while the accepted 3D design stays in view." }),
+  Object.freeze({ id: 4, label: "Review & Details", mobileLabel: "Review", title: "Review your custom concept", description: "Check the same product, layout, dimensions, finish, and details before saving or preparing a quote." })
 ]);
+
+const GUIDED_DIAGNOSTIC_MESSAGES = Object.freeze({
+  MISSING_BASE_ROOM_DIMENSIONS: "Enter Wall Width, Ceiling Height, and Desired Built-In Depth to update the design.",
+  MISSING_FEATURE_MEASUREMENTS: "Complete the opening, obstacle, or return measurements required by this layout.",
+  MISSING_CORNER_RETURN: "Enter the corner return measurement required by this layout.",
+  NICHE_WIDTH_EXCEEDS_WALL: "Reduce the niche width or increase the wall width so the layout fits.",
+  FEATURE_INTERSECTION: "Adjust the opening or obstacle measurements so the fitted areas do not overlap.",
+  ROOM_WIDTH_RECONCILIATION_FAILED: "Review the wall and feature widths so they reconcile within the selected layout.",
+  OPENING_CLEARANCE_FAILED: "Increase the available clearance around the opening or choose a compatible layout.",
+  INSTALLATION_ZONE_TOO_NARROW: "Increase the available fitted width or choose a compatible layout.",
+  INSTALLATION_ZONE_TOO_SHORT: "Increase the available fitted height or choose a compatible layout.",
+  NO_COMPATIBLE_INSTALLATION_ZONE: "Adjust the room measurements or choose a layout with a compatible fitted area.",
+  CONFIGURATION_NOT_ACCEPTED: "Review the measurements for the selected layout before continuing."
+});
 
 const LEGACY_PRESET_MAP = Object.freeze({
   "media-wall": Object.freeze({ category: "tv-unit", layout: "clear-wall", style: "library-media" }),
@@ -82,8 +94,6 @@ const BOOKCASE_CONFIGURATION_DEFAULTS = Object.freeze({
   })
 });
 
-const INTERNAL_PUBLISHED_PREVIEW_AUDIT_STORAGE_KEY = "jqInternalPublishedPreviewAuditV1";
-
 const app = document.querySelector("[data-guided-app]");
 const store = createProjectStore();
 const quoteEndpointMeta = document.querySelector('meta[name="jq-quote-endpoint"]');
@@ -92,7 +102,7 @@ let project = initializeProject();
 const restoredAcceptedSpecification = project.acceptedSnapshot
   ? restoreGuidedAcceptedSnapshot(project, project.acceptedSnapshot)
   : null;
-let activeCustomizationTab = "finish";
+let activeCustomizationTab = "dimensions";
 let previewScale = 1;
 let saveDialogMode = "save";
 let renamingProjectId = null;
@@ -100,7 +110,6 @@ let toastTimer = 0;
 let draftTimer = 0;
 let storageWarningShown = false;
 const previewPreloadCache = new Set();
-const failedPublishedPreviewIds = new Set();
 let guidedSceneController = null;
 let guidedSceneImportPromise = null;
 let guidedSceneSyncToken = 0;
@@ -117,6 +126,8 @@ let guidedProjectTransaction = restoredAcceptedSpecification?.accepted
     }
   : null;
 
+normalizeInitialProjectReachability();
+
 if (app) {
   initializeStaticShell();
   renderApp();
@@ -126,6 +137,7 @@ if (app) {
   window.addEventListener("pagehide", (event) => {
     if (event.persisted) return;
     window.clearTimeout(guidedSceneMeasurementTimer);
+    app.dataset.measurementTimerOwnership = "0";
     guidedSceneController?.dispose?.();
     guidedSceneController = null;
   });
@@ -151,7 +163,7 @@ function initializeProject() {
   }
   if (!initial) initial = createProject();
 
-  if (preset) {
+  if (preset && isPublicConfiguratorProduct(preset.category, preset.style)) {
     initial = normalizeProject({
       ...initial,
       category: preset.category,
@@ -164,8 +176,20 @@ function initializeProject() {
     });
   }
 
-  const hashStep = Number(window.location.hash.match(/^#step-(\d)$/)?.[1]);
+  const migrationSource = initial.workflowMigrationSource;
+  const rawHashStep = Number(window.location.hash.match(/^#step-(\d+)$/)?.[1]);
+  const hashStep = normalizeWorkflowStep(rawHashStep, {
+    legacyFiveStep: migrationSource === "five-step" || migrationSource === "legacy-category-flow"
+  });
   if (hashStep >= 1 && hashStep <= Math.max(1, initial.maxVisitedStep || 1)) initial.currentStep = hashStep;
+
+  if (initial.productAvailability === "unavailable") {
+    // This is only the active working copy. The saved record in My Projects is
+    // left untouched until the customer explicitly renames, duplicates, or
+    // deletes it.
+    initial.currentStep = 1;
+    initial.maxVisitedStep = 1;
+  }
 
   if (explicitStart || preset) {
     params.delete("start");
@@ -178,6 +202,48 @@ function initializeProject() {
     );
   }
   return normalizeProject(initial);
+}
+
+function normalizeWorkflowStep(rawStep, options = {}) {
+  const step = Number(rawStep);
+  if (!Number.isFinite(step)) return null;
+  if (options.legacyFiveStep) {
+    if (step <= 1) return 1;
+    if (step === 2) return 2;
+    if (step <= 4) return 3;
+    return 4;
+  }
+  return Math.min(4, Math.max(1, step));
+}
+
+function normalizeInitialProjectReachability() {
+  if (project.currentStep < 4) return;
+  const transaction = transactGuidedProject(project, acceptedSpecification);
+  if (transaction.accepted) return;
+  project.currentStep = 3;
+  project.maxVisitedStep = Math.min(3, project.maxVisitedStep);
+  history.replaceState(
+    { step: 3 },
+    "",
+    `${window.location.pathname}${window.location.search}#step-3`
+  );
+}
+
+function isActivePublicProject(candidate = project) {
+  return candidate?.productSelected === true
+    && candidate.productAvailability === "available"
+    && isPublicConfiguratorProduct(candidate.category, candidate.style);
+}
+
+function getGuidedDiagnosticMessage(diagnostic) {
+  if (diagnostic?.message) return diagnostic.message;
+  return GUIDED_DIAGNOSTIC_MESSAGES[diagnostic?.code]
+    || "Review the measurements for the selected layout and correct the values before continuing.";
+}
+
+function formatGuidedDiagnostic(diagnostic) {
+  const code = diagnostic?.code || "CONFIGURATION_NOT_ACCEPTED";
+  return `${getGuidedDiagnosticMessage(diagnostic)} (${code})`;
 }
 
 function initializeStaticShell() {
@@ -223,6 +289,7 @@ function renderApp(options = {}) {
   if (!app) return;
   window.clearTimeout(guidedSceneMeasurementTimer);
   guidedSceneMeasurementTimer = 0;
+  app.dataset.measurementTimerOwnership = "0";
   syncAcceptedSpecification();
   const step = STEP_DEFINITIONS[project.currentStep - 1];
   app.innerHTML = `
@@ -280,14 +347,17 @@ function prepareCurrentProjectPersistence() {
 }
 
 function syncSaveControlState() {
-  const blocked = guidedProjectTransaction?.accepted === false;
+  const unavailableProduct = project.productAvailability === "unavailable";
+  const blocked = guidedProjectTransaction?.accepted === false || unavailableProduct;
   const diagnostic = guidedProjectTransaction?.errors?.[0];
   document.querySelectorAll("[data-guided-save], [data-save-project]").forEach((button) => {
     button.dataset.persistenceState = blocked ? "rejected-candidate" : "ready";
     if (blocked) {
       button.setAttribute(
         "title",
-        `${diagnostic?.message || "The current edit is not an accepted fitted design."} Save is unavailable until this edit is corrected.`
+        unavailableProduct
+          ? "This saved product is unavailable in the public preview. Its existing record remains in My Projects."
+          : `${getGuidedDiagnosticMessage(diagnostic)} Save is unavailable until this edit is corrected.`
       );
     } else {
       button.removeAttribute("title");
@@ -297,10 +367,8 @@ function syncSaveControlState() {
 
 function scheduleLikelyNextStepImages() {
   let assets = [];
-  const publishedPreview = resolveCurrentPublishedPreview(project);
-  if (publishedPreview) preloadPublishedPreview(publishedPreview);
 
-  if (project.currentStep === 1 && project.productSelected) {
+  if (project.currentStep === 1 && isActivePublicProject()) {
     assets = SHARED_ROOM_LAYOUTS.map((layout) => layout.previewAsset);
   }
 
@@ -308,24 +376,6 @@ function scheduleLikelyNextStepImages() {
   window.setTimeout(() => {
     [...new Set(assets)].forEach(preloadPreviewAsset);
   }, 0);
-}
-
-function preloadPublishedPreview(preview) {
-  if (!preview?.asset || failedPublishedPreviewIds.has(preview.previewId)) return;
-  const source = preview.asset;
-  if (previewPreloadCache.has(source)) return;
-  previewPreloadCache.add(source);
-  const image = new Image();
-  image.decoding = "async";
-  image.addEventListener("error", () => markPublishedPreviewFailed(preview.previewId), { once: true });
-  image.src = source;
-}
-
-function markPublishedPreviewFailed(previewId) {
-  if (!previewId || failedPublishedPreviewIds.has(previewId)) return;
-  const currentPreview = resolveCurrentPublishedPreview(project);
-  failedPublishedPreviewIds.add(previewId);
-  if (currentPreview?.previewId === previewId) renderApp();
 }
 
 function preloadPreviewAsset(asset) {
@@ -468,89 +518,84 @@ function renderCategoryIcon(icon) {
 }
 
 function renderCurrentStep() {
-  const publishedPreview = project.currentStep >= 3
-    ? resolveCurrentPublishedPreview(project)
-    : null;
   if (project.currentStep === 1) return renderProductStep();
   if (project.currentStep === 2) return renderLayoutStep();
-  if (project.currentStep === 3) return renderMeasurementStep(publishedPreview);
-  if (project.currentStep === 4) return renderCustomizationStep(publishedPreview);
-  return renderReviewStep(publishedPreview);
-}
-
-function resolveCurrentPublishedPreview(currentProject = project) {
-  const selectedProduct = getProductChoiceForSelection(
-    currentProject?.category,
-    currentProject?.style
-  );
-  const candidate = {
-    productId: selectedProduct?.id || null,
-    layoutId: currentProject?.layout || null,
-    finishId: currentProject?.finish || null
-  };
-  const resolver = isInternalPublishedPreviewAuditEnabled()
-    ? resolvePublishedCustomerPreview
-    : resolveApprovedPublishedCustomerPreview;
-  let preview = resolver(candidate);
-  if (preview?.finishOverrideId && failedPublishedPreviewIds.has(preview.previewId)) {
-    preview = resolver({ ...candidate, finishId: null });
-  }
-  return preview && !failedPublishedPreviewIds.has(preview.previewId)
-    ? preview
-    : null;
-}
-
-function isInternalPublishedPreviewAuditEnabled() {
-  if (window.navigator.webdriver !== true) return false;
-  if (!["localhost", "127.0.0.1", "::1"].includes(window.location.hostname)) return false;
-  try {
-    return window.sessionStorage.getItem(INTERNAL_PUBLISHED_PREVIEW_AUDIT_STORAGE_KEY) === "enabled";
-  } catch {
-    return false;
-  }
+  if (project.currentStep === 3) return renderCustomizationStep();
+  return renderReviewStep();
 }
 
 function renderProductStep() {
+  const availableChoice = PUBLIC_CONFIGURATOR_PRODUCT_CHOICES[0];
+  const category = getCategory(availableChoice.categoryId);
+  const style = getStyle(availableChoice.categoryId, availableChoice.styleId);
+  const selected = isActivePublicProject()
+    && availableChoice.categoryId === project.category
+    && availableChoice.styleId === project.style;
+  const unavailableSelection = project.productAvailability === "unavailable"
+    ? getProductChoiceForSelection(project.category, project.style)
+    : null;
   return `
-    <div class="product-grid product-grid--catalog" role="group" aria-label="Product choices">
-      ${PRODUCT_CHOICES.map((choice, index) => {
-        const category = getCategory(choice.categoryId);
-        const style = getStyle(choice.categoryId, choice.styleId);
-        const selected = project.productSelected
-          && choice.categoryId === project.category
-          && choice.styleId === project.style;
-        return `
+    ${unavailableSelection ? `
+      <aside class="unavailable-project-notice" role="status" data-unavailable-product>
+        <i data-icon="information" aria-hidden="true"></i>
+        <span><strong>${escapeHtml(unavailableSelection.label)} is not available in this preview.</strong> Your saved project remains in My Projects unchanged. Choose Cabinets + Shelves below to start a separate preview.</span>
+      </aside>
+    ` : ""}
+    <section class="available-product" aria-labelledby="available-product-title">
+      <div class="available-product-heading">
+        <span class="guided-eyebrow">Available now</span>
+        <h2 id="available-product-title">Cabinets + Shelves</h2>
+        <p>Open shelving with concealed lower cabinets, configured around one of the supported layouts.</p>
+      </div>
+      <button
+        class="product-card product-card--primary${selected ? " is-selected" : ""}"
+        type="button"
+        data-product-choice="${escapeAttribute(availableChoice.id)}"
+        data-product-category="${escapeAttribute(availableChoice.categoryId)}"
+        data-product-style="${escapeAttribute(style.id)}"
+        aria-pressed="${selected}"
+        aria-label="${escapeAttribute(`${availableChoice.label}${selected ? ", selected" : ""}`)}"
+      >
+        ${selected ? '<span class="choice-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
+        <span class="product-card-image" aria-hidden="true">
+          ${renderOptimizedPicture(style.previewAsset || category.productPreviewAsset, {
+            loading: "eager",
+            fetchPriority: "high",
+            style: `object-position:${availableChoice.previewPosition || "50% 50%"}`
+          })}
+        </span>
+        <span class="product-card-copy">
+          <span class="product-card-reference">${escapeHtml(availableChoice.drawingRef || category.label)}</span>
+          <span class="product-card-heading">
+            ${renderCategoryIcon(category.icon)}
+            <span class="product-card-title">${escapeHtml(availableChoice.label)}</span>
+          </span>
+          <span class="product-card-description">${escapeHtml(availableChoice.description)}</span>
+        </span>
+      </button>
+    </section>
+    <section class="coming-soon-products" aria-labelledby="coming-soon-title">
+      <div>
+        <span class="guided-eyebrow">Coming soon</span>
+        <h2 id="coming-soon-title">More fitted-furniture previews</h2>
+      </div>
+      <div class="coming-soon-list" aria-label="Products coming soon">
+        ${PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES.map((choice) => `
           <button
-            class="product-card${selected ? " is-selected" : ""}"
+            class="coming-soon-product"
             type="button"
-            data-product-choice="${escapeAttribute(choice.id)}"
-            data-product-category="${escapeAttribute(choice.categoryId)}"
-            data-product-style="${style.id}"
-            aria-pressed="${selected}"
-            aria-label="${escapeAttribute(choice.label)}"
+            data-coming-soon-product="${escapeAttribute(choice.id)}"
+            aria-label="${escapeAttribute(`${choice.label}, coming soon`)}"
+            disabled
           >
-            ${selected ? '<span class="choice-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
-            <span class="product-card-image" aria-hidden="true">
-              ${renderOptimizedPicture(style.previewAsset || category.productPreviewAsset, {
-                loading: "eager",
-                fetchPriority: index === 0 ? "high" : "low",
-                style: `object-position:${choice.previewPosition || "50% 50%"}`
-              })}
-            </span>
-            <span class="product-card-copy">
-              <span class="product-card-reference">${escapeHtml(choice.drawingRef || category.label)}</span>
-              <span class="product-card-heading">
-                ${renderCategoryIcon(category.icon)}
-                <span class="product-card-title">${escapeHtml(choice.label)}</span>
-              </span>
-              <span class="product-card-description">${escapeHtml(choice.description)}</span>
-            </span>
+            <span>${escapeHtml(choice.label)}</span>
+            <small>Coming soon</small>
           </button>
-        `;
-      }).join("")}
-    </div>
+        `).join("")}
+      </div>
+    </section>
     <div class="guided-actions">
-      <button class="guided-button guided-button-primary" type="button" data-continue ${project.productSelected ? "" : "disabled"}>
+      <button class="guided-button guided-button-primary" type="button" data-continue ${selected ? "" : "disabled"}>
         Continue <i data-icon="arrow-right" aria-hidden="true"></i>
       </button>
     </div>
@@ -572,14 +617,15 @@ function renderLayoutStep() {
       </span>
       <button type="button" data-step="1">Change product</button>
     </div>
-    <div class="layout-grid" role="group" aria-label="Room conditions">
-      ${SHARED_ROOM_LAYOUTS.map((layout) => {
-        const selected = layout.id === project.layout;
-        const compatibility = resolveProductLayoutCompatibility({
+    <div class="layout-grid" role="group" aria-label="Layout choices">
+      ${SHARED_ROOM_LAYOUTS.map((layout) => ({
+        layout,
+        compatibility: resolveProductLayoutCompatibility({
           project: { ...project, layout: layout.id },
           topology: { layoutId: layout.id }
-        });
-        const unavailable = compatibility.status === "unavailable";
+        })
+      })).filter(({ compatibility }) => compatibility.status !== "unavailable").map(({ layout, compatibility }) => {
+        const selected = layout.id === project.layout;
         const statusLabel = compatibility.status === "conditional"
           ? "Measurements required"
           : compatibility.status === "review-only" ? "Design review" : "";
@@ -590,12 +636,10 @@ function renderLayoutStep() {
             data-layout="${layout.id}"
             data-compatibility="${escapeAttribute(compatibility.status)}"
             aria-pressed="${selected}"
-            aria-label="${escapeAttribute(`${layout.label}${unavailable ? ", unavailable for this product" : statusLabel ? `, ${statusLabel}` : ""}`)}"
-            ${unavailable ? "disabled" : ""}
+            aria-label="${escapeAttribute(`${layout.label}${statusLabel ? `, ${statusLabel}` : ""}`)}"
           >
             ${selected ? '<span class="layout-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
             ${statusLabel ? `<span class="layout-compatibility-badge">${escapeHtml(statusLabel)}</span>` : ""}
-            ${unavailable ? '<span class="layout-compatibility-badge layout-compatibility-badge--unavailable">Unavailable</span>' : ""}
             ${renderLayoutPreview(layout)}
             <span class="layout-card-copy">
               <span class="layout-card-title">${escapeHtml(layout.label)}</span>
@@ -606,7 +650,7 @@ function renderLayoutStep() {
     </div>
     <aside class="guided-info">
       <i data-icon="information" aria-hidden="true"></i>
-      <span>Room conditions are checked against the selected product. Conditional choices ask for the measurements needed to generate safe preliminary geometry; unavailable combinations are never substituted.</span>
+      <span>Every layout shown is approved for Cabinets + Shelves. Choices marked “Measurements required” will add the applicable opening, obstacle, or return fields in Customization.</span>
     </aside>
     <div class="guided-actions">
       <button class="guided-button guided-button-secondary" type="button" data-back>
@@ -783,78 +827,84 @@ function renderRadiatorFeature(y = 81) {
   `;
 }
 
-function renderMeasurementStep(publishedPreview) {
+function getCustomizationMeasurementContext() {
   const selectedLayout = getLayout(project.category, project.layout);
   const diagramFields = getMeasurementFields(project.category, project.layout);
-  const fields = selectedLayout?.feature === "window"
-    ? diagramFields.filter((field) => !["windowLeftDistance", "windowRightDistance"].includes(field.id))
-    : diagramFields;
+  const fields = diagramFields;
   const diagramFieldIds = new Set(
     selectMeasurementDiagramFields(fields, selectedLayout).map((field) => field.id)
   );
   const denseMeasurements = fields.length > 8;
   const validation = validateMeasurements(project);
+  const measurementDiagramFields = selectMeasurementDiagramFields(fields, selectedLayout);
+  return { selectedLayout, fields, diagramFieldIds, denseMeasurements, validation, measurementDiagramFields };
+}
+
+function renderDimensionsChoices() {
+  const {
+    selectedLayout,
+    fields,
+    diagramFieldIds,
+    denseMeasurements,
+    validation,
+    measurementDiagramFields
+  } = getCustomizationMeasurementContext();
   let previousGroup = "";
 
   const fieldMarkup = fields.map((field) => {
     const warning = validation.warnings.find((item) => item.field === field.id);
     const groupHeading = field.group !== previousGroup
-      ? `<h2 class="measurement-group-title">${escapeHtml(field.group)}</h2>`
+      ? `<h3 class="measurement-group-title">${escapeHtml(field.group)}</h3>`
       : "";
     previousGroup = field.group;
     return `${groupHeading}${renderMeasurementField(field, warning, diagramFieldIds.has(field.id))}`;
   }).join("");
-  const measurementDiagramFields = selectMeasurementDiagramFields(fields, selectedLayout);
+  const diagnostic = guidedProjectTransaction?.accepted === false
+    ? guidedProjectTransaction.errors?.[0]
+    : null;
 
   return `
-    <div class="measurement-layout${denseMeasurements ? " measurement-layout--dense" : ""}">
-      <div class="measurement-controls-column">
-        <section
-          class="measurement-panel${denseMeasurements ? " measurement-panel--dense" : ""}"
-          data-measurement-field-count="${fields.length}"
-          aria-label="Approximate room measurements"
-        >
-          <h2 class="measurement-panel-title">Selected Layout</h2>
-          <p class="selected-layout-chip">
-            ${renderCategoryIcon(getCategory(project.category).icon)}
-            <span>${escapeHtml(selectedLayout?.label || "Select a layout")}</span>
-          </p>
-          <p class="measurement-format-hint visually-hidden">Use inches. Decimals and common fractions are welcome.</p>
-          <div class="measurement-fields">${fieldMarkup}</div>
-          <p class="measurement-error" data-measurement-error role="alert" ${validation.errors.length ? "" : "hidden"}>
-            ${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}
-          </p>
-        </section>
-        <aside class="guided-info">
-          <i data-icon="information" aria-hidden="true"></i>
-          <span>Don’t worry if your measurements are approximate — our team can confirm detail before production.</span>
-        </aside>
-        <div class="guided-actions">
-          <button class="guided-button guided-button-secondary" type="button" data-back>
-            <i data-icon="chevron-left" aria-hidden="true"></i> Back
-          </button>
-          <button class="guided-button guided-button-primary" type="button" data-continue>
-            Continue <i data-icon="arrow-right" aria-hidden="true"></i>
-          </button>
+    <div class="dimensions-workspace${denseMeasurements ? " dimensions-workspace--dense" : ""}">
+      <div class="dimensions-heading-row">
+        <div>
+          <h2>Dimensions</h2>
+          <p>Use inches. Decimals and common fractions such as 42 1/2 are accepted.</p>
         </div>
+        <p class="selected-layout-chip">
+          ${renderCategoryIcon(getCategory(project.category).icon)}
+          <span>${escapeHtml(selectedLayout?.label || "Select a layout")}</span>
+        </p>
       </div>
-      <div class="measurement-diagram-column${publishedPreview ? " measurement-diagram-column--preview measurement-diagram-column--published" : ""}">
-        ${publishedPreview ? `
-          ${renderConceptPreview({ publishedPreview, includeFitSummary: false })}
-          <details class="measurement-guidance" data-measurement-guidance>
-            <summary>
-              <span>
-                <strong>Measurement guide</strong>
-                <small>Open the annotated room reference</small>
-              </span>
-              <i data-icon="chevron-down" aria-hidden="true"></i>
-            </summary>
-            <div class="measurement-guidance-body">
-              ${renderMeasurementDiagram(measurementDiagramFields, selectedLayout, { staticGuidance: true })}
-            </div>
-          </details>
-        ` : renderMeasurementDiagram(measurementDiagramFields, selectedLayout)}
+      <div
+        class="measurement-panel measurement-panel--customization${denseMeasurements ? " measurement-panel--dense" : ""}"
+        data-measurement-field-count="${fields.length}"
+        aria-label="Approximate dimensions"
+      >
+        <p class="measurement-format-hint visually-hidden">Use inches. Decimals and common fractions are welcome.</p>
+        <div class="measurement-fields">${fieldMarkup}</div>
+        <p class="measurement-error" data-measurement-error role="alert" ${validation.errors.length ? "" : "hidden"}>
+          ${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}
+        </p>
+        <p class="transaction-diagnostic" data-transaction-diagnostic role="alert" ${diagnostic ? "" : "hidden"}>
+          ${diagnostic ? escapeHtml(`Last accepted design preserved. ${formatGuidedDiagnostic(diagnostic)}`) : ""}
+        </p>
       </div>
+      <aside class="measurement-disclosure">
+        <i data-icon="information" aria-hidden="true"></i>
+        <span>Approximate measurements are fine for this preview. Our team must confirm the room and final details before production.</span>
+      </aside>
+      <details class="measurement-guidance" data-measurement-guidance>
+        <summary>
+          <span>
+            <strong>Measurement guide</strong>
+            <small>Open the annotated ${escapeHtml(selectedLayout?.label || "layout")} reference</small>
+          </span>
+          <i data-icon="chevron-down" aria-hidden="true"></i>
+        </summary>
+        <div class="measurement-guidance-body">
+          ${renderMeasurementDiagram(measurementDiagramFields, selectedLayout, { staticGuidance: true })}
+        </div>
+      </details>
     </div>
   `;
 }
@@ -1148,9 +1198,10 @@ function renderDimensionArrowheads(line, diagramWidth) {
   `;
 }
 
-function renderCustomizationStep(publishedPreview) {
+function renderCustomizationStep() {
   return `
     <div class="customization-layout">
+      ${renderConceptPreview()}
       <div class="customization-controls-column">
         <section class="customization-panel" aria-label="Concept customization">
           ${renderCustomizationTabs()}
@@ -1163,17 +1214,17 @@ function renderCustomizationStep(publishedPreview) {
             <i data-icon="chevron-left" aria-hidden="true"></i> Back
           </button>
           <button class="guided-button guided-button-primary" type="button" data-continue>
-            Continue <i data-icon="arrow-right" aria-hidden="true"></i>
+            Review &amp; Details <i data-icon="arrow-right" aria-hidden="true"></i>
           </button>
         </div>
       </div>
-      ${renderConceptPreview({ publishedPreview })}
     </div>
   `;
 }
 
 function renderCustomizationTabs() {
   const tabs = [
+    { id: "dimensions", label: "Dimensions" },
     { id: "finish", label: "Finish" },
     { id: "details", label: "Details" }
   ];
@@ -1197,6 +1248,14 @@ function renderCustomizationTabs() {
 
 function renderCustomizationPanel() {
   return `
+    <div
+      class="customization-section customization-section--dimensions${activeCustomizationTab === "dimensions" ? " is-active" : ""}"
+      id="customization-section-dimensions"
+      role="tabpanel"
+      aria-labelledby="customization-tab-dimensions"
+    >
+      ${activeCustomizationTab === "dimensions" ? renderDimensionsChoices() : ""}
+    </div>
     <div
       class="customization-section customization-section--finish${activeCustomizationTab === "finish" ? " is-active" : ""}"
       id="customization-section-finish"
@@ -1320,90 +1379,53 @@ function renderConceptPreview(options = {}) {
   const finish = getFinish(project.finish);
   const diagnostic = guidedProjectTransaction?.errors?.[0] || null;
   const accepted = acceptedSpecification?.accepted === true;
-  const publishedPreview = Object.hasOwn(options, "publishedPreview")
-    ? options.publishedPreview
-    : resolveCurrentPublishedPreview(project);
   const previewLabel = selectedProduct?.label || selectedStyle.label;
-  const publishedPreviewAttributes = publishedPreview
-    ? `data-customer-preview-id="${escapeAttribute(publishedPreview.previewId)}" data-customer-preview-capture="${escapeAttribute(publishedPreview.captureId)}"`
-    : "";
 
   return `
     <figure
-      class="concept-preview${publishedPreview ? " concept-preview--published-beauty" : ""}"
+      class="concept-preview"
       data-category="${escapeAttribute(category.id)}"
       data-layout="${escapeAttribute(layout?.id || "unselected")}"
       data-style="${escapeAttribute(selectedStyle.id)}"
       data-finish="${escapeAttribute(finish.id)}"
       data-finish-family="${escapeAttribute(finish.family)}"
-      data-preview-render-mode="${publishedPreview ? "published-photoreal" : "accepted-geometry"}"
+      data-preview-render-mode="accepted-geometry"
       data-finish-mask-mode="none"
       data-accepted-specification="${accepted}"
       data-geometry-fingerprint="${escapeAttribute(acceptedSpecification?.geometryFingerprint || "")}"
       data-specification-fingerprint="${escapeAttribute(acceptedSpecification?.specificationFingerprint || "")}"
-      ${publishedPreviewAttributes}
       style="--finish-color:${escapeAttribute(finish.color)}"
-      aria-label="${escapeAttribute(publishedPreview
-        ? `Photoreal preview of ${previewLabel} for ${layout?.label || category.label}`
-        : `${previewLabel} for ${layout?.label || category.label} in ${finish.label}`)}"
+      aria-label="${escapeAttribute(`${previewLabel} for ${layout?.label || category.label} in ${finish.label}`)}"
     >
       <div class="concept-preview-meta">
-        <div class="concept-finish-caption${publishedPreview ? " concept-finish-caption--published" : ""}" aria-live="polite">
-          ${publishedPreview ? "" : '<span class="concept-finish-caption-swatch" aria-hidden="true"></span>'}
+        <div class="concept-finish-caption" aria-live="polite">
+          <span class="concept-finish-caption-swatch" aria-hidden="true"></span>
           <span>
-            <small>${publishedPreview ? "Photoreal preview" : "Live finish"}</small>
-            <strong>${escapeHtml(publishedPreview ? previewLabel : finish.label)}</strong>
+            <small>Live accepted design</small>
+            <strong>${escapeHtml(finish.label)}</strong>
           </span>
         </div>
-        ${renderConceptLayoutContext(layout, publishedPreview ? "published-preview" : "accepted-geometry")}
+        ${renderConceptLayoutContext(layout)}
       </div>
-      <div class="concept-scene-frame"${publishedPreview
-        ? ` style="--published-preview-aspect-ratio:${escapeAttribute(publishedPreview.aspectRatio)};--published-preview-media-fit:${escapeAttribute(publishedPreview.mediaFit)};--published-preview-object-position:${escapeAttribute(publishedPreview.mediaObjectPosition)}"`
-        : ""}>
-        ${publishedPreview
-          ? renderPublishedCustomerPreview(publishedPreview)
-          : `
-            <div class="concept-scene" data-concept-scene>
-              <div class="guided-engine-status" data-guided-engine-status role="status" aria-live="polite">
-                <strong>${diagnostic ? "Last accepted design preserved" : "Building your fitted design"}</strong>
-                <span>${diagnostic
-                  ? escapeHtml(`${diagnostic.message} (${diagnostic.code})`)
-                  : "The room, installation, and product descriptors are being rendered."}</span>
-              </div>
-              <div
-                class="guided-3d-mount guided-3d-mount--concept"
-                data-guided-3d-mount
-                data-guided-3d-mode="accepted-specification"
-                aria-label="${escapeAttribute(`Interactive three-dimensional ${selectedProduct?.label || selectedStyle.label} preview in the selected ${layout?.label || "room"}`)}"
-              ></div>
-            </div>
-            ${renderPreviewControls()}
-          `}
+      <div class="concept-scene-frame">
+        <div class="concept-scene" data-concept-scene>
+          <div class="guided-engine-status" data-guided-engine-status role="status" aria-live="polite">
+            <strong>${diagnostic ? "Last accepted design preserved" : "Building your fitted design"}</strong>
+            <span>${diagnostic
+              ? escapeHtml(formatGuidedDiagnostic(diagnostic))
+              : "The accepted room, installation, and product descriptors are being rendered."}</span>
+          </div>
+          <div
+            class="guided-3d-mount guided-3d-mount--concept"
+            data-guided-3d-mount
+            data-guided-3d-mode="accepted-specification"
+            aria-label="${escapeAttribute(`Interactive three-dimensional ${previewLabel} preview in the selected ${layout?.label || "layout"}`)}"
+          ></div>
+        </div>
+        ${renderPreviewControls()}
       </div>
       ${options.includeFitSummary === false ? "" : renderAcceptedFitSummary()}
     </figure>
-  `;
-}
-
-function renderPublishedCustomerPreview(preview) {
-  return `
-    <div
-      class="concept-scene concept-scene--published-beauty"
-      data-published-customer-preview
-    >
-      <img
-        class="published-customer-preview-image"
-        data-published-preview-image
-        data-published-preview-id="${escapeAttribute(preview.previewId)}"
-        src="${escapeAttribute(preview.asset)}"
-        alt="${escapeAttribute(preview.alt)}"
-        width="${preview.width}"
-        height="${preview.height}"
-        loading="eager"
-        decoding="async"
-        fetchpriority="high"
-      >
-    </div>
   `;
 }
 
@@ -1415,10 +1437,10 @@ function renderConceptLayoutContext(layout, mode = "accepted-geometry") {
       data-layout-context="${escapeAttribute(layout.id)}"
       data-layout-context-mode="${escapeAttribute(mode)}"
       role="note"
-      aria-label="${escapeAttribute(`Selected room condition: ${layout.label}`)}"
+      aria-label="${escapeAttribute(`Selected layout: ${layout.label}`)}"
     >
       <span class="concept-layout-context-copy">
-        <small>Selected room</small>
+        <small>Selected layout</small>
         <strong>${escapeHtml(layout.label)}</strong>
       </span>
     </div>
@@ -1454,38 +1476,47 @@ function renderPreviewControls() {
   `;
 }
 
-function renderReviewStep(publishedPreview) {
+function renderReviewStep() {
   const summary = buildProjectSummary(project, { acceptedSpecification });
-  const summaryKeys = [
-    "product",
-    "category",
-    "layout",
-    "wallWidth",
-    "ceilingHeight",
-    "desiredDepth",
+  const rowsByKey = new Map(summary.map((row) => [row.key, row]));
+  const dimensionKeys = [
+    ...getMeasurementFields(project.category, project.layout).map((field) => field.id),
     "fittedSize",
     "fitTreatments",
     "tvBody",
-    "tvOpening",
-    "pricing",
-    "warnings",
-    "geometryFingerprint",
-    "finish",
-    "doorStyle",
-    "hardware",
-    "lighting",
-    "baseStyle",
-    "topTreatment",
-    "notes"
+    "tvOpening"
   ];
+  const rowsFor = (keys) => keys.map((key) => rowsByKey.get(key)).filter(Boolean);
   const summaryLabels = {
     wallWidth: "Wall Width",
     ceilingHeight: "Height",
     desiredDepth: "Depth"
   };
-  const conciseSummary = summaryKeys
-    .map((key) => summary.find((row) => row.key === key))
-    .filter(Boolean);
+  const renderRows = (rows) => `
+    <dl class="summary-list">
+      ${rows.map((row) => `
+        <div class="summary-row">
+          <dt>${escapeHtml(summaryLabels[row.key] || row.label)}</dt>
+          <dd><span data-summary-value="${escapeAttribute(row.key)}">${escapeHtml(row.value)}</span></dd>
+        </div>
+      `).join("")}
+    </dl>
+  `;
+  const renderSection = (title, rows, edit = null) => rows.length ? `
+    <section class="review-summary-section" data-review-section="${escapeAttribute(edit?.section || title.toLowerCase().replaceAll(" ", "-"))}">
+      <header>
+        <h3>${escapeHtml(title)}</h3>
+        ${edit ? `
+          <button
+            class="review-edit-link"
+            type="button"
+            ${edit.step ? `data-edit-step="${edit.step}"` : `data-edit-section="${escapeAttribute(edit.section)}"`}
+          >${escapeHtml(edit.label || "Edit")}</button>
+        ` : ""}
+      </header>
+      ${renderRows(rows)}
+    </section>
+  ` : "";
   return `
     <div class="review-layout">
       <div class="project-summary-column">
@@ -1496,14 +1527,13 @@ function renderReviewStep(publishedPreview) {
               <i data-icon="edit" aria-hidden="true"></i>
             </button>
           </header>
-          <dl class="summary-list">
-            ${conciseSummary.map((row) => `
-              <div class="summary-row">
-                <dt>${escapeHtml(summaryLabels[row.key] || row.label)}</dt>
-                <dd><span data-summary-value="${escapeAttribute(row.key)}">${escapeHtml(row.value)}</span></dd>
-              </div>
-            `).join("")}
-          </dl>
+          ${renderSection("Product", rowsFor(["product", "category"]), { step: 1, label: "Change product" })}
+          ${renderSection("Layout", rowsFor(["layout"]), { step: 2, label: "Change layout" })}
+          ${renderSection("Dimensions", rowsFor(dimensionKeys), { section: "dimensions" })}
+          ${renderSection("Finish", rowsFor(["finish", "accentFinish"]), { section: "finish" })}
+          ${renderSection("Details", rowsFor(["doorStyle", "hardware", "lighting", "baseStyle", "topTreatment"]), { section: "details" })}
+          ${renderSection("Design reference", rowsFor(["pricing", "warnings", "geometryFingerprint"]))}
+          ${renderSection("Notes", rowsFor(["notes"]))}
         </section>
         <div class="summary-actions">
           <button class="guided-button guided-button-primary" type="button" data-open-quote>
@@ -1514,7 +1544,7 @@ function renderReviewStep(publishedPreview) {
           </button>
         </div>
       </div>
-      ${renderConceptPreview({ publishedPreview })}
+      ${renderConceptPreview()}
     </div>
     <p class="guided-support">
       <i data-icon="help-center" aria-hidden="true"></i>
@@ -1524,12 +1554,6 @@ function renderReviewStep(publishedPreview) {
 }
 
 function bindAppEvents() {
-  app.addEventListener("error", (event) => {
-    const image = event.target.closest?.("[data-published-preview-image]");
-    if (!image) return;
-    markPublishedPreviewFailed(image.dataset.publishedPreviewId);
-  }, true);
-
   app.addEventListener("click", (event) => {
     const target = event.target.closest("button, a");
     if (!target) return;
@@ -1590,6 +1614,11 @@ function bindAppEvents() {
       navigateToStep(Number(target.dataset.editStep));
       return;
     }
+    if (target.matches("[data-edit-section]")) {
+      activeCustomizationTab = target.dataset.editSection;
+      navigateToStep(3);
+      return;
+    }
     if (target.matches("[data-open-quote]")) {
       openQuoteDialog();
       return;
@@ -1642,7 +1671,7 @@ function bindAppEvents() {
 
 function selectProductChoice(productId) {
   const choice = getProductChoice(productId);
-  if (!choice) return;
+  if (!choice || choice.id !== PUBLIC_CONFIGURATOR_PRODUCT_ID) return;
   if (
     project.productSelected
     && project.category === choice.categoryId
@@ -1656,15 +1685,16 @@ function selectProductChoice(productId) {
   const constructionDefaults = category.id === "bookcase"
     ? BOOKCASE_CONFIGURATION_DEFAULTS[selectedStyle.id] || {}
     : {};
+  const preserveProjectIdentity = project.productAvailability !== "unavailable";
   const base = createProject({
     category: category.id,
     productSelected: true,
-    projectId: project.projectId,
-    projectName: project.projectName
+    projectId: preserveProjectIdentity ? project.projectId : undefined,
+    projectName: preserveProjectIdentity ? project.projectName : undefined
   });
   project = normalizeProject({
     ...base,
-    createdAt: project.createdAt,
+    createdAt: preserveProjectIdentity ? project.createdAt : base.createdAt,
     productSelected: true,
     style: selectedStyle.id,
     ...constructionDefaults,
@@ -1673,14 +1703,22 @@ function selectProductChoice(productId) {
     maxVisitedStep: 1,
     updatedAt: new Date().toISOString()
   });
-  activeCustomizationTab = "finish";
+  activeCustomizationTab = "dimensions";
   previewScale = 1;
   renderApp();
   requestAnimationFrame(() => app.querySelector(`[data-product-choice="${CSS.escape(choice.id)}"]`)?.focus());
-  showToast(`${choice.label} selected.`);
+  showToast(preserveProjectIdentity
+    ? `${choice.label} selected.`
+    : `${choice.label} started as a new preview; your unavailable saved project was kept.`);
 }
 
 function selectLayout(layoutId) {
+  if (!isActivePublicProject()) return;
+  const compatibility = resolveProductLayoutCompatibility({
+    project: { ...project, layout: layoutId },
+    topology: { layoutId }
+  });
+  if (compatibility.status === "unavailable") return;
   project = normalizeProject({
     ...project,
     layout: layoutId,
@@ -1689,14 +1727,12 @@ function selectLayout(layoutId) {
       : prepareMeasurementsForLayout(project, layoutId),
     updatedAt: new Date().toISOString()
   });
-  const publishedPreview = resolveCurrentPublishedPreview(project);
-  if (publishedPreview) preloadPublishedPreview(publishedPreview);
   renderApp();
 }
 
 function continueFromStep() {
-  if (project.currentStep === 1 && !project.productSelected) {
-    showToast("Please choose what you would like us to build.");
+  if (project.currentStep === 1 && !isActivePublicProject()) {
+    showToast("Cabinets + Shelves is the product available in this preview.");
     return;
   }
   if (project.currentStep === 2 && !project.layout) {
@@ -1724,27 +1760,30 @@ function continueFromStep() {
       const message = app.querySelector("[data-measurement-error]");
       if (message) {
         message.hidden = false;
-        message.textContent = `${diagnostic.message} (${diagnostic.code})`;
+        message.textContent = formatGuidedDiagnostic(diagnostic);
       }
-      showToast(`${diagnostic.message} (${diagnostic.code})`);
+      showToast(formatGuidedDiagnostic(diagnostic));
       return;
     }
   }
-  navigateToStep(Math.min(5, project.currentStep + 1));
+  navigateToStep(Math.min(4, project.currentStep + 1));
 }
 
 function navigateToStep(step, options = {}) {
-  const targetStep = Math.min(5, Math.max(1, Number(step) || 1));
+  const targetStep = Math.min(4, Math.max(1, Number(step) || 1));
   if (targetStep > project.maxVisitedStep + 1) return;
-  if (targetStep > 1 && !project.productSelected) {
+  if (targetStep > 1 && !isActivePublicProject()) {
     project.currentStep = 1;
-    showToast("Choose what you would like us to build before moving on.");
+    project.maxVisitedStep = 1;
+    showToast(project.productAvailability === "unavailable"
+      ? "That saved product is not available in this preview. Its record remains in My Projects."
+      : "Choose Cabinets + Shelves before moving on.");
     renderApp({ focusHeading: true });
     return;
   }
   if (targetStep > 2 && !project.layout) {
     project.currentStep = 2;
-    showToast("Choose a room layout before moving to measurements.");
+    showToast("Choose a layout before moving to Customization.");
     renderApp({ focusHeading: true });
     return;
   }
@@ -1757,7 +1796,7 @@ function navigateToStep(step, options = {}) {
   if (targetStep > 3 && !syncAcceptedSpecification().accepted) {
     project.currentStep = 3;
     const diagnostic = guidedProjectTransaction?.errors?.[0];
-    showToast(diagnostic ? `${diagnostic.message} (${diagnostic.code})` : "The fitted configuration needs review before continuing.");
+    showToast(diagnostic ? formatGuidedDiagnostic(diagnostic) : "The fitted configuration needs review before continuing.");
     renderApp({ focusHeading: true });
     return;
   }
@@ -1863,7 +1902,10 @@ function scheduleMeasurementSceneUpdate(options = {}) {
   window.clearTimeout(guidedSceneMeasurementTimer);
   const update = () => {
     guidedSceneMeasurementTimer = 0;
-    syncAcceptedSpecification();
+    app.dataset.measurementTimerOwnership = "0";
+    const transaction = syncAcceptedSpecification();
+    syncTransactionDiagnostic(transaction);
+    syncSaveControlState();
     guidedSceneController?.update(project, getGuidedSceneOptions());
   };
   if (options.immediate) {
@@ -1871,6 +1913,33 @@ function scheduleMeasurementSceneUpdate(options = {}) {
     return;
   }
   guidedSceneMeasurementTimer = window.setTimeout(update, 120);
+  app.dataset.measurementTimerOwnership = "1";
+}
+
+function syncTransactionDiagnostic(transaction = guidedProjectTransaction) {
+  const diagnostic = transaction?.accepted === false ? transaction.errors?.[0] : null;
+  const message = app?.querySelector("[data-transaction-diagnostic]");
+  if (message) {
+    message.hidden = !diagnostic;
+    message.textContent = diagnostic
+      ? `Last accepted design preserved. ${formatGuidedDiagnostic(diagnostic)}`
+      : "";
+  }
+  const status = app?.querySelector("[data-guided-engine-status]");
+  if (status) {
+    status.querySelector("strong").textContent = diagnostic
+      ? "Last accepted design preserved"
+      : "Live accepted design";
+    status.querySelector("span").textContent = diagnostic
+      ? formatGuidedDiagnostic(diagnostic)
+      : "The accepted room, installation, and product descriptors are rendered.";
+  }
+  const preview = app?.querySelector(".concept-preview");
+  if (preview) {
+    preview.dataset.acceptedSpecification = String(acceptedSpecification?.accepted === true);
+    preview.dataset.geometryFingerprint = acceptedSpecification?.geometryFingerprint || "";
+    preview.dataset.specificationFingerprint = acceptedSpecification?.specificationFingerprint || "";
+  }
 }
 
 function updateDimensionChip(field, value) {
@@ -1917,7 +1986,7 @@ function applyPreviewScale() {
 function getGuidedSceneOptions() {
   return {
     showDimensions: project.currentStep === 3,
-    showProduct: project.currentStep >= 4,
+    showProduct: project.currentStep >= 3,
     acceptedSpecification,
     rejectedCandidate: guidedProjectTransaction?.rejectedCandidate || null
   };
@@ -1935,7 +2004,7 @@ function updateGuidedSceneState(state) {
         ? "Last accepted design preserved"
         : "3D preview unavailable";
       status.querySelector("span").textContent = diagnostic
-        ? `${diagnostic.message} (${diagnostic.code})`
+        ? formatGuidedDiagnostic(diagnostic)
         : "The renderer failed closed; no unrelated product or room image was substituted.";
     }
   }
@@ -1953,7 +2022,7 @@ function syncGuidedScene() {
   }
 
   updateGuidedSceneState("loading");
-  guidedSceneImportPromise ||= import("./guided-configurator-3d.js?v=tv-puck-light-primitive-v1-20260802a");
+  guidedSceneImportPromise ||= import("./guided-configurator-3d.js?v=public-four-step-v1-20260816a");
   guidedSceneImportPromise
     .then(({ createGuidedSceneController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;
@@ -1986,8 +2055,18 @@ function scheduleDraftSave() {
 function bindHistory() {
   history.replaceState({ step: project.currentStep }, "", `${window.location.pathname}${window.location.search}#step-${project.currentStep}`);
   window.addEventListener("popstate", (event) => {
-    const requestedStep = Number(event.state?.step || window.location.hash.match(/^#step-(\d)$/)?.[1]);
-    if (requestedStep >= 1 && requestedStep <= project.maxVisitedStep) navigateToStep(requestedStep, { history: false });
+    const rawStep = Number(event.state?.step || window.location.hash.match(/^#step-(\d+)$/)?.[1]);
+    const requestedStep = normalizeWorkflowStep(rawStep);
+    if (requestedStep >= 1 && requestedStep <= project.maxVisitedStep) {
+      navigateToStep(requestedStep, { history: false });
+    }
+    if (rawStep !== project.currentStep || requestedStep !== rawStep) {
+      history.replaceState(
+        { step: project.currentStep },
+        "",
+        `${window.location.pathname}${window.location.search}#step-${project.currentStep}`
+      );
+    }
   });
 }
 
@@ -2023,6 +2102,10 @@ function openSaveDialog() {
   const dialog = document.querySelector("[data-save-dialog]");
   const form = dialog?.querySelector("[data-save-form]");
   if (!dialog || !form) return;
+  if (project.productAvailability === "unavailable") {
+    showToast("This unavailable product remains in My Projects and cannot be resaved as an active public preview.");
+    return;
+  }
   const preparation = prepareCurrentProjectPersistence();
   if (!preparation.accepted) {
     showToast(`${preparation.message} (${preparation.code})`);
@@ -2117,10 +2200,11 @@ function renderProjectsList() {
     const selectedProduct = getProductChoiceForSelection(saved.category, saved.style);
     const layout = getLayout(saved.category, saved.layout);
     return `
-      <article class="saved-project">
+      <article class="saved-project${saved.productAvailability === "unavailable" ? " saved-project--unavailable" : ""}" data-saved-product-availability="${escapeAttribute(saved.productAvailability)}">
         <div class="saved-project-copy">
           <strong>${escapeHtml(saved.projectName)}</strong>
           <small>${escapeHtml([selectedProduct?.label || category.label, layout?.label, formatSavedDate(saved.updatedAt)].filter(Boolean).join(" · "))}</small>
+          ${saved.productAvailability === "unavailable" ? "<em>Unavailable in this public preview · saved record retained</em>" : ""}
         </div>
         <div class="saved-project-actions">
           <button type="button" data-project-action="resume" data-project-id="${escapeAttribute(saved.projectId)}" aria-label="Resume ${escapeAttribute(saved.projectName)}"><i data-icon="chevron-right" aria-hidden="true"></i></button>
@@ -2145,12 +2229,18 @@ function handleProjectListAction(event) {
 
   if (button.dataset.projectAction === "resume") {
     project = normalizeProject(saved);
+    if (project.productAvailability === "unavailable") {
+      project.currentStep = 1;
+      project.maxVisitedStep = 1;
+    }
     document.querySelector("[data-projects-dialog]")?.close();
     previewScale = 1;
-    activeCustomizationTab = "finish";
+    activeCustomizationTab = "dimensions";
     renderApp({ focusHeading: true });
     history.replaceState({ step: project.currentStep }, "", `${window.location.pathname}?project=${encodeURIComponent(project.projectId)}#step-${project.currentStep}`);
-    showToast(`Resumed “${project.projectName}.”`);
+    showToast(project.productAvailability === "unavailable"
+      ? `“${project.projectName}” is retained but its product is not available in this preview.`
+      : `Resumed “${project.projectName}.”`);
     return;
   }
 
@@ -2195,7 +2285,7 @@ function startNewProject() {
     showToast("This new project can’t be saved locally in the current browser.");
   }
   document.querySelector("[data-projects-dialog]")?.close();
-  activeCustomizationTab = "finish";
+  activeCustomizationTab = "dimensions";
   previewScale = 1;
   renderApp({ focusHeading: true });
   history.replaceState({ step: 1 }, "", `${window.location.pathname}#step-1`);

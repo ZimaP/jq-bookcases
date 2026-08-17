@@ -31,14 +31,16 @@ or separate quote drawer.
   FAQ behavior, validated saved-design quote prefill, and local quote-preview
   feedback. Contact fields are never persisted by the preview.
 - `styles.css` owns brand tokens and all shared marketing/interior components.
-- `guided-configurator-data.js` owns the public product, room, measurement,
-  finish, and detail catalog.
+- `guided-configurator-data.js` owns the internal product catalog, the single
+  active public product policy, disabled Coming soon references, and the room,
+  measurement, finish, and detail catalogs.
 - `guided-configurator-state.js` owns guided project normalization, approximate
   measurement validation, summaries, and local persistence.
 - `guided-scene-plan.js` translates guided project state into an inch-based,
   renderer-neutral room and concept-product scene plan.
-- `guided-configurator.js` owns the five-step public workflow and keeps one
-  guided scene controller across steps 3–5.
+- `guided-configurator.js` owns the four-step public workflow (Choose Product,
+  Choose Layout, Customization, Review & Details) and keeps one guided scene
+  controller across steps 3–4.
 - `guided-configurator-3d.js` owns the code-native Three.js concept scene,
   shared room/product rendering, world-space callouts, camera, and interaction.
 - `configurator-experience.js`, `configurator-3d.js`, and the associated
@@ -71,10 +73,19 @@ Every public page must include:
 Run `npm test` after changing navigation, routes, cache tokens, or page shell
 markup. `tests/site-integrity.test.js` enforces these contracts.
 
-The public guided configurator uses one persistent concept scene for
-measurement, customization, and review. Guided drafts remain approximate
-project briefs; rendering them does not promote them to accepted physical
-designs or create manufacturing, BOM, or pricing authority.
+The public guided configurator exposes Cabinets + Shelves as its only active
+product. Only layouts permitted by the checked-in compatibility matrix are
+selectable. Other catalog products are disabled Coming soon references; an
+older saved project that uses one remains intact, is marked unavailable, and is
+routed to Choose Product rather than silently coerced.
+
+Customization contains the layout-specific measurements, finish, and detail
+controls. Customization and Review & Details use one persistent accepted
+concept scene. Guided drafts remain approximate project briefs; rendering them
+does not promote them to accepted physical designs or create manufacturing,
+BOM, or pricing authority. Schema-v4 state explicitly maps legacy five-step
+positions 1→1, 2→2, 3/4→3, and 5→4 while preserving the last accepted snapshot
+and capping reachable progress to the normalized selection.
 
 ## Local-preview limitation
 
