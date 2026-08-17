@@ -170,10 +170,10 @@ test("the four-step public path always uses the accepted 3D viewer while dormant
   assert.doesNotMatch(configuratorSource, /failedPublishedPreviewIds/);
   assert.match(configuratorSource, /options\.staticGuidance \? "" :/);
   assert.match(configuratorSource, /renderMeasurementDiagram\(measurementDiagramFields, selectedLayout, \{ staticGuidance: true \}\)/);
-  assert.match(configuratorSource, /Reference 3D model — fixed Room 2 design/);
+  assert.match(configuratorSource, /Commercial PBR review candidate — fixed Room 2 design/);
   assert.match(configuratorSource, /Provisional appearance · owner acceptance open/);
   assert.match(cssSource, /Public Room 2 fixed-reference integration/);
   assert.match(cssSource, /\.measurement-guidance/);
-  assert.match(htmlSource, /guided-configurator\.css\?v=public-room2-glb-layout-restore-v1-20260817a/);
-  assert.match(htmlSource, /guided-configurator\.js\?v=room2-studio-neutral-v1-20260817a/);
+  assert.match(htmlSource, /guided-configurator\.css\?v=room2-commercial-pbr-v1-20260817g/);
+  assert.match(htmlSource, /guided-configurator\.js\?v=room2-commercial-pbr-v1-20260817g/);
 });

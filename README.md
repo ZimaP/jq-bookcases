@@ -30,20 +30,26 @@ details around the fixed SketchUp-derived Room 2 reference model.
 The public flow resolves each complete edit through room-topology,
 installation-fit, and product engines before it may replace the last accepted
 specification used by persistence and summaries. In this fixed-reference phase,
-that project data deliberately does not deform, recolor, relight, regenerate,
-or replace the GLB. Steps 3–4 share one persistent viewer session and parsed GLB
-root. A load or integrity failure remains fail-closed; the public path never
-falls back to the prior generated scene or to a photograph. Schema-v4
+that project data deliberately does not deform, regenerate, or replace the GLB.
+Finish alone drives the proven material-3 millwork zone through a provisional
+digital PBR preview; dimensions, hardware, lighting, and Details remain saved
+project data and do not change geometry or scene construction. Steps 3–4 share
+one persistent viewer session and parsed GLB root. A load or integrity failure
+remains fail-closed; the public path never falls back to the prior generated
+scene or to a photograph. Schema-v4
 persistence migrates older five-step drafts without deleting unsupported saved
 projects or coercing them into Cabinets + Shelves.
 
-The fixed model is presented by the provisional `room2-studio-neutral-v1`
-lighting profile: a local r166 RoomEnvironment/PMREM indirect base, three
-scene-space key/fill/rim DirectionalLights, one on-demand shadow caster,
-Linear-sRGB lighting, one sRGB output transform, ACES Filmic tone mapping, and a
-fixed exposure. This release changes lighting only. Embedded GLB materials and
-textures remain untouched; owner visual acceptance is still open and the
-texture/material quality phase has not started.
+The fixed model is presented by the provisional `room2-commercial-pbr-v1`
+profile: local licensed 512 px WebP material sidecars, selected-family preload
+with atomic lazy Finish-family switching, one local HDR/PMREM environment, two
+broad RectArea light roles plus one static directional shadow proxy,
+Linear-sRGB lighting, one sRGB output transform, Neutral tone mapping at
+exposure `1.02`, and semantic hero-bounds camera fitting. Runtime materials may
+change only within the checked-in semantic map; GLB bytes, geometry, indices,
+attributes, transforms, hierarchy, bounds, and dimensions remain unchanged.
+The preview is not a calibrated or approved physical finish sample, and owner
+visual acceptance remains open.
 
 The guided engine architecture, installation invariants, PBR material contract,
 save/reload behavior, and shop-review boundary are documented in

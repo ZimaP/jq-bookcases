@@ -1,18 +1,22 @@
 import * as THREE from "./assets/vendor/three.module.js";
 import { GLTFLoader } from "./assets/vendor/three-addons/loaders/GLTFLoader.js";
-import { RoomEnvironment } from "./assets/vendor/three-addons/environments/RoomEnvironment.js";
-import { ROOM2_APPEARANCE_PROFILE } from "./guided-room2-appearance.js?v=room2-studio-neutral-v1-20260817a";
+import { RGBELoader } from "./assets/vendor/three-addons/loaders/RGBELoader.js";
+import { RectAreaLightUniformsLib } from "./assets/vendor/three-addons/lights/RectAreaLightUniformsLib.js";
+import {
+  ROOM2_APPEARANCE_PROFILE,
+  resolveRoom2Finish,
+  resolveRoom2Presentation
+} from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
+import { createRoom2MaterialSystem } from "./guided-room2-materials.js?v=room2-commercial-pbr-v1-20260817g";
 import {
   createDeferredModelSnapshot,
   createEmbeddedImagePayloadSnapshot,
   createRawMaterialDigest,
-  createRuntimeMaterialAppearanceCanonical,
   createRuntimeMaterialAppearanceSnapshot,
-  createRuntimeMaterialCanonical,
   createRuntimeMaterialSnapshot,
   inspectRoom2Glb,
   sha256Bytes
-} from "./guided-room2-integrity.js?v=room2-studio-neutral-v1-20260817a";
+} from "./guided-room2-integrity.js?v=room2-commercial-pbr-v1-20260817g";
 
 const SUPPORTED_SELECTION = Object.freeze({
   category: "bookcase",
@@ -35,6 +39,8 @@ const EXPECTED_COUNTS = Object.freeze({
 });
 const MODEL_PURPOSE = "fixed-room2-reference-glb";
 let viewerSequence = 0;
+let rectAreaUniformsInitialized = false;
+let rectAreaUniformsInitializationCount = 0;
 
 globalThis.__JQ_THREE_REVISION__ = THREE.REVISION;
 THREE.ColorManagement.enabled = ROOM2_APPEARANCE_PROFILE.renderer.colorManagement.enabled;
@@ -51,11 +57,14 @@ export class GuidedRoom2ViewerController {
     this.rootIdentity = `room2-root-${this.instanceId}`;
     this.onStateChange = typeof options.onStateChange === "function" ? options.onStateChange : () => {};
     this.onError = typeof options.onError === "function" ? options.onError : () => {};
+    this.presentation = resolveRoom2Presentation();
+    this.selectedFinishId = resolveRoom2Finish(options.finishId).id;
 
     this.state = "idle";
     this.disposed = false;
     this.failed = false;
     this.lastError = null;
+    this.rendererResourcesReleased = false;
     this.mountTarget = null;
     this.ownerWindow = null;
     this.runtime = null;
@@ -63,20 +72,27 @@ export class GuidedRoom2ViewerController {
     this.scene = null;
     this.camera = null;
     this.renderer = null;
+    this.materialSystem = null;
+    this.lastMaterialDiagnostics = null;
+    this.environmentSourceTexture = null;
     this.environmentRenderTarget = null;
+    this.environmentSha256 = null;
+    this.environmentRequestCount = 0;
+    this.environmentSuccessfulRequestCount = 0;
     this.directLights = new Map();
     this.shadowCaster = null;
     this.modelRoot = null;
     this.gltf = null;
     this.glbInspection = null;
-    this.runtimeMaterialSnapshot = null;
-    this.runtimeMaterialAppearanceSnapshot = null;
+    this.sourceRuntimeMaterialSnapshot = null;
+    this.sourceRuntimeMaterialAppearanceSnapshot = null;
     this.embeddedImagePayloadSnapshot = null;
     this.deferredModelSnapshot = null;
     this.rawMaterialDigest = null;
     this.assetSha256 = null;
     this.assetBuffer = null;
     this.loadPromise = null;
+    this.finishPromise = null;
     this.fetchAbortController = null;
     this.resizeObserver = null;
     this.resizeFallbackController = null;
@@ -90,6 +106,7 @@ export class GuidedRoom2ViewerController {
     this.mountCount = 0;
     this.unmountCount = 0;
     this.requestCount = 0;
+    this.successfulRequestCount = 0;
     this.parseCount = 0;
     this.renderCount = 0;
     this.shadowRefreshCount = 0;
@@ -99,12 +116,18 @@ export class GuidedRoom2ViewerController {
     this.compileMilliseconds = 0;
     this.shadowTier = null;
     this.userAdjustedCamera = false;
-    this.cameraFitInitialized = false;
+    this.lastFittedViewportKey = null;
     this.theta = ROOM2_APPEARANCE_PROFILE.camera.theta;
     this.phi = ROOM2_APPEARANCE_PROFILE.camera.phi;
     this.radius = ROOM2_APPEARANCE_PROFILE.camera.minimumFitRadius;
     this.baseRadius = this.radius;
     this.cameraTarget = new THREE.Vector3(...ROOM2_APPEARANCE_PROFILE.camera.target);
+    this.lastFrameMilliseconds = null;
+    this.lastBeautyPassDrawCalls = null;
+    this.lastShadowRefreshDrawCalls = null;
+    this.lastFrameTriangles = null;
+    this.evidenceMaskMode = null;
+    this.evidenceMaskMaterials = new Set();
   }
 
   mount(target) {
@@ -119,20 +142,23 @@ export class GuidedRoom2ViewerController {
       this.ownerWindow = target.ownerDocument.defaultView || globalThis.window;
       if (this.runtime.parentNode !== target) target.append(this.runtime);
       this.runtime.hidden = false;
-      this.observeTarget();
-      this.resize();
       if (this.failed) {
         this.runtime.hidden = true;
         this.notifyState("fallback", {
           code: this.lastError?.code || "ROOM2_VIEWER_FAILED",
           message: "The fixed Room 2 reference model could not be displayed. No substitute model or image was loaded."
         });
-      } else if (!this.loadPromise && !this.modelRoot) this.startLoading();
-      else if (this.modelRoot) {
-        this.notifyState("ready");
-        this.requestRender();
       } else {
-        this.notifyState("loading", { message: "Loading the fixed Room 2 reference model…" });
+        this.observeTarget();
+        this.resize();
+        if (!this.loadPromise && !this.modelRoot) {
+          this.startLoading();
+        } else if (this.modelRoot) {
+          if (this.state !== "finish-loading" && this.state !== "finish-error") this.notifyState("ready");
+          this.requestRender();
+        } else {
+          this.notifyState("loading", { message: "Loading the fixed Room 2 reference model and selected finish…" });
+        }
       }
       this.syncDiagnostics();
       return true;
@@ -157,39 +183,37 @@ export class GuidedRoom2ViewerController {
   update(project) {
     if (this.disposed) return false;
     if (!isSupportedSelection(project)) {
-      const error = new Error("The fixed Room 2 model is available only for Cabinets + Shelves / Fireplace Wall.");
-      error.code = "ROOM2_SELECTION_NOT_SUPPORTED";
-      return this.fail(error);
+      return this.fail(codedError(
+        "ROOM2_SELECTION_NOT_SUPPORTED",
+        "The fixed Room 2 model is available only for Cabinets + Shelves / Fireplace Wall."
+      ));
     }
-    if (!this.gltf || !this.deferredModelSnapshot) return true;
+    const nextFinishId = resolveRoom2Finish(project?.finish).id;
+    this.selectedFinishId = nextFinishId;
+    if (!this.gltf || !this.deferredModelSnapshot || !this.materialSystem) return true;
 
-    const cameraBefore = this.cameraStateCanonical();
-    const snapshot = createDeferredModelSnapshot(this.gltf);
-    if (snapshot.canonical !== this.deferredModelSnapshot.canonical) {
-      const error = new Error("A deferred customer control changed the fixed Room 2 model.");
-      error.code = "ROOM2_DEFERRED_MODEL_MUTATION";
+    try {
+      const cameraBefore = this.cameraStateCanonical();
+      this.assertDeferredGeometry();
+      this.materialSystem.assertGeometryIdentity();
+      if (this.cameraStateCanonical() !== cameraBefore) {
+        throw codedError("ROOM2_DEFERRED_CAMERA_MUTATION", "A customer control reset the Room 2 camera.");
+      }
+      this.finishPromise = this.materialSystem.selectFinish(nextFinishId)
+        .then((applied) => {
+          if (this.disposed || !applied) return applied;
+          this.assertDeferredGeometry();
+          this.materialSystem.assertGeometryIdentity();
+          this.lastMaterialDiagnostics = this.materialSystem.getDiagnostics();
+          this.syncDiagnostics();
+          return true;
+        })
+        .catch((error) => this.fail(error));
+      this.syncDiagnostics();
+      return true;
+    } catch (error) {
       return this.fail(error);
     }
-    const materialCanonical = this.createRuntimeMaterialCanonical();
-    if (materialCanonical !== this.runtimeMaterialSnapshot.canonical) {
-      const error = new Error("A deferred customer control changed an embedded Room 2 material.");
-      error.code = "ROOM2_RUNTIME_MATERIAL_MUTATION";
-      return this.fail(error);
-    }
-    const materialAppearanceCanonical = this.createRuntimeMaterialAppearanceCanonical();
-    if (materialAppearanceCanonical !== this.runtimeMaterialAppearanceSnapshot.canonical) {
-      const error = new Error("A deferred customer control changed a public Room 2 material appearance property.");
-      error.code = "ROOM2_RUNTIME_MATERIAL_APPEARANCE_MUTATION";
-      return this.fail(error);
-    }
-    if (this.cameraStateCanonical() !== cameraBefore) {
-      const error = new Error("A deferred customer control reset the Room 2 camera.");
-      error.code = "ROOM2_DEFERRED_CAMERA_MUTATION";
-      return this.fail(error);
-    }
-    this.syncDiagnostics();
-    this.requestRender();
-    return true;
   }
 
   zoom(action) {
@@ -210,14 +234,14 @@ export class GuidedRoom2ViewerController {
     if (this.disposed || !this.camera) return false;
     this.theta = ROOM2_APPEARANCE_PROFILE.camera.theta;
     this.phi = ROOM2_APPEARANCE_PROFILE.camera.phi;
-    this.radius = this.baseRadius;
     this.cameraTarget.set(...ROOM2_APPEARANCE_PROFILE.camera.target);
     this.userAdjustedCamera = false;
-    this.updateCamera();
+    this.fitCameraForViewport();
     return true;
   }
 
   getDiagnostics() {
+    const materialDiagnostics = this.materialSystem?.getDiagnostics() || this.lastMaterialDiagnostics;
     return Object.freeze({
       state: this.state,
       viewerIdentity: this.viewerIdentity,
@@ -226,6 +250,8 @@ export class GuidedRoom2ViewerController {
       modelPurpose: MODEL_PURPOSE,
       appearanceProfile: ROOM2_APPEARANCE_PROFILE.schema,
       appearanceStatus: ROOM2_APPEARANCE_PROFILE.status,
+      presentation: this.presentation,
+      selectedFinishId: this.selectedFinishId,
       assetUrl: ROOM2_APPEARANCE_PROFILE.asset.url,
       assetBytes: this.assetBuffer?.byteLength || 0,
       assetSha256: this.assetSha256,
@@ -233,23 +259,14 @@ export class GuidedRoom2ViewerController {
       rawMaterialDigest: this.rawMaterialDigest,
       embeddedImagePayloadDigest: this.embeddedImagePayloadSnapshot?.aggregateSha256 || null,
       embeddedImagePayloadSnapshot: this.embeddedImagePayloadSnapshot,
-      runtimeMaterialDigest: this.runtimeMaterialSnapshot?.aggregateSha256 || null,
-      runtimeMaterialAppearanceDigest: this.runtimeMaterialAppearanceSnapshot?.aggregateSha256 || null,
+      sourceRuntimeMaterialDigest: this.sourceRuntimeMaterialSnapshot?.aggregateSha256 || null,
+      sourceRuntimeMaterialAppearanceDigest: this.sourceRuntimeMaterialAppearanceSnapshot?.aggregateSha256 || null,
+      runtimeAppearanceFingerprint: materialDiagnostics?.appearanceFingerprint || null,
+      runtimeAppearanceFingerprintVersion: materialDiagnostics?.appearanceFingerprintVersion || null,
       runtimeModelFingerprint: this.deferredModelSnapshot?.fingerprint || null,
-      runtimeMaterialSnapshot: this.runtimeMaterialSnapshot ? Object.freeze({
-        schema: this.runtimeMaterialSnapshot.schema,
-        threeRevision: this.runtimeMaterialSnapshot.threeRevision,
-        materialCount: this.runtimeMaterialSnapshot.materialCount,
-        aggregateSha256: this.runtimeMaterialSnapshot.aggregateSha256,
-        records: this.runtimeMaterialSnapshot.records
-      }) : null,
-      runtimeMaterialAppearanceSnapshot: this.runtimeMaterialAppearanceSnapshot ? Object.freeze({
-        schema: this.runtimeMaterialAppearanceSnapshot.schema,
-        threeRevision: this.runtimeMaterialAppearanceSnapshot.threeRevision,
-        materialCount: this.runtimeMaterialAppearanceSnapshot.materialCount,
-        aggregateSha256: this.runtimeMaterialAppearanceSnapshot.aggregateSha256,
-        records: this.runtimeMaterialAppearanceSnapshot.records
-      }) : null,
+      sourceRuntimeMaterialSnapshot: this.sourceRuntimeMaterialSnapshot,
+      sourceRuntimeMaterialAppearanceSnapshot: this.sourceRuntimeMaterialAppearanceSnapshot,
+      materialSystem: materialDiagnostics,
       deferredModelSnapshot: this.deferredModelSnapshot ? Object.freeze({
         schema: this.deferredModelSnapshot.schema,
         nodeCount: this.deferredModelSnapshot.nodeCount,
@@ -258,6 +275,7 @@ export class GuidedRoom2ViewerController {
         canonical: this.deferredModelSnapshot.canonical
       }) : null,
       requestCount: this.requestCount,
+      successfulRequestCount: this.successfulRequestCount,
       parseCount: this.parseCount,
       renderCount: this.renderCount,
       mountCount: this.mountCount,
@@ -276,16 +294,22 @@ export class GuidedRoom2ViewerController {
       rendererInfo: this.readRendererInfo(),
       lighting: this.readLightingState(),
       environment: Object.freeze({
-        type: ROOM2_APPEARANCE_PROFILE.lighting.environment.type,
-        intensity: ROOM2_APPEARANCE_PROFILE.lighting.environment.intensity,
-        rotationRadians: ROOM2_APPEARANCE_PROFILE.lighting.environment.rotationRadians,
+        type: ROOM2_APPEARANCE_PROFILE.environment.type,
+        url: ROOM2_APPEARANCE_PROFILE.environment.url,
+        expectedBytes: ROOM2_APPEARANCE_PROFILE.environment.bytes,
+        sha256: this.environmentSha256,
+        requestCount: this.environmentRequestCount,
+        successfulRequestCount: this.environmentSuccessfulRequestCount,
+        intensity: this.presentation.environmentIntensity,
+        rotationRadians: this.presentation.environmentRotationRadians,
+        visibleBackground: false,
         generationCount: this.pmremGenerationCount,
         generationMilliseconds: roundDiagnostic(this.pmremGenerationMilliseconds),
         retainedRenderTargets: this.environmentRenderTarget ? 1 : 0
       }),
       shadows: Object.freeze({
         casterCount: this.shadowCaster ? 1 : 0,
-        casterRole: this.shadowCaster ? "key" : null,
+        casterRole: this.shadowCaster ? "key.shadowProxy" : null,
         tier: this.shadowTier?.id || null,
         mapSize: this.shadowCaster?.shadow?.mapSize?.x || 0,
         camera: this.shadowCaster ? Object.freeze({
@@ -302,10 +326,21 @@ export class GuidedRoom2ViewerController {
         refreshPending: this.shadowRefreshPending,
         autoUpdate: Boolean(this.renderer?.shadowMap?.autoUpdate)
       }),
-      compileMilliseconds: roundDiagnostic(this.compileMilliseconds),
+      performance: Object.freeze({
+        compileMilliseconds: roundDiagnostic(this.compileMilliseconds),
+        lastFrameMilliseconds: roundDiagnostic(this.lastFrameMilliseconds),
+        beautyPassDrawCalls: this.lastBeautyPassDrawCalls,
+        shadowRefreshTotalDrawCalls: this.lastShadowRefreshDrawCalls,
+        beautyPassTriangles: this.lastFrameTriangles,
+        postProcessingFullscreenPasses: 0,
+        gtaoPasses: 0,
+        denoisePasses: 0
+      }),
+      evidenceMaskMode: this.evidenceMaskMode,
       ownership: Object.freeze({
         canvases: this.canvas ? 1 : 0,
-        renderers: this.renderer ? 1 : 0,
+        renderers: this.renderer && !this.rendererResourcesReleased ? 1 : 0,
+        materialSystems: this.materialSystem ? 1 : 0,
         controllers: this.disposed ? 0 : 1,
         parsedRoots: this.modelRoot ? 1 : 0,
         animationLoops: 0,
@@ -327,14 +362,15 @@ export class GuidedRoom2ViewerController {
     this.resizeFallbackController?.abort();
     this.controlAbortController?.abort();
     this.activePointers.clear();
-    if (this.modelRoot) disposeObject3D(this.modelRoot);
-    this.scene?.traverse((object) => {
-      if (object.userData?.room2Ground === true) {
-        object.geometry?.dispose?.();
-        object.material?.dispose?.();
-      }
-    });
+    this.lastMaterialDiagnostics = this.materialSystem?.getDiagnostics() || this.lastMaterialDiagnostics;
+    this.materialSystem?.dispose();
+    this.materialSystem = null;
+    disposeGeometryOnly(this.modelRoot);
+    disposeSet(this.evidenceMaskMaterials);
+    this.evidenceMaskMode = null;
     if (this.scene) this.scene.environment = null;
+    this.environmentSourceTexture?.dispose?.();
+    this.environmentSourceTexture = null;
     this.environmentRenderTarget?.dispose?.();
     this.environmentRenderTarget = null;
     this.directLights.clear();
@@ -354,6 +390,7 @@ export class GuidedRoom2ViewerController {
     this.gltf = null;
     this.assetBuffer = null;
     this.state = "disposed";
+    if (globalThis.__JQ_ROOM2_EVIDENCE_CONTROLLER__ === this) delete globalThis.__JQ_ROOM2_EVIDENCE_CONTROLLER__;
     publishDiagnostics(this.getDiagnostics());
   }
 
@@ -389,14 +426,15 @@ export class GuidedRoom2ViewerController {
       ROOM2_APPEARANCE_PROFILE.camera.near,
       ROOM2_APPEARANCE_PROFILE.camera.far
     );
+    camera.filmGauge = ROOM2_APPEARANCE_PROFILE.camera.filmGauge;
     const renderer = new THREE.WebGLRenderer({
       antialias: ROOM2_APPEARANCE_PROFILE.renderer.antialias,
       alpha: false,
       powerPreference: "high-performance"
     });
     renderer.outputColorSpace = resolveOutputColorSpace(ROOM2_APPEARANCE_PROFILE.renderer.outputColorSpace);
-    renderer.toneMapping = resolveToneMapping(ROOM2_APPEARANCE_PROFILE.renderer.toneMapping);
-    renderer.toneMappingExposure = ROOM2_APPEARANCE_PROFILE.renderer.exposure;
+    renderer.toneMapping = resolveToneMapping(this.presentation.toneMapping);
+    renderer.toneMappingExposure = this.presentation.exposure;
     renderer.shadowMap.enabled = ROOM2_APPEARANCE_PROFILE.renderer.shadows.enabled;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.shadowMap.autoUpdate = false;
@@ -408,7 +446,7 @@ export class GuidedRoom2ViewerController {
     canvas.tabIndex = 0;
     canvas.setAttribute("role", "application");
     canvas.setAttribute("aria-roledescription", "interactive 3D viewer");
-    canvas.setAttribute("aria-label", "Fixed Room 2 fireplace bookcase reference model");
+    canvas.setAttribute("aria-label", "Fixed Room 2 fireplace bookcase reference model with provisional digital finish");
     canvas.setAttribute("aria-describedby", instructions.id);
     canvas.dataset.guided3dInstance = String(this.instanceId);
 
@@ -418,76 +456,72 @@ export class GuidedRoom2ViewerController {
     this.scene = scene;
     this.camera = camera;
     this.renderer = renderer;
+    this.materialSystem = createRoom2MaterialSystem({
+      THREE,
+      renderer,
+      viewportWidth: documentRef.defaultView?.innerWidth,
+      notifyState: (state, details) => this.notifyState(state, details),
+      requestRender: () => this.requestRender()
+    });
     this.setupAppearance();
     this.bindControls();
-    this.updateCamera();
+    this.positionCamera();
+    if (isEvidenceRuntimeAllowed()) globalThis.__JQ_ROOM2_EVIDENCE_CONTROLLER__ = this;
   }
 
   setupAppearance() {
-    const { lighting, ground } = ROOM2_APPEARANCE_PROFILE;
-    this.setupStudioEnvironment();
+    ensureRectAreaUniformsInitialized();
+    const target = new THREE.Vector3(...ROOM2_APPEARANCE_PROFILE.bounds.hero.center);
+    const keyDefinition = ROOM2_APPEARANCE_PROFILE.lighting.key;
+    const fillDefinition = ROOM2_APPEARANCE_PROFILE.lighting.fill;
 
-    for (const role of ["key", "fill", "rim"]) {
-      const definition = lighting[role];
-      const light = new THREE.DirectionalLight(definition.sourceSrgb, definition.intensity);
-      light.name = `room2-studio-${role}`;
-      light.position.set(...resolveBoundsDiagonalPosition(definition.positionBoundsDiagonal));
-      light.target.position.set(...ROOM2_APPEARANCE_PROFILE.bounds.center);
-      light.castShadow = definition.castShadow;
-      assertLinearLightColor(light.color, definition.runtimeLinearSrgb, role);
-      this.scene.add(light, light.target);
-      this.directLights.set(role, light);
-    }
+    const keyArea = new THREE.RectAreaLight(
+      keyDefinition.area.color,
+      keyDefinition.area.intensity * this.presentation.areaKeyScale,
+      keyDefinition.area.width,
+      keyDefinition.area.height
+    );
+    keyArea.name = "room2-commercial-key-area";
+    keyArea.position.set(...keyDefinition.area.position);
+    keyArea.lookAt(target);
+    keyArea.castShadow = false;
+    this.scene.add(keyArea);
+    this.directLights.set("key-area", keyArea);
 
-    const key = this.directLights.get("key");
-    key.shadow.bias = lighting.shadows.bias;
-    key.shadow.normalBias = lighting.shadows.normalBias;
-    this.shadowCaster = key;
+    const proxyDefinition = keyDefinition.shadowProxy;
+    const shadowProxy = new THREE.DirectionalLight(
+      proxyDefinition.color,
+      proxyDefinition.intensity * this.presentation.shadowProxyScale
+    );
+    shadowProxy.name = "room2-commercial-key-shadow-proxy";
+    shadowProxy.position.set(...proxyDefinition.position);
+    shadowProxy.target.position.copy(target);
+    shadowProxy.castShadow = true;
+    shadowProxy.shadow.bias = ROOM2_APPEARANCE_PROFILE.lighting.shadows.bias;
+    shadowProxy.shadow.normalBias = ROOM2_APPEARANCE_PROFILE.lighting.shadows.normalBias;
+    this.scene.add(shadowProxy, shadowProxy.target);
+    this.directLights.set("key-shadow-proxy", shadowProxy);
+    this.shadowCaster = shadowProxy;
+
+    const fillArea = new THREE.RectAreaLight(
+      fillDefinition.area.color,
+      fillDefinition.area.intensity * this.presentation.areaFillScale,
+      fillDefinition.area.width,
+      fillDefinition.area.height
+    );
+    fillArea.name = "room2-commercial-fill-area";
+    fillArea.position.set(...fillDefinition.area.position);
+    fillArea.lookAt(target);
+    fillArea.castShadow = false;
+    this.scene.add(fillArea);
+    this.directLights.set("fill-area", fillArea);
+
     this.configureShadowTier(Number.POSITIVE_INFINITY);
-    fitDirectionalShadowCamera(key, ROOM2_APPEARANCE_PROFILE.bounds, lighting.shadows);
-
-    if (ground.enabled) {
-      const geometry = new THREE.PlaneGeometry(ground.size, ground.size);
-      const material = new THREE.MeshStandardMaterial({
-        color: ground.color,
-        roughness: ground.roughness,
-        metalness: ground.metalness
-      });
-      const plane = new THREE.Mesh(geometry, material);
-      plane.name = "room2-public-non-repeating-ground";
-      plane.rotation.x = -Math.PI / 2;
-      plane.position.y = ground.y;
-      plane.receiveShadow = true;
-      plane.userData.room2Ground = true;
-      this.scene.add(plane);
-    }
-  }
-
-  setupStudioEnvironment() {
-    const definition = ROOM2_APPEARANCE_PROFILE.lighting.environment;
-    const startedAt = performance.now();
-    const generator = new THREE.PMREMGenerator(this.renderer);
-    const environment = new RoomEnvironment(this.renderer);
-    try {
-      generator.compileCubemapShader();
-      this.environmentRenderTarget = generator.fromScene(
-        environment,
-        definition.blurSigma,
-        definition.near,
-        definition.far
-      );
-      this.pmremGenerationCount += 1;
-      if (this.pmremGenerationCount > definition.maximumGenerationsPerViewer) {
-        throw codedError("ROOM2_PMREM_GENERATION_LIMIT", "The Room 2 studio environment was generated more than once.");
-      }
-      this.scene.environment = this.environmentRenderTarget.texture;
-      this.scene.environmentIntensity = definition.intensity;
-      this.scene.environmentRotation.set(0, definition.rotationRadians, 0);
-    } finally {
-      environment.dispose();
-      generator.dispose();
-      this.pmremGenerationMilliseconds = performance.now() - startedAt;
-    }
+    fitDirectionalShadowCamera(
+      shadowProxy,
+      ROOM2_APPEARANCE_PROFILE.bounds.full,
+      ROOM2_APPEARANCE_PROFILE.lighting.shadows
+    );
   }
 
   configureShadowTier(cssWidth) {
@@ -511,13 +545,22 @@ export class GuidedRoom2ViewerController {
   startLoading() {
     this.loadStartedAt = performance.now();
     this.fetchAbortController = new AbortController();
-    this.notifyState("loading", { message: "Loading the fixed Room 2 reference model…", progress: 0 });
+    this.notifyState("loading", {
+      finishId: this.selectedFinishId,
+      message: "Loading the fixed Room 2 reference model and selected provisional finish…",
+      progress: 0
+    });
     this.loadPromise = this.loadModel(this.fetchAbortController.signal)
       .catch((error) => this.fail(error));
   }
 
   async loadModel(signal) {
-    const buffer = await this.fetchAsset(signal);
+    const selectedAtStart = this.selectedFinishId;
+    const [buffer] = await Promise.all([
+      this.fetchAsset(signal),
+      this.materialSystem.prepareInitialFinish(selectedAtStart),
+      this.loadStudioEnvironment(signal)
+    ]);
     if (signal.aborted || this.disposed) return;
     this.assetBuffer = buffer;
     if (buffer.byteLength !== ROOM2_APPEARANCE_PROFILE.asset.bytes) {
@@ -539,6 +582,9 @@ export class GuidedRoom2ViewerController {
       throw codedError("ROOM2_RAW_MATERIAL_DIGEST_MISMATCH", "Room 2 raw material assignments differ from the published authority.");
     }
     this.embeddedImagePayloadSnapshot = await createEmbeddedImagePayloadSnapshot(this.glbInspection);
+    if (this.embeddedImagePayloadSnapshot.aggregateSha256 !== ROOM2_APPEARANCE_PROFILE.asset.embeddedImageAggregate) {
+      throw codedError("ROOM2_EMBEDDED_IMAGE_DIGEST_MISMATCH", "Room 2 embedded image payloads differ from the published authority.");
+    }
 
     const loader = new GLTFLoader();
     this.parseCount += 1;
@@ -547,19 +593,19 @@ export class GuidedRoom2ViewerController {
       disposeObject3D(gltf.scene);
       return;
     }
-    this.validateParsedScene(gltf);
+    // Claim the parsed scene before any validation or material work that can throw.
+    // The fatal path can therefore always release GLTF-owned GPU resources.
     this.gltf = gltf;
     this.modelRoot = gltf.scene;
-    this.modelRoot.traverse((object) => {
-      if (!object.isMesh) return;
-      object.castShadow = true;
-      object.receiveShadow = true;
-    });
-    this.scene.add(this.modelRoot);
+    this.validateParsedScene(gltf);
+    this.sourceRuntimeMaterialSnapshot = await createRuntimeMaterialSnapshot(gltf, this.glbInspection.json);
+    this.sourceRuntimeMaterialAppearanceSnapshot = await createRuntimeMaterialAppearanceSnapshot(gltf, this.glbInspection.json);
+    await this.materialSystem.bindModel(gltf, this.glbInspection.json, this.selectedFinishId);
     this.modelRoot.updateMatrixWorld(true);
-    this.runtimeMaterialSnapshot = await createRuntimeMaterialSnapshot(gltf, this.glbInspection.json);
-    this.runtimeMaterialAppearanceSnapshot = await createRuntimeMaterialAppearanceSnapshot(gltf, this.glbInspection.json);
     this.deferredModelSnapshot = createDeferredModelSnapshot(gltf);
+    this.materialSystem.assertGeometryIdentity();
+    this.applyEvidenceMaskFromLocation();
+    this.scene.add(this.modelRoot);
     this.failed = false;
     this.lastError = null;
     this.fitCameraForViewport();
@@ -570,6 +616,7 @@ export class GuidedRoom2ViewerController {
       this.compileMilliseconds = performance.now() - compileStartedAt;
       if (signal.aborted || this.disposed) return;
     }
+    this.lastMaterialDiagnostics = this.materialSystem.getDiagnostics();
     this.requestRender();
     this.syncDiagnostics();
   }
@@ -585,10 +632,8 @@ export class GuidedRoom2ViewerController {
     if (!response.ok || response.type === "opaque") {
       throw codedError("ROOM2_ASSET_REQUEST_FAILED", `Room 2 model request failed with status ${response.status || "unknown"}.`);
     }
-    const finalUrl = new URL(response.url, document.baseURI);
-    if (finalUrl.origin !== window.location.origin) {
-      throw codedError("ROOM2_ASSET_CROSS_ORIGIN", "The Room 2 model did not resolve to this site origin.");
-    }
+    requireSameOrigin(response.url, "ROOM2_ASSET_CROSS_ORIGIN", "The Room 2 model did not resolve to this site origin.");
+    this.successfulRequestCount += 1;
     const total = Number(response.headers.get("content-length")) || ROOM2_APPEARANCE_PROFILE.asset.bytes;
     if (!response.body?.getReader) return response.arrayBuffer();
 
@@ -604,18 +649,70 @@ export class GuidedRoom2ViewerController {
       if (bucket !== this.progressBucket) {
         this.progressBucket = bucket;
         this.notifyState("loading", {
-          message: `Loading the fixed Room 2 reference model… ${Math.min(100, bucket * 10)}%`,
+          finishId: this.selectedFinishId,
+          message: `Loading Room 2 and the selected provisional finish… ${Math.min(100, bucket * 10)}%`,
           progress: Math.min(100, bucket * 10)
         });
       }
     }
-    const bytes = new Uint8Array(received);
-    let offset = 0;
-    for (const chunk of chunks) {
-      bytes.set(chunk, offset);
-      offset += chunk.byteLength;
+    return concatenateChunks(chunks, received);
+  }
+
+  async loadStudioEnvironment(signal) {
+    const definition = ROOM2_APPEARANCE_PROFILE.environment;
+    this.environmentRequestCount += 1;
+    const response = await fetch(definition.url, {
+      method: "GET",
+      credentials: "same-origin",
+      cache: "default",
+      signal
+    });
+    if (!response.ok || response.type === "opaque") {
+      throw codedError("ROOM2_ENVIRONMENT_REQUEST_FAILED", `Room 2 environment request failed with status ${response.status || "unknown"}.`);
     }
-    return bytes.buffer;
+    requireSameOrigin(response.url, "ROOM2_ENVIRONMENT_CROSS_ORIGIN", "The Room 2 environment did not resolve to this site origin.");
+    const buffer = await response.arrayBuffer();
+    if (buffer.byteLength !== definition.bytes) {
+      throw codedError("ROOM2_ENVIRONMENT_SIZE_MISMATCH", `Room 2 environment size ${buffer.byteLength} differs from its manifest.`);
+    }
+    this.environmentSha256 = await sha256Bytes(buffer);
+    if (this.environmentSha256 !== definition.sha256) {
+      throw codedError("ROOM2_ENVIRONMENT_HASH_MISMATCH", "Room 2 environment bytes differ from their manifest.");
+    }
+    this.environmentSuccessfulRequestCount += 1;
+    if (signal.aborted || this.disposed) return;
+
+    const decoded = new RGBELoader().parse(buffer);
+    const texture = new THREE.DataTexture(decoded.data, decoded.width, decoded.height, THREE.RGBAFormat, decoded.type);
+    texture.name = "room2-commercial-neutral-studio-source";
+    texture.colorSpace = THREE.LinearSRGBColorSpace;
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    texture.generateMipmaps = false;
+    texture.flipY = true;
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    texture.needsUpdate = true;
+    const startedAt = performance.now();
+    const generator = new THREE.PMREMGenerator(this.renderer);
+    try {
+      generator.compileEquirectangularShader();
+      this.environmentRenderTarget = generator.fromEquirectangular(texture);
+      this.pmremGenerationCount += 1;
+      if (this.pmremGenerationCount > definition.maximumGenerationsPerViewer) {
+        throw codedError("ROOM2_PMREM_GENERATION_LIMIT", "The Room 2 studio environment was generated more than once.");
+      }
+      this.scene.environment = this.environmentRenderTarget.texture;
+      this.scene.environmentIntensity = this.presentation.environmentIntensity;
+      this.scene.environmentRotation.set(0, this.presentation.environmentRotationRadians, 0);
+      texture.dispose();
+      this.environmentSourceTexture = null;
+    } catch (error) {
+      texture.dispose();
+      throw error;
+    } finally {
+      generator.dispose();
+      this.pmremGenerationMilliseconds = performance.now() - startedAt;
+    }
   }
 
   validateParsedScene(gltf) {
@@ -636,7 +733,7 @@ export class GuidedRoom2ViewerController {
 
     gltf.scene.updateMatrixWorld(true);
     const bounds = new THREE.Box3().setFromObject(gltf.scene);
-    const expected = ROOM2_APPEARANCE_PROFILE.bounds;
+    const expected = ROOM2_APPEARANCE_PROFILE.bounds.full;
     const actual = { min: bounds.min.toArray(), max: bounds.max.toArray() };
     for (const side of ["min", "max"]) {
       actual[side].forEach((value, index) => {
@@ -647,14 +744,29 @@ export class GuidedRoom2ViewerController {
     }
   }
 
-  createRuntimeMaterialCanonical() {
-    if (!this.gltf || !this.runtimeMaterialSnapshot) return "";
-    return createRuntimeMaterialCanonical(this.gltf, this.glbInspection.json);
+  assertDeferredGeometry() {
+    const snapshot = createDeferredModelSnapshot(this.gltf);
+    if (snapshot.canonical !== this.deferredModelSnapshot.canonical) {
+      throw codedError("ROOM2_DEFERRED_MODEL_MUTATION", "A customer control changed the fixed Room 2 model.");
+    }
+    return true;
   }
 
-  createRuntimeMaterialAppearanceCanonical() {
-    if (!this.gltf || !this.glbInspection) return null;
-    return createRuntimeMaterialAppearanceCanonical(this.gltf, this.glbInspection.json);
+  applyEvidenceMaskFromLocation() {
+    if (!isEvidenceRuntimeAllowed()) return;
+    const mode = new URLSearchParams(globalThis.location?.search || "").get("room2Mask");
+    if (mode !== "finish-target") return;
+    const target = new THREE.MeshBasicMaterial({ color: 0xff2bd6, toneMapped: false });
+    const context = new THREE.MeshBasicMaterial({ color: 0x18212a, toneMapped: false });
+    target.name = "room2-evidence-finish-target";
+    context.name = "room2-evidence-context";
+    this.evidenceMaskMaterials.add(target);
+    this.evidenceMaskMaterials.add(context);
+    this.modelRoot.traverse((object) => {
+      if (!object.isMesh) return;
+      object.material = object.userData?.room2OriginalMaterialIndex === 3 ? target : context;
+    });
+    this.evidenceMaskMode = mode;
   }
 
   bindControls() {
@@ -762,47 +874,97 @@ export class GuidedRoom2ViewerController {
     );
     this.renderer.setPixelRatio(dpr);
     this.renderer.setSize(width, height, false);
-    this.configureShadowTier(width);
+    const viewportWidth = Number(this.ownerWindow?.innerWidth) || width;
+    this.configureShadowTier(viewportWidth);
+    this.materialSystem?.updateViewportWidth(viewportWidth);
     this.camera.aspect = width / height;
+    this.camera.filmGauge = ROOM2_APPEARANCE_PROFILE.camera.filmGauge;
+    this.camera.setFocalLength(ROOM2_APPEARANCE_PROFILE.camera.expectedFocalLengthMillimeters);
     this.camera.updateProjectionMatrix();
-    if (!this.userAdjustedCamera) this.fitCameraForViewport();
+    const viewportKey = this.currentViewportKey();
+    if (!this.userAdjustedCamera && (!this.modelRoot || this.lastFittedViewportKey !== viewportKey)) {
+      this.fitCameraForViewport();
+    }
+    this.lastMaterialDiagnostics = this.materialSystem?.getDiagnostics() || this.lastMaterialDiagnostics;
+    this.syncDiagnostics();
     this.requestRender();
   }
 
   fitCameraForViewport() {
-    if (!this.camera || this.cameraFitInitialized) return;
-    const bounds = ROOM2_APPEARANCE_PROFILE.bounds;
-    const halfWidth = (bounds.max[0] - bounds.min[0]) / 2;
-    const halfHeight = (bounds.max[1] - bounds.min[1]) / 2;
-    const halfDepth = (bounds.max[2] - bounds.min[2]) / 2;
-    const verticalFov = THREE.MathUtils.degToRad(this.camera.fov);
-    const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * Math.max(0.1, this.camera.aspect));
-    const fit = Math.max(
-      halfHeight / Math.tan(verticalFov / 2),
-      halfWidth / Math.tan(horizontalFov / 2)
-    ) * ROOM2_APPEARANCE_PROFILE.camera.fitPadding + halfDepth;
+    if (!this.camera) return;
+    const tier = this.resolveOccupancyTier();
+    let nearRadius = ROOM2_APPEARANCE_PROFILE.camera.minimumFitRadius;
+    let farRadius = ROOM2_APPEARANCE_PROFILE.camera.maximumRadius;
+    for (let index = 0; index < 42; index += 1) {
+      const radius = (nearRadius + farRadius) / 2;
+      this.positionCamera(radius);
+      const projected = this.projectSemanticBounds(ROOM2_APPEARANCE_PROFILE.bounds.hero);
+      if (projected.width > tier.targetWidth) nearRadius = radius;
+      else farRadius = radius;
+    }
     this.baseRadius = clamp(
-      Math.max(ROOM2_APPEARANCE_PROFILE.camera.minimumFitRadius, fit),
-      ROOM2_APPEARANCE_PROFILE.camera.minimumRadius,
+      (nearRadius + farRadius) / 2,
+      ROOM2_APPEARANCE_PROFILE.camera.minimumFitRadius,
       ROOM2_APPEARANCE_PROFILE.camera.maximumRadius
     );
     this.radius = this.baseRadius;
-    this.cameraFitInitialized = true;
+    this.lastFittedViewportKey = this.currentViewportKey();
     this.updateCamera();
   }
 
-  updateCamera() {
+  currentViewportKey() {
+    const width = Number(this.ownerWindow?.innerWidth) || 0;
+    const height = Number(this.ownerWindow?.innerHeight) || 0;
+    return `${width}x${height}`;
+  }
+
+  resolveOccupancyTier() {
+    const viewportWidth = Number(this.ownerWindow?.innerWidth) || Number(this.runtime?.getBoundingClientRect?.().width) || 1280;
+    return ROOM2_APPEARANCE_PROFILE.camera.occupancyTiers.find(
+      (candidate) => candidate.maximumViewportWidth == null || viewportWidth <= candidate.maximumViewportWidth
+    ) || ROOM2_APPEARANCE_PROFILE.camera.occupancyTiers.at(-1);
+  }
+
+  positionCamera(radius = this.radius) {
     if (!this.camera) return;
-    const horizontal = Math.cos(this.phi) * this.radius;
+    const horizontal = Math.cos(this.phi) * radius;
     this.camera.position.set(
       this.cameraTarget.x + Math.sin(this.theta) * horizontal,
-      this.cameraTarget.y + Math.sin(this.phi) * this.radius,
+      this.cameraTarget.y + Math.sin(this.phi) * radius,
       this.cameraTarget.z + Math.cos(this.theta) * horizontal
     );
     this.camera.lookAt(this.cameraTarget);
     this.camera.updateMatrixWorld();
+    this.camera.updateProjectionMatrix();
+  }
+
+  updateCamera() {
+    if (!this.camera) return;
+    this.positionCamera();
     this.syncDiagnostics();
     this.requestRender();
+  }
+
+  projectSemanticBounds(bounds) {
+    if (!this.camera) return null;
+    const projected = boundsCorners(bounds).map((point) => point.project(this.camera));
+    const xs = projected.map(({ x }) => x);
+    const ys = projected.map(({ y }) => y);
+    const zs = projected.map(({ z }) => z);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const minY = Math.min(...ys);
+    const maxY = Math.max(...ys);
+    return Object.freeze({
+      ndc: Object.freeze({
+        min: [roundDiagnostic(minX), roundDiagnostic(minY), roundDiagnostic(Math.min(...zs))],
+        max: [roundDiagnostic(maxX), roundDiagnostic(maxY), roundDiagnostic(Math.max(...zs))]
+      }),
+      width: roundDiagnostic((maxX - minX) / 2),
+      height: roundDiagnostic((maxY - minY) / 2),
+      area: roundDiagnostic(((maxX - minX) * (maxY - minY)) / 4),
+      withinViewport: minX >= -1 && maxX <= 1 && minY >= -1 && maxY <= 1 && Math.min(...zs) >= -1 && Math.max(...zs) <= 1
+    });
   }
 
   requestRender() {
@@ -814,17 +976,30 @@ export class GuidedRoom2ViewerController {
       if (this.disposed || this.failed || !this.runtime?.isConnected || !this.modelRoot) return;
       try {
         const refreshingShadowMap = this.shadowRefreshPending && this.renderer.shadowMap.needsUpdate;
+        const startedAt = performance.now();
         this.renderer.render(this.scene, this.camera);
+        this.lastFrameMilliseconds = performance.now() - startedAt;
+        this.lastFrameTriangles = this.renderer.info.render.triangles;
         if (refreshingShadowMap) {
           this.shadowRefreshCount += 1;
           this.shadowRefreshPending = false;
+          this.lastShadowRefreshDrawCalls = this.renderer.info.render.calls;
+        } else {
+          this.lastBeautyPassDrawCalls = this.renderer.info.render.calls;
         }
         this.renderCount += 1;
         this.canvas.dataset.rendered = "true";
         this.runtime.dataset.rendered = "true";
         if (!this.firstUsableAt) this.firstUsableAt = performance.now();
-        if (this.state !== "ready") this.notifyState("ready", { message: "Fixed Room 2 reference model ready." });
+        if (!["ready", "finish-loading", "finish-error"].includes(this.state)) {
+          this.notifyState("ready", {
+            finishId: this.selectedFinishId,
+            message: "Room 2 commercial PBR review candidate ready."
+          });
+        }
+        this.lastMaterialDiagnostics = this.materialSystem?.getDiagnostics() || this.lastMaterialDiagnostics;
         this.syncDiagnostics();
+        if (refreshingShadowMap && this.lastBeautyPassDrawCalls == null) this.requestRender();
       } catch (error) {
         this.fail(error);
       }
@@ -869,7 +1044,42 @@ export class GuidedRoom2ViewerController {
     if (this.disposed) return false;
     this.failed = true;
     this.lastError = error;
+    this.fetchAbortController?.abort();
     this.cancelRender();
+    this.cancelResize();
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
+    this.resizeFallbackController?.abort();
+    this.resizeFallbackController = null;
+    this.controlAbortController?.abort();
+    this.controlAbortController = null;
+    this.activePointers.clear();
+    const materialSystem = this.materialSystem;
+    this.lastMaterialDiagnostics = materialSystem?.getDiagnostics() || this.lastMaterialDiagnostics;
+    materialSystem?.dispose();
+    this.lastMaterialDiagnostics = materialSystem?.getDiagnostics() || this.lastMaterialDiagnostics;
+    this.materialSystem = null;
+    disposeObject3D(this.modelRoot);
+    this.modelRoot = null;
+    this.gltf = null;
+    this.assetBuffer = null;
+    disposeSet(this.evidenceMaskMaterials);
+    this.evidenceMaskMode = null;
+    if (this.scene) this.scene.environment = null;
+    this.environmentSourceTexture?.dispose?.();
+    this.environmentSourceTexture = null;
+    this.environmentRenderTarget?.dispose?.();
+    this.environmentRenderTarget = null;
+    this.shadowCaster?.shadow?.map?.dispose?.();
+    if (this.shadowCaster?.shadow) this.shadowCaster.shadow.map = null;
+    this.directLights.clear();
+    this.shadowCaster = null;
+    this.scene?.clear();
+    if (!this.rendererResourcesReleased) {
+      this.renderer?.renderLists?.dispose?.();
+      this.renderer?.dispose?.();
+      this.rendererResourcesReleased = true;
+    }
     if (this.runtime) {
       this.runtime.dataset.state = "fallback";
       this.runtime.hidden = true;
@@ -894,16 +1104,39 @@ export class GuidedRoom2ViewerController {
       theta: roundDiagnostic(this.theta),
       phi: roundDiagnostic(this.phi),
       radius: roundDiagnostic(this.radius),
-      fov: roundDiagnostic(this.camera.fov)
+      filmGauge: roundDiagnostic(this.camera.filmGauge),
+      focalLengthMillimeters: roundDiagnostic(this.camera.getFocalLength())
     }) : null;
   }
 
   readProjectionState() {
-    return this.camera ? Object.freeze({
+    if (!this.camera) return null;
+    const tier = this.resolveOccupancyTier();
+    const canvasRect = this.runtime?.getBoundingClientRect?.();
+    const hero = this.projectSemanticBounds(ROOM2_APPEARANCE_PROFILE.bounds.hero);
+    const full = this.projectSemanticBounds(ROOM2_APPEARANCE_PROFILE.bounds.full);
+    return Object.freeze({
       aspect: roundDiagnostic(this.camera.aspect),
+      verticalFovDegrees: roundDiagnostic(this.camera.fov),
       near: roundDiagnostic(this.camera.near),
-      far: roundDiagnostic(this.camera.far)
-    }) : null;
+      far: roundDiagnostic(this.camera.far),
+      viewport: Object.freeze({
+        pageCssWidth: Number(this.ownerWindow?.innerWidth) || null,
+        pageCssHeight: Number(this.ownerWindow?.innerHeight) || null,
+        canvasCssWidth: canvasRect ? roundDiagnostic(canvasRect.width) : null,
+        canvasCssHeight: canvasRect ? roundDiagnostic(canvasRect.height) : null,
+        devicePixelRatio: roundDiagnostic(this.renderer?.getPixelRatio?.())
+      }),
+      heroBounds: ROOM2_APPEARANCE_PROFILE.bounds.hero,
+      hero,
+      full,
+      occupancyTier: Object.freeze({
+        id: tier.id,
+        targetWidth: tier.targetWidth,
+        acceptedWidth: tier.acceptedWidth,
+        widthPass: hero ? hero.width >= tier.acceptedWidth[0] && hero.width <= tier.acceptedWidth[1] : false
+      })
+    });
   }
 
   readRendererState() {
@@ -917,13 +1150,17 @@ export class GuidedRoom2ViewerController {
       contextVersion: context?.getParameter?.(context.VERSION) || null,
       vendor: extension ? context.getParameter(extension.UNMASKED_VENDOR_WEBGL) : context?.getParameter?.(context?.VENDOR) || null,
       device: extension ? context.getParameter(extension.UNMASKED_RENDERER_WEBGL) : context?.getParameter?.(context?.RENDERER) || null,
+      browserUserAgent: String(this.ownerWindow?.navigator?.userAgent || ""),
+      browserPlatform: String(this.ownerWindow?.navigator?.platform || ""),
       colorManagementEnabled: THREE.ColorManagement.enabled,
       workingColorSpace: THREE.ColorManagement.workingColorSpace,
       outputColorSpace: this.renderer.outputColorSpace,
       outputTransformCount: ROOM2_APPEARANCE_PROFILE.renderer.colorManagement.outputTransformCount,
       toneMapping: toneMappingName(this.renderer.toneMapping),
       exposure: roundDiagnostic(this.renderer.toneMappingExposure),
-      shadowType: shadowMapTypeName(this.renderer.shadowMap.type)
+      shadowType: shadowMapTypeName(this.renderer.shadowMap.type),
+      postProcessingEnabled: false,
+      gtaoEnabled: false
     });
   }
 
@@ -943,30 +1180,43 @@ export class GuidedRoom2ViewerController {
   }
 
   readLightingState() {
-    const roles = {};
-    for (const role of ["key", "fill", "rim"]) {
-      const definition = ROOM2_APPEARANCE_PROFILE.lighting[role];
-      const light = this.directLights.get(role);
-      roles[role] = Object.freeze({
-        type: definition.type,
-        sourceSrgb: definition.sourceSrgb,
-        runtimeLinearSrgb: light?.color?.toArray?.().map(roundDiagnostic) || definition.runtimeLinearSrgb,
-        intensity: light?.intensity ?? definition.intensity,
-        nativeIntensityRatio: definition.nativeIntensityRatio,
-        measuredContributionRatio: definition.measuredContributionRatio,
-        positionBoundsDiagonal: definition.positionBoundsDiagonal,
+    const floatLtc = Boolean(this.renderer?.extensions?.has?.("OES_texture_float_linear"));
+    const readLight = (key, definition) => {
+      const light = this.directLights.get(key);
+      return Object.freeze({
+        type: light?.type || definition.type,
+        sourceSrgb: definition.color,
+        runtimeLinearSrgb: light?.color?.toArray?.().map(roundDiagnostic) || null,
+        intensity: roundDiagnostic(light?.intensity),
         position: light?.position?.toArray?.().map(roundDiagnostic) || null,
-        target: light?.target?.position?.toArray?.().map(roundDiagnostic) || null,
-        size: definition.size,
+        width: roundDiagnostic(light?.width),
+        height: roundDiagnostic(light?.height),
         castShadow: Boolean(light?.castShadow)
       });
-    }
+    };
     return Object.freeze({
       coordinateBasis: ROOM2_APPEARANCE_PROFILE.lighting.coordinateBasis,
-      contributionMeasurement: ROOM2_APPEARANCE_PROFILE.lighting.contributionMeasurement,
       directLightCount: this.directLights.size,
-      semanticRoleCount: Object.keys(roles).length,
-      roles: Object.freeze(roles)
+      semanticRoleCount: ROOM2_APPEARANCE_PROFILE.lighting.semanticRoleCount,
+      rectAreaUniformsInitializationCount,
+      rectAreaLtcLookup: Object.freeze({
+        selectedPair: floatLtc ? "LTC_FLOAT_1/LTC_FLOAT_2" : "LTC_HALF_1/LTC_HALF_2",
+        gpuFormat: floatLtc ? "RGBA32F" : "RGBA16F",
+        dimensions: Object.freeze([64, 64]),
+        textureCount: 2,
+        estimatedBytes: floatLtc ? 131072 : 65536
+      }),
+      roles: Object.freeze({
+        key: Object.freeze({
+          semanticRole: ROOM2_APPEARANCE_PROFILE.lighting.key.semanticRole,
+          area: readLight("key-area", ROOM2_APPEARANCE_PROFILE.lighting.key.area),
+          shadowProxy: readLight("key-shadow-proxy", ROOM2_APPEARANCE_PROFILE.lighting.key.shadowProxy)
+        }),
+        fill: Object.freeze({
+          semanticRole: ROOM2_APPEARANCE_PROFILE.lighting.fill.semanticRole,
+          area: readLight("fill-area", ROOM2_APPEARANCE_PROFILE.lighting.fill.area)
+        })
+      })
     });
   }
 
@@ -989,9 +1239,13 @@ export class GuidedRoom2ViewerController {
       room2GeometryFingerprint: diagnostics.geometryFingerprint || "",
       room2RawMaterialDigest: diagnostics.rawMaterialDigest || "",
       room2EmbeddedImagePayloadDigest: diagnostics.embeddedImagePayloadDigest || "",
-      room2RuntimeMaterialDigest: diagnostics.runtimeMaterialDigest || "",
-      room2RuntimeMaterialAppearanceDigest: diagnostics.runtimeMaterialAppearanceDigest || "",
+      room2RuntimeMaterialDigest: diagnostics.sourceRuntimeMaterialDigest || "",
+      room2RuntimeMaterialAppearanceDigest: diagnostics.sourceRuntimeMaterialAppearanceDigest || "",
+      room2RuntimeAppearanceFingerprint: diagnostics.runtimeAppearanceFingerprint || "",
+      room2RuntimeAppearanceFingerprintVersion: diagnostics.runtimeAppearanceFingerprintVersion || "",
       room2RuntimeModelFingerprint: diagnostics.runtimeModelFingerprint || "",
+      room2SelectedFinish: diagnostics.selectedFinishId,
+      room2MaterialSystemState: JSON.stringify(diagnostics.materialSystem),
       room2RequestCount: String(diagnostics.requestCount),
       room2ParseCount: String(diagnostics.parseCount),
       room2RenderCount: String(diagnostics.renderCount),
@@ -1013,8 +1267,11 @@ export class GuidedRoom2ViewerController {
       room2LightingState: JSON.stringify(diagnostics.lighting),
       room2EnvironmentState: JSON.stringify(diagnostics.environment),
       room2ShadowState: JSON.stringify(diagnostics.shadows),
+      room2PerformanceState: JSON.stringify(diagnostics.performance),
       room2AppearanceProfile: ROOM2_APPEARANCE_PROFILE.schema,
       room2AppearanceStatus: ROOM2_APPEARANCE_PROFILE.status,
+      room2Presentation: this.presentation.id,
+      room2EvidenceMaskMode: this.evidenceMaskMode || "",
       room2FailureCode: error?.code || ""
     };
     for (const element of [this.runtime, this.canvas].filter(Boolean)) Object.assign(element.dataset, values);
@@ -1030,8 +1287,37 @@ function isSupportedSelection(project) {
     && project?.layoutAvailability !== "unavailable";
 }
 
+function ensureRectAreaUniformsInitialized() {
+  if (rectAreaUniformsInitialized) return;
+  RectAreaLightUniformsLib.init();
+  rectAreaUniformsInitialized = true;
+  rectAreaUniformsInitializationCount += 1;
+}
+
+function isEvidenceRuntimeAllowed() {
+  const hostname = String(globalThis.location?.hostname || "");
+  const query = new URLSearchParams(String(globalThis.location?.search || ""));
+  return ROOM2_APPEARANCE_PROFILE.presentation.evidenceOnlyHostnames.includes(hostname)
+    && query.get("room2Evidence") === "1";
+}
+
 function publishDiagnostics(diagnostics) {
   globalThis.__JQ_ROOM2_VIEWER_DIAGNOSTICS__ = diagnostics;
+}
+
+function requireSameOrigin(url, code, message) {
+  const finalUrl = new URL(url, document.baseURI);
+  if (finalUrl.origin !== globalThis.location.origin) throw codedError(code, message);
+}
+
+function concatenateChunks(chunks, byteLength) {
+  const bytes = new Uint8Array(byteLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes.buffer;
 }
 
 function codedError(code, message) {
@@ -1056,6 +1342,19 @@ function disposeObject3D(root) {
   geometries.forEach((geometry) => geometry.dispose?.());
   textures.forEach((texture) => texture.dispose?.());
   materials.forEach((material) => material.dispose?.());
+}
+
+function disposeGeometryOnly(root) {
+  const geometries = new Set();
+  root?.traverse?.((object) => {
+    if (object.geometry) geometries.add(object.geometry);
+  });
+  geometries.forEach((geometry) => geometry.dispose?.());
+}
+
+function disposeSet(values) {
+  for (const value of values || []) value?.dispose?.();
+  values?.clear?.();
 }
 
 function resolveOutputColorSpace(name) {
@@ -1084,18 +1383,14 @@ function shadowMapTypeName(value) {
   return `three-constant-${value}`;
 }
 
-function resolveBoundsDiagonalPosition(normalized) {
-  const { min, max, center } = ROOM2_APPEARANCE_PROFILE.bounds;
-  const diagonal = Math.hypot(...max.map((value, index) => value - min[index]));
-  return normalized.map((value, index) => center[index] + value * diagonal);
-}
-
-function assertLinearLightColor(color, expected, role) {
-  color.toArray().forEach((value, index) => {
-    if (Math.abs(value - expected[index]) > 1e-6) {
-      throw codedError("ROOM2_LIGHT_COLOR_CONVERSION_MISMATCH", `The ${role} light did not resolve to the pinned Linear-sRGB color.`);
+function boundsCorners(bounds) {
+  const corners = [];
+  for (const x of [bounds.min[0], bounds.max[0]]) {
+    for (const y of [bounds.min[1], bounds.max[1]]) {
+      for (const z of [bounds.min[2], bounds.max[2]]) corners.push(new THREE.Vector3(x, y, z));
     }
-  });
+  }
+  return corners;
 }
 
 function fitDirectionalShadowCamera(light, bounds, definition) {
@@ -1103,32 +1398,22 @@ function fitDirectionalShadowCamera(light, bounds, definition) {
   light.target.updateMatrixWorld(true);
   light.shadow.updateMatrices(light);
   const camera = light.shadow.camera;
-  const corners = [];
-  for (const x of [bounds.min[0], bounds.max[0]]) {
-    for (const y of [bounds.min[1], bounds.max[1]]) {
-      for (const z of [bounds.min[2], bounds.max[2]]) {
-        corners.push(new THREE.Vector3(x, y, z).applyMatrix4(camera.matrixWorldInverse));
-      }
-    }
-  }
-  const diagonal = Math.hypot(...bounds.max.map((value, index) => value - bounds.min[index]));
-  const lateralPadding = diagonal * definition.fitPaddingBoundsDiagonal;
-  const depthPadding = diagonal * definition.depthPaddingBoundsDiagonal;
+  const corners = boundsCorners(bounds).map((point) => point.applyMatrix4(camera.matrixWorldInverse));
   const xs = corners.map((point) => point.x);
   const ys = corners.map((point) => point.y);
   const zs = corners.map((point) => point.z);
-  camera.left = Math.min(...xs) - lateralPadding;
-  camera.right = Math.max(...xs) + lateralPadding;
-  camera.bottom = Math.min(...ys) - lateralPadding;
-  camera.top = Math.max(...ys) + lateralPadding;
-  camera.near = Math.max(0.05, -Math.max(...zs) - depthPadding);
-  camera.far = Math.max(camera.near + 0.1, -Math.min(...zs) + depthPadding);
+  camera.left = Math.min(...xs) - definition.fitPaddingMeters;
+  camera.right = Math.max(...xs) + definition.fitPaddingMeters;
+  camera.bottom = Math.min(...ys) - definition.fitPaddingMeters;
+  camera.top = Math.max(...ys) + definition.fitPaddingMeters;
+  camera.near = Math.max(0.05, -Math.max(...zs) - definition.depthPaddingMeters);
+  camera.far = Math.max(camera.near + 0.1, -Math.min(...zs) + definition.depthPaddingMeters);
   camera.updateProjectionMatrix();
   light.shadow.updateMatrices(light);
 }
 
 function roundDiagnostic(value) {
-  return Number(Number(value).toFixed(9));
+  return Number.isFinite(value) ? Number(Number(value).toFixed(9)) : null;
 }
 
 function clamp(value, minimum, maximum) {
