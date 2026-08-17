@@ -2,15 +2,16 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import {
   PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES,
+  PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS,
+  PUBLIC_CONFIGURATOR_LAYOUT_ID,
   PUBLIC_CONFIGURATOR_PRODUCT_CHOICES,
-  SHARED_ROOM_LAYOUTS,
   getMeasurementFields
 } from "../guided-configurator-data.js";
-import {
-  GUIDED_PRODUCT_LAYOUT_COMPATIBILITY
-} from "../guided-product-adapter.js";
 
 const ACTIVE_PRODUCT = PUBLIC_CONFIGURATOR_PRODUCT_CHOICES[0];
+const ACTIVE_LAYOUT_ID = PUBLIC_CONFIGURATOR_LAYOUT_ID;
+const ROOM2_SHA256 = "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5";
+const ROOM2_GEOMETRY_FINGERPRINT = "8762fe4326e22e46a163343e5fde410e231d651b48d1b1c9be8391febec8f6ff";
 const DRAFT_KEY = "jqGuidedConfiguratorDraftV1";
 const PROJECTS_KEY = "jqGuidedConfiguratorProjectsV1";
 
@@ -47,21 +48,21 @@ async function chooseActiveProduct(page) {
 async function continueToLayouts(page) {
   await chooseActiveProduct(page);
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose the available Room 2 layout" })).toBeVisible();
   await expect(page).toHaveURL(/#step-2$/);
 }
 
-async function chooseLayout(page, layoutId = "clear-wall") {
+async function chooseLayout(page, layoutId = ACTIVE_LAYOUT_ID) {
   const card = page.locator(`[data-layout="${layoutId}"]`);
   await card.click();
   await expect(card).toHaveAttribute("aria-pressed", "true");
 }
 
-async function continueToCustomization(page, layoutId = "clear-wall") {
+async function continueToCustomization(page, layoutId = ACTIVE_LAYOUT_ID) {
   await continueToLayouts(page);
   await chooseLayout(page, layoutId);
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Customize your fitted design" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan details beside the Room 2 reference" })).toBeVisible();
   await expect(page).toHaveURL(/#step-3$/);
   await expect(page.getByRole("tab", { name: "Dimensions" })).toHaveAttribute("aria-selected", "true");
 }
@@ -69,23 +70,23 @@ async function continueToCustomization(page, layoutId = "clear-wall") {
 async function expectAcceptedScene(page) {
   const preview = page.locator(".concept-preview");
   await expect(preview).toHaveCount(1);
-  await expect(preview).toHaveAttribute("data-preview-render-mode", "accepted-geometry");
-  await expect(preview).toHaveAttribute("data-accepted-specification", "true");
-  await expect(preview).toHaveAttribute("data-geometry-fingerprint", /.+/);
+  await expect(preview).toHaveAttribute("data-preview-render-mode", "fixed-room2-glb");
   await expect(preview.locator("[data-published-preview-image], picture.concept-photo, img.concept-photo")).toHaveCount(0);
-  const canvas = preview.locator('.guided-3d-canvas[data-rendered="true"]');
+  const canvas = preview.locator('.guided-room2-canvas[data-rendered="true"]');
   await expect(canvas).toHaveCount(1);
-  await expect(canvas).toHaveAttribute("data-render-contract-valid", "true");
-  await expect(canvas).toHaveAttribute("data-geometry-fingerprint", /.+/);
-  await expect(canvas).toHaveAttribute("data-specification-fingerprint", /.+/);
+  await expect(canvas).toHaveAttribute("data-room2-scene-purpose", "fixed-room2-reference-glb");
+  await expect(canvas).toHaveAttribute("data-room2-asset-sha256", ROOM2_SHA256);
+  await expect(canvas).toHaveAttribute("data-room2-geometry-fingerprint", ROOM2_GEOMETRY_FINGERPRINT);
+  await expect(canvas).toHaveAttribute("data-room2-request-count", "1");
+  await expect(canvas).toHaveAttribute("data-room2-parse-count", "1");
   return canvas;
 }
 
-async function continueToReview(page, layoutId = "clear-wall") {
+async function continueToReview(page, layoutId = ACTIVE_LAYOUT_ID) {
   await continueToCustomization(page, layoutId);
   await expectAcceptedScene(page);
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
   await expect(page).toHaveURL(/#step-4$/);
 }
 
@@ -98,8 +99,18 @@ function legacyProject(overrides = {}) {
     maxVisitedStep: 5,
     category: "bookcase",
     productSelected: true,
-    layout: "clear-wall",
-    measurements: { wallWidth: 120, ceilingHeight: 96, desiredDepth: 14 },
+    layout: ACTIVE_LAYOUT_ID,
+    measurements: {
+      wallWidth: 120,
+      ceilingHeight: 96,
+      desiredDepth: 14,
+      fireplaceWidth: 42,
+      fireplaceHeight: 32,
+      mantelWidth: 60,
+      mantelHeight: 48,
+      fireplaceDepth: 8,
+      tvAboveFireplace: "no"
+    },
     style: "cabinet-base-shelves",
     finish: "white-oak",
     accentFinish: "natural-oak",
@@ -224,7 +235,7 @@ test("unsupported saved projects remain intact and starting Cabinets + Shelves c
   const dialog = page.locator("[data-projects-dialog]");
   const saved = dialog.locator('[data-saved-product-availability="unavailable"]');
   await expect(saved).toContainText("Saved media room");
-  await expect(saved).toContainText("Unavailable in this public preview");
+  await expect(saved).toContainText("Product unavailable in this public preview");
   await dialog.getByRole("button", { name: "Resume Saved media room" }).click();
   await expect(page.locator("[data-unavailable-product]")).toContainText("saved project remains");
   await expect(page).toHaveURL(/project=JQ-UNSUPPORTED-SAVED#step-1$/);
@@ -244,67 +255,95 @@ test("unsupported saved projects remain intact and starting Cabinets + Shelves c
   expect(after).toEqual(before);
 });
 
-test("only compatibility-approved Cabinets + Shelves layouts are selectable", async ({ page }) => {
+test("only the authorized Cabinets + Shelves / Fireplace Wall path is selectable", async ({ page }) => {
   await openFreshProject(page);
   await continueToLayouts(page);
-  const approvedLayoutIds = SHARED_ROOM_LAYOUTS
-    .filter(({ id }) => GUIDED_PRODUCT_LAYOUT_COMPATIBILITY[ACTIVE_PRODUCT.id][id] !== "unavailable")
-    .map(({ id }) => id);
   const renderedLayoutIds = await page.locator("[data-layout]").evaluateAll(
     (cards) => cards.map((card) => card.dataset.layout)
   );
-  expect(renderedLayoutIds).toEqual(approvedLayoutIds);
+  expect(renderedLayoutIds).toEqual([ACTIVE_LAYOUT_ID]);
   await expect(page.locator("[data-layout]:disabled")).toHaveCount(0);
-  for (const layoutId of approvedLayoutIds) {
-    await chooseLayout(page, layoutId);
-    await expect(page.locator("[data-continue]")).toBeEnabled();
-  }
+  await expect(page.locator("[data-coming-soon-layout]")).toHaveCount(PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS.length);
+  expect(await page.locator("[data-coming-soon-layout]").evaluateAll(
+    (cards) => cards.every((card) => card.disabled)
+  )).toBe(true);
+  await chooseLayout(page);
+  await expect(page.locator("[data-continue]")).toBeEnabled();
 });
 
-test("every approved layout puts all applicable measurement fields inside Customization", async ({ page }) => {
+test("Coming soon layouts cannot activate through pointer, keyboard, preset, hash, or saved-state injection", async ({ page }) => {
   await openFreshProject(page);
   await continueToLayouts(page);
-  const approvedLayouts = SHARED_ROOM_LAYOUTS.filter(
-    ({ id }) => GUIDED_PRODUCT_LAYOUT_COMPATIBILITY[ACTIVE_PRODUCT.id][id] !== "unavailable"
+  const disabled = page.locator('[data-coming-soon-layout="clear-wall"]');
+  await expect(disabled).toBeDisabled();
+  await disabled.evaluate((button) => button.click());
+  await disabled.dispatchEvent("click");
+  await disabled.focus();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Space");
+  await expect(page.locator("[data-layout]")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("[data-continue]")).toBeDisabled();
+
+  await page.goto("configurator.html?start=new&preset=lower-cabinets#step-4", { waitUntil: "networkidle" });
+  await expect(page).toHaveURL(/#step-2$/);
+  await expect(page.locator("[data-unavailable-layout]")).toContainText("Clear Wall is not available");
+  await expect(page.locator(".guided-room2-canvas")).toHaveCount(0);
+
+  const unsupportedLayout = legacyProject({
+    projectId: "JQ-UNSUPPORTED-LAYOUT",
+    projectName: "Saved clear wall",
+    layout: "clear-wall"
+  });
+  await seedStorage(page, { draft: unsupportedLayout });
+  await page.goto("configurator.html#step-4", { waitUntil: "networkidle" });
+  await expect(page).toHaveURL(/#step-2$/);
+  await expect(page.locator("[data-unavailable-layout]")).toContainText("saved measurements remain");
+  await expect(page.locator(".guided-room2-canvas")).toHaveCount(0);
+  const stored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), DRAFT_KEY);
+  expect(stored).toMatchObject({ layout: "clear-wall", layoutAvailability: "unavailable" });
+});
+
+test("Fireplace Wall puts all applicable measurement fields inside Customization", async ({ page }) => {
+  await openFreshProject(page);
+  await continueToLayouts(page);
+  await chooseLayout(page);
+  await page.locator("[data-continue]").click();
+  await expect(page.getByRole("heading", { name: "Plan details beside the Room 2 reference" })).toBeVisible();
+  const expectedFields = getMeasurementFields("bookcase", ACTIVE_LAYOUT_ID).map(({ id }) => id);
+  const renderedFields = await page.locator("[data-measurement-row]").evaluateAll(
+    (rows) => rows.map((row) => row.dataset.measurementRow)
   );
-  for (const [index, layout] of approvedLayouts.entries()) {
-    await chooseLayout(page, layout.id);
-    await page.locator("[data-continue]").click();
-    await expect(page.getByRole("heading", { name: "Customize your fitted design" })).toBeVisible();
-    const expectedFields = getMeasurementFields("bookcase", layout.id).map(({ id }) => id);
-    const renderedFields = await page.locator("[data-measurement-row]").evaluateAll(
-      (rows) => rows.map((row) => row.dataset.measurementRow)
-    );
-    expect(renderedFields, layout.label).toEqual(expectedFields);
-    await expect(page.locator("[data-measurement-guidance]")).toBeVisible();
-    await expectAcceptedScene(page);
-    if (index < approvedLayouts.length - 1) {
-      await page.locator('[data-step="2"]').click();
-      await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
-    }
-  }
+  expect(renderedFields).toEqual(expectedFields);
+  await expect(page.locator("[data-measurement-guidance]")).toBeVisible();
+  await expectAcceptedScene(page);
 });
 
 test("Customization immediately owns one controller, canvas, RAF, timer, and listener set", async ({ page }) => {
   await openFreshProject(page);
-  await continueToCustomization(page, "niche-layout");
+  await continueToCustomization(page);
   let canvas = await expectAcceptedScene(page);
-  const instance = await canvas.getAttribute("data-guided-3d-instance");
+  const instance = await canvas.getAttribute("data-guided3d-instance");
   const assertSingleOwnership = async () => {
     canvas = page.locator(".guided-3d-canvas");
     await expect(canvas).toHaveCount(1);
-    await expect(canvas).toHaveAttribute("data-guided-3d-instance", instance);
+    await expect(canvas).toHaveAttribute("data-guided3d-instance", instance);
     const ownership = await canvas.evaluate((element) => ({
-      renderFrame: Number(element.dataset.renderFrameOwnership),
-      resizeFrame: Number(element.dataset.resizeFrameOwnership),
-      resizeObserver: Number(element.dataset.resizeObserverOwnership),
-      resizeListener: Number(element.dataset.resizeListenerOwnership),
-      controlListener: Number(element.dataset.controlListenerOwnership)
+      renderFrame: Number(element.dataset.room2RenderFrameOwnership),
+      resizeObserver: Number(element.dataset.room2ResizeObserverOwnership),
+      resizeListener: Number(element.dataset.room2ResizeListenerOwnership),
+      controlListener: Number(element.dataset.room2ControlListenerOwnership),
+      canvas: Number(element.dataset.room2CanvasOwnership),
+      renderer: Number(element.dataset.room2RendererOwnership),
+      controller: Number(element.dataset.room2ControllerOwnership),
+      parsedRoot: Number(element.dataset.room2ParsedRootOwnership)
     }));
     expect(ownership.renderFrame).toBeLessThanOrEqual(1);
-    expect(ownership.resizeFrame).toBeLessThanOrEqual(1);
     expect(ownership.resizeObserver + ownership.resizeListener).toBe(1);
     expect(ownership.controlListener).toBe(1);
+    expect(ownership.canvas).toBe(1);
+    expect(ownership.renderer).toBe(1);
+    expect(ownership.controller).toBe(1);
+    expect(ownership.parsedRoot).toBe(1);
     await expect(page.locator("[data-guided-app]")).toHaveAttribute("data-measurement-timer-ownership", "0");
   };
   await assertSingleOwnership();
@@ -320,23 +359,83 @@ test("Customization immediately owns one controller, canvas, RAF, timer, and lis
   await assertSingleOwnership();
 });
 
+test("orbit, zoom, reset, Review, and browser history preserve the one viewer session", async ({ page }) => {
+  await openFreshProject(page);
+  await continueToCustomization(page);
+  let canvas = await expectAcceptedScene(page);
+  const instance = await canvas.getAttribute("data-guided3d-instance");
+  const root = await canvas.getAttribute("data-room2-parsed-root-identity");
+  const initialCamera = await canvas.getAttribute("data-room2-camera-state");
+  await canvas.focus();
+  await canvas.press("ArrowLeft");
+  await expect.poll(() => canvas.getAttribute("data-room2-camera-state")).not.toBe(initialCamera);
+  const reset = page.getByRole("button", { name: "Reset preview" });
+  await expect(reset).toBeEnabled();
+  await reset.click();
+  await expect(canvas).toHaveAttribute("data-room2-camera-state", initialCamera);
+  await canvas.focus();
+  await canvas.press("ArrowRight");
+  await canvas.press("+");
+  const adjustedCamera = await canvas.getAttribute("data-room2-camera-state");
+
+  await page.locator("[data-continue]").click();
+  await expect(page).toHaveURL(/#step-4$/);
+  canvas = await expectAcceptedScene(page);
+  await expect(canvas).toHaveAttribute("data-guided3d-instance", instance);
+  await expect(canvas).toHaveAttribute("data-room2-parsed-root-identity", root);
+  await expect(canvas).toHaveAttribute("data-room2-camera-state", adjustedCamera);
+  await expect(canvas).toHaveAttribute("data-room2-request-count", "1");
+  await expect(canvas).toHaveAttribute("data-room2-parse-count", "1");
+
+  await page.goBack();
+  await expect(page).toHaveURL(/#step-3$/);
+  canvas = await expectAcceptedScene(page);
+  await expect(canvas).toHaveAttribute("data-room2-camera-state", adjustedCamera);
+  await canvas.focus();
+  await canvas.press("0");
+  await expect(canvas).toHaveAttribute("data-room2-camera-state", initialCamera);
+});
+
+test("explicit document teardown disposes the Room 2 viewer and removes its canvas ownership", async ({ page }) => {
+  await openFreshProject(page);
+  await continueToCustomization(page);
+  await expectAcceptedScene(page);
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pagehide", { persisted: false })));
+  await expect(page.locator(".guided-room2-canvas")).toHaveCount(0);
+  const diagnostics = await page.evaluate(() => globalThis.__JQ_ROOM2_VIEWER_DIAGNOSTICS__);
+  expect(diagnostics.state).toBe("disposed");
+  expect(diagnostics.ownership).toMatchObject({
+    canvases: 0,
+    renderers: 0,
+    controllers: 0,
+    parsedRoots: 0,
+    animationLoops: 0,
+    renderFrames: 0,
+    resizeObservers: 0,
+    resizeListeners: 0,
+    controlListenerSets: 0
+  });
+});
+
 test("a rejected dimension edit preserves the last accepted scene and names the diagnostic", async ({ page }) => {
   await openFreshProject(page);
   await continueToCustomization(page);
   const canvas = await expectAcceptedScene(page);
-  const acceptedGeometry = await canvas.getAttribute("data-geometry-fingerprint");
-  const acceptedSpecification = await canvas.getAttribute("data-specification-fingerprint");
+  const acceptedGeometry = await canvas.getAttribute("data-room2-geometry-fingerprint");
+  const acceptedModel = await canvas.getAttribute("data-room2-runtime-model-fingerprint");
+  const acceptedRoot = await canvas.getAttribute("data-room2-parsed-root-identity");
   const wallWidth = page.locator('[data-measurement="wallWidth"]');
   await wallWidth.fill("");
   await expect(page.locator("[data-transaction-diagnostic]")).toBeVisible();
-  await expect(page.locator("[data-transaction-diagnostic]")).toContainText("Last accepted design preserved");
+  await expect(page.locator("[data-transaction-diagnostic]")).toContainText("Last accepted project specification preserved");
   await expect(page.locator("[data-transaction-diagnostic]")).toContainText(
     "Enter Wall Width, Ceiling Height, and Desired Built-In Depth"
   );
   await expect(page.locator("[data-transaction-diagnostic]")).not.toContainText("undefined");
   await expect(page.locator("[data-transaction-diagnostic]")).toContainText(/\([A-Z0-9_]+\)/);
-  await expect(canvas).toHaveAttribute("data-geometry-fingerprint", acceptedGeometry);
-  await expect(canvas).toHaveAttribute("data-specification-fingerprint", acceptedSpecification);
+  await expect(canvas).toHaveAttribute("data-room2-geometry-fingerprint", acceptedGeometry);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", acceptedModel);
+  await expect(canvas).toHaveAttribute("data-room2-parsed-root-identity", acceptedRoot);
   await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Save Project", exact: true }))
     .toHaveAttribute("data-persistence-state", "rejected-candidate");
@@ -350,7 +449,7 @@ test("a rejected dimension edit preserves the last accepted scene and names the 
 
 test("fraction parsing, bounds guidance, and the compact measurement guide remain accessible", async ({ page }) => {
   await openFreshProject(page);
-  await continueToCustomization(page, "window-wall");
+  await continueToCustomization(page);
   const width = page.locator('[data-measurement="wallWidth"]');
   await width.fill("121 1/2");
   await width.blur();
@@ -358,10 +457,10 @@ test("fraction parsing, bounds guidance, and the compact measurement guide remai
   await width.fill("190");
   await expect(page.locator('[data-measurement-row="wallWidth"] .measurement-warning'))
     .toContainText("outside our usual");
-  const windowWidth = page.locator('[data-measurement="windowWidth"]');
-  await windowWidth.fill("about four feet");
-  await expect(windowWidth).toHaveAttribute("aria-invalid", "");
-  await expect(page.locator('[data-measurement-row="windowWidth"] .measurement-input-error'))
+  const fireplaceWidth = page.locator('[data-measurement="fireplaceWidth"]');
+  await fireplaceWidth.fill("about four feet");
+  await expect(fireplaceWidth).toHaveAttribute("aria-invalid", "");
+  await expect(page.locator('[data-measurement-row="fireplaceWidth"] .measurement-input-error'))
     .toContainText("decimal, or a common fraction");
   await expect(page.locator("[data-guided-app]"))
     .toHaveAttribute("data-measurement-timer-ownership", "0");
@@ -373,31 +472,46 @@ test("fraction parsing, bounds guidance, and the compact measurement guide remai
   await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
 });
 
-test("finish and details update the accepted scene and Review without losing state", async ({ page }) => {
+test("deferred finish and details persist without changing the fixed Room 2 scene or camera", async ({ page }) => {
   await openFreshProject(page);
   await continueToCustomization(page);
   let canvas = await expectAcceptedScene(page);
-  const instance = await canvas.getAttribute("data-guided-3d-instance");
-  const geometryBefore = await canvas.getAttribute("data-geometry-fingerprint");
-  const rebuildsBefore = await canvas.getAttribute("data-geometry-rebuild-count");
-  const materialsBefore = Number(await canvas.getAttribute("data-material-update-count"));
+  await expect(page.locator('[data-deferred-model-disclosure="dimensions"]')).toContainText("not yet shown on the fixed Room 2 reference model");
+  const instance = await canvas.getAttribute("data-guided3d-instance");
+  const geometryBefore = await canvas.getAttribute("data-room2-runtime-model-fingerprint");
+  const materialsBefore = await canvas.getAttribute("data-room2-runtime-material-digest");
+  const rootBefore = await canvas.getAttribute("data-room2-parsed-root-identity");
+  const cameraBefore = await canvas.getAttribute("data-room2-camera-state");
   await page.getByRole("tab", { name: "Finish" }).click();
+  await expect(page.locator('[data-deferred-model-disclosure="finish"]')).toContainText("saved with this project");
   await page.locator('[data-finish-key="paint"][data-finish="charcoal"]').click();
   canvas = page.locator(".guided-3d-canvas");
-  await expect(canvas).toHaveAttribute("data-guided-3d-instance", instance);
-  await expect(canvas).toHaveAttribute("data-geometry-fingerprint", geometryBefore);
-  await expect(canvas).toHaveAttribute("data-geometry-rebuild-count", rebuildsBefore);
-  await expect.poll(async () => Number(await canvas.getAttribute("data-material-update-count")))
-    .toBeGreaterThan(materialsBefore);
+  await expect(canvas).toHaveAttribute("data-guided3d-instance", instance);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", geometryBefore);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", materialsBefore);
+  await expect(canvas).toHaveAttribute("data-room2-parsed-root-identity", rootBefore);
+  await expect(canvas).toHaveAttribute("data-room2-camera-state", cameraBefore);
   await page.getByRole("tab", { name: "Details" }).click();
+  await expect(page.locator('[data-deferred-model-disclosure="details, hardware, and lighting"]')).toContainText("not yet shown on the fixed Room 2 reference model");
   await page.locator('[data-detail-key="hardware"][data-detail="black-pull"]').click();
+  for (const key of ["doorStyle", "lighting", "baseStyle", "topTreatment"]) {
+    const alternative = page.locator(`[data-detail-key="${key}"][aria-pressed="false"]`).first();
+    await expect(alternative).toBeVisible();
+    await alternative.click();
+    await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", geometryBefore);
+    await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", materialsBefore);
+    await expect(canvas).toHaveAttribute("data-room2-parsed-root-identity", rootBefore);
+    await expect(canvas).toHaveAttribute("data-room2-camera-state", cameraBefore);
+  }
   await page.locator("[data-continue]").click();
   const summary = page.locator(".project-summary-card");
   await expect(summary.locator('[data-summary-value="product"]')).toHaveText("Cabinets + Shelves");
-  await expect(summary.locator('[data-summary-value="layout"]')).toHaveText("Clear Wall");
+  await expect(summary.locator('[data-summary-value="layout"]')).toHaveText("Fireplace Wall");
   await expect(summary.locator('[data-summary-value="finish"]')).toHaveText("Charcoal");
   await expect(summary.locator('[data-summary-value="hardware"]')).toHaveText("Black Pull");
-  await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-guided-3d-instance", instance);
+  await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-guided3d-instance", instance);
+  await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-room2-runtime-material-digest", materialsBefore);
+  await expect(page.locator(".guided-3d-canvas")).toHaveAttribute("data-room2-camera-state", cameraBefore);
   await page.locator('[data-edit-section="finish"]').click();
   await expect(page.getByRole("tab", { name: "Finish" })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator('[data-finish-key="paint"][data-finish="charcoal"]'))
@@ -408,7 +522,7 @@ test("five-step drafts and stale hashes normalize while Back and Forward remain 
   await seedStorage(page, { draft: legacyProject() });
   await page.goto("configurator.html#step-5", { waitUntil: "networkidle" });
   await expect(page).toHaveURL(/#step-4$/);
-  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Project steps" }).getByRole("button")).toHaveCount(4);
   await page.locator('[data-edit-section="finish"]').click();
   await expect(page).toHaveURL(/#step-3$/);
@@ -416,9 +530,11 @@ test("five-step drafts and stale hashes normalize while Back and Forward remain 
   await expect(page).toHaveURL(/#step-4$/);
   await page.goForward();
   await expect(page).toHaveURL(/#step-3$/);
+  await expect.poll(() => page.evaluate((key) => {
+    const stored = JSON.parse(localStorage.getItem(key));
+    return { schemaVersion: stored.schemaVersion, currentStep: stored.currentStep };
+  }, DRAFT_KEY)).toEqual({ schemaVersion: 4, currentStep: 3 });
   const stored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), DRAFT_KEY);
-  expect(stored.schemaVersion).toBe(4);
-  expect(stored.currentStep).toBe(3);
   expect(stored.maxVisitedStep).toBeLessThanOrEqual(4);
   expect(stored).toMatchObject({ category: "bookcase", style: "cabinet-base-shelves" });
 });
@@ -431,7 +547,7 @@ test("an invalid legacy review position is capped at Customization", async ({ pa
   });
   await page.goto("configurator.html#step-5", { waitUntil: "networkidle" });
   await expect(page).toHaveURL(/#step-3$/);
-  await expect(page.getByRole("heading", { name: "Customize your fitted design" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan details beside the Room 2 reference" })).toBeVisible();
   await expect(page.locator('[data-step="4"]')).toBeDisabled();
   const stored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), DRAFT_KEY);
   expect(stored.currentStep).toBe(3);
@@ -440,15 +556,18 @@ test("an invalid legacy review position is capped at Customization", async ({ pa
 
 test("save, reload, My Projects, rename, duplicate, delete, and resume retain state", async ({ page }) => {
   await openFreshProject(page);
-  await continueToReview(page, "niche-layout");
+  await continueToReview(page);
   await page.locator("[data-save-project]").click();
   const saveDialog = page.locator("[data-save-dialog]");
   await saveDialog.getByLabel("Project name").fill("Park Avenue Library");
   await saveDialog.getByRole("button", { name: "Save Project", exact: true }).click();
   await expect(page.locator("[data-guided-toast]")).toContainText("saved on this device");
   await page.reload({ waitUntil: "networkidle" });
-  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
-  await expect(page.locator('[data-summary-value="layout"]')).toHaveText("Niche Layout");
+  await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
+  await expect(page.locator('[data-summary-value="layout"]')).toHaveText("Fireplace Wall");
+  let canvas = await expectAcceptedScene(page);
+  const viewerInstance = await canvas.getAttribute("data-guided3d-instance");
+  const parsedRoot = await canvas.getAttribute("data-room2-parsed-root-identity");
   await page.getByRole("button", { name: "My Projects", exact: true }).click();
   const projectsDialog = page.locator("[data-projects-dialog]");
   await projectsDialog.getByRole("button", { name: "Duplicate Park Avenue Library" }).click();
@@ -461,8 +580,12 @@ test("save, reload, My Projects, rename, duplicate, delete, and resume retain st
   await projectsDialog.getByRole("button", { name: "Delete Park Avenue Library Copy" }).click();
   await expect(projectsDialog.locator(".saved-project")).toHaveCount(1);
   await projectsDialog.getByRole("button", { name: "Resume Garden Library" }).click();
-  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
   await expect(page).toHaveURL(/project=JQ-.+#step-4$/);
+  canvas = await expectAcceptedScene(page);
+  await expect(canvas).toHaveAttribute("data-guided3d-instance", viewerInstance);
+  await expect(canvas).toHaveAttribute("data-room2-parsed-root-identity", parsedRoot);
+  await expect(canvas).toHaveAttribute("data-room2-request-count", "1");
 });
 
 test("the non-transmitting quote preview keeps verified project prefill and privacy boundaries", async ({ page }) => {
@@ -477,26 +600,57 @@ test("the non-transmitting quote preview keeps verified project prefill and priv
   await dialog.getByRole("button", { name: "Prepare Email Request" }).click();
   await expect(dialog.locator("[data-quote-mode]")).toContainText("email draft is ready");
   await expect(dialog.locator("[data-email-fallback]")).toHaveAttribute("href", /Cabinets%20%2B%20Shelves/);
-  await expect(dialog.locator("[data-email-fallback]")).toHaveAttribute("href", /Clear%20Wall/);
+  await expect(dialog.locator("[data-email-fallback]")).toHaveAttribute("href", /Fireplace%20Wall/);
+});
+
+test("Customization shows deterministic loading and requests the exact GLB once", async ({ page }) => {
+  let requests = 0;
+  await page.route("**/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb", async (route) => {
+    requests += 1;
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    await route.continue();
+  });
+  await openFreshProject(page);
+  await continueToLayouts(page);
+  await chooseLayout(page);
+  await page.locator("[data-continue]").click();
+  const status = page.locator("[data-guided-engine-status]");
+  await expect(status).toBeVisible();
+  await expect(status).toContainText("Loading fixed Room 2 reference");
+  const canvas = await expectAcceptedScene(page);
+  await expect(status).toBeHidden();
+  expect(requests).toBe(1);
+  await expect(canvas).toHaveAttribute("data-room2-request-count", "1");
+});
+
+test("the public runtime material snapshot is deterministic across clean document loads", async ({ page }) => {
+  await openFreshProject(page);
+  await continueToCustomization(page);
+  let canvas = await expectAcceptedScene(page);
+  const firstDigest = await canvas.getAttribute("data-room2-runtime-material-digest");
+  expect(firstDigest).toMatch(/^[a-f0-9]{64}$/);
+  await page.reload({ waitUntil: "networkidle" });
+  canvas = await expectAcceptedScene(page);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", firstDigest);
+  await expect(canvas).toHaveAttribute("data-room2-request-count", "1");
+  await expect(canvas).toHaveAttribute("data-room2-parse-count", "1");
 });
 
 test("renderer failure is visible and fail-closed without substituting a photograph", async ({ page }) => {
-  await page.route("**/guided-configurator-3d.js*", (route) => route.fulfill({
-    contentType: "text/javascript",
-    body: 'export function createGuidedSceneController() { throw new Error("WebGL unavailable in fail-closed test"); }'
-  }));
+  await page.route("**/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb", (route) => route.fulfill({ status: 503 }));
   await openFreshProject(page);
   await continueToCustomization(page);
   const preview = page.locator(".concept-preview");
   const scene = preview.locator('.concept-scene[data-guided3d-state="fallback"]');
   await expect(scene).toBeVisible();
-  await expect(scene.locator("[data-guided-engine-status] strong")).toHaveText("3D preview unavailable");
+  await expect(scene.locator("[data-guided-engine-status] strong")).toHaveText("Fixed Room 2 model unavailable");
   await expect(scene.locator("[data-guided-engine-status]")).toContainText(
-    "failed closed; no unrelated product or room image was substituted"
+    "No substitute model or image was loaded"
   );
-  await expect(preview.locator("canvas, img.concept-photo, [data-published-preview-image]")).toHaveCount(0);
+  await expect(preview.locator("canvas")).toBeHidden();
+  await expect(preview.locator("img.concept-photo, [data-published-preview-image]")).toHaveCount(0);
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Review your custom concept" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
   await expect(page.locator('.concept-scene[data-guided3d-state="fallback"]')).toBeVisible();
 });
 
@@ -507,13 +661,13 @@ test("keyboard and focus behavior covers cards, tabs, completed steps, and menu 
   await page.keyboard.press("Space");
   await expect(product).toHaveAttribute("aria-pressed", "true");
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeFocused();
-  const layout = page.locator('[data-layout="niche-layout"]');
+  await expect(page.getByRole("heading", { name: "Choose the available Room 2 layout" })).toBeFocused();
+  const layout = page.locator(`[data-layout="${ACTIVE_LAYOUT_ID}"]`);
   await layout.focus();
   await page.keyboard.press("Enter");
   await expect(layout).toHaveAttribute("aria-pressed", "true");
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Customize your fitted design" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Plan details beside the Room 2 reference" })).toBeFocused();
   const dimensions = page.getByRole("tab", { name: "Dimensions" });
   await dimensions.focus();
   await dimensions.press("ArrowRight");
@@ -521,7 +675,7 @@ test("keyboard and focus behavior covers cards, tabs, completed steps, and menu 
   await page.getByRole("tab", { name: "Finish" }).press("End");
   await expect(page.getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
   await page.getByRole("button", { name: /Choose Layout, completed/ }).click();
-  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose the available Room 2 layout" })).toBeVisible();
   const menuButton = page.getByRole("button", { name: "Open menu" });
   await menuButton.click();
   await expect(page.getByRole("navigation", { name: "Configurator menu" })).toBeVisible();
@@ -538,24 +692,79 @@ test("desktop, tablet, and phone Customization layouts are overflow-free and kee
   ]) {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await openFreshProject(page);
-    await continueToCustomization(page, "window-wall");
-    await expectAcceptedScene(page);
+    await continueToCustomization(page);
+    const canvas = await expectAcceptedScene(page);
     const geometry = await page.evaluate(() => {
       const preview = document.querySelector(".concept-preview").getBoundingClientRect();
       const controls = document.querySelector(".customization-controls-column").getBoundingClientRect();
       const actions = [...document.querySelectorAll(".customization-actions .guided-button")]
         .map((button) => button.getBoundingClientRect());
+      const referenceLabels = [...document.querySelectorAll(
+        ".fixed-reference-heading small, .fixed-reference-heading strong, .concept-layout-context-copy strong"
+      )].map((element) => ({
+        text: element.textContent.trim(),
+        textOverflow: getComputedStyle(element).textOverflow,
+        scrollWidth: element.scrollWidth,
+        clientWidth: element.clientWidth
+      }));
+      const visibleWidth = Math.max(0, Math.min(preview.right, innerWidth) - Math.max(preview.left, 0));
+      const visibleHeight = Math.max(0, Math.min(preview.bottom, innerHeight) - Math.max(preview.top, 0));
       return {
-        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
         preview: { top: preview.top, bottom: preview.bottom, width: preview.width, height: preview.height },
+        visiblePreviewArea: visibleWidth * visibleHeight,
         controls: { top: controls.top, width: controls.width },
-        actionMinHeight: Math.min(...actions.map(({ height }) => height))
+        actionMinHeight: Math.min(...actions.map(({ height }) => height)),
+        referenceLabels
       };
     });
-    expect(geometry.overflow, viewport.name).toBeLessThanOrEqual(1);
+    expect(geometry.scrollWidth, viewport.name).toBeLessThanOrEqual(geometry.clientWidth);
+    expect(geometry.visiblePreviewArea, `${viewport.name} initial preview intersection`).toBeGreaterThan(0);
     expect(geometry.preview.width, viewport.name).toBeGreaterThan(viewport.name === "phone" ? 340 : 480);
     expect(geometry.preview.height, viewport.name).toBeGreaterThanOrEqual(viewport.name === "phone" ? 360 : 490);
     expect(geometry.actionMinHeight, viewport.name).toBeGreaterThanOrEqual(44);
+    expect(
+      geometry.referenceLabels.every(({ scrollWidth, clientWidth }) => scrollWidth <= clientWidth + 1),
+      `${viewport.name} fixed-reference labels are fully legible`
+    ).toBe(true);
+
+    await canvas.focus();
+    await expect(canvas).toBeFocused();
+    const focus = await canvas.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { outlineStyle: style.outlineStyle, outlineWidth: Number.parseFloat(style.outlineWidth) };
+    });
+    expect(focus.outlineStyle, `${viewport.name} visible focus style`).not.toBe("none");
+    expect(focus.outlineWidth, `${viewport.name} visible focus width`).toBeGreaterThan(0);
+
+    const actionButtons = page.locator(".customization-actions .guided-button");
+    for (let index = 0; index < await actionButtons.count(); index += 1) {
+      const action = actionButtons.nth(index);
+      await action.scrollIntoViewIfNeeded();
+      const reachability = await action.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const centerX = Math.min(innerWidth - 1, Math.max(0, rect.left + rect.width / 2));
+        const centerY = Math.min(innerHeight - 1, Math.max(0, rect.top + rect.height / 2));
+        const topmost = document.elementFromPoint(centerX, centerY);
+        return {
+          visible: rect.bottom > 0 && rect.top < innerHeight && rect.right > 0 && rect.left < innerWidth,
+          unobscured: topmost === element || element.contains(topmost),
+          width: rect.width,
+          height: rect.height
+        };
+      });
+      expect(reachability.visible, `${viewport.name} primary action ${index} visible`).toBe(true);
+      expect(reachability.unobscured, `${viewport.name} primary action ${index} unobscured`).toBe(true);
+      expect(reachability.width, `${viewport.name} primary action ${index} width`).toBeGreaterThanOrEqual(44);
+      expect(reachability.height, `${viewport.name} primary action ${index} height`).toBeGreaterThanOrEqual(44);
+    }
+
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    expect(
+      results.violations.filter(({ impact }) => ["critical", "serious"].includes(impact)),
+      `${viewport.name} critical/serious accessibility violations`
+    ).toEqual([]);
     if (viewport.name === "desktop") {
       expect(geometry.preview.bottom).toBeLessThanOrEqual(viewport.height + 1);
       expect(geometry.preview.width).toBeGreaterThan(geometry.controls.width);
@@ -572,7 +781,7 @@ test("the supported four-step path has no serious accessibility violations", asy
   await openFreshProject(page);
   let results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(results.violations.filter(({ impact }) => ["critical", "serious"].includes(impact))).toEqual([]);
-  await continueToCustomization(page, "door-wall");
+  await continueToCustomization(page);
   await expectAcceptedScene(page);
   results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(results.violations.filter(({ impact }) => ["critical", "serious"].includes(impact))).toEqual([]);
@@ -582,15 +791,21 @@ test("the complete public flow makes no forbidden remote or preview-matrix reque
   const runtime = monitorRuntime(page);
   const remoteRequests = [];
   const matrixRequests = [];
+  const modelRequests = [];
+  const oldRendererRequests = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
-    if (!["127.0.0.1", "localhost"].includes(url.hostname)) remoteRequests.push(request.url());
+    if (url.protocol !== "blob:" && !["127.0.0.1", "localhost"].includes(url.hostname)) remoteRequests.push(request.url());
     if (url.pathname.includes("/assets/photos/configurator/photoreal-matrix/")) matrixRequests.push(request.url());
+    if (url.pathname.endsWith("/Room2-Fireplace-bookcases-source-v1.glb")) modelRequests.push(request.url());
+    if (url.pathname.endsWith("/guided-configurator-3d.js")) oldRendererRequests.push(request.url());
   });
   await openFreshProject(page);
-  await continueToReview(page, "double-opening");
+  await continueToReview(page);
   await expectAcceptedScene(page);
   expect(remoteRequests).toEqual([]);
   expect(matrixRequests).toEqual([]);
+  expect(modelRequests).toHaveLength(1);
+  expect(oldRendererRequests).toEqual([]);
   expect(runtime).toEqual([]);
 });

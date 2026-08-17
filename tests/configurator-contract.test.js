@@ -22,9 +22,10 @@ function methodBody(name, nextName) {
   return source.slice(start, end);
 }
 
-test("the public route mounts one guided app without loading the archived 3D viewer", () => {
+test("the public route mounts one guided app and maps the one pinned Three runtime", () => {
   assert.equal((html.match(/data-guided-app/g) || []).length, 1);
-  assert.doesNotMatch(html, /configurator-3d\.js|three\.module\.js|data-3d-viewer/);
+  assert.doesNotMatch(html, /configurator-3d\.js|data-3d-viewer/);
+  assert.match(html, /"three": "\.\/assets\/vendor\/three\.module\.js"/);
   assert.match(html, /guided-configurator\.js/);
   assert.match(html, /guided-configurator\.css/);
 });
@@ -971,10 +972,11 @@ test("mobile appearance controls use dense color, hardware, and lighting grids",
   assert.match(precisionCss, /Dense mobile appearance controls[\s\S]*\.lighting-card \{[\s\S]*min-height: 56px;/);
 });
 
-test("the configurator route loads only the guided presentation entrypoint", () => {
+test("the configurator route loads the guided entrypoint and no archived workspace entrypoint", () => {
   assert.match(html, /guided-configurator\.css/);
   assert.match(html, /guided-configurator\.js/);
-  assert.doesNotMatch(html, /configurator-experience|configurator-3d|three\.module/);
+  assert.match(html, /type="importmap"/);
+  assert.doesNotMatch(html, /configurator-experience|configurator-3d/);
 });
 
 test("both unified editing surfaces use one lazy official-palette catalog provider", () => {

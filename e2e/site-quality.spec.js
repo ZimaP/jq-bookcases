@@ -186,17 +186,15 @@ test("selected choices expose a non-color state and visible keyboard focus", asy
   await page.goto("configurator.html?start=new", { waitUntil: "networkidle" });
   await page.locator('[data-product-choice="cabinet-shelves"]').click();
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
-  const card = page.locator('[data-layout="clear-wall"]');
-  await card.click();
-  const selectedCard = page.locator('[data-layout="clear-wall"]');
+  await expect(page.getByRole("heading", { name: "Choose the available Room 2 layout" })).toBeVisible();
+  const card = page.locator('[data-layout="fireplace-wall"]');
+  await card.focus();
+  await page.keyboard.press("Enter");
+  const selectedCard = page.locator('[data-layout="fireplace-wall"]');
   await expect(selectedCard).toHaveAttribute("aria-pressed", "true");
   await expect(selectedCard.locator(".layout-selected-mark")).toBeVisible();
-  await selectedCard.focus();
-  await page.keyboard.press("Tab");
-  const keyboardTarget = page.locator("button[data-layout]:focus");
-  await expect(keyboardTarget).toHaveCount(1);
-  const focus = await keyboardTarget.evaluate((element) => {
+  await expect(selectedCard).toBeFocused();
+  const focus = await selectedCard.evaluate((element) => {
     const style = getComputedStyle(element);
     return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
   });

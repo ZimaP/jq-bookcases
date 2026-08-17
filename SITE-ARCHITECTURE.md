@@ -36,13 +36,19 @@ or separate quote drawer.
   measurement, finish, and detail catalogs.
 - `guided-configurator-state.js` owns guided project normalization, approximate
   measurement validation, summaries, and local persistence.
-- `guided-scene-plan.js` translates guided project state into an inch-based,
-  renderer-neutral room and concept-product scene plan.
 - `guided-configurator.js` owns the four-step public workflow (Choose Product,
-  Choose Layout, Customization, Review & Details) and keeps one guided scene
+  Choose Layout, Customization, Review & Details) and keeps one Room 2 viewer
   controller across steps 3–4.
-- `guided-configurator-3d.js` owns the code-native Three.js concept scene,
-  shared room/product rendering, world-space callouts, camera, and interaction.
+- `guided-room2-appearance.js` owns the versioned, provisional camera, local
+  light, background, ground, tone-mapping, exposure, and shadow configuration.
+- `guided-room2-integrity.js` owns GLB container checks and deterministic raw,
+  runtime-material, and deferred-model snapshots.
+- `guided-room2-viewer.js` owns the one-session Three.js renderer, GLTF parse,
+  exact-model integrity gates, camera controls, responsive projection, and
+  disposal lifecycle.
+- `guided-scene-plan.js` and `guided-configurator-3d.js` retain the internal
+  parametric scene contracts for other repository work, but are not imported,
+  requested, or used by the active public Room 2 path.
 - `configurator-experience.js`, `configurator-3d.js`, and the associated
   configurator styles own the separate accepted-design workspace.
 - `bookcase-config.js`, `bookcase-layout.js`, `bookcase-billable.js`, and
@@ -74,18 +80,21 @@ Run `npm test` after changing navigation, routes, cache tokens, or page shell
 markup. `tests/site-integrity.test.js` enforces these contracts.
 
 The public guided configurator exposes Cabinets + Shelves as its only active
-product. Only layouts permitted by the checked-in compatibility matrix are
-selectable. Other catalog products are disabled Coming soon references; an
-older saved project that uses one remains intact, is marked unavailable, and is
-routed to Choose Product rather than silently coerced.
+product and Fireplace Wall as its only active layout for this phase. Other
+catalog products and layouts are disabled Coming soon references; an older
+saved project that uses one remains intact, is marked unavailable, and is
+routed to the applicable selection step rather than silently coerced.
 
 Customization contains the layout-specific measurements, finish, and detail
-controls. Customization and Review & Details use one persistent accepted
-concept scene. Guided drafts remain approximate project briefs; rendering them
-does not promote them to accepted physical designs or create manufacturing,
-BOM, or pricing authority. Schema-v4 state explicitly maps legacy five-step
-positions 1→1, 2→2, 3/4→3, and 5→4 while preserving the last accepted snapshot
-and capping reachable progress to the normalized selection.
+controls. Their values validate, persist, and appear in summaries, but are not
+yet shown on the fixed Room 2 reference model. Customization and Review &
+Details move the same canvas and preserve the same renderer, controller, parsed
+GLB root, and camera pose for the lifetime of the mounted configurator. Guided
+drafts remain approximate project briefs; displaying the reference model does
+not create manufacturing, BOM, pricing, final-measurement, or appearance-
+accuracy authority. Schema-v4 state explicitly maps legacy five-step positions
+1→1, 2→2, 3/4→3, and 5→4 while preserving the last accepted snapshot and
+capping reachable progress to the normalized selection.
 
 ## Local-preview limitation
 

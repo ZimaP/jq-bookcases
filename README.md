@@ -1,6 +1,6 @@
 # JQ Bookcases
 
-Premium static website and parametric 3D configurator for JQ Bookcases — Built-Ins & Millwork.
+Premium static website and guided 3D configurator for JQ Bookcases — Built-Ins & Millwork.
 
 ## Pages
 
@@ -22,19 +22,20 @@ responsive primitives are owned by `site.js` and `styles.css`.
 
 `configurator.html` hosts the four-step public guided project flow: Choose
 Product, Choose Layout, Customization, and Review & Details. Cabinets + Shelves
-is the only active public product; the remaining catalog entries are compact,
-disabled Coming soon references. Customization combines dimensions, finish,
-hardware, lighting, and details around the accepted live 3D scene.
+is the only active public product, and Fireplace Wall is the only active public
+layout; the remaining catalog entries are compact, disabled Coming soon
+references. Customization combines dimensions, finish, hardware, lighting, and
+details around the fixed SketchUp-derived Room 2 reference model.
 
 The public flow resolves each complete edit through room-topology,
 installation-fit, and product engines before it may replace the last accepted
-specification. Steps 3–4 share one persistent Three.js renderer: room
-presentation and callouts come from the resolved topology, while every product
-mesh comes from the accepted physical descriptor graph. A rejected candidate
-keeps the prior accepted specification visible and reports a named diagnostic;
-it is never replaced by an unrelated product photograph. Schema-v4 persistence
-migrates older five-step drafts without deleting unsupported saved projects or
-coercing them into Cabinets + Shelves.
+specification used by persistence and summaries. In this fixed-reference phase,
+that project data deliberately does not deform, recolor, relight, regenerate,
+or replace the GLB. Steps 3–4 share one persistent viewer session and parsed GLB
+root. A load or integrity failure remains fail-closed; the public path never
+falls back to the prior generated scene or to a photograph. Schema-v4
+persistence migrates older five-step drafts without deleting unsupported saved
+projects or coercing them into Cabinets + Shelves.
 
 The guided engine architecture, installation invariants, PBR material contract,
 save/reload behavior, and shop-review boundary are documented in
@@ -59,9 +60,9 @@ npm run test:browser
 git diff --check
 ```
 
-Pull requests and pushes to `main` validate without publishing. The manual-only
-production procedure and its exact confirmation contract are documented in
-`RELEASE.md`.
+Pull requests and pushes validate the repository's GitHub checks. The verified
+main-driven Render publication path and the separate SHA-locked GitHub Pages
+procedure are documented in `RELEASE.md`.
 
 The accepted parametric model architecture is documented in
 `CONFIGURATOR-ARCHITECTURE.md`. Repeatable desktop, tablet, phone, short-

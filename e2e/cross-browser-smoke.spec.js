@@ -30,31 +30,25 @@ function monitorRuntime(page) {
 
 async function expectAcceptedSmokePreview(page) {
   const preview = page.locator(".concept-preview");
-  await expect(preview).toHaveAttribute("data-preview-render-mode", "accepted-geometry");
-  await expect(preview).toHaveAttribute("data-finish-mask-mode", "none");
-  await expect(preview).toHaveAttribute("data-accepted-specification", "true");
-  await expect(preview).toHaveAttribute("data-geometry-fingerprint", /.+/);
-  await expect(preview).toHaveAttribute("data-specification-fingerprint", /.+/);
+  await expect(preview).toHaveAttribute("data-preview-render-mode", "fixed-room2-glb");
   await expect(preview.locator(
     "picture.concept-photo, picture.concept-room-photo, img.concept-photo, img.concept-room-photo, img.concept-furniture-photo, svg.concept-finish-overlay, [data-published-preview-image]"
   )).toHaveCount(0);
-  await expect(preview.locator("[data-accepted-fit-summary]")).toBeVisible();
-  const canvas = preview.locator('.guided-3d-canvas[data-rendered="true"]');
+  const canvas = preview.locator('.guided-room2-canvas[data-rendered="true"]');
   await expect(canvas).toHaveCount(1);
-  await expect(canvas).toHaveAttribute("data-render-contract-valid", "true");
-  await expect(canvas).toHaveAttribute("data-geometry-fingerprint", /.+/);
-  await expect(canvas).toHaveAttribute("data-specification-fingerprint", /.+/);
+  await expect(canvas).toHaveAttribute("data-room2-asset-sha256", "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5");
+  await expect(canvas).toHaveAttribute("data-room2-geometry-fingerprint", "8762fe4326e22e46a163343e5fde410e231d651b48d1b1c9be8391febec8f6ff");
   return canvas;
 }
 
-async function openCustomization(page, layoutId = "clear-wall") {
+async function openCustomization(page, layoutId = "fireplace-wall") {
   await page.goto("configurator.html?start=new", { waitUntil: "networkidle" });
   await page.locator('[data-product-choice="cabinet-shelves"]').click();
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose the available Room 2 layout" })).toBeVisible();
   await page.locator(`[data-layout="${layoutId}"]`).click();
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Customize your fitted design" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan details beside the Room 2 reference" })).toBeVisible();
   await expect(page).toHaveURL(/#step-3$/);
 }
 
@@ -89,34 +83,39 @@ test("the public Cabinets + Shelves journey reaches the accepted scene and revie
     (buttons) => buttons.every((button) => button.disabled)
   )).toBe(true);
 
-  await openCustomization(page, "right-niche");
+  await openCustomization(page);
   const canvas = await expectAcceptedSmokePreview(page);
-  const instanceId = await canvas.getAttribute("data-guided-3d-instance");
-  const originalGeometry = await canvas.getAttribute("data-geometry-fingerprint");
+  const instanceId = await canvas.getAttribute("data-guided3d-instance");
+  const originalGeometry = await canvas.getAttribute("data-room2-runtime-model-fingerprint");
+  const originalMaterial = await canvas.getAttribute("data-room2-runtime-material-digest");
+  const originalCamera = await canvas.getAttribute("data-room2-camera-state");
   await expect(page.getByRole("tab", { name: "Dimensions" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("tab", { name: "Finish" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Details" })).toBeVisible();
 
   await page.getByLabel("Wall width").fill("132");
   await page.getByLabel("Wall width").blur();
-  await expect.poll(() => canvas.getAttribute("data-geometry-fingerprint")).not.toBe(originalGeometry);
-  const acceptedGeometry = await canvas.getAttribute("data-geometry-fingerprint");
+  await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", originalGeometry);
+  await expect(canvas).toHaveAttribute("data-room2-camera-state", originalCamera);
   await page.getByRole("tab", { name: "Finish" }).click();
   await page.getByRole("button", { name: "Charcoal", exact: true }).click();
-  await expect(canvas).toHaveAttribute("data-guided-3d-instance", instanceId);
-  await expect(canvas).toHaveAttribute("data-geometry-fingerprint", acceptedGeometry);
+  await expect(canvas).toHaveAttribute("data-guided3d-instance", instanceId);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", originalGeometry);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", originalMaterial);
+  await expect(canvas).toHaveAttribute("data-room2-camera-state", originalCamera);
   await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
 
   await page.locator("[data-continue]").click();
   await expect(page).toHaveURL(/#step-4$/);
   const summary = page.locator(".project-summary-card");
   await expect(summary).toContainText("Cabinets + Shelves");
-  await expect(summary).toContainText("Right Niche");
+  await expect(summary).toContainText("Fireplace Wall");
   await expect(summary).toContainText("132 in");
   await expect(summary).toContainText("Charcoal");
   const reviewCanvas = await expectAcceptedSmokePreview(page);
-  await expect(reviewCanvas).toHaveAttribute("data-guided-3d-instance", instanceId);
-  await expect(reviewCanvas).toHaveAttribute("data-geometry-fingerprint", acceptedGeometry);
+  await expect(reviewCanvas).toHaveAttribute("data-guided3d-instance", instanceId);
+  await expect(reviewCanvas).toHaveAttribute("data-room2-runtime-model-fingerprint", originalGeometry);
+  await expect(reviewCanvas).toHaveAttribute("data-room2-camera-state", originalCamera);
   await expect.poll(() => page.evaluate(() => (
     JSON.parse(localStorage.getItem("jqGuidedConfiguratorDraftV1") || "null")?.currentStep
   ))).toBe(4);
@@ -126,42 +125,46 @@ test("the public Cabinets + Shelves journey reaches the accepted scene and revie
 test("Customization and Review retain one accepted controller across navigation", async ({ page }) => {
   const failures = monitorRuntime(page);
   await page.setViewportSize({ width: 1024, height: 768 });
-  await openCustomization(page, "clear-wall");
+  await openCustomization(page);
   let canvas = await expectAcceptedSmokePreview(page);
-  const instanceId = await canvas.getAttribute("data-guided-3d-instance");
-  const geometryFingerprint = await canvas.getAttribute("data-geometry-fingerprint");
-  const materialUpdateCount = Number(await canvas.getAttribute("data-material-update-count"));
+  const instanceId = await canvas.getAttribute("data-guided3d-instance");
+  const geometryFingerprint = await canvas.getAttribute("data-room2-runtime-model-fingerprint");
+  const materialDigest = await canvas.getAttribute("data-room2-runtime-material-digest");
+  const rootIdentity = await canvas.getAttribute("data-room2-parsed-root-identity");
+  const cameraState = await canvas.getAttribute("data-room2-camera-state");
 
   await page.getByRole("tab", { name: "Finish" }).click();
   await page.getByRole("button", { name: "Charcoal", exact: true }).click();
-  await expect.poll(async () => Number(await canvas.getAttribute("data-material-update-count")))
-    .toBeGreaterThan(materialUpdateCount);
-  await expect(canvas).toHaveAttribute("data-guided-3d-instance", instanceId);
-  await expect(canvas).toHaveAttribute("data-geometry-fingerprint", geometryFingerprint);
+  await expect(canvas).toHaveAttribute("data-guided3d-instance", instanceId);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-model-fingerprint", geometryFingerprint);
+  await expect(canvas).toHaveAttribute("data-room2-runtime-material-digest", materialDigest);
+  await expect(canvas).toHaveAttribute("data-room2-camera-state", cameraState);
 
   await page.locator("[data-continue]").click();
   await expect(page).toHaveURL(/#step-4$/);
   canvas = await expectAcceptedSmokePreview(page);
-  await expect(canvas).toHaveAttribute("data-guided-3d-instance", instanceId);
+  await expect(canvas).toHaveAttribute("data-guided3d-instance", instanceId);
+  await expect(canvas).toHaveAttribute("data-room2-parsed-root-identity", rootIdentity);
+  await expect(canvas).toHaveAttribute("data-room2-camera-state", cameraState);
   await expect(page.locator(".guided-3d-canvas")).toHaveCount(1);
   await page.goBack();
   await expect(page).toHaveURL(/#step-3$/);
   canvas = await expectAcceptedSmokePreview(page);
-  await expect(canvas).toHaveAttribute("data-guided-3d-instance", instanceId);
+  await expect(canvas).toHaveAttribute("data-guided3d-instance", instanceId);
+  await expect(canvas).toHaveAttribute("data-room2-camera-state", cameraState);
   await page.goForward();
   await expect(page).toHaveURL(/#step-4$/);
   canvas = await expectAcceptedSmokePreview(page);
-  await expect(canvas).toHaveAttribute("data-guided-3d-instance", instanceId);
+  await expect(canvas).toHaveAttribute("data-guided3d-instance", instanceId);
+  await expect(canvas).toHaveAttribute("data-room2-camera-state", cameraState);
 
   const ownership = await canvas.evaluate((element) => ({
-    renderFrame: Number(element.dataset.renderFrameOwnership),
-    resizeFrame: Number(element.dataset.resizeFrameOwnership),
-    resizeObserver: Number(element.dataset.resizeObserverOwnership),
-    resizeListener: Number(element.dataset.resizeListenerOwnership),
-    controlListener: Number(element.dataset.controlListenerOwnership)
+    renderFrame: Number(element.dataset.room2RenderFrameOwnership),
+    resizeObserver: Number(element.dataset.room2ResizeObserverOwnership),
+    resizeListener: Number(element.dataset.room2ResizeListenerOwnership),
+    controlListener: Number(element.dataset.room2ControlListenerOwnership)
   }));
   expect(ownership.renderFrame).toBeLessThanOrEqual(1);
-  expect(ownership.resizeFrame).toBeLessThanOrEqual(1);
   expect(ownership.resizeObserver + ownership.resizeListener).toBe(1);
   expect(ownership.controlListener).toBe(1);
   expect(failures).toEqual([]);

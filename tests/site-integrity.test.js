@@ -586,6 +586,11 @@ test("the build syntax-checks every guided accepted-specification module", () =>
     "guided-blender-render-contract.js",
     "guided-scene-plan.js",
     "guided-configurator-3d.js",
+    "guided-room2-appearance.js",
+    "guided-room2-integrity.js",
+    "guided-room2-viewer.js",
+    "assets/vendor/three-addons/loaders/GLTFLoader.js",
+    "assets/vendor/three-addons/utils/BufferGeometryUtils.js",
     "guided-configurator.js",
     "guided-published-preview-registry.generated.js",
     "guided-published-preview-data.js",
@@ -646,6 +651,9 @@ test("manual production release uses an allowlisted Pages artifact", () => {
   assert.match(productionWorkflowSource, /guided-render-primitives\.js/);
   assert.match(productionWorkflowSource, /guided-materials\.js/);
   assert.match(productionWorkflowSource, /guided-project-engine\.js/);
+  assert.match(productionWorkflowSource, /guided-room2-appearance\.js/);
+  assert.match(productionWorkflowSource, /guided-room2-integrity\.js/);
+  assert.match(productionWorkflowSource, /guided-room2-viewer\.js/);
   assert.match(productionWorkflowSource, /bookcase-render-contract\.js/);
   assert.match(productionWorkflowSource, /cp assets\/favicon\.svg _site\/assets\//);
   assert.match(productionWorkflowSource, /cp -R assets\/environments _site\/assets\//);
@@ -663,8 +671,9 @@ test("manual production release uses an allowlisted Pages artifact", () => {
     "_site/guided-published-preview-registry.generated.js",
     "_site/guided-published-preview-data.js",
     "_site/guided-configurator.css",
-    "_site/guided-scene-plan.js",
-    "_site/guided-configurator-3d.js",
+    "_site/guided-room2-appearance.js",
+    "_site/guided-room2-integrity.js",
+    "_site/guided-room2-viewer.js",
     "_site/guided-room-topology.js",
     "_site/guided-installation-solver.js",
     "_site/guided-product-adapter.js",
@@ -675,6 +684,9 @@ test("manual production release uses an allowlisted Pages artifact", () => {
     "_site/guided-project-engine.js",
     "_site/bookcase-render-contract.js",
     "_site/assets/vendor/three.module.js",
+    "_site/assets/vendor/three-addons/loaders/GLTFLoader.js",
+    "_site/assets/vendor/three-addons/utils/BufferGeometryUtils.js",
+    "_site/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb",
     "_site/assets/environments/jq-warm-interior.hdr",
     "_site/assets/environments/jq-warm-interior.jpg",
     "_site/assets/environments/jq-neutral-studio.hdr",
@@ -733,6 +745,9 @@ test("manual production release uses an allowlisted Pages artifact", () => {
   assert.match(productionWorkflowSource, /deployedSha256 !== publishedAsset\.sha256/);
   assert.match(productionWorkflowSource, /verifiedPublishedAssets !== expectedCounts\.published/);
   assert.match(productionWorkflowSource, /test ! -e _site\/configurator-3d\.js/);
+  assert.match(productionWorkflowSource, /test ! -e _site\/guided-configurator-3d\.js/);
+  assert.match(productionWorkflowSource, /6712076/);
+  assert.match(productionWorkflowSource, /251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5/);
 });
 
 test("browser QA screenshots stay in ignored test output", () => {
