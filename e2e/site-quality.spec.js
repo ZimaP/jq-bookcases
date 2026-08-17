@@ -186,7 +186,7 @@ test("selected choices expose a non-color state and visible keyboard focus", asy
   await page.goto("configurator.html?start=new", { waitUntil: "networkidle" });
   await page.locator('[data-product-choice="cabinet-shelves"]').click();
   await page.locator("[data-continue]").click();
-  await expect(page.getByRole("heading", { name: "Choose the available Room 2 layout" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
   const card = page.locator('[data-layout="fireplace-wall"]');
   await card.focus();
   await page.keyboard.press("Enter");
