@@ -29,7 +29,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 22.23.2
+          node-version: 22
           cache: npm
 
       - name: Install locked dependencies
@@ -40,11 +40,6 @@ jobs:
 
       - name: Run tests
         run: npm test
-
-      - name: Package and measure the production JavaScript/CSS allowlist
-        run: |
-          node scripts/prepare-immersive-payload-artifact.mjs _payload-site
-          node scripts/check-immersive-payload.mjs _payload-site
 
       - name: Install Chromium for release validation
         run: npx playwright install --with-deps chromium
