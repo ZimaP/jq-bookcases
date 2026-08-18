@@ -862,6 +862,11 @@ export const PRODUCT_CHOICES = Object.freeze([
  */
 export const PUBLIC_CONFIGURATOR_PRODUCT_ID = "cabinet-shelves";
 export const PUBLIC_CONFIGURATOR_LAYOUT_ID = "fireplace-wall";
+export const PUBLIC_CONFIGURATOR_LAYOUT_IDS = Object.freeze([
+  "fireplace-wall",
+  "door-wall",
+  "window-wall"
+]);
 
 export const PUBLIC_CONFIGURATOR_PRODUCT_CHOICES = Object.freeze(
   PRODUCT_CHOICES.filter((choice) => choice.id === PUBLIC_CONFIGURATOR_PRODUCT_ID)
@@ -872,11 +877,13 @@ export const PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES = Object.freeze(
 );
 
 export const PUBLIC_CONFIGURATOR_LAYOUT_CHOICES = Object.freeze(
-  SHARED_ROOM_LAYOUTS.filter((choice) => choice.id === PUBLIC_CONFIGURATOR_LAYOUT_ID)
+  PUBLIC_CONFIGURATOR_LAYOUT_IDS.map((layoutId) => (
+    SHARED_ROOM_LAYOUTS.find((choice) => choice.id === layoutId)
+  )).filter(Boolean)
 );
 
 export const PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS = Object.freeze(
-  SHARED_ROOM_LAYOUTS.filter((choice) => choice.id !== PUBLIC_CONFIGURATOR_LAYOUT_ID)
+  SHARED_ROOM_LAYOUTS.filter((choice) => !PUBLIC_CONFIGURATOR_LAYOUT_IDS.includes(choice.id))
 );
 
 const NATIVE_PRODUCT_SCENES = Object.freeze({
@@ -1352,7 +1359,7 @@ export function getLayout(categoryId, layoutId) {
 
 export function isPublicConfiguratorLayout(categoryId, styleId, layoutId) {
   return isPublicConfiguratorProduct(categoryId, styleId)
-    && getLayout(categoryId, layoutId)?.id === PUBLIC_CONFIGURATOR_LAYOUT_ID;
+    && PUBLIC_CONFIGURATOR_LAYOUT_IDS.includes(getLayout(categoryId, layoutId)?.id);
 }
 
 export function getStyle(categoryId, styleId) {

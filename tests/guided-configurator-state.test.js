@@ -625,14 +625,20 @@ test("project summaries reflect normalized measurements and curated selections",
   assert.equal(summarySteps.notes, 4);
 });
 
-test("public availability keeps the full catalog intact while exposing one active product", () => {
+test("public availability keeps the full catalog intact while exposing one product and three audited layouts", () => {
   assert.equal(PUBLIC_CONFIGURATOR_PRODUCT_ID, "cabinet-shelves");
+  // Retained as the backward-compatible default for older Fireplace projects.
   assert.equal(PUBLIC_CONFIGURATOR_LAYOUT_ID, "fireplace-wall");
   assert.deepEqual(PUBLIC_CONFIGURATOR_PRODUCT_CHOICES.map(({ id }) => id), ["cabinet-shelves"]);
-  assert.deepEqual(PUBLIC_CONFIGURATOR_LAYOUT_CHOICES.map(({ id }) => id), ["fireplace-wall"]);
+  assert.deepEqual(
+    PUBLIC_CONFIGURATOR_LAYOUT_CHOICES.map(({ id }) => id),
+    ["fireplace-wall", "door-wall", "window-wall"]
+  );
   assert.deepEqual(
     PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS.map(({ id }) => id),
-    SHARED_ROOM_LAYOUTS.filter(({ id }) => id !== "fireplace-wall").map(({ id }) => id)
+    SHARED_ROOM_LAYOUTS
+      .filter(({ id }) => !["fireplace-wall", "door-wall", "window-wall"].includes(id))
+      .map(({ id }) => id)
   );
   assert.deepEqual(
     PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES.map(({ id }) => id),
@@ -1188,28 +1194,35 @@ test("project store reports blocked writes instead of fabricating save success",
   assert.equal(projects.deleteProject(project.projectId), false);
 });
 
-test("the public configurator lazily ships the fixed Room 2 GLB viewer without the old generated scene", async () => {
-  const [html, guidedUi, guidedState, room2Viewer, appearance, workflow] = await Promise.all([
+test("the public configurator lazily ships the registry-driven immersive viewer without the old generated scene", async () => {
+  const [html, guidedUi, guidedState, layoutViewer, registry, workflow] = await Promise.all([
     readFile(new URL("../configurator.html", import.meta.url), "utf8"),
     readFile(new URL("../guided-configurator.js", import.meta.url), "utf8"),
     readFile(new URL("../guided-configurator-state.js", import.meta.url), "utf8"),
-    readFile(new URL("../guided-room2-viewer.js", import.meta.url), "utf8"),
-    readFile(new URL("../guided-room2-appearance.js", import.meta.url), "utf8"),
+    readFile(new URL("../guided-layout-viewer.js", import.meta.url), "utf8"),
+    readFile(new URL("../guided-layout-registry.js", import.meta.url), "utf8"),
     readFile(new URL("../.github/workflows/deploy-pages-production.yml", import.meta.url), "utf8")
   ]);
 
   assert.match(html, /guided-configurator\.js/);
   assert.match(html, /"three": "\.\/assets\/vendor\/three\.module\.js"/);
   assert.doesNotMatch(html, /src=["']configurator-3d|cabinet-ar|direct-hardware/);
-  assert.match(guidedUi, /import\(["']\.\/guided-room2-viewer\.js/);
+  assert.match(guidedUi, /import\(["']\.\/guided-layout-viewer\.js/);
   assert.doesNotMatch(guidedUi, /import\(["']\.\/guided-configurator-3d\.js/);
-  assert.match(room2Viewer, /assets\/vendor\/three\.module\.js/);
-  assert.match(room2Viewer, /GLTFLoader/);
-  assert.match(appearance, /Room2-Fireplace-bookcases-source-v1\.glb/);
+  assert.match(layoutViewer, /import \* as THREE from "three"/);
+  assert.match(layoutViewer, /GLTFLoader/);
+  assert.match(layoutViewer, /three-webgpu-renderer-r166\.bundle\.js/);
+  assert.match(registry, /Room2-Fireplace-bookcases-source-v1\.glb/);
+  assert.match(registry, /jq-door-wall-bookcase-room2-authoritative-v01\.glb/);
+  assert.match(registry, /jq-window-wall-bookcases-cabinets-room4-authoritative-v01\.glb/);
   assert.doesNotMatch(`${guidedUi}\n${guidedState}`, /bookcase-engine|cabinet-ar/);
   assert.match(workflow, /test ! -e _site\/configurator-3d\.js/);
   assert.match(workflow, /test ! -e _site\/guided-configurator-3d\.js/);
-  assert.match(workflow, /test -f _site\/guided-room2-viewer\.js/);
+  assert.match(workflow, /test -f _site\/guided-layout-viewer\.js/);
+  assert.match(workflow, /test -f _site\/guided-layout-registry\.js/);
   assert.match(workflow, /Room2-Fireplace-bookcases-source-v1\.glb/);
+  assert.match(workflow, /jq-door-wall-bookcase-room2-authoritative-v01\.glb/);
+  assert.match(workflow, /jq-window-wall-bookcases-cabinets-room4-authoritative-v01\.glb/);
   assert.match(workflow, /test -f _site\/assets\/vendor\/three\.module\.js/);
+  assert.match(workflow, /test -f _site\/assets\/vendor\/three-webgpu-renderer-r166\.bundle\.js/);
 });

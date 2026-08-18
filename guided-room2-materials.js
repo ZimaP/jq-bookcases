@@ -75,7 +75,11 @@ class Room2MaterialSystem {
   }
 
   resolveMaximumAnisotropy(viewportWidth) {
-    const capability = Math.max(1, Number(this.renderer.capabilities?.getMaxAnisotropy?.()) || 1);
+    const capability = Math.max(1, Number(
+      this.renderer.capabilities?.getMaxAnisotropy?.()
+      ?? this.renderer.backend?.getMaxAnisotropy?.()
+      ?? this.renderer.getMaxAnisotropy?.()
+    ) || 1);
     const width = Number(viewportWidth) || Number(globalThis.innerWidth) || 1280;
     const configured = width < 600
       ? ROOM2_APPEARANCE_PROFILE.materials.texturePipeline.anisotropy.phoneMaximum
@@ -127,6 +131,7 @@ class Room2MaterialSystem {
     if (!gltf?.scene || !(gltf.parser?.associations instanceof Map) || !json?.meshes) {
       throw codedError("ROOM2_MATERIAL_BINDING_INVALID", "Parsed GLB associations are required for semantic material binding.");
     }
+    const sequence = ++this.finishSelectionSequence;
     this.gltf = gltf;
     this.json = json;
     this.meshRecords = collectMeshRecords(gltf, json);
@@ -135,9 +140,13 @@ class Room2MaterialSystem {
     this.buildStaticMaterials();
     this.applyStaticMaterials();
     const finish = resolveRoom2Finish(finishId);
+    this.pendingFinishId = finish.id;
     await this.ensureFamily(finish.family, { initial: true });
-    this.applyLoadedFinish(finish);
-    this.pendingFinishId = null;
+    if (this.disposed) throw codedError("ROOM2_MATERIAL_SYSTEM_DISPOSED", "The Room 2 material system was disposed.");
+    if (sequence === this.finishSelectionSequence) {
+      this.applyLoadedFinish(finish);
+      this.pendingFinishId = null;
+    }
     this.geometryLedger = this.meshRecords.map((record) => geometryIdentityRecord(record));
     await this.refreshAppearanceFingerprint();
     return this.getDiagnostics();
@@ -333,6 +342,10 @@ class Room2MaterialSystem {
   buildStaticMaterials() {
     for (const record of this.meshRecords) {
       if (record.originalMaterialIndex === ROOM2_APPEARANCE_PROFILE.semanticMapping.publishedFinishMaterialIndex) continue;
+      // The immersive material-zone audit grants automatic web appearance only
+      // to exact PROVEN bindings. Every PROVISIONAL/BLOCKED primitive must keep
+      // the material parsed from the authoritative GLB byte-for-byte.
+      if (record.zone.status !== "PROVEN") continue;
       if (this.staticMaterials.has(record.originalMaterialIndex)) continue;
       const recipe = ROOM2_APPEARANCE_PROFILE.materials.surfaceRecipes[record.zone.zone];
       if (!recipe) throw codedError("ROOM2_SURFACE_RECIPE_MISSING", `No recipe exists for ${record.zone.zone}.`);
@@ -358,6 +371,10 @@ class Room2MaterialSystem {
   applyStaticMaterials() {
     for (const record of this.meshRecords) {
       if (record.originalMaterialIndex === ROOM2_APPEARANCE_PROFILE.semanticMapping.publishedFinishMaterialIndex) continue;
+      if (record.zone.status !== "PROVEN") {
+        record.object.material = record.sourceMaterial;
+        continue;
+      }
       const material = this.staticMaterials.get(record.originalMaterialIndex);
       record.object.material = material;
       const recipe = ROOM2_APPEARANCE_PROFILE.materials.surfaceRecipes[record.zone.zone];
@@ -506,7 +523,13 @@ class Room2MaterialSystem {
         proven: this.meshRecords.filter(({ zone }) => zone.status === "PROVEN").length,
         provisional: this.meshRecords.filter(({ zone }) => zone.status === "PROVISIONAL").length,
         unmapped: this.meshRecords.filter(({ zone }) => !zone).length,
-        finishTargets: this.meshRecords.filter(({ zone }) => zone.finishTarget).length
+        finishTargets: this.meshRecords.filter(({ zone }) => zone.finishTarget).length,
+        provisionalEmbeddedMaterialsRetained: this.meshRecords.filter(
+          ({ zone, object, sourceMaterial }) => zone.status === "PROVISIONAL" && object.material === sourceMaterial
+        ).length,
+        blockedEmbeddedMaterialsRetained: this.meshRecords.filter(
+          ({ zone, object, sourceMaterial }) => zone.status === "BLOCKED" && object.material === sourceMaterial
+        ).length
       },
       geometryMutation: {
         checked: this.geometryLedger.length > 0,

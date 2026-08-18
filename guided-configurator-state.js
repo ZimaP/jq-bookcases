@@ -2,6 +2,7 @@ import {
   CATEGORY_DEFINITIONS,
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
+  PUBLIC_CONFIGURATOR_LAYOUT_CHOICES,
   getCategory,
   getCompatibleDetails,
   getFinish,
@@ -13,8 +14,14 @@ import {
   isPublicConfiguratorProduct,
   resolvePreviewAsset
 } from "./guided-configurator-data.js?v=public-room2-glb-v1-20260817a";
+import {
+  getImmersiveLayout,
+  getSmartDimensionDefaults,
+  millimetersToInches,
+  normalizeSmartDimension
+} from "./guided-layout-registry.js?v=immersive-layout-configurator-v1";
 
-export const GUIDED_PROJECT_SCHEMA_VERSION = 4;
+export const GUIDED_PROJECT_SCHEMA_VERSION = 5;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
 export const GUIDED_PROJECTS_STORAGE_KEY = "jqGuidedConfiguratorProjectsV1";
 
@@ -72,6 +79,71 @@ const LEGACY_MEASUREMENT_ALIASES_BY_LAYOUT = Object.freeze({
   })
 });
 
+function normalizeMeasurementsForLayout(categoryId, layoutId, candidate = {}) {
+  const input = candidate && typeof candidate === "object" ? candidate : {};
+  const legacyAliases = LEGACY_MEASUREMENT_ALIASES_BY_LAYOUT[layoutId] || {};
+  const result = {};
+  for (const field of getMeasurementFields(categoryId, layoutId)) {
+    const legacyField = legacyAliases[field.id];
+    const raw = Object.hasOwn(input, field.id)
+      ? input[field.id]
+      : legacyField && Object.hasOwn(input, legacyField)
+        ? input[legacyField]
+        : field.defaultValue;
+    if (field.type === "select") {
+      const allowed = field.values.map((option) => option.value);
+      result[field.id] = allowed.includes(String(raw)) ? String(raw) : field.defaultValue;
+    } else {
+      const parsed = parseInches(raw);
+      result[field.id] = parsed === null ? null : Number(parsed.toFixed(4));
+    }
+  }
+  return result;
+}
+
+function createDefaultLayoutStates(categoryId) {
+  return Object.fromEntries(PUBLIC_CONFIGURATOR_LAYOUT_CHOICES.map((layout) => {
+    const measurements = normalizeMeasurementsForLayout(categoryId, layout.id);
+    if (categoryId === "radiator-cover" && layout.id === "window-wall") {
+      measurements.radiatorBelowWindow = "yes";
+      measurements.windowWidth = 60;
+      measurements.sillHeight = 32;
+    }
+    return [layout.id, {
+      measurements,
+      smartDimensions: getSmartDimensionDefaults(layout.id)
+    }];
+  }));
+}
+
+function normalizeLayoutStates(categoryId, selectedLayoutId, activeMeasurements, candidate = {}) {
+  const source = candidate && typeof candidate === "object" ? candidate : {};
+  const result = deepClone(source);
+  for (const layout of PUBLIC_CONFIGURATOR_LAYOUT_CHOICES) {
+    const previous = source[layout.id] && typeof source[layout.id] === "object" ? source[layout.id] : {};
+    const previousMeasurements = previous.measurements && typeof previous.measurements === "object"
+      ? previous.measurements
+      : {};
+    const measurementSource = layout.id === selectedLayoutId
+      ? { ...previousMeasurements, ...(activeMeasurements && typeof activeMeasurements === "object" ? activeMeasurements : {}) }
+      : previousMeasurements;
+    const dimensionSource = previous.smartDimensions && typeof previous.smartDimensions === "object"
+      ? previous.smartDimensions
+      : {};
+    const defaults = getSmartDimensionDefaults(layout.id);
+    const smartDimensions = Object.fromEntries(Object.entries(defaults).map(([controlId, nativeValue]) => [
+      controlId,
+      normalizeSmartDimension(layout.id, controlId, dimensionSource[controlId] ?? nativeValue)
+    ]));
+    result[layout.id] = {
+      ...previous,
+      measurements: normalizeMeasurementsForLayout(categoryId, layout.id, measurementSource),
+      smartDimensions
+    };
+  }
+  return result;
+}
+
 export function createProject(options = {}) {
   const now = Number(options.now) || Date.now();
   const category = getCategory(options.category || "bookcase");
@@ -92,6 +164,7 @@ export function createProject(options = {}) {
     layout: null,
     layoutAvailability: "unselected",
     measurements: defaultMeasurements(category.id, null),
+    layoutStates: createDefaultLayoutStates(category.id),
     style: selectedStyle.id,
     finish: finish.id,
     accentFinish: FINISH_OPTIONS.accent[0].id,
@@ -152,9 +225,12 @@ export function parseInches(rawValue) {
 export function prepareMeasurementsForLayout(project = {}, layoutId) {
   const category = getCategory(project.category);
   const layout = getLayout(category.id, layoutId);
-  const current = project.measurements && typeof project.measurements === "object"
-    ? project.measurements
-    : {};
+  const stored = project.layoutStates?.[layoutId]?.measurements;
+  const current = stored && typeof stored === "object"
+    ? stored
+    : project.layout === layoutId && project.measurements && typeof project.measurements === "object"
+      ? project.measurements
+      : {};
   const fields = getMeasurementFields(category.id, layout?.id);
   const next = Object.fromEntries(fields.map((field) => [
     field.id,
@@ -380,26 +456,12 @@ export function normalizeProject(candidate, options = {}) {
     projectId: typeof source.projectId === "string" ? source.projectId : undefined,
     projectName: typeof source.projectName === "string" ? source.projectName : undefined
   });
-  const fields = getMeasurementFields(category.id, layout?.id);
   const inputMeasurements = source.measurements && typeof source.measurements === "object" ? source.measurements : {};
-  const measurements = {};
-  const legacyAliases = LEGACY_MEASUREMENT_ALIASES_BY_LAYOUT[layout?.id] || {};
-
-  for (const field of fields) {
-    const legacyField = legacyAliases[field.id];
-    const raw = Object.hasOwn(inputMeasurements, field.id)
-      ? inputMeasurements[field.id]
-      : legacyField && Object.hasOwn(inputMeasurements, legacyField)
-        ? inputMeasurements[legacyField]
-        : field.defaultValue;
-    if (field.type === "select") {
-      const allowed = field.values.map((option) => option.value);
-      measurements[field.id] = allowed.includes(String(raw)) ? String(raw) : field.defaultValue;
-      continue;
-    }
-    const parsed = parseInches(raw);
-    measurements[field.id] = parsed === null ? null : Number(parsed.toFixed(4));
-  }
+  const layoutStates = normalizeLayoutStates(category.id, layout?.id, inputMeasurements, source.layoutStates);
+  const measurements = layout?.id && layoutStates[layout.id]
+    ? deepClone(layoutStates[layout.id].measurements)
+    : normalizeMeasurementsForLayout(category.id, layout?.id, inputMeasurements);
+  const fields = getMeasurementFields(category.id, layout?.id);
 
   const preserveIfCompatible = (key, list, defaultId) => {
     const selected = list.find((option) => option.id === source[key]);
@@ -413,7 +475,7 @@ export function normalizeProject(candidate, options = {}) {
   };
   const migrateStep = (rawStep) => {
     const step = Math.max(1, Number(rawStep) || 1);
-    if (sourceSchemaVersion >= GUIDED_PROJECT_SCHEMA_VERSION) return Math.min(4, step);
+    if (sourceSchemaVersion >= 4) return Math.min(4, step);
     if (sourceSchemaVersion >= 2) return mapFiveStepPosition(step);
 
     // Schema 1 predated the product-first five-step flow. Compose its original
@@ -461,11 +523,14 @@ export function normalizeProject(candidate, options = {}) {
     productSelected,
     productAvailability,
     layoutAvailability,
-    workflowMigrationSource: sourceSchemaVersion < GUIDED_PROJECT_SCHEMA_VERSION
-      ? sourceSchemaVersion >= 2 ? "five-step" : "legacy-category-flow"
-      : null,
+    workflowMigrationSource: ["five-step", "legacy-category-flow"].includes(source.workflowMigrationSource)
+      ? source.workflowMigrationSource
+      : sourceSchemaVersion < 4
+        ? sourceSchemaVersion >= 2 ? "five-step" : "legacy-category-flow"
+        : null,
     layout: layout?.id || null,
     measurements,
+    layoutStates,
     style: selectedStyle.id,
     finish: getFinish(source.finish).id,
     accentFinish: FINISH_OPTIONS.accent.some((option) => option.id === source.accentFinish)
@@ -662,6 +727,18 @@ export function buildProjectSummary(project, options = {}) {
       ? field.values.find((option) => option.value === raw)?.label || String(raw)
       : `${formatInches(raw)} in`;
     rows.push({ key: field.id, label: field.label, value, step: 3 });
+  }
+
+  const immersiveLayout = getImmersiveLayout(normalized.layout);
+  for (const control of Object.values(immersiveLayout?.geometryControlManifest || {})) {
+    const raw = normalized.layoutStates?.[normalized.layout]?.smartDimensions?.[control.id];
+    const millimeters = normalizeSmartDimension(normalized.layout, control.id, raw ?? control.nativeMillimeters);
+    rows.push({
+      key: `smartDimension:${control.id}`,
+      label: control.label,
+      value: `${formatInches(millimetersToInches(millimeters))} in · proven model preview`,
+      step: 3
+    });
   }
 
   const accepted = options.acceptedSpecification || normalized.acceptedSnapshot?.acceptedSpecification || null;
