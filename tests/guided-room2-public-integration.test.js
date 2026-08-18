@@ -117,50 +117,46 @@ test("the versioned commercial PBR profile is finite, bounded, neutral, and data
   visit(ROOM2_APPEARANCE_PROFILE);
 });
 
-test("the shipped immersive viewer uses local verified backends, exact layout authority, and no generated fallback", async () => {
-  const [viewer, materials, html, webgpuBundle] = await Promise.all([
-    readText("guided-layout-viewer.js"),
+test("the Room 2 viewer uses one local PBR runtime, one request per shared asset, and no generated fallback", async () => {
+  const [viewer, materials, html, integrity] = await Promise.all([
+    readText("guided-room2-viewer.js"),
     readText("guided-room2-materials.js"),
     readText("configurator.html"),
-    readText("assets/vendor/three-webgpu-renderer-r166.bundle.js")
+    readText("guided-room2-integrity.js")
   ]);
   assert.match(html, /"three": "\.\/assets\/vendor\/three\.module\.js"/);
-  assert.match(viewer, /import \* as THREE from "three"/);
+  assert.match(viewer, /import \* as THREE from "\.\/assets\/vendor\/three\.module\.js"/);
   assert.match(viewer, /GLTFLoader.*three-addons\/loaders\/GLTFLoader\.js/);
   assert.match(viewer, /RGBELoader.*three-addons\/loaders\/RGBELoader\.js/);
   assert.match(viewer, /RectAreaLightUniformsLib.*three-addons\/lights\/RectAreaLightUniformsLib\.js/);
   assert.match(viewer, /createRoom2MaterialSystem/);
-  assert.match(viewer, /guided-layout-registry\.js/);
-  assert.match(viewer, /guided-layout-material-zones\.generated\.js/);
-  assert.match(viewer, /three-webgpu-renderer-r166\.bundle\.js/);
-  assert.match(viewer, /renderer\.backend\?\.isWebGPUBackend !== true/);
-  assert.match(viewer, /new THREE\.WebGLRenderer/);
+  assert.match(viewer, /createRuntimeMaterialAppearanceSnapshot/);
+  for (const field of [
+    "aoMapIntensity", "emissiveIntensity", "envMapIntensity", "normalMapType",
+    "displacementScale", "polygonOffset", "stencilWrite", "clipShadows"
+  ]) assert.match(viewer + integrity, new RegExp(field));
+  assert.equal((viewer.match(/fetch\(ROOM2_APPEARANCE_PROFILE\.asset\.url/g) || []).length, 1);
   assert.match(viewer, /credentials: "same-origin"/);
-  assert.match(viewer, /MODEL_SHA256_MISMATCH/);
-  assert.match(viewer, /MODEL_BYTE_LENGTH_MISMATCH/);
-  assert.match(viewer, /MODEL_SOURCE_COUNT_MISMATCH/);
-  assert.match(viewer, /MATERIAL_ZONE_COVERAGE_MISMATCH/);
-  assert.match(viewer, /SMART_DIMENSION_ACCESSOR_NOT_UNIQUE/);
-  assert.match(viewer, /No substitute image or geometry was loaded/);
+  assert.match(viewer, /ROOM2_ASSET_HASH_MISMATCH/);
+  assert.match(viewer, /ROOM2_RAW_MATERIAL_DIGEST_MISMATCH/);
+  assert.match(viewer, /createEmbeddedImagePayloadSnapshot/);
+  assert.match(viewer, /sourceRuntimeMaterialSnapshot: this\.sourceRuntimeMaterialSnapshot/);
+  assert.match(viewer, /deferredModelSnapshot: this\.deferredModelSnapshot/);
+  assert.match(viewer, /No substitute model or image was loaded/);
   assert.doesNotMatch(viewer, /guided-configurator-3d|createGuidedScenePlan|concept-photo/);
   assert.doesNotMatch(viewer + materials, /(?:modelRoot|gltf\.scene)\.scale\.(?:set|multiply)|(?:modelRoot|gltf\.scene)\.scale\s*=/);
   assert.doesNotMatch(materials, /computeMikkTSpaceTangents|toNonIndexed|setIndex\(|deleteAttribute\(|setAttribute\(/);
-  assert.equal((viewer.match(/new THREE\.PMREMGenerator/g) || []).length, 0);
+  assert.equal((viewer.match(/new THREE\.PMREMGenerator/g) || []).length, 1);
   assert.equal((viewer.match(/new THREE\.DirectionalLight/g) || []).length, 1);
   assert.equal((viewer.match(/new THREE\.RectAreaLight/g) || []).length, 2);
   assert.doesNotMatch(viewer, /new THREE\.(?:PointLight|HemisphereLight|SpotLight)/);
   assert.match(viewer, /renderer\.shadowMap\.autoUpdate = false/);
-  assert.match(viewer, /webgpu-equirectangular-environment-node/);
-  assert.match(viewer, /webgl-automatic-pmrem/);
-  assert.match(viewer, /this\.scene\.environment = texture/);
-  assert.equal((viewer.match(/setAnimationLoop/g) || []).length, 1);
-  assert.match(viewer, /renderer\.setAnimationLoop\?\.\(null\)/);
-  assert.doesNotMatch(viewer, /EffectComposer|OutputPass/);
+  assert.match(viewer, /this\.scene\.environment = this\.environmentRenderTarget\.texture/);
+  assert.doesNotMatch(viewer, /scene\.background\s*=\s*this\.environmentRenderTarget/);
+  assert.doesNotMatch(viewer, /setAnimationLoop|EffectComposer|OutputPass/);
   assert.match(materials, /new this\.THREE\.TextureLoader\(\)/);
   assert.match(materials, /texture\.colorSpace = slot === "map" \? this\.THREE\.SRGBColorSpace : this\.THREE\.NoColorSpace/);
   assert.match(materials, /ROOM2_FINISH_COVERAGE_MISMATCH/);
-  const bundleImports = [...webgpuBundle.matchAll(/from\s*["']([^"']+)["']/g)].map((match) => match[1]);
-  assert.deepEqual([...new Set(bundleImports)], ["three"]);
 });
 
 test("the vendored r166 loader cohort is byte locked", async () => {
@@ -177,39 +173,26 @@ test("the vendored r166 loader cohort is byte locked", async () => {
   assert.match(await readText("assets/vendor/three.module.js"), /REVISION = '166'/);
 });
 
-test("Finish mapping and the single proven geometry control are described truthfully", async () => {
+test("Finish is truthfully previewed while dimensions and Details remain deferred", async () => {
   const source = await readText("guided-configurator.js");
   assert.match(source, /data-deferred-model-disclosure=/);
   assert.match(source, /Your \$\{escapeHtml\(groupLabel\.toLowerCase\(\)\)\} selections are saved with this project/);
-  assert.match(source, /selected Finish is previewed only on audited millwork surfaces/);
+  assert.match(source, /selected Finish is previewed digitally on the proven millwork surfaces/);
   assert.match(source, /not a calibrated or approved physical sample/);
-  assert.match(source, /Only the proven shelf-clearance control changes preview geometry/);
-  assert.doesNotMatch(source, /Dimensions and Details do not alter the fixed Room 2 geometry or construction/);
-  for (const label of ["Finish", "Details, hardware, and lighting"]) {
+  assert.match(source, /Dimensions and Details do not alter the fixed Room 2 geometry or construction/);
+  for (const label of ["Dimensions", "Finish", "Details, hardware, and lighting"]) {
     assert.match(source, new RegExp(`renderDeferredModelDisclosure\\(\\"${label}\\"\\)`));
   }
-  assert.match(source, /data-smart-dimension=/);
-  assert.match(source, /Preview only — final dimensions require design confirmation/);
   assert.doesNotMatch(source, /LIVE ACCEPTED DESIGN|see your changes live/i);
   assert.doesNotMatch(source, /finish[^\n]*not yet shown on the fixed Room 2 reference model/i);
 });
 
-test("the release artifact explicitly copies and byte-checks every immersive runtime asset", async () => {
+test("the release artifact explicitly copies and byte-checks the Room 2 GLB", async () => {
   const workflow = await readText(".github/workflows/deploy-pages-production.yml");
-  assert.match(workflow, /assets\/models\/room2\/Room2-Fireplace-bookcases-source-v1\.glb/);
+  assert.match(workflow, /cp assets\/models\/room2\/Room2-Fireplace-bookcases-source-v1\.glb _site\/assets\/models\/room2\//);
   assert.match(workflow, /test ! -L _site\/assets\/models\/room2\/Room2-Fireplace-bookcases-source-v1\.glb/);
   assert.match(workflow, new RegExp(String(expected.bytes)));
   assert.match(workflow, new RegExp(expected.sha256));
-  assert.match(workflow, /6755128/);
-  assert.match(workflow, /4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb/);
-  assert.match(workflow, /6993036/);
-  assert.match(workflow, /631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24/);
-  assert.match(workflow, /guided-layout-registry\.js/);
-  assert.match(workflow, /guided-layout-material-zones\.generated\.js/);
-  assert.match(workflow, /guided-layout-viewer\.js/);
-  assert.match(workflow, /three-webgpu-renderer-r166\.bundle\.js/);
-  assert.match(workflow, /immersive-layout-model-audit-v1\.json/);
-  assert.match(workflow, /immersive-layout-material-zones-v1\.json/);
   assert.match(workflow, /test ! -e _site\/guided-configurator-3d\.js/);
   assert.match(workflow, /cp assets\/vendor\/three-addons\/loaders\/RGBELoader\.js/);
   assert.match(workflow, /cp assets\/vendor\/three-addons\/lights\/RectAreaLightUniformsLib\.js/);

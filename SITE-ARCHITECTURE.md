@@ -5,11 +5,9 @@
 1. `index.html` is the marketing entry point.
 2. Every design CTA opens `configurator.html`.
 3. Inspiration cards may add a supported `?preset=<preset-id>` query.
-4. The guided flow saves its working draft under
-   `jqGuidedConfiguratorDraftV1` and its project list under
-   `jqGuidedConfiguratorProjectsV1`.
-5. Every quote CTA opens `request-quote.html`; the separate accepted-design
-   workspace may carry its legacy `jqBookcasesDesign` record into the brief.
+4. Saving in the configurator stores one `jqBookcasesDesign` record locally.
+5. Every quote CTA opens `request-quote.html`; a saved design is carried into
+   the project brief automatically.
 
 There is no second homepage builder, duplicate contact form, fake newsletter,
 or separate quote drawer.
@@ -30,81 +28,81 @@ or separate quote drawer.
 ## Shared ownership
 
 - `site.js` owns the global header, footer, navigation, icons, mobile menu,
-  FAQ behavior, validated accepted-design quote prefill, and local quote-preview
+  FAQ behavior, validated saved-design quote prefill, and local quote-preview
   feedback. Contact fields are never persisted by the preview.
-- `styles.css` owns brand tokens and shared marketing/interior components.
-- `guided-configurator-data.js` owns the seven Step 1 product choices, the one
-  active-product policy, the three-layout public policy, and the retained room,
+- `styles.css` owns brand tokens and all shared marketing/interior components.
+- `guided-configurator-data.js` owns the internal product catalog, the single
+  active public product policy, disabled Coming soon references, and the room,
   measurement, finish, and detail catalogs.
-- `guided-configurator-state.js` owns schema-v5 migration, accepted snapshots,
-  approximate measurement validation, per-layout state isolation, summaries,
-  and the guided draft/project storage keys.
-- `guided-configurator.js` and `guided-immersive-configurator.css` own the
-  four-step journey and its adaptive desktop panel, tablet overlay, and mobile
-  customization sheet.
-- `guided-layout-registry.js` owns exact source assets, hashes and bounds;
-  camera and appearance authority; semantic shelf anchors; smart-control
-  formulas and ranges; backend support; and layout thumbnails.
-- `guided-layout-material-zones.generated.js` and
-  `config/immersive-layout-material-zones-v1.json` own the exhaustive runtime
-  primitive-zone lookup and its PROVEN/PROVISIONAL/BLOCKED authority.
-- `guided-layout-viewer.js` is the active shared viewer. It owns verified model
-  fetch/parse, genuine WebGPU selection and WebGL2 fallback, camera/touch/named
-  views, smart-dimension translation, layout switching, disposal, and runtime
-  diagnostics.
-- `guided-room2-appearance.js`, `guided-room2-materials.js`, and
-  `guided-room2-integrity.js` remain shared appearance/integrity support. The
-  full Finish material system applies only to the exact Fireplace allowlist.
-- The deprecated `guided-room2-viewer.js` fixed-Room-2 implementation has been
-  removed. Production packaging also rejects that path explicitly.
-- `guided-scene-plan.js` and `guided-configurator-3d.js` retain internal
-  parametric contracts for other repository work; they are not imported by the
-  public immersive-layout path.
-- `configurator-experience.js`, `configurator-3d.js`, and associated styles own
-  the separate accepted-design workspace.
+- `guided-configurator-state.js` owns guided project normalization, approximate
+  measurement validation, summaries, and local persistence.
+- `guided-configurator.js` owns the four-step public workflow (Choose Product,
+  Choose Layout, Customization, Review & Details) and keeps one Room 2 viewer
+  controller across steps 3–4.
+- `guided-room2-appearance.js` owns the versioned `room2-commercial-pbr-v1`
+  semantic mapping, Finish-family recipes, texture transforms, hero-bounds
+  camera, local HDR/PMREM environment, broad key/fill roles, Neutral tone
+  mapping, exposure, and static shadow configuration. Owner visual acceptance
+  remains open.
+- `guided-room2-materials.js` owns selected-family preload, atomic lazy Finish
+  switching, source-sharing texture transforms, runtime material fingerprints,
+  exact proven-zone coverage, and owned-resource disposal.
+- `guided-room2-integrity.js` owns GLB container checks and deterministic raw,
+  embedded-image-payload, runtime-material, and deferred-model snapshots.
+- `guided-room2-viewer.js` owns the one-session Three.js renderer, GLTF parse,
+  exact-model integrity gates, camera controls, responsive projection, and
+  disposal lifecycle.
+- `guided-scene-plan.js` and `guided-configurator-3d.js` retain the internal
+  parametric scene contracts for other repository work, but are not imported,
+  requested, or used by the active public Room 2 path.
+- `configurator-experience.js`, `configurator-3d.js`, and the associated
+  configurator styles own the separate accepted-design workspace.
 - `bookcase-config.js`, `bookcase-layout.js`, `bookcase-billable.js`, and
-  `bookcase-pricing.js` remain shared product-data, geometry,
+  `bookcase-pricing.js` remain the shared product-data, geometry,
   generated-quantity, and estimate sources of truth.
 
-The guided preview's separation from physical design, BOM, price, and
-manufacturing authority is documented in `GUIDED-3D-SCENE.md`.
+The guided concept scene contract and its separation from physical design,
+BOM, and pricing are documented in `GUIDED-3D-SCENE.md`.
 
-## Public guided release boundary
-
-Cabinets + Shelves is the sole active Step 1 product. The other six full-image
-cards are focusable, disabled Coming Soon references. Fireplace Wall, Door
-Wall, and Window Wall are all active under Cabinets + Shelves. Unsupported
-saved products/layouts remain stored, are marked unavailable, and route back to
-the applicable selection step instead of being deleted or silently coerced.
-
-Ordinary measurements, Details, hardware, and customer lighting choices
-validate, persist, and appear in summaries. Each layout has one PROVEN
-Adjustable shelf clearance control that rigidly translates one audited shelf
-node. Span, opening, overall-height, and depth changes are BLOCKED. Fireplace
-has 118 PROVEN Finish targets; Door and Window have none and therefore retain
-embedded materials with Finish preview disabled.
-
-Customization and Review & Details reuse one controller/canvas/current parsed
-root. Camera state is remembered per layout so incompatible bounds never share
-a pose. Switching layouts aborts stale work and disposes prior model resources.
-Schema-v5 state isolates `measurements` and `smartDimensions` beneath each
-`layoutStates[layoutId]` record while preserving legacy migrations and accepted
-project snapshots.
-
-Every guided result remains an interactive project preview. It is not site
-verification, a shop drawing, manufacturing authorization, structural review,
-a calibrated finish sample, a BOM, or a price.
-
-## Visual system and page contract
+## Visual system
 
 The public site and configurator share the same warm taupe, ivory, and brass
 brand language. Shared primitives include the header, footer, buttons, page
-hero, cards, forms, typography, focus states, and icons.
+hero, cards, forms, typography, focus states, and icons. Responsive behavior is
+consolidated around 1120px, 900px, and 680px content breakpoints.
 
-Every public page must include one unique `body[data-page]` value; the skip
-link, `main#main`, header host, and footer host; one `h1`; versioned shared
-styles and `site.js`; and local links that resolve to a public route.
-`tests/site-integrity.test.js` enforces these contracts.
+## Adding a page
+
+Every public page must include:
+
+- one unique `body[data-page]` value;
+- the skip link, `main#main`, header host, and footer host;
+- one `h1`;
+- the shared versioned `styles.css` and `site.js` references;
+- the canonical interior hero and section structure;
+- local links that resolve to a public route.
+
+Run `npm test` after changing navigation, routes, cache tokens, or page shell
+markup. `tests/site-integrity.test.js` enforces these contracts.
+
+The public guided configurator exposes Cabinets + Shelves as its only active
+product and Fireplace Wall as its only active layout for this phase. Other
+catalog products and layouts are disabled Coming soon references; an older
+saved project that uses one remains intact, is marked unavailable, and is
+routed to the applicable selection step rather than silently coerced.
+
+Customization contains the layout-specific measurements, finish, and detail
+controls. Their values validate, persist, and appear in summaries. Finish is
+previewed digitally on the 118 proven millwork primitives; dimensions, Details,
+hardware, and saved lighting choices do not alter the fixed geometry or scene
+construction. Customization and Review & Details move the same canvas and
+preserve the same renderer, controller, parsed GLB root, and camera pose for the
+lifetime of the mounted configurator. Guided drafts remain approximate project
+briefs; displaying the reference model does not create manufacturing, BOM,
+pricing, final-measurement, calibrated-finish, or appearance-accuracy authority.
+Schema-v4 state explicitly maps legacy five-step positions
+1→1, 2→2, 3/4→3, and 5→4 while preserving the last accepted snapshot and
+capping reachable progress to the normalized selection.
 
 ## Local-preview limitation
 

@@ -1,218 +1,250 @@
-# Guided Immersive Layout Scene
+# Guided Room 2 Fixed-Reference Scene
 
-## Release boundary
+## Purpose and release boundary
 
-The public journey is Choose Product, Choose Layout, Customization, and Review
-& Details. Cabinets + Shelves is the only active product. Fireplace Wall, Door
-Wall, and Window Wall are its three active layouts. Each layout displays one
-exact authoritative GLB and exposes one PROVEN preview-only smart dimension.
+The public guided configurator keeps the accepted four-step journey: Choose
+Product, Choose Layout, Customization, and Review & Details. This release makes
+Cabinets + Shelves / Fireplace Wall the only active public product-layout pair
+and displays the exact, self-contained SketchUp-derived Room 2 GLB for that
+pair. No other product, layout, preset, draft, query, hash, or injected state
+may enter this viewer path.
 
-These models are interactive references, not shop drawings, site verification,
-finish samples, structural approvals, manufacturing authorization, BOMs, or
-prices. The current web appearance is provisional. It does not claim calibrated
-finish accuracy, owner approval, or parity with the excluded Blender/Cycles
-lookdev derivative.
+The model is a fixed reference design. Measurements, Finish, hardware,
+lighting, and detail values continue to validate, save, reload, and appear in
+the project summary. Finish alone replaces runtime material properties on the
+118 primitives proven by the checked-in material-3 authority. It never changes
+the GLB bytes, source accessors, geometry, indices, transforms, hierarchy,
+bounds, or dimensions. Dimensions, hardware, lighting, and Details remain saved
+project data and do not deform, scale, regenerate, relight, or replace the GLB.
+Customer-visible disclosures name this boundary. The digital appearance is
+provisional, is not a calibrated or approved physical sample, and owner
+appearance acceptance remains open.
 
-## Exact authoritative assets
+The reference view is not a shop drawing, site verification, finish sample,
+structural approval, manufacturing authorization, BOM, or price. Final field
+conditions and all project decisions still require JQ Bookcases review.
 
-| Layout | Authoritative/runtime path | Bytes | SHA-256 | Nodes / primitives / triangles |
-| --- | --- | ---: | --- | ---: |
-| Fireplace Wall | `assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb` | 6,712,076 | `251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5` | 455 / 185 / 18,306 |
-| Door Wall | `assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb` | 6,755,128 | `4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb` | 317 / 127 / 15,017 |
-| Window Wall | `assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb` | 6,993,036 | `631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24` | 442 / 182 / 19,244 |
+## Exact asset contract
 
-All three files are direct, self-contained SimLab glTF 2.0 sources. They retain
-`KHR_materials_pbrSpecularGlossiness` and load without conversion. There is no
-runtime derivative, external buffer/image URI, optimization, decimation,
-quantization, compression, re-export, or source mutation. The generated model
-audit records complete hierarchy, native transforms, bounds, accessors,
-materials, images, textures, UVs, normals, topology, and uncertainty.
+The public asset is
+`assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb`.
 
-The accepted existing-tool source-contract fingerprints are:
+| Property | Required value |
+| --- | --- |
+| Bytes | `6,712,076` |
+| SHA-256 | `251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5` |
+| Geometry fingerprint | `8762fe4326e22e46a163343e5fde410e231d651b48d1b1c9be8391febec8f6ff` |
+| Raw material digest | `b31d96b3a248fb8d33af236e6e03f414481c907553cbcfbf482ca58a0109676d` |
+| Scenes / nodes / meshes / primitives | `1 / 455 / 185 / 185` |
+| Accessors / vertices / triangles | `556 / 33,934 / 18,306` |
+| Materials / textures / images | `8 / 6 / 6` |
+| Embedded-image aggregate digest | `6c737d2ff899087b3227f9202dcf95c874474d65dfbc6ec83c778748feced153` |
 
-- Fireplace:
-  `8762fe4326e22e46a163343e5fde410e231d651b48d1b1c9be8391febec8f6ff`
-- Door:
-  `302ad57c1f7360966fb42714b2fd8c519f64856586eba632bf2f89427f2bc4d8`
-- Window:
-  `0f339076140a88e3942b220fcb217bbf3133876717149cba0522bc1e0b539e9c`
+It is a regular, non-symlink GLB, not a Git LFS pointer. Its one buffer and all
+six images are embedded; the container declares no external URI. Source,
+committed, prepared-artifact, and freshly downloaded live bytes must remain
+byte-identical. The GLB must never be optimized, converted, re-exported,
+embedded in JavaScript, or modified in place.
 
-`config/immersive-layout-model-audit-v1.json` and
-`guided-layout-registry.js` are generated/checked against those exact bytes.
+The source-branch fingerprint implementation is `room2-glb-integrity.js`
+(SHA-256
+`a9a5f2cb758872d9913104d3b256f4e31becf1156749cd15c446c45c10537d19`).
+The source-branch raw/runtime material authority implementation is
+`renderer-v1/material-authority.js` (SHA-256
+`659f79b763685acae2cf969127c385e49624d03960d28369db1b3f57eb2d7aaf`).
+Release evidence records the exact commands used against each byte source.
 
-## Registry, loading, and ownership
+The preserved source branch has its own Three.js r185 runtime-material digest.
+That value remains preservation evidence, not an equality gate for this public
+Three.js r166 runtime. `guided-room2-integrity.js` independently records the
+public legacy-compatible runtime-material snapshot plus an exhaustive v2
+public-appearance snapshot and requires both to remain stable across clean
+loads and all deferred-control edits. It also hashes each embedded image
+bufferView and the texture-to-image assignments; no network image may replace
+those six payloads.
 
-`guided-layout-registry.js` is the shared authority for each layout's product
-ID, exact source/runtime identity, source metadata, native and hero bounds,
-camera, orbit target, thumbnail, semantic anchors, appearance manifest,
-geometry-control manifest, backend support, and dimension support matrix.
-Layout selection is registry-driven rather than scattered layout conditionals.
+## Viewer session and loading contract
 
-`guided-layout-viewer.js` is the only public viewer controller. It lazy-loads
-only the selected model, enforces same-origin final URLs, MIME type, maximum
-stream length, byte length, SHA-256, self-contained glTF structure, source
-bounds, and stable semantic identity before reveal. It parses the selected
-asset with the pinned local Three.js r166 loader.
+A viewer session lasts for the mounted configurator in one document. On first
+Customization entry, `guided-configurator.js` lazily imports
+`guided-room2-viewer.js`, which creates exactly one controller, renderer,
+canvas, camera, scene, resize owner, control-listener set, and parsed GLB root.
+It issues one same-origin model request and parses once. The same canvas moves
+between Customization and Review & Details; tab changes, browser history, and
+saved-project restoration within that document do not remount or reparse it.
 
-Customization and Review reuse the same controller, renderer, canvas, camera,
-scene, and currently parsed root. Finish/tab/project rerenders reparent the
-existing runtime instead of creating a second canvas. A layout change aborts
-stale requests and renders, remembers camera state under the old layout,
-disposes the prior model's geometry/material/texture ownership, and parses only
-the new exact asset. A document teardown also aborts HDR/model work, cancels
-frames, disconnects listeners/observers, disposes render targets and renderer,
-removes the canvas, and clears pointer state.
+The viewer preloads only the selected/saved Finish family and the local neutral
+HDR environment before reveal, reports bounded loading progress, validates byte
+length and SHA-256, audits the self-contained GLB schema and raw materials,
+parses with the pinned local Three.js r166 `GLTFLoader`, and validates source
+bounds and identity transforms before display. Other finish families load once
+on first selection, apply atomically, and stay cached for that viewer session;
+a failed family may retry only after an explicit re-selection. A failure stays
+visible and fail-closed. The viewer never shows a wrong named Finish, the old
+generated scene, a photograph, or another model.
 
-Loading, integrity, parse, Finish, and renderer failures are visible and
-recoverable. Generation and sequence guards prevent stale model, Finish,
-environment, or render work from changing a newer selection. Failure never
-substitutes a photograph, the old generated scene, or another layout.
+Orbit, zoom, keyboard operation, and Reset affect only the camera. Camera pose
+persists across controls, tabs, Review, Back/Forward, and deferred project edits;
+only Reset restores the configured fit view. Responsive host changes update the
+projection aspect and may increase the fit distance before user interaction,
+without transforming the model.
 
-## Renderer and camera contract
+A full document reload, explicit configurator teardown, or navigation away ends
+the session. Teardown aborts abort-capable GLB and HDR requests, cancels pending frames,
+disconnects resize and input ownership, disposes source and owned cloned
+materials/textures, the retained PMREM target, model GPU resources, and the
+renderer, removes the canvas, and loses the WebGL context. TextureLoader results
+that complete after teardown are disposed and never bound. A later document mount
+begins a new session.
 
-The viewer prefers WebGPU only after a real adapter/backend is proven. Forced
-WebGL2 and automatic WebGL2 fallback are supported release paths. Initialization
-and render failures demote atomically, preserve the full journey timer, dispose
-the failed backend, reload the latest selected layout once, and retain one
-controller/canvas/model owner. Diagnostics report the actual backend, fallback
-reason, first-usable time, render-failure count, draw/triangle totals, retained
-geometry/material/texture/render-target resources, requests/parses, and
-lifecycle ownership.
+## Geometry immutability and runtime material ownership
 
-Camera interaction includes pointer orbit, native touch orbit, two-pointer pinch,
-wheel/button zoom, keyboard controls, Fit, Reset, Front, Left, and Right views.
-Bounds differ by layout, so pose is remembered separately per layout. The
-semantic hero bounds, not the architectural shell, drive fitting. Desktop gives
-the model at least 70% of content width; tablet and mobile use an adaptive sheet
-that reserves visible model context. On-model dimension interaction cannot
-orbit the camera, and camera interaction cannot change the dimension.
+The parsed `gltf.scene` is attached directly to the presentation scene. The
+viewer does not set a wrapper scale, rotate the root, alter local/world node
+matrices, replace geometry, change any source accessor, de-index a primitive,
+split or duplicate vertices, append tangents, or replace UVs. Runtime identity
+checks retain each geometry, index, attribute array/count, transform, bounds,
+triangle winding, and topology.
 
-## PROVEN smart-dimension authority
+`config/room2-commercial-pbr-v1-semantic-audit.json` deterministically records
+all 185 primitives by scene/node-index path, mesh/primitive ordinal, original
+material index, accessors and hashes, transforms, and bounds. Exactly 118
+material-3 primitives are `PROVEN` Finish targets; the other 67 stable slots are
+`PROVISIONAL`, and none is unmapped. There is no separate authoritative
+surround/hearth slot, so the combined fireplace body remains one material zone.
 
-Each layout provides the same customer-facing control,
-`adjustable-shelf-clearance`, but each record names its own exact anchors and
-target node. The control is a rigid local-Z translation of one unique
-`Adjustable Shelf` group between two fixed adjacent shelves.
+`guided-room2-materials.js` clones only runtime materials. It preserves alpha,
+sidedness, depth, visibility, and original slot cardinality; forces wood,
+paint, room shell, floor, fireplace, and fire to metalness zero; and isolates
+metalness to the deterministically mapped, `PROVISIONAL` hardware-only slots.
+Authored UV0 is retained on every
+Finish target. Shared texture sources receive deterministic role-specific
+rotation and stable cut phase transforms, with no mirroring or duplicate
+network payload. The r166 derivative tangent basis is used; no tangent attribute
+is appended.
 
-| Layout | Lower / target / upper node | Minimum | Native | Maximum |
-| --- | --- | ---: | ---: | ---: |
-| Fireplace Wall | 401 / 429 / 405 | 0 mm | 265.500022 mm | 531.000043 mm |
-| Door Wall | 130 / 138 / 140 | 0 mm | 304.800045 mm | 609.599993 mm |
-| Window Wall | 247 / 249 / 251 | 0 mm | 304.800045 mm | 609.599993 mm |
+`guided-room2-integrity.js` records the immutable source material/container
+contracts and deferred-model snapshot. `guided-room2-materials.js` separately
+records the exhaustive versioned runtime appearance fingerprint expected to
+change across Finish selections while the source and runtime geometry
+fingerprints remain equal. Browser tests compare those contracts, the parsed
+root and viewer/controller identities, asset URL, camera pose, request counts,
+and lifecycle ownership before and after Finish, deferred edits, history, and
+reload.
 
-The common finite formula is:
+## Project transaction and persistence boundary
 
-```text
-target.translation.z =
-  nativeTranslationZ +
-  (clearanceMm - nativeClearanceMm) /
-  (1000 * 0.02539999969303608)
-```
+The existing room-topology, installation-fit, product, and project engines
+continue to validate project data and preserve the last accepted specification.
+A rejected candidate reports its named diagnostic and cannot replace that saved
+snapshot. For this fixed-reference phase, only the normalized Finish ID is sent
+to the viewer, where it is constrained to proven material-3 coverage. Accepted
+descriptor geometry, dimensions, hardware, customer lighting selections, and
+Details are deliberately not sent to scene construction.
 
-Zero is the lower anchor's top face. Maximum is the fixed upper anchor's bottom
-face minus lower top and target thickness. At endpoints the shelf faces may
-touch but never volumetrically penetrate. Range values are derived from the
-source geometry; no percentage range or manufacturing clearance is inferred.
+Schema-v4 normalization continues to migrate legacy five-step positions as
+1→1, 2→2, 3/4→3, and 5→4. Current and maximum visited steps remain bounded by
+the active selection. Unsupported saved products and layouts remain stored,
+are marked unavailable, and route to Choose Product or Choose Layout; they are
+never deleted, coerced, or shown with the Room 2 model.
 
-Only the target node's local `translation.z` changes. Source buffers, topology,
-indices, accessors, thickness, scale, quaternion, non-Z translation, X/Z world
-bounds, hardware, anchor transforms, and every nonparticipating transform
-remain native. Every update starts from its recorded native value, so fifty
-min/native/max/reset cycles cannot accumulate drift. The on-model line, label,
-handle, panel input, keyboard steps, and Review value all share one canonical
-state. They display:
+## Provisional appearance ownership
 
-> Preview only — final dimensions require design confirmation.
+`guided-room2-appearance.js` is the single versioned production configuration
+for the presentation around the immutable GLB. The active profile is
+`room2-commercial-pbr-v1`. It owns the deterministic semantic material map,
+Finish-family recipes and physical texture scales, renderer/output settings,
+local environment and light rig, static shadow contract, semantic hero bounds,
+and bounded camera fit/orbit behavior. It does not own product geometry,
+dimensions, construction, price, hardware selection, or customer lighting
+choices. Evidence-only presentation and material-zone mask overrides are
+restricted to loopback hosts and are not a customer control. Its status is
+`PROVISIONAL DIGITAL APPEARANCE — OWNER ACCEPTANCE OPEN`; it must not be
+described as final, calibrated, finish-accurate, VividWorks-equivalent, or owner
+approved.
 
-Overall span, openings, overall height, built-in depth, repeat/remove, and local
-stretch-band controls lack sufficient authority in these sources. They are
-BLOCKED, disabled or absent, and never draggable.
+Oak, walnut, and paint families use local 512 × 512 WebP sidecars recorded in
+`config/room2-commercial-pbr-v1-assets.json`. Base color is sRGB; normal and
+roughness maps use `NoColorSpace`; full mip chains are generated locally; and
+anisotropy is capability-clamped to 8 for desktop/tablet and 4 for phone. Oak
+uses aligned base-color, OpenGL normal, and roughness maps at 2.4384 m per
+repeat. Walnut uses aligned base color and roughness at 2.4384 m per repeat and
+no normal map. Paint uses only restrained normal/roughness microtexture at
+0.0762 m per repeat and can never receive a wood map. KTX2 is disabled because
+the repository has no pinned encoder; the measured local WebP path is the
+explicit fallback. Asset source, license, author, source and derivative hashes,
+commands, dimensions, roles, and attribution are checked in with the assets.
 
-## Appearance-zone authority
+The active public backend is the pinned Three.js r166 `WebGLRenderer` on
+WebGL2; this repository does not define a WebGPU/fallback pair for this viewer.
+Color management is explicitly enabled with Linear-sRGB as the working space
+and exactly one sRGB canvas output transform. Matched ACES Filmic and Neutral
+sweeps were compiled and captured after material binding; the selected profile
+uses Three.js Neutral tone mapping at exposure `1.02`. Post-processing and GTAO
+remain disabled, so the one beauty pass owns the output transform.
 
-Every node begins with its embedded material. The exhaustive generated zone
-matrix uses source SHA plus index-qualified node path as stable identity:
+Indirect light is generated locally once per viewer from the byte-locked
+`assets/environments/jq-neutral-studio.hdr` through `RGBELoader` and one
+`PMREMGenerator` pass. The source texture and generator are disposed after
+generation; the retained target is owned by the viewer and disposed at
+teardown. It is assigned to `scene.environment`, never the visible background.
 
-| Layout | PROVEN | PROVISIONAL | BLOCKED | PROVEN Finish targets |
-| --- | ---: | ---: | ---: | ---: |
-| Fireplace Wall | 118 | 67 | 0 | 118 |
-| Door Wall | 0 | 78 | 49 | 0 |
-| Window Wall | 0 | 120 | 62 | 0 |
+The same-version `RectAreaLightUniformsLib.init()` runs exactly once before
+material compilation. Two scene-space semantic roles create three direct light
+objects: a `5.2` broad key RectAreaLight with a compensated `0.42`
+DirectionalLight shadow proxy, and a `2.15` broad fill RectAreaLight. Area
+lights never cast shadows. Only the proxy casts; its frustum is fitted to the
+full authoritative scene bounds, map size is `2048` for desktop/tablet and `1024` for the
+constrained-phone tier, and the static map refreshes once after model load (or
+after a genuine tier change), never on camera orbit. Rendering remains on
+demand with no permanent animation loop.
 
-Only the exact Fireplace PROVEN mesh-index allowlist may receive the existing
-web Finish profile. Its selected-family preload and lazy family changes are
-atomic; a failed Finish keeps the previously applied materials and retries only
-the failed family. Door and Window have no accepted automatic Finish mapping,
-so all their primitives retain embedded source materials and the Finish choices
-are disabled. No bulk mapping is inferred for walls, floors, ceilings,
-architectural doors/windows, fireplace, fire, glass, hardware, or ambiguous
-cabinetry.
+The semantic hero bounds exclude wall/floor/ceiling extents and retain
+millwork, hardware, fireplace, and fire. The perspective camera uses a 35 mm
+film gauge, 39° field of view (`49.418475` mm focal length), deterministic reset,
+and projected width targets of `0.83`, `0.87`, and `0.92` for desktop, tablet,
+and phone respectively. Phone preview controls occupy a separate rail below the
+canvas instead of covering the hero.
 
-False-color zone proof is restricted to loopback hosts. Customer UI always uses
-normal beauty appearance and the exact disclaimer:
+## Production artifact and network boundary
 
-> Digital preview only. Final dimensions and finishes require design confirmation.
+The static artifact allowlist includes the Room 2 appearance, integrity,
+material, and viewer modules; the semantic and provenance manifests; local
+licensed texture/HDR assets and notices; the existing Three.js core; matching
+r166 `GLTFLoader`, `RGBELoader`, `RectAreaLightUniformsLib`, and license; and the
+exact GLB. Pre-upload assertions byte-lock new production assets and check the
+model path, regular-file status, byte length, SHA-256, and non-LFS header. The
+old guided parametric scene plan and renderer are intentionally absent from the
+public artifact.
 
-The Fireplace presentation keeps the provisional
-`room2-commercial-pbr-v1` local texture recipes, neutral local HDR
-environment, RectArea key/fill roles, bounded directional shadow proxy,
-Linear-sRGB working space, sRGB output, Neutral tone mapping, and semantic
-camera fit. The accepted appearance profile is provisional and must not be
-described as Blender-equivalent or physically approved.
+All model, material, HDR, and runtime requests are same-origin. There is no CDN,
+hotlink, remote model host, analytics endpoint, fallback image request, second
+Three.js runtime, or external GLB buffer/texture request in this path.
 
-## Project state and migration
+## File ownership
 
-Schema v5 stores ordinary and smart dimension state independently beneath:
-
-```text
-layoutStates[layoutId].measurements
-layoutStates[layoutId].smartDimensions
-```
-
-Switching Fireplace → Door → Window → Fireplace restores each layout's own
-values and camera. Legacy supported Fireplace schemas migrate idempotently to
-the four-step flow without clearing storage, deleting unsupported projects, or
-coercing their product/layout. Accepted snapshots, Save Project, My Projects,
-Review, URL/hash history, Finish, and Details remain part of the public flow.
-
-## Production, network, and dependency boundary
-
-The static artifact explicitly allowlists:
-
-- `guided-immersive-configurator.css`, registry, generated zone lookup, viewer,
-  configurator data/state/UI, and retained appearance/material/integrity support;
-- the three exact GLBs and three renderer-generated actual-model thumbnails;
-- the model, material-zone, and payload-baseline JSON audits;
-- local Three r166 core/add-ons, the pinned WebGPU bundle, and Three MIT license;
-- local texture, HDR, provenance, and notice assets used by the accepted profile.
-
-The artifact explicitly rejects the removed fixed-Room-2 viewer, parametric
-guided renderer modules, legacy CAD workspace, tests/tools, and the excluded
-Blender derivative. Model, material, HDR, and runtime requests are same-origin.
-There is no CDN, hotlink, remote model host, analytics request, external glTF
-payload, Vivid request, or second Three runtime in this path.
-
-`three@0.166.1` is an exact MIT dev dependency used to build the WebGPU module
-against the existing r166 runtime; its license ships. `esbuild@0.28.2` is an
-exact MIT build-only dependency. The generated bundle externalizes `three`,
-and `configurator.html` maps that import to the existing local
-`assets/vendor/three.module.js`.
-
-The locked payload method uses Node `22.23.2`, zlib
-`1.3.1-e00f703`, gzip level 9, and the exact production JavaScript/CSS
-allowlist. Base SHA
-`7d961711dfc0b39f6d708699bcf145c8bb7eebd1` is 732,539 bytes across 47
-files; this release may add no more than 150,000 bytes.
-
-## Legacy status and release gate
-
-The deprecated `guided-room2-viewer.js` has been removed, and production
-packaging asserts that it is absent. The old parametric guided scene and the
-accepted-design CAD workspace are not imported by this public path.
-
-No merge or live claim is permitted unless all three smart controls are PROVEN;
-generated audits are current; unit, browser/backend, accessibility, responsive,
-resource, network, payload, and advisory gates pass; the protected source
-worktree remains unchanged; and the exact existing Render
-service/environment/trigger/deployed-SHA/cache/rollback identity is known.
-GitHub Pages is not Render evidence or a fallback publication path.
+- `guided-configurator-data.js` — strict active product/layout policy and the
+  retained project catalogs.
+- `guided-configurator-state.js` — normalization, validation, unavailable-state
+  preservation, accepted snapshots, persistence, and summaries.
+- `guided-configurator.js` — four-step orchestration, deferred disclosures, and
+  movement of one viewer session between steps 3–4.
+- `guided-room2-appearance.js` — provisional semantic/material/presentation
+  profile and immutable hero/camera contract.
+- `guided-room2-materials.js` — Finish-family loading, runtime material binding,
+  texture transforms, fingerprints, and resource disposal.
+- `guided-room2-integrity.js` — GLB and deterministic runtime snapshot checks.
+- `guided-room2-viewer.js` — exact asset load, pinned GLTF parse, camera,
+  interaction, one-session ownership, diagnostics, and disposal.
+- `guided-room-topology.js`, `guided-installation-solver.js`,
+  `guided-product-adapter.js`, `guided-product-engine.js`, and
+  `guided-project-engine.js` — project-data validation and transaction state;
+  not public GLB geometry generation in this phase.
+- `guided-scene-plan.js`, `guided-configurator-3d.js`, and
+  `guided-materials.js` — retained internal parametric contracts; excluded from
+  the active public Room 2 runtime path.
+- `config/room2-commercial-pbr-v1-semantic-audit.json` — exhaustive stable
+  primitive/material/UV/edge inventory.
+- `config/room2-commercial-pbr-v1-assets.json` and
+  `assets/room2-commercial-pbr-v1/ASSET-LICENSES.md` — source, license,
+  attribution, transform, role, byte, and hash provenance.

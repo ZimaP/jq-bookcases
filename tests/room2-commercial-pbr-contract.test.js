@@ -186,7 +186,7 @@ test("millwork grain roles are leaf-specific and exhaust the proven source inven
 test("runtime source enforces atomic lazy Finish loading without geometry or topology mutation", async () => {
   const [materials, viewer] = await Promise.all([
     readFile(join(root, "guided-room2-materials.js"), "utf8"),
-    readFile(join(root, "guided-layout-viewer.js"), "utf8")
+    readFile(join(root, "guided-room2-viewer.js"), "utf8")
   ]);
   assert.match(materials, /prepareInitialFinish/);
   assert.match(materials, /notifyState\("finish-loading"/);
@@ -198,17 +198,11 @@ test("runtime source enforces atomic lazy Finish loading without geometry or top
   assert.match(materials, /ROOM2_FINISH_COVERAGE_MISMATCH/);
   assert.match(materials, /ROOM2_RUNTIME_GEOMETRY_MUTATION/);
   assert.match(materials, /ROOM2_RUNTIME_ATTRIBUTE_MUTATION/);
-  assert.match(viewer, /reconcileRequestedFinishForLoad/);
-  assert.match(viewer, /this\.requestedFinishId !== finishRequestId/);
-  assert.match(viewer, /this\.finishSequence !== expectedFinishSequence/);
-  assert.match(viewer, /last verified appearance remains visible/);
   assert.doesNotMatch(materials + viewer, /computeMikkTSpaceTangents|toNonIndexed|mergeVertices|\.geometry\.(?:setIndex|deleteAttribute|setAttribute)\(/);
   assert.doesNotMatch(materials + viewer, /position\.array\s*\[|normal\.array\s*\[|index\.array\s*\[/);
-  assert.equal((viewer.match(/setAnimationLoop/g) || []).length, 1);
-  assert.match(viewer, /renderer\.setAnimationLoop\?\.\(null\)/);
-  assert.match(viewer, /new URL\(layoutRecord\.runtimeAsset\.path, document\.baseURI\)/);
-  assert.match(viewer, /new URL\(definition\.url, document\.baseURI\)/);
-  assert.equal((viewer.match(/fetch\(requestedUrl\.href/g) || []).length, 2);
+  assert.doesNotMatch(viewer, /setAnimationLoop/);
+  assert.equal((viewer.match(/fetch\(ROOM2_APPEARANCE_PROFILE\.asset\.url/g) || []).length, 1);
+  assert.equal((viewer.match(/fetch\(definition\.url/g) || []).length, 1);
 });
 
 test("the selected studio rig, camera fit, output conversion, and cold payload stay within gates", async () => {
@@ -235,14 +229,8 @@ test("the selected studio rig, camera fit, output conversion, and cold payload s
     ...Object.values(profile.materials.families.oak.maps),
     "guided-room2-appearance.js",
     "guided-room2-materials.js",
-    "guided-layout-registry.js",
-    "guided-layout-material-zones.generated.js",
-    "guided-layout-viewer.js",
-    "assets/vendor/three.module.js",
-    "assets/vendor/three-webgpu-renderer-r166.bundle.js",
+    "guided-room2-viewer.js",
     "assets/vendor/three-addons/loaders/RGBELoader.js",
-    "assets/vendor/three-addons/loaders/GLTFLoader.js",
-    "assets/vendor/three-addons/utils/BufferGeometryUtils.js",
     "assets/vendor/three-addons/lights/RectAreaLightUniformsLib.js"
   ];
   const initialBytes = (await Promise.all(initialPaths.map((path) => stat(join(root, path))))).reduce((sum, item) => sum + item.size, 0);

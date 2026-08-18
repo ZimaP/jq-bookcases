@@ -22,40 +22,34 @@ responsive primitives are owned by `site.js` and `styles.css`.
 
 `configurator.html` hosts the four-step public guided project flow: Choose
 Product, Choose Layout, Customization, and Review & Details. Cabinets + Shelves
-is the only active public product. Step 1 nevertheless renders the complete
-image-card catalog in this order: Cabinets + Shelves, Drawers + Shelves, Full
-Open Shelving, TV Unit, Floating Storage, Window Storage, and Radiator Cover.
-The latter six cards are focusable, disabled Coming Soon references. Fireplace
-Wall, Door Wall, and Window Wall are the three active layouts.
+is the only active public product, and Fireplace Wall is the only active public
+layout; the remaining catalog entries are compact, disabled Coming soon
+references. Customization combines dimensions, finish, hardware, lighting, and
+details around the fixed SketchUp-derived Room 2 reference model.
 
 The public flow resolves each complete edit through room-topology,
 installation-fit, and product engines before it may replace the last accepted
-specification used by persistence and summaries. `guided-layout-registry.js`
-selects one of three byte- and SHA-locked authoritative GLBs and loads it only
-when that layout enters Customization. Ordinary room measurements, hardware,
-lighting, and Details remain saved project data. Each layout has exactly one
-PROVEN smart control, Adjustable shelf clearance, implemented as the audited
-rigid translation of one named shelf node; span, opening, height, and depth
-controls remain BLOCKED. Only Fireplace has accepted Finish authority (118
-PROVEN primitive targets). Door and Window keep their embedded materials and
-disable Finish preview because they have zero PROVEN Finish targets.
+specification used by persistence and summaries. In this fixed-reference phase,
+that project data deliberately does not deform, regenerate, or replace the GLB.
+Finish alone drives the proven material-3 millwork zone through a provisional
+digital PBR preview; dimensions, hardware, lighting, and Details remain saved
+project data and do not change geometry or scene construction. Steps 3–4 share
+one persistent viewer session and parsed GLB root. A load or integrity failure
+remains fail-closed; the public path never falls back to the prior generated
+scene or to a photograph. Schema-v4
+persistence migrates older five-step drafts without deleting unsupported saved
+projects or coercing them into Cabinets + Shelves.
 
-Steps 3–4 reuse one controller, renderer, canvas, and currently parsed root.
-Changing layout aborts stale work, disposes the prior model resources, and
-parses only the newly selected exact asset. The renderer prefers a genuine
-WebGPU adapter and has supported forced and automatic WebGL2 paths. Any model,
-integrity, or renderer failure stays visible and recoverable without showing a
-wrong layout, the old generated scene, or a photograph. Schema-v5 persistence
-stores independent `layoutStates[layoutId].measurements` and
-`layoutStates[layoutId].smartDimensions`, migrates legacy drafts idempotently,
-and preserves unsupported saved projects without coercion.
-
-The Fireplace appearance uses the provisional `room2-commercial-pbr-v1`
-profile with local licensed texture sidecars, a local HDR environment, bounded
-lights and shadows, one output transform, and semantic camera fitting. Door and
-Window start from their embedded source materials. All appearance is a digital
-preview, not a calibrated or approved physical finish sample; owner visual
-acceptance and Blender-lookdev parity remain deferred.
+The fixed model is presented by the provisional `room2-commercial-pbr-v1`
+profile: local licensed 512 px WebP material sidecars, selected-family preload
+with atomic lazy Finish-family switching, one local HDR/PMREM environment, two
+broad RectArea light roles plus one static directional shadow proxy,
+Linear-sRGB lighting, one sRGB output transform, Neutral tone mapping at
+exposure `1.02`, and semantic hero-bounds camera fitting. Runtime materials may
+change only within the checked-in semantic map; GLB bytes, geometry, indices,
+attributes, transforms, hierarchy, bounds, and dimensions remain unchanged.
+The preview is not a calibrated or approved physical finish sample, and owner
+visual acceptance remains open.
 
 The guided engine architecture, installation invariants, PBR material contract,
 save/reload behavior, and shop-review boundary are documented in
@@ -81,22 +75,8 @@ git diff --check
 ```
 
 Pull requests and pushes validate the repository's GitHub checks. The verified
-Render identity gate and the separately authorized SHA-locked GitHub Pages
-procedure are documented in `RELEASE.md`. Pages is never evidence that Render
-updated.
-
-The production payload check uses the exact static allowlist under Node
-`22.23.2`, zlib `1.3.1-e00f703`, and independent gzip level 9. Its locked base
-is `732,539` bytes across 47 JavaScript/CSS files at release-base SHA
-`7d961711dfc0b39f6d708699bcf145c8bb7eebd1`; this change may add no more than
-`150,000` gzip bytes. `three@0.166.1` (MIT) is the exact WebGPU-renderer source
-matching the existing r166 runtime, with its shipped license at
-`assets/vendor/licenses/three-0.166.1-LICENSE.txt`. `esbuild@0.28.2` (MIT) is a
-build-only deterministic bundler. Both are exact dev dependencies in the
-lockfile; the bundle externalizes `three` and the import map resolves it to the
-existing local `three.module.js`, so no second Three runtime is shipped. An
-advisory check must be run and recorded before release; this document does not
-claim security clearance in advance.
+main-driven Render publication path and the separate SHA-locked GitHub Pages
+procedure are documented in `RELEASE.md`.
 
 The accepted parametric model architecture is documented in
 `CONFIGURATOR-ARCHITECTURE.md`. Repeatable desktop, tablet, phone, short-

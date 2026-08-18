@@ -2,9 +2,12 @@ import { mountIcons } from "./icon-system.js?v=product-first-20260727a";
 import {
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
+  PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES,
   PUBLIC_CONFIGURATOR_LAYOUT_CHOICES,
+  PUBLIC_CONFIGURATOR_LAYOUT_ID,
+  PUBLIC_CONFIGURATOR_PRODUCT_CHOICES,
   PUBLIC_CONFIGURATOR_PRODUCT_ID,
-  PRODUCT_CHOICES,
+  SHARED_ROOM_LAYOUTS,
   getCategory,
   getCompatibleDetails,
   getLayout,
@@ -27,12 +30,6 @@ import {
   validateMeasurements
 } from "./guided-configurator-state.js?v=public-room2-glb-v1-20260817a";
 import {
-  getImmersiveLayout,
-  inchesToMillimeters,
-  millimetersToInches,
-  normalizeSmartDimension
-} from "./guided-layout-registry.js?v=immersive-layout-configurator-v1";
-import {
   resolveProductLayoutCompatibility
 } from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
 import {
@@ -44,10 +41,10 @@ import {
 } from "./guided-project-engine.js?v=fitted-slim-cap-return-v1-20260803a";
 
 const STEP_DEFINITIONS = Object.freeze([
-  Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "Choose your product", description: "Explore the complete fitted-furniture collection. Cabinets + Shelves is available to configure now." }),
+  Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "Choose your product", description: "Cabinets + Shelves is available in this public preview. More fitted-furniture options are coming soon." }),
   Object.freeze({ id: 2, label: "Choose Layout", mobileLabel: "Layout", title: "Choose the layout that matches your space", description: "Select the wall layout you want to plan. Any measurements it needs will appear next." }),
-  Object.freeze({ id: 3, label: "Customization", mobileLabel: "Customize", title: "Customize your space", description: "Work directly with the selected three-dimensional layout, then save room measurements, finish, and details." }),
-  Object.freeze({ id: 4, label: "Review & Details", mobileLabel: "Review", title: "Review your project details", description: "Check your saved selections beside the same verified layout model before saving or preparing a quote." })
+  Object.freeze({ id: 3, label: "Customization", mobileLabel: "Customize", title: "Plan details beside the Room 2 reference", description: "Save dimensions, finish, hardware, lighting, and details while the fixed SketchUp-derived Room 2 model stays in view." }),
+  Object.freeze({ id: 4, label: "Review & Details", mobileLabel: "Review", title: "Review your project details", description: "Check your saved project selections beside the same fixed Room 2 reference model before saving or preparing a quote." })
 ]);
 
 const GUIDED_DIAGNOSTIC_MESSAGES = Object.freeze({
@@ -108,13 +105,6 @@ const restoredAcceptedSpecification = project.acceptedSnapshot
   ? restoreGuidedAcceptedSnapshot(project, project.acceptedSnapshot)
   : null;
 let activeCustomizationTab = "dimensions";
-let activeNamedView = "";
-const customizationMobileQuery = window.matchMedia("(max-width: 767px)");
-const customizationTabletQuery = window.matchMedia("(max-width: 1279px)");
-let customizationSheetState = customizationMobileQuery.matches
-  ? "collapsed"
-  : customizationTabletQuery.matches ? "half" : "expanded";
-let customizationSheetFocusReturn = null;
 let previewScale = 1;
 let saveDialogMode = "save";
 let renamingProjectId = null;
@@ -126,7 +116,6 @@ let guidedSceneController = null;
 let guidedSceneImportPromise = null;
 let guidedSceneSyncToken = 0;
 let guidedSceneMeasurementTimer = 0;
-let guidedSceneFocusReturn = null;
 let acceptedSpecification = restoredAcceptedSpecification?.accepted
   ? restoredAcceptedSpecification
   : project.acceptedSnapshot?.acceptedSpecification || null;
@@ -147,8 +136,6 @@ if (app) {
   bindAppEvents();
   bindDialogEvents();
   bindHistory();
-  customizationMobileQuery.addEventListener("change", handleCustomizationBreakpointChange);
-  customizationTabletQuery.addEventListener("change", handleCustomizationBreakpointChange);
   window.addEventListener("pagehide", (event) => {
     if (event.persisted) return;
     window.clearTimeout(guidedSceneMeasurementTimer);
@@ -207,7 +194,7 @@ function initializeProject() {
   } else if (initial.layoutAvailability === "unavailable") {
     // Preserve the unsupported layout and its measurements in the working
     // copy, but never let a stale draft, project, preset, or hash enter the
-    // audited immersive viewer path.
+    // fixed Room 2 viewer path.
     initial.currentStep = 2;
     initial.maxVisitedStep = Math.min(2, Math.max(2, initial.maxVisitedStep || 2));
   }
@@ -354,21 +341,14 @@ function renderApp(options = {}) {
     </div>
   `;
   mountIcons(app);
-  syncLayoutThumbnailStates();
   syncSaveControlState();
   applyPreviewScale();
   syncGuidedScene();
-  syncCustomizationSheetAccessibility();
   scheduleDraftSave();
   scheduleLikelyNextStepImages();
 
   requestAnimationFrame(() => {
-    if (!options.focusHeading) return;
-    if (project.currentStep === 3 && customizationMobileQuery.matches && customizationSheetState === "expanded") {
-      app.querySelector('[data-customization-sheet] [role="tab"][aria-selected="true"]')?.focus({ preventScroll: true });
-    } else {
-      app.querySelector("#guided-page-title")?.focus({ preventScroll: true });
-    }
+    if (options.focusHeading) app.querySelector("#guided-page-title")?.focus({ preventScroll: true });
   });
 }
 
@@ -413,7 +393,7 @@ function syncSaveControlState() {
         unavailableProduct || unavailableLayout
           ? unavailableProduct
             ? "This saved product is unavailable in the public preview. Its existing record remains in My Projects."
-            : "This saved layout is unavailable in the three-layout interactive preview. Its existing record remains in My Projects."
+            : "This saved layout is unavailable with the fixed Room 2 model. Its existing record remains in My Projects."
           : `${getGuidedDiagnosticMessage(diagnostic)} Save is unavailable until this edit is corrected.`
       );
     } else {
@@ -499,7 +479,6 @@ function renderPngImage(asset, options = {}) {
   const imageClass = ["guided-picture-image", options.imageClass].filter(Boolean).join(" ");
   const loading = options.loading === "eager" ? "eager" : "lazy";
   const fetchPriority = options.fetchPriority ? ` fetchpriority="${escapeAttribute(options.fetchPriority)}"` : "";
-  const layoutThumbnail = options.layoutThumbnail === true ? " data-layout-thumbnail" : "";
 
   return `
     <img
@@ -509,7 +488,6 @@ function renderPngImage(asset, options = {}) {
       loading="${loading}"
       decoding="async"
       ${fetchPriority}
-      ${layoutThumbnail}
       aria-hidden="true"
     >
   `;
@@ -584,6 +562,12 @@ function renderCurrentStep() {
 }
 
 function renderProductStep() {
+  const availableChoice = PUBLIC_CONFIGURATOR_PRODUCT_CHOICES[0];
+  const category = getCategory(availableChoice.categoryId);
+  const style = getStyle(availableChoice.categoryId, availableChoice.styleId);
+  const selected = isActivePublicProject()
+    && availableChoice.categoryId === project.category
+    && availableChoice.styleId === project.style;
   const unavailableSelection = project.productAvailability === "unavailable"
     ? getProductChoiceForSelection(project.category, project.style)
     : null;
@@ -594,47 +578,61 @@ function renderProductStep() {
         <span><strong>${escapeHtml(unavailableSelection.label)} is not available in this preview.</strong> Your saved project remains in My Projects unchanged. Choose Cabinets + Shelves below to start a separate preview.</span>
       </aside>
     ` : ""}
-    <div class="product-grid product-grid--catalog" role="group" aria-label="Product choices">
-      ${PRODUCT_CHOICES.map((choice, index) => {
-        const category = getCategory(choice.categoryId);
-        const style = getStyle(choice.categoryId, choice.styleId);
-        const available = choice.id === PUBLIC_CONFIGURATOR_PRODUCT_ID;
-        const selected = available
-          && project.productSelected
-          && choice.categoryId === project.category
-          && choice.styleId === project.style;
-        return `
+    <section class="available-product" aria-labelledby="available-product-title">
+      <div class="available-product-heading">
+        <span class="guided-eyebrow">Available now</span>
+        <h2 id="available-product-title">Cabinets + Shelves</h2>
+        <p>Open shelving with concealed lower cabinets, configured around one of the supported layouts.</p>
+      </div>
+      <button
+        class="product-card product-card--primary${selected ? " is-selected" : ""}"
+        type="button"
+        data-product-choice="${escapeAttribute(availableChoice.id)}"
+        data-product-category="${escapeAttribute(availableChoice.categoryId)}"
+        data-product-style="${escapeAttribute(style.id)}"
+        aria-pressed="${selected}"
+        aria-label="${escapeAttribute(`${availableChoice.label}${selected ? ", selected" : ""}`)}"
+      >
+        ${selected ? '<span class="choice-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
+        <span class="product-card-image" aria-hidden="true">
+          ${renderOptimizedPicture(style.previewAsset || category.productPreviewAsset, {
+            loading: "eager",
+            fetchPriority: "high",
+            style: `object-position:${availableChoice.previewPosition || "50% 50%"}`
+          })}
+        </span>
+        <span class="product-card-copy">
+          <span class="product-card-reference">${escapeHtml(availableChoice.drawingRef || category.label)}</span>
+          <span class="product-card-heading">
+            ${renderCategoryIcon(category.icon)}
+            <span class="product-card-title">${escapeHtml(availableChoice.label)}</span>
+          </span>
+          <span class="product-card-description">${escapeHtml(availableChoice.description)}</span>
+        </span>
+      </button>
+    </section>
+    <section class="coming-soon-products" aria-labelledby="coming-soon-title">
+      <div>
+        <span class="guided-eyebrow">Coming soon</span>
+        <h2 id="coming-soon-title">More fitted-furniture previews</h2>
+      </div>
+      <div class="coming-soon-list" aria-label="Products coming soon">
+        ${PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES.map((choice) => `
           <button
-            class="product-card${available ? "" : " is-coming-soon"}${selected ? " is-selected" : ""}"
+            class="coming-soon-product"
             type="button"
-            ${available
-              ? `data-product-choice="${escapeAttribute(choice.id)}" data-product-category="${escapeAttribute(choice.categoryId)}" data-product-style="${escapeAttribute(style.id)}" aria-pressed="${selected}"`
-              : `data-coming-soon-product="${escapeAttribute(choice.id)}" aria-disabled="true" aria-pressed="false"`}
-            aria-label="${escapeAttribute(`${choice.label}${selected ? ", selected" : available ? ", available now" : ", coming soon"}`)}"
+            data-coming-soon-product="${escapeAttribute(choice.id)}"
+            aria-label="${escapeAttribute(`${choice.label}, coming soon`)}"
+            disabled
           >
-            ${selected ? '<span class="choice-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
-            ${available ? '<span class="product-availability-badge">Available now</span>' : '<span class="product-availability-badge product-availability-badge--soon">Coming soon</span>'}
-            <span class="product-card-image" aria-hidden="true">
-              ${renderOptimizedPicture(style.previewAsset || category.productPreviewAsset, {
-                loading: index === 0 ? "eager" : "lazy",
-                fetchPriority: index === 0 ? "high" : "low",
-                style: `object-position:${choice.previewPosition || "50% 50%"}`
-              })}
-            </span>
-            <span class="product-card-copy">
-              <span class="product-card-reference">${escapeHtml(choice.drawingRef || category.label)}</span>
-              <span class="product-card-heading">
-                ${renderCategoryIcon(category.icon)}
-                <span class="product-card-title">${escapeHtml(choice.label)}</span>
-              </span>
-              <span class="product-card-description">${escapeHtml(choice.description)}</span>
-            </span>
+            <span>${escapeHtml(choice.label)}</span>
+            <small>Coming soon</small>
           </button>
-        `;
-      }).join("")}
-    </div>
+        `).join("")}
+      </div>
+    </section>
     <div class="guided-actions">
-      <button class="guided-button guided-button-primary" type="button" data-continue ${isActivePublicProject() ? "" : "disabled"}>
+      <button class="guided-button guided-button-primary" type="button" data-continue ${selected ? "" : "disabled"}>
         Continue <i data-icon="arrow-right" aria-hidden="true"></i>
       </button>
     </div>
@@ -662,45 +660,34 @@ function renderLayoutStep() {
     ${unavailableLayout ? `
       <aside class="unavailable-project-notice" role="status" data-unavailable-layout>
         <i data-icon="information" aria-hidden="true"></i>
-        <span><strong>${escapeHtml(unavailableLayout.label)} is not available in this release.</strong> Its saved measurements remain in My Projects. Choose Fireplace Wall, Door Wall, or Window Wall to continue.</span>
+        <span><strong>${escapeHtml(unavailableLayout.label)} is not available with the fixed Room 2 model.</strong> Its saved measurements remain in My Projects. Choose Fireplace Wall to continue this preview.</span>
       </aside>
     ` : ""}
-    <div class="layout-grid layout-grid--immersive" role="group" aria-label="Layout choices">
-      ${PUBLIC_CONFIGURATOR_LAYOUT_CHOICES.map((layout) => {
-        const registry = getImmersiveLayout(layout.id);
-        const modelAvailable = Boolean(registry?.runtimeAsset?.path && registry?.thumbnail);
-        const compatibility = resolveProductLayoutCompatibility({
-          project: { ...project, layout: layout.id },
-          topology: { layoutId: layout.id }
-        });
-        const selected = layout.id === project.layout;
-        const statusLabel = compatibility.status === "conditional" ? "Measurements required" : "Ready to customize";
+    <div class="layout-grid" role="group" aria-label="Layout choices">
+      ${SHARED_ROOM_LAYOUTS.map((layout) => {
+        const available = isPublicConfiguratorLayout(project.category, project.style, layout.id);
+        const compatibility = available
+          ? resolveProductLayoutCompatibility({
+            project: { ...project, layout: layout.id },
+            topology: { layoutId: layout.id }
+          })
+          : { status: "unavailable" };
+        const selected = available && layout.id === project.layout;
+        const statusLabel = available ? "Measurements required" : "Coming soon";
         return `
           <button
-            class="layout-card layout-card--${escapeAttribute(compatibility.status)}${selected ? " is-selected" : ""}${modelAvailable ? "" : " is-model-unavailable"}"
+            class="layout-card layout-card--${escapeAttribute(compatibility.status)}${selected ? " is-selected" : ""}"
             type="button"
-            data-layout="${escapeAttribute(layout.id)}"
-            data-layout-availability="${modelAvailable ? "available" : "unavailable"}"
-            data-thumbnail-state="${modelAvailable ? "loading" : "model-unavailable"}"
+            ${available ? `data-layout="${escapeAttribute(layout.id)}" data-layout-availability="available"` : `data-coming-soon-layout="${escapeAttribute(layout.id)}"`}
             data-compatibility="${escapeAttribute(compatibility.status)}"
-            aria-pressed="${selected}"
-            data-base-label="${escapeAttribute(`${layout.label}, ${statusLabel}`)}"
-            aria-label="${escapeAttribute(`${layout.label}, ${modelAvailable ? statusLabel : "model unavailable"}`)}"
-            ${modelAvailable ? "" : "disabled"}
+            ${available ? `aria-pressed="${selected}"` : "disabled"}
+            aria-label="${escapeAttribute(`${layout.label}, ${statusLabel}`)}"
           >
             ${selected ? '<span class="layout-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
-            <span class="layout-compatibility-badge">${escapeHtml(statusLabel)}</span>
-            <span class="layout-illustration layout-illustration--photo layout-illustration--actual-model" aria-hidden="true">
-              ${modelAvailable ? renderPngImage(registry.thumbnail, { loading: "eager", layoutThumbnail: true }) : ""}
-              <span class="layout-thumbnail-state" data-layout-thumbnail-status>
-                <span data-thumbnail-message="loading">Loading model preview…</span>
-                <span data-thumbnail-message="error">Preview image unavailable</span>
-                <span data-thumbnail-message="model-unavailable">Model unavailable</span>
-              </span>
-            </span>
+            <span class="layout-compatibility-badge${available ? "" : " layout-compatibility-badge--unavailable"}">${escapeHtml(statusLabel)}</span>
+            ${renderLayoutPreview(layout)}
             <span class="layout-card-copy">
               <span class="layout-card-title">${escapeHtml(layout.label)}</span>
-              <span class="layout-card-subtitle">Interactive 3D model</span>
             </span>
           </button>
         `;
@@ -708,7 +695,7 @@ function renderLayoutStep() {
     </div>
     <aside class="guided-info">
       <i data-icon="information" aria-hidden="true"></i>
-      <span>Each layout uses its own verified model and preserves its own dimensions when you switch. Room measurements appear in Customization.</span>
+      <span>Fireplace Wall is the only layout connected to the fixed Room 2 reference model in this phase. The fireplace and wall measurement fields appear in Customization.</span>
     </aside>
     <div class="guided-actions">
       <button class="guided-button guided-button-secondary" type="button" data-back>
@@ -899,11 +886,14 @@ function getCustomizationMeasurementContext() {
 }
 
 function renderDimensionsChoices() {
-  const { selectedLayout, fields, validation } = getCustomizationMeasurementContext();
-  const registry = getImmersiveLayout(project.layout);
-  const control = registry?.geometryControlManifest?.["adjustable-shelf-clearance"];
-  const storedValue = project.layoutStates?.[project.layout]?.smartDimensions?.[control?.id];
-  const smartValue = normalizeSmartDimension(project.layout, control?.id, storedValue ?? control?.nativeMillimeters);
+  const {
+    selectedLayout,
+    fields,
+    diagramFieldIds,
+    denseMeasurements,
+    validation,
+    measurementDiagramFields
+  } = getCustomizationMeasurementContext();
   let previousGroup = "";
 
   const fieldMarkup = fields.map((field) => {
@@ -912,73 +902,53 @@ function renderDimensionsChoices() {
       ? `<h3 class="measurement-group-title">${escapeHtml(field.group)}</h3>`
       : "";
     previousGroup = field.group;
-    return `${groupHeading}${renderMeasurementField(field, warning, false)}`;
+    return `${groupHeading}${renderMeasurementField(field, warning, diagramFieldIds.has(field.id))}`;
   }).join("");
   const diagnostic = guidedProjectTransaction?.accepted === false
     ? guidedProjectTransaction.errors?.[0]
     : null;
 
   return `
-    <div class="dimensions-workspace dimensions-workspace--immersive">
-      <div class="customization-section-heading">
-        <span class="guided-eyebrow">Direct model control</span>
-        <h2>Dimensions</h2>
-        <p>Adjust the proven shelf clearance on the model or here. Both controls stay synchronized.</p>
+    <div class="dimensions-workspace${denseMeasurements ? " dimensions-workspace--dense" : ""}">
+      <div class="dimensions-heading-row">
+        <div>
+          <h2>Dimensions</h2>
+          <p>Use inches. Decimals and common fractions such as 42 1/2 are accepted.</p>
+        </div>
+        <p class="selected-layout-chip">
+          ${renderCategoryIcon(getCategory(project.category).icon)}
+          <span>${escapeHtml(selectedLayout?.label || "Select a layout")}</span>
+        </p>
       </div>
-      ${control ? `
-        <section class="smart-dimension-control" data-smart-dimension-control="${escapeAttribute(control.id)}">
-          <div class="smart-dimension-heading">
-            <span>
-              <strong>${escapeHtml(control.label)}</strong>
-              <small>${escapeHtml(selectedLayout?.label || registry.label)} · Preview control</small>
-            </span>
-            <span class="authority-badge authority-badge--proven">Proven</span>
-          </div>
-          <label class="smart-dimension-field" for="smart-dimension-${escapeAttribute(control.id)}">
-            <span>Clearance</span>
-            <span class="smart-dimension-input-wrap">
-              <input
-                id="smart-dimension-${escapeAttribute(control.id)}"
-                type="number"
-                inputmode="decimal"
-                data-smart-dimension="${escapeAttribute(control.id)}"
-                min="${millimetersToInches(control.minMillimeters).toFixed(2)}"
-                max="${millimetersToInches(control.maxMillimeters).toFixed(2)}"
-                step="any"
-                value="${millimetersToInches(smartValue).toFixed(2)}"
-                aria-describedby="smart-dimension-range-${escapeAttribute(control.id)} smart-dimension-disclaimer"
-              >
-              <span>in</span>
-            </span>
-          </label>
-          <small class="smart-dimension-error" data-smart-dimension-error role="alert" hidden>Enter a value within the displayed range.</small>
-          <div class="smart-dimension-range" id="smart-dimension-range-${escapeAttribute(control.id)}">
-            <span>${millimetersToInches(control.minMillimeters).toFixed(2)} in</span>
-            <span>Native ${millimetersToInches(control.nativeMillimeters).toFixed(2)} in</span>
-            <span>${millimetersToInches(control.maxMillimeters).toFixed(2)} in</span>
-          </div>
-          <button class="smart-dimension-reset" type="button" data-smart-dimension-reset="${escapeAttribute(control.id)}">
-            <i data-icon="reset" aria-hidden="true"></i> Reset to native
-          </button>
-          <p id="smart-dimension-disclaimer">Preview only — final dimensions require design confirmation.</p>
-        </section>
-      ` : ""}
-      <section class="blocked-dimensions" aria-labelledby="blocked-dimensions-title">
-        <h3 id="blocked-dimensions-title">Additional model dimensions</h3>
-        ${["Overall span", "Opening size", "Overall height", "Built-in depth"].map((label) => `
-          <button type="button" disabled><span>${label}</span><small>Not yet configurable</small></button>
-        `).join("")}
-      </section>
-      <details class="room-measurements" data-room-measurements>
+      ${renderDeferredModelDisclosure("Dimensions")}
+      <div
+        class="measurement-panel measurement-panel--customization${denseMeasurements ? " measurement-panel--dense" : ""}"
+        data-measurement-field-count="${fields.length}"
+        aria-label="Approximate dimensions"
+      >
+        <p class="measurement-format-hint visually-hidden">Use inches. Decimals and common fractions are welcome.</p>
+        <div class="measurement-fields">${fieldMarkup}</div>
+        <p class="measurement-error" data-measurement-error role="alert" ${validation.errors.length ? "" : "hidden"}>
+          ${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}
+        </p>
+        <p class="transaction-diagnostic" data-transaction-diagnostic role="alert" ${diagnostic ? "" : "hidden"}>
+          ${diagnostic ? escapeHtml(`Last accepted project specification preserved. ${formatGuidedDiagnostic(diagnostic)} The fixed Room 2 reference model is unchanged.`) : ""}
+        </p>
+      </div>
+      <aside class="measurement-disclosure">
+        <i data-icon="information" aria-hidden="true"></i>
+        <span>Approximate measurements are fine for this preview. Our team must confirm the room and final details before production.</span>
+      </aside>
+      <details class="measurement-guidance" data-measurement-guidance>
         <summary>
-          <span><strong>Room measurements</strong><small>Saved for design review</small></span>
+          <span>
+            <strong>Measurement guide</strong>
+            <small>Open the annotated ${escapeHtml(selectedLayout?.label || "layout")} reference</small>
+          </span>
           <i data-icon="chevron-down" aria-hidden="true"></i>
         </summary>
-        <div class="measurement-panel measurement-panel--customization" data-measurement-field-count="${fields.length}" aria-label="Approximate room dimensions">
-          <p class="measurement-format-hint">Use inches. Decimals and common fractions such as 42 1/2 are accepted.</p>
-          <div class="measurement-fields">${fieldMarkup}</div>
-          <p class="measurement-error" data-measurement-error role="alert" ${validation.errors.length ? "" : "hidden"}>${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}</p>
-          <p class="transaction-diagnostic" data-transaction-diagnostic role="alert" ${diagnostic ? "" : "hidden"}>${diagnostic ? escapeHtml(`Last accepted project specification preserved. ${formatGuidedDiagnostic(diagnostic)}`) : ""}</p>
+        <div class="measurement-guidance-body">
+          ${renderMeasurementDiagram(measurementDiagramFields, selectedLayout, { staticGuidance: true })}
         </div>
       </details>
     </div>
@@ -1275,56 +1245,17 @@ function renderDimensionArrowheads(line, diagramWidth) {
 }
 
 function renderCustomizationStep() {
-  const registry = getImmersiveLayout(project.layout);
   return `
-    <div class="immersive-configurator" data-immersive-configurator data-layout-id="${escapeAttribute(project.layout)}">
-      <section class="immersive-viewer-surface" aria-label="Interactive ${escapeAttribute(registry?.label || "layout")} model">
-        <div class="immersive-viewer-meta">
-          <span class="immersive-layout-mark">${escapeHtml(registry?.roomId?.toUpperCase() || "JQ")}</span>
-          <span><small>Selected layout</small><strong>${escapeHtml(registry?.label || "Layout")}</strong></span>
-        </div>
-        <div class="immersive-viewer-stage">
-          <div class="guided-3d-mount guided-3d-mount--immersive" data-guided-3d-mount data-guided-3d-mode="immersive-layout" aria-label="Interactive three-dimensional ${escapeAttribute(registry?.label || "layout")}"></div>
-        </div>
-        <div class="immersive-engine-status" data-guided-engine-status role="status" aria-live="polite" tabindex="-1">
-          <span><strong data-guided-engine-title>Loading ${escapeHtml(registry?.label || "selected layout")}</strong><small data-guided-engine-copy>The exact registered model is being verified.</small></span>
-          <button type="button" data-guided-engine-retry hidden>Retry viewer</button>
-        </div>
-        <div class="immersive-view-toolbar" aria-label="Model view controls">
-          <div class="immersive-named-views" role="group" aria-label="Named views">
-            ${["front", "left", "right"].map((view) => {
-              const selected = activeNamedView === view;
-              return `<button type="button" data-viewer-view="${view}" class="${selected ? "is-active" : ""}" aria-pressed="${selected}">${view[0].toUpperCase()}${view.slice(1)}</button>`;
-            }).join("")}
-          </div>
-          <div class="immersive-camera-actions" role="group" aria-label="Camera controls">
-            <button type="button" data-viewer-command="out" aria-label="Zoom out"><i data-icon="zoom-out" aria-hidden="true"></i></button>
-            <button type="button" data-viewer-command="in" aria-label="Zoom in"><i data-icon="zoom-in" aria-hidden="true"></i></button>
-            <button type="button" data-viewer-command="fit" aria-label="Fit model"><i data-icon="fullscreen" aria-hidden="true"></i><span>Fit</span></button>
-            <button type="button" data-viewer-command="reset" aria-label="Reset view"><i data-icon="reset" aria-hidden="true"></i><span>Reset</span></button>
-          </div>
-        </div>
-      </section>
-      <aside
-        id="customization-sheet"
-        class="immersive-customization-panel"
-        data-customization-sheet
-        data-sheet-state="${escapeAttribute(customizationSheetState)}"
-        aria-label="Customize ${escapeAttribute(registry?.label || "layout")}"
-      >
-        <header class="immersive-sheet-header">
-          <button class="immersive-sheet-grip" type="button" data-sheet-cycle aria-controls="customization-sheet-body" aria-label="Customization sheet is ${escapeAttribute(customizationSheetState)}; change height" aria-expanded="${customizationSheetState === "expanded"}"><span aria-hidden="true"></span></button>
-          <div id="customization-sheet-title"><small>Customize</small><strong>${escapeHtml(registry?.label || "Layout")}</strong></div>
-          <div class="immersive-sheet-states" role="group" aria-label="Customization sheet height">
-            ${["collapsed", "half", "expanded"].map((state) => `<button type="button" data-sheet-state-control="${state}" aria-controls="customization-sheet-body" aria-label="Set customization sheet ${state}" aria-pressed="${customizationSheetState === state}">${state === "collapsed" ? "Low" : state === "expanded" ? "Full" : "Half"}</button>`).join("")}
-          </div>
-        </header>
-        <section class="customization-panel" id="customization-sheet-body" aria-label="Concept customization">
+    <div class="customization-layout">
+      ${renderConceptPreview()}
+      <div class="customization-controls-column">
+        <section class="customization-panel" aria-label="Concept customization">
           ${renderCustomizationTabs()}
-          <div class="customization-content" id="customization-panel">${renderCustomizationPanel()}</div>
+          <div class="customization-content" id="customization-panel">
+            ${renderCustomizationPanel()}
+          </div>
         </section>
-        <p class="immersive-preview-disclaimer">Digital preview only. Final dimensions and finishes require design confirmation.</p>
-        <div class="customization-actions immersive-sticky-actions">
+        <div class="customization-actions">
           <button class="guided-button guided-button-secondary" type="button" data-back>
             <i data-icon="chevron-left" aria-hidden="true"></i> Back
           </button>
@@ -1332,7 +1263,7 @@ function renderCustomizationStep() {
             Review &amp; Details <i data-icon="arrow-right" aria-hidden="true"></i>
           </button>
         </div>
-      </aside>
+      </div>
     </div>
   `;
 }
@@ -1391,20 +1322,18 @@ function renderCustomizationPanel() {
 }
 
 function renderFinishChoices() {
-  const appearance = getImmersiveLayout(project.layout)?.appearanceManifest;
-  const canPreviewFinish = (appearance?.provenMeshIndices?.length || 0) > 0;
   const referencePaintFinishes = ["warm-white", "soft-ivory", "sage-gray", "charcoal"]
     .map((finishId) => FINISH_OPTIONS.paint.find((finish) => finish.id === finishId))
     .filter(Boolean);
   return `
     <h3 class="customization-group-heading">Finish</h3>
     ${renderDeferredModelDisclosure("Finish")}
-    ${renderFinishGroup("Wood finishes", "wood", FINISH_OPTIONS.wood, { disabled: !canPreviewFinish })}
-    ${renderFinishGroup("Paint / Accent Colors", "paint", referencePaintFinishes, { disabled: !canPreviewFinish })}
+    ${renderFinishGroup("Wood finishes", "wood", FINISH_OPTIONS.wood)}
+    ${renderFinishGroup("Paint / Accent Colors", "paint", referencePaintFinishes)}
   `;
 }
 
-function renderFinishGroup(label, key, options, settings = {}) {
+function renderFinishGroup(label, key, options) {
   const selectedId = key === "accentFinish" ? project.accentFinish : project.finish;
   return `
     <section class="choice-section">
@@ -1415,11 +1344,9 @@ function renderFinishGroup(label, key, options, settings = {}) {
             class="finish-choice${selectedId === finish.id ? " is-selected" : ""}"
             type="button"
             data-finish-key="${key}"
-            data-project-field="${key === "accentFinish" ? "accentFinish" : "finish"}"
             data-finish="${finish.id}"
             data-family="${finish.family}"
             aria-pressed="${selectedId === finish.id}"
-            ${settings.disabled ? 'disabled aria-describedby="finish-mapping-status"' : ""}
             title="${escapeAttribute(finish.label)}"
           >
             <span class="finish-swatch" style="--swatch-color:${escapeAttribute(finish.color)}" aria-hidden="true"></span>
@@ -1494,16 +1421,12 @@ function renderDetailChoices({ compact = false } = {}) {
 
 function renderDeferredModelDisclosure(groupLabel) {
   const isFinish = groupLabel === "Finish";
-  const appearance = getImmersiveLayout(project.layout)?.appearanceManifest;
-  const finishMappingAvailable = (appearance?.provenMeshIndices?.length || 0) > 0;
   return `
-    <aside class="fixed-reference-disclosure" role="note" data-deferred-model-disclosure="${escapeAttribute(groupLabel.toLowerCase())}" ${isFinish ? 'id="finish-mapping-status"' : ""}>
+    <aside class="fixed-reference-disclosure" role="note" data-deferred-model-disclosure="${escapeAttribute(groupLabel.toLowerCase())}">
       <i data-icon="information" aria-hidden="true"></i>
       <span>${isFinish
-        ? finishMappingAvailable
-          ? `<strong>The selected Finish is previewed only on audited millwork surfaces.</strong> This provisional digital appearance is not a calibrated or approved physical sample.`
-          : `<strong>Automatic finish mapping is not yet proven for this model.</strong> Embedded source materials remain unchanged and finish controls are unavailable.`
-        : `<strong>Your ${escapeHtml(groupLabel.toLowerCase())} selections are saved with this project.</strong> Only the proven shelf-clearance control changes preview geometry; other selections require design confirmation.`}</span>
+        ? `<strong>The selected Finish is previewed digitally on the proven millwork surfaces.</strong> This provisional appearance is not a calibrated or approved physical sample; owner acceptance remains open.`
+        : `<strong>Your ${escapeHtml(groupLabel.toLowerCase())} selections are saved with this project.</strong> Dimensions and Details do not alter the fixed Room 2 geometry or construction in this phase.`}</span>
     </aside>
   `;
 }
@@ -1511,7 +1434,6 @@ function renderDeferredModelDisclosure(groupLabel) {
 function renderConceptPreview(options = {}) {
   const category = getCategory(project.category);
   const layout = getLayout(project.category, project.layout);
-  const registry = getImmersiveLayout(project.layout);
   const selectedStyle = getStyle(project.category, project.style);
   const selectedProduct = getProductChoiceForSelection(category.id, selectedStyle.id);
   const previewLabel = selectedProduct?.label || selectedStyle.label;
@@ -1522,49 +1444,47 @@ function renderConceptPreview(options = {}) {
       data-category="${escapeAttribute(category.id)}"
       data-layout="${escapeAttribute(layout?.id || "unselected")}"
       data-style="${escapeAttribute(selectedStyle.id)}"
-      data-preview-render-mode="immersive-layout-glb"
-      data-model-asset="${escapeAttribute(registry?.runtimeAsset?.path || "")}"
-      data-finish-mask-mode="${registry?.appearanceManifest?.provenMeshIndices?.length ? "audited-allowlist-only" : "embedded-source-only"}"
+      data-preview-render-mode="fixed-room2-glb"
+      data-model-asset="assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb"
+      data-finish-mask-mode="proven-material-3-only"
       data-project-specification-accepted="${acceptedSpecification?.accepted === true}"
-      data-geometry-fingerprint="${escapeAttribute(registry?.authoritativeSource?.sourceContractFingerprint || registry?.authoritativeSource?.geometryFingerprint || "")}"
-      aria-label="${escapeAttribute(`Interactive reference model for ${previewLabel} and ${layout?.label || "selected layout"}`)}"
+      data-geometry-fingerprint="8762fe4326e22e46a163343e5fde410e231d651b48d1b1c9be8391febec8f6ff"
+      aria-label="${escapeAttribute(`Fixed Room 2 reference model for ${previewLabel} and ${layout?.label || "Fireplace Wall"}`)}"
     >
       <div class="concept-preview-meta">
         <div class="fixed-reference-heading">
-          <span class="fixed-reference-mark" aria-hidden="true">${escapeHtml(registry?.roomId?.toUpperCase() || "JQ")}</span>
+          <span class="fixed-reference-mark" aria-hidden="true">R2</span>
           <span>
-            <small>Verified authoritative layout preview</small>
-            <strong>${escapeHtml(registry?.label || "Selected layout")}</strong>
+            <small>Commercial PBR review candidate — fixed Room 2 design</small>
+            <strong>SketchUp-derived Fireplace Wall</strong>
           </span>
         </div>
-        ${renderConceptLayoutContext(layout, "layout-review-reference")}
+        ${renderConceptLayoutContext(layout, "fixed-room2-reference")}
       </div>
       <div class="concept-scene-frame">
         <div class="concept-scene" data-concept-scene>
           <div class="guided-engine-status" data-guided-engine-status role="status" aria-live="polite">
-            <strong data-guided-engine-title>Loading ${escapeHtml(registry?.label || "selected layout")}</strong>
-            <span data-guided-engine-copy>The exact authoritative GLB is being verified and parsed. No substitute model or image will be used.</span>
+            <strong>Loading fixed Room 2 reference</strong>
+            <span>The exact SketchUp-derived GLB is being verified and parsed. No substitute model or image will be used.</span>
           </div>
           <div
             class="guided-3d-mount guided-3d-mount--concept"
             data-guided-3d-mount
-            data-guided-3d-mode="layout-review-reference"
-            aria-label="${escapeAttribute(`Interactive reference model for ${previewLabel} and ${layout?.label || "selected layout"}`)}"
+            data-guided-3d-mode="fixed-room2-reference"
+            aria-label="${escapeAttribute(`Interactive fixed Room 2 reference model for ${previewLabel} and Fireplace Wall`)}"
           ></div>
         </div>
         ${renderPreviewControls()}
       </div>
       <figcaption class="fixed-reference-model-disclosure" data-fixed-reference-model-disclosure>
-        <strong>Digital preview only. Final dimensions and finishes require design confirmation.</strong>
-        <span>${registry?.appearanceManifest?.provenMeshIndices?.length
-          ? "The selected Finish is previewed only on audited millwork zones."
-          : "Embedded source materials are preserved because automatic finish mapping is not yet proven for this model."} The proven shelf-clearance control affects preview geometry only.</span>
+        <strong>Provisional appearance · owner acceptance open.</strong>
+        <span>The selected Finish is previewed digitally on proven millwork zones and is not a calibrated or approved physical sample. Dimensions and Details remain saved project data and do not alter this fixed geometry.</span>
       </figcaption>
     </figure>
   `;
 }
 
-function renderConceptLayoutContext(layout, mode = "layout-review-reference") {
+function renderConceptLayoutContext(layout, mode = "fixed-room2-reference") {
   if (!layout) return "";
   return `
     <div
@@ -1596,8 +1516,7 @@ function renderReviewStep() {
   const summary = buildProjectSummary(project, { acceptedSpecification });
   const rowsByKey = new Map(summary.map((row) => [row.key, row]));
   const dimensionKeys = [
-    ...getMeasurementFields(project.category, project.layout).map((field) => field.id),
-    ...summary.filter((row) => row.key.startsWith("smartDimension:")).map((row) => row.key)
+    ...getMeasurementFields(project.category, project.layout).map((field) => field.id)
   ];
   const rowsFor = (keys) => keys.map((key) => rowsByKey.get(key)).filter(Boolean);
   const summaryLabels = {
@@ -1666,29 +1585,7 @@ function renderReviewStep() {
   `;
 }
 
-function syncLayoutThumbnailStates() {
-  for (const image of app?.querySelectorAll?.("[data-layout-thumbnail]") || []) {
-    if (!image.complete) continue;
-    setLayoutThumbnailState(image, image.naturalWidth > 0 ? "ready" : "error");
-  }
-}
-
-function setLayoutThumbnailState(image, state) {
-  const card = image?.closest?.(".layout-card");
-  if (!card || !["ready", "error"].includes(state)) return;
-  card.dataset.thumbnailState = state;
-  image.hidden = state === "error";
-  const baseLabel = card.dataset.baseLabel || card.getAttribute("aria-label") || "Layout";
-  card.setAttribute("aria-label", state === "error" ? `${baseLabel}, preview image unavailable` : baseLabel);
-}
-
 function bindAppEvents() {
-  app.addEventListener("load", (event) => {
-    if (event.target.matches?.("[data-layout-thumbnail]")) setLayoutThumbnailState(event.target, "ready");
-  }, true);
-  app.addEventListener("error", (event) => {
-    if (event.target.matches?.("[data-layout-thumbnail]")) setLayoutThumbnailState(event.target, "error");
-  }, true);
   app.addEventListener("click", (event) => {
     const target = event.target.closest("button, a");
     if (!target) return;
@@ -1701,42 +1598,10 @@ function bindAppEvents() {
       selectProductChoice(target.dataset.productChoice);
       return;
     }
-    if (target.matches("[data-coming-soon-product]")) {
-      showToast(`${target.getAttribute("aria-label")?.replace(/, coming soon$/i, "") || "This product"} is coming soon.`);
-      return;
-    }
     if (target.matches("[data-layout]")) {
       const layoutId = target.dataset.layout;
       selectLayout(layoutId);
       requestAnimationFrame(() => app.querySelector(`[data-layout="${CSS.escape(layoutId)}"]`)?.focus());
-      return;
-    }
-    if (target.matches("[data-guided-engine-retry]")) {
-      retryGuidedScene();
-      return;
-    }
-    if (target.matches("[data-viewer-view]")) {
-      if (guidedSceneController?.setView?.(target.dataset.viewerView)) {
-        setNamedViewButtonState(target.dataset.viewerView);
-      }
-      return;
-    }
-    if (target.matches("[data-viewer-command]")) {
-      setNamedViewButtonState();
-      guidedSceneController?.zoom?.(target.dataset.viewerCommand);
-      return;
-    }
-    if (target.matches("[data-smart-dimension-reset]")) {
-      guidedSceneController?.resetSmartDimension?.();
-      return;
-    }
-    if (target.matches("[data-sheet-state-control]")) {
-      setCustomizationSheetState(target.dataset.sheetStateControl, target);
-      return;
-    }
-    if (target.matches("[data-sheet-cycle]")) {
-      const states = ["collapsed", "half", "expanded"];
-      setCustomizationSheetState(states[(states.indexOf(customizationSheetState) + 1) % states.length], target);
       return;
     }
     if (target.matches("[data-continue]")) {
@@ -1758,7 +1623,7 @@ function bindAppEvents() {
       const finishId = target.dataset.finish;
       updateProject({ [key]: finishId });
       renderApp();
-      requestAnimationFrame(() => app.querySelector(`[data-project-field="${CSS.escape(key)}"][data-finish="${CSS.escape(finishId)}"]`)?.focus());
+      requestAnimationFrame(() => app.querySelector(`[data-finish-key="${CSS.escape(key)}"][data-finish="${CSS.escape(finishId)}"]`)?.focus());
       return;
     }
     if (target.matches("[data-detail]")) {
@@ -1796,10 +1661,6 @@ function bindAppEvents() {
   });
 
   app.addEventListener("input", (event) => {
-    if (event.target.matches("[data-smart-dimension]")) {
-      updateSmartDimensionFromControl(event.target);
-      return;
-    }
     if (event.target.matches("[data-measurement]")) {
       updateMeasurementFromControl(event.target);
       return;
@@ -1814,21 +1675,11 @@ function bindAppEvents() {
   });
 
   app.addEventListener("change", (event) => {
-    if (event.target.matches("[data-smart-dimension]")) {
-      updateSmartDimensionFromControl(event.target, { finalize: true });
-      return;
-    }
-    if (event.target.matches("[data-measurement]")) updateMeasurementFromControl(event.target, { finalize: true });
+    if (!event.target.matches("[data-measurement]")) return;
+    updateMeasurementFromControl(event.target, { finalize: true });
   });
 
   app.addEventListener("keydown", (event) => {
-    if (trapExpandedSheetFocus(event)) return;
-    if (
-      event.target.matches?.("[data-layout-viewer] canvas")
-      && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "=", "-", "_", "Home", "0"].includes(event.key)
-    ) {
-      setNamedViewButtonState();
-    }
     const card = event.target.closest?.("[data-product-choice], [data-layout]");
     if (card && ["Enter", " ", "Spacebar"].includes(event.key)) {
       event.preventDefault();
@@ -1848,22 +1699,6 @@ function bindAppEvents() {
         : (currentIndex + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
     tabs[nextIndex].click();
   });
-
-  app.addEventListener("pointerdown", (event) => {
-    if (event.target.closest?.("[data-layout-viewer] canvas")) setNamedViewButtonState();
-  }, true);
-  app.addEventListener("wheel", (event) => {
-    if (event.target.closest?.("[data-layout-viewer] canvas")) setNamedViewButtonState();
-  }, { capture: true, passive: true });
-}
-
-function setNamedViewButtonState(activeView = "") {
-  activeNamedView = activeView;
-  for (const button of app?.querySelectorAll?.("[data-viewer-view]") || []) {
-    const selected = button.dataset.viewerView === activeView;
-    button.classList.toggle("is-active", selected);
-    button.setAttribute("aria-pressed", String(selected));
-  }
 }
 
 function selectProductChoice(productId) {
@@ -1911,27 +1746,18 @@ function selectProductChoice(productId) {
 
 function selectLayout(layoutId) {
   if (!isActivePublicProject()) return;
-  if (!isPublicConfiguratorLayout(project.category, project.style, layoutId)) return;
+  if (layoutId !== PUBLIC_CONFIGURATOR_LAYOUT_ID) return;
   const compatibility = resolveProductLayoutCompatibility({
     project: { ...project, layout: layoutId },
     topology: { layoutId }
   });
   if (compatibility.status === "unavailable") return;
-  if (layoutId !== project.layout) activeNamedView = "";
-  const layoutStates = JSON.parse(JSON.stringify(project.layoutStates || {}));
-  if (project.layout && layoutStates[project.layout]) {
-    layoutStates[project.layout].measurements = { ...project.measurements };
-  }
-  const nextMeasurements = prepareMeasurementsForLayout({ ...project, layoutStates }, layoutId);
-  layoutStates[layoutId] = {
-    ...(layoutStates[layoutId] || {}),
-    measurements: nextMeasurements
-  };
   project = normalizeProject({
     ...project,
-    layoutStates,
     layout: layoutId,
-    measurements: nextMeasurements,
+    measurements: project.layout === layoutId
+      ? project.measurements
+      : prepareMeasurementsForLayout(project, layoutId),
     updatedAt: new Date().toISOString()
   });
   renderApp();
@@ -1947,7 +1773,7 @@ function continueFromStep() {
     return;
   }
   if (project.currentStep === 2 && !isActivePublicLayout()) {
-    showToast("Choose Fireplace Wall, Door Wall, or Window Wall to continue.");
+    showToast("Fireplace Wall is the layout available with the fixed Room 2 reference model.");
     return;
   }
   if (project.currentStep === 3) {
@@ -1996,8 +1822,8 @@ function navigateToStep(step, options = {}) {
     project.currentStep = 2;
     project.maxVisitedStep = Math.min(2, project.maxVisitedStep);
     showToast(project.layoutAvailability === "unavailable"
-      ? "That saved layout is retained but is not available in this release. Choose one of the three interactive layouts to continue."
-      : "Choose an interactive layout before moving to Customization.");
+      ? "That saved layout is retained but is not available with the fixed Room 2 model. Choose Fireplace Wall to continue."
+      : "Choose Fireplace Wall before moving to Customization.");
     renderApp({ focusHeading: true });
     return;
   }
@@ -2019,10 +1845,6 @@ function navigateToStep(step, options = {}) {
   project.maxVisitedStep = Math.max(project.maxVisitedStep, targetStep);
   project.updatedAt = new Date().toISOString();
   previewScale = 1;
-  if (targetStep !== 3 && customizationMobileQuery.matches && customizationSheetState === "expanded") {
-    customizationSheetState = "half";
-  }
-  hideToast();
   renderApp({ focusHeading: true });
 
   if (options.history !== false) {
@@ -2036,9 +1858,6 @@ function updateMeasurementFromControl(control, options = {}) {
   if (!field) return;
   const value = field.type === "select" ? control.value : parseInches(control.value);
   project.measurements[field.id] = value;
-  if (project.layout && project.layoutStates?.[project.layout]) {
-    project.layoutStates[project.layout].measurements = { ...project.measurements };
-  }
   project.updatedAt = new Date().toISOString();
   scheduleDraftSave();
   updateDimensionChip(field, value);
@@ -2139,188 +1958,26 @@ function scheduleMeasurementSceneUpdate(options = {}) {
 
 function syncTransactionDiagnostic(transaction = guidedProjectTransaction) {
   const diagnostic = transaction?.accepted === false ? transaction.errors?.[0] : null;
-  const registry = getImmersiveLayout(project.layout);
-  const layoutLabel = registry?.label || "selected layout";
   const message = app?.querySelector("[data-transaction-diagnostic]");
   if (message) {
     message.hidden = !diagnostic;
     message.textContent = diagnostic
-      ? `Last accepted project specification preserved. ${formatGuidedDiagnostic(diagnostic)} The ${layoutLabel} source model remains unchanged except for its audited shelf-preview control.`
+      ? `Last accepted project specification preserved. ${formatGuidedDiagnostic(diagnostic)} The fixed Room 2 reference model is unchanged.`
       : "";
   }
   const status = app?.querySelector("[data-guided-engine-status]");
   if (status) {
-    status.querySelector("[data-guided-engine-title]").textContent = diagnostic
+    status.querySelector("strong").textContent = diagnostic
       ? "Project edit needs attention"
-      : `${layoutLabel} reference model`;
-    status.querySelector("[data-guided-engine-copy]").textContent = diagnostic
-      ? `${formatGuidedDiagnostic(diagnostic)} The exact registered source remains fail-closed.`
-      : "The proven shelf-clearance control moves one audited shelf group; every other dimension remains saved project data pending design confirmation.";
+      : "Fixed Room 2 reference model";
+    status.querySelector("span").textContent = diagnostic
+      ? `${formatGuidedDiagnostic(diagnostic)} The fixed reference model remains unchanged.`
+      : "The selected Finish is previewed digitally; dimensions and Details remain saved data and do not alter the fixed geometry.";
   }
   const preview = app?.querySelector(".concept-preview");
   if (preview) {
     preview.dataset.projectSpecificationAccepted = String(acceptedSpecification?.accepted === true);
   }
-}
-
-function updateSmartDimensionFromControl(control, options = {}) {
-  const definition = getImmersiveLayout(project.layout)?.geometryControlManifest?.[control.dataset.smartDimension];
-  if (!definition) return;
-  const inches = Number(control.value);
-  const minimumInches = millimetersToInches(definition.minMillimeters);
-  const maximumInches = millimetersToInches(definition.maxMillimeters);
-  const displayedEndpointToleranceInches = 0.005001;
-  const valid = Number.isFinite(inches)
-    && inches >= minimumInches - displayedEndpointToleranceInches
-    && inches <= maximumInches + displayedEndpointToleranceInches;
-  control.toggleAttribute("aria-invalid", !valid);
-  const error = control.closest("[data-smart-dimension-control]")?.querySelector("[data-smart-dimension-error]");
-  if (error) error.hidden = valid;
-  if (!valid) return;
-  const clampedInches = Math.min(maximumInches, Math.max(minimumInches, inches));
-  const millimeters = normalizeSmartDimension(project.layout, definition.id, inchesToMillimeters(clampedInches));
-  const source = options.finalize ? "panel-change" : "panel-input";
-  if (!guidedSceneController?.commitDimension?.(millimeters, source)) {
-    persistSmartDimension({ layoutId: project.layout, controlId: definition.id, value: millimeters, source });
-  }
-  if (options.finalize) control.value = millimetersToInches(millimeters).toFixed(2);
-}
-
-function persistSmartDimension({ layoutId, controlId, value }) {
-  if (!layoutId || !controlId || !project.layoutStates?.[layoutId]) return;
-  project.layoutStates[layoutId].smartDimensions = {
-    ...(project.layoutStates[layoutId].smartDimensions || {}),
-    [controlId]: value
-  };
-  project.updatedAt = new Date().toISOString();
-  const input = app?.querySelector(`[data-smart-dimension="${CSS.escape(controlId)}"]`);
-  if (input && layoutId === project.layout && document.activeElement !== input) {
-    input.value = millimetersToInches(value).toFixed(2);
-  }
-  scheduleDraftSave();
-}
-
-function focusSmartDimensionEditor({ controlId }) {
-  if (!controlId) return;
-  if (customizationMobileQuery.matches && customizationSheetState === "collapsed") {
-    const focusedViewerControl = document.activeElement?.closest?.(".immersive-viewer-surface button, .immersive-viewer-surface [tabindex]");
-    customizationSheetFocusReturn = focusedViewerControl
-      || app?.querySelector(`[data-dimension-handle="${CSS.escape(controlId)}"]`)
-      || null;
-    customizationSheetState = innerHeight <= 650 ? "expanded" : "half";
-  }
-  const selector = `[data-smart-dimension="${CSS.escape(controlId)}"]`;
-  if (activeCustomizationTab !== "dimensions" || !app?.querySelector(selector)) {
-    activeCustomizationTab = "dimensions";
-    renderApp();
-  } else {
-    setCustomizationSheetState(customizationSheetState);
-  }
-  requestAnimationFrame(() => {
-    const input = app?.querySelector(selector);
-    input?.focus({ preventScroll: true });
-    input?.scrollIntoView?.({ block: "center", inline: "nearest" });
-    input?.select?.();
-  });
-}
-
-function setCustomizationSheetState(state, trigger = null) {
-  if (!["collapsed", "half", "expanded"].includes(state)) return;
-  const leavingExpanded = customizationSheetState === "expanded" && state !== "expanded";
-  if (state === "expanded" && trigger) customizationSheetFocusReturn = trigger;
-  customizationSheetState = state;
-  const sheet = app?.querySelector("[data-customization-sheet]");
-  if (!sheet) return;
-  sheet.dataset.sheetState = state;
-  sheet.querySelector("[data-sheet-cycle]")?.setAttribute("aria-expanded", String(state === "expanded"));
-  sheet.querySelectorAll("[data-sheet-state-control]").forEach((button) => {
-    button.setAttribute("aria-pressed", String(button.dataset.sheetStateControl === state));
-  });
-  syncCustomizationSheetAccessibility();
-  if (state === "expanded" && customizationMobileQuery.matches) {
-    requestAnimationFrame(() => sheet.querySelector('[role="tab"][aria-selected="true"]')?.focus({ preventScroll: true }));
-  } else if (leavingExpanded && customizationSheetFocusReturn?.isConnected) {
-    customizationSheetFocusReturn.focus({ preventScroll: true });
-  }
-  requestAnimationFrame(() => {
-    guidedSceneController?.resize?.();
-    guidedSceneController?.fitCamera?.({ preserveOrientation: true, animate: !prefersReducedMotion() });
-  });
-}
-
-function syncCustomizationSheetAccessibility() {
-  const sheet = app?.querySelector("[data-customization-sheet]");
-  const mobile = customizationMobileQuery.matches;
-  const expanded = Boolean(sheet) && mobile && customizationSheetState === "expanded";
-  const outsideSheet = [
-    document.querySelector("[data-site-header]"),
-    document.querySelector(".skip-link"),
-    app?.querySelector(".guided-stepper"),
-    app?.querySelector(".immersive-viewer-surface")
-  ].filter(Boolean);
-  for (const element of outsideSheet) element.inert = expanded;
-  if (!sheet) return;
-  const collapsed = mobile && customizationSheetState === "collapsed";
-  const panel = sheet.querySelector(".customization-panel");
-  const actions = sheet.querySelector(".immersive-sticky-actions");
-  const grip = sheet.querySelector("[data-sheet-cycle]");
-  const focusWasInsideCollapsedRegion = collapsed
-    && (panel?.contains(document.activeElement) || actions?.contains(document.activeElement));
-  if (panel) panel.inert = collapsed;
-  if (actions) actions.inert = collapsed;
-  if (focusWasInsideCollapsedRegion) {
-    requestAnimationFrame(() => grip?.focus({ preventScroll: true }));
-  }
-  if (expanded) {
-    sheet.setAttribute("role", "dialog");
-    sheet.setAttribute("aria-modal", "true");
-    sheet.setAttribute("aria-labelledby", "customization-sheet-title");
-  } else {
-    sheet.removeAttribute("role");
-    sheet.removeAttribute("aria-modal");
-    sheet.removeAttribute("aria-labelledby");
-  }
-  sheet.toggleAttribute("data-focus-contained", expanded);
-  grip?.setAttribute("aria-label", `Customization sheet is ${customizationSheetState}; change height`);
-}
-
-function handleCustomizationBreakpointChange() {
-  const nextState = customizationMobileQuery.matches
-    ? "collapsed"
-    : customizationTabletQuery.matches ? "half" : "expanded";
-  setCustomizationSheetState(nextState);
-}
-
-function trapExpandedSheetFocus(event) {
-  if (event.key === "Escape" && customizationSheetState === "expanded" && customizationMobileQuery.matches) {
-    event.preventDefault();
-    setCustomizationSheetState("half");
-    return true;
-  }
-  if (event.key !== "Tab" || customizationSheetState !== "expanded" || !customizationMobileQuery.matches) return false;
-  const sheet = app?.querySelector("[data-customization-sheet]");
-  if (!sheet) return false;
-  const focusable = [...sheet.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])')]
-    .filter((element) => !element.closest("[inert]") && element.getClientRects().length);
-  if (!focusable.length) return false;
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  if (!sheet.contains(document.activeElement)) {
-    event.preventDefault();
-    first.focus();
-    return true;
-  }
-  if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault();
-    last.focus();
-    return true;
-  }
-  if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault();
-    first.focus();
-    return true;
-  }
-  return false;
 }
 
 function updateDimensionChip(field, value) {
@@ -2370,71 +2027,6 @@ function getGuidedSceneOptions() {
 
 function updateGuidedSceneState(state, details = {}) {
   const mount = app?.querySelector("[data-guided-3d-mount]");
-  const registry = getImmersiveLayout(project.layout);
-  const layoutLabel = registry?.label || "selected layout";
-  const immersiveSurface = mount?.closest(".immersive-viewer-surface");
-  if (immersiveSurface) {
-    const focusedToolbarControl = document.activeElement?.closest?.("[data-viewer-view], [data-viewer-command]");
-    const runtimeExists = Boolean(mount.querySelector("[data-layout-viewer]"));
-    const controlsEnabled = ["ready", "finish-loading", "finish-error"].includes(state);
-    const runtimeStatusAccessible = runtimeExists && ["loading", "error"].includes(state);
-    mount.inert = !(controlsEnabled || runtimeStatusAccessible);
-    if (mount.inert) mount.setAttribute("aria-hidden", "true");
-    else mount.removeAttribute("aria-hidden");
-    immersiveSurface.dataset.guided3dState = state;
-    immersiveSurface.dataset.guided3dBackend = details.backend || guidedSceneController?.getDiagnostics?.().backend || "";
-    immersiveSurface.querySelectorAll("[data-viewer-view], [data-viewer-command]").forEach((button) => {
-      button.disabled = !controlsEnabled;
-    });
-    if (state === "loading" && focusedToolbarControl) {
-      guidedSceneFocusReturn = focusedToolbarControl;
-      requestAnimationFrame(() => mount.querySelector("[data-viewer-status]")?.focus({ preventScroll: true }));
-    }
-    const status = immersiveSurface.querySelector("[data-guided-engine-status]");
-    if (status) {
-      const statusHadFocus = status.contains(document.activeElement);
-      const finishState = state === "finish-loading" || state === "finish-error";
-      status.hidden = state === "ready"
-        || (runtimeExists && !finishState);
-      const title = state === "finish-loading"
-        ? "Loading selected Finish"
-        : state === "finish-error"
-          ? "Selected Finish unavailable"
-          : state === "loading" ? `Loading ${layoutLabel}` : `${layoutLabel} model unavailable`;
-      const copy = details.message || (state === "finish-loading"
-        ? "The verified material is loading and will appear atomically when ready."
-        : state === "finish-error"
-          ? "Select this Finish again or use Retry; the last applied material remains intact."
-          : state === "loading"
-            ? "The exact registered model is being verified."
-            : "The viewer failed closed; no substitute model or image was loaded.");
-      status.querySelector("[data-guided-engine-title]").textContent = title;
-      status.querySelector("[data-guided-engine-copy]").textContent = copy;
-      const retry = status.querySelector("[data-guided-engine-retry]");
-      if (retry) retry.hidden = !["finish-error", "error", "fallback"].includes(state);
-      if (state === "ready" && statusHadFocus) {
-        const selectedFinish = app.querySelector('[data-project-field="finish"][aria-pressed="true"]');
-        requestAnimationFrame(() => (selectedFinish || mount.querySelector("canvas"))?.focus({ preventScroll: true }));
-      }
-    }
-    if (state === "ready" && guidedSceneFocusReturn) {
-      const focusReturn = guidedSceneFocusReturn;
-      guidedSceneFocusReturn = null;
-      requestAnimationFrame(() => {
-        if (focusReturn.isConnected && !focusReturn.disabled) focusReturn.focus({ preventScroll: true });
-        else mount.querySelector("canvas")?.focus({ preventScroll: true });
-      });
-    }
-    if (state === "error" && immersiveSurface.contains(document.activeElement)) {
-      requestAnimationFrame(() => {
-        const retry = runtimeExists
-          ? mount.querySelector("[data-viewer-retry]:not([hidden])")
-          : immersiveSurface.querySelector("[data-guided-engine-retry]:not([hidden])");
-        retry?.focus({ preventScroll: true });
-      });
-    }
-    return;
-  }
   const scene = mount?.closest(".measurement-room, .concept-scene");
   if (!scene) return;
   const interactive = state === "ready";
@@ -2443,52 +2035,33 @@ function updateGuidedSceneState(state, details = {}) {
   else mount.setAttribute("aria-hidden", "true");
   const status = scene.querySelector("[data-guided-engine-status]");
   if (status) status.hidden = state === "ready";
-  if (state === "fallback" || state === "error") {
+  if (state === "fallback") {
     if (status) {
-      status.querySelector("[data-guided-engine-title]").textContent = `${layoutLabel} model unavailable`;
-      status.querySelector("[data-guided-engine-copy]").textContent = details.message
+      status.querySelector("strong").textContent = "Fixed Room 2 model unavailable";
+      status.querySelector("span").textContent = details.message
         || "The viewer failed closed; no old generated model, photograph, or different GLB was substituted.";
     }
   } else if (state === "loading") {
     if (status) {
-      status.querySelector("[data-guided-engine-title]").textContent = `Loading ${layoutLabel}`;
-      status.querySelector("[data-guided-engine-copy]").textContent = details.message
-        || "The exact SHA-locked authoritative GLB is being verified and parsed.";
+      status.querySelector("strong").textContent = "Loading fixed Room 2 reference";
+      status.querySelector("span").textContent = details.message
+        || "The exact SketchUp-derived GLB is being verified and parsed.";
     }
   } else if (state === "finish-loading") {
     if (status) {
-      status.querySelector("[data-guided-engine-title]").textContent = "Loading selected Finish";
-      status.querySelector("[data-guided-engine-copy]").textContent = details.message
+      status.querySelector("strong").textContent = "Loading selected Finish";
+      status.querySelector("span").textContent = details.message
         || "The new provisional digital material is loading and will appear atomically when ready.";
     }
   } else if (state === "finish-error") {
     if (status) {
-      status.querySelector("[data-guided-engine-title]").textContent = "Selected Finish unavailable";
-      status.querySelector("[data-guided-engine-copy]").textContent = details.message
+      status.querySelector("strong").textContent = "Selected Finish unavailable";
+      status.querySelector("span").textContent = details.message
         || "The material could not be loaded. Select a verified Finish to continue or select this option again to retry.";
     }
   }
   scene.dataset.guided3dState = state;
   applyPreviewScale();
-}
-
-function retryGuidedScene() {
-  const state = app?.querySelector(".immersive-viewer-surface")?.dataset.guided3dState;
-  const status = app?.querySelector("[data-guided-engine-status]");
-  const restoreStatusFocus = status?.contains(document.activeElement);
-  if (restoreStatusFocus) {
-    guidedSceneFocusReturn = app.querySelector('[data-project-field="finish"][aria-pressed="true"]')
-      || app.querySelector("[data-layout-viewer] canvas");
-  }
-  updateGuidedSceneState(state === "finish-error" ? "finish-loading" : "loading");
-  if (restoreStatusFocus) requestAnimationFrame(() => status?.focus({ preventScroll: true }));
-  if (guidedSceneController) {
-    if (state === "finish-error") void guidedSceneController.update(project, getGuidedSceneOptions());
-    else void guidedSceneController.retry();
-    return;
-  }
-  guidedSceneImportPromise = null;
-  syncGuidedScene();
 }
 
 function syncGuidedScene() {
@@ -2503,29 +2076,24 @@ function syncGuidedScene() {
   if (!isActivePublicLayout()) {
     guidedSceneController?.unmount?.();
     updateGuidedSceneState("fallback", {
-      message: "The interactive model is available for Cabinets + Shelves with Fireplace Wall, Door Wall, or Window Wall."
+      message: "The fixed Room 2 reference model is available only for Cabinets + Shelves / Fireplace Wall."
     });
     return;
   }
 
   if (!guidedSceneController) updateGuidedSceneState("loading");
-  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=immersive-layout-configurator-v1");
-  importPromise
-    .then(({ createGuidedLayoutViewerController }) => {
+  guidedSceneImportPromise ||= import("./guided-room2-viewer.js?v=room2-commercial-pbr-v1-20260817g");
+  guidedSceneImportPromise
+    .then(({ createGuidedRoom2ViewerController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;
-      guidedSceneController ||= createGuidedLayoutViewerController({
-        onStateChange: updateGuidedSceneState,
-        onDimensionChange: persistSmartDimension,
-        onDimensionEditRequest: focusSmartDimensionEditor
+      guidedSceneController ||= createGuidedRoom2ViewerController({
+        onStateChange: updateGuidedSceneState
       });
+      guidedSceneController.update(project, getGuidedSceneOptions());
       guidedSceneController.mount(mount);
-      return guidedSceneController.update(project, getGuidedSceneOptions());
     })
     .catch(() => {
-      if (guidedSceneImportPromise === importPromise) guidedSceneImportPromise = null;
-      if (token === guidedSceneSyncToken) updateGuidedSceneState("error", {
-        message: "The interactive viewer could not start. Retry to load the verified module again."
-      });
+      if (token === guidedSceneSyncToken) updateGuidedSceneState("fallback");
     });
 }
 
@@ -3014,13 +2582,6 @@ function showToast(message) {
   toastTimer = window.setTimeout(() => {
     toast.hidden = true;
   }, 3600);
-}
-
-function hideToast() {
-  window.clearTimeout(toastTimer);
-  toastTimer = 0;
-  const toast = document.querySelector("[data-guided-toast]");
-  if (toast) toast.hidden = true;
 }
 
 function formatSavedDate(value) {
