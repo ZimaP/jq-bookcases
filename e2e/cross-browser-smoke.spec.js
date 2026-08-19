@@ -67,13 +67,14 @@ async function responsiveMetrics(page) {
   return page.evaluate(() => {
     const viewer = document.querySelector(".immersive-viewer-surface").getBoundingClientRect();
     const main = document.querySelector(".immersive-configurator").getBoundingClientRect();
-    const sheet = document.querySelector("[data-customization-sheet]").getBoundingClientRect();
-    const actions = document.querySelector(".immersive-sticky-actions").getBoundingClientRect();
+    const panel = document.querySelector("[data-customization-mode-panel]")?.getBoundingClientRect();
+    const actions = document.querySelector(".immersive-viewer-footer").getBoundingClientRect();
     return {
       viewerWidth: viewer.width,
       viewerHeight: viewer.height,
       mainWidth: main.width,
-      sheetBottom: sheet.bottom,
+      panelTop: panel?.top ?? null,
+      panelBottom: panel?.bottom ?? null,
       actionsTop: actions.top,
       actionsBottom: actions.bottom,
       innerWidth,
@@ -107,6 +108,7 @@ test("Firefox forced WebGL2 preserves one exact Door Wall controller through Rev
   const runtime = await openCustomization(page, "door-wall", "renderer=webgl2");
   const initial = await expectExactReadyRuntime(page, "door-wall");
   expect(initial.rendererFallbackReason).toMatch(/explicitly forced/i);
+  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
   const handle = page.locator("[data-dimension-handle]");
   await handle.focus();
   await handle.press("End");
@@ -114,7 +116,7 @@ test("Firefox forced WebGL2 preserves one exact Door Wall controller through Rev
     "aria-valuenow",
     String(IMMERSIVE_LAYOUT_REGISTRY["door-wall"].geometryControlManifest["adjustable-shelf-clearance"].maxMillimeters)
   );
-  await page.getByRole("tab", { name: "Finish" }).click();
+  await page.getByRole("button", { name: "Finish", exact: true }).click();
   await page.getByRole("button", { name: "Charcoal", exact: true }).click();
   await expect(page.getByRole("button", { name: "Charcoal", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("#finish-mapping-status")).toContainText(/saved for design review/i);
@@ -159,26 +161,25 @@ test("WebKit automatic fallback remains responsive from desktop through short mo
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const state of ["collapsed", "half", "expanded"]) {
-    await page.getByRole("button", { name: `Set customization sheet ${state}` }).click();
+  for (const mode of ["Dimensions", "Finish", "Options"]) {
+    await page.getByRole("button", { name: mode, exact: true }).click();
+    if (mode === "Dimensions") {
+      await expect(page.locator("[data-dimension-handle]")).toBeVisible();
+      await page.getByRole("button", { name: "Project dimensions", exact: true }).click();
+    }
     const metrics = await responsiveMetrics(page);
     expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.innerWidth + 1);
-    expect(metrics.sheetBottom).toBeLessThanOrEqual(metrics.innerHeight + 1);
-    if (state === "half") {
-      expect(metrics.viewerHeight / metrics.innerHeight).toBeGreaterThanOrEqual(0.52);
-      expect(metrics.viewerHeight / metrics.innerHeight).toBeLessThanOrEqual(0.58);
-    }
+    expect(metrics.panelTop).toBeGreaterThanOrEqual(0);
+    expect(metrics.panelBottom).toBeLessThanOrEqual(metrics.innerHeight + 1);
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("button", { name: "View", exact: true })).toHaveAttribute("aria-pressed", "true");
   }
-  await expect(page.locator("[data-customization-sheet]")).toHaveAttribute("role", "dialog");
-  await expect(page.getByRole("tab", { selected: true })).toBeFocused();
-  await page.keyboard.press("Escape");
-  await expect(page.locator("[data-customization-sheet]")).toHaveAttribute("data-sheet-state", "half");
 
   await page.setViewportSize({ width: 320, height: 568 });
-  await page.getByRole("button", { name: "Set customization sheet collapsed" }).click();
+  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
   await page.locator("[data-dimension-handle]").click();
   const input = page.locator('[data-smart-dimension="adjustable-shelf-clearance"]');
-  await expect(page.locator("[data-customization-sheet]")).toHaveAttribute("data-sheet-state", "expanded");
+  await expect(page.locator('[data-customization-mode-panel="dimensions"]')).toBeVisible();
   await expect(input).toBeFocused();
   const inputBox = await input.boundingBox();
   expect(inputBox.height).toBeGreaterThanOrEqual(44);

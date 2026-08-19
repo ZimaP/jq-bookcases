@@ -3,7 +3,6 @@ import {
   DETAIL_OPTIONS,
   FINISH_OPTIONS,
   PUBLIC_CONFIGURATOR_LAYOUT_CHOICES,
-  PUBLIC_CONFIGURATOR_PRODUCT_ID,
   PRODUCT_CHOICES,
   getCategory,
   getCompatibleDetails,
@@ -12,6 +11,7 @@ import {
   getMeasurementFields,
   getProductChoice,
   getProductChoiceForSelection,
+  getPublicConfiguratorLayoutChoices,
   getStyle,
   isPublicConfiguratorLayout,
   isPublicConfiguratorProduct
@@ -44,7 +44,7 @@ import {
 } from "./guided-project-engine.js?v=fitted-slim-cap-return-v1-20260803a";
 
 const STEP_DEFINITIONS = Object.freeze([
-  Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "Choose your product", description: "Explore the complete fitted-furniture collection. Cabinets + Shelves is available to configure now." }),
+  Object.freeze({ id: 1, label: "Choose Product", mobileLabel: "Product", title: "Choose your product", description: "Explore the complete fitted-furniture collection. Cabinets + Shelves and Window Storage are available to configure now." }),
   Object.freeze({ id: 2, label: "Choose Layout", mobileLabel: "Layout", title: "Choose the layout that matches your space", description: "Select the wall layout you want to plan. Any measurements it needs will appear next." }),
   Object.freeze({ id: 3, label: "Customization", mobileLabel: "Customize", title: "Customize your space", description: "Work directly with the selected three-dimensional layout, then save room measurements, finish, and details." }),
   Object.freeze({ id: 4, label: "Review & Details", mobileLabel: "Review", title: "Review your project details", description: "Check your saved selections beside the same verified layout model before saving or preparing a quote." })
@@ -107,7 +107,9 @@ let project = initializeProject();
 const restoredAcceptedSpecification = project.acceptedSnapshot
   ? restoreGuidedAcceptedSnapshot(project, project.acceptedSnapshot)
   : null;
-let activeCustomizationTab = "dimensions";
+let activeCustomizationTab = "view";
+let activeDimensionFieldId = "";
+let customizationModeFocusReturn = null;
 let activeNamedView = "";
 const customizationMobileQuery = window.matchMedia("(max-width: 767px)");
 const customizationTabletQuery = window.matchMedia("(max-width: 1279px)");
@@ -364,11 +366,7 @@ function renderApp(options = {}) {
 
   requestAnimationFrame(() => {
     if (!options.focusHeading) return;
-    if (project.currentStep === 3 && customizationMobileQuery.matches && customizationSheetState === "expanded") {
-      app.querySelector('[data-customization-sheet] [role="tab"][aria-selected="true"]')?.focus({ preventScroll: true });
-    } else {
-      app.querySelector("#guided-page-title")?.focus({ preventScroll: true });
-    }
+    app.querySelector("#guided-page-title")?.focus({ preventScroll: true });
   });
 }
 
@@ -591,14 +589,14 @@ function renderProductStep() {
     ${unavailableSelection ? `
       <aside class="unavailable-project-notice" role="status" data-unavailable-product>
         <i data-icon="information" aria-hidden="true"></i>
-        <span><strong>${escapeHtml(unavailableSelection.label)} is not available in this preview.</strong> Your saved project remains in My Projects unchanged. Choose Cabinets + Shelves below to start a separate preview.</span>
+        <span><strong>${escapeHtml(unavailableSelection.label)} is not available in this preview.</strong> Your saved project remains in My Projects unchanged. Choose an available product below to start a separate preview.</span>
       </aside>
     ` : ""}
     <div class="product-grid product-grid--catalog" role="group" aria-label="Product choices">
       ${PRODUCT_CHOICES.map((choice, index) => {
         const category = getCategory(choice.categoryId);
         const style = getStyle(choice.categoryId, choice.styleId);
-        const available = choice.id === PUBLIC_CONFIGURATOR_PRODUCT_ID;
+        const available = isPublicConfiguratorProduct(choice.categoryId, style.id);
         const selected = available
           && project.productSelected
           && choice.categoryId === project.category
@@ -649,6 +647,8 @@ function renderLayoutStep() {
   const unavailableLayout = project.layoutAvailability === "unavailable"
     ? getLayout(project.category, project.layout)
     : null;
+  const publicLayoutChoices = getPublicConfiguratorLayoutChoices(project.category, project.style);
+  const availableLayoutLabels = publicLayoutChoices.map(({ label }) => label).join(" or ");
   return `
     <div class="selected-product-banner">
       <span class="selected-product-banner-icon">${renderCategoryIcon(category.icon)}</span>
@@ -662,11 +662,11 @@ function renderLayoutStep() {
     ${unavailableLayout ? `
       <aside class="unavailable-project-notice" role="status" data-unavailable-layout>
         <i data-icon="information" aria-hidden="true"></i>
-        <span><strong>${escapeHtml(unavailableLayout.label)} is not available in this release.</strong> Its saved measurements remain in My Projects. Choose Fireplace Wall, Door Wall, or Window Wall to continue.</span>
+        <span><strong>${escapeHtml(unavailableLayout.label)} is not available for this product.</strong> Its saved measurements remain in My Projects. Choose ${escapeHtml(availableLayoutLabels)} to continue.</span>
       </aside>
     ` : ""}
     <div class="layout-grid layout-grid--immersive" role="group" aria-label="Layout choices">
-      ${PUBLIC_CONFIGURATOR_LAYOUT_CHOICES.map((layout) => {
+      ${publicLayoutChoices.map((layout) => {
         const registry = getImmersiveLayout(layout.id);
         const modelAvailable = Boolean(registry?.runtimeAsset?.path && registry?.thumbnail);
         const compatibility = resolveProductLayoutCompatibility({
@@ -904,27 +904,17 @@ function renderDimensionsChoices() {
   const control = registry?.geometryControlManifest?.["adjustable-shelf-clearance"];
   const storedValue = project.layoutStates?.[project.layout]?.smartDimensions?.[control?.id];
   const smartValue = normalizeSmartDimension(project.layout, control?.id, storedValue ?? control?.nativeMillimeters);
-  let previousGroup = "";
-
-  const fieldMarkup = fields.map((field) => {
-    const warning = validation.warnings.find((item) => item.field === field.id);
-    const groupHeading = field.group !== previousGroup
-      ? `<h3 class="measurement-group-title">${escapeHtml(field.group)}${field.previewAuthority === "design-review-only" ? "<small>Saved for design review</small>" : ""}</h3>`
-      : "";
-    previousGroup = field.group;
-    return `${groupHeading}${renderMeasurementField(field, warning, false)}`;
-  }).join("");
+  const selectedField = fields.find((field) => field.id === activeDimensionFieldId) || null;
+  const selectedWarning = selectedField
+    ? validation.warnings.find((item) => item.field === selectedField.id)
+    : null;
   const diagnostic = guidedProjectTransaction?.accepted === false
     ? guidedProjectTransaction.errors?.[0]
     : null;
 
   return `
     <div class="dimensions-workspace dimensions-workspace--immersive">
-      <div class="customization-section-heading">
-        <span class="guided-eyebrow">Direct model control</span>
-        <h2>Dimensions</h2>
-        <p>Adjust the proven shelf clearance on the model or here. Both controls stay synchronized.</p>
-      </div>
+      <p class="dimension-mode-intro">Select a project dimension to edit it. Only the audited shelf clearance changes the visible model; every other value is saved for design review.</p>
       ${control ? `
         <section class="smart-dimension-control" data-smart-dimension-control="${escapeAttribute(control.id)}">
           <div class="smart-dimension-heading">
@@ -963,21 +953,40 @@ function renderDimensionsChoices() {
           <p id="smart-dimension-disclaimer">Preview only — final dimensions require design confirmation.</p>
         </section>
       ` : ""}
-      <section class="room-measurements" data-room-measurements aria-labelledby="room-measurements-title">
+      <section class="room-measurements room-measurements--contextual" data-room-measurements aria-labelledby="room-measurements-title">
         <header class="room-measurements-heading">
           <span><strong id="room-measurements-title">Project dimensions</strong><small>Saved independently for ${escapeHtml(selectedLayout?.label || "this layout")}</small></span>
         </header>
-        <div class="measurement-panel measurement-panel--customization" data-measurement-field-count="${fields.length}" aria-label="Approximate room dimensions">
-          <p class="measurement-format-hint">Use inches. Decimals and common fractions such as 42 1/2 are accepted.</p>
-          <div class="measurement-fields">${fieldMarkup}</div>
-          <p class="measurement-error" data-measurement-error role="alert" ${validation.errors.length ? "" : "hidden"}>${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}</p>
-          <p class="transaction-diagnostic" data-transaction-diagnostic role="alert" ${diagnostic ? "" : "hidden"}>${diagnostic ? escapeHtml(`Last accepted project specification preserved. ${formatGuidedDiagnostic(diagnostic)}`) : ""}</p>
-        </div>
+        ${selectedField ? `
+          <div class="dimension-context-popover" data-dimension-context="${escapeAttribute(selectedField.id)}">
+            <button class="dimension-context-back" type="button" data-dimension-list>
+              <i data-icon="chevron-left" aria-hidden="true"></i> All dimensions
+            </button>
+            <div class="dimension-authority-line">
+              <strong>${escapeHtml(selectedField.label)}</strong>
+              <span class="authority-badge authority-badge--review">Review only</span>
+            </div>
+            <p>This value is recorded for design review and does not deform the verified model.</p>
+            ${renderMeasurementField(selectedField, selectedWarning, false)}
+            <p class="measurement-format-hint">Use inches. Decimals and common fractions such as 42 1/2 are accepted.</p>
+          </div>
+        ` : `
+          <div class="dimension-inventory" data-dimension-inventory role="list" aria-label="Project dimensions">
+            ${fields.map((field) => `
+              <button type="button" role="listitem" data-dimension-field="${escapeAttribute(field.id)}">
+                <span><strong>${escapeHtml(field.label)}</strong><small>${escapeHtml(field.group)}</small></span>
+                <span>Review only <i data-icon="chevron-right" aria-hidden="true"></i></span>
+              </button>
+            `).join("")}
+          </div>
+        `}
+        <p class="measurement-error" data-measurement-error role="alert" ${validation.errors.length ? "" : "hidden"}>${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}</p>
+        <p class="transaction-diagnostic" data-transaction-diagnostic role="alert" ${diagnostic ? "" : "hidden"}>${diagnostic ? escapeHtml(`Last accepted project specification preserved. ${formatGuidedDiagnostic(diagnostic)}`) : ""}</p>
       </section>
-      <aside class="automatic-engineering-note" role="note">
-        <strong>Automatic engineering allowances</strong>
+      <details class="automatic-engineering-note">
+        <summary>Fixed and automatic engineering allowances</summary>
         <p>Clear-maple UV cabinet interiors, standardized fillers, face frames, kicks, and construction clearances are coordinated during design review. Shelf rules use 1-inch MDF up to 27 inches, 1.25-inch MDF up to 31 inches, and 1.5-inch MDF up to 36 inches, with a 1.25-inch countertop.</p>
-      </aside>
+      </details>
     </div>
   `;
 }
@@ -1273,13 +1282,15 @@ function renderDimensionArrowheads(line, diagramWidth) {
 
 function renderCustomizationStep() {
   const registry = getImmersiveLayout(project.layout);
+  const mode = getActiveCustomizationMode();
   return `
-    <div class="immersive-configurator" data-immersive-configurator data-layout-id="${escapeAttribute(project.layout)}">
+    <div class="immersive-configurator immersive-configurator--viewer-first" data-immersive-configurator data-layout-id="${escapeAttribute(project.layout)}" data-customization-mode="${escapeAttribute(mode)}">
       <section class="immersive-viewer-surface" aria-label="Interactive ${escapeAttribute(registry?.label || "layout")} model">
         <div class="immersive-viewer-meta">
           <span class="immersive-layout-mark">${escapeHtml(registry?.roomId?.toUpperCase() || "JQ")}</span>
           <span><small>Selected layout</small><strong>${escapeHtml(registry?.label || "Layout")}</strong></span>
         </div>
+        ${renderCustomizationModes()}
         <div class="immersive-viewer-stage">
           <div class="guided-3d-mount guided-3d-mount--immersive" data-guided-3d-mount data-guided-3d-mode="immersive-layout" aria-label="Interactive three-dimensional ${escapeAttribute(registry?.label || "layout")}"></div>
         </div>
@@ -1287,103 +1298,94 @@ function renderCustomizationStep() {
           <span><strong data-guided-engine-title>Loading ${escapeHtml(registry?.label || "selected layout")}</strong><small data-guided-engine-copy>The exact registered model is being verified.</small></span>
           <button type="button" data-guided-engine-retry hidden>Retry viewer</button>
         </div>
-        <div class="immersive-view-toolbar" aria-label="Model view controls">
-          <div class="immersive-named-views" role="group" aria-label="Named views">
-            ${["front", "left", "right"].map((view) => {
-              const selected = activeNamedView === view;
-              return `<button type="button" data-viewer-view="${view}" class="${selected ? "is-active" : ""}" aria-pressed="${selected}">${view[0].toUpperCase()}${view.slice(1)}</button>`;
-            }).join("")}
-          </div>
-          <div class="immersive-camera-actions" role="group" aria-label="Camera controls">
-            <button type="button" data-viewer-command="out" aria-label="Zoom out"><i data-icon="zoom-out" aria-hidden="true"></i></button>
-            <button type="button" data-viewer-command="in" aria-label="Zoom in"><i data-icon="zoom-in" aria-hidden="true"></i></button>
-            <button type="button" data-viewer-command="fit" aria-label="Fit model"><i data-icon="fullscreen" aria-hidden="true"></i><span>Fit</span></button>
-            <button type="button" data-viewer-command="reset" aria-label="Reset view"><i data-icon="reset" aria-hidden="true"></i><span>Reset</span></button>
-          </div>
-        </div>
-      </section>
-      <aside
-        id="customization-sheet"
-        class="immersive-customization-panel"
-        data-customization-sheet
-        data-sheet-state="${escapeAttribute(customizationSheetState)}"
-        aria-label="Customize ${escapeAttribute(registry?.label || "layout")}"
-      >
-        <header class="immersive-sheet-header">
-          <button class="immersive-sheet-grip" type="button" data-sheet-cycle aria-controls="customization-sheet-body" aria-label="Customization sheet is ${escapeAttribute(customizationSheetState)}; change height" aria-expanded="${customizationSheetState === "expanded"}"><span aria-hidden="true"></span></button>
-          <div id="customization-sheet-title"><small>Customize</small><strong>${escapeHtml(registry?.label || "Layout")}</strong></div>
-          <div class="immersive-sheet-states" role="group" aria-label="Customization sheet height">
-            ${["collapsed", "half", "expanded"].map((state) => `<button type="button" data-sheet-state-control="${state}" aria-controls="customization-sheet-body" aria-label="Set customization sheet ${state}" aria-pressed="${customizationSheetState === state}">${state === "collapsed" ? "Low" : state === "expanded" ? "Full" : "Half"}</button>`).join("")}
-          </div>
-        </header>
-        <section class="customization-panel" id="customization-sheet-body" aria-label="Concept customization">
-          ${renderCustomizationTabs()}
-          <div class="customization-content" id="customization-panel">${renderCustomizationPanel()}</div>
-        </section>
-        <p class="immersive-preview-disclaimer">Digital preview only. Final dimensions and finishes require design confirmation.</p>
-        <div class="customization-actions immersive-sticky-actions">
-          <button class="guided-button guided-button-secondary" type="button" data-back>
+        ${mode === "dimensions" && !activeDimensionFieldId
+          ? renderDimensionModeHint()
+          : mode === "view" ? "" : renderCustomizationOverlay(mode, registry)}
+        <div class="immersive-viewer-footer">
+          <button class="guided-button guided-button-secondary immersive-back-action" type="button" data-back>
             <i data-icon="chevron-left" aria-hidden="true"></i> Back
           </button>
-          <button class="guided-button guided-button-primary" type="button" data-continue>
+          <div class="immersive-view-toolbar" aria-label="Model view controls">
+            <div class="immersive-named-views" role="group" aria-label="Named views">
+              ${["front", "left", "right"].map((view) => {
+                const selected = activeNamedView === view;
+                return `<button type="button" data-viewer-view="${view}" class="${selected ? "is-active" : ""}" aria-pressed="${selected}">${view[0].toUpperCase()}${view.slice(1)}</button>`;
+              }).join("")}
+            </div>
+            <div class="immersive-camera-actions" role="group" aria-label="Camera controls">
+              <button type="button" data-viewer-command="out" aria-label="Zoom out"><i data-icon="zoom-out" aria-hidden="true"></i></button>
+              <button type="button" data-viewer-command="in" aria-label="Zoom in"><i data-icon="zoom-in" aria-hidden="true"></i></button>
+              <button type="button" data-viewer-command="fit" aria-label="Fit model"><i data-icon="fullscreen" aria-hidden="true"></i><span>Fit</span></button>
+              <button type="button" data-viewer-command="reset" aria-label="Reset view"><i data-icon="reset" aria-hidden="true"></i><span>Reset</span></button>
+            </div>
+          </div>
+          <button class="guided-button guided-button-primary immersive-review-action" type="button" data-continue>
             Review &amp; Details <i data-icon="arrow-right" aria-hidden="true"></i>
           </button>
         </div>
-      </aside>
+      </section>
     </div>
   `;
 }
 
-function renderCustomizationTabs() {
-  const tabs = [
+function getActiveCustomizationMode() {
+  if (activeCustomizationTab === "details") return "options";
+  return ["view", "dimensions", "finish", "options"].includes(activeCustomizationTab)
+    ? activeCustomizationTab
+    : "view";
+}
+
+function renderCustomizationModes() {
+  const mode = getActiveCustomizationMode();
+  const panelOpen = mode !== "view" && !(mode === "dimensions" && !activeDimensionFieldId);
+  const modes = [
+    { id: "view", label: "View" },
     { id: "dimensions", label: "Dimensions" },
     { id: "finish", label: "Finish" },
-    { id: "details", label: "Details" }
+    { id: "options", label: "Options" }
   ];
   return `
-    <div class="customization-tabs" role="tablist" aria-label="Customization sections">
-      ${tabs.map((tab) => `
+    <div class="immersive-mode-selector" role="group" aria-label="Customization mode">
+      ${modes.map((item) => `
         <button
-          class="customization-tab"
-          id="customization-tab-${tab.id}"
+          class="immersive-mode-button${mode === item.id ? " is-active" : ""}"
           type="button"
-          role="tab"
-          data-customization-tab="${tab.id}"
-          aria-controls="customization-section-${tab.id}"
-          aria-selected="${activeCustomizationTab === tab.id}"
-          tabindex="${activeCustomizationTab === tab.id ? "0" : "-1"}"
-        >${escapeHtml(tab.label)}</button>
+          data-customization-mode-control="${item.id}"
+          aria-pressed="${mode === item.id}"
+          ${!panelOpen || item.id === "view" ? "" : `aria-controls="customization-mode-panel"`}
+        >${escapeHtml(item.label)}</button>
       `).join("")}
     </div>
   `;
 }
 
-function renderCustomizationPanel() {
+function renderDimensionModeHint() {
   return `
-    <div
-      class="customization-section customization-section--dimensions${activeCustomizationTab === "dimensions" ? " is-active" : ""}"
-      id="customization-section-dimensions"
-      role="tabpanel"
-      aria-labelledby="customization-tab-dimensions"
-    >
-      ${activeCustomizationTab === "dimensions" ? renderDimensionsChoices() : ""}
+    <div class="immersive-dimension-hint" role="status">
+      <span>Select the on-model shelf-clearance control to edit it.</span>
+      <button type="button" data-dimension-inventory-open>Project dimensions</button>
     </div>
-    <div
-      class="customization-section customization-section--finish${activeCustomizationTab === "finish" ? " is-active" : ""}"
-      id="customization-section-finish"
-      role="tabpanel"
-      aria-labelledby="customization-tab-finish"
+  `;
+}
+
+function renderCustomizationOverlay(mode, registry) {
+  const title = { dimensions: "Dimensions", finish: "Finish", options: "Options" }[mode];
+  return `
+    <aside
+      class="immersive-mode-panel immersive-mode-panel--${escapeAttribute(mode)}"
+      id="customization-mode-panel"
+      data-customization-mode-panel="${escapeAttribute(mode)}"
+      aria-labelledby="customization-mode-title"
     >
-      ${activeCustomizationTab === "finish" ? renderFinishChoices() : ""}
-    </div>
-    <div
-      class="customization-section customization-section--details${activeCustomizationTab === "details" ? " is-active" : ""}"
-      id="customization-section-details"
-      role="tabpanel"
-      aria-labelledby="customization-tab-details"
-    >
-      ${activeCustomizationTab === "details" ? renderDetailChoices() : ""}
-    </div>
+      <header class="immersive-mode-panel-header">
+        <span><small>${escapeHtml(registry?.label || "Layout")}</small><strong id="customization-mode-title">${escapeHtml(title)}</strong></span>
+        <button type="button" data-customization-mode-close aria-label="Close ${escapeAttribute(title)}"><i data-icon="close" aria-hidden="true"></i></button>
+      </header>
+      <div class="immersive-mode-panel-content">
+        ${mode === "dimensions" ? renderDimensionsChoices() : mode === "finish" ? renderFinishChoices() : renderDetailChoices()}
+      </div>
+      <p class="immersive-preview-disclaimer">Digital preview only. Final dimensions and finishes require design confirmation.</p>
+    </aside>
   `;
 }
 
@@ -1692,7 +1694,15 @@ function bindAppEvents() {
   }, true);
   app.addEventListener("click", (event) => {
     const target = event.target.closest("button, a");
-    if (!target) return;
+    if (!target) {
+      const clickedViewer = event.target.closest?.(".immersive-viewer-surface");
+      const clickedPanel = event.target.closest?.("[data-customization-mode-panel]");
+      const clickedSelector = event.target.closest?.(".immersive-mode-selector");
+      if (clickedViewer && !clickedPanel && !clickedSelector && getActiveCustomizationMode() !== "view") {
+        closeCustomizationMode();
+      }
+      return;
+    }
 
     if (target.matches("[data-step]")) {
       navigateToStep(Number(target.dataset.step));
@@ -1731,13 +1741,30 @@ function bindAppEvents() {
       guidedSceneController?.resetSmartDimension?.();
       return;
     }
-    if (target.matches("[data-sheet-state-control]")) {
-      setCustomizationSheetState(target.dataset.sheetStateControl, target);
+    if (target.matches("[data-customization-mode-control]")) {
+      setCustomizationMode(target.dataset.customizationModeControl, target);
       return;
     }
-    if (target.matches("[data-sheet-cycle]")) {
-      const states = ["collapsed", "half", "expanded"];
-      setCustomizationSheetState(states[(states.indexOf(customizationSheetState) + 1) % states.length], target);
+    if (target.matches("[data-customization-mode-close]")) {
+      closeCustomizationMode();
+      return;
+    }
+    if (target.matches("[data-dimension-field]")) {
+      activeDimensionFieldId = target.dataset.dimensionField;
+      renderApp();
+      requestAnimationFrame(() => app.querySelector("[data-dimension-context] input, [data-dimension-context] select")?.focus());
+      return;
+    }
+    if (target.matches("[data-dimension-inventory-open]")) {
+      activeDimensionFieldId = "__inventory";
+      renderApp();
+      requestAnimationFrame(() => app.querySelector("[data-dimension-inventory] button")?.focus());
+      return;
+    }
+    if (target.matches("[data-dimension-list]")) {
+      activeDimensionFieldId = "__inventory";
+      renderApp();
+      requestAnimationFrame(() => app.querySelector("[data-dimension-inventory] button")?.focus());
       return;
     }
     if (target.matches("[data-continue]")) {
@@ -1746,12 +1773,6 @@ function bindAppEvents() {
     }
     if (target.matches("[data-back]")) {
       navigateToStep(Math.max(1, project.currentStep - 1));
-      return;
-    }
-    if (target.matches("[data-customization-tab]")) {
-      activeCustomizationTab = target.dataset.customizationTab;
-      renderApp();
-      requestAnimationFrame(() => app.querySelector(`[data-customization-tab="${activeCustomizationTab}"]`)?.focus());
       return;
     }
     if (target.matches("[data-finish]")) {
@@ -1783,7 +1804,9 @@ function bindAppEvents() {
       return;
     }
     if (target.matches("[data-edit-section]")) {
-      activeCustomizationTab = target.dataset.editSection;
+      activeCustomizationTab = target.dataset.editSection === "details"
+        ? "options"
+        : target.dataset.editSection;
       navigateToStep(3);
       return;
     }
@@ -1823,7 +1846,6 @@ function bindAppEvents() {
   });
 
   app.addEventListener("keydown", (event) => {
-    if (trapExpandedSheetFocus(event)) return;
     if (
       event.target.matches?.("[data-layout-viewer] canvas")
       && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "+", "=", "-", "_", "Home", "0"].includes(event.key)
@@ -1837,10 +1859,15 @@ function bindAppEvents() {
       return;
     }
 
-    const tab = event.target.closest("[data-customization-tab]");
+    if (event.key === "Escape" && getActiveCustomizationMode() !== "view") {
+      event.preventDefault();
+      closeCustomizationMode();
+      return;
+    }
+    const tab = event.target.closest("[data-customization-mode-control]");
     if (!tab || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    const tabs = [...app.querySelectorAll("[data-customization-tab]")];
+    const tabs = [...app.querySelectorAll("[data-customization-mode-control]")];
     const currentIndex = tabs.indexOf(tab);
     const nextIndex = event.key === "Home"
       ? 0
@@ -1867,9 +1894,34 @@ function setNamedViewButtonState(activeView = "") {
   }
 }
 
+function setCustomizationMode(mode, trigger = null) {
+  const nextMode = mode === "details" ? "options" : mode;
+  if (!["view", "dimensions", "finish", "options"].includes(nextMode)) return;
+  if (nextMode !== "view" && trigger) customizationModeFocusReturn = trigger;
+  activeCustomizationTab = nextMode;
+  if (nextMode !== "dimensions") activeDimensionFieldId = "";
+  renderApp();
+  requestAnimationFrame(() => {
+    app.querySelector(`[data-customization-mode-control="${CSS.escape(nextMode)}"]`)?.focus({ preventScroll: true });
+  });
+}
+
+function closeCustomizationMode() {
+  const focusReturn = customizationModeFocusReturn;
+  activeCustomizationTab = "view";
+  activeDimensionFieldId = "";
+  customizationModeFocusReturn = null;
+  renderApp();
+  requestAnimationFrame(() => {
+    const key = focusReturn?.dataset?.customizationModeControl
+      || (focusReturn?.dataset?.dimensionHandle ? "dimensions" : "view");
+    app.querySelector(`[data-customization-mode-control="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
+  });
+}
+
 function selectProductChoice(productId) {
   const choice = getProductChoice(productId);
-  if (!choice || choice.id !== PUBLIC_CONFIGURATOR_PRODUCT_ID) return;
+  if (!choice || !isPublicConfiguratorProduct(choice.categoryId, choice.styleId)) return;
   if (
     project.productSelected
     && project.category === choice.categoryId
@@ -1896,12 +1948,13 @@ function selectProductChoice(productId) {
     productSelected: true,
     style: selectedStyle.id,
     ...constructionDefaults,
-    layout: null,
+    layout: choice.id === "window-storage" ? "window-wall" : null,
     currentStep: 1,
     maxVisitedStep: 1,
     updatedAt: new Date().toISOString()
   });
-  activeCustomizationTab = "dimensions";
+  activeCustomizationTab = "view";
+  activeDimensionFieldId = "";
   previewScale = 1;
   renderApp();
   requestAnimationFrame(() => app.querySelector(`[data-product-choice="${CSS.escape(choice.id)}"]`)?.focus());
@@ -1918,7 +1971,10 @@ function selectLayout(layoutId) {
     topology: { layoutId }
   });
   if (compatibility.status === "unavailable") return;
-  if (layoutId !== project.layout) activeNamedView = "";
+  if (layoutId !== project.layout) {
+    activeNamedView = "";
+    activeDimensionFieldId = "";
+  }
   const layoutStates = JSON.parse(JSON.stringify(project.layoutStates || {}));
   if (project.layout && layoutStates[project.layout]) {
     layoutStates[project.layout].measurements = { ...project.measurements };
@@ -1940,7 +1996,7 @@ function selectLayout(layoutId) {
 
 function continueFromStep() {
   if (project.currentStep === 1 && !isActivePublicProject()) {
-    showToast("Cabinets + Shelves is the product available in this preview.");
+    showToast("Choose Cabinets + Shelves or Window Storage to continue.");
     return;
   }
   if (project.currentStep === 2 && !project.layout) {
@@ -1948,7 +2004,8 @@ function continueFromStep() {
     return;
   }
   if (project.currentStep === 2 && !isActivePublicLayout()) {
-    showToast("Choose Fireplace Wall, Door Wall, or Window Wall to continue.");
+    const labels = getPublicConfiguratorLayoutChoices(project.category, project.style).map(({ label }) => label);
+    showToast(`Choose ${labels.join(labels.length > 1 ? ", " : "")} to continue.`);
     return;
   }
   if (project.currentStep === 3) {
@@ -1989,7 +2046,7 @@ function navigateToStep(step, options = {}) {
     project.maxVisitedStep = 1;
     showToast(project.productAvailability === "unavailable"
       ? "That saved product is not available in this preview. Its record remains in My Projects."
-      : "Choose Cabinets + Shelves before moving on.");
+      : "Choose an available product before moving on.");
     renderApp({ focusHeading: true });
     return;
   }
@@ -1997,7 +2054,7 @@ function navigateToStep(step, options = {}) {
     project.currentStep = 2;
     project.maxVisitedStep = Math.min(2, project.maxVisitedStep);
     showToast(project.layoutAvailability === "unavailable"
-      ? "That saved layout is retained but is not available in this release. Choose one of the three interactive layouts to continue."
+      ? "That saved layout is retained but is not available for the selected product."
       : "Choose an interactive layout before moving to Customization.");
     renderApp({ focusHeading: true });
     return;
@@ -2203,19 +2260,14 @@ function persistSmartDimension({ layoutId, controlId, value }) {
 
 function focusSmartDimensionEditor({ controlId }) {
   if (!controlId) return;
-  if (customizationMobileQuery.matches && customizationSheetState === "collapsed") {
-    const focusedViewerControl = document.activeElement?.closest?.(".immersive-viewer-surface button, .immersive-viewer-surface [tabindex]");
-    customizationSheetFocusReturn = focusedViewerControl
-      || app?.querySelector(`[data-dimension-handle="${CSS.escape(controlId)}"]`)
-      || null;
-    customizationSheetState = innerHeight <= 650 ? "expanded" : "half";
-  }
+  customizationModeFocusReturn = document.activeElement?.closest?.(".immersive-viewer-surface button, .immersive-viewer-surface [tabindex]")
+    || app?.querySelector(`[data-dimension-handle="${CSS.escape(controlId)}"]`)
+    || null;
   const selector = `[data-smart-dimension="${CSS.escape(controlId)}"]`;
   if (activeCustomizationTab !== "dimensions" || !app?.querySelector(selector)) {
     activeCustomizationTab = "dimensions";
+    activeDimensionFieldId = controlId;
     renderApp();
-  } else {
-    setCustomizationSheetState(customizationSheetState);
   }
   requestAnimationFrame(() => {
     const input = app?.querySelector(selector);
@@ -2362,7 +2414,7 @@ function applyPreviewScale() {
 
 function getGuidedSceneOptions() {
   return {
-    showDimensions: project.currentStep === 3,
+    showDimensions: project.currentStep === 3 && getActiveCustomizationMode() === "dimensions",
     showProduct: project.currentStep >= 3,
     acceptedSpecification,
     rejectedCandidate: guidedProjectTransaction?.rejectedCandidate || null
@@ -2521,11 +2573,16 @@ function syncGuidedScene() {
       });
       guidedSceneController.mount(mount);
       return Promise.resolve(guidedSceneController.update(project, getGuidedSceneOptions())).then(() => {
-        if (token !== guidedSceneSyncToken || !mount.isConnected || !mount.closest(".concept-scene")) return;
+        if (token !== guidedSceneSyncToken || !mount.isConnected) return;
         const diagnostics = guidedSceneController?.getDiagnostics?.();
-        if (diagnostics?.state) updateGuidedSceneState(diagnostics.state, {
+        const presentationState = diagnostics?.state === "ready"
+          && diagnostics?.lastError?.code === "FINISH_LOAD_FAILED"
+          ? "finish-error"
+          : diagnostics?.state;
+        if (presentationState) updateGuidedSceneState(presentationState, {
           layoutId: diagnostics.layoutId,
-          backend: diagnostics.backend
+          backend: diagnostics.backend,
+          message: diagnostics.lastError?.message
         });
       });
     })
@@ -2739,7 +2796,8 @@ function handleProjectListAction(event) {
     }
     document.querySelector("[data-projects-dialog]")?.close();
     previewScale = 1;
-    activeCustomizationTab = "dimensions";
+    activeCustomizationTab = "view";
+    activeDimensionFieldId = "";
     renderApp({ focusHeading: true });
     history.replaceState({ step: project.currentStep }, "", `${window.location.pathname}?project=${encodeURIComponent(project.projectId)}#step-${project.currentStep}`);
     showToast(project.productAvailability === "unavailable" || project.layoutAvailability === "unavailable"
@@ -2789,7 +2847,8 @@ function startNewProject() {
     showToast("This new project can’t be saved locally in the current browser.");
   }
   document.querySelector("[data-projects-dialog]")?.close();
-  activeCustomizationTab = "dimensions";
+  activeCustomizationTab = "view";
+  activeDimensionFieldId = "";
   previewScale = 1;
   renderApp({ focusHeading: true });
   history.replaceState({ step: 1 }, "", `${window.location.pathname}#step-1`);

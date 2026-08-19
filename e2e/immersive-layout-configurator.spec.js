@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { PRODUCT_CHOICES, PUBLIC_CONFIGURATOR_PRODUCT_ID } from "../guided-configurator-data.js";
+import {
+  PRODUCT_CHOICES,
+  PUBLIC_CONFIGURATOR_PRODUCT_ID,
+  PUBLIC_CONFIGURATOR_PRODUCT_IDS
+} from "../guided-configurator-data.js";
 import {
   IMMERSIVE_LAYOUT_ORDER,
   IMMERSIVE_LAYOUT_REGISTRY,
@@ -128,6 +132,10 @@ function assertGeometryProof(record, expectedMillimeters) {
 }
 
 async function setDisplayedDimension(page, millimeters) {
+  if (await page.locator(`[data-smart-dimension="${CONTROL_ID}"]`).count() === 0) {
+    await page.getByRole("button", { name: "Dimensions", exact: true }).click();
+    await page.locator("[data-dimension-handle]").click();
+  }
   const input = page.locator(`[data-smart-dimension="${CONTROL_ID}"]`);
   await input.fill(millimetersToInches(millimeters).toFixed(2));
   await input.blur();
@@ -140,7 +148,7 @@ test("Step 1 restores seven image cards and Step 2 exposes exactly three audited
   await expect(page.locator("[data-product-choice], [data-unavailable-product-choice]")).toHaveCount(7);
   await expect(page.locator(".product-card img")).toHaveCount(7);
   await expect(page.locator(`[data-product-choice="${PUBLIC_CONFIGURATOR_PRODUCT_ID}"]`)).not.toHaveAttribute("aria-disabled", "true");
-  for (const product of PRODUCT_CHOICES.filter(({ id }) => id !== PUBLIC_CONFIGURATOR_PRODUCT_ID)) {
+  for (const product of PRODUCT_CHOICES.filter(({ id }) => !PUBLIC_CONFIGURATOR_PRODUCT_IDS.includes(id))) {
     const card = page.locator(`[data-unavailable-product-choice="${product.id}"]`);
     await expect(card).toHaveAttribute("aria-disabled", "true");
     await card.focus();
@@ -214,22 +222,31 @@ test("per-layout dimensions survive A→B→C→A, reload, Review, and Back with
   const door = IMMERSIVE_LAYOUT_REGISTRY["door-wall"].geometryControlManifest[CONTROL_ID];
   const window = IMMERSIVE_LAYOUT_REGISTRY["window-wall"].geometryControlManifest[CONTROL_ID];
   await setDisplayedDimension(page, fireplace.minMillimeters);
+  await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
   await page.locator('[data-measurement="lowerCabinetHeight"]').fill("35");
   await page.locator('[data-measurement="lowerCabinetHeight"]').blur();
   await switchLayout(page, "door-wall");
   await setDisplayedDimension(page, door.maxMillimeters);
+  await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
   await page.locator('[data-measurement="lowerCabinetHeight"]').fill("36");
   await page.locator('[data-measurement="lowerCabinetHeight"]').blur();
   await switchLayout(page, "window-wall");
   await setDisplayedDimension(page, window.nativeMillimeters);
+  await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
   await page.locator('[data-measurement="lowerCabinetHeight"]').fill("37");
   await page.locator('[data-measurement="lowerCabinetHeight"]').blur();
   await switchLayout(page, "fireplace-wall");
+  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
+  await page.getByRole("button", { name: "Project dimensions", exact: true }).click();
   await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toHaveValue("0.00");
+  await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
   await expect(page.locator('[data-measurement="lowerCabinetHeight"]')).toHaveValue("35");
   await page.reload({ waitUntil: "domcontentloaded" });
   await waitForViewerReady(page, "fireplace-wall");
+  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
+  await page.getByRole("button", { name: "Project dimensions", exact: true }).click();
   await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toHaveValue("0.00");
+  await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
   await expect(page.locator('[data-measurement="lowerCabinetHeight"]')).toHaveValue("35");
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
@@ -247,6 +264,7 @@ test("on-model editing, orbit, wheel, keyboard, named views, Fit, and Reset shar
   const failures = monitorUnexpectedFailures(page);
   const runtime = await continueToCustomization(page, "door-wall");
   const instanceId = (await diagnostics(page)).instanceId;
+  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
   const handle = page.locator("[data-dimension-handle]");
   await expect(handle).toBeVisible();
   await handle.click();
@@ -277,7 +295,7 @@ test("on-model editing, orbit, wheel, keyboard, named views, Fit, and Reset shar
   await leftView.click();
   await expect(leftView).toHaveClass(/is-active/);
   await expect(leftView).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("tab", { name: "Finish" }).click();
+  await page.getByRole("button", { name: "Finish", exact: true }).click();
   await expect(page.getByRole("button", { name: "Left" })).toHaveAttribute("aria-pressed", "true");
   await canvas.focus();
   await canvas.press("ArrowRight");
@@ -506,8 +524,8 @@ test("asset failure is fail-closed, focusable, accessible, and Retry recovers", 
   await retry.focus();
   await expect(retry).toBeFocused();
   await expect(page.locator("[data-guided-3d-mount] img")).toHaveCount(0);
-  const axe = await new AxeBuilder({ page }).analyze();
-  expect(axe.violations.filter(({ impact }) => ["serious", "critical"].includes(impact))).toEqual([]);
+  const viewerFirstAxe = await new AxeBuilder({ page }).analyze();
+  expect(viewerFirstAxe.violations.filter(({ impact }) => ["serious", "critical"].includes(impact))).toEqual([]);
   await retry.click();
   await waitForViewerReady(page, "fireplace-wall");
   await expect(runtime.locator("canvas")).toBeFocused();
@@ -548,7 +566,7 @@ test("initial Finish supersession keeps the parsed model and retries only the fa
   await chooseLayout(page, "fireplace-wall");
   await page.locator("[data-continue]").click();
   await expect.poll(() => oakStarted).toBe(true);
-  await page.getByRole("tab", { name: "Finish" }).click();
+  await page.getByRole("button", { name: "Finish", exact: true }).click();
   await page.getByRole("button", { name: "Light Walnut" }).click();
   await page.getByRole("button", { name: "Charcoal" }).click();
   await expect(page.getByRole("button", { name: "Charcoal" })).toBeFocused();
@@ -590,117 +608,76 @@ test("initial Finish supersession keeps the parsed model and retries only the fa
   expect(pageErrors).toEqual([]);
 });
 
-test("desktop, tablet, short landscape, and mobile sheet states are reachable without overflow", async ({ page }) => {
+test("desktop, tablet, short landscape, and mobile viewer-first modes are reachable without overflow", async ({ page }) => {
   const failures = monitorUnexpectedFailures(page);
   await continueToCustomization(page, "window-wall");
-  const viewports = [
-    { width: 1920, height: 1080, minimumViewerRatio: 0.7 },
-    { width: 1440, height: 900, minimumViewerRatio: 0.7 },
-    { width: 1366, height: 768, minimumViewerRatio: 0.7 },
-    { width: 1024, height: 1366, minimumViewerHeight: 0.56 },
-    { width: 1024, height: 768, minimumViewerHeight: 0.56 },
-    { width: 844, height: 390, minimumViewerHeight: 0.56 }
-  ];
-  for (const viewport of viewports) {
+  await expect(page.getByRole("button", { name: "View", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("[data-customization-mode-panel]")).toHaveCount(0);
+  for (const viewport of [
+    { width: 1920, height: 1080 },
+    { width: 1366, height: 768 },
+    { width: 1024, height: 1366 },
+    { width: 1024, height: 768 },
+    { width: 667, height: 375 },
+    { width: 390, height: 844 },
+    { width: 320, height: 568 }
+  ]) {
     await page.setViewportSize(viewport);
-    const metrics = await page.evaluate(() => {
+    const clean = await page.evaluate(() => {
       const viewer = document.querySelector(".immersive-viewer-surface").getBoundingClientRect();
       const main = document.querySelector(".immersive-configurator").getBoundingClientRect();
-      const actions = document.querySelector(".immersive-sticky-actions");
-      const primaryAction = actions?.querySelector("[data-continue]")?.getBoundingClientRect();
-      const smartInput = document.querySelector("[data-smart-dimension]");
-      return {
-        viewerWidth: viewer.width,
-        viewerHeight: viewer.height,
-        mainWidth: main.width,
-        bodyScrollWidth: document.body.scrollWidth,
-        innerWidth,
-        innerHeight,
-        actionClientHeight: actions?.clientHeight || 0,
-        actionScrollHeight: actions?.scrollHeight || 0,
-        primaryActionBottom: primaryAction?.bottom || 0,
-        smartInputColor: smartInput ? getComputedStyle(smartInput).color : null
-      };
+      const modes = document.querySelector(".immersive-mode-selector").getBoundingClientRect();
+      const footer = document.querySelector(".immersive-viewer-footer").getBoundingClientRect();
+      const back = document.querySelector(".immersive-back-action").getBoundingClientRect();
+      const review = document.querySelector(".immersive-review-action").getBoundingClientRect();
+      return { viewer, main, modes, footer, back, review, innerWidth, innerHeight, scrollWidth: document.documentElement.scrollWidth };
     });
-    expect(metrics.bodyScrollWidth).toBeLessThanOrEqual(metrics.innerWidth + 1);
-    if (viewport.minimumViewerRatio) expect(metrics.viewerWidth / metrics.mainWidth).toBeGreaterThanOrEqual(viewport.minimumViewerRatio);
-    if (viewport.minimumViewerHeight) expect(metrics.viewerHeight / viewport.height).toBeGreaterThanOrEqual(viewport.minimumViewerHeight);
-    if (viewport.width === 1366 && viewport.height === 768) {
-      expect(metrics.actionScrollHeight).toBeLessThanOrEqual(metrics.actionClientHeight);
-      expect(metrics.primaryActionBottom).toBeLessThanOrEqual(metrics.innerHeight);
-      expect(metrics.smartInputColor).toBe("rgb(17, 17, 16)");
-      await expect(page.locator("[data-guided-toast]")).toBeHidden();
-    }
+    expect(clean.scrollWidth).toBeLessThanOrEqual(clean.innerWidth + 1);
+    expect(clean.viewer.width).toBeCloseTo(clean.main.width, 0);
+    expect(clean.modes.top).toBeGreaterThanOrEqual(0);
+    expect(clean.modes.right).toBeLessThanOrEqual(clean.innerWidth + 1);
+    expect(clean.footer.bottom).toBeLessThanOrEqual(clean.innerHeight + 1);
+    expect(clean.back.height).toBeGreaterThanOrEqual(44);
+    expect(clean.review.height).toBeGreaterThanOrEqual(44);
   }
-  await page.setViewportSize({ width: 667, height: 375 });
-  await page.getByRole("button", { name: "Set customization sheet half" }).click();
-  const landscape = await page.evaluate(() => {
-    const viewer = document.querySelector(".immersive-viewer-surface").getBoundingClientRect();
-    const sheet = document.querySelector("[data-customization-sheet]").getBoundingClientRect();
-    const tabs = document.querySelector(".customization-tabs").getBoundingClientRect();
-    const toolbar = document.querySelector(".immersive-view-toolbar").getBoundingClientRect();
-    const authority = document.querySelector(".immersive-viewer-authority").getBoundingClientRect();
-    return {
-      viewerHeight: viewer.height,
-      viewerTop: viewer.top,
-      sheetTop: sheet.top,
-      sheetBottom: sheet.bottom,
-      tabsTop: tabs.top,
-      tabsBottom: tabs.bottom,
-      toolbarTop: toolbar.top,
-      toolbarBottom: toolbar.bottom,
-      authorityBottom: authority.bottom,
-      innerHeight
-    };
-  });
-  expect(landscape.viewerHeight / landscape.innerHeight).toBeGreaterThanOrEqual(0.52);
-  expect(landscape.viewerHeight / landscape.innerHeight).toBeLessThanOrEqual(0.58);
-  expect((landscape.sheetTop - landscape.viewerTop) / landscape.innerHeight).toBeGreaterThanOrEqual(0.52);
-  expect((landscape.sheetTop - landscape.viewerTop) / landscape.innerHeight).toBeLessThanOrEqual(0.58);
-  expect(landscape.sheetTop).toBeGreaterThanOrEqual(0);
-  expect(landscape.sheetBottom).toBeLessThanOrEqual(landscape.innerHeight + 1);
-  expect(landscape.tabsTop).toBeGreaterThanOrEqual(landscape.sheetTop);
-  expect(landscape.tabsBottom).toBeLessThanOrEqual(landscape.sheetBottom + 1);
-  expect(landscape.authorityBottom).toBeLessThanOrEqual(landscape.toolbarTop + 1);
-  expect(landscape.toolbarBottom).toBeLessThanOrEqual(landscape.sheetTop + 1);
-  await page.getByRole("button", { name: "Set customization sheet collapsed" }).click();
-  const landscapeHandle = page.locator("[data-dimension-handle]");
-  await landscapeHandle.click();
-  await expect(page.locator("[data-customization-sheet]")).toHaveAttribute("data-sheet-state", "expanded");
-  await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toBeFocused();
-  await page.keyboard.press("Escape");
-  await expect(page.locator("[data-customization-sheet]")).toHaveAttribute("data-sheet-state", "half");
-  await expect(landscapeHandle).toBeFocused();
+
+  await page.setViewportSize({ width: 1366, height: 768 });
+  for (const mode of ["Dimensions", "Finish", "Options"]) {
+    const trigger = page.getByRole("button", { name: mode, exact: true });
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-pressed", "true");
+    if (mode === "Dimensions") {
+      await expect(page.locator("[data-dimension-handle]")).toBeVisible();
+      await expect(page.locator("[data-customization-mode-panel]")).toHaveCount(0);
+      await page.getByRole("button", { name: "Project dimensions", exact: true }).click();
+    }
+    const panel = page.locator("[data-customization-mode-panel]");
+    await expect(panel).toBeVisible();
+    const box = await panel.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(1367);
+    expect(box.y + box.height).toBeLessThanOrEqual(769);
+    await page.keyboard.press("Escape");
+    await expect(panel).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+    await expect(page.getByRole("button", { name: "View", exact: true })).toHaveAttribute("aria-pressed", "true");
+  }
+
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const state of ["collapsed", "half", "expanded"]) {
-    await page.getByRole("button", { name: `Set customization sheet ${state}` }).click();
-    await expect(page.locator("[data-customization-sheet]")).toHaveAttribute("data-sheet-state", state);
-    const mobile = await page.evaluate(() => {
-      const viewer = document.querySelector(".immersive-viewer-surface").getBoundingClientRect();
-      const sheet = document.querySelector("[data-customization-sheet]").getBoundingClientRect();
-      return { viewerHeight: viewer.height, sheetBottom: sheet.bottom, bodyWidth: document.body.scrollWidth, viewportWidth: innerWidth, viewportHeight: innerHeight };
-    });
-    expect(mobile.bodyWidth).toBeLessThanOrEqual(mobile.viewportWidth + 1);
-    expect(mobile.sheetBottom).toBeLessThanOrEqual(mobile.viewportHeight + 1);
-    if (state === "half") {
-      expect(mobile.viewerHeight / mobile.viewportHeight).toBeGreaterThanOrEqual(0.52);
-      expect(mobile.viewerHeight / mobile.viewportHeight).toBeLessThanOrEqual(0.58);
-    }
-  }
-  await expect(page.locator("[data-customization-sheet]")).toHaveAttribute("role", "dialog");
-  await page.keyboard.press("Escape");
-  await expect(page.locator("[data-customization-sheet]")).toHaveAttribute("data-sheet-state", "half");
-  await page.setViewportSize({ width: 320, height: 568 });
-  const shortPhone = await page.evaluate(() => {
-    const authority = document.querySelector(".immersive-viewer-authority").getBoundingClientRect();
-    const toolbar = document.querySelector(".immersive-view-toolbar").getBoundingClientRect();
-    const sheet = document.querySelector("[data-customization-sheet]").getBoundingClientRect();
-    return { authorityBottom: authority.bottom, toolbarTop: toolbar.top, toolbarBottom: toolbar.bottom, sheetTop: sheet.top };
-  });
-  expect(shortPhone.authorityBottom).toBeLessThanOrEqual(shortPhone.toolbarTop + 1);
-  expect(shortPhone.toolbarBottom).toBeLessThanOrEqual(shortPhone.sheetTop + 1);
-  const axe = await new AxeBuilder({ page }).analyze();
-  expect(axe.violations.filter(({ impact }) => ["serious", "critical"].includes(impact))).toEqual([]);
+  const dimensionsTrigger = page.getByRole("button", { name: "Dimensions", exact: true });
+  await dimensionsTrigger.click();
+  await page.locator("[data-dimension-handle]").click();
+  await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toBeVisible();
+  const mobilePanel = await page.locator("[data-customization-mode-panel]").boundingBox();
+  expect(mobilePanel.x).toBeGreaterThanOrEqual(0);
+  expect(mobilePanel.y).toBeGreaterThanOrEqual(0);
+  expect(mobilePanel.x + mobilePanel.width).toBeLessThanOrEqual(391);
+  expect(mobilePanel.y + mobilePanel.height).toBeLessThanOrEqual(845);
+  await page.locator("[data-customization-mode-close]").click();
+  await expect(dimensionsTrigger).toBeFocused();
+  const modeAxe = await new AxeBuilder({ page }).analyze();
+  expect(modeAxe.violations.filter(({ impact }) => ["serious", "critical"].includes(impact))).toEqual([]);
   expect(failures).toEqual([]);
 });
 

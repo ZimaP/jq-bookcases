@@ -96,12 +96,13 @@ test("the versioned commercial PBR profile is finite, bounded, neutral, and data
   assert.equal(ROOM2_APPEARANCE_PROFILE.renderer.gtao.enabled, false);
   assert.equal(ROOM2_APPEARANCE_PROFILE.environment.remoteRequests, 0);
   assert.equal(ROOM2_APPEARANCE_PROFILE.environment.maximumGenerationsPerViewer, 1);
-  assert.equal(ROOM2_APPEARANCE_PROFILE.lighting.semanticRoleCount, 2);
-  assert.equal(ROOM2_APPEARANCE_PROFILE.lighting.directLightObjectCount, 3);
+  assert.equal(ROOM2_APPEARANCE_PROFILE.lighting.semanticRoleCount, 3);
+  assert.equal(ROOM2_APPEARANCE_PROFILE.lighting.directLightObjectCount, 4);
   assert.equal(ROOM2_APPEARANCE_PROFILE.lighting.maximumShadowCasters, 1);
   assert.equal(ROOM2_APPEARANCE_PROFILE.lighting.key.area.castShadow, false);
   assert.equal(ROOM2_APPEARANCE_PROFILE.lighting.key.shadowProxy.castShadow, true);
   assert.equal(ROOM2_APPEARANCE_PROFILE.lighting.fill.area.castShadow, false);
+  assert.equal(ROOM2_APPEARANCE_PROFILE.lighting.separation.area.castShadow, false);
   assert.deepEqual(ROOM2_APPEARANCE_PROFILE.lighting.shadows.tiers.map(({ mapSize }) => mapSize), [1024, 2048]);
   assert.equal(ROOM2_APPEARANCE_PROFILE.materials.implementation, "MeshStandardMaterial");
   assert.equal(ROOM2_APPEARANCE_PROFILE.materials.physicalMaterialUses, 0);
@@ -148,7 +149,7 @@ test("the shipped immersive viewer uses local verified backends, exact layout au
   assert.doesNotMatch(materials, /computeMikkTSpaceTangents|toNonIndexed|setIndex\(|deleteAttribute\(|setAttribute\(/);
   assert.equal((viewer.match(/new THREE\.PMREMGenerator/g) || []).length, 0);
   assert.equal((viewer.match(/new THREE\.DirectionalLight/g) || []).length, 1);
-  assert.equal((viewer.match(/new THREE\.RectAreaLight/g) || []).length, 2);
+  assert.equal((viewer.match(/new THREE\.RectAreaLight/g) || []).length, 3);
   assert.doesNotMatch(viewer, /new THREE\.(?:PointLight|HemisphereLight|SpotLight)/);
   assert.match(viewer, /renderer\.shadowMap\.autoUpdate = false/);
   assert.match(viewer, /webgpu-equirectangular-environment-node/);

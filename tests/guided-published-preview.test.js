@@ -174,14 +174,15 @@ test("the four-step public path always uses the immersive registry viewer while 
   assert.match(configuratorSource, /data-smart-dimension="\$\{escapeAttribute\(control\.id\)\}"/);
   assert.match(configuratorSource, /data-smart-dimension-reset="\$\{escapeAttribute\(control\.id\)\}"/);
   assert.match(configuratorSource, /Project dimensions/);
-  assert.match(configuratorSource, /Automatic engineering allowances/);
+  assert.match(configuratorSource, /Fixed and automatic engineering allowances/);
   assert.doesNotMatch(configuratorSource, /Additional model dimensions|Not yet configurable/);
   assert.match(configuratorSource, /Digital preview only\. Final dimensions and finishes require design confirmation\./);
   assert.match(configuratorSource, /The proven shelf-clearance control affects preview geometry only/);
   assert.match(cssSource, /Public Room 2 fixed-reference integration/);
   assert.match(cssSource, /\.measurement-guidance/);
   assert.match(immersiveCssSource, /\.immersive-configurator/);
-  assert.match(immersiveCssSource, /\.immersive-customization-panel/);
+  assert.match(immersiveCssSource, /\.immersive-mode-selector/);
+  assert.match(immersiveCssSource, /\.immersive-mode-panel/);
   assert.match(htmlSource, /guided-immersive-configurator\.css\?v=immersive-layout-configurator-v1/);
   assert.match(htmlSource, /guided-configurator\.js\?v=immersive-layout-configurator-v1/);
 });

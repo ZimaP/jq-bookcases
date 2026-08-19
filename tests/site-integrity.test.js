@@ -437,7 +437,7 @@ test("every public page uses the shared JQ Bookcases lockup and canonical produc
   }
 });
 
-test("the public configurator source locks the four-step one-product, three-layout policy", () => {
+test("the public configurator source locks the four-step two-product, three-layout policy", () => {
   const stepDefinition = guidedConfiguratorSource.match(
     /const STEP_DEFINITIONS = Object\.freeze\(\[([\s\S]*?)\]\);/,
   )?.[1] || "";
@@ -456,6 +456,14 @@ test("the public configurator source locks the four-step one-product, three-layo
   );
   assert.match(
     guidedConfiguratorDataSource,
+    /PUBLIC_CONFIGURATOR_PRODUCT_IDS = Object\.freeze\(\[\s*"cabinet-shelves",\s*"window-storage"/,
+  );
+  assert.match(
+    guidedConfiguratorDataSource,
+    /"window-storage": Object\.freeze\(\["window-wall"\]\)/,
+  );
+  assert.match(
+    guidedConfiguratorDataSource,
     /PUBLIC_CONFIGURATOR_LAYOUT_IDS = Object\.freeze\(\[\s*"fireplace-wall",\s*"door-wall",\s*"window-wall"/,
   );
   assert.match(guidedConfiguratorSource, /product-grid product-grid--catalog/);
@@ -471,6 +479,8 @@ test("the public configurator source locks the four-step one-product, three-layo
   assert.match(guidedConfiguratorDataSource, /topFasciaHeight/);
   assert.match(guidedConfiguratorSource, /aria-disabled="true"/);
   assert.match(guidedConfiguratorSource, /layout-grid layout-grid--immersive/);
+  assert.match(guidedConfiguratorSource, /data-customization-mode-control/);
+  assert.doesNotMatch(guidedConfiguratorSource, /class="immersive-customization-panel"/);
   assert.match(guidedConfiguratorStateSource, /export const GUIDED_PROJECT_SCHEMA_VERSION = 5/);
   assert.match(guidedConfiguratorStateSource, /if \(step <= 2\) return step;/);
   assert.match(guidedConfiguratorStateSource, /if \(step <= 4\) return 3;/);

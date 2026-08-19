@@ -577,10 +577,18 @@ export class GuidedLayoutViewerController {
       profile.fill.area.height
     );
     fillArea.name = "immersive-commercial-fill-area";
-    this.scene.add(keyArea, shadowProxy, shadowProxy.target, fillArea);
+    const separationArea = new THREE.RectAreaLight(
+      profile.separation.area.color,
+      profile.separation.area.intensity * this.presentation.areaSeparationScale,
+      profile.separation.area.width,
+      profile.separation.area.height
+    );
+    separationArea.name = "immersive-commercial-separation-area";
+    this.scene.add(keyArea, shadowProxy, shadowProxy.target, fillArea, separationArea);
     this.directLights.set("key-area", keyArea);
     this.directLights.set("key-shadow-proxy", shadowProxy);
     this.directLights.set("fill-area", fillArea);
+    this.directLights.set("separation-area", separationArea);
     this.shadowCaster = shadowProxy;
     this.configureAppearanceForLayout();
   }
@@ -599,6 +607,7 @@ export class GuidedLayoutViewerController {
     position(this.shadowCaster, definitions.key.shadowProxy.position);
     this.shadowCaster.target.position.copy(target);
     position(this.directLights.get("fill-area"), definitions.fill.area.position);
+    position(this.directLights.get("separation-area"), definitions.separation.area.position);
     this.configureShadowTier(this.runtime?.getBoundingClientRect?.().width || globalThis.innerWidth || 1280);
     fitDirectionalShadowCamera(this.shadowCaster, this.layout.nativeBounds, definitions.shadows);
     this.requestShadowRefresh();
