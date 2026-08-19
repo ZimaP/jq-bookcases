@@ -740,6 +740,6 @@ test("the three-layout journey makes only local verified model requests and no V
   expect(requests.some((url) => /vivid/i.test(url))).toBe(false);
   expect(requests.filter((url) => /^https?:/.test(url) && new URL(url).origin !== new URL(page.url()).origin)).toEqual([]);
   expect(modelResponses).toHaveLength(3);
-  expect(modelResponses.every(({ contentType }) => /model\/gltf-binary|application\/octet-stream/i.test(contentType))).toBe(true);
+  expect(modelResponses.every(({ contentType }) => /model\/gltf-binary|(?:application|binary)\/octet-stream/i.test(contentType))).toBe(true);
   expect(failures).toEqual([]);
 });

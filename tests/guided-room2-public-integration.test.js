@@ -138,6 +138,7 @@ test("the shipped immersive viewer uses local verified backends, exact layout au
   assert.match(viewer, /credentials: "same-origin"/);
   assert.match(viewer, /MODEL_SHA256_MISMATCH/);
   assert.match(viewer, /MODEL_BYTE_LENGTH_MISMATCH/);
+  assert.match(viewer, /\["model\/gltf-binary", "application\/octet-stream", "binary\/octet-stream"\]/);
   assert.match(viewer, /MODEL_SOURCE_COUNT_MISMATCH/);
   assert.match(viewer, /MATERIAL_ZONE_COVERAGE_MISMATCH/);
   assert.match(viewer, /SMART_DIMENSION_ACCESSOR_NOT_UNIQUE/);

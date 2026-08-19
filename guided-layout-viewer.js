@@ -716,7 +716,7 @@ export class GuidedLayoutViewerController {
       throw codedError("MODEL_CONTENT_LENGTH_MISMATCH", `${layoutRecord.label} Content-Length differs from the authoritative registry.`);
     }
     const contentType = (response.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
-    if (contentType && !["model/gltf-binary", "application/octet-stream"].includes(contentType)) {
+    if (contentType && !["model/gltf-binary", "application/octet-stream", "binary/octet-stream"].includes(contentType)) {
       throw codedError("MODEL_MIME_MISMATCH", `${layoutRecord.label} returned unexpected MIME type ${contentType}.`);
     }
     const reader = response.body?.getReader?.();
