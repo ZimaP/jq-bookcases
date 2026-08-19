@@ -1,5 +1,3 @@
-// Historical pre-immersive browser contract retained for provenance; superseded by
-// e2e/bookcase-configurator-current.spec.js and e2e/immersive-layout-configurator.spec.js.
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import {
