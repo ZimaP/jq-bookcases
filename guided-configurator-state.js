@@ -715,6 +715,7 @@ export function buildProjectSummary(project, options = {}) {
   const selectedProduct = getProductChoiceForSelection(normalized.category, normalized.style);
   const fields = getMeasurementFields(normalized.category, normalized.layout);
   const rows = [
+    { key: "projectName", label: "Project name", value: normalized.projectName, step: 4 },
     { key: "product", label: "Product", value: selectedProduct?.label || selectedStyle.label, step: 1 },
     { key: "category", label: "Family", value: category.label, step: 1 },
     { key: "layout", label: "Layout", value: layout?.label || "Not selected", step: 2 }
@@ -867,6 +868,21 @@ export function buildProjectSummary(project, options = {}) {
   if (normalized.baseStyle) rows.push({ key: "baseStyle", label: "Installation", value: labelFor(DETAIL_OPTIONS.baseStyle, normalized.baseStyle), step: 3 });
   if (normalized.topTreatment) rows.push({ key: "topTreatment", label: "Top treatment", value: labelFor(DETAIL_OPTIONS.topTreatment, normalized.topTreatment), step: 3 });
   rows.push({ key: "notes", label: "Notes", value: normalized.notes || "—", step: 4 });
+  const customerLabels = {
+    fullName: "Customer name",
+    email: "Email",
+    phone: "Phone",
+    zip: "ZIP code",
+    address: "Installation address",
+    timeline: "Preferred timeline",
+    contactMethod: "Preferred contact"
+  };
+  for (const [key, label] of Object.entries(customerLabels)) {
+    const value = normalized.customerDetails?.[key];
+    if (typeof value === "string" && value.trim()) {
+      rows.push({ key: `customer:${key}`, label, value: value.trim(), step: 4 });
+    }
+  }
 
   return rows;
 }

@@ -19,16 +19,16 @@ body.guided-page:has(.guided-shell--step-1),
   position: relative;
 }
 
-.product-card.is-coming-soon {
+.product-card.is-unavailable {
   cursor: not-allowed;
 }
 
-.product-card.is-coming-soon .product-card-image {
+.product-card.is-unavailable .product-card-image {
   filter: saturate(.65);
   opacity: .82;
 }
 
-.product-card.is-coming-soon:hover {
+.product-card.is-unavailable:hover {
   border-color: var(--guided-line-strong);
   transform: none;
 }
@@ -48,7 +48,7 @@ body.guided-page:has(.guided-shell--step-1),
   text-transform: uppercase;
 }
 
-.product-availability-badge--soon {
+.product-availability-badge--unavailable {
   color: #4f4a44;
   background: rgba(252, 250, 247, .92);
 }
@@ -767,21 +767,19 @@ body.guided-page:has(.guided-shell--step-3) {
   border-top: 1px solid #e6e0da;
 }
 
-.room-measurements > summary {
+.room-measurements-heading {
   display: flex;
   min-height: 54px;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  cursor: pointer;
-  list-style: none;
 }
 
-.room-measurements > summary > span {
+.room-measurements-heading > span {
   display: grid;
 }
 
-.room-measurements > summary small {
+.room-measurements-heading small {
   color: var(--guided-muted);
   font-size: .63rem;
 }
@@ -799,6 +797,44 @@ body.guided-page:has(.guided-shell--step-3) {
 
 .room-measurements .measurement-field {
   grid-template-columns: minmax(0, 1fr) 104px;
+}
+
+.dimensions-workspace .measurement-group-title small {
+  display: block;
+  margin-top: 2px;
+  color: var(--guided-muted);
+  font-size: .58rem;
+  font-weight: 500;
+}
+
+.automatic-engineering-note,
+.finish-design-note {
+  margin: 0;
+  padding: 12px 13px;
+  border: 1px solid #e3dbd2;
+  border-radius: 6px;
+  color: #61584f;
+  background: #f8f4ef;
+  font-size: .67rem;
+  line-height: 1.5;
+}
+
+.automatic-engineering-note {
+  display: grid;
+  gap: 4px;
+}
+
+.automatic-engineering-note p {
+  margin: 0;
+}
+
+.guided-shell--step-3 .detail-choice {
+  min-height: 68px;
+  align-items: flex-start;
+}
+
+.guided-shell--step-3 .detail-choice-title {
+  text-align: left;
 }
 
 .immersive-preview-disclaimer {

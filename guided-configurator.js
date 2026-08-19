@@ -605,15 +605,15 @@ function renderProductStep() {
           && choice.styleId === project.style;
         return `
           <button
-            class="product-card${available ? "" : " is-coming-soon"}${selected ? " is-selected" : ""}"
+            class="product-card${available ? "" : " is-unavailable"}${selected ? " is-selected" : ""}"
             type="button"
             ${available
               ? `data-product-choice="${escapeAttribute(choice.id)}" data-product-category="${escapeAttribute(choice.categoryId)}" data-product-style="${escapeAttribute(style.id)}" aria-pressed="${selected}"`
-              : `data-coming-soon-product="${escapeAttribute(choice.id)}" aria-disabled="true" aria-pressed="false"`}
-            aria-label="${escapeAttribute(`${choice.label}${selected ? ", selected" : available ? ", available now" : ", coming soon"}`)}"
+              : `data-unavailable-product-choice="${escapeAttribute(choice.id)}" aria-disabled="true" aria-pressed="false"`}
+            aria-label="${escapeAttribute(`${choice.label}${selected ? ", selected" : available ? ", available now" : ", not available yet"}`)}"
           >
             ${selected ? '<span class="choice-selected-mark" aria-hidden="true"><i data-icon="check" aria-hidden="true"></i></span>' : ""}
-            ${available ? '<span class="product-availability-badge">Available now</span>' : '<span class="product-availability-badge product-availability-badge--soon">Coming soon</span>'}
+            ${available ? '<span class="product-availability-badge">Available now</span>' : '<span class="product-availability-badge product-availability-badge--unavailable">Not available yet</span>'}
             <span class="product-card-image" aria-hidden="true">
               ${renderOptimizedPicture(style.previewAsset || category.productPreviewAsset, {
                 loading: index === 0 ? "eager" : "lazy",
@@ -909,7 +909,7 @@ function renderDimensionsChoices() {
   const fieldMarkup = fields.map((field) => {
     const warning = validation.warnings.find((item) => item.field === field.id);
     const groupHeading = field.group !== previousGroup
-      ? `<h3 class="measurement-group-title">${escapeHtml(field.group)}</h3>`
+      ? `<h3 class="measurement-group-title">${escapeHtml(field.group)}${field.previewAuthority === "design-review-only" ? "<small>Saved for design review</small>" : ""}</h3>`
       : "";
     previousGroup = field.group;
     return `${groupHeading}${renderMeasurementField(field, warning, false)}`;
@@ -963,24 +963,21 @@ function renderDimensionsChoices() {
           <p id="smart-dimension-disclaimer">Preview only — final dimensions require design confirmation.</p>
         </section>
       ` : ""}
-      <section class="blocked-dimensions" aria-labelledby="blocked-dimensions-title">
-        <h3 id="blocked-dimensions-title">Additional model dimensions</h3>
-        ${["Overall span", "Opening size", "Overall height", "Built-in depth"].map((label) => `
-          <button type="button" disabled><span>${label}</span><small>Not yet configurable</small></button>
-        `).join("")}
-      </section>
-      <details class="room-measurements" data-room-measurements>
-        <summary>
-          <span><strong>Room measurements</strong><small>Saved for design review</small></span>
-          <i data-icon="chevron-down" aria-hidden="true"></i>
-        </summary>
+      <section class="room-measurements" data-room-measurements aria-labelledby="room-measurements-title">
+        <header class="room-measurements-heading">
+          <span><strong id="room-measurements-title">Project dimensions</strong><small>Saved independently for ${escapeHtml(selectedLayout?.label || "this layout")}</small></span>
+        </header>
         <div class="measurement-panel measurement-panel--customization" data-measurement-field-count="${fields.length}" aria-label="Approximate room dimensions">
           <p class="measurement-format-hint">Use inches. Decimals and common fractions such as 42 1/2 are accepted.</p>
           <div class="measurement-fields">${fieldMarkup}</div>
           <p class="measurement-error" data-measurement-error role="alert" ${validation.errors.length ? "" : "hidden"}>${validation.errors.length ? escapeHtml(validation.errors[0].message) : ""}</p>
           <p class="transaction-diagnostic" data-transaction-diagnostic role="alert" ${diagnostic ? "" : "hidden"}>${diagnostic ? escapeHtml(`Last accepted project specification preserved. ${formatGuidedDiagnostic(diagnostic)}`) : ""}</p>
         </div>
-      </details>
+      </section>
+      <aside class="automatic-engineering-note" role="note">
+        <strong>Automatic engineering allowances</strong>
+        <p>Clear-maple UV cabinet interiors, standardized fillers, face frames, kicks, and construction clearances are coordinated during design review. Shelf rules use 1-inch MDF up to 27 inches, 1.25-inch MDF up to 31 inches, and 1.5-inch MDF up to 36 inches, with a 1.25-inch countertop.</p>
+      </aside>
     </div>
   `;
 }
@@ -1393,18 +1390,19 @@ function renderCustomizationPanel() {
 function renderFinishChoices() {
   const appearance = getImmersiveLayout(project.layout)?.appearanceManifest;
   const canPreviewFinish = (appearance?.provenMeshIndices?.length || 0) > 0;
-  const referencePaintFinishes = ["warm-white", "soft-ivory", "sage-gray", "charcoal"]
+  const referencePaintFinishes = ["shop-primed", "warm-white", "soft-ivory", "sage-gray", "charcoal"]
     .map((finishId) => FINISH_OPTIONS.paint.find((finish) => finish.id === finishId))
     .filter(Boolean);
   return `
     <h3 class="customization-group-heading">Finish</h3>
     ${renderDeferredModelDisclosure("Finish")}
-    ${renderFinishGroup("Wood finishes", "wood", FINISH_OPTIONS.wood, { disabled: !canPreviewFinish })}
-    ${renderFinishGroup("Paint / Accent Colors", "paint", referencePaintFinishes, { disabled: !canPreviewFinish })}
+    ${renderFinishGroup("White Oak and walnut", "wood", FINISH_OPTIONS.wood)}
+    ${renderFinishGroup("Shop-primed and cabinet paint", "paint", referencePaintFinishes)}
+    <p class="finish-design-note">Final Sherwin-Williams cabinet-grade color and code are confirmed during design review.${canPreviewFinish ? " The on-screen Fireplace finish is a provisional digital preview." : " This layout keeps its embedded model materials on screen."}</p>
   `;
 }
 
-function renderFinishGroup(label, key, options, settings = {}) {
+function renderFinishGroup(label, key, options) {
   const selectedId = key === "accentFinish" ? project.accentFinish : project.finish;
   return `
     <section class="choice-section">
@@ -1419,7 +1417,7 @@ function renderFinishGroup(label, key, options, settings = {}) {
             data-finish="${finish.id}"
             data-family="${finish.family}"
             aria-pressed="${selectedId === finish.id}"
-            ${settings.disabled ? 'disabled aria-describedby="finish-mapping-status"' : ""}
+            aria-describedby="finish-mapping-status"
             title="${escapeAttribute(finish.label)}"
           >
             <span class="finish-swatch" style="--swatch-color:${escapeAttribute(finish.color)}" aria-hidden="true"></span>
@@ -1482,6 +1480,7 @@ function renderDetailChoices({ compact = false } = {}) {
                 ` : ""}
                 <span class="detail-choice-copy">
                   <span class="detail-choice-title">${escapeHtml(option.shortLabel || option.label)}</span>
+                  ${option.description ? `<span class="detail-choice-description">${escapeHtml(option.description)}</span>` : ""}
                 </span>
               </button>
             `;
@@ -1502,7 +1501,7 @@ function renderDeferredModelDisclosure(groupLabel) {
       <span>${isFinish
         ? finishMappingAvailable
           ? `<strong>The selected Finish is previewed only on audited millwork surfaces.</strong> This provisional digital appearance is not a calibrated or approved physical sample.`
-          : `<strong>Automatic finish mapping is not yet proven for this model.</strong> Embedded source materials remain unchanged and finish controls are unavailable.`
+          : `<strong>Your Finish selection is saved for design review.</strong> This layout retains its embedded source materials because runtime finish mapping is not audited.`
         : `<strong>Your ${escapeHtml(groupLabel.toLowerCase())} selections are saved with this project.</strong> Only the proven shelf-clearance control changes preview geometry; other selections require design confirmation.`}</span>
     </aside>
   `;
@@ -1599,6 +1598,7 @@ function renderReviewStep() {
     ...getMeasurementFields(project.category, project.layout).map((field) => field.id),
     ...summary.filter((row) => row.key.startsWith("smartDimension:")).map((row) => row.key)
   ];
+  const customerKeys = summary.filter((row) => row.key.startsWith("customer:")).map((row) => row.key);
   const rowsFor = (keys) => keys.map((key) => rowsByKey.get(key)).filter(Boolean);
   const summaryLabels = {
     wallWidth: "Wall Width",
@@ -1640,6 +1640,7 @@ function renderReviewStep() {
               <i data-icon="edit" aria-hidden="true"></i>
             </button>
           </header>
+          ${renderSection("Project details", rowsFor(["projectName", ...customerKeys]))}
           ${renderSection("Product", rowsFor(["product", "category"]), { step: 1, label: "Change product" })}
           ${renderSection("Layout", rowsFor(["layout"]), { step: 2, label: "Change layout" })}
           ${renderSection("Dimensions", rowsFor(dimensionKeys), { section: "dimensions" })}
@@ -1701,8 +1702,8 @@ function bindAppEvents() {
       selectProductChoice(target.dataset.productChoice);
       return;
     }
-    if (target.matches("[data-coming-soon-product]")) {
-      showToast(`${target.getAttribute("aria-label")?.replace(/, coming soon$/i, "") || "This product"} is coming soon.`);
+    if (target.matches("[data-unavailable-product-choice]")) {
+      showToast(`${target.getAttribute("aria-label")?.replace(/, not available yet$/i, "") || "This product"} is not available yet.`);
       return;
     }
     if (target.matches("[data-layout]")) {
@@ -2519,7 +2520,14 @@ function syncGuidedScene() {
         onDimensionEditRequest: focusSmartDimensionEditor
       });
       guidedSceneController.mount(mount);
-      return guidedSceneController.update(project, getGuidedSceneOptions());
+      return Promise.resolve(guidedSceneController.update(project, getGuidedSceneOptions())).then(() => {
+        if (token !== guidedSceneSyncToken || !mount.isConnected || !mount.closest(".concept-scene")) return;
+        const diagnostics = guidedSceneController?.getDiagnostics?.();
+        if (diagnostics?.state) updateGuidedSceneState(diagnostics.state, {
+          layoutId: diagnostics.layoutId,
+          backend: diagnostics.backend
+        });
+      });
     })
     .catch(() => {
       if (guidedSceneImportPromise === importPromise) guidedSceneImportPromise = null;

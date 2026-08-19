@@ -428,7 +428,7 @@ export class GuidedLayoutViewerController {
         if (!reconciliation.completed) return false;
         initialFinishError = reconciliation.error;
       } else {
-        this.appliedFinishId = null;
+        this.appliedFinishId = this.requestedFinishId;
       }
       if (sequence !== this.loadSequence || this.disposed) return false;
       if (this.zoneProofMode) this.applyZoneProofMaterials();
@@ -1012,7 +1012,14 @@ export class GuidedLayoutViewerController {
       return true;
     }
     const proven = new Set(this.layout.appearanceManifest.provenMeshIndices || []);
-    if (!proven.size) return false;
+    if (!proven.size) {
+      this.disposeActiveFinishMaterials();
+      for (const record of this.meshRecords) record.object.material = record.sourceMaterial;
+      this.appliedFinishId = finishId;
+      this.lastError = null;
+      this.scheduleRender();
+      return true;
+    }
     const sequence = ++this.finishSequence;
     const layoutId = this.layoutId;
     const finish = resolveRoom2Finish(finishId);

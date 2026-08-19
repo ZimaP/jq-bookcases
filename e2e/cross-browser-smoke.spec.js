@@ -85,17 +85,18 @@ async function responsiveMetrics(page) {
 
 test("public routes stay runtime-clean and overflow-free in Firefox and WebKit", async ({ page, browserName }) => {
   test.skip(browserName === "chromium", "Chromium has the full immersive acceptance suite.");
-  const failures = monitorRuntime(page);
   for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
-    await page.setViewportSize(viewport);
     for (const route of PUBLIC_ROUTES) {
-      failures.length = 0;
-      const response = await page.goto(route, { waitUntil: "domcontentloaded" });
+      const routePage = await page.context().newPage();
+      const failures = monitorRuntime(routePage);
+      await routePage.setViewportSize(viewport);
+      const response = await routePage.goto(route, { waitUntil: "domcontentloaded" });
       expect(response?.status(), `${browserName} ${viewport.width}x${viewport.height} ${route}`).toBeLessThan(400);
-      await expect(page.locator("main#main")).toHaveCount(1);
-      await expect(page.locator("h1")).toHaveCount(1);
-      expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+      await expect(routePage.locator("main#main")).toHaveCount(1);
+      await expect(routePage.locator("h1")).toHaveCount(1);
+      expect(await routePage.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
       expect(failures, `${browserName} ${viewport.width}x${viewport.height} ${route}`).toEqual([]);
+      await routePage.close();
     }
   }
 });
@@ -114,11 +115,15 @@ test("Firefox forced WebGL2 preserves one exact Door Wall controller through Rev
     String(IMMERSIVE_LAYOUT_REGISTRY["door-wall"].geometryControlManifest["adjustable-shelf-clearance"].maxMillimeters)
   );
   await page.getByRole("tab", { name: "Finish" }).click();
-  await expect(page.getByRole("button", { name: "Charcoal", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "Charcoal", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Charcoal", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("#finish-mapping-status")).toContainText(/saved for design review/i);
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
   await expect(page.locator(".project-summary-card")).toContainText("Door Wall");
   await expect(page.locator(".project-summary-card")).toContainText("Adjustable shelf clearance");
+  await expect(page.locator(".project-summary-card")).toContainText("Charcoal");
+  await expect(page.locator("[data-guided-engine-status]")).toBeHidden();
   await expect(runtime).toHaveAttribute("data-state", "ready");
   expect((await diagnostics(page)).instanceId).toBe(initial.instanceId);
   expect(failures).toEqual([]);
@@ -165,6 +170,7 @@ test("WebKit automatic fallback remains responsive from desktop through short mo
     }
   }
   await expect(page.locator("[data-customization-sheet]")).toHaveAttribute("role", "dialog");
+  await expect(page.getByRole("tab", { selected: true })).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(page.locator("[data-customization-sheet]")).toHaveAttribute("data-sheet-state", "half");
 

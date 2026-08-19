@@ -6028,7 +6028,7 @@ body.guided-page {
 }
 
 .available-product-heading h2,
-.coming-soon-products h2,
+.unavailable-products h2,
 .dimensions-heading-row h2,
 .review-summary-section h3 {
   margin: 0;
@@ -6078,7 +6078,7 @@ body.guided-page {
   line-height: 1.45;
 }
 
-.coming-soon-products {
+.unavailable-products {
   display: grid;
   max-width: 980px;
   grid-template-columns: minmax(170px, 0.4fr) minmax(0, 1.6fr);
@@ -6091,18 +6091,18 @@ body.guided-page {
   background: var(--guided-surface-soft);
 }
 
-.coming-soon-products h2 {
+.unavailable-products h2 {
   margin-top: 3px;
   font-size: 1.12rem;
 }
 
-.coming-soon-list {
+.unavailable-product-list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
-.coming-soon-product {
+.unavailable-product {
   display: flex;
   min-width: 0;
   min-height: 48px;
@@ -6118,14 +6118,14 @@ body.guided-page {
   cursor: not-allowed;
 }
 
-.coming-soon-product span {
+.unavailable-product span {
   overflow: hidden;
   font-size: 0.76rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.coming-soon-product small {
+.unavailable-product small {
   flex: 0 0 auto;
   color: #8a6a43;
   font-size: 0.58rem;
@@ -6525,7 +6525,7 @@ body.guided-page {
     min-height: 248px;
   }
 
-  .coming-soon-products {
+  .unavailable-products {
     grid-template-columns: minmax(0, 1fr);
     gap: 12px;
   }
@@ -6593,11 +6593,11 @@ body.guided-page {
     padding: 15px;
   }
 
-  .coming-soon-list {
+  .unavailable-product-list {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .coming-soon-product {
+  .unavailable-product {
     min-height: 46px;
   }
 

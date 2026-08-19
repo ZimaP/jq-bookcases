@@ -137,11 +137,11 @@ async function setDisplayedDimension(page, millimeters) {
 test("Step 1 restores seven image cards and Step 2 exposes exactly three audited layouts", async ({ page }) => {
   const failures = monitorUnexpectedFailures(page);
   await openFreshProject(page);
-  await expect(page.locator("[data-product-choice], [data-coming-soon-product]")).toHaveCount(7);
+  await expect(page.locator("[data-product-choice], [data-unavailable-product-choice]")).toHaveCount(7);
   await expect(page.locator(".product-card img")).toHaveCount(7);
   await expect(page.locator(`[data-product-choice="${PUBLIC_CONFIGURATOR_PRODUCT_ID}"]`)).not.toHaveAttribute("aria-disabled", "true");
   for (const product of PRODUCT_CHOICES.filter(({ id }) => id !== PUBLIC_CONFIGURATOR_PRODUCT_ID)) {
-    const card = page.locator(`[data-coming-soon-product="${product.id}"]`);
+    const card = page.locator(`[data-unavailable-product-choice="${product.id}"]`);
     await expect(card).toHaveAttribute("aria-disabled", "true");
     await card.focus();
     await expect(card).toBeFocused();
@@ -214,18 +214,27 @@ test("per-layout dimensions survive A→B→C→A, reload, Review, and Back with
   const door = IMMERSIVE_LAYOUT_REGISTRY["door-wall"].geometryControlManifest[CONTROL_ID];
   const window = IMMERSIVE_LAYOUT_REGISTRY["window-wall"].geometryControlManifest[CONTROL_ID];
   await setDisplayedDimension(page, fireplace.minMillimeters);
+  await page.locator('[data-measurement="lowerCabinetHeight"]').fill("35");
+  await page.locator('[data-measurement="lowerCabinetHeight"]').blur();
   await switchLayout(page, "door-wall");
   await setDisplayedDimension(page, door.maxMillimeters);
+  await page.locator('[data-measurement="lowerCabinetHeight"]').fill("36");
+  await page.locator('[data-measurement="lowerCabinetHeight"]').blur();
   await switchLayout(page, "window-wall");
   await setDisplayedDimension(page, window.nativeMillimeters);
+  await page.locator('[data-measurement="lowerCabinetHeight"]').fill("37");
+  await page.locator('[data-measurement="lowerCabinetHeight"]').blur();
   await switchLayout(page, "fireplace-wall");
   await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toHaveValue("0.00");
+  await expect(page.locator('[data-measurement="lowerCabinetHeight"]')).toHaveValue("35");
   await page.reload({ waitUntil: "domcontentloaded" });
   await waitForViewerReady(page, "fireplace-wall");
   await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toHaveValue("0.00");
+  await expect(page.locator('[data-measurement="lowerCabinetHeight"]')).toHaveValue("35");
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
   await expect(page.getByText("Adjustable shelf clearance", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-summary-value="lowerCabinetHeight"]')).toHaveText("35 in");
   await expect(page.locator("[data-layout-viewer]")).toHaveAttribute("data-dimensions-visible", "false");
   await expect(page.locator("[data-dimension-handle]")).toBeHidden();
   await page.locator('[data-edit-section="dimensions"]').click();

@@ -126,8 +126,8 @@ test("finish families preserve names/order, isolate paint from wood, and use the
     ["medium-walnut", "Medium Walnut"],
     ["dark-walnut", "Dark Walnut"]
   ]);
-  assert.deepEqual(["warm-white", "soft-ivory", "sage-gray", "charcoal"].map((id) => profile.materials.finishes[id].label), [
-    "Warm White", "Soft Ivory", "Sage Gray", "Charcoal"
+  assert.deepEqual(["shop-primed", "warm-white", "soft-ivory", "sage-gray", "charcoal"].map((id) => profile.materials.finishes[id].label), [
+    "Shop-Primed", "Warm White", "Soft Ivory", "Sage Gray", "Charcoal"
   ]);
   assert.deepEqual(Object.keys(profile.materials.families.oak.maps), ["map", "normalMap", "roughnessMap"]);
   assert.deepEqual(Object.keys(profile.materials.families.walnut.maps), ["map", "roughnessMap"]);

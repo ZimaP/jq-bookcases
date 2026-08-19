@@ -555,7 +555,7 @@ async function runStepSelectionSession(browser, options, runDirectory, sessions,
   sessions.push(session);
   try {
     await openFreshProject(page, options.baseUrl);
-    const productCards = page.locator("[data-product-choice], [data-coming-soon-product]");
+    const productCards = page.locator("[data-product-choice], [data-unavailable-product-choice]");
     if (await productCards.count() !== 7) throw new Error("Step 1 did not expose seven product cards.");
     await page.waitForFunction(() => [...document.querySelectorAll(".product-card img")].every((image) => image.complete && image.naturalWidth > 0));
     if (!await page.locator(".product-card img").evaluateAll((images) => images.every((image) => image.complete && image.naturalWidth > 0))) {

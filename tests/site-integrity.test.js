@@ -462,8 +462,13 @@ test("the public configurator source locks the four-step one-product, three-layo
   assert.match(guidedConfiguratorSource, /PRODUCT_CHOICES\.map\(\(choice, index\) =>/);
   assert.match(
     guidedConfiguratorSource,
-    /data-coming-soon-product="\$\{escapeAttribute\(choice\.id\)\}"/,
+    /data-unavailable-product-choice="\$\{escapeAttribute\(choice\.id\)\}"/,
   );
+  assert.match(guidedConfiguratorSource, /Not available yet/);
+  assert.doesNotMatch(guidedConfiguratorSource, /Coming soon|More Fitted Furniture Previews/);
+  assert.doesNotMatch(guidedConfiguratorSource, /blocked-dimensions|Not yet configurable/);
+  assert.match(guidedConfiguratorDataSource, /lowerCabinetHeight/);
+  assert.match(guidedConfiguratorDataSource, /topFasciaHeight/);
   assert.match(guidedConfiguratorSource, /aria-disabled="true"/);
   assert.match(guidedConfiguratorSource, /layout-grid layout-grid--immersive/);
   assert.match(guidedConfiguratorStateSource, /export const GUIDED_PROJECT_SCHEMA_VERSION = 5/);

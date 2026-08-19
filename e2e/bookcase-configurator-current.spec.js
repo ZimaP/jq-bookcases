@@ -57,6 +57,7 @@ async function continueToReview(page, layoutId = "fireplace-wall") {
   const runtime = await continueToCustomization(page, layoutId);
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
+  await expect(page.locator("[data-guided-engine-status]")).toBeHidden();
   await expect(page).toHaveURL(/#step-4$/);
   await expect(runtime).toHaveAttribute("data-state", "ready");
 }
@@ -119,13 +120,13 @@ async function expectNoSeriousAxeViolations(page) {
   expect(results.violations.filter(({ impact }) => ["critical", "serious"].includes(impact))).toEqual([]);
 }
 
-test("authorization exposes seven products, three layouts, and four steps without activating Coming Soon", async ({ page }) => {
+test("authorization exposes seven products, three layouts, and four steps without activating unavailable products", async ({ page }) => {
   const failures = monitorRuntime(page);
   await openFreshProject(page);
   await expect(page.getByRole("navigation", { name: "Project steps" }).getByRole("button")).toHaveCount(4);
-  await expect(page.locator("[data-product-choice], [data-coming-soon-product]")).toHaveCount(7);
+  await expect(page.locator("[data-product-choice], [data-unavailable-product-choice]")).toHaveCount(7);
   for (const product of PRODUCT_CHOICES.filter(({ id }) => id !== PUBLIC_CONFIGURATOR_PRODUCT_ID)) {
-    const card = page.locator(`[data-coming-soon-product="${product.id}"]`);
+    const card = page.locator(`[data-unavailable-product-choice="${product.id}"]`);
     await expect(card).toHaveAttribute("aria-disabled", "true");
     await expect(card).not.toHaveAttribute("disabled", "");
     await card.focus();
@@ -191,7 +192,6 @@ test("character-by-character dimension input canonicalizes only on commit and re
   await expect(smart).toHaveValue("12.5");
   await smart.blur();
   await expect(smart).toHaveValue("12.45");
-  await page.locator("[data-room-measurements] summary").click();
   const wall = page.locator('[data-measurement="wallWidth"]');
   await wall.scrollIntoViewIfNeeded();
   await wall.fill("150");
@@ -202,6 +202,83 @@ test("character-by-character dimension input canonicalizes only on commit and re
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
   await expect(page.locator(`[data-summary-value="smartDimension:${CONTROL_ID}"]`)).toContainText("12 7/16 in");
+  expect(failures).toEqual([]);
+});
+
+test("Step 1 uses unavailable language and exposes all seven primary image cards", async ({ page }) => {
+  await openFreshProject(page);
+  const cards = page.locator(".product-grid--catalog .product-card");
+  await expect(cards).toHaveCount(7);
+  await expect(cards.locator(".product-card-title")).toHaveText(PRODUCT_CHOICES.map(({ label }) => label));
+  await expect(cards.locator("img")).toHaveCount(7);
+  await expect(cards.locator(".product-availability-badge")).toHaveText([
+    "Available now",
+    ...Array(6).fill("Not available yet")
+  ]);
+  await expect(page.getByText("More Fitted Furniture Previews", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/Coming soon/i)).toHaveCount(0);
+
+  const unavailable = page.locator('[data-unavailable-product-choice="tv-unit"]');
+  await unavailable.click({ force: true });
+  await expect(unavailable).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("[data-continue]")).toBeDisabled();
+  await expect(page.locator("[data-guided-toast]")).toContainText("not available yet");
+});
+
+test("visible project dimensions and saved Finish and Details choices reach Review", async ({ page }) => {
+  const failures = monitorRuntime(page);
+  await openFreshProject(page);
+  const runtime = await continueToCustomization(page, "door-wall");
+  const dimensions = page.locator("[data-room-measurements]");
+  await expect(dimensions).toBeVisible();
+  await expect(dimensions.locator("summary")).toHaveCount(0);
+  for (const fieldId of [
+    "wallWidth",
+    "ceilingHeight",
+    "desiredDepth",
+    "lowerCabinetHeight",
+    "lowerCabinetDepth",
+    "upperBookcaseDepth",
+    "toeKickHeight",
+    "topFasciaHeight",
+    "doorWidth",
+    "doorHeight",
+    "doorLeftDistance",
+    "doorTrimWidth",
+    "doorSwing"
+  ]) {
+    await expect(page.locator(`[data-measurement="${fieldId}"]`).first()).toBeVisible();
+  }
+  const lowerHeight = page.locator('[data-measurement="lowerCabinetHeight"]');
+  await lowerHeight.fill("35 1/2");
+  await lowerHeight.blur();
+  await expect(lowerHeight).toHaveValue("35.5");
+  await expect(page.locator(".automatic-engineering-note")).toContainText("1.25-inch countertop");
+
+  await page.getByRole("tab", { name: "Finish" }).click();
+  await page.getByRole("button", { name: "Shop-Primed", exact: true }).click();
+  await expect(runtime).toHaveAttribute("data-state", "ready");
+  await expect(page.locator(".immersive-viewer-surface")).not.toHaveAttribute("data-guided3d-state", "finish-error");
+
+  await page.getByRole("tab", { name: "Details" }).click();
+  await page.getByRole("button", { name: /Flat Panel/ }).click();
+  await page.getByRole("button", { name: /Black Pull/ }).click();
+  await page.getByRole("button", { name: /Integrated LED/ }).click();
+  await page.getByRole("button", { name: /Recessed toe kick/ }).click();
+  await page.getByRole("button", { name: /Dykes crown profile/ }).click();
+  await page.locator("[data-continue]").click();
+
+  await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
+  await expect(page.locator('[data-summary-value="lowerCabinetHeight"]')).toHaveText("35 1/2 in");
+  await expect(page.locator('[data-summary-value="finish"]')).toHaveText("Shop-Primed");
+  await expect(page.locator('[data-summary-value="doorStyle"]')).toHaveText("Flat Panel");
+  await expect(page.locator('[data-summary-value="hardware"]')).toHaveText("Black Pull");
+  await expect(page.locator('[data-summary-value="lighting"]')).toHaveText("Integrated LED");
+  await expect(page.locator('[data-summary-value="baseStyle"]')).toContainText("Recessed toe kick");
+  await expect(page.locator('[data-summary-value="topTreatment"]')).toHaveText("Dykes crown profile");
+  await page.locator('[data-edit-section="finish"]').click();
+  await expect(page.getByRole("tab", { name: "Finish" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("button", { name: "Shop-Primed", exact: true })).toHaveAttribute("aria-pressed", "true");
   expect(failures).toEqual([]);
 });
 

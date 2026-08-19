@@ -8,8 +8,8 @@ import {
   FINISH_OPTIONS,
   PREVIEW_FINISH_MASK_ASSETS,
   PRODUCT_CHOICES,
-  PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES,
-  PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS,
+  PUBLIC_CONFIGURATOR_UNAVAILABLE_CHOICES,
+  PUBLIC_CONFIGURATOR_UNAVAILABLE_LAYOUTS,
   PUBLIC_CONFIGURATOR_LAYOUT_CHOICES,
   PUBLIC_CONFIGURATOR_LAYOUT_ID,
   PUBLIC_CONFIGURATOR_PRODUCT_CHOICES,
@@ -224,6 +224,11 @@ test("measurement schemas are derived from category and layout conditions", () =
   const radiatorFields = getMeasurementFields("radiator-cover", "clear-wall").map((field) => field.id);
 
   assert.deepEqual(windowFields.slice(0, 3), ["wallWidth", "ceilingHeight", "desiredDepth"]);
+  for (const commonField of ["lowerCabinetHeight", "lowerCabinetDepth", "upperBookcaseDepth", "toeKickHeight", "topFasciaHeight"]) {
+    assert.ok(windowFields.includes(commonField));
+    assert.ok(doorFields.includes(commonField));
+    assert.ok(fireplaceFields.includes(commonField));
+  }
   assert.ok(windowFields.includes("windowWidth"));
   assert.ok(windowFields.includes("radiatorBelowWindow"));
   assert.ok(!windowFields.includes("doorSwing"));
@@ -232,6 +237,8 @@ test("measurement schemas are derived from category and layout conditions", () =
   assert.ok(fireplaceFields.includes("mantelHeight"));
   assert.ok(fireplaceFields.includes("tvAboveFireplace"));
   assert.ok(tvFields.includes("tvScreenSize"));
+  assert.ok(tvFields.includes("tvOpeningWidth"));
+  assert.ok(tvFields.includes("tvOpeningHeight"));
   assert.ok(tvFields.includes("outletLocation"));
   assert.ok(radiatorFields.includes("radiatorDepth"));
   assert.ok(radiatorFields.includes("valveLocation"));
@@ -635,13 +642,13 @@ test("public availability keeps the full catalog intact while exposing one produ
     ["fireplace-wall", "door-wall", "window-wall"]
   );
   assert.deepEqual(
-    PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS.map(({ id }) => id),
+    PUBLIC_CONFIGURATOR_UNAVAILABLE_LAYOUTS.map(({ id }) => id),
     SHARED_ROOM_LAYOUTS
       .filter(({ id }) => !["fireplace-wall", "door-wall", "window-wall"].includes(id))
       .map(({ id }) => id)
   );
   assert.deepEqual(
-    PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES.map(({ id }) => id),
+    PUBLIC_CONFIGURATOR_UNAVAILABLE_CHOICES.map(({ id }) => id),
     PRODUCT_CHOICES.filter(({ id }) => id !== "cabinet-shelves").map(({ id }) => id)
   );
 
@@ -1163,7 +1170,7 @@ test("project store accepts only an engine-verified persistence contract for acc
 
 test("catalog provides the complete curated finish and detail collections", () => {
   assert.deepEqual(FINISH_OPTIONS.wood.map((finish) => finish.label), ["White Oak", "Natural Oak", "Light Walnut", "Medium Walnut", "Dark Walnut"]);
-  assert.deepEqual(FINISH_OPTIONS.paint.map((finish) => finish.label), ["Warm White", "Soft Ivory", "Light Greige", "Sage Gray", "Charcoal"]);
+  assert.deepEqual(FINISH_OPTIONS.paint.map((finish) => finish.label), ["Shop-Primed", "Warm White", "Soft Ivory", "Light Greige", "Sage Gray", "Charcoal"]);
   for (const finish of [...FINISH_OPTIONS.wood, ...FINISH_OPTIONS.paint]) {
     assert.match(finish.color, /^#[0-9a-f]{6}$/i);
     assert.ok(finish.preview.tintOpacity > 0 && finish.preview.tintOpacity <= 1);

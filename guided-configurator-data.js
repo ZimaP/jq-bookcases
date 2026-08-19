@@ -64,6 +64,41 @@ const BASE_MEASUREMENTS = Object.freeze([
     defaultValue: 14,
     position: "bottom",
     group: "Room & built-in"
+  }),
+  measurement("lowerCabinetHeight", "Lower cabinet height", "D", {
+    min: 24,
+    max: 48,
+    defaultValue: 34.5,
+    group: "Cabinet construction",
+    previewAuthority: "design-review-only"
+  }),
+  measurement("lowerCabinetDepth", "Lower cabinet depth", "E", {
+    min: 12,
+    max: 30,
+    defaultValue: 24,
+    group: "Cabinet construction",
+    previewAuthority: "design-review-only"
+  }),
+  measurement("upperBookcaseDepth", "Upper bookcase depth", "F", {
+    min: 8,
+    max: 20,
+    defaultValue: 12,
+    group: "Cabinet construction",
+    previewAuthority: "design-review-only"
+  }),
+  measurement("toeKickHeight", "Toe kick height", "G", {
+    min: 0,
+    max: 8,
+    defaultValue: 4,
+    group: "Cabinet construction",
+    previewAuthority: "design-review-only"
+  }),
+  measurement("topFasciaHeight", "Top fascia height", "H", {
+    min: 0,
+    max: 12,
+    defaultValue: 3,
+    group: "Cabinet construction",
+    previewAuthority: "design-review-only"
   })
 ]);
 
@@ -113,6 +148,8 @@ const CONDITION_MEASUREMENTS = Object.freeze({
   tv: Object.freeze([
     measurement("tvScreenSize", "TV screen size (diagonal)", "D", { min: 24, max: 100, defaultValue: 65, position: "feature-left" }),
     measurement("tvHeight", "TV overall height", "E", { min: 16, max: 60, defaultValue: 33, position: "feature-right" }),
+    measurement("tvOpeningWidth", "TV opening width", "F", { min: 24, max: 120, defaultValue: 72, position: "feature-left", previewAuthority: "design-review-only" }),
+    measurement("tvOpeningHeight", "TV opening height", "G", { min: 16, max: 72, defaultValue: 42, position: "feature-right", previewAuthority: "design-review-only" }),
     selectMeasurement("tvMounting", "Mounting preference", "F", Object.freeze([
       Object.freeze({ value: "wall-mounted", label: "Wall mounted" }),
       Object.freeze({ value: "recessed", label: "Recessed" }),
@@ -872,7 +909,7 @@ export const PUBLIC_CONFIGURATOR_PRODUCT_CHOICES = Object.freeze(
   PRODUCT_CHOICES.filter((choice) => choice.id === PUBLIC_CONFIGURATOR_PRODUCT_ID)
 );
 
-export const PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES = Object.freeze(
+export const PUBLIC_CONFIGURATOR_UNAVAILABLE_CHOICES = Object.freeze(
   PRODUCT_CHOICES.filter((choice) => choice.id !== PUBLIC_CONFIGURATOR_PRODUCT_ID)
 );
 
@@ -882,7 +919,7 @@ export const PUBLIC_CONFIGURATOR_LAYOUT_CHOICES = Object.freeze(
   )).filter(Boolean)
 );
 
-export const PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS = Object.freeze(
+export const PUBLIC_CONFIGURATOR_UNAVAILABLE_LAYOUTS = Object.freeze(
   SHARED_ROOM_LAYOUTS.filter((choice) => !PUBLIC_CONFIGURATOR_LAYOUT_IDS.includes(choice.id))
 );
 
@@ -1206,6 +1243,12 @@ export const FINISH_OPTIONS = Object.freeze({
     })
   ]),
   paint: Object.freeze([
+    finishOption("shop-primed", "Shop-Primed", "paint", "#e7e3dc", {
+      tintOpacity: 0.8,
+      toneColor: "#f1eee8",
+      toneBlend: "screen",
+      toneOpacity: 0.42
+    }),
     finishOption("warm-white", "Warm White", "paint", "#f3f0e9", {
       tintOpacity: 0.82,
       toneColor: "#ffffff",
@@ -1267,20 +1310,20 @@ export const FINISH_OPTIONS = Object.freeze({
 
 export const DETAIL_OPTIONS = Object.freeze({
   doorStyle: Object.freeze([
-    Object.freeze({ id: "flat-panel", label: "Flat Panel" }),
-    Object.freeze({ id: "shaker", label: "Shaker" }),
-    Object.freeze({ id: "glass", label: "Glass Display" })
+    Object.freeze({ id: "flat-panel", label: "Flat Panel", description: "A clean, minimal door face with a smooth profile." }),
+    Object.freeze({ id: "shaker", label: "Shaker", description: "A classic framed door with a recessed center panel." }),
+    Object.freeze({ id: "glass", label: "Glass Display", description: "A framed glass door for protected display storage." })
   ]),
   hardware: Object.freeze([
-    Object.freeze({ id: "knob", label: "Knob", color: "#393633" }),
-    Object.freeze({ id: "brass-pull", label: "Brass Pull", color: "#b48a42" }),
-    Object.freeze({ id: "black-pull", label: "Black Pull", color: "#222426" }),
-    Object.freeze({ id: "none", label: "No Visible Hardware", color: "transparent" })
+    Object.freeze({ id: "knob", label: "Knob", color: "#393633", description: "A compact single-point cabinet knob." }),
+    Object.freeze({ id: "brass-pull", label: "Brass Pull", color: "#b48a42", description: "A warm brass-toned linear pull." }),
+    Object.freeze({ id: "black-pull", label: "Black Pull", color: "#222426", description: "A crisp black linear pull." }),
+    Object.freeze({ id: "none", label: "No Visible Hardware", color: "transparent", description: "A hardware-free face with concealed opening details." })
   ]),
   lighting: Object.freeze([
-    Object.freeze({ id: "no-lighting", label: "No Lighting" }),
-    Object.freeze({ id: "warm-led", label: "Warm LED" }),
-    Object.freeze({ id: "integrated-led", label: "Integrated LED" })
+    Object.freeze({ id: "no-lighting", label: "No Lighting", description: "No integrated cabinet lighting." }),
+    Object.freeze({ id: "warm-led", label: "Warm LED", description: "Warm display lighting for a softer evening effect." }),
+    Object.freeze({ id: "integrated-led", label: "Integrated LED", description: "Concealed linear lighting coordinated with the millwork." })
   ]),
   baseStyle: Object.freeze([
     Object.freeze({
@@ -1292,20 +1335,20 @@ export const DETAIL_OPTIONS = Object.freeze({
     Object.freeze({
       id: "recessed-toe-kick",
       label: "Built-in · Recessed toe kick",
-      shortLabel: "Recessed built-in",
+      shortLabel: "Recessed toe kick",
       description: "Fitted wall fillers with a shadowed working toe space."
     }),
     Object.freeze({
       id: "furniture-base",
       label: "Freestanding · No fillers",
-      shortLabel: "Freestanding",
+      shortLabel: "Freestanding/no fillers",
       description: "Finished exterior sides with deliberate clearance from the walls."
     })
   ]),
   topTreatment: Object.freeze([
-    Object.freeze({ id: "simple-finished-top", label: "Simple Finished Top", shortLabel: "Finished top" }),
-    Object.freeze({ id: "small-crown", label: "Architectural Top Rail", shortLabel: "Top rail" }),
-    Object.freeze({ id: "traditional-crown", label: "Built-Up Crown", shortLabel: "Built-up crown" })
+    Object.freeze({ id: "simple-finished-top", label: "Finished fascia/top", shortLabel: "Finished fascia/top", description: "A clean finished top or fascia aligned to the room." }),
+    Object.freeze({ id: "small-crown", label: "Architectural top rail", shortLabel: "Architectural top rail", description: "A restrained architectural rail at the top of the installation." }),
+    Object.freeze({ id: "traditional-crown", label: "Dykes crown profile", shortLabel: "Dykes crown profile", description: "A traditional crown profile confirmed during design review." })
   ])
 });
 

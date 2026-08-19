@@ -7,29 +7,28 @@ interchangeable, and one cannot prove that the other contains a revision.
 
 Expected customer URL: <https://jq-bookcases.onrender.com/>
 
-Before any merge intended for production, the release operator must populate
-and authenticate this record:
+Before any merge intended for production, the release operator must authenticate
+this record against the existing service:
 
 | Required identity | Verified value |
 | --- | --- |
-| Render account/team and environment | **UNKNOWN** |
+| Render account/team and environment | Workspace `My Workspace`; service is explicitly listed under **Ungrouped Services** (not assigned to the visible `My project` project or a named environment) |
 | Exact service name | `jq-bookcases` (Static Site) |
 | Immutable Render service ID | `srv-d95p0cok1i2s73aemegg` |
-| Connected repository | **UNKNOWN** |
-| Production branch | **UNAUTHENTICATED INFERENCE:** `main` |
-| Auto-deploy/trigger rule | **UNAUTHENTICATED INFERENCE:** On Commit; dashboard setting unavailable |
+| Connected repository | `https://github.com/ZimaP/jq-bookcases` |
+| Production branch | `main` |
+| Auto-deploy/trigger rule | `On Commit`; authenticated history labels the trigger `New commit via Auto-Deploy` |
 | Exact deployed-SHA evidence mechanism | Byte-compare cache-busted live bodies with the selected Git commit blobs |
-| Build command and publish directory | **UNKNOWN** |
+| Build command and publish directory | `npm run build`; `.` |
 | Cache headers, invalidation, and cache-bust behavior | `public, max-age=0, s-maxage=300`; query-keyed CDN cache; ETag/Last-Modified revalidation; GLB byte ranges |
-| Rollback mechanism and restored-SHA verification | Normal revert through `main` plus byte verification is safe for this task; Render artifact-rollback availability is **UNKNOWN** |
-| Last authenticated verification timestamp | **NONE — dashboard is signed out and API access returns 401** |
+| Rollback mechanism and restored-SHA verification | Normal revert through protected `main` plus exact deployed-SHA/byte verification; authenticated deploy history also exposes `Rollback` for retained previous deploys |
+| Current-good deploy and source | `dep-da2dtmk9v7es73c5v3ug`; `e10ea3e16ed9a81496136ad5482667c39e6eff30` |
+| Last authenticated verification timestamp | `2026-08-19T03:32:53Z` |
 
-**STOP — deployment identity is not proven.** Read-only evidence identifies the
-service and proves that the current live assets are byte-identical to
-`main` SHA `7d961711dfc0b39f6d708699bcf145c8bb7eebd1`, but it does not prove the
-environment, configured repository/branch/trigger, build/publish settings, or
-rollback availability. Do not merge a production change, claim it live, or
-substitute GitHub Pages while any required field remains unknown.
+The record above was read from the authenticated Render dashboard for the exact
+service. Re-authenticate it before a later release if the recorded settings or
+current-good deployment change. Do not claim a release live until the dashboard
+identifies the exact merge SHA and cache-busted production bodies match it.
 
 Do not create, reconfigure, transfer, rename, or directly trigger a Render
 service to fill this gap. Evidence must come from the already configured
