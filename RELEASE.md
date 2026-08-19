@@ -1,194 +1,106 @@
 # Publication and production release contracts
 
-Render and GitHub Pages are distinct publication paths. They are never
-interchangeable, and one cannot prove that the other contains a revision.
+The repository has two distinct public publication paths. They are not
+interchangeable, and one must never be used as proof that the other updated.
 
-## Customer production: mandatory Render identity gate
+## Existing Render publication path
 
-Expected customer URL: <https://jq-bookcases.onrender.com/>
-
-Before any merge intended for production, the release operator must authenticate
-this record against the existing service:
-
-| Required identity | Verified value |
-| --- | --- |
-| Render account/team and environment | Workspace `My Workspace`; service is explicitly listed under **Ungrouped Services** (not assigned to the visible `My project` project or a named environment) |
-| Exact service name | `jq-bookcases` (Static Site) |
-| Immutable Render service ID | `srv-d95p0cok1i2s73aemegg` |
-| Connected repository | `https://github.com/ZimaP/jq-bookcases` |
-| Production branch | `main` |
-| Auto-deploy/trigger rule | `On Commit`; authenticated history labels the trigger `New commit via Auto-Deploy` |
-| Exact deployed-SHA evidence mechanism | Byte-compare cache-busted live bodies with the selected Git commit blobs |
-| Build command and publish directory | `npm run build`; `.` |
-| Cache headers, invalidation, and cache-bust behavior | `public, max-age=0, s-maxage=300`; query-keyed CDN cache; ETag/Last-Modified revalidation; GLB byte ranges |
-| Rollback mechanism and restored-SHA verification | Normal revert through protected `main` plus exact deployed-SHA/byte verification; authenticated deploy history also exposes `Rollback` for retained previous deploys |
-| Current-good deploy and source | `dep-da2dtmk9v7es73c5v3ug`; `e10ea3e16ed9a81496136ad5482667c39e6eff30` |
-| Last authenticated verification timestamp | `2026-08-19T03:32:53Z` |
-
-The record above was read from the authenticated Render dashboard for the exact
-service. Re-authenticate it before a later release if the recorded settings or
-current-good deployment change. Do not claim a release live until the dashboard
-identifies the exact merge SHA and cache-busted production bodies match it.
+`https://jq-bookcases.onrender.com/` is the customer-inspection target for the
+Room 2 fixed-reference release. The existing service publishes from accepted
+`main` history through its already established GitHub-to-Render integration.
+That relationship must be proved for a release by an authenticated deployment
+record, an exact build marker, or byte-identical post-merge runtime assets; UI
+similarity alone is not proof.
 
 Do not create, reconfigure, transfer, rename, or directly trigger a Render
-service to fill this gap. Evidence must come from the already configured
-service/integration through an authenticated deployment record, an immutable
-build marker, or byte-identical post-merge runtime assets tied to the exact
-merge SHA. If access would require dashboard, credential, billing,
-environment, or deploy-hook mutation, stop and request the missing authority.
+service from this repository. After a reviewed pull request is merged, wait for
+the existing publication path and verify the final redirected Render URL,
+post-merge runtime bytes, model bytes, cache headers, and browser behavior in a
+fresh context. If the build cannot be tied to the exact merge commit, or if
+updating it requires a dashboard, credential, environment, billing, or deploy-
+hook mutation, stop. A GitHub Pages deployment is not a substitute.
 
-Once the identity record is complete, an accepted merge must be allowed to flow
-through that exact existing trigger. Verify the final redirected Render URL,
-deployed SHA, runtime and model bytes, cache behavior, responsive browser
-journeys, and error recovery in a fresh context. Visual similarity is not proof.
+## GitHub Pages release contract
 
-## Validation gates
+Merging code and publishing GitHub Pages are separate actions. Pull requests and
+pushes to `main` run validation only; neither event may upload a GitHub Pages
+artifact, target its production environment, or request a Pages deployment.
 
-Before a production merge or release:
+## Validation
 
-1. Confirm the branch is based on the intended immutable release-base SHA and
-   the protected source worktree fingerprint is unchanged.
-2. Run `npm ci`, `npm run build`, `npm test`, the complete Chromium,
-   Firefox, and WebKit release suites, and `git diff --check`.
-3. Regenerate the immersive model/material audits and require a clean diff.
-4. Prove all three exact GLBs and all three min/native/max/50-cycle smart
-   controls, source-buffer immutability, collision bounds, and deterministic
-   reset.
-5. Prove WebGPU on genuine support plus forced/automatic WebGL2, initialization
-   and render fallback, layout supersession, touch/pinch, accessibility,
-   responsive sheet states, request ownership, and resource stability.
-6. Run the exact production payload gate and advisory check described below.
-7. Store large screenshots/traces only in the ignored local proof directory and
-   verify no proof artifact is staged.
-8. Populate and authenticate the Render identity record above.
+The following workflows run without deployment permissions:
 
-Pull-request and push workflows are validation only unless their documented
-permissions and target explicitly say otherwise.
+- `Engine quality gate` runs the build and complete unit, contract, matrix, and
+  hostile-input suite on supported Node.js versions.
+- `Browser configurator quality gate` runs the complete Chromium, Firefox, and
+  WebKit suite.
+- `Pages release validation` runs the build, tests, and Chromium release gate.
 
-## Immersive-layout production artifact contract
+All checks for the intended commit must be green before creating a production
+release tag.
 
-The static artifact is an explicit allowlist, not a repository-root copy. In
-addition to public HTML, shared shell, catalog data, and photography, it must
-contain:
+## Production artifact contract
 
-- `guided-immersive-configurator.css`;
-- `guided-layout-registry.js`,
-  `guided-layout-material-zones.generated.js`, and
-  `guided-layout-viewer.js`;
-- guided configurator data, schema-v5 state, UI, and accepted project-engine
-  dependencies;
-- `guided-room2-appearance.js`, `guided-room2-materials.js`, and
-  `guided-room2-integrity.js`;
-- `assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb`;
-- `assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb`;
-- `assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb`;
-- the three files under
-  `assets/photos/configurator/layout-model-thumbnails/`;
-- `config/immersive-layout-model-audit-v1.json`,
-  `config/immersive-layout-material-zones-v1.json`, and
-  `config/immersive-layout-payload-baseline-v1.json`;
-- the local Three r166 core/add-ons,
-  `assets/vendor/three-webgpu-renderer-r166.bundle.js`, and
-  `assets/vendor/licenses/three-0.166.1-LICENSE.txt`;
-- every allowlisted local texture, HDR environment, provenance file, and notice
-  required by the Fireplace profile.
+The Pages artifact is an explicit allowlist, not a copy of the repository. In
+addition to the public HTML, shell, generated color data, and photography, the
+guided configurator release must include:
 
-The packaging workflow must copy every listed customer runtime file and assert
-its existence before upload. It must also verify the exact GLB regular-file
-status, byte size, SHA-256, and non-LFS header and reject any unlisted
-JavaScript/CSS in the prepared artifact.
+- the room-topology, installation-fit, product adapter/product engine, project
+  transaction, accepted render-contract, renderer-neutral primitive, material,
+  scene-plan, renderer, state, data, and UI modules;
+- the canonical bookcase engine dependencies used by guided products, including
+  `bookcase-render-contract.js`;
+- `config/` with the v1 fit, topology, compatibility, archetype, material,
+  provisional-decision, golden-project, and asset-manifest contracts;
+- all allowlisted assets under `assets/textures/` and `assets/environments/`;
+- the public Room 2 appearance, integrity, and viewer modules, the pinned local
+  Three.js GLTF loader utilities, and the exact allowlisted Room 2 GLB.
 
-The artifact must exclude:
+The production workflow checks each required runtime module, config file,
+texture map, and environment file before it uploads the artifact. Developer
+tools, tests, package metadata, and the legacy configurator workspace remain
+excluded. Any new customer-facing runtime dependency must be added to both the
+copy allowlist and the pre-upload assertions in the same change.
 
-- the removed `guided-room2-viewer.js`;
-- the old parametric guided scene/renderer and legacy CAD workspace;
-- tests, tools, source-only scripts, package metadata, and local proof files;
-- the forbidden Blender/Cycles derivative;
-- any remote model, texture, HDR, Vivid, analytics, or second-Three runtime.
+## Manual GitHub Pages production release
 
-Any new customer runtime dependency must enter the copy allowlist, existence
-and hash/size assertions where applicable, payload measurement, license review,
-and absence checks in the same change.
+Production is published only by `Deploy GitHub Pages — Manual Production
+Release`. The workflow accepts only an explicit `workflow_dispatch` from a tag
+whose name begins with `production-`. Creating or pushing the tag does not
+deploy by itself.
 
-## Locked payload and dependency gate
+1. Fetch `main` and select a green commit that is contained in `origin/main`.
+2. Create and push a clearly dated `production-*` tag pointing to that exact
+   commit.
+3. In GitHub Actions, select the manual production workflow and choose that tag
+   as the workflow ref.
+4. Enter the same full lowercase 40-character commit SHA in `production_sha`.
+5. Enter the exact uppercase value `DEPLOY` in `confirm_production` and dispatch
+   the workflow.
 
-`config/immersive-layout-payload-baseline-v1.json` records the immutable
-release base:
+The workflow rejects a branch ref, a non-production tag, a different dispatch
+SHA, a commit outside `origin/main`, and confirmation values such as `deploy`,
+`Deploy`, `YES`, or `true`. It validates and packages the exact selected commit,
+then reconfirms the ref and ancestry immediately before publication. Production
+deployments are serialized and never cancel one another.
 
-- release-base SHA:
-  `7d961711dfc0b39f6d708699bcf145c8bb7eebd1`;
-- Node `22.23.2`;
-- zlib `1.3.1-e00f703`;
-- independent gzip level 9;
-- exact production JavaScript/CSS allowlist;
-- 47 files totaling 732,539 bytes.
+Only the final production job receives `pages: write` and deployment-specific
+`id-token: write`. It targets the existing `github-pages` environment, whose
+deployment policy accepts only `production-*` tags. The environment currently
+adds no required-reviewer or wait-timer approval gate, so no such approval is
+implied by this contract.
 
-`scripts/prepare-immersive-payload-artifact.mjs` must prepare the same
-allowlist used by production. `scripts/check-immersive-payload.mjs` locks the
-manifest schema, method, base SHA/count/total, exact runtime versions, file
-ordering and contents, and rejects a regression above 150,000 gzip bytes. Run
-the same commands in pull-request validation and in final packaging; do not
-maintain a second hand-written allowlist.
+## Verification and failure handling
 
-`three@0.166.1` (MIT) and `esbuild@0.28.2` (MIT) are exact dev
-dependencies in the lockfile. Three supplies the matching WebGPU renderer
-source and ships its license. Esbuild deterministically creates the bundle and
-is not shipped. The bundle externalizes `three`; the configurator import map
-resolves it to the existing local r166 core.
+After a release, verify that the workflow summary and GitHub deployment record
+both report the selected SHA before checking the production URL. If validation
+or deployment fails, inspect the failed job and correct the problem through a
+normal pull request. Do not blindly rerun, change the tag, roll back code, or
+dispatch another production release without confirming the intended SHA and
+the current production state.
 
-Run the repository's package advisory check immediately before release and
-record its command, lockfile, runtime, timestamp, and result in the PR/release
-evidence. Do not claim dependency security clearance from a stale or absent
-audit. A material high/critical production-runtime advisory is a STOP unless an
-explicit reviewed disposition applies.
-
-Candidate record, 2026-08-18: `npm audit --audit-level=high` against the current
-lockfile reported `found 0 vulnerabilities`. This record must be refreshed if
-the lockfile changes or before a later release attempt.
-
-## Local proof boundary
-
-Screenshots, traces, geometry masks, manifests, and large runtime evidence belong
-only under:
-
-```text
-.local-proof/immersive-layout-configurator-v1/run-<UTC timestamp>/
-```
-
-That tree is ignored and must remain untracked. Its run manifest records
-revision, UTC timestamp, browser/backend, viewport, URL, exact selected layout
-and control value, runtime diagnostics, network failures, and artifact hashes.
-No `test-results`, `playwright-report`, ad-hoc screenshot, Blender file, or
-proof directory may enter the production artifact.
-
-## Manual GitHub Pages publication — separately authorized only
-
-Merging code and publishing GitHub Pages are separate actions. Pull requests
-and pushes to `main` run validation only; neither may upload a Pages artifact,
-target its production environment, or request a Pages deployment.
-
-The manual workflow accepts only `workflow_dispatch` from a
-`production-*` tag. Its `production_sha` must be the same full lowercase
-40-character SHA, contained in `origin/main`, and
-`confirm_production` must be exactly `DEPLOY`. It revalidates and packages
-that exact commit, reconfirms the tag/SHA/ancestry, and serializes production
-deployments. Only its final job receives Pages write and deployment OIDC
-permissions.
-
-Codex tasks must not dispatch that workflow unless the user explicitly
-authorizes the Pages path for the exact revision. Standing authorization to
-publish the customer website or verify Render is not authorization to use Pages
-as a substitute.
-
-## Verification, failure, and rollback
-
-For either authorized path, record the service/environment, trigger, merge SHA,
-deployed SHA, final URL, build/artifact identity, cache evidence, direct Step
-1/2/3/Review URLs, browser/backend checks, and UTC verification time.
-
-If a post-merge Render smoke failure is conclusively caused by that merge, use
-only the already documented rollback mechanism for the authenticated service.
-Verify the restored deployed SHA and byte identity after rollback. Do not
-blindly rerun, retag, force-push, change service configuration, or claim
-recovery from UI similarity. If the rollback mechanism or restored-SHA proof is
-not already established in the identity record, stop rather than improvising.
+Codex coding tasks must never dispatch the Pages production workflow unless the
+user explicitly authorizes that exact publication path in the task and the
+current release contract requires it. A request to commit, push, open or merge
+a pull request—or authorization to verify Render—is not authorization to use
+GitHub Pages as a substitute.

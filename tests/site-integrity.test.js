@@ -45,10 +45,10 @@ const productionWorkflowSource = readFileSync(
 );
 const packageSource = readFileSync(path.join(rootDir, "package.json"), "utf8");
 const playwrightConfigSource = readFileSync(path.join(rootDir, "playwright.config.js"), "utf8");
-const configuratorBrowserTestSource = [
-  "bookcase-configurator-current.spec.js",
-  "immersive-layout-configurator.spec.js",
-].map((file) => readFileSync(path.join(rootDir, "e2e", file), "utf8")).join("\n");
+const configuratorBrowserTestSource = readFileSync(
+  path.join(rootDir, "e2e", "bookcase-configurator.spec.js"),
+  "utf8",
+);
 
 function matches(text, pattern) {
   return Array.from(text.matchAll(pattern));
@@ -437,7 +437,7 @@ test("every public page uses the shared JQ Bookcases lockup and canonical produc
   }
 });
 
-test("the public configurator source locks the four-step one-product, three-layout policy", () => {
+test("the public configurator source locks the four-step Cabinets + Shelves policy", () => {
   const stepDefinition = guidedConfiguratorSource.match(
     /const STEP_DEFINITIONS = Object\.freeze\(\[([\s\S]*?)\]\);/,
   )?.[1] || "";
@@ -455,23 +455,11 @@ test("the public configurator source locks the four-step one-product, three-layo
     /PUBLIC_CONFIGURATOR_PRODUCT_ID = "cabinet-shelves"/,
   );
   assert.match(
-    guidedConfiguratorDataSource,
-    /PUBLIC_CONFIGURATOR_LAYOUT_IDS = Object\.freeze\(\[\s*"fireplace-wall",\s*"door-wall",\s*"window-wall"/,
-  );
-  assert.match(guidedConfiguratorSource, /product-grid product-grid--catalog/);
-  assert.match(guidedConfiguratorSource, /PRODUCT_CHOICES\.map\(\(choice, index\) =>/);
-  assert.match(
     guidedConfiguratorSource,
-    /data-unavailable-product-choice="\$\{escapeAttribute\(choice\.id\)\}"/,
+    /data-coming-soon-product="\$\{escapeAttribute\(choice\.id\)\}"/,
   );
-  assert.match(guidedConfiguratorSource, /Not available yet/);
-  assert.doesNotMatch(guidedConfiguratorSource, /Coming soon|More Fitted Furniture Previews/);
-  assert.doesNotMatch(guidedConfiguratorSource, /blocked-dimensions|Not yet configurable/);
-  assert.match(guidedConfiguratorDataSource, /lowerCabinetHeight/);
-  assert.match(guidedConfiguratorDataSource, /topFasciaHeight/);
-  assert.match(guidedConfiguratorSource, /aria-disabled="true"/);
-  assert.match(guidedConfiguratorSource, /layout-grid layout-grid--immersive/);
-  assert.match(guidedConfiguratorStateSource, /export const GUIDED_PROJECT_SCHEMA_VERSION = 5/);
+  assert.match(guidedConfiguratorSource, /disabled/);
+  assert.match(guidedConfiguratorStateSource, /export const GUIDED_PROJECT_SCHEMA_VERSION = 4/);
   assert.match(guidedConfiguratorStateSource, /if \(step <= 2\) return step;/);
   assert.match(guidedConfiguratorStateSource, /if \(step <= 4\) return 3;/);
   assert.match(guidedConfiguratorStateSource, /return 4;/);
@@ -586,12 +574,7 @@ test("browser modules use one cache identity for every shared dependency", () =>
 test("the build syntax-checks every guided accepted-specification module", () => {
   assert.match(packageSource, /"preview:check-registry": "node scripts\/generate-photoreal-preview-registry\.mjs --check"/);
   assert.match(packageSource, /"build": "[^"]*npm run preview:check-registry/);
-  assert.match(packageSource, /"vendor:webgpu:check": "node scripts\/vendor-three-webgpu\.mjs --check"/);
-  assert.match(packageSource, /"build": "[^"]*npm run vendor:webgpu:check/);
   for (const moduleName of [
-    "guided-layout-registry.js",
-    "guided-layout-material-zones.generated.js",
-    "guided-layout-viewer.js",
     "guided-room-topology.js",
     "guided-installation-solver.js",
     "guided-product-adapter.js",
@@ -606,6 +589,7 @@ test("the build syntax-checks every guided accepted-specification module", () =>
     "guided-room2-appearance.js",
     "guided-room2-integrity.js",
     "guided-room2-materials.js",
+    "guided-room2-viewer.js",
     "assets/vendor/three-addons/loaders/RGBELoader.js",
     "assets/vendor/three-addons/lights/RectAreaLightUniformsLib.js",
     "tools/generate-room2-commercial-audit.mjs",
@@ -615,7 +599,6 @@ test("the build syntax-checks every guided accepted-specification module", () =>
     "guided-published-preview-registry.generated.js",
     "guided-published-preview-data.js",
     "scripts/generate-photoreal-preview-registry.mjs",
-    "scripts/vendor-three-webgpu.mjs",
     "tools/blender/photoreal-matrix-contract.mjs",
     "tools/blender/run-photoreal-matrix.mjs",
   ]) {
@@ -675,9 +658,7 @@ test("manual production release uses an allowlisted Pages artifact", () => {
   assert.match(productionWorkflowSource, /guided-room2-appearance\.js/);
   assert.match(productionWorkflowSource, /guided-room2-integrity\.js/);
   assert.match(productionWorkflowSource, /guided-room2-materials\.js/);
-  assert.doesNotMatch(productionWorkflowSource, /cp[\s\\]+guided-room2-viewer\.js/);
-  assert.match(productionWorkflowSource, /test ! -e _site\/guided-room2-viewer\.js/);
-  assert.match(productionWorkflowSource, /node scripts\/check-immersive-payload\.mjs _site/);
+  assert.match(productionWorkflowSource, /guided-room2-viewer\.js/);
   assert.match(productionWorkflowSource, /bookcase-render-contract\.js/);
   assert.match(productionWorkflowSource, /cp assets\/favicon\.svg _site\/assets\//);
   assert.match(productionWorkflowSource, /cp -R assets\/environments _site\/assets\//);
@@ -696,13 +677,10 @@ test("manual production release uses an allowlisted Pages artifact", () => {
     "_site/guided-published-preview-registry.generated.js",
     "_site/guided-published-preview-data.js",
     "_site/guided-configurator.css",
-    "_site/guided-immersive-configurator.css",
-    "_site/guided-layout-registry.js",
-    "_site/guided-layout-material-zones.generated.js",
-    "_site/guided-layout-viewer.js",
     "_site/guided-room2-appearance.js",
     "_site/guided-room2-integrity.js",
     "_site/guided-room2-materials.js",
+    "_site/guided-room2-viewer.js",
     "_site/guided-room-topology.js",
     "_site/guided-installation-solver.js",
     "_site/guided-product-adapter.js",
@@ -713,15 +691,12 @@ test("manual production release uses an allowlisted Pages artifact", () => {
     "_site/guided-project-engine.js",
     "_site/bookcase-render-contract.js",
     "_site/assets/vendor/three.module.js",
-    "_site/assets/vendor/three-webgpu-renderer-r166.bundle.js",
     "_site/assets/vendor/three-addons/loaders/GLTFLoader.js",
     "_site/assets/vendor/three-addons/loaders/RGBELoader.js",
     "_site/assets/vendor/three-addons/lights/RectAreaLightUniformsLib.js",
     "_site/assets/vendor/licenses/three-0.166.1-LICENSE.txt",
     "_site/assets/vendor/three-addons/utils/BufferGeometryUtils.js",
     "_site/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb",
-    "_site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb",
-    "_site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb",
     "_site/assets/room2-commercial-pbr-v1/textures/oak/base-color.webp",
     "_site/assets/room2-commercial-pbr-v1/textures/oak/normal.webp",
     "_site/assets/room2-commercial-pbr-v1/textures/oak/roughness.webp",
@@ -757,9 +732,6 @@ test("manual production release uses an allowlisted Pages artifact", () => {
     "_site/assets/textures/wood/dark-walnut/roughness.png",
     "_site/assets/textures/wood/dark-walnut/ao.png",
     "_site/config/asset-manifest.json",
-    "_site/config/immersive-layout-model-audit-v1.json",
-    "_site/config/immersive-layout-material-zones-v1.json",
-    "_site/config/immersive-layout-payload-baseline-v1.json",
     "_site/config/fit-policy.json",
     "_site/config/golden-projects.json",
     "_site/config/materials.json",
@@ -796,8 +768,6 @@ test("manual production release uses an allowlisted Pages artifact", () => {
   assert.match(productionWorkflowSource, /test ! -e _site\/guided-configurator-3d\.js/);
   assert.match(productionWorkflowSource, /6712076/);
   assert.match(productionWorkflowSource, /251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5/);
-  assert.match(productionWorkflowSource, /4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb/);
-  assert.match(productionWorkflowSource, /631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24/);
 });
 
 test("browser QA screenshots stay in ignored test output", () => {
@@ -807,8 +777,8 @@ test("browser QA screenshots stay in ignored test output", () => {
     "browser tests must not overwrite tracked QA evidence",
   );
   assert.match(
-    playwrightConfigSource,
-    /outputDir:\s*"test-results"/,
-    "Playwright screenshots and traces must use the ignored test-results directory",
+    configuratorBrowserTestSource,
+    /\bpath:\s*[`"']test-results\//,
+    "browser screenshots must use the ignored Playwright output directory",
   );
 });

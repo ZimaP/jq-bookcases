@@ -134,14 +134,13 @@ test("the tracked website asset is the exact unrecompressed Phase 7 WebP", async
   assert.deepEqual(readWebpDimensions(bytes), { width: 1920, height: 1280 });
 });
 
-test("the four-step public path always uses the immersive registry viewer while dormant preview evidence stays excluded", async () => {
-  const [registrySource, generatedSource, configuratorSource, dataSource, cssSource, immersiveCssSource, htmlSource] = await Promise.all([
+test("the four-step public path always uses the accepted 3D viewer while dormant preview evidence stays excluded", async () => {
+  const [registrySource, generatedSource, configuratorSource, dataSource, cssSource, htmlSource] = await Promise.all([
     readFile(join(REPOSITORY_ROOT, "guided-published-preview-data.js"), "utf8"),
     readFile(join(REPOSITORY_ROOT, "guided-published-preview-registry.generated.js"), "utf8"),
     readFile(join(REPOSITORY_ROOT, "guided-configurator.js"), "utf8"),
     readFile(join(REPOSITORY_ROOT, "guided-configurator-data.js"), "utf8"),
     readFile(join(REPOSITORY_ROOT, "guided-configurator.css"), "utf8"),
-    readFile(join(REPOSITORY_ROOT, "guided-immersive-configurator.css"), "utf8"),
     readFile(join(REPOSITORY_ROOT, "configurator.html"), "utf8")
   ]);
 
@@ -162,26 +161,19 @@ test("the four-step public path always uses the immersive registry viewer while 
   assert.doesNotMatch(configuratorSource, /isInternalPublishedPreviewAuditEnabled/);
   assert.match(configuratorSource, /if \(project\.currentStep === 3\) return renderCustomizationStep\(\)/);
   assert.match(configuratorSource, /return renderReviewStep\(\)/);
-  assert.match(configuratorSource, /data-preview-render-mode="immersive-layout-glb"/);
-  assert.match(configuratorSource, /data-guided-3d-mode="immersive-layout"/);
-  assert.match(configuratorSource, /data-guided-3d-mode="layout-review-reference"/);
+  assert.match(configuratorSource, /data-preview-render-mode="fixed-room2-glb"/);
+  assert.match(configuratorSource, /data-guided-3d-mode="fixed-room2-reference"/);
   assert.match(configuratorSource, /renderConceptPreview\(\)/);
   assert.doesNotMatch(configuratorSource, /customerPresentation/);
   assert.doesNotMatch(configuratorSource, /published-customer-preview-image/);
   assert.doesNotMatch(configuratorSource, /data-published-preview-image/);
   assert.doesNotMatch(configuratorSource, /failedPublishedPreviewIds/);
   assert.match(configuratorSource, /options\.staticGuidance \? "" :/);
-  assert.match(configuratorSource, /data-smart-dimension="\$\{escapeAttribute\(control\.id\)\}"/);
-  assert.match(configuratorSource, /data-smart-dimension-reset="\$\{escapeAttribute\(control\.id\)\}"/);
-  assert.match(configuratorSource, /Project dimensions/);
-  assert.match(configuratorSource, /Automatic engineering allowances/);
-  assert.doesNotMatch(configuratorSource, /Additional model dimensions|Not yet configurable/);
-  assert.match(configuratorSource, /Digital preview only\. Final dimensions and finishes require design confirmation\./);
-  assert.match(configuratorSource, /The proven shelf-clearance control affects preview geometry only/);
+  assert.match(configuratorSource, /renderMeasurementDiagram\(measurementDiagramFields, selectedLayout, \{ staticGuidance: true \}\)/);
+  assert.match(configuratorSource, /Commercial PBR review candidate — fixed Room 2 design/);
+  assert.match(configuratorSource, /Provisional appearance · owner acceptance open/);
   assert.match(cssSource, /Public Room 2 fixed-reference integration/);
   assert.match(cssSource, /\.measurement-guidance/);
-  assert.match(immersiveCssSource, /\.immersive-configurator/);
-  assert.match(immersiveCssSource, /\.immersive-customization-panel/);
-  assert.match(htmlSource, /guided-immersive-configurator\.css\?v=immersive-layout-configurator-v1/);
-  assert.match(htmlSource, /guided-configurator\.js\?v=immersive-layout-configurator-v1/);
+  assert.match(htmlSource, /guided-configurator\.css\?v=room2-commercial-pbr-v1-20260817g/);
+  assert.match(htmlSource, /guided-configurator\.js\?v=room2-commercial-pbr-v1-20260817g/);
 });

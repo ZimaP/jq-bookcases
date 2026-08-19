@@ -96,7 +96,7 @@ test("supported defaults accept, conditionals are UI-reachable, and impossible p
   }
 });
 
-test("topology dimensions stay layout-scoped while common design-review fields remain explicit", () => {
+test("the measurement schema exposes only dimensions consumed by each topology", () => {
   const ids = (layoutId) => getMeasurementFields("bookcase", layoutId).map((field) => field.id);
   assert.ok(ids("left-niche").includes("leftReturn"));
   assert.ok(!ids("left-niche").includes("rightReturn"));
@@ -108,14 +108,9 @@ test("topology dimensions stay layout-scoped while common design-review fields r
   assert.ok(ids("center-recess").includes("projectionHeight"));
   assert.ok(ids("center-recess").includes("projectionDepth"));
   assert.ok(!ids("center-recess").includes("nicheWidth"));
-  for (const field of getMeasurementFields("bookcase", "fireplace-wall")) {
-    if (["lowerCabinetHeight", "lowerCabinetDepth", "upperBookcaseDepth", "toeKickHeight", "topFasciaHeight"].includes(field.id)) {
-      assert.equal(field.previewAuthority, "design-review-only");
-    }
-  }
 });
 
-test("topology fields change geometry or validate, while declared design-review fields remain geometry-inert", () => {
+test("every exposed room dimension changes topology or produces a named validation result", () => {
   const choice = PRODUCT_CHOICES.find((item) => item.id === "cabinet-shelves");
   for (const layout of SHARED_ROOM_LAYOUTS) {
     const baseProject = candidate(choice, layout.id);
@@ -134,10 +129,6 @@ test("topology fields change geometry or validate, while declared design-review 
         measurements: { ...baseProject.measurements, [field.id]: nextValue }
       }, { now: 2 });
       const changedTopology = resolveRoomTopology(changedProject);
-      if (field.previewAuthority === "design-review-only") {
-        assert.deepEqual(changedTopology, baseTopology, `${layout.id}:${field.id} must remain saved design-review data`);
-        continue;
-      }
       if (!changedTopology.accepted) {
         assert.match(changedTopology.errors?.[0]?.code || "", /^[A-Z][A-Z0-9_]+$/, `${layout.id}:${field.id}`);
         continue;

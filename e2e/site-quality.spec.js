@@ -189,7 +189,7 @@ test("selected choices expose a non-color state and visible keyboard focus", asy
   await expect(page.getByRole("heading", { name: "Choose the layout that matches your space" })).toBeVisible();
   const card = page.locator('[data-layout="fireplace-wall"]');
   await card.focus();
-  await card.press("Enter");
+  await page.keyboard.press("Enter");
   const selectedCard = page.locator('[data-layout="fireplace-wall"]');
   await expect(selectedCard).toHaveAttribute("aria-pressed", "true");
   await expect(selectedCard.locator(".layout-selected-mark")).toBeVisible();
