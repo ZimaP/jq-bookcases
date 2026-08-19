@@ -53,7 +53,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 22.23.2
           cache: npm
 
       - name: Install locked dependencies
@@ -116,6 +116,11 @@ jobs:
             echo "\`$PRODUCTION_SHA\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Set up deterministic payload runtime
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.23.2
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v6
 
@@ -135,6 +140,7 @@ jobs:
             inspiration-reference.css \
             about-reference.css \
             guided-configurator.css \
+            guided-immersive-configurator.css \
             _site/
           cp \
             site.js \
@@ -144,6 +150,9 @@ jobs:
             guided-published-preview-data.js \
             guided-configurator-data.js \
             guided-configurator-state.js \
+            guided-layout-registry.js \
+            guided-layout-material-zones.generated.js \
+            guided-layout-viewer.js \
             guided-room-topology.js \
             guided-installation-solver.js \
             guided-product-adapter.js \
@@ -155,7 +164,6 @@ jobs:
             guided-room2-appearance.js \
             guided-room2-integrity.js \
             guided-room2-materials.js \
-            guided-room2-viewer.js \
             quote-prefill.js \
             benjamin-moore-colors.js \
             bookcase-engine.js \
@@ -171,7 +179,7 @@ jobs:
           mkdir -p _site/assets
           cp assets/favicon.svg _site/assets/
           mkdir -p _site/assets/vendor
-          cp assets/vendor/three.module.js _site/assets/vendor/
+          cp assets/vendor/three.module.js assets/vendor/three-webgpu-renderer-r166.bundle.js _site/assets/vendor/
           mkdir -p _site/assets/vendor/three-addons/environments _site/assets/vendor/three-addons/lights _site/assets/vendor/three-addons/loaders _site/assets/vendor/three-addons/utils _site/assets/vendor/licenses
           cp assets/vendor/three-addons/environments/RoomEnvironment.js _site/assets/vendor/three-addons/environments/
           cp assets/vendor/three-addons/loaders/GLTFLoader.js _site/assets/vendor/three-addons/loaders/
@@ -180,7 +188,12 @@ jobs:
           cp assets/vendor/three-addons/utils/BufferGeometryUtils.js _site/assets/vendor/three-addons/utils/
           cp assets/vendor/licenses/three-0.166.1-LICENSE.txt _site/assets/vendor/licenses/
           mkdir -p _site/assets/models/room2
-          cp assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb _site/assets/models/room2/
+          cp \
+            assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb \
+            assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb \
+            _site/assets/models/room2/
+          mkdir -p _site/assets/models/room4
+          cp assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb _site/assets/models/room4/
           cp -R assets/environments _site/assets/
           cp -R assets/room2-commercial-pbr-v1 _site/assets/
           cp -R assets/textures _site/assets/
@@ -197,6 +210,10 @@ jobs:
           test -f _site/guided-published-preview-registry.generated.js
           test -f _site/guided-published-preview-data.js
           test -f _site/guided-configurator.css
+          test -f _site/guided-immersive-configurator.css
+          test -f _site/guided-layout-registry.js
+          test -f _site/guided-layout-material-zones.generated.js
+          test -f _site/guided-layout-viewer.js
           for legacy_asset in \
             _site/configurator-3d.js \
             _site/configurator-experience.js \
@@ -218,7 +235,7 @@ jobs:
           test -f _site/guided-room2-appearance.js
           test -f _site/guided-room2-integrity.js
           test -f _site/guided-room2-materials.js
-          test -f _site/guided-room2-viewer.js
+          test ! -e _site/guided-room2-viewer.js
           test -f _site/guided-room-topology.js
           test -f _site/guided-installation-solver.js
           test -f _site/guided-product-adapter.js
@@ -229,6 +246,9 @@ jobs:
           test -f _site/guided-project-engine.js
           test -f _site/bookcase-render-contract.js
           test -f _site/assets/vendor/three.module.js
+          test -f _site/assets/vendor/three-webgpu-renderer-r166.bundle.js
+          test "$(wc -c < _site/assets/vendor/three-webgpu-renderer-r166.bundle.js | tr -d ' ')" = "381458"
+          test "$(shasum -a 256 _site/assets/vendor/three-webgpu-renderer-r166.bundle.js | cut -d ' ' -f 1)" = "aaff4fd600cd14b710538473b1d3f3ac799fe34f08b74301f18f9e20e66a3b25"
           test -f _site/assets/vendor/three-addons/environments/RoomEnvironment.js
           test "$(wc -c < _site/assets/vendor/three-addons/environments/RoomEnvironment.js | tr -d ' ')" = "3623"
           test "$(shasum -a 256 _site/assets/vendor/three-addons/environments/RoomEnvironment.js | cut -d ' ' -f 1)" = "e1b92c4dd2d89752293546790bfda9828a630a79700c66f5b736fad7a88cb7e4"
@@ -261,6 +281,25 @@ jobs:
           test "$(wc -c < _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb | tr -d ' ')" = "6712076"
           test "$(shasum -a 256 _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb | cut -d ' ' -f 1)" = "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5"
           ! head -c 128 _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb | grep -q "version https://git-lfs.github.com/spec"
+          test -f _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb
+          test ! -L _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb
+          test "$(wc -c < _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb | tr -d ' ')" = "6755128"
+          test "$(shasum -a 256 _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb | cut -d ' ' -f 1)" = "4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb"
+          ! head -c 128 _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb | grep -q "version https://git-lfs.github.com/spec"
+          test -f _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb
+          test ! -L _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb
+          test "$(wc -c < _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb | tr -d ' ')" = "6993036"
+          test "$(shasum -a 256 _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb | cut -d ' ' -f 1)" = "631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24"
+          ! head -c 128 _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb | grep -q "version https://git-lfs.github.com/spec"
+          test -f _site/assets/photos/configurator/layout-model-thumbnails/fireplace-wall-v1.png
+          test "$(wc -c < _site/assets/photos/configurator/layout-model-thumbnails/fireplace-wall-v1.png | tr -d ' ')" = "357029"
+          test "$(shasum -a 256 _site/assets/photos/configurator/layout-model-thumbnails/fireplace-wall-v1.png | cut -d ' ' -f 1)" = "9d2f88d7c7cc0dce003fb30559fdd4bd0a9418bb93910f614b890a293fd08adc"
+          test -f _site/assets/photos/configurator/layout-model-thumbnails/door-wall-v1.png
+          test "$(wc -c < _site/assets/photos/configurator/layout-model-thumbnails/door-wall-v1.png | tr -d ' ')" = "90613"
+          test "$(shasum -a 256 _site/assets/photos/configurator/layout-model-thumbnails/door-wall-v1.png | cut -d ' ' -f 1)" = "72a2680bcf0b0418c2d9004fd04b3a1252f32293439dfc74c3d8cf94fad0d270"
+          test -f _site/assets/photos/configurator/layout-model-thumbnails/window-wall-v1.png
+          test "$(wc -c < _site/assets/photos/configurator/layout-model-thumbnails/window-wall-v1.png | tr -d ' ')" = "69497"
+          test "$(shasum -a 256 _site/assets/photos/configurator/layout-model-thumbnails/window-wall-v1.png | cut -d ' ' -f 1)" = "0ea83ccd8e73ae3095ebbd7d461d8f0b124383c463e50d124842324994b915b3"
           test -f _site/assets/environments/jq-warm-interior.hdr
           test -f _site/assets/environments/jq-warm-interior.jpg
           test -f _site/assets/environments/jq-neutral-studio.hdr
@@ -297,8 +336,13 @@ jobs:
           test -f _site/config/provisional-decisions.json
           test -f _site/config/room2-commercial-pbr-v1-assets.json
           test -f _site/config/room2-commercial-pbr-v1-semantic-audit.json
+          test -f _site/config/immersive-layout-model-audit-v1.json
+          test -f _site/config/immersive-layout-material-zones-v1.json
+          test -f _site/config/immersive-layout-payload-baseline-v1.json
           test -f _site/config/room-topologies.json
           test -f _site/assets/photos/configurator/integrated/tv-unit/framed-tv-wall/tv01-clear-wall-photoreal-preview-v1.webp
+          node scripts/prepare-immersive-payload-artifact.mjs --verify _site
+          node scripts/check-immersive-payload.mjs _site
           node --input-type=module <<'NODE'
           import { createHash } from "node:crypto";
           import { existsSync, readFileSync, statSync } from "node:fs";

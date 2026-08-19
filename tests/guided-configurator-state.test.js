@@ -8,8 +8,8 @@ import {
   FINISH_OPTIONS,
   PREVIEW_FINISH_MASK_ASSETS,
   PRODUCT_CHOICES,
-  PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES,
-  PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS,
+  PUBLIC_CONFIGURATOR_UNAVAILABLE_CHOICES,
+  PUBLIC_CONFIGURATOR_UNAVAILABLE_LAYOUTS,
   PUBLIC_CONFIGURATOR_LAYOUT_CHOICES,
   PUBLIC_CONFIGURATOR_LAYOUT_ID,
   PUBLIC_CONFIGURATOR_PRODUCT_CHOICES,
@@ -224,6 +224,11 @@ test("measurement schemas are derived from category and layout conditions", () =
   const radiatorFields = getMeasurementFields("radiator-cover", "clear-wall").map((field) => field.id);
 
   assert.deepEqual(windowFields.slice(0, 3), ["wallWidth", "ceilingHeight", "desiredDepth"]);
+  for (const commonField of ["lowerCabinetHeight", "lowerCabinetDepth", "upperBookcaseDepth", "toeKickHeight", "topFasciaHeight"]) {
+    assert.ok(windowFields.includes(commonField));
+    assert.ok(doorFields.includes(commonField));
+    assert.ok(fireplaceFields.includes(commonField));
+  }
   assert.ok(windowFields.includes("windowWidth"));
   assert.ok(windowFields.includes("radiatorBelowWindow"));
   assert.ok(!windowFields.includes("doorSwing"));
@@ -232,6 +237,8 @@ test("measurement schemas are derived from category and layout conditions", () =
   assert.ok(fireplaceFields.includes("mantelHeight"));
   assert.ok(fireplaceFields.includes("tvAboveFireplace"));
   assert.ok(tvFields.includes("tvScreenSize"));
+  assert.ok(tvFields.includes("tvOpeningWidth"));
+  assert.ok(tvFields.includes("tvOpeningHeight"));
   assert.ok(tvFields.includes("outletLocation"));
   assert.ok(radiatorFields.includes("radiatorDepth"));
   assert.ok(radiatorFields.includes("valveLocation"));
@@ -625,17 +632,23 @@ test("project summaries reflect normalized measurements and curated selections",
   assert.equal(summarySteps.notes, 4);
 });
 
-test("public availability keeps the full catalog intact while exposing one active product", () => {
+test("public availability keeps the full catalog intact while exposing one product and three audited layouts", () => {
   assert.equal(PUBLIC_CONFIGURATOR_PRODUCT_ID, "cabinet-shelves");
+  // Retained as the backward-compatible default for older Fireplace projects.
   assert.equal(PUBLIC_CONFIGURATOR_LAYOUT_ID, "fireplace-wall");
   assert.deepEqual(PUBLIC_CONFIGURATOR_PRODUCT_CHOICES.map(({ id }) => id), ["cabinet-shelves"]);
-  assert.deepEqual(PUBLIC_CONFIGURATOR_LAYOUT_CHOICES.map(({ id }) => id), ["fireplace-wall"]);
   assert.deepEqual(
-    PUBLIC_CONFIGURATOR_COMING_SOON_LAYOUTS.map(({ id }) => id),
-    SHARED_ROOM_LAYOUTS.filter(({ id }) => id !== "fireplace-wall").map(({ id }) => id)
+    PUBLIC_CONFIGURATOR_LAYOUT_CHOICES.map(({ id }) => id),
+    ["fireplace-wall", "door-wall", "window-wall"]
   );
   assert.deepEqual(
-    PUBLIC_CONFIGURATOR_COMING_SOON_CHOICES.map(({ id }) => id),
+    PUBLIC_CONFIGURATOR_UNAVAILABLE_LAYOUTS.map(({ id }) => id),
+    SHARED_ROOM_LAYOUTS
+      .filter(({ id }) => !["fireplace-wall", "door-wall", "window-wall"].includes(id))
+      .map(({ id }) => id)
+  );
+  assert.deepEqual(
+    PUBLIC_CONFIGURATOR_UNAVAILABLE_CHOICES.map(({ id }) => id),
     PRODUCT_CHOICES.filter(({ id }) => id !== "cabinet-shelves").map(({ id }) => id)
   );
 
@@ -1157,7 +1170,7 @@ test("project store accepts only an engine-verified persistence contract for acc
 
 test("catalog provides the complete curated finish and detail collections", () => {
   assert.deepEqual(FINISH_OPTIONS.wood.map((finish) => finish.label), ["White Oak", "Natural Oak", "Light Walnut", "Medium Walnut", "Dark Walnut"]);
-  assert.deepEqual(FINISH_OPTIONS.paint.map((finish) => finish.label), ["Warm White", "Soft Ivory", "Light Greige", "Sage Gray", "Charcoal"]);
+  assert.deepEqual(FINISH_OPTIONS.paint.map((finish) => finish.label), ["Shop-Primed", "Warm White", "Soft Ivory", "Light Greige", "Sage Gray", "Charcoal"]);
   for (const finish of [...FINISH_OPTIONS.wood, ...FINISH_OPTIONS.paint]) {
     assert.match(finish.color, /^#[0-9a-f]{6}$/i);
     assert.ok(finish.preview.tintOpacity > 0 && finish.preview.tintOpacity <= 1);
@@ -1188,28 +1201,35 @@ test("project store reports blocked writes instead of fabricating save success",
   assert.equal(projects.deleteProject(project.projectId), false);
 });
 
-test("the public configurator lazily ships the fixed Room 2 GLB viewer without the old generated scene", async () => {
-  const [html, guidedUi, guidedState, room2Viewer, appearance, workflow] = await Promise.all([
+test("the public configurator lazily ships the registry-driven immersive viewer without the old generated scene", async () => {
+  const [html, guidedUi, guidedState, layoutViewer, registry, workflow] = await Promise.all([
     readFile(new URL("../configurator.html", import.meta.url), "utf8"),
     readFile(new URL("../guided-configurator.js", import.meta.url), "utf8"),
     readFile(new URL("../guided-configurator-state.js", import.meta.url), "utf8"),
-    readFile(new URL("../guided-room2-viewer.js", import.meta.url), "utf8"),
-    readFile(new URL("../guided-room2-appearance.js", import.meta.url), "utf8"),
+    readFile(new URL("../guided-layout-viewer.js", import.meta.url), "utf8"),
+    readFile(new URL("../guided-layout-registry.js", import.meta.url), "utf8"),
     readFile(new URL("../.github/workflows/deploy-pages-production.yml", import.meta.url), "utf8")
   ]);
 
   assert.match(html, /guided-configurator\.js/);
   assert.match(html, /"three": "\.\/assets\/vendor\/three\.module\.js"/);
   assert.doesNotMatch(html, /src=["']configurator-3d|cabinet-ar|direct-hardware/);
-  assert.match(guidedUi, /import\(["']\.\/guided-room2-viewer\.js/);
+  assert.match(guidedUi, /import\(["']\.\/guided-layout-viewer\.js/);
   assert.doesNotMatch(guidedUi, /import\(["']\.\/guided-configurator-3d\.js/);
-  assert.match(room2Viewer, /assets\/vendor\/three\.module\.js/);
-  assert.match(room2Viewer, /GLTFLoader/);
-  assert.match(appearance, /Room2-Fireplace-bookcases-source-v1\.glb/);
+  assert.match(layoutViewer, /import \* as THREE from "three"/);
+  assert.match(layoutViewer, /GLTFLoader/);
+  assert.match(layoutViewer, /three-webgpu-renderer-r166\.bundle\.js/);
+  assert.match(registry, /Room2-Fireplace-bookcases-source-v1\.glb/);
+  assert.match(registry, /jq-door-wall-bookcase-room2-authoritative-v01\.glb/);
+  assert.match(registry, /jq-window-wall-bookcases-cabinets-room4-authoritative-v01\.glb/);
   assert.doesNotMatch(`${guidedUi}\n${guidedState}`, /bookcase-engine|cabinet-ar/);
   assert.match(workflow, /test ! -e _site\/configurator-3d\.js/);
   assert.match(workflow, /test ! -e _site\/guided-configurator-3d\.js/);
-  assert.match(workflow, /test -f _site\/guided-room2-viewer\.js/);
+  assert.match(workflow, /test -f _site\/guided-layout-viewer\.js/);
+  assert.match(workflow, /test -f _site\/guided-layout-registry\.js/);
   assert.match(workflow, /Room2-Fireplace-bookcases-source-v1\.glb/);
+  assert.match(workflow, /jq-door-wall-bookcase-room2-authoritative-v01\.glb/);
+  assert.match(workflow, /jq-window-wall-bookcases-cabinets-room4-authoritative-v01\.glb/);
   assert.match(workflow, /test -f _site\/assets\/vendor\/three\.module\.js/);
+  assert.match(workflow, /test -f _site\/assets\/vendor\/three-webgpu-renderer-r166\.bundle\.js/);
 });

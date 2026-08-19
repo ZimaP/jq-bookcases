@@ -41,6 +41,9 @@ jobs:
           node --version
           npm --version
 
+      - name: Install locked dependencies
+        run: npm ci
+
       - name: Validate JavaScript syntax
         run: npm run build
 

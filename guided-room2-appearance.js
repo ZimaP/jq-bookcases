@@ -123,7 +123,7 @@ export const ROOM2_APPEARANCE_PROFILE = freezeProfileTree({
         normalScale: [0, 0]
       },
       paint: {
-        ids: ["warm-white", "soft-ivory", "sage-gray", "charcoal", "light-greige"],
+        ids: ["shop-primed", "warm-white", "soft-ivory", "sage-gray", "charcoal", "light-greige"],
         loadPolicy: "selected family before reveal; lazy once otherwise; retained for viewer session",
         maps: {
           normalMap: `${ASSET_ROOT}/paint/normal.webp`,
@@ -142,6 +142,7 @@ export const ROOM2_APPEARANCE_PROFILE = freezeProfileTree({
       "light-walnut": { id: "light-walnut", label: "Light Walnut", family: "walnut", swatch: "#9a7048", calibratedMultiplier: "#d1a27c", roughnessFactor: 0.94 },
       "medium-walnut": { id: "medium-walnut", label: "Medium Walnut", family: "walnut", swatch: "#775238", calibratedMultiplier: "#aa7358", roughnessFactor: 0.9 },
       "dark-walnut": { id: "dark-walnut", label: "Dark Walnut", family: "walnut", swatch: "#4b372c", calibratedMultiplier: "#765145", roughnessFactor: 0.88 },
+      "shop-primed": { id: "shop-primed", label: "Shop-Primed", family: "paint", swatch: "#e7e3dc", calibratedMultiplier: "#d7d3cb", roughnessFactor: 1 },
       "warm-white": { id: "warm-white", label: "Warm White", family: "paint", swatch: "#f3f0e9", calibratedMultiplier: "#d9d5cc", roughnessFactor: 1 },
       "soft-ivory": { id: "soft-ivory", label: "Soft Ivory", family: "paint", swatch: "#e8dfd0", calibratedMultiplier: "#d1c7b8", roughnessFactor: 1 },
       "sage-gray": { id: "sage-gray", label: "Sage Gray", family: "paint", swatch: "#89918a", calibratedMultiplier: "#89918a", roughnessFactor: 1 },
