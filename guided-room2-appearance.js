@@ -185,7 +185,7 @@ export const ROOM2_APPEARANCE_PROFILE = freezeProfileTree({
     }
   },
   renderer: {
-    clearColor: 0xf0ece6,
+    clearColor: 0xf4f1ec,
     colorManagement: { enabled: true, workingColorSpace: "linear-srgb", outputTransformCount: 1 },
     outputColorSpace: "srgb",
     antialias: true,
@@ -234,8 +234,8 @@ export const ROOM2_APPEARANCE_PROFILE = freezeProfileTree({
   lighting: {
     coordinateBasis: "scene-space meters around semantic heroBounds; camera-independent",
     rectAreaUniformsInitialization: "same-revision RectAreaLightUniformsLib.init() exactly once before material compilation",
-    semanticRoleCount: 2,
-    directLightObjectCount: 3,
+    semanticRoleCount: 3,
+    directLightObjectCount: 4,
     maximumShadowCasters: 1,
     key: {
       semanticRole: "broad key plus compensated shadow proxy",
@@ -245,6 +245,10 @@ export const ROOM2_APPEARANCE_PROFILE = freezeProfileTree({
     fill: {
       semanticRole: "broad restrained fill",
       area: { type: "RectAreaLight", color: "#eef4ff", intensity: 2.15, width: 3.8, height: 3, position: [4.1, 1.55, 2.4], target: "heroBounds-center", castShadow: false }
+    },
+    separation: {
+      semanticRole: "high soft separation for shelf, rail, and face-frame transitions",
+      area: { type: "RectAreaLight", color: "#fffdf8", intensity: 1.65, width: 3.2, height: 1.4, position: [2.7, 4.65, 1.15], target: "heroBounds-center", castShadow: false }
     },
     shadows: {
       casterRole: "key.shadowProxy",
@@ -263,9 +267,9 @@ export const ROOM2_APPEARANCE_PROFILE = freezeProfileTree({
     selected: "neutral-balanced",
     evidenceOnlyHostnames: ["127.0.0.1", "localhost"],
     sweeps: {
-      "aces-soft": { id: "aces-soft", toneMapping: "aces-filmic", exposure: 0.9, environmentIntensity: 0.82, environmentRotationRadians: 0.28, areaKeyScale: 0.94, areaFillScale: 0.92, shadowProxyScale: 0.94 },
-      "neutral-balanced": { id: "neutral-balanced", toneMapping: "neutral", exposure: 1.02, environmentIntensity: 0.92, environmentRotationRadians: 0.52, areaKeyScale: 1, areaFillScale: 1, shadowProxyScale: 1 },
-      "neutral-reflective": { id: "neutral-reflective", toneMapping: "neutral", exposure: 0.96, environmentIntensity: 1.08, environmentRotationRadians: 0.92, areaKeyScale: 0.88, areaFillScale: 0.82, shadowProxyScale: 0.9 }
+      "aces-soft": { id: "aces-soft", toneMapping: "aces-filmic", exposure: 0.9, environmentIntensity: 0.82, environmentRotationRadians: 0.28, areaKeyScale: 0.94, areaFillScale: 0.92, areaSeparationScale: 0.9, shadowProxyScale: 0.94 },
+      "neutral-balanced": { id: "neutral-balanced", toneMapping: "neutral", exposure: 1.07, environmentIntensity: 0.98, environmentRotationRadians: 0.52, areaKeyScale: 1.02, areaFillScale: 1.05, areaSeparationScale: 1, shadowProxyScale: 1 },
+      "neutral-reflective": { id: "neutral-reflective", toneMapping: "neutral", exposure: 0.96, environmentIntensity: 1.08, environmentRotationRadians: 0.92, areaKeyScale: 0.88, areaFillScale: 0.82, areaSeparationScale: 0.82, shadowProxyScale: 0.9 }
     }
   }
 });

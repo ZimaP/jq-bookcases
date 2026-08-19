@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { PRODUCT_CHOICES, PUBLIC_CONFIGURATOR_PRODUCT_ID } from "../guided-configurator-data.js";
+import {
+  PRODUCT_CHOICES,
+  PUBLIC_CONFIGURATOR_PRODUCT_ID,
+  PUBLIC_CONFIGURATOR_PRODUCT_IDS
+} from "../guided-configurator-data.js";
 import {
   GUIDED_DRAFT_STORAGE_KEY,
   GUIDED_PROJECT_SCHEMA_VERSION,
@@ -125,7 +129,7 @@ test("authorization exposes seven products, three layouts, and four steps withou
   await openFreshProject(page);
   await expect(page.getByRole("navigation", { name: "Project steps" }).getByRole("button")).toHaveCount(4);
   await expect(page.locator("[data-product-choice], [data-unavailable-product-choice]")).toHaveCount(7);
-  for (const product of PRODUCT_CHOICES.filter(({ id }) => id !== PUBLIC_CONFIGURATOR_PRODUCT_ID)) {
+  for (const product of PRODUCT_CHOICES.filter(({ id }) => !PUBLIC_CONFIGURATOR_PRODUCT_IDS.includes(id))) {
     const card = page.locator(`[data-unavailable-product-choice="${product.id}"]`);
     await expect(card).toHaveAttribute("aria-disabled", "true");
     await expect(card).not.toHaveAttribute("disabled", "");
@@ -136,6 +140,48 @@ test("authorization exposes seven products, three layouts, and four steps withou
   await continueToLayouts(page);
   await expect(page.locator("[data-layout]")).toHaveCount(3);
   expect(await page.locator("[data-layout]").evaluateAll((nodes) => nodes.map((node) => node.dataset.layout))).toEqual(IMMERSIVE_LAYOUT_ORDER);
+  expect(failures).toEqual([]);
+});
+
+test("Window Storage preselects only Window Wall and preserves its exact authoritative journey", async ({ page }) => {
+  const failures = monitorRuntime(page);
+  const expected = IMMERSIVE_LAYOUT_REGISTRY["window-wall"];
+  const modelRequests = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.endsWith(expected.runtimeAsset.path)) modelRequests.push(request.url());
+  });
+  await openFreshProject(page);
+  const product = page.locator('[data-product-choice="window-storage"]');
+  await product.click();
+  await expect(product).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("[data-continue]")).toBeEnabled();
+  await page.locator("[data-continue]").click();
+  await expect(page.locator("[data-layout]")).toHaveCount(1);
+  const layout = page.locator('[data-layout="window-wall"]');
+  await expect(layout).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("[data-continue]")).toBeEnabled();
+  expect(modelRequests).toEqual([]);
+
+  await page.locator("[data-continue]").click();
+  const runtime = page.locator("[data-layout-viewer]");
+  await expect(runtime).toHaveAttribute("data-layout-id", "window-wall", { timeout: 30_000 });
+  await expect(runtime).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+  await expect(runtime).toHaveAttribute("data-geometry-immutable", "true");
+  const record = await page.evaluate(() => globalThis.__JQ_LAYOUT_VIEWER_DIAGNOSTICS__);
+  expect(record.assetPath).toBe(expected.runtimeAsset.path);
+  expect(record.assetBytes).toBe(expected.runtimeAsset.bytes);
+  expect(record.assetSha256).toBe(expected.runtimeAsset.sha256);
+  expect(record.ownership.parsedRoots).toBe(1);
+  expect(modelRequests).toHaveLength(1);
+  await expect(page.locator("[data-guided-3d-mount] img")).toHaveCount(0);
+
+  await page.locator("[data-continue]").click();
+  await expect(page.locator('[data-summary-value="product"]')).toHaveText("Window Storage");
+  await expect(page.locator('[data-summary-value="layout"]')).toHaveText("Window Wall");
+  await expect.poll(() => page.evaluate((key) => {
+    const draft = JSON.parse(localStorage.getItem(key) || "null");
+    return [draft?.category, draft?.style, draft?.layout];
+  }, GUIDED_DRAFT_STORAGE_KEY)).toEqual(["window-storage", "window-seat-storage", "window-wall"]);
   expect(failures).toEqual([]);
 });
 
@@ -184,6 +230,8 @@ test("character-by-character dimension input canonicalizes only on commit and re
   const failures = monitorRuntime(page);
   await openFreshProject(page);
   await continueToCustomization(page);
+  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
+  await page.locator("[data-dimension-handle]").click();
   const smart = page.locator(`[data-smart-dimension="${CONTROL_ID}"]`);
   await smart.click();
   await smart.selectText();
@@ -192,8 +240,8 @@ test("character-by-character dimension input canonicalizes only on commit and re
   await expect(smart).toHaveValue("12.5");
   await smart.blur();
   await expect(smart).toHaveValue("12.45");
+  await page.locator('[data-dimension-field="wallWidth"]').click();
   const wall = page.locator('[data-measurement="wallWidth"]');
-  await wall.scrollIntoViewIfNeeded();
   await wall.fill("150");
   await wall.blur();
   await wall.fill("152");
@@ -213,7 +261,9 @@ test("Step 1 uses unavailable language and exposes all seven primary image cards
   await expect(cards.locator("img")).toHaveCount(7);
   await expect(cards.locator(".product-availability-badge")).toHaveText([
     "Available now",
-    ...Array(6).fill("Not available yet")
+    ...Array(4).fill("Not available yet"),
+    "Available now",
+    "Not available yet"
   ]);
   await expect(page.getByText("More Fitted Furniture Previews", { exact: true })).toHaveCount(0);
   await expect(page.getByText(/Coming soon/i)).toHaveCount(0);
@@ -225,10 +275,13 @@ test("Step 1 uses unavailable language and exposes all seven primary image cards
   await expect(page.locator("[data-guided-toast]")).toContainText("not available yet");
 });
 
-test("visible project dimensions and saved Finish and Details choices reach Review", async ({ page }) => {
+test("contextual project dimensions and saved Finish and Options choices reach Review", async ({ page }) => {
   const failures = monitorRuntime(page);
   await openFreshProject(page);
   const runtime = await continueToCustomization(page, "door-wall");
+  await expect(page.locator("[data-customization-mode-panel]")).toHaveCount(0);
+  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
+  await page.getByRole("button", { name: "Project dimensions", exact: true }).click();
   const dimensions = page.locator("[data-room-measurements]");
   await expect(dimensions).toBeVisible();
   await expect(dimensions.locator("summary")).toHaveCount(0);
@@ -247,20 +300,21 @@ test("visible project dimensions and saved Finish and Details choices reach Revi
     "doorTrimWidth",
     "doorSwing"
   ]) {
-    await expect(page.locator(`[data-measurement="${fieldId}"]`).first()).toBeVisible();
+    await expect(page.locator(`[data-dimension-field="${fieldId}"]`)).toBeVisible();
   }
+  await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
   const lowerHeight = page.locator('[data-measurement="lowerCabinetHeight"]');
   await lowerHeight.fill("35 1/2");
   await lowerHeight.blur();
   await expect(lowerHeight).toHaveValue("35.5");
   await expect(page.locator(".automatic-engineering-note")).toContainText("1.25-inch countertop");
 
-  await page.getByRole("tab", { name: "Finish" }).click();
+  await page.getByRole("button", { name: "Finish", exact: true }).click();
   await page.getByRole("button", { name: "Shop-Primed", exact: true }).click();
   await expect(runtime).toHaveAttribute("data-state", "ready");
   await expect(page.locator(".immersive-viewer-surface")).not.toHaveAttribute("data-guided3d-state", "finish-error");
 
-  await page.getByRole("tab", { name: "Details" }).click();
+  await page.getByRole("button", { name: "Options", exact: true }).click();
   await page.getByRole("button", { name: /Flat Panel/ }).click();
   await page.getByRole("button", { name: /Black Pull/ }).click();
   await page.getByRole("button", { name: /Integrated LED/ }).click();
@@ -277,7 +331,7 @@ test("visible project dimensions and saved Finish and Details choices reach Revi
   await expect(page.locator('[data-summary-value="baseStyle"]')).toContainText("Recessed toe kick");
   await expect(page.locator('[data-summary-value="topTreatment"]')).toHaveText("Dykes crown profile");
   await page.locator('[data-edit-section="finish"]').click();
-  await expect(page.getByRole("tab", { name: "Finish" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("button", { name: "Finish", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("button", { name: "Shop-Primed", exact: true })).toHaveAttribute("aria-pressed", "true");
   expect(failures).toEqual([]);
 });
@@ -285,6 +339,8 @@ test("visible project dimensions and saved Finish and Details choices reach Revi
 test("save and reload retain the selected layout and smart dimension", async ({ page }) => {
   await openFreshProject(page);
   await continueToCustomization(page, "window-wall");
+  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
+  await page.locator("[data-dimension-handle]").click();
   const control = IMMERSIVE_LAYOUT_REGISTRY["window-wall"].geometryControlManifest[CONTROL_ID];
   const inches = millimetersToInches(control.maxMillimeters).toFixed(2);
   const input = page.locator(`[data-smart-dimension="${CONTROL_ID}"]`);

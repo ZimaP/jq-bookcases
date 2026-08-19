@@ -213,8 +213,8 @@ test("runtime source enforces atomic lazy Finish loading without geometry or top
 
 test("the selected studio rig, camera fit, output conversion, and cold payload stay within gates", async () => {
   const profile = ROOM2_APPEARANCE_PROFILE;
-  assert.equal(profile.lighting.semanticRoleCount, 2);
-  assert.equal(profile.lighting.directLightObjectCount, 3);
+  assert.equal(profile.lighting.semanticRoleCount, 3);
+  assert.equal(profile.lighting.directLightObjectCount, 4);
   assert.equal(profile.lighting.maximumShadowCasters, 1);
   assert.equal(profile.renderer.colorManagement.outputTransformCount, 1);
   assert.equal(profile.renderer.postProcessing.enabled, false);

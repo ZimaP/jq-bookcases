@@ -891,26 +891,32 @@ export const PRODUCT_CHOICES = Object.freeze([
 ]);
 
 /**
- * Public progress-release availability is intentionally narrower than the
- * internal product catalog. The catalog remains intact for saved-project
- * fidelity and deterministic engine contracts, while this identifier is the
- * only product that a customer can start or resume as an active configuration
- * in the four-step preview.
+ * Public release availability remains narrower than the internal catalog.
+ * The catalog stays intact for saved-project fidelity while this explicit
+ * matrix is the only route into the four-step immersive viewer.
  */
 export const PUBLIC_CONFIGURATOR_PRODUCT_ID = "cabinet-shelves";
+export const PUBLIC_CONFIGURATOR_PRODUCT_IDS = Object.freeze([
+  "cabinet-shelves",
+  "window-storage"
+]);
 export const PUBLIC_CONFIGURATOR_LAYOUT_ID = "fireplace-wall";
 export const PUBLIC_CONFIGURATOR_LAYOUT_IDS = Object.freeze([
   "fireplace-wall",
   "door-wall",
   "window-wall"
 ]);
+export const PUBLIC_CONFIGURATOR_PRODUCT_LAYOUT_IDS = Object.freeze({
+  "cabinet-shelves": PUBLIC_CONFIGURATOR_LAYOUT_IDS,
+  "window-storage": Object.freeze(["window-wall"])
+});
 
 export const PUBLIC_CONFIGURATOR_PRODUCT_CHOICES = Object.freeze(
-  PRODUCT_CHOICES.filter((choice) => choice.id === PUBLIC_CONFIGURATOR_PRODUCT_ID)
+  PRODUCT_CHOICES.filter((choice) => PUBLIC_CONFIGURATOR_PRODUCT_IDS.includes(choice.id))
 );
 
 export const PUBLIC_CONFIGURATOR_UNAVAILABLE_CHOICES = Object.freeze(
-  PRODUCT_CHOICES.filter((choice) => choice.id !== PUBLIC_CONFIGURATOR_PRODUCT_ID)
+  PRODUCT_CHOICES.filter((choice) => !PUBLIC_CONFIGURATOR_PRODUCT_IDS.includes(choice.id))
 );
 
 export const PUBLIC_CONFIGURATOR_LAYOUT_CHOICES = Object.freeze(
@@ -1198,7 +1204,15 @@ export function getProductChoiceForSelection(categoryId, styleId) {
 }
 
 export function isPublicConfiguratorProduct(categoryId, styleId) {
-  return getProductChoiceForSelection(categoryId, styleId)?.id === PUBLIC_CONFIGURATOR_PRODUCT_ID;
+  return PUBLIC_CONFIGURATOR_PRODUCT_IDS.includes(
+    getProductChoiceForSelection(categoryId, styleId)?.id
+  );
+}
+
+export function getPublicConfiguratorLayoutChoices(categoryId, styleId) {
+  const productId = getProductChoiceForSelection(categoryId, styleId)?.id;
+  const layoutIds = PUBLIC_CONFIGURATOR_PRODUCT_LAYOUT_IDS[productId] || [];
+  return PUBLIC_CONFIGURATOR_LAYOUT_CHOICES.filter((layout) => layoutIds.includes(layout.id));
 }
 
 const finishOption = (id, label, family, color, preview) => Object.freeze({
@@ -1401,8 +1415,9 @@ export function getLayout(categoryId, layoutId) {
 }
 
 export function isPublicConfiguratorLayout(categoryId, styleId, layoutId) {
-  return isPublicConfiguratorProduct(categoryId, styleId)
-    && PUBLIC_CONFIGURATOR_LAYOUT_IDS.includes(getLayout(categoryId, layoutId)?.id);
+  const normalizedLayoutId = getLayout(categoryId, layoutId)?.id;
+  return getPublicConfiguratorLayoutChoices(categoryId, styleId)
+    .some((layout) => layout.id === normalizedLayoutId);
 }
 
 export function getStyle(categoryId, styleId) {

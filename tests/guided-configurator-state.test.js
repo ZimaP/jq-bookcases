@@ -14,6 +14,7 @@ import {
   PUBLIC_CONFIGURATOR_LAYOUT_ID,
   PUBLIC_CONFIGURATOR_PRODUCT_CHOICES,
   PUBLIC_CONFIGURATOR_PRODUCT_ID,
+  PUBLIC_CONFIGURATOR_PRODUCT_IDS,
   PRODUCT_INTEGRATED_PREVIEW_ASSETS,
   PUBLIC_BOOKCASE_STYLE_IDS,
   SHARED_ROOM_LAYOUTS,
@@ -21,6 +22,7 @@ import {
   getLayout,
   getMeasurementDiagramSpec,
   getMeasurementFields,
+  getPublicConfiguratorLayoutChoices,
   resolveFinishMaskAsset,
   resolvePreviewAsset,
   resolvePreviewPresentation
@@ -632,11 +634,12 @@ test("project summaries reflect normalized measurements and curated selections",
   assert.equal(summarySteps.notes, 4);
 });
 
-test("public availability keeps the full catalog intact while exposing one product and three audited layouts", () => {
+test("public availability keeps the catalog intact while exposing the exact two-product layout matrix", () => {
   assert.equal(PUBLIC_CONFIGURATOR_PRODUCT_ID, "cabinet-shelves");
+  assert.deepEqual(PUBLIC_CONFIGURATOR_PRODUCT_IDS, ["cabinet-shelves", "window-storage"]);
   // Retained as the backward-compatible default for older Fireplace projects.
   assert.equal(PUBLIC_CONFIGURATOR_LAYOUT_ID, "fireplace-wall");
-  assert.deepEqual(PUBLIC_CONFIGURATOR_PRODUCT_CHOICES.map(({ id }) => id), ["cabinet-shelves"]);
+  assert.deepEqual(PUBLIC_CONFIGURATOR_PRODUCT_CHOICES.map(({ id }) => id), ["cabinet-shelves", "window-storage"]);
   assert.deepEqual(
     PUBLIC_CONFIGURATOR_LAYOUT_CHOICES.map(({ id }) => id),
     ["fireplace-wall", "door-wall", "window-wall"]
@@ -649,8 +652,30 @@ test("public availability keeps the full catalog intact while exposing one produ
   );
   assert.deepEqual(
     PUBLIC_CONFIGURATOR_UNAVAILABLE_CHOICES.map(({ id }) => id),
-    PRODUCT_CHOICES.filter(({ id }) => id !== "cabinet-shelves").map(({ id }) => id)
+    PRODUCT_CHOICES.filter(({ id }) => !["cabinet-shelves", "window-storage"].includes(id)).map(({ id }) => id)
   );
+  assert.deepEqual(
+    getPublicConfiguratorLayoutChoices("bookcase", "cabinet-base-shelves").map(({ id }) => id),
+    ["fireplace-wall", "door-wall", "window-wall"]
+  );
+  assert.deepEqual(
+    getPublicConfiguratorLayoutChoices("window-storage", "window-seat-storage").map(({ id }) => id),
+    ["window-wall"]
+  );
+
+  const windowStorage = normalizeProject({
+    ...createProject({ now: 20, random: 0.1, category: "window-storage", productSelected: true }),
+    category: "window-storage",
+    style: "window-seat-storage",
+    productSelected: true,
+    layout: "window-wall",
+    currentStep: 3,
+    maxVisitedStep: 3
+  }, { now: 21 });
+  assert.equal(windowStorage.productAvailability, "available");
+  assert.equal(windowStorage.layoutAvailability, "available");
+  assert.equal(windowStorage.category, "window-storage");
+  assert.equal(windowStorage.layout, "window-wall");
 
   const unsupported = normalizeProject({
     ...createProject({ now: 25, random: 0.2 }),

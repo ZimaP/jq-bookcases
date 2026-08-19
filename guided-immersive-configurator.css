@@ -1255,3 +1255,436 @@ body.guided-page:has(.guided-shell--step-3) {
   .immersive-viewer-spinner { animation: none; }
   .immersive-customization-panel { transition: none; }
 }
+
+/* Viewer-first customization release. The verified model keeps the complete
+   workspace; requested controls float above it and never reserve a side rail. */
+.immersive-configurator--viewer-first {
+  position: relative;
+  display: block;
+  grid-template-columns: none;
+  background: #f1eee9;
+}
+
+.immersive-configurator--viewer-first .immersive-viewer-surface {
+  width: 100%;
+  height: 100%;
+}
+
+.immersive-mode-selector {
+  position: absolute;
+  z-index: 12;
+  top: 18px;
+  right: 20px;
+  display: flex;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid rgba(43, 36, 30, .12);
+  border-radius: 7px;
+  background: rgba(253, 252, 250, .92);
+  box-shadow: 0 8px 24px rgba(48, 39, 31, .1);
+  backdrop-filter: blur(16px);
+}
+
+.immersive-mode-button {
+  min-width: 70px;
+  min-height: 44px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 4px;
+  color: #514940;
+  background: transparent;
+  font-size: .72rem;
+  font-weight: 750;
+  letter-spacing: .015em;
+  cursor: pointer;
+}
+
+.immersive-mode-button:hover {
+  background: #eee8e1;
+}
+
+.immersive-mode-button.is-active,
+.immersive-mode-button[aria-pressed="true"] {
+  color: #fff;
+  background: #65472f;
+}
+
+.immersive-dimension-hint {
+  position: absolute;
+  z-index: 12;
+  top: 82px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 7px 6px 12px;
+  border: 1px solid rgba(54, 45, 37, .14);
+  border-radius: 7px;
+  color: #5c534a;
+  background: rgba(253, 252, 250, .94);
+  box-shadow: 0 8px 24px rgba(44, 36, 29, .12);
+  font-size: .68rem;
+  backdrop-filter: blur(14px);
+}
+
+.immersive-dimension-hint button {
+  min-height: 44px;
+  padding: 7px 10px;
+  border: 1px solid #b99b7c;
+  border-radius: 4px;
+  color: #513b27;
+  background: #fff;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.immersive-mode-button:focus-visible,
+.immersive-dimension-hint button:focus-visible,
+.immersive-mode-panel button:focus-visible,
+.immersive-viewer-footer > button:focus-visible {
+  outline: 3px solid #6e4b2b;
+  outline-offset: 2px;
+}
+
+.immersive-mode-panel {
+  position: absolute;
+  z-index: 14;
+  top: 82px;
+  right: 20px;
+  bottom: 86px;
+  display: grid;
+  width: min(390px, calc(100% - 40px));
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid rgba(54, 45, 37, .14);
+  border-radius: 9px;
+  background: rgba(253, 252, 250, .97);
+  box-shadow: 0 18px 52px rgba(44, 36, 29, .18);
+  backdrop-filter: blur(18px);
+}
+
+.immersive-mode-panel-header {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid #e6e0d9;
+}
+
+.immersive-mode-panel-header > span {
+  display: grid;
+  line-height: 1.15;
+}
+
+.immersive-mode-panel-header small {
+  color: #7a7066;
+  font-size: .58rem;
+  font-weight: 750;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.immersive-mode-panel-header button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #554c43;
+  background: transparent;
+  cursor: pointer;
+}
+
+.immersive-mode-panel-header button:hover {
+  background: #eee8e1;
+}
+
+.immersive-mode-panel-content {
+  min-height: 0;
+  padding: 15px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.immersive-mode-panel .immersive-preview-disclaimer {
+  margin: 0;
+  padding: 8px 12px;
+  border-top: 1px solid #e6e0d9;
+  color: #675e55;
+  background: #f5f1ec;
+  font-size: .62rem;
+  line-height: 1.35;
+  text-align: center;
+  white-space: normal;
+}
+
+.immersive-viewer-footer {
+  position: absolute;
+  z-index: 11;
+  right: 18px;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 18px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.immersive-viewer-footer > * {
+  pointer-events: auto;
+}
+
+.immersive-viewer-footer > .guided-button {
+  min-height: 48px;
+  margin: 0;
+  box-shadow: 0 6px 20px rgba(42, 34, 28, .12);
+}
+
+.immersive-viewer-footer .immersive-view-toolbar {
+  position: static;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  display: flex;
+  min-width: 0;
+  justify-content: center;
+  overflow-x: auto;
+  pointer-events: auto;
+  scrollbar-width: none;
+}
+
+.immersive-viewer-footer .immersive-view-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.dimension-mode-intro {
+  margin: 0 0 12px;
+  color: #625a52;
+  font-size: .75rem;
+  line-height: 1.45;
+}
+
+.room-measurements--contextual {
+  margin-top: 14px;
+}
+
+.dimension-inventory {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.dimension-inventory > button {
+  display: flex;
+  width: 100%;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid #dfd7cf;
+  border-radius: 5px;
+  color: #332e29;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dimension-inventory > button:hover {
+  border-color: #a98969;
+  background: #faf7f3;
+}
+
+.dimension-inventory > button > span:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.dimension-inventory > button small,
+.dimension-inventory > button > span:last-child {
+  color: #766d64;
+  font-size: .62rem;
+}
+
+.dimension-inventory > button > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.dimension-context-popover {
+  display: grid;
+  gap: 12px;
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid #d9cfc5;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.dimension-context-back {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-self: start;
+  gap: 5px;
+  padding: 5px 8px;
+  border: 0;
+  color: #674829;
+  background: transparent;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.dimension-authority-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.authority-badge--review {
+  color: #5c5044;
+  background: #eee7df;
+}
+
+.dimension-context-popover > p {
+  margin: 0;
+  color: #6b6259;
+  font-size: .69rem;
+  line-height: 1.4;
+}
+
+.automatic-engineering-note summary {
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.guided-shell--step-2 .layout-grid--immersive:has(.layout-card:only-child) {
+  width: min(560px, 100%);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (max-width: 767px) {
+  .immersive-mode-selector {
+    top: 66px;
+    right: 8px;
+    left: 8px;
+    justify-content: stretch;
+  }
+
+  .immersive-mode-button {
+    min-width: 0;
+    flex: 1 1 25%;
+    padding-inline: 5px;
+    font-size: .66rem;
+  }
+
+  .immersive-dimension-hint {
+    top: 124px;
+    right: 8px;
+    left: 8px;
+    justify-content: space-between;
+  }
+
+  .immersive-mode-panel {
+    top: auto;
+    right: 8px;
+    bottom: calc(118px + env(safe-area-inset-bottom));
+    left: 8px;
+    width: auto;
+    max-height: min(50dvh, 430px);
+    border-radius: 10px;
+  }
+
+  .immersive-viewer-meta {
+    top: 8px;
+  }
+
+  .immersive-viewer-footer {
+    right: 8px;
+    bottom: max(6px, env(safe-area-inset-bottom));
+    left: 8px;
+    grid-template-columns: 1fr 1.35fr;
+    gap: 6px 8px;
+  }
+
+  .immersive-viewer-footer .immersive-view-toolbar {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-content: flex-start;
+  }
+
+  .immersive-back-action {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .immersive-review-action {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .immersive-viewer-footer > .guided-button {
+    min-height: 44px;
+    padding-inline: 10px;
+    font-size: .69rem;
+  }
+
+  .immersive-viewer-authority {
+    bottom: 124px;
+  }
+
+  .immersive-interaction-hint {
+    bottom: 178px;
+  }
+}
+
+@media (max-width: 420px) {
+  .immersive-layout-mark,
+  .immersive-viewer-meta small {
+    display: none;
+  }
+
+  .immersive-mode-panel-content {
+    padding: 12px;
+  }
+
+  .immersive-mode-panel-header {
+    min-height: 50px;
+    padding-block: 4px;
+  }
+}
+
+@media (max-height: 650px) and (max-width: 767px) {
+  .immersive-mode-panel {
+    bottom: calc(108px + env(safe-area-inset-bottom));
+    max-height: min(46dvh, 280px);
+  }
+
+  .immersive-mode-selector {
+    top: 8px;
+    right: 8px;
+    left: auto;
+    max-width: calc(100% - 150px);
+  }
+
+  .immersive-dimension-hint {
+    top: 60px;
+    right: 8px;
+    left: auto;
+    max-width: calc(100% - 16px);
+  }
+
+  .immersive-viewer-meta {
+    max-width: 130px;
+  }
+}
