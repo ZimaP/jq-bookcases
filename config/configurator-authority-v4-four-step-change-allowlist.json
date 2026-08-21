@@ -1,0 +1,62 @@
+{
+  "schema": "jq-configurator-authority-v4-four-step-change-allowlist-v1",
+  "purpose": "Narrow owner-directed correction from the rejected V4 five-step proof to the accepted four-step application journey.",
+  "allowedPaths": [
+    "config/configurator-authority-v4-four-step-change-allowlist.json",
+    "configurator.html",
+    "tools/configurator-authority-v4/app.js",
+    "tools/configurator-authority-v4/authority-contract.js",
+    "tools/configurator-authority-v4/state.js",
+    "tools/configurator-authority-v4/v4.css",
+    "tools/configurator-authority-v4/generate-contracts.mjs",
+    "tools/configurator-authority-v4/validate-contracts.mjs",
+    "tools/configurator-authority-v4/capture-evidence.mjs",
+    "tools/configurator-authority-v4/compose-evidence.mjs",
+    "tools/configurator-authority-v4/finalize-handoff.mjs",
+    "tools/configurator-authority-v4/prepare-blind-packets.mjs",
+    "tools/configurator-authority-v4/record-project-identity.mjs",
+    "tools/configurator-authority-v4/record-protected-fingerprints.mjs",
+    "tools/configurator-authority-v4/record-payload.mjs",
+    "tools/configurator-authority-v4/verify-source-identity.mjs",
+    "tools/configurator-authority-v4/verify-v4.mjs",
+    "tests/configurator-authority-v4.test.js",
+    "e2e/configurator-authority-v4.spec.js",
+    "config/configurator-authority-v4-four-step.schema.json",
+    "config/configurator-authority-v4-four-step.json",
+    "config/configurator-authority-v4-four-step-coverage.json",
+    "config/configurator-authority-v4-four-step-control-feasibility.json",
+    "config/configurator-authority-v4-four-step-interaction.json",
+    "config/configurator-authority-v4-four-step-provenance.json",
+    ".local-proof/configurator-authority-v4/candidate-four-step-*"
+  ],
+  "transientTestArtifacts": [
+    "playwright-report/index.html",
+    "test-results/**"
+  ],
+  "explicitlyProtected": [
+    "assets/**/*.glb",
+    "guided-layout-viewer.js",
+    "guided-room2-materials.js",
+    "guided-room2-appearance.js",
+    "assets/vendor/three.module.js",
+    "tools/configurator-authority-v4/viewer-v4.js",
+    "tools/configurator-authority-v4/visual-contract.js",
+    "config/immersive-layout-model-audit-v1.json",
+    "config/immersive-layout-material-zones-v1.json",
+    "config/configurator-authority-v4-visual-roles.json",
+    "config/configurator-authority-v4-presentation.json",
+    "config/configurator-authority-v4-modified-edges.json",
+    "config/configurator-authority-v4-protected-edges.json",
+    "config/configurator-authority-v4-provenance.json",
+    ".local-proof/configurator-authority-v4/candidate-*/**",
+    "package.json",
+    "package-lock.json"
+  ],
+  "forbiddenActions": [
+    "GLB or geometry mutation",
+    "renderer/material/lighting/camera mutation",
+    "V2 or V3 mutation",
+    "package policy mutation",
+    "production behavior mutation without the exact loopback proof flag"
+  ]
+}

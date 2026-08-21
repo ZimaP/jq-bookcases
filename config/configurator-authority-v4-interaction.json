@@ -1,0 +1,280 @@
+{
+  "architecture": {
+    "drawers": 0,
+    "layouts": 3,
+    "legacyModeSelectors": 0,
+    "modalChains": 0,
+    "navigationModels": 1,
+    "schemaRenderers": 1,
+    "shells": 1,
+    "tabs": 0
+  },
+  "customerLiveControls": [
+    {
+      "authorityId": "JQ-STYLE-LAYOUT-001",
+      "id": "layout",
+      "modelAssertion": "whole registered asset SHA"
+    }
+  ],
+  "desktop": {
+    "baseType": "one click",
+    "layoutSelection": "one click",
+    "numericEdit": "focus then type",
+    "pendingRows": "zero actions (noninteractive)",
+    "reset": "one click per field",
+    "stepNavigation": "one click"
+  },
+  "intentionallyAbsent": [
+    "customer shelf spacing",
+    "finish swatches",
+    "door choices",
+    "hardware choices",
+    "crown profiles",
+    "lighting control",
+    "pricing",
+    "Apply button"
+  ],
+  "keyboard": {
+    "baseType": "native radio group",
+    "camera": "focusable application with arrows, plus/minus, Home and 0",
+    "fields": "native number input with labeled unit/error",
+    "layoutSelection": "native radio group",
+    "stepNavigation": "native buttons"
+  },
+  "mobile": {
+    "baseType": "one tap",
+    "layoutSelection": "one tap",
+    "modelOverlay": false,
+    "numericEdit": "focus then type",
+    "reset": "one tap per field",
+    "stepNavigation": "one tap"
+  },
+  "reviewOnlyControls": [
+    {
+      "authorityId": "JQ-ROOM-WIDTH-001",
+      "id": "roomWidth",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-HEIGHT-001",
+      "id": "roomHeight",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-DEPTH-001",
+      "id": "builtInDepth",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-FIREPLACE-OPENING-001",
+      "id": "fireplaceWidth",
+      "layouts": [
+        "fireplace-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-FIREPLACE-OPENING-001",
+      "id": "fireplaceHeight",
+      "layouts": [
+        "fireplace-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-FIREPLACE-OPENING-001",
+      "id": "fireplaceProjection",
+      "layouts": [
+        "fireplace-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-FIREPLACE-SIDE-WIDTHS-001",
+      "id": "fireplaceLeftWidth",
+      "layouts": [
+        "fireplace-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-FIREPLACE-SIDE-WIDTHS-001",
+      "id": "fireplaceRightWidth",
+      "layouts": [
+        "fireplace-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-DOOR-OPENING-001",
+      "id": "doorWidth",
+      "layouts": [
+        "door-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-DOOR-OPENING-001",
+      "id": "doorHeight",
+      "layouts": [
+        "door-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-DOOR-OPENING-001",
+      "id": "doorLeftOffset",
+      "layouts": [
+        "door-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-DOOR-OPENING-001",
+      "id": "doorTrimWidth",
+      "layouts": [
+        "door-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-WINDOW-OPENING-001",
+      "id": "windowWidth",
+      "layouts": [
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-WINDOW-OPENING-001",
+      "id": "windowHeight",
+      "layouts": [
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-WINDOW-OPENING-001",
+      "id": "windowSillHeight",
+      "layouts": [
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-WINDOW-OPENING-001",
+      "id": "windowLeftOffset",
+      "layouts": [
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-ROOM-WINDOW-OPENING-001",
+      "id": "windowRightOffset",
+      "layouts": [
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-CONFIG-LOWER-HEIGHT-001",
+      "id": "lowerCabinetHeight",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-CONFIG-LOWER-DEPTH-001",
+      "id": "lowerCabinetDepth",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-CONFIG-OVERHEAD-DEPTH-001",
+      "id": "overheadDepth",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-CONFIG-TOE-KICK-HEIGHT-001",
+      "id": "toeKickHeight",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-CONFIG-TOP-FASCIA-HEIGHT-001",
+      "id": "topFasciaHeight",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-CONFIG-BASE-TYPE-001",
+      "id": "baseType",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    }
+  ],
+  "schema": "jq-configurator-authority-v4-interaction-v1"
+}

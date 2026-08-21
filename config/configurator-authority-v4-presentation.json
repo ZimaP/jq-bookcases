@@ -1,0 +1,336 @@
+{
+  "contract": {
+    "diagnostics": {
+      "proof-dark": {
+        "base": "#343638",
+        "id": "proof-dark",
+        "label": "Proof dark diagnostic",
+        "roles": {
+          "architectural-opening": {
+            "color": "#e1e2de",
+            "unlitContext": true
+          },
+          "architectural-opening-detail": {
+            "color": "#c6c9c5",
+            "unlitContext": true
+          },
+          "back": {
+            "color": "#252729",
+            "metalness": 0,
+            "roughness": 0.78
+          },
+          "countertop": {
+            "color": "#555658",
+            "metalness": 0,
+            "roughness": 0.58
+          },
+          "door-detail": {
+            "color": "#3d4042",
+            "metalness": 0,
+            "roughness": 0.64
+          },
+          "filler-end": {
+            "color": "#444648",
+            "metalness": 0,
+            "roughness": 0.72
+          },
+          "frame-stile": {
+            "color": "#37393b",
+            "metalness": 0,
+            "roughness": 0.68
+          },
+          "hardware": {
+            "color": "#a17a51",
+            "metalness": 1,
+            "roughness": 0.32
+          },
+          "interior": {
+            "color": "#675d4d",
+            "metalness": 0,
+            "roughness": 0.76
+          },
+          "shelf": {
+            "color": "#4a4c4d",
+            "metalness": 0,
+            "roughness": 0.69
+          },
+          "toe-base": {
+            "color": "#1d1f20",
+            "metalness": 0,
+            "roughness": 0.78
+          },
+          "top-rail": {
+            "color": "#454749",
+            "metalness": 0,
+            "roughness": 0.7
+          }
+        }
+      },
+      "proof-light": {
+        "base": "#d7d2c8",
+        "id": "proof-light",
+        "label": "Proof light diagnostic",
+        "roles": {
+          "architectural-opening": {
+            "color": "#e1e2de",
+            "unlitContext": true
+          },
+          "architectural-opening-detail": {
+            "color": "#c6c9c5",
+            "unlitContext": true
+          },
+          "back": {
+            "color": "#b8b1a6",
+            "metalness": 0,
+            "roughness": 0.78
+          },
+          "countertop": {
+            "color": "#aaa398",
+            "metalness": 0,
+            "roughness": 0.62
+          },
+          "door-detail": {
+            "color": "#d8d3c9",
+            "metalness": 0,
+            "roughness": 0.68
+          },
+          "filler-end": {
+            "color": "#c2bcb1",
+            "metalness": 0,
+            "roughness": 0.73
+          },
+          "frame-stile": {
+            "color": "#d0cbc1",
+            "metalness": 0,
+            "roughness": 0.7
+          },
+          "hardware": {
+            "color": "#7b6044",
+            "metalness": 1,
+            "roughness": 0.36
+          },
+          "interior": {
+            "color": "#cbbda6",
+            "metalness": 0,
+            "roughness": 0.76
+          },
+          "shelf": {
+            "color": "#c8c1b5",
+            "metalness": 0,
+            "roughness": 0.72
+          },
+          "toe-base": {
+            "color": "#77736c",
+            "metalness": 0,
+            "roughness": 0.76
+          },
+          "top-rail": {
+            "color": "#bdb6aa",
+            "metalness": 0,
+            "roughness": 0.72
+          }
+        }
+      },
+      "proof-mid": {
+        "base": "#8c877f",
+        "id": "proof-mid",
+        "label": "Proof mid diagnostic",
+        "roles": {
+          "architectural-opening": {
+            "color": "#e1e2de",
+            "unlitContext": true
+          },
+          "architectural-opening-detail": {
+            "color": "#c6c9c5",
+            "unlitContext": true
+          },
+          "back": {
+            "color": "#69655f",
+            "metalness": 0,
+            "roughness": 0.78
+          },
+          "countertop": {
+            "color": "#5e5a55",
+            "metalness": 0,
+            "roughness": 0.62
+          },
+          "door-detail": {
+            "color": "#928d85",
+            "metalness": 0,
+            "roughness": 0.68
+          },
+          "filler-end": {
+            "color": "#74706a",
+            "metalness": 0,
+            "roughness": 0.73
+          },
+          "frame-stile": {
+            "color": "#89847c",
+            "metalness": 0,
+            "roughness": 0.7
+          },
+          "hardware": {
+            "color": "#9c7650",
+            "metalness": 1,
+            "roughness": 0.34
+          },
+          "interior": {
+            "color": "#a2927a",
+            "metalness": 0,
+            "roughness": 0.76
+          },
+          "shelf": {
+            "color": "#7e7972",
+            "metalness": 0,
+            "roughness": 0.72
+          },
+          "toe-base": {
+            "color": "#373532",
+            "metalness": 0,
+            "roughness": 0.76
+          },
+          "top-rail": {
+            "color": "#716d66",
+            "metalness": 0,
+            "roughness": 0.72
+          }
+        }
+      }
+    },
+    "environment": {
+      "bytes": 1341884,
+      "intensity": 0.98,
+      "path": "assets/environments/jq-neutral-studio.hdr",
+      "rotationRadians": 0.52,
+      "sha256": "0ff81b73774abc781428340a56a0c0170447c7919be9b451c05cf15b4c90a931"
+    },
+    "lighting": {
+      "areaFillScale": 1.05,
+      "areaKeyScale": 1.02,
+      "areaSeparationScale": 1,
+      "perLayoutExposureOverrides": 0,
+      "policy": "same accepted neutral studio rig translated only by each registered orbit target",
+      "shadowProxyScale": 1
+    },
+    "protectedRoles": [
+      "room-shell",
+      "floor",
+      "fireplace",
+      "architectural-hardware",
+      "architectural-glazing",
+      "support-hardware"
+    ],
+    "renderer": {
+      "ao": false,
+      "backend": "webgl2",
+      "exposure": 1.07,
+      "maximumDevicePixelRatio": 2,
+      "maximumDrawCalls": 245,
+      "outputColorSpace": "srgb",
+      "postProcessing": false,
+      "shadows": "pcf-soft-static-on-demand",
+      "toneMapping": "neutral"
+    },
+    "schema": "jq-configurator-authority-v4-visual-v1",
+    "scope": "loopback proof only; diagnostic materials are not customer finishes and never enter project state",
+    "shadow": {
+      "castRoles": [
+        "door-detail",
+        "shelf",
+        "frame-stile",
+        "filler-end",
+        "countertop",
+        "top-rail",
+        "toe-base"
+      ],
+      "protectedReceivers": [
+        "floor",
+        "floor-room-shell"
+      ],
+      "receiveRoles": [
+        "door-detail",
+        "shelf",
+        "back",
+        "frame-stile",
+        "filler-end",
+        "countertop",
+        "top-rail",
+        "toe-base",
+        "interior"
+      ],
+      "rolePriority": [
+        "toe-base",
+        "countertop",
+        "door-detail",
+        "shelf",
+        "filler-end",
+        "frame-stile",
+        "top-rail"
+      ],
+      "selection": "role priority, descending audited world-bound surface area, then stable primitive ID"
+    }
+  },
+  "customerFinishAuthority": false,
+  "floorPolicy": "source geometry, UVs, material and texture bindings remain unchanged; exact V4 shadow receiver response may alter proof pixels and is measured/disclosed",
+  "modifiedGeometry": false,
+  "openingContextPolicy": "The exact fireplace-frame, architectural-door and architectural-window-frame primitives use one shared proof-only unlit neutral outer/detail response. This isolates cabinetry QA from severe source-normal lighting lobes without changing source bytes, geometry, transforms, opening bounds, glass, fire or architectural hardware. It is not a customer material or production treatment.",
+  "perLayoutExceptions": [],
+  "proofOnly": true,
+  "roleCounts": {
+    "door-wall": {
+      "architectural-hardware": 2,
+      "architectural-opening": 1,
+      "architectural-opening-detail": 1,
+      "back": 6,
+      "countertop": 10,
+      "door-detail": 20,
+      "filler-end": 6,
+      "floor": 1,
+      "frame-stile": 13,
+      "hardware": 4,
+      "interior": 5,
+      "room-shell": 4,
+      "shelf": 10,
+      "support-hardware": 36,
+      "toe-base": 6,
+      "top-rail": 2
+    },
+    "fireplace-wall": {
+      "architectural-opening": 1,
+      "back": 16,
+      "countertop": 10,
+      "door-detail": 8,
+      "filler-end": 10,
+      "fireplace": 1,
+      "floor": 1,
+      "frame-stile": 48,
+      "hardware": 8,
+      "room-shell": 8,
+      "shelf": 20,
+      "support-hardware": 48,
+      "toe-base": 2,
+      "top-rail": 4
+    },
+    "window-wall": {
+      "architectural-glazing": 1,
+      "architectural-opening": 1,
+      "architectural-opening-detail": 1,
+      "back": 13,
+      "countertop": 15,
+      "door-detail": 30,
+      "filler-end": 5,
+      "floor": 1,
+      "frame-stile": 19,
+      "hardware": 6,
+      "interior": 22,
+      "room-shell": 4,
+      "shelf": 10,
+      "support-hardware": 48,
+      "toe-base": 3,
+      "top-rail": 3
+    }
+  },
+  "roleManifest": "config/configurator-authority-v4-visual-roles.json",
+  "roomShellPolicy": "source geometry/material bindings unchanged; shared lighting/shadow receiver response only",
+  "schema": "jq-configurator-authority-v4-presentation-v1"
+}

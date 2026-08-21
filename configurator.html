@@ -20,7 +20,27 @@
       }
     }
   </script>
-  <script type="module" src="guided-configurator.js?v=immersive-layout-configurator-v1"></script>
+  <script type="module">
+    const hostname = location.hostname.startsWith("[") && location.hostname.endsWith("]")
+      ? location.hostname.slice(1, -1)
+      : location.hostname;
+    const localProof = ["127.0.0.1", "localhost", "::1"].includes(hostname)
+      && new URLSearchParams(location.search).get("authorityProof") === "configurator-v4";
+    if (localProof) {
+      if (location.hash === "#step-5") {
+        history.replaceState(history.state, "", `${location.pathname}${location.search}#step-4`);
+      }
+      document.body?.setAttribute("data-v4-authority-proof", "true");
+      const stylesheet = document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = "tools/configurator-authority-v4/v4.css?v=configurator-authority-v4-four-step-r2";
+      document.head.append(stylesheet);
+      await import("./guided-configurator.js?v=immersive-layout-configurator-v1");
+      await import("./tools/configurator-authority-v4/app.js?v=configurator-authority-v4-four-step");
+    } else {
+      await import("./guided-configurator.js?v=immersive-layout-configurator-v1");
+    }
+  </script>
 </head>
 <body class="guided-page" data-page="configurator">
   <a class="skip-link" href="#main">Skip to configurator</a>

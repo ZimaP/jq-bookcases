@@ -1,0 +1,135 @@
+{
+  "architecture": {
+    "acceptedBaselineSteps": [
+      1,
+      2,
+      4
+    ],
+    "acceptedStepCount": 4,
+    "customizationComponents": 1,
+    "drawers": 0,
+    "exactStepOrder": [
+      "Choose Product",
+      "Choose Layout",
+      "Customization",
+      "Review & Details"
+    ],
+    "layouts": 3,
+    "legacyModeSelectors": 0,
+    "modalChains": 0,
+    "navigationModels": 1,
+    "tabs": 0,
+    "v4OwnedSteps": [
+      3
+    ]
+  },
+  "customerLiveControls": [
+    {
+      "authorityId": "JQ-STYLE-LAYOUT-001",
+      "id": "layout",
+      "modelAssertion": "whole registered asset SHA"
+    }
+  ],
+  "desktop": {
+    "baseType": "one click",
+    "layoutSelection": "accepted one click",
+    "numericEdit": "focus then type",
+    "pendingRows": "zero actions (noninteractive)",
+    "reset": "one click per field",
+    "stepNavigation": "accepted native buttons"
+  },
+  "intentionallyAbsent": [
+    "customer shelf spacing",
+    "finish swatches",
+    "door choices",
+    "hardware choices",
+    "crown profiles",
+    "lighting control",
+    "pricing",
+    "Apply button"
+  ],
+  "keyboard": {
+    "baseType": "native radio group",
+    "camera": "focusable application with arrows, plus/minus, Home and 0",
+    "fields": "native number input with labeled unit/error",
+    "layoutSelection": "accepted layout buttons",
+    "stepNavigation": "accepted native buttons"
+  },
+  "mobile": {
+    "baseType": "one tap",
+    "layoutSelection": "accepted one tap",
+    "modelOverlay": false,
+    "numericEdit": "focus then type",
+    "reset": "one tap per field",
+    "stepNavigation": "accepted native buttons"
+  },
+  "reviewOnlyControls": [
+    {
+      "authorityId": "JQ-CONFIG-LOWER-HEIGHT-001",
+      "id": "lowerCabinetHeight",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-CONFIG-LOWER-DEPTH-001",
+      "id": "lowerCabinetDepth",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-CONFIG-OVERHEAD-DEPTH-001",
+      "id": "overheadDepth",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-CONFIG-TOE-KICK-HEIGHT-001",
+      "id": "toeKickHeight",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-CONFIG-TOP-FASCIA-HEIGHT-001",
+      "id": "topFasciaHeight",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    },
+    {
+      "authorityId": "JQ-CONFIG-BASE-TYPE-001",
+      "id": "baseType",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "modelEffect": "none",
+      "persistence": "layout-scoped"
+    }
+  ],
+  "schema": "jq-configurator-authority-v4-four-step-interaction-v1"
+}

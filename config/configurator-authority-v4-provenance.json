@@ -1,0 +1,205 @@
+{
+  "accepted": {
+    "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+    "tree": "d46d3cb00357fa24c5b5346392b0f65d390534ae"
+  },
+  "authoritySources": {
+    "emailThreadId": "19f6cf838a5ad0dc",
+    "pdf": {
+      "bytes": 194608,
+      "path": "sources/configurator-authority-v4/Fireplace-Bookcases-7-17-26.pdf",
+      "sha256": "c0261a6a728da2a6fec69da79e16b7e56e8ddb9801f8ca0724efa35e7f6c2600"
+    }
+  },
+  "deterministicIdentityDerivation": {
+    "acceptance": "repeat hashes equal registered source hashes; bounds/openings/pivots/reference planes remain source-identical",
+    "expectedNativeDegenerateTriangles": {
+      "door-wall": 85,
+      "fireplace-wall": 115,
+      "window-wall": 146
+    },
+    "geometryChanges": 0,
+    "method": "read each accepted source twice into independent buffers and compare exact bytes; no derived runtime asset is emitted",
+    "modifiedEdges": 0
+  },
+  "generated": [
+    "config/configurator-authority-v4.json",
+    "config/configurator-authority-v4-coverage.json",
+    "config/configurator-authority-v4-control-feasibility.json",
+    "config/configurator-authority-v4-visual-roles.json",
+    "config/configurator-authority-v4-presentation.json",
+    "config/configurator-authority-v4-modified-edges.json",
+    "config/configurator-authority-v4-protected-edges.json",
+    "config/configurator-authority-v4-interaction.json"
+  ],
+  "schema": "jq-configurator-authority-v4-provenance-v1",
+  "sourceAssets": [
+    {
+      "bytes": 6712076,
+      "path": "assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb",
+      "sha256": "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5"
+    },
+    {
+      "bytes": 6755128,
+      "path": "assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb",
+      "sha256": "4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb"
+    },
+    {
+      "bytes": 6993036,
+      "path": "assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb",
+      "sha256": "631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24"
+    }
+  ],
+  "tools": [
+    {
+      "bytes": 11786,
+      "path": "configurator.html",
+      "sha256": "d8d9780076f540ec7bc6635a5a35e093c8b44fc737a9a04a680e6426cc6c0b14"
+    },
+    {
+      "bytes": 5539,
+      "path": "package.json",
+      "sha256": "036cc78166bf48ce97dc9aea2deedbdc2198303094374ff4da1bb24093a98f11"
+    },
+    {
+      "bytes": 17629,
+      "path": "package-lock.json",
+      "sha256": "92ed45ae612c262aeb8f263c67b7df5115b7a27104c7e6266e46cafa76ea616a"
+    },
+    {
+      "bytes": 1869,
+      "path": "playwright.config.js",
+      "sha256": "213ae74f6c0435511eaf8b9befb0fa52215eb466b3c1a58d44dee35c0541a21a"
+    },
+    {
+      "bytes": 76316,
+      "path": "guided-configurator-data.js",
+      "sha256": "f2fd9ee4d2a29dff28c8e06870b63db3a7810b2475c995772e933781575a75fc"
+    },
+    {
+      "bytes": 14163,
+      "path": "guided-layout-registry.js",
+      "sha256": "709824c7ee531989ce75931ca682264f1592acfbcefc349a0828122fbb3ad9e9"
+    },
+    {
+      "bytes": 3172619,
+      "path": "config/immersive-layout-model-audit-v1.json",
+      "sha256": "25f5c208ad47ffaaa17abfebe75a825f224fe1de2b679d29b75856eb78f33a2e"
+    },
+    {
+      "bytes": 1365752,
+      "path": "config/immersive-layout-material-zones-v1.json",
+      "sha256": "a1e48640b4fb685252d9af7e108acaae3d8c44aeadcd7da57b5fc05996f94a5f"
+    },
+    {
+      "bytes": 9153,
+      "path": "config/configurator-authority-v4.schema.json",
+      "sha256": "aa2780005c0de6ebc84921c6418bb584d1b4acecc3df19a6aa4a7ffde389306e"
+    },
+    {
+      "bytes": 45807,
+      "path": "tools/configurator-authority-v4/authority-contract.js",
+      "sha256": "ea9b8d8f23185c0d6658466377e044c5b57cd5863c3adac9738983a07011c577"
+    },
+    {
+      "bytes": 33382,
+      "path": "tools/configurator-authority-v4/app.js",
+      "sha256": "4319593f203112976179468f9cd9a4a0a3325d3db023310ff58be4bd1e192443"
+    },
+    {
+      "bytes": 7765,
+      "path": "tools/configurator-authority-v4/state.js",
+      "sha256": "d3f54f1371fa51aacc3c8630a5955c563e508aa7033fed72d41985d7db732e97"
+    },
+    {
+      "bytes": 5688,
+      "path": "tools/configurator-authority-v4/visual-contract.js",
+      "sha256": "090e86b6c82b1a286914cb0db0615b8b6cb2fe5c503f841e4bdf778616837a39"
+    },
+    {
+      "bytes": 10614,
+      "path": "tools/configurator-authority-v4/viewer-v4.js",
+      "sha256": "18f08907cc4de32e4cf0d3a0fe508f413b2b6fb2025e293580d51ed6ec7ab4ce"
+    },
+    {
+      "bytes": 13448,
+      "path": "tools/configurator-authority-v4/v4.css",
+      "sha256": "dd6e632e9a03d620fd5f38a95e3ad9003e1701ac49f1e45f71560e9363564a1f"
+    },
+    {
+      "bytes": 40590,
+      "path": "tools/configurator-authority-v4/generate-contracts.mjs",
+      "sha256": "bdda2bb552153cea42d830ca27920dde51cc19c13a1b3273e2b1f6ab4dd67393"
+    },
+    {
+      "bytes": 8276,
+      "path": "tools/configurator-authority-v4/validate-contracts.mjs",
+      "sha256": "ad668e169ba40a9823d3c25b8b91a8e146835a662039b1fe6b91214d26bc8454"
+    },
+    {
+      "bytes": 6764,
+      "path": "tools/configurator-authority-v4/verify-source-identity.mjs",
+      "sha256": "800f03d58210a5ef160c3bad21d21c277a06e40e76c49a68f937d3c8457938e9"
+    },
+    {
+      "bytes": 35351,
+      "path": "tools/configurator-authority-v4/capture-evidence.mjs",
+      "sha256": "d20c05717a964fc4e810e9326b56fc3c49cae900557116c8c32ced6f8a514c66"
+    },
+    {
+      "bytes": 12474,
+      "path": "tools/configurator-authority-v4/analyze-evidence.mjs",
+      "sha256": "7a4180eb5e1455226e89a52494582d64481d9cb6d8dcf0585086026e0a150a8d"
+    },
+    {
+      "bytes": 17652,
+      "path": "tools/configurator-authority-v4/measure-performance.mjs",
+      "sha256": "7b679fb70ec78073c2f21f9a944e9eb025eea5698f92e4a5a3fb3324b7efe4c5"
+    },
+    {
+      "bytes": 7745,
+      "path": "tools/configurator-authority-v4/compose-evidence.mjs",
+      "sha256": "a0a11dd2f82b32b61f93804e53d90af29f2fdd03e7dc1a2b5789ef0963ef2440"
+    },
+    {
+      "bytes": 7641,
+      "path": "tools/configurator-authority-v4/prepare-blind-packets.mjs",
+      "sha256": "b6f3840c88a8a93592f7a8a17c3573293da89a393249a21984e052bb0888b156"
+    },
+    {
+      "bytes": 4900,
+      "path": "tools/configurator-authority-v4/record-payload.mjs",
+      "sha256": "4005783af3b897d68e5e5a2da022eb681a5fb64dad1f6c394440c9a5a549c6f1"
+    },
+    {
+      "bytes": 3333,
+      "path": "tools/configurator-authority-v4/record-protected-fingerprints.mjs",
+      "sha256": "3efb95ce9747a2866e6273af23542d6afa06281d6fd0b28620a6e280cf90d8a7"
+    },
+    {
+      "bytes": 4853,
+      "path": "tools/configurator-authority-v4/record-project-identity.mjs",
+      "sha256": "177c3483991fe0c4dfca63d27b37d8387a9b73fcfb52c028e3aabee9a1fc5445"
+    },
+    {
+      "bytes": 8911,
+      "path": "tools/configurator-authority-v4/finalize-handoff.mjs",
+      "sha256": "b3414fdfd8c32e144f2d4c69465aaecb0cb3f5f1cb07a3a80b1e5a1642cd2977"
+    },
+    {
+      "bytes": 7097,
+      "path": "tools/configurator-authority-v4/verify-v4.mjs",
+      "sha256": "185b593a91237f7cd7fe31e090b718ff5be49736e34129748cd865a1d8b50b5c"
+    },
+    {
+      "bytes": 15359,
+      "path": "tests/configurator-authority-v4.test.js",
+      "sha256": "0f5c99907bc6a851c6e21ddd4b8c0bea578c5cfc361b8635511a4e136f14736f"
+    },
+    {
+      "bytes": 21435,
+      "path": "e2e/configurator-authority-v4.spec.js",
+      "sha256": "84b483cb1a34916cd0cd873d115120620d0471fa4dcef573cc03d953627b1981"
+    }
+  ]
+}

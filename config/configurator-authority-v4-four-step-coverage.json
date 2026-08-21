@@ -1,0 +1,2489 @@
+{
+  "assertions": {
+    "everyAuthorityItemDisposed": true,
+    "everyRegisteredCopyHasSelector": true,
+    "everyVisibleElementHasAuthority": true,
+    "generatedInventoryKeysUnique": true,
+    "noCustomerShelfSpacingField": true,
+    "noInteractivePendingAuthority": true,
+    "noUnapprovedFinishOption": true,
+    "orphanVisibleElements": [],
+    "registeredCopyCount": 54,
+    "registeredCopyIdsUnique": true,
+    "requiredAuthorityWasNotSubstituted": true
+  },
+  "authorityDispositions": [
+    {
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "authorityStatus": "customer-live",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "accepted shared step navigation",
+        "visible": true
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "registered-copy",
+          "id": "journey.navigation"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "customization.title"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "action.back"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "action.review"
+        },
+        {
+          "elementType": "step",
+          "id": "choose-product"
+        },
+        {
+          "elementType": "step",
+          "id": "choose-layout"
+        },
+        {
+          "elementType": "step",
+          "id": "customization"
+        },
+        {
+          "elementType": "step",
+          "id": "review-details"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-UX-MINIMAL-001",
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "registered-copy",
+          "id": "finish.pending-title"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "finish.pending-list"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "status.pending"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-UX-MODEL-NAV-001",
+      "authorityStatus": "customer-live",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "shared model stage",
+        "visible": true
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "registered-copy",
+          "id": "stage.label"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "camera.group"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "camera.front"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "camera.left"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "camera.right"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "camera.zoom-out"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "camera.zoom-in"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "camera.fit"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "camera.reset"
+        },
+        {
+          "elementType": "dynamic-copy",
+          "id": "viewer-authority-instructions"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "authorityStatus": "customer-live",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "accepted site header and local project dialogs",
+        "visible": true
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "registered-copy",
+          "id": "site.save"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "site.projects"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "dialog.save.title"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "dialog.save.eyebrow"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "dialog.save.close"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "dialog.save.name"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "dialog.save.name-input"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "dialog.save.note"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "dialog.save.cancel"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "dialog.save.submit"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "dialog.projects.title"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "dialog.projects.eyebrow"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "dialog.projects.close-icon"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "dialog.projects.close"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "dialog.projects.new"
+        },
+        {
+          "elementType": "dynamic-copy",
+          "id": "saved-project-resume"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-UX-SITE-NAV-001",
+      "authorityStatus": "customer-live",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "accepted site header and menu",
+        "visible": true
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "registered-copy",
+          "id": "site.skip"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "site.brand"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "site.menu.open"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "site.menu.close"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "site.menu.label"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "site.menu.link.1"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "site.menu.link.2"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "site.menu.link.3"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "site.menu.link.4"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "site.menu.link.5"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "site.menu.link.6"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-STYLE-LAYOUT-001",
+      "authorityStatus": "customer-live",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Choose Layout (accepted Step 2)",
+        "visible": true
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "registered-copy",
+          "id": "stage.selected-layout"
+        },
+        {
+          "elementType": "layout-choice",
+          "id": "fireplace-wall"
+        },
+        {
+          "elementType": "layout-choice",
+          "id": "door-wall"
+        },
+        {
+          "elementType": "layout-choice",
+          "id": "window-wall"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-ROOM-WIDTH-001",
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "omitted by owner; Room Size workflow is not authorized",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-ROOM-HEIGHT-001",
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "omitted by owner; Room Size workflow is not authorized",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-ROOM-DEPTH-001",
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "omitted by owner; Room Size workflow is not authorized",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-ROOM-FIREPLACE-OPENING-001",
+      "authorityStatus": "conditional",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "omitted by owner; Room Size workflow is not authorized",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-ROOM-FIREPLACE-SIDE-WIDTHS-001",
+      "authorityStatus": "conditional",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "omitted by owner; Room Size workflow is not authorized",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-ROOM-DOOR-OPENING-001",
+      "authorityStatus": "conditional",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "omitted by owner; Room Size workflow is not authorized",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-ROOM-WINDOW-OPENING-001",
+      "authorityStatus": "conditional",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "omitted by owner; Room Size workflow is not authorized",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-CONFIG-TV-OPENING-001",
+      "authorityStatus": "blocked-by-asset",
+      "blocker": "Approved TV-containing style and audited TV-opening asset mapping are missing.",
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "omitted; no applicable approved style",
+        "visible": false
+      },
+      "implementationStatus": "blocked",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-CONFIG-LOWER-HEIGHT-001",
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Customization (Step 3)",
+        "visible": true
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "field",
+          "id": "lowerCabinetHeight"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-CONFIG-LOWER-DEPTH-001",
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Customization (Step 3)",
+        "visible": true
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "field",
+          "id": "lowerCabinetDepth"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-CONFIG-OVERHEAD-DEPTH-001",
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Customization (Step 3)",
+        "visible": true
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "field",
+          "id": "overheadDepth"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-CONFIG-TOE-KICK-HEIGHT-001",
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Customization (Step 3)",
+        "visible": true
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "field",
+          "id": "toeKickHeight"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-CONFIG-TOP-FASCIA-HEIGHT-001",
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Customization (Step 3)",
+        "visible": true
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "field",
+          "id": "topFasciaHeight"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-CONFIG-BASE-TYPE-001",
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Customization (Step 3)",
+        "visible": true
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "registered-copy",
+          "id": "base.review-note"
+        },
+        {
+          "elementType": "field",
+          "id": "baseType"
+        },
+        {
+          "elementType": "option",
+          "id": "baseType:flush"
+        },
+        {
+          "elementType": "option",
+          "id": "baseType:recessed"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-CONFIG-RECESSED-BASE-HEIGHT-001",
+      "authorityStatus": "blocked-by-asset",
+      "blocker": "Authoritative range and independent asset-region mapping are missing.",
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Customization note when Recessed applies",
+        "visible": true
+      },
+      "implementationStatus": "blocked",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "registered-copy",
+          "id": "base.blocked-title"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "base.blocked-body"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "status.blocked"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-FINISH-PAINT-001",
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Customization pending catalog",
+        "visible": true
+      },
+      "implementationStatus": "pending",
+      "pendingDecision": "Approved Sherwin-Williams palette and product specification.",
+      "uiReferences": [
+        {
+          "elementType": "pending-row",
+          "id": "JQ-FINISH-PAINT-001"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-FINISH-WHITE-OAK-001",
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Customization pending catalog",
+        "visible": true
+      },
+      "implementationStatus": "pending",
+      "pendingDecision": "Approved prefinished white-oak product.",
+      "uiReferences": [
+        {
+          "elementType": "pending-row",
+          "id": "JQ-FINISH-WHITE-OAK-001"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-FINISH-WALNUT-001",
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Customization pending catalog",
+        "visible": true
+      },
+      "implementationStatus": "pending",
+      "pendingDecision": "Approved prefinished walnut product.",
+      "uiReferences": [
+        {
+          "elementType": "pending-row",
+          "id": "JQ-FINISH-WALNUT-001"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-FINISH-SHOP-PRIMED-001",
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Customization pending catalog",
+        "visible": true
+      },
+      "implementationStatus": "pending",
+      "pendingDecision": "Confirm whether shop-primed is offered and define its specification.",
+      "uiReferences": [
+        {
+          "elementType": "pending-row",
+          "id": "JQ-FINISH-SHOP-PRIMED-001"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-DOOR-CATALOG-001",
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Customization pending catalog",
+        "visible": true
+      },
+      "implementationStatus": "pending",
+      "pendingDecision": "Approved limited door catalog.",
+      "uiReferences": [
+        {
+          "elementType": "pending-row",
+          "id": "JQ-DOOR-CATALOG-001"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-DYKES-CROWN-CATALOG-001",
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Customization pending catalog",
+        "visible": true
+      },
+      "implementationStatus": "pending",
+      "pendingDecision": "Approved Dykes moulding profile list and geometry.",
+      "uiReferences": [
+        {
+          "elementType": "pending-row",
+          "id": "JQ-DYKES-CROWN-CATALOG-001"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-HARDWARE-CATALOG-001",
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Customization pending catalog",
+        "visible": true
+      },
+      "implementationStatus": "pending",
+      "pendingDecision": "Approved hardware catalog and applicability.",
+      "uiReferences": [
+        {
+          "elementType": "pending-row",
+          "id": "JQ-HARDWARE-CATALOG-001"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-LIGHTING-SYSTEM-001",
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Customization pending catalog",
+        "visible": true
+      },
+      "implementationStatus": "pending",
+      "pendingDecision": "Select and authorize the lighting system.",
+      "uiReferences": [
+        {
+          "elementType": "pending-row",
+          "id": "JQ-LIGHTING-SYSTEM-001"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-INTERIOR-MAPLE-001",
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-FILLER-CONSTRUCTION-001",
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-KICK-CONSTRUCTION-001",
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-FILLER-BACKER-ADJUSTMENT-001",
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-SHELF-1IN-27MAX-001",
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-SHELF-1_25IN-31MAX-001",
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-SHELF-1_5IN-36MAX-001",
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-SHELF-PIN-5MM-001",
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-SIZE-VARIABLE-RULES-CONSTANT-001",
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": []
+    },
+    {
+      "authorityId": "JQ-SMALL-CHANGES-NOT-ENGINEERING-001",
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "registered-copy",
+          "id": "customization.eyebrow"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "customization.intro"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "status.review"
+        }
+      ]
+    },
+    {
+      "authorityId": "JQ-PROOF-DIAGNOSTIC-MATERIALS-001",
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "query-selected QA capture only",
+        "visible": false
+      },
+      "implementationStatus": "implemented",
+      "pendingDecision": null,
+      "uiReferences": [
+        {
+          "elementType": "registered-copy",
+          "id": "stage.loading"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "stage.ready"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "stage.error"
+        },
+        {
+          "elementType": "registered-copy",
+          "id": "finish.pending-body"
+        }
+      ]
+    }
+  ],
+  "method": {
+    "registry": "The correction contract inventories baseline Step 1/2/4 routes and the V4-owned Step 3 surface. V4 fields, options and pending rows are generated from the authority-contract exports.",
+    "runtimeAudit": "Focused Chromium traverses every route/layout and verifies exact baseline behavior outside Step 3, then checks every V4-owned visible semantic element against its cited authority item.",
+    "testId": "V4-AUTH-VISIBLE-DOM-001"
+  },
+  "renderedInventory": [
+    {
+      "authorityId": "JQ-UX-SITE-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "site.skip",
+      "label": "Skip to configurator",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": ".skip-link",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html site header, skip link and configurator menu",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-SITE-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "site.brand",
+      "label": "JQ Bookcases home",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": ".guided-brand",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html site header, skip link and configurator menu",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "site.save",
+      "label": "Save Project",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": "[data-guided-save]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "site.projects",
+      "label": "My Projects",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": "[data-guided-projects]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-SITE-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "site.menu.open",
+      "label": "Open menu",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": "[data-guided-menu-button]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html site header, skip link and configurator menu",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-SITE-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "site.menu.close",
+      "label": "Close menu",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": "[data-guided-menu-button]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html site header, skip link and configurator menu",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-SITE-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "site.menu.label",
+      "label": "Configurator menu",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": "#guided-menu",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html site header, skip link and configurator menu",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-SITE-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "site.menu.link.1",
+      "label": "Home",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "#guided-menu a:nth-of-type(1)",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html site header, skip link and configurator menu",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-SITE-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "site.menu.link.2",
+      "label": "How It Works",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "#guided-menu a:nth-of-type(2)",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html site header, skip link and configurator menu",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-SITE-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "site.menu.link.3",
+      "label": "Materials",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "#guided-menu a:nth-of-type(3)",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html site header, skip link and configurator menu",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-SITE-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "site.menu.link.4",
+      "label": "Inspiration",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "#guided-menu a:nth-of-type(4)",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html site header, skip link and configurator menu",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-SITE-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "site.menu.link.5",
+      "label": "FAQ",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "#guided-menu a:nth-of-type(5)",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html site header, skip link and configurator menu",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-SITE-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "site.menu.link.6",
+      "label": "Contact the design team",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "#guided-menu a:nth-of-type(6)",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html site header, skip link and configurator menu",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "journey.navigation",
+      "label": "Project steps",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": ".guided-stepper",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator.js STEP_DEFINITIONS and accepted four-step navigation",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-MODEL-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "stage.label",
+      "label": "Interactive selected layout model",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": ".v4-model-stage",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-viewer.js camera/orbit controls and configurator.html accessible viewer shell",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-STYLE-LAYOUT-001",
+      "defaultSource": {
+        "reference": "guided-configurator-state.js default project",
+        "source": "accepted project default",
+        "value": "fireplace-wall"
+      },
+      "elementType": "registered-copy",
+      "id": "stage.selected-layout",
+      "label": "Selected layout",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": ".v4-stage-heading small",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-registry.js:28-255 and guided-configurator-data.js:898-925",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-PROOF-DIAGNOSTIC-MATERIALS-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "stage.loading",
+      "label": "Preparing verified model",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-v4-viewer-state]",
+      "source": {
+        "date": "2026-08-20",
+        "reference": "User-authorized visual QA diagnostic",
+        "type": "V4 proof methodology"
+      },
+      "status": "review-only"
+    },
+    {
+      "authorityId": "JQ-PROOF-DIAGNOSTIC-MATERIALS-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "stage.ready",
+      "label": "Verified source · proof diagnostic",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-v4-viewer-state]",
+      "source": {
+        "date": "2026-08-20",
+        "reference": "User-authorized visual QA diagnostic",
+        "type": "V4 proof methodology"
+      },
+      "status": "review-only"
+    },
+    {
+      "authorityId": "JQ-PROOF-DIAGNOSTIC-MATERIALS-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "stage.error",
+      "label": "Model unavailable",
+      "match": "prefix",
+      "rangeSource": null,
+      "selector": "[data-v4-viewer-state]",
+      "source": {
+        "date": "2026-08-20",
+        "reference": "User-authorized visual QA diagnostic",
+        "type": "V4 proof methodology"
+      },
+      "status": "review-only"
+    },
+    {
+      "authorityId": "JQ-UX-MODEL-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "camera.group",
+      "label": "Model view controls",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": ".v4-camera-bar",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-viewer.js camera/orbit controls and configurator.html accessible viewer shell",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-MODEL-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "camera.front",
+      "label": "Front",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-v4-view=front]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-viewer.js camera/orbit controls and configurator.html accessible viewer shell",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-MODEL-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "camera.left",
+      "label": "Left",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-v4-view=left]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-viewer.js camera/orbit controls and configurator.html accessible viewer shell",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-MODEL-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "camera.right",
+      "label": "Right",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-v4-view=right]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-viewer.js camera/orbit controls and configurator.html accessible viewer shell",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-MODEL-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "camera.zoom-out",
+      "label": "Zoom out",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": "[data-v4-camera=out]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-viewer.js camera/orbit controls and configurator.html accessible viewer shell",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-MODEL-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "camera.zoom-in",
+      "label": "Zoom in",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": "[data-v4-camera=in]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-viewer.js camera/orbit controls and configurator.html accessible viewer shell",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-MODEL-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "camera.fit",
+      "label": "Fit",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-v4-camera=fit]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-viewer.js camera/orbit controls and configurator.html accessible viewer shell",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-MODEL-NAV-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "camera.reset",
+      "label": "Reset view",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-v4-camera=reset]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-viewer.js camera/orbit controls and configurator.html accessible viewer shell",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-SMALL-CHANGES-NOT-ENGINEERING-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "customization.eyebrow",
+      "label": "Design review inputs",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": ".v4-eyebrow",
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "standardized-hidden"
+    },
+    {
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "customization.title",
+      "label": "Customization",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "#v4-customization-title",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator.js STEP_DEFINITIONS and accepted four-step navigation",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-SMALL-CHANGES-NOT-ENGINEERING-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "customization.intro",
+      "label": "Record only confirmed construction details for the selected layout.",
+      "match": "contains",
+      "rangeSource": null,
+      "selector": ".v4-customization-panel > header > p:last-child",
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "standardized-hidden"
+    },
+    {
+      "authorityId": "JQ-CONFIG-BASE-TYPE-001",
+      "defaultSource": {
+        "reference": "guided-configurator-state.js:55-60 and 2026-07-17 email",
+        "source": "accepted state plus John Quinn direction",
+        "value": "flush"
+      },
+      "elementType": "registered-copy",
+      "id": "base.review-note",
+      "label": "Saved for design review; the source model does not switch base construction.",
+      "match": "exact",
+      "rangeSource": {
+        "reference": "2026-07-17 16:32 message",
+        "source": "John Quinn email",
+        "values": [
+          "flush",
+          "recessed"
+        ]
+      },
+      "selector": ".v4-field-card .v4-field-note",
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "review-only"
+    },
+    {
+      "authorityId": "JQ-CONFIG-RECESSED-BASE-HEIGHT-001",
+      "defaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "config/fit-policy.json:9-12 nominal 4 in",
+        "type": "accepted repository configuration"
+      },
+      "elementType": "registered-copy",
+      "id": "base.blocked-title",
+      "label": "Recessed-base height requires design confirmation.",
+      "match": "contains",
+      "rangeSource": null,
+      "selector": ".v4-blocked-note",
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "blocked-by-asset"
+    },
+    {
+      "authorityId": "JQ-CONFIG-RECESSED-BASE-HEIGHT-001",
+      "defaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "config/fit-policy.json:9-12 nominal 4 in",
+        "type": "accepted repository configuration"
+      },
+      "elementType": "registered-copy",
+      "id": "base.blocked-body",
+      "label": "No authoritative range or independent model region exists, so no height control is shown.",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": ".v4-blocked-note p",
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "blocked-by-asset"
+    },
+    {
+      "authorityId": "JQ-UX-MINIMAL-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "finish.pending-title",
+      "label": "Finish & options",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "#v4-pending-title",
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "standardized-hidden"
+    },
+    {
+      "authorityId": "JQ-PROOF-DIAGNOSTIC-MATERIALS-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "finish.pending-body",
+      "label": "Selections pending approved catalog. Nothing in this section is selectable yet.",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": ".v4-pending-intro p",
+      "source": {
+        "date": "2026-08-20",
+        "reference": "User-authorized visual QA diagnostic",
+        "type": "V4 proof methodology"
+      },
+      "status": "review-only"
+    },
+    {
+      "authorityId": "JQ-UX-MINIMAL-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "finish.pending-list",
+      "label": "Pending product decisions",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": ".v4-pending-list",
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "standardized-hidden"
+    },
+    {
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "action.back",
+      "label": "Back",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-v4-back]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator.js STEP_DEFINITIONS and accepted four-step navigation",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "action.review",
+      "label": "Review & Details",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-v4-review]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator.js STEP_DEFINITIONS and accepted four-step navigation",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-SMALL-CHANGES-NOT-ENGINEERING-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "status.review",
+      "label": "Design review",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": ".v4-status-pill--review-only",
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "standardized-hidden"
+    },
+    {
+      "authorityId": "JQ-UX-MINIMAL-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "status.pending",
+      "label": "Pending",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": ".v4-status-pill--pending-authority",
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "standardized-hidden"
+    },
+    {
+      "authorityId": "JQ-CONFIG-RECESSED-BASE-HEIGHT-001",
+      "defaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "config/fit-policy.json:9-12 nominal 4 in",
+        "type": "accepted repository configuration"
+      },
+      "elementType": "registered-copy",
+      "id": "status.blocked",
+      "label": "Blocked",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": ".v4-status-pill--blocked-by-asset",
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "blocked-by-asset"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "dialog.save.title",
+      "label": "Save this project",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "#save-dialog-title",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "dialog.save.eyebrow",
+      "label": "Keep for later",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-save-dialog] .guided-eyebrow",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "dialog.save.close",
+      "label": "Close save project dialog",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": "[data-save-dialog] [data-dialog-close][aria-label]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "dialog.save.name",
+      "label": "Project name",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-save-dialog] label",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "dialog.save.name-input",
+      "label": "Project name",
+      "match": "template",
+      "rangeSource": null,
+      "selector": "[data-save-form] input[name=projectName]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "dialog.save.note",
+      "label": "Saved projects stay on this device and can be resumed from My Projects.",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-save-dialog] .guided-dialog-note",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "dialog.save.cancel",
+      "label": "Cancel",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-save-dialog] button[data-dialog-close]:not([aria-label])",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "dialog.save.submit",
+      "label": "Save Project",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-save-form] button[type=submit]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "dialog.projects.title",
+      "label": "My Projects",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "#projects-dialog-title",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "dialog.projects.eyebrow",
+      "label": "Saved on this device",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-projects-dialog] .guided-eyebrow",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "dialog.projects.close-icon",
+      "label": "Close projects dialog",
+      "match": "accessible-name",
+      "rangeSource": null,
+      "selector": "[data-projects-dialog] [data-dialog-close][aria-label]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "dialog.projects.close",
+      "label": "Close",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-projects-dialog] button[data-dialog-close]:not([aria-label])",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "registered-copy",
+      "id": "dialog.projects.new",
+      "label": "Start New Project",
+      "match": "exact",
+      "rangeSource": null,
+      "selector": "[data-new-project]",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    },
+    {
+      "acceptedBaseline": true,
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "defaultSource": null,
+      "elementType": "step",
+      "id": "choose-product",
+      "label": "Choose Product",
+      "rangeSource": null,
+      "route": "#step-1",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator.js STEP_DEFINITIONS and accepted four-step navigation",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live",
+      "summary": "Accepted baseline product selection",
+      "v4Owned": false
+    },
+    {
+      "acceptedBaseline": true,
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "defaultSource": null,
+      "elementType": "step",
+      "id": "choose-layout",
+      "label": "Choose Layout",
+      "rangeSource": null,
+      "route": "#step-2",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator.js STEP_DEFINITIONS and accepted four-step navigation",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live",
+      "summary": "Accepted baseline layout selection",
+      "v4Owned": false
+    },
+    {
+      "acceptedBaseline": false,
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "defaultSource": null,
+      "elementType": "step",
+      "id": "customization",
+      "label": "Customization",
+      "rangeSource": null,
+      "route": "#step-3",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator.js STEP_DEFINITIONS and accepted four-step navigation",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live",
+      "summary": "V4 authority-backed customization",
+      "v4Owned": true
+    },
+    {
+      "acceptedBaseline": true,
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "defaultSource": null,
+      "elementType": "step",
+      "id": "review-details",
+      "label": "Review & Details",
+      "rangeSource": null,
+      "route": "#step-4",
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator.js STEP_DEFINITIONS and accepted four-step navigation",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live",
+      "summary": "Accepted baseline review",
+      "v4Owned": false
+    },
+    {
+      "authorityId": "JQ-STYLE-LAYOUT-001",
+      "defaultSource": {
+        "reference": "guided-configurator-state.js default project",
+        "source": "accepted project default",
+        "value": "fireplace-wall"
+      },
+      "description": "Cabinetry arranged around the existing fireplace opening.",
+      "elementType": "layout-choice",
+      "id": "fireplace-wall",
+      "label": "Fireplace Wall",
+      "rangeSource": null,
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-registry.js:28-255 and guided-configurator-data.js:898-925",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live",
+      "statusLabel": "Live model",
+      "value": "fireplace-wall"
+    },
+    {
+      "authorityId": "JQ-STYLE-LAYOUT-001",
+      "defaultSource": {
+        "reference": "guided-configurator-state.js default project",
+        "source": "accepted project default",
+        "value": "fireplace-wall"
+      },
+      "description": "Cabinetry divided by the existing interior door.",
+      "elementType": "layout-choice",
+      "id": "door-wall",
+      "label": "Door Wall",
+      "rangeSource": null,
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-registry.js:28-255 and guided-configurator-data.js:898-925",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live",
+      "statusLabel": "Live model",
+      "value": "door-wall"
+    },
+    {
+      "authorityId": "JQ-STYLE-LAYOUT-001",
+      "defaultSource": {
+        "reference": "guided-configurator-state.js default project",
+        "source": "accepted project default",
+        "value": "fireplace-wall"
+      },
+      "description": "Cabinetry arranged around the existing picture window.",
+      "elementType": "layout-choice",
+      "id": "window-wall",
+      "label": "Window Wall",
+      "rangeSource": null,
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-registry.js:28-255 and guided-configurator-data.js:898-925",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live",
+      "statusLabel": "Live model",
+      "value": "window-wall"
+    },
+    {
+      "authorityId": "JQ-CONFIG-LOWER-HEIGHT-001",
+      "defaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:68-71 default 34.5 in",
+        "type": "accepted repository configuration"
+      },
+      "defaultValue": 34.5,
+      "elementType": "field",
+      "id": "lowerCabinetHeight",
+      "label": "Lower cabinet height",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "options": null,
+      "range": {
+        "max": 48,
+        "min": 24,
+        "step": 0.25
+      },
+      "rangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:68-71 range 24–48 in",
+        "type": "accepted repository configuration"
+      },
+      "renderedCopy": {
+        "help": "24–48 in · approved default 34.5 in · model unchanged",
+        "resetAccessibleName": "Reset Lower cabinet height to approved default",
+        "resetLabel": "Reset",
+        "unitLabel": "in",
+        "validation": "Enter 24–48 in, in 0.25-in increments."
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "review-only",
+      "stepId": "customization",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-CONFIG-LOWER-DEPTH-001",
+      "defaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:75-78 default 24 in",
+        "type": "accepted repository configuration"
+      },
+      "defaultValue": 24,
+      "elementType": "field",
+      "id": "lowerCabinetDepth",
+      "label": "Lower cabinet depth",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "options": null,
+      "range": {
+        "max": 30,
+        "min": 12,
+        "step": 0.25
+      },
+      "rangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:75-78 range 12–30 in",
+        "type": "accepted repository configuration"
+      },
+      "renderedCopy": {
+        "help": "12–30 in · approved default 24 in · model unchanged",
+        "resetAccessibleName": "Reset Lower cabinet depth to approved default",
+        "resetLabel": "Reset",
+        "unitLabel": "in",
+        "validation": "Enter 12–30 in, in 0.25-in increments."
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "review-only",
+      "stepId": "customization",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-CONFIG-OVERHEAD-DEPTH-001",
+      "defaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:82-85 default 12 in",
+        "type": "accepted repository configuration"
+      },
+      "defaultValue": 12,
+      "elementType": "field",
+      "id": "overheadDepth",
+      "label": "Overhead bookcase depth",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "options": null,
+      "range": {
+        "max": 20,
+        "min": 8,
+        "step": 0.25
+      },
+      "rangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:82-85 range 8–20 in",
+        "type": "accepted repository configuration"
+      },
+      "renderedCopy": {
+        "help": "8–20 in · approved default 12 in · model unchanged",
+        "resetAccessibleName": "Reset Overhead bookcase depth to approved default",
+        "resetLabel": "Reset",
+        "unitLabel": "in",
+        "validation": "Enter 8–20 in, in 0.25-in increments."
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "review-only",
+      "stepId": "customization",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-CONFIG-TOE-KICK-HEIGHT-001",
+      "defaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:89-92 default 4 in",
+        "type": "accepted repository configuration"
+      },
+      "defaultValue": 4,
+      "elementType": "field",
+      "id": "toeKickHeight",
+      "label": "Toe-kick height",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "options": null,
+      "range": {
+        "max": 8,
+        "min": 0,
+        "step": 0.25
+      },
+      "rangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:89-92 range 0–8 in",
+        "type": "accepted repository configuration"
+      },
+      "renderedCopy": {
+        "help": "0–8 in · approved default 4 in · model unchanged",
+        "resetAccessibleName": "Reset Toe-kick height to approved default",
+        "resetLabel": "Reset",
+        "unitLabel": "in",
+        "validation": "Enter 0–8 in, in 0.25-in increments."
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "review-only",
+      "stepId": "customization",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-CONFIG-TOP-FASCIA-HEIGHT-001",
+      "defaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:96-99 default 3 in",
+        "type": "accepted repository configuration"
+      },
+      "defaultValue": 3,
+      "elementType": "field",
+      "id": "topFasciaHeight",
+      "label": "Top-fascia height",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "options": null,
+      "range": {
+        "max": 12,
+        "min": 0,
+        "step": 0.25
+      },
+      "rangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:96-99 range 0–12 in",
+        "type": "accepted repository configuration"
+      },
+      "renderedCopy": {
+        "help": "0–12 in · approved default 3 in · model unchanged",
+        "resetAccessibleName": "Reset Top-fascia height to approved default",
+        "resetLabel": "Reset",
+        "unitLabel": "in",
+        "validation": "Enter 0–12 in, in 0.25-in increments."
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "review-only",
+      "stepId": "customization",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-CONFIG-BASE-TYPE-001",
+      "defaultSource": {
+        "reference": "guided-configurator-state.js:55-60 and 2026-07-17 email",
+        "source": "accepted state plus John Quinn direction",
+        "value": "flush"
+      },
+      "defaultValue": "flush",
+      "elementType": "field",
+      "id": "baseType",
+      "label": "Base type",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "options": [
+        {
+          "label": "Flush",
+          "value": "flush"
+        },
+        {
+          "label": "Recessed",
+          "value": "recessed"
+        }
+      ],
+      "range": null,
+      "rangeSource": {
+        "reference": "2026-07-17 16:32 message",
+        "source": "John Quinn email",
+        "values": [
+          "flush",
+          "recessed"
+        ]
+      },
+      "renderedCopy": {
+        "note": "Saved for design review; the fixed proof model does not switch base construction.",
+        "resetAccessibleName": "Reset Base type to approved default",
+        "resetLabel": "Reset to Flush"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "review-only",
+      "stepId": "customization",
+      "type": "radio",
+      "unit": null
+    },
+    {
+      "authorityId": "JQ-CONFIG-BASE-TYPE-001",
+      "defaultSource": {
+        "reference": "guided-configurator-state.js:55-60 and 2026-07-17 email",
+        "source": "accepted state plus John Quinn direction",
+        "value": "flush"
+      },
+      "elementType": "option",
+      "id": "baseType:flush",
+      "label": "Flush",
+      "rangeSource": {
+        "reference": "2026-07-17 16:32 message",
+        "source": "John Quinn email",
+        "values": [
+          "flush",
+          "recessed"
+        ]
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "review-only",
+      "value": "flush"
+    },
+    {
+      "authorityId": "JQ-CONFIG-BASE-TYPE-001",
+      "defaultSource": {
+        "reference": "guided-configurator-state.js:55-60 and 2026-07-17 email",
+        "source": "accepted state plus John Quinn direction",
+        "value": "flush"
+      },
+      "elementType": "option",
+      "id": "baseType:recessed",
+      "label": "Recessed",
+      "rangeSource": {
+        "reference": "2026-07-17 16:32 message",
+        "source": "John Quinn email",
+        "values": [
+          "flush",
+          "recessed"
+        ]
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "review-only",
+      "value": "recessed"
+    },
+    {
+      "authorityId": "JQ-FINISH-PAINT-001",
+      "defaultSource": null,
+      "elementType": "pending-row",
+      "id": "JQ-FINISH-PAINT-001",
+      "interactive": false,
+      "label": "Sherwin-Williams cabinet-grade painted finish",
+      "pendingDecision": "Approved Sherwin-Williams palette and product specification.",
+      "rangeSource": null,
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "pending-authority",
+      "statusLabel": "Pending"
+    },
+    {
+      "authorityId": "JQ-FINISH-WHITE-OAK-001",
+      "defaultSource": null,
+      "elementType": "pending-row",
+      "id": "JQ-FINISH-WHITE-OAK-001",
+      "interactive": false,
+      "label": "Prefinished white oak",
+      "pendingDecision": "Approved prefinished white-oak product.",
+      "rangeSource": null,
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "pending-authority",
+      "statusLabel": "Pending"
+    },
+    {
+      "authorityId": "JQ-FINISH-WALNUT-001",
+      "defaultSource": null,
+      "elementType": "pending-row",
+      "id": "JQ-FINISH-WALNUT-001",
+      "interactive": false,
+      "label": "Prefinished walnut",
+      "pendingDecision": "Approved prefinished walnut product.",
+      "rangeSource": null,
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "pending-authority",
+      "statusLabel": "Pending"
+    },
+    {
+      "authorityId": "JQ-FINISH-SHOP-PRIMED-001",
+      "defaultSource": null,
+      "elementType": "pending-row",
+      "id": "JQ-FINISH-SHOP-PRIMED-001",
+      "interactive": false,
+      "label": "Shop-primed",
+      "pendingDecision": "Confirm whether shop-primed is offered and define its specification.",
+      "rangeSource": null,
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "pending-authority",
+      "statusLabel": "Pending"
+    },
+    {
+      "authorityId": "JQ-DOOR-CATALOG-001",
+      "defaultSource": null,
+      "elementType": "pending-row",
+      "id": "JQ-DOOR-CATALOG-001",
+      "interactive": false,
+      "label": "Door choices",
+      "pendingDecision": "Approved limited door catalog.",
+      "rangeSource": null,
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "pending-authority",
+      "statusLabel": "Pending"
+    },
+    {
+      "authorityId": "JQ-DYKES-CROWN-CATALOG-001",
+      "defaultSource": null,
+      "elementType": "pending-row",
+      "id": "JQ-DYKES-CROWN-CATALOG-001",
+      "interactive": false,
+      "label": "Dykes crown profiles",
+      "pendingDecision": "Approved Dykes moulding profile list and geometry.",
+      "rangeSource": null,
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "pending-authority",
+      "statusLabel": "Pending"
+    },
+    {
+      "authorityId": "JQ-HARDWARE-CATALOG-001",
+      "defaultSource": null,
+      "elementType": "pending-row",
+      "id": "JQ-HARDWARE-CATALOG-001",
+      "interactive": false,
+      "label": "Hardware choices",
+      "pendingDecision": "Approved hardware catalog and applicability.",
+      "rangeSource": null,
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "note": "No exact customer hardware catalog was finalized.",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "pending-authority",
+      "statusLabel": "Pending"
+    },
+    {
+      "authorityId": "JQ-LIGHTING-SYSTEM-001",
+      "defaultSource": null,
+      "elementType": "pending-row",
+      "id": "JQ-LIGHTING-SYSTEM-001",
+      "interactive": false,
+      "label": "Lighting system",
+      "pendingDecision": "Select and authorize the lighting system.",
+      "rangeSource": null,
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "status": "pending-authority",
+      "statusLabel": "Pending"
+    },
+    {
+      "authorityId": "JQ-UX-MODEL-NAV-001",
+      "defaultSource": null,
+      "elementType": "dynamic-copy",
+      "id": "viewer-authority-instructions",
+      "label": "Accepted viewer keyboard/orbit instructions and source-authority status",
+      "rangeSource": null,
+      "runtimeAudit": true,
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-viewer.js camera/orbit controls and configurator.html accessible viewer shell",
+        "type": "accepted repository configuration"
+      },
+      "sourceRenderer": "guided-layout-viewer.js",
+      "status": "customer-live"
+    },
+    {
+      "authorityId": "JQ-UX-LOCAL-PROJECT-001",
+      "defaultSource": null,
+      "elementType": "dynamic-copy",
+      "id": "saved-project-resume",
+      "label": "Customer project name · approved layout · accepted four-step route",
+      "rangeSource": null,
+      "runtimeAudit": true,
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "status": "customer-live"
+    }
+  ],
+  "schema": "jq-configurator-authority-v4-four-step-coverage-v1",
+  "scope": "The accepted four-step application route: Steps 1, 2 and 4 remain accepted-baseline UI/state behavior; V4 owns only Step 3 Customization labels, fields/options/defaults/ranges/errors, model controls/status and pending review states. The accepted site header/menu and local save/resume dialogs remain baseline behavior."
+}

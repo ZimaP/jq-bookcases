@@ -1,0 +1,7 @@
+{
+  "edgeTreatmentApplied": false,
+  "reason": "Role materials plus authentic shared shadows are evaluated first; no accepted all-layout edge whitelist exists.",
+  "records": [],
+  "schema": "jq-configurator-authority-v4-modified-edges-v1",
+  "sourceAssetsModified": false
+}

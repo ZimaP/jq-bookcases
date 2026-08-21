@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://jqbookcases.example/schemas/configurator-authority-v4.schema.json",
+  "title": "JQ Configurator Authority V4",
+  "type": "object",
+  "required": ["schema", "proof", "sources", "items", "fields", "layouts", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "schema": { "const": "jq-configurator-authority-v4" },
+    "proof": { "$ref": "#/$defs/proof" },
+    "sources": { "type": "array", "minItems": 3, "items": { "$ref": "#/$defs/authoritySource" } },
+    "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/item" } },
+    "fields": { "type": "array", "items": { "$ref": "#/$defs/field" } },
+    "layouts": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "$ref": "#/$defs/layout" } },
+    "steps": { "type": "array", "minItems": 5, "maxItems": 5, "items": { "$ref": "#/$defs/step" } }
+  },
+  "$defs": {
+    "authoritySource": {
+      "type": "object",
+      "required": ["type", "date", "reference"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "date": { "type": "string", "minLength": 10 },
+        "reference": { "type": "string", "minLength": 1 },
+        "authority": { "type": "string", "minLength": 1 },
+        "note": { "type": "string", "minLength": 1 },
+        "commit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "sourceCitation": {
+      "oneOf": [
+        { "$ref": "#/$defs/authoritySource" },
+        {
+          "type": "object",
+          "required": ["source", "reference", "value"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "type": "string", "minLength": 1 },
+            "reference": { "type": "string", "minLength": 1 },
+            "value": { "type": ["string", "number", "null"] }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["source", "reference", "values"],
+          "additionalProperties": false,
+          "properties": {
+            "source": { "type": "string", "minLength": 1 },
+            "reference": { "type": "string", "minLength": 1 },
+            "values": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+          }
+        }
+      ]
+    },
+    "proof": {
+      "type": "object",
+      "required": ["id", "flag", "acceptedCommit", "acceptedTree", "allowedHosts"],
+      "properties": {
+        "id": { "const": "configurator-authority-v4" },
+        "flag": { "const": "authorityProof=configurator-v4" },
+        "acceptedCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "acceptedTree": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "allowedHosts": { "type": "array", "minItems": 3, "items": { "type": "string" } }
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": ["id", "label", "source", "authorityStatus", "applicableLayouts", "applicableStyles", "customerVisibility", "units", "authoritativeDefaultSource", "authoritativeRangeSource", "modelRegion", "liveModelFeasibility", "persistence", "implementationStatus", "testId", "blocker", "pendingDecision"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^JQ-[A-Z0-9_-]+-[0-9]{3}$" },
+        "label": { "type": "string", "minLength": 1 },
+        "source": { "$ref": "#/$defs/authoritySource" },
+        "authorityStatus": { "enum": ["customer-live", "conditional", "standardized-hidden", "pending-authority", "blocked-by-asset", "review-only"] },
+        "applicableLayouts": { "type": "array", "items": { "enum": ["fireplace-wall", "door-wall", "window-wall"] } },
+        "applicableStyles": { "type": "array", "items": { "const": "cabinet-shelves" } },
+        "customerVisibility": {
+          "type": "object",
+          "required": ["visible", "interactive", "surface"],
+          "additionalProperties": false,
+          "properties": { "visible": { "type": "boolean" }, "interactive": { "type": "boolean" }, "surface": { "type": "string" } }
+        },
+        "units": { "type": "string" },
+        "authoritativeDefaultSource": { "oneOf": [{ "$ref": "#/$defs/sourceCitation" }, { "type": "null" }] },
+        "authoritativeRangeSource": { "oneOf": [{ "$ref": "#/$defs/sourceCitation" }, { "type": "null" }] },
+        "modelRegion": { "type": "string" },
+        "liveModelFeasibility": {
+          "type": "object",
+          "required": ["status", "affectedModelRegion", "reason"],
+          "additionalProperties": false,
+          "properties": {
+            "status": { "enum": ["not-applicable", "proven", "blocked", "review-only", "not-customer-controlled", "validation-only", "policy", "proof-only"] },
+            "affectedModelRegion": { "type": "string", "minLength": 1 },
+            "reason": { "type": "string", "minLength": 1 }
+          }
+        },
+        "persistence": {
+          "type": "object",
+          "required": ["scope", "navigation", "reload", "savedProject", "reset", "staleValue"],
+          "additionalProperties": false,
+          "properties": {
+            "scope": { "type": "string" }, "navigation": { "type": "string" }, "reload": { "type": "string" },
+            "savedProject": { "type": "string" }, "reset": { "type": "string" }, "staleValue": { "type": "string" }
+          }
+        },
+        "implementationStatus": { "enum": ["implemented", "pending", "blocked"] },
+        "testId": { "type": "string", "minLength": 1 },
+        "blocker": { "type": ["string", "null"] },
+        "pendingDecision": { "type": ["string", "null"] }
+      }
+    },
+    "field": {
+      "oneOf": [{ "$ref": "#/$defs/numberField" }, { "$ref": "#/$defs/radioField" }]
+    },
+    "numberField": {
+      "type": "object",
+      "required": ["id", "label", "authorityId", "stepId", "type", "unit", "step", "required", "min", "max", "defaultValue", "layouts", "reset"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 }, "label": { "type": "string", "minLength": 1 }, "authorityId": { "type": "string", "pattern": "^JQ-" },
+        "stepId": { "enum": ["room", "configure"] }, "type": { "const": "number" },
+        "unit": { "const": "in" }, "step": { "type": "number", "minimum": 0.000001 }, "required": { "type": "boolean" },
+        "min": { "type": "number" }, "max": { "type": "number" }, "defaultValue": { "type": ["number", "null"] },
+        "layouts": { "type": "array", "minItems": 1, "items": { "enum": ["fireplace-wall", "door-wall", "window-wall"] } },
+        "reset": { "const": "default" }
+      }
+    },
+    "radioField": {
+      "type": "object",
+      "required": ["id", "label", "authorityId", "stepId", "type", "required", "defaultValue", "values", "layouts", "reset"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 }, "label": { "type": "string", "minLength": 1 }, "authorityId": { "type": "string", "pattern": "^JQ-" },
+        "stepId": { "enum": ["room", "configure"] }, "type": { "const": "radio" }, "required": { "const": true },
+        "defaultValue": { "type": "string", "minLength": 1 },
+        "values": {
+          "type": "array", "minItems": 2,
+          "items": {
+            "type": "object", "required": ["value", "label"], "additionalProperties": false,
+            "properties": { "value": { "type": "string", "minLength": 1 }, "label": { "type": "string", "minLength": 1 } }
+          }
+        },
+        "layouts": { "type": "array", "minItems": 1, "items": { "enum": ["fireplace-wall", "door-wall", "window-wall"] } },
+        "reset": { "const": "default" }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "required": ["id", "label", "authorityId", "asset", "bytes", "sha256", "nativeBounds", "heroBounds", "orbitTarget"],
+      "properties": {
+        "id": { "enum": ["fireplace-wall", "door-wall", "window-wall"] }, "label": { "type": "string" },
+        "authorityId": { "const": "JQ-STYLE-LAYOUT-001" }, "description": { "type": "string" }, "asset": { "type": "string" },
+        "bytes": { "type": "integer" }, "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "sourceContractFingerprint": { "type": "string" }, "geometryFingerprint": { "type": "string" },
+        "nativeDegenerateTriangles": { "type": "integer" }, "primitiveCount": { "type": "integer" }, "triangleCount": { "type": "integer" },
+        "nativeBounds": { "type": "object" }, "heroBounds": { "type": "object" }, "orbitTarget": { "type": "array", "minItems": 3, "maxItems": 3 }
+      }
+    },
+    "step": {
+      "type": "object",
+      "required": ["id", "number", "label", "authorityId", "summary"],
+      "properties": {
+        "id": { "enum": ["room", "style", "configure", "finish-options", "review"] },
+        "number": { "type": "integer", "minimum": 1, "maximum": 5 }, "label": { "type": "string" },
+        "authorityId": { "const": "JQ-UX-JOURNEY-001" }, "summary": { "type": "string" }
+      }
+    }
+  }
+}

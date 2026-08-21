@@ -1,0 +1,2562 @@
+{
+  "fields": [
+    {
+      "authorityId": "JQ-ROOM-WIDTH-001",
+      "defaultValue": 120,
+      "id": "roomWidth",
+      "label": "Room width",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "max": 144,
+      "min": 24,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-HEIGHT-001",
+      "defaultValue": 96,
+      "id": "roomHeight",
+      "label": "Room height",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "max": 120,
+      "min": 72,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-DEPTH-001",
+      "defaultValue": 14,
+      "id": "builtInDepth",
+      "label": "Built-in depth",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "max": 24,
+      "min": 10,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-FIREPLACE-OPENING-001",
+      "defaultValue": 42,
+      "id": "fireplaceWidth",
+      "label": "Fireplace opening width",
+      "layouts": [
+        "fireplace-wall"
+      ],
+      "max": 96,
+      "min": 18,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-FIREPLACE-OPENING-001",
+      "defaultValue": 32,
+      "id": "fireplaceHeight",
+      "label": "Fireplace opening height",
+      "layouts": [
+        "fireplace-wall"
+      ],
+      "max": 72,
+      "min": 18,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-FIREPLACE-OPENING-001",
+      "defaultValue": 8,
+      "id": "fireplaceProjection",
+      "label": "Fireplace projection",
+      "layouts": [
+        "fireplace-wall"
+      ],
+      "max": 30,
+      "min": 0,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-FIREPLACE-SIDE-WIDTHS-001",
+      "defaultValue": null,
+      "id": "fireplaceLeftWidth",
+      "label": "Available width on left",
+      "layouts": [
+        "fireplace-wall"
+      ],
+      "max": 96,
+      "min": 12,
+      "required": false,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-FIREPLACE-SIDE-WIDTHS-001",
+      "defaultValue": null,
+      "id": "fireplaceRightWidth",
+      "label": "Available width on right",
+      "layouts": [
+        "fireplace-wall"
+      ],
+      "max": 96,
+      "min": 12,
+      "required": false,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-DOOR-OPENING-001",
+      "defaultValue": 36,
+      "id": "doorWidth",
+      "label": "Door width",
+      "layouts": [
+        "door-wall"
+      ],
+      "max": 72,
+      "min": 24,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-DOOR-OPENING-001",
+      "defaultValue": 80,
+      "id": "doorHeight",
+      "label": "Door height",
+      "layouts": [
+        "door-wall"
+      ],
+      "max": 108,
+      "min": 72,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-DOOR-OPENING-001",
+      "defaultValue": 24,
+      "id": "doorLeftOffset",
+      "label": "Distance from left wall",
+      "layouts": [
+        "door-wall"
+      ],
+      "max": 144,
+      "min": 0,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-DOOR-OPENING-001",
+      "defaultValue": 3.5,
+      "id": "doorTrimWidth",
+      "label": "Door trim width",
+      "layouts": [
+        "door-wall"
+      ],
+      "max": 12,
+      "min": 1,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-WINDOW-OPENING-001",
+      "defaultValue": 48,
+      "id": "windowWidth",
+      "label": "Window width",
+      "layouts": [
+        "window-wall"
+      ],
+      "max": 144,
+      "min": 12,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-WINDOW-OPENING-001",
+      "defaultValue": 42,
+      "id": "windowHeight",
+      "label": "Window height",
+      "layouts": [
+        "window-wall"
+      ],
+      "max": 96,
+      "min": 12,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-WINDOW-OPENING-001",
+      "defaultValue": 30,
+      "id": "windowSillHeight",
+      "label": "Window sill height",
+      "layouts": [
+        "window-wall"
+      ],
+      "max": 72,
+      "min": 12,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-WINDOW-OPENING-001",
+      "defaultValue": null,
+      "id": "windowLeftOffset",
+      "label": "Distance from left wall",
+      "layouts": [
+        "window-wall"
+      ],
+      "max": 144,
+      "min": 0,
+      "required": false,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-ROOM-WINDOW-OPENING-001",
+      "defaultValue": null,
+      "id": "windowRightOffset",
+      "label": "Distance from right wall",
+      "layouts": [
+        "window-wall"
+      ],
+      "max": 144,
+      "min": 0,
+      "required": false,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "room",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-CONFIG-LOWER-HEIGHT-001",
+      "defaultValue": 34.5,
+      "id": "lowerCabinetHeight",
+      "label": "Lower cabinet height",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "max": 48,
+      "min": 24,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "configure",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-CONFIG-LOWER-DEPTH-001",
+      "defaultValue": 24,
+      "id": "lowerCabinetDepth",
+      "label": "Lower cabinet depth",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "max": 30,
+      "min": 12,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "configure",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-CONFIG-OVERHEAD-DEPTH-001",
+      "defaultValue": 12,
+      "id": "overheadDepth",
+      "label": "Overhead bookcase depth",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "max": 20,
+      "min": 8,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "configure",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-CONFIG-TOE-KICK-HEIGHT-001",
+      "defaultValue": 4,
+      "id": "toeKickHeight",
+      "label": "Toe-kick height",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "max": 8,
+      "min": 0,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "configure",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-CONFIG-TOP-FASCIA-HEIGHT-001",
+      "defaultValue": 3,
+      "id": "topFasciaHeight",
+      "label": "Top-fascia height",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "max": 12,
+      "min": 0,
+      "required": true,
+      "reset": "default",
+      "step": 0.25,
+      "stepId": "configure",
+      "type": "number",
+      "unit": "in"
+    },
+    {
+      "authorityId": "JQ-CONFIG-BASE-TYPE-001",
+      "defaultValue": "flush",
+      "id": "baseType",
+      "label": "Base type",
+      "layouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "required": true,
+      "reset": "default",
+      "stepId": "configure",
+      "type": "radio",
+      "values": [
+        {
+          "label": "Flush",
+          "value": "flush"
+        },
+        {
+          "label": "Recessed",
+          "value": "recessed"
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "customer-live",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "shared step navigation",
+        "visible": true
+      },
+      "id": "JQ-UX-JOURNEY-001",
+      "implementationStatus": "implemented",
+      "label": "Five-step customer journey",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "none",
+        "reason": "Journey architecture does not mutate the model.",
+        "status": "not-applicable"
+      },
+      "modelRegion": "none",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-AUTH-JOURNEY-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "id": "JQ-UX-MINIMAL-001",
+      "implementationStatus": "implemented",
+      "label": "Minimal relevant screen content",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "none",
+        "reason": "Presentation policy.",
+        "status": "not-applicable"
+      },
+      "modelRegion": "none",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-AUTH-MINIMAL-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "customer-live",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "shared model stage",
+        "visible": true
+      },
+      "id": "JQ-UX-MODEL-NAV-001",
+      "implementationStatus": "implemented",
+      "label": "Model preview navigation",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "camera",
+        "reason": "Accepted viewer navigation changes only the camera and never project parameters or model geometry.",
+        "status": "proven"
+      },
+      "modelRegion": "camera only",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "session-camera",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-viewer.js camera/orbit controls and configurator.html accessible viewer shell",
+        "type": "accepted repository configuration"
+      },
+      "testId": "V4-UX-MODEL-NAV-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "customer-live",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "accepted site header and local project dialogs",
+        "visible": true
+      },
+      "id": "JQ-UX-LOCAL-PROJECT-001",
+      "implementationStatus": "implemented",
+      "label": "Local project save and resume",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "none",
+        "reason": "Existing local/project serialization only; no backend or account behavior.",
+        "status": "not-applicable"
+      },
+      "modelRegion": "none",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "local-project",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html local Save Project/My Projects chrome and guided-configurator-state.js local serialization behavior",
+        "type": "accepted repository configuration"
+      },
+      "testId": "V4-UX-LOCAL-PROJECT-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "customer-live",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "accepted site header and menu",
+        "visible": true
+      },
+      "id": "JQ-UX-SITE-NAV-001",
+      "implementationStatus": "implemented",
+      "label": "Accepted site navigation",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "none",
+        "reason": "Accepted navigation infrastructure; it does not add a product parameter.",
+        "status": "not-applicable"
+      },
+      "modelRegion": "none",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "site-navigation",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "configurator.html site header, skip link and configurator menu",
+        "type": "accepted repository configuration"
+      },
+      "testId": "V4-UX-SITE-NAV-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "reference": "guided-configurator-state.js default project",
+        "source": "accepted project default",
+        "value": "fireplace-wall"
+      },
+      "authoritativeRangeSource": null,
+      "authorityStatus": "customer-live",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Style",
+        "visible": true
+      },
+      "id": "JQ-STYLE-LAYOUT-001",
+      "implementationStatus": "implemented",
+      "label": "Approved Cabinets + Shelves layout",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "whole layout",
+        "reason": "Exact hash-registered source asset switch only; no product combination is created.",
+        "status": "proven"
+      },
+      "modelRegion": "whole immutable registered layout",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "project",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-layout-registry.js:28-255 and guided-configurator-data.js:898-925",
+        "type": "accepted repository configuration"
+      },
+      "testId": "V4-LIVE-LAYOUT-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:43-53 default 120 in",
+        "type": "accepted repository configuration"
+      },
+      "authoritativeRangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:43-53 range 24–144 in",
+        "type": "accepted repository configuration"
+      },
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Room",
+        "visible": true
+      },
+      "id": "JQ-ROOM-WIDTH-001",
+      "implementationStatus": "implemented",
+      "label": "Room width",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "room shell",
+        "reason": "No authoritative anchor/stretch/repetition contract; immutable world bounds are protected.",
+        "status": "blocked"
+      },
+      "modelRegion": "room envelope",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "layout",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-INPUT-ROOM-WIDTH-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:54-63 default 96 in",
+        "type": "accepted repository configuration"
+      },
+      "authoritativeRangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:54-63 range 72–120 in",
+        "type": "accepted repository configuration"
+      },
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Room",
+        "visible": true
+      },
+      "id": "JQ-ROOM-HEIGHT-001",
+      "implementationStatus": "implemented",
+      "label": "Room height",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "room shell",
+        "reason": "No authoritative height transform contract; immutable ceiling/reference planes are protected.",
+        "status": "blocked"
+      },
+      "modelRegion": "room envelope",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "layout",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-INPUT-ROOM-HEIGHT-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:62-64 default 14 in",
+        "type": "accepted repository configuration"
+      },
+      "authoritativeRangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:62-64 range 10–24 in",
+        "type": "accepted repository configuration"
+      },
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Room",
+        "visible": true
+      },
+      "id": "JQ-ROOM-DEPTH-001",
+      "implementationStatus": "implemented",
+      "label": "Built-in depth",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "cabinet/room depth planes",
+        "reason": "No authoritative front/back-plane transform contract.",
+        "status": "blocked"
+      },
+      "modelRegion": "cabinet and room depth",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "layout",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-INPUT-ROOM-DEPTH-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "fireplace width 42, height 32, projection 8 in",
+        "type": "accepted repository configuration"
+      },
+      "authoritativeRangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "width 18–96, height 18–72, projection 0–30 in",
+        "type": "accepted repository configuration"
+      },
+      "authorityStatus": "conditional",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Room when Fireplace Wall applies",
+        "visible": true
+      },
+      "id": "JQ-ROOM-FIREPLACE-OPENING-001",
+      "implementationStatus": "implemented",
+      "label": "Fireplace opening dimensions",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "fireplace frame/opening",
+        "reason": "Opening and fireplace are protected and lack an audited resize contract.",
+        "status": "blocked"
+      },
+      "modelRegion": "existing fireplace opening",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "layout",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:138-147",
+        "type": "accepted repository configuration"
+      },
+      "testId": "V4-INPUT-FIREPLACE-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "reference": "guided-configurator-data.js:144-145",
+        "source": "accepted configuration",
+        "value": null
+      },
+      "authoritativeRangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:144-145 left/right range 12–96 in",
+        "type": "accepted repository configuration"
+      },
+      "authorityStatus": "conditional",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Room when Fireplace Wall applies",
+        "visible": true
+      },
+      "id": "JQ-ROOM-FIREPLACE-SIDE-WIDTHS-001",
+      "implementationStatus": "implemented",
+      "label": "Available width beside fireplace",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "room/cabinet spans",
+        "reason": "No authoritative span transform contract.",
+        "status": "blocked"
+      },
+      "modelRegion": "left/right available wall",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "layout",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:144-145",
+        "type": "accepted repository configuration"
+      },
+      "testId": "V4-INPUT-FIREPLACE-SIDES-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "door-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "door width 36, height 80, left offset 24, trim 3.5 in",
+        "type": "accepted repository configuration"
+      },
+      "authoritativeRangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "width 24–72, height 72–108, offset 0–144, trim 1–12 in",
+        "type": "accepted repository configuration"
+      },
+      "authorityStatus": "conditional",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Room when Door Wall applies",
+        "visible": true
+      },
+      "id": "JQ-ROOM-DOOR-OPENING-001",
+      "implementationStatus": "implemented",
+      "label": "Door opening dimensions",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "door opening/frame/hardware",
+        "reason": "Architectural door is protected and lacks an audited resize/offset contract.",
+        "status": "blocked"
+      },
+      "modelRegion": "existing architectural door",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "layout",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:126-137",
+        "type": "accepted repository configuration"
+      },
+      "testId": "V4-INPUT-DOOR-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "window width 48, height 42, sill 30 in; offsets unset",
+        "type": "accepted repository configuration"
+      },
+      "authoritativeRangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "width 12–144, height 12–96, sill 12–72, offsets 0–144 in",
+        "type": "accepted repository configuration"
+      },
+      "authorityStatus": "conditional",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Room when Window Wall applies",
+        "visible": true
+      },
+      "id": "JQ-ROOM-WINDOW-OPENING-001",
+      "implementationStatus": "implemented",
+      "label": "Window opening dimensions",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "window frame/glazing/opening",
+        "reason": "Window, glazing and opening are protected and lack an audited resize/offset contract.",
+        "status": "blocked"
+      },
+      "modelRegion": "existing architectural window",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "layout",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:118-125",
+        "type": "accepted repository configuration"
+      },
+      "testId": "V4-INPUT-WINDOW-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [],
+      "applicableStyles": [],
+      "authoritativeDefaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:148-165 defaults 72×42 in",
+        "type": "accepted repository configuration"
+      },
+      "authoritativeRangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:148-165 width 24–120, height 16–72 in",
+        "type": "accepted repository configuration"
+      },
+      "authorityStatus": "blocked-by-asset",
+      "blocker": "Approved TV-containing style and audited TV-opening asset mapping are missing.",
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "omitted; no applicable approved style",
+        "visible": false
+      },
+      "id": "JQ-CONFIG-TV-OPENING-001",
+      "implementationStatus": "blocked",
+      "label": "TV opening size",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "none in registered GLBs",
+        "reason": "No authorized TV style/node exists in the three registered Cabinets + Shelves assets.",
+        "status": "blocked"
+      },
+      "modelRegion": "TV opening",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-BLOCK-TV-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:68-71 default 34.5 in",
+        "type": "accepted repository configuration"
+      },
+      "authoritativeRangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:68-71 range 24–48 in",
+        "type": "accepted repository configuration"
+      },
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Configure",
+        "visible": true
+      },
+      "id": "JQ-CONFIG-LOWER-HEIGHT-001",
+      "implementationStatus": "implemented",
+      "label": "Lower cabinet height",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "lower doors/rails/backs/ends/tops/hardware",
+        "reason": "No coordinated multi-node height transform contract.",
+        "status": "blocked"
+      },
+      "modelRegion": "lower cabinet assemblies",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "layout",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-INPUT-LOWER-HEIGHT-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:75-78 default 24 in",
+        "type": "accepted repository configuration"
+      },
+      "authoritativeRangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:75-78 range 12–30 in",
+        "type": "accepted repository configuration"
+      },
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Configure",
+        "visible": true
+      },
+      "id": "JQ-CONFIG-LOWER-DEPTH-001",
+      "implementationStatus": "implemented",
+      "label": "Lower cabinet depth",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "front/back/shelf/top planes",
+        "reason": "No protected-plane depth transform contract.",
+        "status": "blocked"
+      },
+      "modelRegion": "lower cabinet assemblies",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "layout",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-INPUT-LOWER-DEPTH-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:82-85 default 12 in",
+        "type": "accepted repository configuration"
+      },
+      "authoritativeRangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:82-85 range 8–20 in",
+        "type": "accepted repository configuration"
+      },
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Configure",
+        "visible": true
+      },
+      "id": "JQ-CONFIG-OVERHEAD-DEPTH-001",
+      "implementationStatus": "implemented",
+      "label": "Overhead bookcase depth",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "shelves/supports/backs/ends",
+        "reason": "No coordinated depth transform contract.",
+        "status": "blocked"
+      },
+      "modelRegion": "overhead bookcase",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "layout",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-INPUT-OVERHEAD-DEPTH-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:89-92 default 4 in",
+        "type": "accepted repository configuration"
+      },
+      "authoritativeRangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:89-92 range 0–8 in",
+        "type": "accepted repository configuration"
+      },
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Configure",
+        "visible": true
+      },
+      "id": "JQ-CONFIG-TOE-KICK-HEIGHT-001",
+      "implementationStatus": "implemented",
+      "label": "Toe-kick height",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "toe skins and cabinet elevation",
+        "reason": "Changing this requires a coordinated carcass shift with no audited contract.",
+        "status": "blocked"
+      },
+      "modelRegion": "toe kick/base",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "layout",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-INPUT-TOE-KICK-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:96-99 default 3 in",
+        "type": "accepted repository configuration"
+      },
+      "authoritativeRangeSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "guided-configurator-data.js:96-99 range 0–12 in",
+        "type": "accepted repository configuration"
+      },
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Configure",
+        "visible": true
+      },
+      "id": "JQ-CONFIG-TOP-FASCIA-HEIGHT-001",
+      "implementationStatus": "implemented",
+      "label": "Top-fascia height",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "unmapped",
+        "reason": "No exact Fascia node or audited region mapping exists; top rails cannot be relabeled as fascia.",
+        "status": "blocked"
+      },
+      "modelRegion": "top treatment",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "layout",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-INPUT-TOP-FASCIA-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "reference": "guided-configurator-state.js:55-60 and 2026-07-17 email",
+        "source": "accepted state plus John Quinn direction",
+        "value": "flush"
+      },
+      "authoritativeRangeSource": {
+        "reference": "2026-07-17 16:32 message",
+        "source": "John Quinn email",
+        "values": [
+          "flush",
+          "recessed"
+        ]
+      },
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": true,
+        "surface": "Configure",
+        "visible": true
+      },
+      "id": "JQ-CONFIG-BASE-TYPE-001",
+      "implementationStatus": "implemented",
+      "label": "Base type",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "base/toe assemblies",
+        "reason": "Assets encode one fixed construction with no variant visibility contract.",
+        "status": "blocked"
+      },
+      "modelRegion": "base/toe construction",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "persist",
+        "reload": "persist",
+        "reset": "authority-backed default",
+        "savedProject": "persist",
+        "scope": "layout",
+        "staleValue": "reject or normalize without cross-layout effects"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-INPUT-BASE-TYPE-001",
+      "units": "enum: flush|recessed"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": {
+        "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+        "date": "2026-08-20",
+        "reference": "config/fit-policy.json:9-12 nominal 4 in",
+        "type": "accepted repository configuration"
+      },
+      "authoritativeRangeSource": null,
+      "authorityStatus": "blocked-by-asset",
+      "blocker": "Authoritative range and independent asset-region mapping are missing.",
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Configure note when Recessed applies",
+        "visible": true
+      },
+      "id": "JQ-CONFIG-RECESSED-BASE-HEIGHT-001",
+      "implementationStatus": "blocked",
+      "label": "Recessed-base height",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "not independently represented",
+        "reason": "No authoritative range, independent node, or safe transform exists.",
+        "status": "blocked"
+      },
+      "modelRegion": "distinct recessed base",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-BLOCK-RECESSED-BASE-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Finish & Options pending list",
+        "visible": true
+      },
+      "id": "JQ-FINISH-PAINT-001",
+      "implementationStatus": "pending",
+      "label": "Sherwin-Williams cabinet-grade painted finish",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "all-layout exterior millwork",
+        "reason": "Exact approved colors/SKUs are not selected.",
+        "status": "blocked"
+      },
+      "modelRegion": "exterior millwork",
+      "pendingDecision": "Approved Sherwin-Williams palette and product specification.",
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-PENDING-PAINT-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Finish & Options pending list",
+        "visible": true
+      },
+      "id": "JQ-FINISH-WHITE-OAK-001",
+      "implementationStatus": "pending",
+      "label": "Prefinished white oak",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "all-layout exterior millwork",
+        "reason": "Exact supplier/product/appearance is not approved.",
+        "status": "blocked"
+      },
+      "modelRegion": "exterior millwork",
+      "pendingDecision": "Approved prefinished white-oak product.",
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-PENDING-WHITE-OAK-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Finish & Options pending list",
+        "visible": true
+      },
+      "id": "JQ-FINISH-WALNUT-001",
+      "implementationStatus": "pending",
+      "label": "Prefinished walnut",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "all-layout exterior millwork",
+        "reason": "Exact supplier/product/appearance is not approved.",
+        "status": "blocked"
+      },
+      "modelRegion": "exterior millwork",
+      "pendingDecision": "Approved prefinished walnut product.",
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-PENDING-WALNUT-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Finish & Options pending list",
+        "visible": true
+      },
+      "id": "JQ-FINISH-SHOP-PRIMED-001",
+      "implementationStatus": "pending",
+      "label": "Shop-primed",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "all-layout exterior millwork",
+        "reason": "Final offering and specification are not approved.",
+        "status": "blocked"
+      },
+      "modelRegion": "exterior millwork",
+      "pendingDecision": "Confirm whether shop-primed is offered and define its specification.",
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-PENDING-SHOP-PRIMED-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Finish & Options pending list",
+        "visible": true
+      },
+      "id": "JQ-DOOR-CATALOG-001",
+      "implementationStatus": "pending",
+      "label": "Door choices",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "cabinet door meshes",
+        "reason": "Only the direction ‘a few options’ is confirmed; exact choices are missing.",
+        "status": "blocked"
+      },
+      "modelRegion": "cabinet doors",
+      "pendingDecision": "Approved limited door catalog.",
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-PENDING-DOORS-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Finish & Options pending list",
+        "visible": true
+      },
+      "id": "JQ-DYKES-CROWN-CATALOG-001",
+      "implementationStatus": "pending",
+      "label": "Dykes crown profiles",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "no approved crown geometry",
+        "reason": "Exact Dykes profiles are not selected.",
+        "status": "blocked"
+      },
+      "modelRegion": "crown/top treatment",
+      "pendingDecision": "Approved Dykes moulding profile list and geometry.",
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-PENDING-CROWN-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Finish & Options pending list",
+        "visible": true
+      },
+      "id": "JQ-HARDWARE-CATALOG-001",
+      "implementationStatus": "pending",
+      "label": "Hardware choices",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "hardware meshes",
+        "reason": "Existing asset hardware is not an approved selectable catalog.",
+        "status": "blocked"
+      },
+      "modelRegion": "cabinet hardware",
+      "pendingDecision": "Approved hardware catalog and applicability.",
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "note": "No exact customer hardware catalog was finalized.",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-PENDING-HARDWARE-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "pending-authority",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "Finish & Options pending list",
+        "visible": true
+      },
+      "id": "JQ-LIGHTING-SYSTEM-001",
+      "implementationStatus": "pending",
+      "label": "Lighting system",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "no selected system",
+        "reason": "John deferred controls until a real lighting system is selected.",
+        "status": "blocked"
+      },
+      "modelRegion": "cabinet lighting",
+      "pendingDecision": "Select and authorize the lighting system.",
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-PENDING-LIGHTING-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "id": "JQ-INTERIOR-MAPLE-001",
+      "implementationStatus": "implemented",
+      "label": "Clear maple UV-coated/prefinished maple interiors",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "cabinet-interior role",
+        "reason": "Construction requirement is recorded; current proof diagnostics are not manufacturer calibration.",
+        "status": "review-only"
+      },
+      "modelRegion": "cabinet interiors",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-HIDDEN-INTERIOR-MAPLE-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "id": "JQ-FILLER-CONSTRUCTION-001",
+      "implementationStatus": "implemented",
+      "label": "Standardized filler construction",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "filler meshes",
+        "reason": "Repeatable installation construction is standardized, not selected by the customer.",
+        "status": "not-customer-controlled"
+      },
+      "modelRegion": "fillers/end panels",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-HIDDEN-FILLER-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "id": "JQ-KICK-CONSTRUCTION-001",
+      "implementationStatus": "implemented",
+      "label": "Standardized kick construction",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "toe/base meshes",
+        "reason": "Repeatable construction is standardized.",
+        "status": "not-customer-controlled"
+      },
+      "modelRegion": "toe kick/base",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-HIDDEN-KICK-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "id": "JQ-FILLER-BACKER-ADJUSTMENT-001",
+      "implementationStatus": "implemented",
+      "label": "Finished filler/backer adjustment construction",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "filler/backer construction",
+        "reason": "Fabrication rule only.",
+        "status": "not-customer-controlled"
+      },
+      "modelRegion": "fillers/backers",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "date": "2026-07-17",
+        "reference": "sources/configurator-authority-v4/Fireplace-Bookcases-7-17-26.pdf",
+        "sha256": "c0261a6a728da2a6fec69da79e16b7e56e8ddb9801f8ca0724efa35e7f6c2600",
+        "type": "John Quinn construction drawing"
+      },
+      "testId": "V4-HIDDEN-FILLER-BACKER-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "id": "JQ-SHELF-1IN-27MAX-001",
+      "implementationStatus": "implemented",
+      "label": "1-inch MDF shelf maximum width 27 inches",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "shelves",
+        "reason": "Fabrication validation rule; never a spacing control.",
+        "status": "validation-only"
+      },
+      "modelRegion": "shelf fabrication",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "date": "2026-07-17",
+        "reference": "sources/configurator-authority-v4/Fireplace-Bookcases-7-17-26.pdf",
+        "sha256": "c0261a6a728da2a6fec69da79e16b7e56e8ddb9801f8ca0724efa35e7f6c2600",
+        "type": "John Quinn construction drawing"
+      },
+      "testId": "V4-HIDDEN-SHELF-1IN-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "id": "JQ-SHELF-1_25IN-31MAX-001",
+      "implementationStatus": "implemented",
+      "label": "1.25-inch MDF shelf maximum width 31 inches",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "shelves",
+        "reason": "Fabrication validation rule; never a spacing control.",
+        "status": "validation-only"
+      },
+      "modelRegion": "shelf fabrication",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "date": "2026-07-17",
+        "reference": "sources/configurator-authority-v4/Fireplace-Bookcases-7-17-26.pdf",
+        "sha256": "c0261a6a728da2a6fec69da79e16b7e56e8ddb9801f8ca0724efa35e7f6c2600",
+        "type": "John Quinn construction drawing"
+      },
+      "testId": "V4-HIDDEN-SHELF-1_25IN-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "id": "JQ-SHELF-1_5IN-36MAX-001",
+      "implementationStatus": "implemented",
+      "label": "1.5-inch MDF shelf maximum width 36 inches",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "shelves",
+        "reason": "Fabrication validation rule; never a spacing control.",
+        "status": "validation-only"
+      },
+      "modelRegion": "shelf fabrication",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "date": "2026-07-17",
+        "reference": "sources/configurator-authority-v4/Fireplace-Bookcases-7-17-26.pdf",
+        "sha256": "c0261a6a728da2a6fec69da79e16b7e56e8ddb9801f8ca0724efa35e7f6c2600",
+        "type": "John Quinn construction drawing"
+      },
+      "testId": "V4-HIDDEN-SHELF-1_5IN-001",
+      "units": "inch"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "id": "JQ-SHELF-PIN-5MM-001",
+      "implementationStatus": "implemented",
+      "label": "Typical 5 mm shelf pins",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "shelf-pin construction",
+        "reason": "Fabrication rule; never a customer control.",
+        "status": "validation-only"
+      },
+      "modelRegion": "shelf support hardware",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "date": "2026-07-17",
+        "reference": "sources/configurator-authority-v4/Fireplace-Bookcases-7-17-26.pdf",
+        "sha256": "c0261a6a728da2a6fec69da79e16b7e56e8ddb9801f8ca0724efa35e7f6c2600",
+        "type": "John Quinn construction drawing"
+      },
+      "testId": "V4-HIDDEN-SHELF-PIN-001",
+      "units": "millimeter"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "id": "JQ-SIZE-VARIABLE-RULES-CONSTANT-001",
+      "implementationStatus": "implemented",
+      "label": "Variable sizes with standardized construction",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "none",
+        "reason": "Values may vary while construction rules remain fixed.",
+        "status": "policy"
+      },
+      "modelRegion": "engineering policy",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-HIDDEN-STANDARDIZATION-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "standardized-hidden",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "none",
+        "visible": false
+      },
+      "id": "JQ-SMALL-CHANGES-NOT-ENGINEERING-001",
+      "implementationStatus": "implemented",
+      "label": "Small customer changes, not arbitrary engineering",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "none",
+        "reason": "Defines the product/configurator boundary.",
+        "status": "policy"
+      },
+      "modelRegion": "engineering policy",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "authority": "John Quinn written requirements",
+        "date": "2026-07-17/2026-07-18",
+        "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+        "type": "John Quinn email"
+      },
+      "testId": "V4-HIDDEN-SMALL-CHANGES-001",
+      "units": "none"
+    },
+    {
+      "applicableLayouts": [
+        "fireplace-wall",
+        "door-wall",
+        "window-wall"
+      ],
+      "applicableStyles": [
+        "cabinet-shelves"
+      ],
+      "authoritativeDefaultSource": null,
+      "authoritativeRangeSource": null,
+      "authorityStatus": "review-only",
+      "blocker": null,
+      "customerVisibility": {
+        "interactive": false,
+        "surface": "query-selected QA capture only",
+        "visible": false
+      },
+      "id": "JQ-PROOF-DIAGNOSTIC-MATERIALS-001",
+      "implementationStatus": "implemented",
+      "label": "Proof light, mid and dark diagnostics",
+      "liveModelFeasibility": {
+        "affectedModelRegion": "audited cabinetry roles",
+        "reason": "Never enters customer state and is unreachable without the exact loopback proof flag.",
+        "status": "proof-only"
+      },
+      "modelRegion": "audited visual-role primitives",
+      "pendingDecision": null,
+      "persistence": {
+        "navigation": "not-applicable",
+        "reload": "not-applicable",
+        "reset": "not-applicable",
+        "savedProject": "not-applicable",
+        "scope": "none",
+        "staleValue": "drop"
+      },
+      "source": {
+        "date": "2026-08-20",
+        "reference": "User-authorized visual QA diagnostic",
+        "type": "V4 proof methodology"
+      },
+      "testId": "V4-PROOF-MATERIAL-001",
+      "units": "none"
+    }
+  ],
+  "layouts": [
+    {
+      "asset": "assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb",
+      "authorityId": "JQ-STYLE-LAYOUT-001",
+      "bytes": 6712076,
+      "description": "Cabinetry arranged around the existing fireplace opening.",
+      "geometryFingerprint": "63f9753290f89c234758a14ae5a67165c1a4708a3a9f34e7519435d2511e4022",
+      "heroBounds": {
+        "max": [
+          3.096768,
+          2.4384,
+          -0.464571
+        ],
+        "min": [
+          -2.237304,
+          0,
+          -1.080571
+        ]
+      },
+      "id": "fireplace-wall",
+      "label": "Fireplace Wall",
+      "nativeBounds": {
+        "max": [
+          3.249167914,
+          2.438399971,
+          1.053083964
+        ],
+        "min": [
+          -2.389632018,
+          -0.000762,
+          -1.232916008
+        ]
+      },
+      "nativeDegenerateTriangles": 115,
+      "orbitTarget": [
+        0.429732,
+        1.2192,
+        -0.772571
+      ],
+      "primitiveCount": 185,
+      "sha256": "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5",
+      "sourceContractFingerprint": "8762fe4326e22e46a163343e5fde410e231d651b48d1b1c9be8391febec8f6ff",
+      "triangleCount": 18306
+    },
+    {
+      "asset": "assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb",
+      "authorityId": "JQ-STYLE-LAYOUT-001",
+      "bytes": 6755128,
+      "description": "Cabinetry divided by the existing interior door.",
+      "geometryFingerprint": "a110cfc8ec18e8b3cc9ee8b1bf872fdf56062b69f90abd65df17656d58bf57e2",
+      "heroBounds": {
+        "max": [
+          1.86417,
+          2.4384,
+          -0.368031
+        ],
+        "min": [
+          -1.691894,
+          -0.000127,
+          -1.092873
+        ]
+      },
+      "id": "door-wall",
+      "label": "Door Wall",
+      "nativeBounds": {
+        "max": [
+          2.01650596,
+          2.438399971,
+          0.608330012
+        ],
+        "min": [
+          -1.844293993,
+          -0.000762,
+          -1.092872911
+        ]
+      },
+      "nativeDegenerateTriangles": 85,
+      "orbitTarget": [
+        0.086138,
+        1.219136,
+        -0.730452
+      ],
+      "primitiveCount": 127,
+      "sha256": "4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb",
+      "sourceContractFingerprint": "302ad57c1f7360966fb42714b2fd8c519f64856586eba632bf2f89427f2bc4d8",
+      "triangleCount": 15017
+    },
+    {
+      "asset": "assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb",
+      "authorityId": "JQ-STYLE-LAYOUT-001",
+      "bytes": 6993036,
+      "description": "Cabinetry arranged around the existing picture window.",
+      "geometryFingerprint": "9110cea6105192e04f4159fa3cc7e16271a339a014d5e260c0241a0f5eb0df3b",
+      "heroBounds": {
+        "max": [
+          0.580136,
+          2.4384,
+          -0.46949
+        ],
+        "min": [
+          -2.467993,
+          0,
+          -1.194333
+        ]
+      },
+      "id": "window-wall",
+      "label": "Window Wall",
+      "nativeBounds": {
+        "max": [
+          0.732281989,
+          2.438399971,
+          0.506983971
+        ],
+        "min": [
+          -2.620517922,
+          -0.000762,
+          -1.194332608
+        ]
+      },
+      "nativeDegenerateTriangles": 146,
+      "orbitTarget": [
+        -0.943928,
+        1.2192,
+        -0.831912
+      ],
+      "primitiveCount": 182,
+      "sha256": "631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24",
+      "sourceContractFingerprint": "0f339076140a88e3942b220fcb217bbf3133876717149cba0522bc1e0b539e9c",
+      "triangleCount": 19244
+    }
+  ],
+  "proof": {
+    "acceptedCommit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+    "acceptedTree": "d46d3cb00357fa24c5b5346392b0f65d390534ae",
+    "allowedHosts": [
+      "127.0.0.1",
+      "localhost",
+      "::1",
+      "[::1]"
+    ],
+    "customerProductId": "cabinet-shelves",
+    "flag": "authorityProof=configurator-v4",
+    "id": "configurator-authority-v4",
+    "storage": {
+      "draft": "jq-configurator-authority-v4-draft",
+      "projects": "jq-configurator-authority-v4-projects"
+    }
+  },
+  "schema": "jq-configurator-authority-v4",
+  "sources": [
+    {
+      "authority": "customer journey, confirmed parameters, standardized construction and pending decisions",
+      "date": "2026-07-17/2026-07-18",
+      "reference": "Gmail thread ‘Some stuff’, thread 19f6cf838a5ad0dc",
+      "type": "John Quinn email"
+    },
+    {
+      "date": "2026-07-17",
+      "reference": "sources/configurator-authority-v4/Fireplace-Bookcases-7-17-26.pdf",
+      "sha256": "c0261a6a728da2a6fec69da79e16b7e56e8ddb9801f8ca0724efa35e7f6c2600",
+      "type": "John Quinn construction drawing"
+    },
+    {
+      "commit": "109e5cf6c420725ec872530d4809675f4a09c7e6",
+      "date": "2026-08-20",
+      "reference": "numeric defaults/ranges, registered assets, geometry/applicability and unchanged infrastructure",
+      "type": "accepted repository configuration"
+    }
+  ],
+  "steps": [
+    {
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "id": "room",
+      "label": "Room",
+      "number": 1,
+      "summary": "Approximate room and opening dimensions"
+    },
+    {
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "id": "style",
+      "label": "Style",
+      "number": 2,
+      "summary": "Choose one approved layout"
+    },
+    {
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "id": "configure",
+      "label": "Configure",
+      "number": 3,
+      "summary": "Small project-specific changes for design review"
+    },
+    {
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "id": "finish-options",
+      "label": "Finish & Options",
+      "number": 4,
+      "summary": "Approved selections or deliberate pending decisions"
+    },
+    {
+      "authorityId": "JQ-UX-JOURNEY-001",
+      "id": "review",
+      "label": "Review",
+      "number": 5,
+      "summary": "Confirmed inputs, pending decisions and blockers"
+    }
+  ]
+}
