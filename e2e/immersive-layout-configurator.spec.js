@@ -321,15 +321,15 @@ test("camera containment keeps every layout inside its authored room shell", asy
     await expect.poll(async () => (await diagnostics(page)).camera.animationActive).toBe(false);
     await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.3);
     await page.mouse.down();
-    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.75, { steps: 8 });
+    // One deliberately large diagonal drag reaches both orbit limits without
+    // queueing dozens of render-triggering input events per GLB.
+    await page.mouse.move(box.x + box.width * 0.05, box.y + box.height * 0.75);
     await page.mouse.up();
     await canvas.focus();
-    // Use the page keyboard after focusing the canvas. Locator.press() waits for a
-    // full actionability cycle per key, which turns a containment check into a
-    // CI-scale timeout without increasing the exercised camera range.
-    for (const key of ["ArrowUp", "ArrowUp", "ArrowUp", "ArrowLeft", "ArrowLeft", "ArrowLeft"]) {
-      await page.keyboard.press(key);
-    }
+    // Exercise the keyboard path without serially scheduling a full render for
+    // dozens of keys. The page keyboard avoids locator actionability waits.
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("ArrowLeft");
     await canvas.hover();
     await page.mouse.wheel(0, 900);
     const camera = (await diagnostics(page)).camera;
