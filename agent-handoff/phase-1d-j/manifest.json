@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "project": "JQ Bookcases",
+  "phase": "1D-J",
+  "package_identifier": "phase-1d-j",
+  "package_path": "agent-handoff/phase-1d-j",
+  "source_repository": "ZimaP/jq-bookcases",
+  "source_branch": "codex/golden-hero-authoritative-drawings-v1",
+  "source_head": "9f289165e4d52dc27c792b36acdccfe1d37c9e17",
+  "handoff_branch": "agent/jq-review-handoff",
+  "generation_timestamp": "2026-08-12T12:11:21Z",
+  "boundary": {
+    "preview_only": true,
+    "owner_approved": false,
+    "owner_review_status": "PENDING",
+    "production_authority": false,
+    "fabrication_authority": false,
+    "merge_deploy_publish_authority": false
+  },
+  "validation_status": {
+    "status": "pass",
+    "terminal_status": "OWNER CLAY REVIEW READY — evidence is decision-grade",
+    "source_validation_checks": 338,
+    "source_validation_failures": 0,
+    "handoff_sanitization": "pass"
+  },
+  "sanitization": {
+    "exact_allowlist_enforced": true,
+    "source_documents_included": false,
+    "private_correspondence_included": false,
+    "customer_information_included": false,
+    "secrets_included": false,
+    "scene_containers_included": false,
+    "production_files_included": false,
+    "png_ancillary_metadata_removed": true,
+    "decoded_png_pixels_unchanged": true,
+    "report_local_paths_and_prohibited_source_references_removed": true,
+    "source_package_modified": false
+  },
+  "payload_file_count": 13,
+  "payload_files": [
+    {
+      "filename": "component-separation-front.png",
+      "bytes": 1051995,
+      "sha256": "d9318eaa8d2b02f3a9f871f4a30933cccbbb750a872ad56a5cbe95350d563973",
+      "media_type": "image/png",
+      "dimensions": {
+        "width": 2400,
+        "height": 1600,
+        "unit": "px"
+      },
+      "decoded_rgba_sha256": "159f276d933a88a59c6f1844e9fb2623847158a1bc5ca05c30041e4476694e94"
+    },
+    {
+      "filename": "depth-plane-evidence.png",
+      "bytes": 630033,
+      "sha256": "18fdac20ce03511cfdd2839070326507d6803a025ee0dc05dc85221e5fd5af7c",
+      "media_type": "image/png",
+      "dimensions": {
+        "width": 2400,
+        "height": 1600,
+        "unit": "px"
+      },
+      "decoded_rgba_sha256": "7ccfca8da1cad925756e7716d8c96103e1e93879565146f2a705d3e01a1417bf"
+    },
+    {
+      "filename": "front-registered-overlay.png",
+      "bytes": 186614,
+      "sha256": "8432e6432f40d6a949ba81790d137f8b5d5e457c60cd24d5502c80da4ee40000",
+      "media_type": "image/png",
+      "dimensions": {
+        "width": 2400,
+        "height": 1600,
+        "unit": "px"
+      },
+      "decoded_rgba_sha256": "e8c3b3cf1c89fc796f541630aac3d55a9c2e3308b36db05804e8f11d2e33e5dc"
+    },
+    {
+      "filename": "geometry-delta.json",
+      "bytes": 32962,
+      "sha256": "25d784bab947df1b4e59067857738a6d6a55af350fce384fa0ce13b07f48bd61",
+      "media_type": "application/json"
+    },
+    {
+      "filename": "neutral-front-empty-tv-opening.png",
+      "bytes": 1093372,
+      "sha256": "300a583d36cace8e99125dd5321ea197dc05be16799867fde370905c6b1897cf",
+      "media_type": "image/png",
+      "dimensions": {
+        "width": 2400,
+        "height": 1600,
+        "unit": "px"
+      },
+      "decoded_rgba_sha256": "12e08896cdecc9af74c9d09bedd054698e9f3dc18d19cc1923526237c7b34073"
+    },
+    {
+      "filename": "neutral-front-full-orthographic.png",
+      "bytes": 1046934,
+      "sha256": "b70803e7a6908030b8b022f92942380e146fb9e6921e44a13fc845ec3cba8372",
+      "media_type": "image/png",
+      "dimensions": {
+        "width": 1600,
+        "height": 1200,
+        "unit": "px"
+      },
+      "decoded_rgba_sha256": "a218cdf8fabc724453a480a03d11fc7fcbee075641d6291b39666429185ae133"
+    },
+    {
+      "filename": "neutral-s2-actual-section.png",
+      "bytes": 685184,
+      "sha256": "aa6c839dcb74dfe11e593e6bca5b7125f5584953369fd43d3366b7a55a2ea037",
+      "media_type": "image/png",
+      "dimensions": {
+        "width": 2400,
+        "height": 1600,
+        "unit": "px"
+      },
+      "decoded_rgba_sha256": "67620ad153d285dc9732d4f5b263186307a50185a6f02f74fbc81a8ea27a8184"
+    },
+    {
+      "filename": "neutral-three-quarter-eye-level.png",
+      "bytes": 1410544,
+      "sha256": "4c7af7f19307d96d89f00c230f5f29f1a736ed55f5f68759eaf315f2a7fc1ae0",
+      "media_type": "image/png",
+      "dimensions": {
+        "width": 1600,
+        "height": 1200,
+        "unit": "px"
+      },
+      "decoded_rgba_sha256": "88ec55c1ece8612d513dd9f28ef76f11a4bf458a9584d38f4505539cae7c6f7d"
+    },
+    {
+      "filename": "provenance-manifest.json",
+      "bytes": 4477,
+      "sha256": "aa19f8f981658cc0f196aec2e85b43f8b5ca24de5a675008f69f050d2e3cb206",
+      "media_type": "application/json"
+    },
+    {
+      "filename": "s2-registered-overlay.png",
+      "bytes": 255549,
+      "sha256": "572d0451ab5b2d2d0c1e75fa7b0e6188c64c58c301f4d54019ad69251e796e09",
+      "media_type": "image/png",
+      "dimensions": {
+        "width": 2400,
+        "height": 1600,
+        "unit": "px"
+      },
+      "decoded_rgba_sha256": "38ae06470ba728525dbf362a5d60c6e78553012d279a815a413b4656d5440336"
+    },
+    {
+      "filename": "validation-report.json",
+      "bytes": 31210,
+      "sha256": "143aa517b578558dc3b0b725437247bae140efcc51d41079964f4fb52dc83e46",
+      "media_type": "application/json"
+    },
+    {
+      "filename": "visual-issue-audit.json",
+      "bytes": 48027,
+      "sha256": "4019a5f4b87a9abde71ecdb4dfff60ecd3231598b8df8018d0d4e2ecdc8d828a",
+      "media_type": "application/json"
+    },
+    {
+      "filename": "visual-issue-audit.md",
+      "bytes": 9730,
+      "sha256": "e7eaf434c4534eaf43d11bb979163c54ec1a73d875b578cd124704c8020feaf5",
+      "media_type": "text/markdown"
+    }
+  ],
+  "manifest_self_hash": null,
+  "manifest_self_hash_notice": "The READY_FOR_REVIEW PR comment carries the SHA-256 of this manifest to avoid a circular self-hash."
+}

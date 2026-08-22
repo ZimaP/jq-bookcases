@@ -1,0 +1,1510 @@
+{
+  "schemaVersion": 1,
+  "kind": "jq-phase1d-j-owner-clay-visual-issue-audit",
+  "status": "pass",
+  "phase": "1D-J",
+  "previewOnly": true,
+  "ownerApproved": false,
+  "productionAuthority": false,
+  "fabricationAuthority": false,
+  "decisionBoundary": "Evidence is prepared for owner review. Only the owner can approve the clay geometry.",
+  "sourceDrawing": {
+    "label": "Drawing 4 / page 4 source contours",
+    "source_file_withheld": true,
+    "source_path_withheld": true,
+    "source_hash_withheld": true,
+    "use": "appearance and proportional-reconciliation evidence only; not production authority"
+  },
+  "overallFinding": "All requested visible-geometry defects were investigated. Two real lower-construction defect families totaling 42 overlap pairs were corrected in the isolated Phase 1D-J copy; shelf doubling was a shadow/setback/thickness artifact or intentional transition. No remaining visible geometry defect is unresolved.",
+  "verticalProportionFinding": {
+    "status": "material-authorized-preview-departure-disclosed",
+    "summary": "The locked 96/36/60x37 layout materially departs from Drawing 4 in upper-zone compression and outer shelf cadence; it remains an authorized preview variant pending owner review.",
+    "metrics": {
+      "assessment": "MATERIAL_VISIBLE_PROPORTION_DEPARTURE_AUTHORIZED_PREVIEW_VARIANT",
+      "classification": "DRAWING_DERIVED_PREVIEW",
+      "counterTopAff": {
+        "delta": 1.2530381944444429,
+        "percentOfSource": 3.6061805963251135,
+        "source": 34.74696180555556,
+        "target": 36
+      },
+      "openingHeight": {
+        "delta": -5.199652777777779,
+        "percentOfSource": -12.32155346196569,
+        "source": 42.19965277777778,
+        "target": 37
+      },
+      "openingTopToInnerClearOrCapBottom": {
+        "delta": -7.600173611111103,
+        "percentOfSource": -25.850777997578888,
+        "source": 29.4001736111111,
+        "target": 21.799999999999997
+      },
+      "openingTopToTotalTop": {
+        "delta": -12.193576388888886,
+        "percentOfSource": -34.647164738672515,
+        "source": 35.193576388888886,
+        "target": 23
+      },
+      "outerShelfCenterDeltasTargetMinusSource": [
+        -0.47677951388889284,
+        -2.233506944444443,
+        -3.990234375,
+        -7.874348958333329
+      ],
+      "sourceZoneSharesPercent": {
+        "aboveOpening": 31.383553107740415,
+        "floorToCounter": 30.985288596630426,
+        "opening": 37.631158295629156
+      },
+      "targetZoneSharesPercent": {
+        "aboveOpening": 23.958333333333332,
+        "floorToCounter": 37.5,
+        "opening": 38.541666666666664
+      },
+      "topShelfClearGaps": [
+        {
+          "delta": -3.8342013888889,
+          "percentOfSource": -28.09617708797156,
+          "source": 13.6467013888889,
+          "target": 9.8125
+        },
+        {
+          "delta": -3.649218750000003,
+          "percentOfSource": -27.259994163991852,
+          "source": 13.38671875,
+          "target": 9.737499999999997
+        }
+      ],
+      "totalHeight": {
+        "delta": -16.14019097222223,
+        "percentOfSource": -14.392869168753464,
+        "source": 112.14019097222223,
+        "target": 96
+      }
+    }
+  },
+  "intersectionMethod": {
+    "aabbBroadPhase": "Canonical actual-inch closed-solid AABB broad phase with strict positive interval on X/AFF/depth",
+    "triangleBvhNarrowPhase": "Axis-aligned closed-solid triangle/BVH-equivalent interval proof; every cabinetry source is a box mesh and same-pull A104 unions are explicitly allowlisted",
+    "coplanarFaceAndZFightClassification": "Coplanar plane plus two-dimensional face-area classification; zero-thickness butt contacts are not Z-fighting",
+    "duplicateMeshClassification": "Exact placed six-plane bound equality; semantic IDs remain independently unique"
+  },
+  "intersectionSummary": {
+    "physicalMeshes": 152,
+    "strictPositiveVolumePairs": 48,
+    "intentionalA104ConstituentPairs": 48,
+    "defectPositiveVolumePairs": 0,
+    "coplanarButtContactPairs": 253,
+    "exactPlacedBoundDuplicates": 0,
+    "shelfMeshes": 22,
+    "duplicateShelfBounds": 0,
+    "shelfFaceFramePenetrations": 0,
+    "remainingVisibleGeometryDefects": 0,
+    "unresolvedGeometryDefects": 0,
+    "undeclaredGeometryDefects": 0
+  },
+  "duplicateGeometryResult": {
+    "duplicateShelfMeshes": 0,
+    "duplicateCarcassOrFaceFrameMembers": 0
+  },
+  "remainingVisibleGeometryDefectCount": 0,
+  "remainingUnresolvedGeometryDefectCount": 0,
+  "undeclaredGeometryDefectCount": 0,
+  "geometryCorrectionSummary": {
+    "correctedOverlapCount": 42,
+    "lockedAnchorChangeCount": 0,
+    "undeclaredDeltaCount": 0,
+    "corrections": [
+      {
+        "correctionId": "P1DJ-GEO-001",
+        "title": "Separate lower carcass core from the visible face-frame layer",
+        "before": {
+          "carcassCoreFront": 18.5,
+          "faceFrameDepth": [
+            17.75,
+            18.5
+          ],
+          "positiveVolumePairs": 27
+        },
+        "after": {
+          "carcassCoreFront": 17.75,
+          "faceFrameDepth": [
+            17.75,
+            18.5
+          ],
+          "positiveVolumePairs": 0,
+          "visibleFrontPlane": 18.5
+        },
+        "exactRemovedPairCount": 27,
+        "lockedDimensionChanged": false
+      },
+      {
+        "correctionId": "P1DJ-GEO-002",
+        "title": "Segment lower face-frame rails between the five continuous stiles",
+        "before": {
+          "continuousRails": 2,
+          "railStilePositiveVolumePairs": 10
+        },
+        "after": {
+          "bayRailSegments": 8,
+          "railStilePositiveVolumePairs": 0,
+          "visibleRailWidth": 1.5
+        },
+        "exactRemovedPairCount": 10,
+        "lockedDimensionChanged": false
+      }
+    ]
+  },
+  "dimensionalValidation": {
+    "status": "pass",
+    "geometryFingerprint": "jq-phase1d-j-owner-clay-v1-65b68a61694e0e197bd41edc85306b196a5c3e6abda2928c786e16e0d465de3f",
+    "exactAnchors": [
+      {
+        "element": "casework width",
+        "fieldId": "WIDTH_CASEWORK",
+        "classification": "JQ_CONFIRMED",
+        "target": 117,
+        "actual": 117.000004,
+        "delta": 4e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "installed width",
+        "fieldId": "WIDTH_INSTALLED",
+        "classification": "JQ_CONFIRMED",
+        "target": 120,
+        "actual": 120.000004,
+        "delta": 4e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "total height",
+        "fieldId": "HEIGHT_TOTAL",
+        "classification": "CANONICAL_SELECTION",
+        "target": 96,
+        "actual": 96.000001,
+        "delta": 1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "counter top AFF",
+        "fieldId": "VERT_COUNTER_TOP",
+        "classification": "INDUSTRY_DEFAULT_PREVIEW",
+        "target": 36,
+        "actual": 35.999999,
+        "delta": -1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "counter thickness",
+        "fieldId": "COUNTER_THICKNESS",
+        "classification": "DRAWING_DIRECT",
+        "target": 1.25,
+        "actual": 1.249998000000005,
+        "delta": -2e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "TV opening width",
+        "fieldId": "TV_OPENING",
+        "classification": "CANONICAL_SELECTION",
+        "target": 60,
+        "actual": 60.000002,
+        "delta": 2e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "TV opening height",
+        "fieldId": "TV_OPENING",
+        "classification": "CANONICAL_SELECTION",
+        "target": 37,
+        "actual": 37.000001,
+        "delta": 1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "carcass thickness",
+        "fieldId": "CONSTRUCTION_CARCASS_THICKNESS",
+        "classification": "DRAWING_DIRECT",
+        "target": 0.75,
+        "actual": 0.75,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "visible face-frame width",
+        "fieldId": "CONSTRUCTION_FACE_FRAME_WIDTH",
+        "classification": "DRAWING_DIRECT",
+        "target": 1.5,
+        "actual": 1.5,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "upper finished depth",
+        "fieldId": "DEPTH_UPPER_FINISHED",
+        "classification": "DRAWING_DIRECT",
+        "target": 11.625,
+        "actual": 11.625,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "base height",
+        "fieldId": "BASE_FLUSH_PLINTH",
+        "classification": "CANONICAL_SELECTION",
+        "target": 4,
+        "actual": 4,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      }
+    ],
+    "registeredPreviewValues": [
+      {
+        "element": "counter width",
+        "fieldId": "WIDTH_COUNTER",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 119.125,
+        "actual": 119.124998,
+        "delta": -2e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 119.106667,
+        "roundingMethod": "NEAREST_1_16_PER_SIDE_OVERHANG"
+      },
+      {
+        "element": "counter maximum projection",
+        "fieldId": "DEPTH_COUNTER_MAX",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 20.5,
+        "actual": 20.499999,
+        "delta": -1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 20.533333,
+        "roundingMethod": "EXPLICIT_PREVIEW_LOCK_OVERRIDE"
+      },
+      {
+        "element": "physical door top AFF",
+        "fieldId": "VERT_DOOR_LIMITS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 34.625,
+        "actual": 34.625,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "roundingMethod": "LOCKED_OPENING_PLUS_PREVIEW_REVEAL"
+      },
+      {
+        "element": "outer shelf 1 center",
+        "fieldId": "VERT_OUTER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 48.25,
+        "actual": 48.25,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 48.27504264227012,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "outer shelf 2 center",
+        "fieldId": "VERT_OUTER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 61,
+        "actual": 61.000001,
+        "delta": 1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 61.01252132113507,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "outer shelf 3 center",
+        "fieldId": "VERT_OUTER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 73.75,
+        "actual": 73.7500005,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 73.75,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "outer shelf 4 center",
+        "fieldId": "VERT_OUTER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 84.5625,
+        "actual": 84.562499,
+        "delta": -1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 84.5644313679795,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "lower shelf 1 center",
+        "fieldId": "VERT_LOWER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 12.375,
+        "actual": 12.374999500000001,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 12.366967509025272,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "lower shelf 2 center",
+        "fieldId": "VERT_LOWER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 19.375,
+        "actual": 19.3750005,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 19.371480144404334,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "lower shelf 3 center",
+        "fieldId": "VERT_LOWER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 26.375,
+        "actual": 26.3750005,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 26.347833935018052,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "lower case face",
+        "fieldId": "DEPTH_LOWER_CASE_FACE",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 18.5,
+        "actual": 18.5,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "lower door face",
+        "fieldId": "DEPTH_LOWER_DOOR_FACE",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 19.4375,
+        "actual": 19.437501,
+        "delta": 1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "hardware maximum projection",
+        "fieldId": "DEPTH_HARDWARE_MAX",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 20.6875,
+        "actual": 20.6875,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      }
+    ],
+    "establishedShelfCounts": {
+      "status": "pass",
+      "outerShelfCount": {
+        "target": 8,
+        "actual": 8
+      },
+      "bridgeShelfCount": {
+        "target": 2,
+        "actual": 2
+      },
+      "lowerShelfCount": {
+        "target": 12,
+        "actual": 12
+      },
+      "doorLeafCount": {
+        "target": 8,
+        "actual": 8
+      },
+      "hardwarePullCount": {
+        "target": 8,
+        "actual": 8
+      },
+      "physicalLightingGeometry": {
+        "target": 0,
+        "actual": 0
+      }
+    }
+  },
+  "deterministicValidation": {
+    "status": "pass",
+    "geometry": {
+      "runAFingerprint": "jq-phase1d-j-owner-clay-v1-65b68a61694e0e197bd41edc85306b196a5c3e6abda2928c786e16e0d465de3f",
+      "runBFingerprint": "jq-phase1d-j-owner-clay-v1-65b68a61694e0e197bd41edc85306b196a5c3e6abda2928c786e16e0d465de3f",
+      "match": true
+    },
+    "evidenceSceneFingerprint": {
+      "runA": "6314e3d2759938c6f3b67857e6994544c6db0d8654f37bdd5d2f66c169728fe9",
+      "runB": "6314e3d2759938c6f3b67857e6994544c6db0d8654f37bdd5d2f66c169728fe9",
+      "match": true
+    },
+    "decodedRgbaComparisons": 11
+  },
+  "issues": [
+    {
+      "issueId": "P1DJ-VIS-001",
+      "title": "Front view crop and camera square-up",
+      "status": "corrected-and-proven",
+      "finding": "The corrected front is a straight-on orthographic elevation with the complete installed assembly, both fillers, countertop ends, plinth, and slim cap inside the computational frame.",
+      "exactFinding": {
+        "camera": "P1DJ_CAM_FRONTFULL",
+        "locationMeters": [
+          0,
+          -4.572,
+          1.2192
+        ],
+        "rotationEuler": [
+          1.570796,
+          0,
+          0
+        ],
+        "type": "ORTHO",
+        "sensorFit": "HORIZONTAL",
+        "resolution": [
+          1600,
+          1200
+        ],
+        "effectiveViewSpanInches": {
+          "horizontal": 143.999997,
+          "vertical": 107.999998
+        },
+        "normalizedBounds": [
+          0.083333,
+          0.916667,
+          0.055555,
+          0.944444
+        ],
+        "margins": {
+          "left": 0.083333,
+          "right": 0.083333,
+          "bottom": 0.055555,
+          "top": 0.055556
+        },
+        "minimumRequiredMarginFraction": 0.05,
+        "allCornersInFront": true,
+        "completeBoundsVisible": true,
+        "worstObjects": [
+          {
+            "name": "p1dj/main/base-plinth::mesh",
+            "bounds": [
+              0.09375,
+              0.90625,
+              0.055555,
+              0.092592,
+              4.1021,
+              4.5593
+            ]
+          },
+          {
+            "name": "p1dj/main/upper-top-panel::mesh",
+            "bounds": [
+              0.09375,
+              0.90625,
+              0.9375,
+              0.944444,
+              4.249738,
+              4.545013
+            ]
+          },
+          {
+            "name": "p1dj/main/slim-cap::mesh",
+            "bounds": [
+              0.092014,
+              0.907986,
+              0.933333,
+              0.944444,
+              4.219575,
+              4.249738
+            ]
+          },
+          {
+            "name": "p1dj/main/upper-panel-01::mesh",
+            "bounds": [
+              0.09375,
+              0.098958,
+              0.388889,
+              0.9375,
+              4.249738,
+              4.545013
+            ]
+          },
+          {
+            "name": "p1dj/main/upper-panel-02::mesh",
+            "bounds": [
+              0.286458,
+              0.291667,
+              0.388889,
+              0.9375,
+              4.249738,
+              4.545013
+            ]
+          }
+        ]
+      },
+      "evidence": [
+        "neutral-front-full-orthographic.png",
+        "camera-bounds-report.json"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-002",
+      "title": "TV opening visibility and named physical bounds",
+      "status": "corrected-and-proven",
+      "finding": "Only TV_PROXY and SOUNDBAR_REFERENCE are hidden in the empty-opening evidence. The physical TV opening is 60 x 37 in, from X=-30 to 30 and AFF=36 to 73; the normal clay scene retains both props.",
+      "exactFinding": {
+        "width": {
+          "element": "TV opening width",
+          "fieldId": "TV_OPENING",
+          "classification": "CANONICAL_SELECTION",
+          "target": 60,
+          "actual": 60.000002,
+          "delta": 2e-06,
+          "computationalToleranceInches": 0.0001,
+          "toleranceIsFabricationTolerance": false,
+          "status": "pass"
+        },
+        "height": {
+          "element": "TV opening height",
+          "fieldId": "TV_OPENING",
+          "classification": "CANONICAL_SELECTION",
+          "target": 37,
+          "actual": 37.000001,
+          "delta": 1e-06,
+          "computationalToleranceInches": 0.0001,
+          "toleranceIsFabricationTolerance": false,
+          "status": "pass"
+        },
+        "namedBoundaries": {
+          "left": "UPPER_FACE_FRAME_STILE_02.maxX=-30",
+          "right": "UPPER_FACE_FRAME_STILE_04.minX=30",
+          "bottom": "CONTINUOUS_COUNTERTOP.maxAFF=36",
+          "top": "BRIDGE_HEADER_VISIBLE_FRAME.minAFF=73"
+        },
+        "normalClayPropsAvailable": true
+      },
+      "evidence": [
+        "neutral-front-empty-tv-opening.png",
+        "target-versus-actual-dimensions.json",
+        "scene-integrity.json"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-003",
+      "title": "Front registered reconciliation overlay",
+      "status": "corrected-and-proven",
+      "finding": "Drawing 4 source contours and generated contours share actual-inch orientation and floor/centerline datums, while the generated 117-in casework and 120-in installed-width anchors are explicit. Source and generated colors remain distinct; a separately labelled similarity diagnostic exposes residuals without treating drawing scale as production authority.",
+      "exactFinding": {
+        "primary": {
+          "anchorResiduals": {
+            "centerlineX": 0,
+            "finishedFloorY": 0,
+            "sourceCaseWidthMinusTarget117": 15.666666666666657,
+            "sourceCounterAffMinusTarget36": -1.2530381944444429,
+            "sourceTopAffMinusTarget96": 16.14019097222223
+          },
+          "canonicalToCanvas": {
+            "input": "actual inches",
+            "matrix": [
+              [
+                10,
+                0,
+                810
+              ],
+              [
+                0,
+                -10,
+                1425
+              ],
+              [
+                0,
+                0,
+                1
+              ]
+            ],
+            "output": "front overlay panel pixels"
+          },
+          "classification": "DRAWING_DERIVED_PREVIEW",
+          "fitted": false,
+          "generatedActualInchFormula": "x=xCanonical; y=yCanonical",
+          "kind": "IDENTITY_ACTUAL_INCH_PRIMARY",
+          "nonUniformScale": false,
+          "panelProjection": {
+            "generatedFormula": "X=810+10*x; Y=1425-10*y",
+            "originPx": [
+              810,
+              1425
+            ],
+            "pixelsPerActualInch": 10,
+            "sourceRasterFormula": "X=810+10*((px-1340.15625)/18); Y=1425-10*((2105.8828125-py)/18)"
+          },
+          "sharedDatums": {
+            "centerlineX": 0,
+            "finishedFloorY": 0
+          },
+          "sourceActualInchFormula": {
+            "raster144Dpi": "x=(px-1340.15625)/18; y=(2105.8828125-py)/18",
+            "vector": "x=(u-850.078125)/9; y=(1412.94140625-v)/9"
+          },
+          "sourceToCanonical": {
+            "input": "144-dpi elevation crop pixels",
+            "matrix": [
+              [
+                0.05555555555555555,
+                0,
+                -74.453125
+              ],
+              [
+                0,
+                -0.05555555555555555,
+                116.99348958333333
+              ],
+              [
+                0,
+                0,
+                1
+              ]
+            ],
+            "output": "actual inches at centerline/floor datums"
+          }
+        },
+        "diagnosticResiduals": {
+          "registeredFloorAff": 5.35632262876884,
+          "registeredInnerUpperClearTopAff": 99.14457050879398,
+          "registeredOpeningHeight": 37.21627669597991,
+          "registeredOpeningTopAff": 73.21627669597991,
+          "registeredOpeningWidth": 57.653688363693476,
+          "registeredOuterShelfCentersAff": [
+            48.32893471262564,
+            61.122556140075375,
+            73.91617756752512,
+            86.87726228800251
+          ],
+          "registeredTopAff": 104.25382773241206
+        },
+        "explicitMatrices": {
+          "sourceToCanonicalMatrix3x3": [
+            [
+              0.05555555555555555,
+              0,
+              -74.453125
+            ],
+            [
+              0,
+              -0.05555555555555555,
+              116.99348958333333
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "canonicalToCanvasMatrix3x3": [
+            [
+              10,
+              0,
+              810
+            ],
+            [
+              0,
+              -10,
+              1425
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "anchorDatums": [
+            "case centerline X=0",
+            "finished floor Y=0"
+          ],
+          "residualSource": "registrationTransforms.frontSimilarityDiagnostic.residuals",
+          "units": "actual-inch canonical coordinates to panel pixels"
+        },
+        "lockedWidthAnchorsInches": {
+          "casework": 117,
+          "installed": 120
+        },
+        "deliberateCanonicalDeviations": [
+          "slim cap instead of Drawing 4 crown",
+          "flush plinth instead of Drawing 4 recessed base",
+          "A104 pulls instead of drawn reference knobs"
+        ]
+      },
+      "evidence": [
+        "front-registered-overlay.png",
+        "overlay-registration-report.json"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-004",
+      "title": "Vertical-proportion relationship to Drawing 4",
+      "status": "material-authorized-preview-departure-disclosed",
+      "finding": "The locked 96-in total, 36-in counter AFF, 60 x 37-in TV opening, 23-in remaining bridge/top zone, and compressed upper shelf spacing materially depart from the Drawing 4 silhouette. This is an authorized preview variant, not owner approval, and locked values were not changed to force a match.",
+      "exactFinding": {
+        "assessment": "MATERIAL_VISIBLE_PROPORTION_DEPARTURE_AUTHORIZED_PREVIEW_VARIANT",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "counterTopAff": {
+          "delta": 1.2530381944444429,
+          "percentOfSource": 3.6061805963251135,
+          "source": 34.74696180555556,
+          "target": 36
+        },
+        "openingHeight": {
+          "delta": -5.199652777777779,
+          "percentOfSource": -12.32155346196569,
+          "source": 42.19965277777778,
+          "target": 37
+        },
+        "openingTopToInnerClearOrCapBottom": {
+          "delta": -7.600173611111103,
+          "percentOfSource": -25.850777997578888,
+          "source": 29.4001736111111,
+          "target": 21.799999999999997
+        },
+        "openingTopToTotalTop": {
+          "delta": -12.193576388888886,
+          "percentOfSource": -34.647164738672515,
+          "source": 35.193576388888886,
+          "target": 23
+        },
+        "outerShelfCenterDeltasTargetMinusSource": [
+          -0.47677951388889284,
+          -2.233506944444443,
+          -3.990234375,
+          -7.874348958333329
+        ],
+        "sourceZoneSharesPercent": {
+          "aboveOpening": 31.383553107740415,
+          "floorToCounter": 30.985288596630426,
+          "opening": 37.631158295629156
+        },
+        "targetZoneSharesPercent": {
+          "aboveOpening": 23.958333333333332,
+          "floorToCounter": 37.5,
+          "opening": 38.541666666666664
+        },
+        "topShelfClearGaps": [
+          {
+            "delta": -3.8342013888889,
+            "percentOfSource": -28.09617708797156,
+            "source": 13.6467013888889,
+            "target": 9.8125
+          },
+          {
+            "delta": -3.649218750000003,
+            "percentOfSource": -27.259994163991852,
+            "source": 13.38671875,
+            "target": 9.737499999999997
+          }
+        ],
+        "totalHeight": {
+          "delta": -16.14019097222223,
+          "percentOfSource": -14.392869168753464,
+          "source": 112.14019097222223,
+          "target": 96
+        }
+      },
+      "evidence": [
+        "front-registered-overlay.png",
+        "visual-issue-audit.md",
+        "overlay-registration-report.json"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-005",
+      "title": "Actual S2 section and matched orientation",
+      "status": "corrected-and-proven",
+      "finding": "S2 is a Boolean intersection of evaluated physical meshes, not an analytic replica. It is full-height with wall/rear on screen left and cabinet front on screen right, and separates case, face frame, shelf, door/front, countertop, cap, base, and hardware reference roles.",
+      "exactFinding": {
+        "camera": {
+          "camera": "P1DJ_CAM_ACTUALSECTION",
+          "locationMeters": [
+            -5.356225,
+            -0.254,
+            1.2192
+          ],
+          "rotationEuler": [
+            1.570796,
+            0,
+            -1.570796
+          ],
+          "type": "ORTHO",
+          "sensorFit": "HORIZONTAL",
+          "resolution": [
+            900,
+            1800
+          ],
+          "effectiveViewSpanInches": {
+            "horizontal": 54.000001,
+            "vertical": 108.000003
+          },
+          "normalizedBounds": [
+            0.314815,
+            0.697917,
+            0.055555,
+            0.944444
+          ],
+          "margins": {
+            "left": 0.314815,
+            "right": 0.302083,
+            "bottom": 0.055555,
+            "top": 0.055556
+          },
+          "minimumRequiredMarginFraction": 0.05,
+          "allCornersInFront": true,
+          "completeBoundsVisible": true,
+          "worstObjects": [
+            {
+              "name": "p1dj/section/lower/BASE_PLINTH::actual-cut",
+              "bounds": [
+                0.324074,
+                0.657407,
+                0.055555,
+                0.092593,
+                4.221163,
+                4.230688
+              ]
+            },
+            {
+              "name": "p1dj/section/upper/UPPER_STRUCTURAL_TOP_PANEL::actual-cut",
+              "bounds": [
+                0.334491,
+                0.549768,
+                0.9375,
+                0.944444,
+                4.567237,
+                4.576763
+              ]
+            },
+            {
+              "name": "p1dj/section/upper/SLIM_CAP_PLAIN_FASCIA::actual-cut",
+              "bounds": [
+                0.549768,
+                0.571759,
+                0.933333,
+                0.944444,
+                4.567238,
+                4.576763
+              ]
+            },
+            {
+              "name": "p1dj/section/upper/UPPER_CARCASS_PANEL_02::actual-cut",
+              "bounds": [
+                0.334491,
+                0.549768,
+                0.388889,
+                0.9375,
+                4.575175,
+                4.576763
+              ]
+            },
+            {
+              "name": "p1dj/section/upper/UPPER_BACK_LEFT::actual-cut",
+              "bounds": [
+                0.325231,
+                0.334491,
+                0.388889,
+                0.9375,
+                4.567237,
+                4.575175
+              ]
+            }
+          ]
+        },
+        "section": {
+          "method": "BOOLEAN_INTERSECTION_OF_EVALUATED_PHYSICAL_MESH",
+          "analyticReplicaCount": 0,
+          "meshCount": 25,
+          "sourceRoles": [
+            "back-panel",
+            "base",
+            "carcass-panel",
+            "countertop",
+            "door",
+            "face-frame",
+            "hardware-reference",
+            "shelf",
+            "top-treatment"
+          ],
+          "missingRequiredRoles": [],
+          "orientationProbe": {
+            "rearWallNormalizedScreenX": 0.314815,
+            "hardwareMaximumNormalizedScreenX": 0.697917,
+            "rearOnScreenLeft": true,
+            "frontOnScreenRight": true,
+            "viewDirection": "NEGATIVE_X_TO_POSITIVE_X"
+          }
+        },
+        "registration": {
+          "anchorResiduals": {
+            "finishedFloorY": 0,
+            "rearWallZ": 0,
+            "sourceCounterFrontMinusTarget": 0.03333333333333499,
+            "sourceLowerDoorFaceMinusTarget": 0.042500000000000426
+          },
+          "canonicalToCanvas": {
+            "input": "actual inches",
+            "matrix": [
+              [
+                10,
+                0,
+                310
+              ],
+              [
+                0,
+                -10,
+                1425
+              ],
+              [
+                0,
+                0,
+                1
+              ]
+            ],
+            "output": "S2 overlay panel pixels"
+          },
+          "classification": "DRAWING_DERIVED_PREVIEW",
+          "fitted": false,
+          "generatedActualInchFormula": "z=zCanonical; y=yCanonical",
+          "kind": "IDENTITY_ACTUAL_INCH_PRIMARY",
+          "mirrored": false,
+          "nonUniformScale": false,
+          "orientation": "rear/wall left; cabinet front right",
+          "panelProjection": {
+            "generatedFormula": "X=310+10*z; Y=1425-10*y",
+            "originPx": [
+              310,
+              1425
+            ],
+            "pixelsPerActualInch": 10,
+            "sourceRasterFormula": "X=310+10*((px-290.796875)/18); Y=1425-10*((2105.8828125-py)/18)"
+          },
+          "sharedDatums": {
+            "finishedFloorY": 0,
+            "rearWallZ": 0
+          },
+          "sourceActualInchFormula": {
+            "raster144Dpi": "z=(px-290.796875)/18; y=(2105.8828125-py)/18",
+            "vector": "z=(u-1895.3984375)/9; y=(1412.94140625-v)/9"
+          },
+          "sourceToCanonical": {
+            "input": "144-dpi S2 crop pixels",
+            "matrix": [
+              [
+                0.05555555555555555,
+                0,
+                -16.155381944444443
+              ],
+              [
+                0,
+                -0.05555555555555555,
+                116.99348958333333
+              ],
+              [
+                0,
+                0,
+                1
+              ]
+            ],
+            "output": "actual inches at wall/floor datums"
+          }
+        },
+        "explicitMatrices": {
+          "sourceToCanonicalMatrix3x3": [
+            [
+              0.05555555555555555,
+              0,
+              -16.155381944444443
+            ],
+            [
+              0,
+              -0.05555555555555555,
+              116.99348958333333
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "canonicalToCanvasMatrix3x3": [
+            [
+              10,
+              0,
+              310
+            ],
+            [
+              0,
+              -10,
+              1425
+            ],
+            [
+              0,
+              0,
+              1
+            ]
+          ],
+          "anchorDatums": [
+            "rear wall Z=0",
+            "finished floor Y=0"
+          ],
+          "residualSource": "depthRegistrationSchedule",
+          "units": "actual-inch canonical coordinates to panel pixels"
+        }
+      },
+      "evidence": [
+        "neutral-s2-actual-section.png",
+        "s2-registered-overlay.png",
+        "depth-plane-evidence.png",
+        "camera-bounds-report.json"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-006",
+      "title": "Duplicate shelf meshes and stepped outer edges",
+      "status": "artifact-and-intentional-transition-proven",
+      "finding": "There are no duplicate shelf bounds. The apparent doubled/stepped edges are the documented 1-in outer shelf, 1.25-in bridge member, 1.5-in visible header, and intentional 0.125-in upper shelf front setback; isolated categorical evidence removes shadow/cavity ambiguity.",
+      "exactFinding": {
+        "duplicateShelfBounds": 0,
+        "exactPlacedBoundDuplicates": 0,
+        "shelfMeshes": 22,
+        "steppedShelfFinding": {
+          "classification": "INTENTIONAL_TRANSITION",
+          "outerRow3BoundsAff": [
+            73.25,
+            74.25
+          ],
+          "bridgeHeaderStructuralBoundsAff": [
+            73.125,
+            74.375
+          ],
+          "bridgeHeaderVisibleBoundsAff": [
+            73,
+            74.5
+          ],
+          "outerRow4BoundsAff": [
+            84.0625,
+            85.0625
+          ],
+          "bridgeShelfBoundsAff": [
+            83.9375,
+            85.1875
+          ],
+          "reason": "Different direct shelf-thickness rules for 27-in and 29.625-in support spans, plus the 1.5-in visible header; no duplicated shelf mesh."
+        }
+      },
+      "evidence": [
+        "component-separation-front.png",
+        "intersection-audit.json"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-007",
+      "title": "Coplanar overlap, intersection, and Z-fighting audit",
+      "status": "corrected-and-proven",
+      "finding": "The Phase 1D-I lower-core/face-frame and rail/stile positive-volume defects were real. Phase 1D-J removes all 42 cabinetry overlap pairs. Remaining coplanar pairs are zero-thickness butt contacts, not Z-fighting; only 48 within-pull A104 proxy constituent joins remain allowlisted.",
+      "exactFinding": {
+        "correctedOverlapCount": 42,
+        "phaseJCounts": {
+          "physicalMeshes": 152,
+          "strictPositiveVolumePairs": 48,
+          "intentionalA104ConstituentPairs": 48,
+          "defectPositiveVolumePairs": 0,
+          "coplanarButtContactPairs": 253,
+          "exactPlacedBoundDuplicates": 0,
+          "shelfMeshes": 22,
+          "duplicateShelfBounds": 0,
+          "shelfFaceFramePenetrations": 0,
+          "remainingVisibleGeometryDefects": 0,
+          "unresolvedGeometryDefects": 0,
+          "undeclaredGeometryDefects": 0
+        },
+        "method": {
+          "placedBounds": "Canonical actual-inch closed-solid AABB broad phase with strict positive interval on X/AFF/depth",
+          "narrowPhase": "Axis-aligned closed-solid triangle/BVH-equivalent interval proof; every cabinetry source is a box mesh and same-pull A104 unions are explicitly allowlisted",
+          "coplanar": "Coplanar plane plus two-dimensional face-area classification; zero-thickness butt contacts are not Z-fighting",
+          "duplicate": "Exact placed six-plane bound equality; semantic IDs remain independently unique",
+          "a104Exception": "Only same-pull A104 visual-proxy body/base/pedestal constituent joins are allowlisted",
+          "toleranceInches": 0.0001
+        }
+      },
+      "evidence": [
+        "geometry-delta.json",
+        "intersection-audit.json",
+        "component-separation-front.png"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-008",
+      "title": "Shelf penetration, floating gaps, offsets, and setbacks",
+      "status": "proven-clear",
+      "finding": "No shelf penetrates a face frame and no unintended floating shelf gap exists. Outer/bridge shelves use a consistent 0.125-in front setback and lower shelves use a consistent 0.75-in setback to the visible frame plane; vertical steps follow declared thickness rules.",
+      "exactFinding": {
+        "shelfFaceFramePenetrations": 0,
+        "floatingShelfGapCount": 0,
+        "upperShelfFrontSetback": 0.125,
+        "lowerShelfFrontSetbackToVisiblePlane": 0.75,
+        "shelfSideClearanceEach": 0.125
+      },
+      "evidence": [
+        "component-separation-front.png",
+        "intersection-audit.json"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-009",
+      "title": "Carcass and 1.5-in visible face-frame separation",
+      "status": "corrected-and-proven",
+      "finding": "The lower carcass core now ends at depth 17.75 and the separate face-frame layer occupies 17.75 to 18.5. The visible member rule remains 1.5 in total; it is not a 0.75 + 1.5 side-by-side duplicate.",
+      "exactFinding": {
+        "lowerCarcassCoreFront": 17.75,
+        "lowerFaceFrameRear": 17.75,
+        "lowerFaceFrameFront": 18.5,
+        "coreFramePositiveOverlap": 0,
+        "visibleFaceFrameDepth": 0.75,
+        "visibleMemberWidth": 1.5,
+        "counterSupport": {
+          "lowerTopMaxAff": 34.75,
+          "counterMinAff": 34.75,
+          "counterMaxAff": 36,
+          "upperStartsAff": 36
+        },
+        "upperShelfFrontSetback": 0.125,
+        "lowerShelfFrontSetbackToVisiblePlane": 0.75,
+        "shelfSideClearanceEach": 0.125,
+        "flushPlinth": {
+          "continuous": true,
+          "boundsX": [
+            -58.5,
+            58.5
+          ],
+          "bayCount": 4
+        },
+        "slimCap": {
+          "continuous": true,
+          "boundsX": [
+            -58.75,
+            58.75
+          ],
+          "boundsAff": [
+            94.8,
+            96
+          ]
+        },
+        "fillers": {
+          "separate": true,
+          "boundsX": [
+            [
+              -60,
+              -58.5
+            ],
+            [
+              58.5,
+              60
+            ]
+          ]
+        },
+        "evidenceMeshesHiddenInClayRenders": true
+      },
+      "evidence": [
+        "depth-plane-evidence.png",
+        "component-separation-front.png",
+        "geometry-delta.json"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-010",
+      "title": "Counter support and upper-vertical contact",
+      "status": "proven-clean",
+      "finding": "The lower top ends at AFF 34.75, the countertop spans AFF 34.75 to 36, and upper verticals start at AFF 36. These are boundary contacts without a positive-volume intersection or floating gap.",
+      "exactFinding": {
+        "lowerTopMaxAff": 34.75,
+        "counterMinAff": 34.75,
+        "counterMaxAff": 36,
+        "upperStartsAff": 36
+      },
+      "evidence": [
+        "neutral-s2-actual-section.png",
+        "depth-plane-evidence.png",
+        "intersection-audit.json"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-011",
+      "title": "Flush plinth continuity",
+      "status": "proven-deliberate-canonical-deviation",
+      "finding": "One continuous 4-in flush plinth spans all four lower bays from X=-58.5 to 58.5. Its difference from the Drawing 4 recessed base is intentionally masked as a canonical option difference, not a geometry error.",
+      "exactFinding": {
+        "continuous": true,
+        "boundsX": [
+          -58.5,
+          58.5
+        ],
+        "bayCount": 4
+      },
+      "evidence": [
+        "front-registered-overlay.png",
+        "neutral-front-full-orthographic.png"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-012",
+      "title": "Slim cap continuity",
+      "status": "proven-deliberate-canonical-deviation",
+      "finding": "The selected slim cap is continuous from X=-58.75 to 58.75 and AFF 94.8 to 96. Its difference from the Drawing 4 built-up crown is intentional and visibly annotated.",
+      "exactFinding": {
+        "continuous": true,
+        "boundsX": [
+          -58.75,
+          58.75
+        ],
+        "boundsAff": [
+          94.8,
+          96
+        ]
+      },
+      "evidence": [
+        "front-registered-overlay.png",
+        "neutral-three-quarter-eye-level.png"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-013",
+      "title": "Filler separation and intended boundaries",
+      "status": "proven-clean",
+      "finding": "Left and right fillers remain separate physical members at X=-60..-58.5 and 58.5..60, reaching the installed-width boundaries and remaining visible in the complete front evidence.",
+      "exactFinding": {
+        "separate": true,
+        "boundsX": [
+          [
+            -60,
+            -58.5
+          ],
+          [
+            58.5,
+            60
+          ]
+        ]
+      },
+      "evidence": [
+        "neutral-front-full-orthographic.png",
+        "component-separation-front.png"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-014",
+      "title": "Evidence-mesh isolation from clay renders",
+      "status": "proven-clear",
+      "finding": "Actual-section evidence meshes are hidden in every normal clay render and hidden in the saved default scene; the default product and normal TV/soundbar props remain visible.",
+      "exactFinding": {
+        "evidenceMeshesHiddenInClayRenders": true,
+        "actualSectionHiddenInDefaultScene": true,
+        "defaultProductVisible": true
+      },
+      "evidence": [
+        "scene-integrity.json",
+        "camera-bounds-report.json",
+        "intersection-audit.json"
+      ]
+    },
+    {
+      "issueId": "P1DJ-VIS-015",
+      "title": "Three-quarter eye-level review framing",
+      "status": "corrected-and-proven",
+      "finding": "The three-quarter evidence contains the complete assembly with computational margins from an approximately eye-level camera and without excessive downward perspective.",
+      "exactFinding": {
+        "camera": "P1DJ_CAM_THREEQUARTEREYELEVEL",
+        "locationMeters": [
+          -3.683,
+          -6.223,
+          1.524
+        ],
+        "rotationEuler": [
+          1.5275,
+          0,
+          -0.550945
+        ],
+        "type": "PERSP",
+        "sensorFit": "AUTO",
+        "resolution": [
+          1600,
+          1200
+        ],
+        "effectiveViewSpanInches": {
+          "horizontal": null,
+          "vertical": null
+        },
+        "normalizedBounds": [
+          0.148597,
+          0.805762,
+          0.056955,
+          0.915198
+        ],
+        "margins": {
+          "left": 0.148597,
+          "right": 0.194238,
+          "bottom": 0.056955,
+          "top": 0.084802
+        },
+        "minimumRequiredMarginFraction": 0.03,
+        "allCornersInFront": true,
+        "completeBoundsVisible": true,
+        "worstObjects": [
+          {
+            "name": "p1dj/main/base-plinth::mesh",
+            "bounds": [
+              0.158029,
+              0.792769,
+              0.056955,
+              0.213203,
+              6.107874,
+              8.055713
+            ]
+          },
+          {
+            "name": "p1dj/main/slim-cap::mesh",
+            "bounds": [
+              0.178673,
+              0.780896,
+              0.840172,
+              0.915198,
+              6.103408,
+              7.691303
+            ]
+          },
+          {
+            "name": "p1dj/main/upper-top-panel::mesh",
+            "bounds": [
+              0.153847,
+              0.775635,
+              0.835563,
+              0.913675,
+              6.132404,
+              7.938835
+            ]
+          },
+          {
+            "name": "p1dj/main/left-filler-lower::mesh",
+            "bounds": [
+              0.186251,
+              0.199371,
+              0.090697,
+              0.366638,
+              6.054142,
+              6.12409
+            ]
+          },
+          {
+            "name": "p1dj/main/lower-frame-stile-01::mesh",
+            "bounds": [
+              0.195865,
+              0.208884,
+              0.092336,
+              0.367376,
+              6.074068,
+              6.144016
+            ]
+          }
+        ]
+      },
+      "evidence": [
+        "neutral-three-quarter-eye-level.png",
+        "camera-bounds-report.json"
+      ]
+    }
+  ],
+  "evidenceIndex": {
+    "completeFront": [
+      "neutral-front-full-orthographic.png",
+      "camera-bounds-report.json"
+    ],
+    "emptyTvOpening": [
+      "neutral-front-empty-tv-opening.png",
+      "target-versus-actual-dimensions.json"
+    ],
+    "threeQuarter": [
+      "neutral-three-quarter-eye-level.png",
+      "camera-bounds-report.json"
+    ],
+    "actualS2": [
+      "neutral-s2-actual-section.png",
+      "depth-plane-evidence.png"
+    ],
+    "frontRegisteredOverlay": [
+      "front-registered-overlay.png",
+      "overlay-registration-report.json"
+    ],
+    "s2RegisteredOverlay": [
+      "s2-registered-overlay.png",
+      "overlay-registration-report.json"
+    ],
+    "componentSeparation": [
+      "component-separation-front.png",
+      "intersection-audit.json"
+    ],
+    "exactGeometryDelta": [
+      "geometry-delta.json"
+    ],
+    "determinism": [
+      "deterministic-regeneration-report.json"
+    ]
+  },
+  "evidenceGeometryFingerprint": "jq-phase1d-j-owner-clay-v1-65b68a61694e0e197bd41edc85306b196a5c3e6abda2928c786e16e0d465de3f",
+  "handoffSanitization": {
+    "status": "pass",
+    "local_paths_removed": true,
+    "source_document_identifiers_removed": true,
+    "geometry_or_findings_changed": false
+  }
+}
