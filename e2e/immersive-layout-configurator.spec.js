@@ -241,6 +241,14 @@ test("per-layout dimensions survive A→B→C→A, reload, Review, and Back with
   await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toHaveValue("0.00");
   await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
   await expect(page.locator('[data-measurement="lowerCabinetHeight"]')).toHaveValue("35");
+  // The production store debounces draft writes. Prove the exact layout-scoped
+  // value has reached that store before testing a reload, rather than racing the
+  // 180 ms persistence boundary on a slow CI runner.
+  await expect.poll(async () => page.evaluate(({ layoutId, controlId }) => {
+    const raw = localStorage.getItem("jqGuidedConfiguratorDraftV1");
+    const draft = raw ? JSON.parse(raw) : null;
+    return draft?.layoutStates?.[layoutId]?.smartDimensions?.[controlId] ?? null;
+  }, { layoutId: "fireplace-wall", controlId: CONTROL_ID })).toBeCloseTo(fireplace.minMillimeters, 5);
   await page.reload({ waitUntil: "domcontentloaded" });
   await waitForViewerReady(page, "fireplace-wall");
   await page.getByRole("button", { name: "Dimensions", exact: true }).click();
