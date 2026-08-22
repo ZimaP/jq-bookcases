@@ -241,14 +241,26 @@ test("per-layout dimensions survive A→B→C→A, reload, Review, and Back with
   await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toHaveValue("0.00");
   await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
   await expect(page.locator('[data-measurement="lowerCabinetHeight"]')).toHaveValue("35");
-  // The production store debounces draft writes. Prove the exact layout-scoped
-  // value has reached that store before testing a reload, rather than racing the
-  // 180 ms persistence boundary on a slow CI runner.
-  await expect.poll(async () => page.evaluate(({ layoutId, controlId }) => {
+  // The production store debounces draft writes. Prove all layout-scoped edits
+  // reached that store before testing a reload, rather than racing the 180 ms
+  // persistence boundary on a slow CI runner.
+  await expect.poll(async () => page.evaluate(({ controlId }) => {
     const raw = localStorage.getItem("jqGuidedConfiguratorDraftV1");
     const draft = raw ? JSON.parse(raw) : null;
-    return draft?.layoutStates?.[layoutId]?.smartDimensions?.[controlId] ?? null;
-  }, { layoutId: "fireplace-wall", controlId: CONTROL_ID })).toBeCloseTo(fireplace.minMillimeters, 5);
+    const layoutState = (layoutId) => ({
+      smartDimension: draft?.layoutStates?.[layoutId]?.smartDimensions?.[controlId] ?? null,
+      lowerCabinetHeight: draft?.layoutStates?.[layoutId]?.measurements?.lowerCabinetHeight ?? null
+    });
+    return {
+      fireplace: layoutState("fireplace-wall"),
+      door: layoutState("door-wall"),
+      window: layoutState("window-wall")
+    };
+  }, { controlId: CONTROL_ID }), { timeout: 10_000 }).toEqual({
+    fireplace: { smartDimension: fireplace.minMillimeters, lowerCabinetHeight: 35 },
+    door: { smartDimension: door.maxMillimeters, lowerCabinetHeight: 36 },
+    window: { smartDimension: window.nativeMillimeters, lowerCabinetHeight: 37 }
+  });
   await page.reload({ waitUntil: "domcontentloaded" });
   await waitForViewerReady(page, "fireplace-wall");
   await page.getByRole("button", { name: "Dimensions", exact: true }).click();
