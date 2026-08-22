@@ -50,8 +50,8 @@ test("scenario matrix covers all layouts, extrema, responsive states, and faults
     );
   }
   assert.deepEqual(
-    candidate.filter(({ category }) => category === "mobile").map(({ sheetState }) => sheetState),
-    ["collapsed", "half", "expanded"]
+    candidate.filter(({ category }) => category === "mobile").map(({ customizationMode }) => customizationMode),
+    ["view", "dimensions", "options"]
   );
   assert.ok(candidate.some(({ category, backend }) => category === "handle-active" && backend === "webgl2"));
   assert.ok(candidate.some(({ category }) => category === "loading"));

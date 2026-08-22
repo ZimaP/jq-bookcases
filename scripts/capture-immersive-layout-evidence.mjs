@@ -132,10 +132,10 @@ export function buildScenarioPlan(phase = "candidate") {
   }
   plan.push(
     { id: "12-handle-active-door-native-1366x768", category: "handle-active", layoutId: "door-wall", viewport: [1366, 768], backend: "webgl2" },
-    { id: "13-tablet-half-window-1024x1366", category: "tablet", layoutId: "window-wall", sheetState: "half", viewport: [1024, 1366], backend: "webgl2" },
-    { id: "14-mobile-collapsed-window-390x844", category: "mobile", layoutId: "window-wall", sheetState: "collapsed", viewport: [390, 844], backend: "webgl2" },
-    { id: "15-mobile-half-window-390x844", category: "mobile", layoutId: "window-wall", sheetState: "half", viewport: [390, 844], backend: "webgl2" },
-    { id: "16-mobile-expanded-window-390x844", category: "mobile", layoutId: "window-wall", sheetState: "expanded", viewport: [390, 844], backend: "webgl2" },
+    { id: "13-tablet-dimensions-window-1024x1366", category: "tablet", layoutId: "window-wall", customizationMode: "dimensions", viewport: [1024, 1366], backend: "webgl2" },
+    { id: "14-mobile-view-window-390x844", category: "mobile", layoutId: "window-wall", customizationMode: "view", viewport: [390, 844], backend: "webgl2" },
+    { id: "15-mobile-dimensions-window-390x844", category: "mobile", layoutId: "window-wall", customizationMode: "dimensions", viewport: [390, 844], backend: "webgl2" },
+    { id: "16-mobile-options-window-390x844", category: "mobile", layoutId: "window-wall", customizationMode: "options", viewport: [390, 844], backend: "webgl2" },
     { id: "17-loading-fireplace-1366x768", category: "loading", layoutId: "fireplace-wall", viewport: [1366, 768], backend: "webgl2" },
     { id: "18-error-fireplace-1366x768", category: "error", layoutId: "fireplace-wall", viewport: [1366, 768], backend: "webgl2" },
     { id: "19-zone-proof-fireplace-wall-1366x768", category: "zone-proof", layoutId: "fireplace-wall", viewport: [1366, 768], backend: "webgl2" },
@@ -399,6 +399,9 @@ async function setDimensionByHandleKey(page, layoutId, state) {
     state === "min" ? "minMillimeters" : state === "max" ? "maxMillimeters" : "nativeMillimeters"
   ];
   const handle = page.locator("[data-dimension-handle]");
+  const dimensionsTab = page.getByRole("button", { name: "Dimensions", exact: true });
+  if (await dimensionsTab.getAttribute("aria-pressed") !== "true") await dimensionsTab.click();
+  await handle.click();
   await handle.focus();
   await handle.press(key);
   await page.waitForFunction(({ value }) => {
@@ -408,11 +411,11 @@ async function setDimensionByHandleKey(page, layoutId, state) {
   return expected;
 }
 
-async function setSheetState(page, state) {
-  const sheet = page.locator("[data-customization-sheet]");
-  if (await sheet.getAttribute("data-sheet-state") === state) return;
-  await page.getByRole("button", { name: "Set customization sheet " + state }).click();
-  await waitForAttribute(sheet, "data-sheet-state", state, 12000);
+async function setCustomizationMode(page, mode) {
+  const button = page.locator(`[data-customization-mode-control="${mode}"]`);
+  if (await button.getAttribute("aria-pressed") === "true") return;
+  await button.click();
+  await waitForAttribute(button, "aria-pressed", "true", 12000);
 }
 
 async function waitForVisualSettle(page) {
@@ -438,12 +441,12 @@ async function captureEvidence({ page, runDirectory, scenario, session, captures
     const shell = document.querySelector(".guided-shell");
     const viewer = document.querySelector("[data-layout-viewer]");
     const handle = document.querySelector("[data-dimension-handle]");
-    const sheet = document.querySelector("[data-customization-sheet]");
+    const configurator = document.querySelector("[data-immersive-configurator]");
     return {
       hash: location.hash,
       step: shell?.dataset.currentStep || document.body.dataset.step || null,
       layoutId: viewer?.dataset.layoutId || null,
-      sheetState: sheet?.dataset.sheetState || null,
+      customizationMode: configurator?.dataset.customizationMode || null,
       handle: handle ? {
         visible: Boolean(handle.offsetWidth || handle.offsetHeight || handle.getClientRects().length),
         focused: document.activeElement === handle,
@@ -465,7 +468,7 @@ async function captureEvidence({ page, runDirectory, scenario, session, captures
     timestamp: new Date().toISOString(),
     layoutId: scenario.layoutId || ui.layoutId,
     dimensionState: scenario.dimensionState || null,
-    sheetState: scenario.sheetState || ui.sheetState,
+    customizationMode: scenario.customizationMode || ui.customizationMode,
     viewport: { width: scenario.viewport[0], height: scenario.viewport[1] },
     screenshot: {
       path: filename,
@@ -674,7 +677,7 @@ async function runResponsiveSession(browser, options, runDirectory, sessions, ca
   const page = await context.newPage();
   const session = monitorSession(page, options.baseUrl, {
     id: kind,
-    purpose: kind + " customization sheet states",
+    purpose: kind + " customization modes",
     viewport: scenarios[0].viewport,
     backend: "webgl2"
   });
@@ -685,14 +688,14 @@ async function runResponsiveSession(browser, options, runDirectory, sessions, ca
     await chooseLayout(page, scenarios[0].layoutId);
     await waitForViewerReady(page, scenarios[0].layoutId, "webgl2");
     for (const scenario of scenarios) {
-      await setSheetState(page, scenario.sheetState);
+      await setCustomizationMode(page, scenario.customizationMode);
       await captureEvidence({
         page,
         runDirectory,
         scenario,
         session,
         captures,
-        assertions: ["sheet state reachable", "no horizontal overflow", "model context remains visible"]
+        assertions: ["customization mode reachable", "no horizontal overflow", "model context remains visible"]
       });
     }
     assertSessionClean(session);

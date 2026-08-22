@@ -152,6 +152,9 @@ test("the shipped immersive viewer uses local verified backends, exact layout au
   assert.equal((viewer.match(/new THREE\.RectAreaLight/g) || []).length, 3);
   assert.doesNotMatch(viewer, /new THREE\.(?:PointLight|HemisphereLight|SpotLight)/);
   assert.match(viewer, /renderer\.shadowMap\.autoUpdate = false/);
+  assert.match(viewer, /WEBGPU_DIRECTIONAL_SHADOWS_DISABLED/);
+  assert.match(viewer, /selectedBackend !== "webgpu"/);
+  assert.match(viewer, /configureRendererAppearance\(renderer, this\.presentation, \{ shadowsEnabled: false \}\)/);
   assert.match(viewer, /webgpu-equirectangular-environment-node/);
   assert.match(viewer, /webgl-automatic-pmrem/);
   assert.match(viewer, /this\.scene\.environment = texture/);

@@ -56,7 +56,7 @@ Before a production merge or release:
    reset.
 5. Prove WebGPU on genuine support plus forced/automatic WebGL2, initialization
    and render fallback, layout supersession, touch/pinch, accessibility,
-   responsive sheet states, request ownership, and resource stability.
+   responsive customization states, request ownership, and resource stability.
 6. Run the exact production payload gate and advisory check described below.
 7. Store large screenshots/traces only in the ignored local proof directory and
    verify no proof artifact is staged.

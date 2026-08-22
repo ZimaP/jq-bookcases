@@ -216,6 +216,10 @@ test("every authoritative layout loads once and proves min/native/max plus fifty
 });
 
 test("per-layout dimensions survive A→B→C→A, reload, Review, and Back without cross-talk", async ({ page }) => {
+  // This journey loads all three SHA-locked GLBs plus a post-reload Fireplace
+  // scene. Give it the same budget as the other full layout lifecycle test on
+  // software-rendered CI instead of timing out while a valid editor opens.
+  test.slow();
   const failures = monitorUnexpectedFailures(page);
   await continueToCustomization(page, "fireplace-wall");
   const fireplace = IMMERSIVE_LAYOUT_REGISTRY["fireplace-wall"].geometryControlManifest[CONTROL_ID];
@@ -241,6 +245,26 @@ test("per-layout dimensions survive A→B→C→A, reload, Review, and Back with
   await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toHaveValue("0.00");
   await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
   await expect(page.locator('[data-measurement="lowerCabinetHeight"]')).toHaveValue("35");
+  // The production store debounces draft writes. Prove all layout-scoped edits
+  // reached that store before testing a reload, rather than racing the 180 ms
+  // persistence boundary on a slow CI runner.
+  await expect.poll(async () => page.evaluate(({ controlId }) => {
+    const raw = localStorage.getItem("jqGuidedConfiguratorDraftV1");
+    const draft = raw ? JSON.parse(raw) : null;
+    const layoutState = (layoutId) => ({
+      smartDimension: draft?.layoutStates?.[layoutId]?.smartDimensions?.[controlId] ?? null,
+      lowerCabinetHeight: draft?.layoutStates?.[layoutId]?.measurements?.lowerCabinetHeight ?? null
+    });
+    return {
+      fireplace: layoutState("fireplace-wall"),
+      door: layoutState("door-wall"),
+      window: layoutState("window-wall")
+    };
+  }, { controlId: CONTROL_ID }), { timeout: 10_000 }).toEqual({
+    fireplace: { smartDimension: fireplace.minMillimeters, lowerCabinetHeight: 35 },
+    door: { smartDimension: door.maxMillimeters, lowerCabinetHeight: 36 },
+    window: { smartDimension: window.nativeMillimeters, lowerCabinetHeight: 37 }
+  });
   await page.reload({ waitUntil: "domcontentloaded" });
   await waitForViewerReady(page, "fireplace-wall");
   await page.getByRole("button", { name: "Dimensions", exact: true }).click();
@@ -310,6 +334,43 @@ test("on-model editing, orbit, wheel, keyboard, named views, Fit, and Reset shar
   expect(failures).toEqual([]);
 });
 
+test("camera containment keeps every layout inside its authored room shell", async ({ page }) => {
+  const failures = monitorUnexpectedFailures(page);
+  let runtime = await continueToCustomization(page, "fireplace-wall");
+  for (const layoutId of IMMERSIVE_LAYOUT_ORDER) {
+    if (layoutId !== "fireplace-wall") runtime = await switchLayout(page, layoutId);
+    const canvas = runtime.locator("canvas");
+    const box = await canvas.boundingBox();
+    await page.getByRole("button", { name: "Reset view" }).click();
+    await expect.poll(async () => (await diagnostics(page)).camera.animationActive).toBe(false);
+    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.3);
+    await page.mouse.down();
+    // One deliberately large diagonal drag reaches both orbit limits without
+    // queueing dozens of render-triggering input events per GLB.
+    await page.mouse.move(box.x + box.width * 0.05, box.y + box.height * 0.75);
+    await page.mouse.up();
+    await canvas.focus();
+    // Exercise the keyboard path without serially scheduling a full render for
+    // dozens of keys. The page keyboard avoids locator actionability waits.
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("ArrowLeft");
+    await canvas.hover();
+    await page.mouse.wheel(0, 900);
+    const camera = (await diagnostics(page)).camera;
+    const bounds = IMMERSIVE_LAYOUT_REGISTRY[layoutId].nativeBounds;
+    const clampUnit = (value) => Math.max(-1, Math.min(1, value));
+    const minimumPhi = Math.max(-0.05, Math.asin(clampUnit((bounds.min[1] + 0.1 - camera.target[1]) / camera.radius)));
+    const maximumPhi = Math.min(0.72, Math.asin(clampUnit((bounds.max[1] - 0.1 - camera.target[1]) / camera.radius)));
+    expect(camera.theta).toBeGreaterThanOrEqual(-0.52 - 1e-8);
+    expect(camera.theta).toBeLessThanOrEqual(0.52 + 1e-8);
+    expect(camera.phi).toBeGreaterThanOrEqual(minimumPhi - 1e-8);
+    expect(camera.phi).toBeLessThanOrEqual(maximumPhi + 1e-8);
+    expect(camera.position[1]).toBeGreaterThanOrEqual(bounds.min[1] + 0.1 - 1e-7);
+    expect(camera.position[1]).toBeLessThanOrEqual(bounds.max[1] - 0.1 + 1e-7);
+  }
+  expect(failures).toEqual([]);
+});
+
 test("touch orbit and two-pointer pinch update the same camera without changing the dimension", async ({ page, browserName }) => {
   test.skip(browserName !== "chromium", "Chromium CDP supplies deterministic native touch events.");
   await page.setViewportSize({ width: 390, height: 844 });
@@ -352,18 +413,42 @@ test("WebGPU is genuine when available, forced WebGL2 works, and an import failu
   const webgpuPage = await createConfiguredPage(browser, baseURL);
   const hasWebGpu = await hasGenuineWebGpuAdapter(webgpuPage);
   if (hasWebGpu) {
-    await continueToCustomization(webgpuPage, "fireplace-wall");
-    const record = await diagnostics(webgpuPage);
-    expect(record.backend).toBe("webgpu");
-    expect(record.ownership.animationLoops).toBe(1);
+    let runtime = await continueToCustomization(webgpuPage, "fireplace-wall");
+    for (const layoutId of IMMERSIVE_LAYOUT_ORDER) {
+      if (layoutId !== "fireplace-wall") runtime = await switchLayout(webgpuPage, layoutId);
+      const record = await diagnostics(webgpuPage);
+      const lighting = record.appearance.lighting;
+      expect(record.state).toBe("ready");
+      expect(record.backend).toBe("webgpu");
+      expect(record.rendererFallbackReason).toBeNull();
+      expect(record.rendererRenderFailureCount).toBe(0);
+      expect(record.assetSha256).toBe(record.authoritativeSha256);
+      expect(record.transformProof.sourceBuffersImmutable).toBe(true);
+      expect(record.ownership.animationLoops).toBe(1);
+      expect(lighting.shadowRenderingEnabled).toBe(false);
+      expect(lighting.shadowDisabledReason).toMatch(/WebGPU directional shadows disabled/i);
+      expect(lighting.shadowCasterCount).toBe(0);
+      expect(lighting.shadowTier).toBeNull();
+      expect(lighting.shadowMapSize).toBe(0);
+      expect(lighting.staticShadowUpdates).toBe(false);
+      expect(lighting.primitiveDrawCallBudget.selectedShadowPrimitiveCount).toBe(0);
+      expect(lighting.primitiveDrawCallBudget.visiblePrimitiveCount).toBe(record.source.primitives);
+      expect(record.rendererInfo.renderTargets).toBe(0);
+      expect(record.rendererInfo.calls).toBeLessThanOrEqual(record.source.primitives + 1);
+      expect(record.rendererInfo.triangles).toBeLessThanOrEqual(record.source.triangles + 1);
+      await expect(runtime.locator("canvas")).toHaveCount(1);
+    }
   }
   await webgpuPage.close();
   const forcedPage = await createConfiguredPage(browser, baseURL);
-  await continueToCustomization(forcedPage, "door-wall", "renderer=webgl2");
+  await continueToCustomization(forcedPage, "fireplace-wall", "renderer=webgl2");
   const forced = await diagnostics(forcedPage);
   expect(forced.backend).toBe("webgl2");
   expect(forced.rendererFallbackReason).toContain("forced");
   expect(forced.ownership.animationLoops).toBe(0);
+  expect(forced.appearance.lighting.shadowRenderingEnabled).toBe(true);
+  expect(forced.appearance.lighting.shadowCasterCount).toBe(1);
+  expect(forced.appearance.lighting.primitiveDrawCallBudget.selectedShadowPrimitiveCount).toBe(60);
   await forcedPage.close();
   if (hasWebGpu) {
     const failedImportPage = await createConfiguredPage(browser, baseURL);
@@ -372,6 +457,9 @@ test("WebGPU is genuine when available, forced WebGL2 works, and an import failu
     const fallback = await diagnostics(failedImportPage);
     expect(fallback.backend).toBe("webgl2");
     expect(fallback.rendererFallbackReason).toMatch(/WebGPU.*failed|fallback/i);
+    expect(fallback.appearance.lighting.shadowRenderingEnabled).toBe(true);
+    expect(fallback.appearance.lighting.shadowCasterCount).toBe(1);
+    expect(fallback.appearance.lighting.primitiveDrawCallBudget.selectedShadowPrimitiveCount).toBe(0);
     await failedImportPage.close();
   }
 });
@@ -396,6 +484,9 @@ test("first-frame and late WebGPU failures preserve the journey timer and recove
     expect(record.firstUsableMilliseconds).toBeGreaterThan(0);
     expect(record.firstUsableMilliseconds).toBeLessThanOrEqual(5_000);
     expect(record.state).toBe("ready");
+    expect(record.appearance.lighting.shadowRenderingEnabled).toBe(true);
+    expect(record.appearance.lighting.shadowCasterCount).toBe(1);
+    expect(record.appearance.lighting.primitiveDrawCallBudget.selectedShadowPrimitiveCount).toBe(60);
     await page.close();
   }
 });
@@ -496,6 +587,9 @@ test("a new layout supersedes a WebGPU fallback reload already in flight", async
     expect(final.ownership.renderers).toBe(1);
     expect(final.ownership.parsedRoots).toBe(1);
     expect(final.ownership.controlListenerSets).toBe(1);
+    expect(final.appearance.lighting.shadowRenderingEnabled).toBe(true);
+    expect(final.appearance.lighting.shadowCasterCount).toBe(1);
+    expect(final.appearance.lighting.primitiveDrawCallBudget.selectedShadowPrimitiveCount).toBe(0);
     await expect(page.locator("[data-layout-viewer]")).toHaveCount(1);
     await expect(page.locator("[data-layout-viewer] canvas")).toHaveCount(1);
     expect(pageErrors).toEqual([]);
