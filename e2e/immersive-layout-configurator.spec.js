@@ -216,6 +216,10 @@ test("every authoritative layout loads once and proves min/native/max plus fifty
 });
 
 test("per-layout dimensions survive A→B→C→A, reload, Review, and Back without cross-talk", async ({ page }) => {
+  // This journey loads all three SHA-locked GLBs plus a post-reload Fireplace
+  // scene. Give it the same budget as the other full layout lifecycle test on
+  // software-rendered CI instead of timing out while a valid editor opens.
+  test.slow();
   const failures = monitorUnexpectedFailures(page);
   await continueToCustomization(page, "fireplace-wall");
   const fireplace = IMMERSIVE_LAYOUT_REGISTRY["fireplace-wall"].geometryControlManifest[CONTROL_ID];
