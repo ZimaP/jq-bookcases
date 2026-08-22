@@ -60,7 +60,10 @@ test("scenario matrix covers all layouts, extrema, responsive states, and faults
     candidate.filter(({ category }) => category === "zone-proof").map(({ layoutId }) => layoutId),
     ["fireplace-wall", "door-wall", "window-wall"]
   );
-  assert.equal(buildScenarioPlan("live").at(-1).category, "live-confirmation");
+  const live = buildScenarioPlan("live");
+  assert.equal(live.length, 19);
+  assert.equal(live.at(-1).category, "live-confirmation");
+  assert.equal(live.some(({ category }) => category === "zone-proof"), false);
 });
 
 test("URL recording strips query strings and fragments", () => {
