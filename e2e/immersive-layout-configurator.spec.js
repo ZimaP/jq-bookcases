@@ -324,8 +324,12 @@ test("camera containment keeps every layout inside its authored room shell", asy
     await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.75, { steps: 8 });
     await page.mouse.up();
     await canvas.focus();
-    for (let index = 0; index < 20; index += 1) await canvas.press("ArrowUp");
-    for (let index = 0; index < 20; index += 1) await canvas.press("ArrowLeft");
+    // Use the page keyboard after focusing the canvas. Locator.press() waits for a
+    // full actionability cycle per key, which turns a containment check into a
+    // CI-scale timeout without increasing the exercised camera range.
+    for (const key of ["ArrowUp", "ArrowUp", "ArrowUp", "ArrowLeft", "ArrowLeft", "ArrowLeft"]) {
+      await page.keyboard.press(key);
+    }
     await canvas.hover();
     await page.mouse.wheel(0, 900);
     const camera = (await diagnostics(page)).camera;
