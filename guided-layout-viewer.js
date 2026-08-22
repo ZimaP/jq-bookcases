@@ -21,9 +21,11 @@ const CONTROL_ID = "adjustable-shelf-clearance";
 const MAX_PIXEL_RATIO = 2;
 const MAX_DRAW_CALLS = 250;
 const DRAW_CALL_HEADROOM = 5;
+const ROOM_SHELL_CAMERA_CLEARANCE_METERS = 0.1;
+const WEBGPU_DIRECTIONAL_SHADOWS_DISABLED = "WebGPU directional shadows disabled pending renderer fix.";
 const CAMERA_LIMITS = Object.freeze({
-  minimumTheta: -1.12,
-  maximumTheta: 1.12,
+  minimumTheta: -0.52,
+  maximumTheta: 0.52,
   minimumPhi: -0.05,
   maximumPhi: 0.72,
   minimumRadius: 2.8,
@@ -80,6 +82,7 @@ export class GuidedLayoutViewerController {
     this.directLights = new Map();
     this.shadowCaster = null;
     this.shadowTier = null;
+    this.shadowRenderingEnabled = false;
     this.environmentTexture = null;
     this.environmentLoadPromise = null;
     this.environmentAbortController = null;
@@ -508,7 +511,7 @@ export class GuidedLayoutViewerController {
         }
         renderer.setPixelRatio(Math.min(devicePixelRatio || 1, MAX_PIXEL_RATIO));
         renderer.outputColorSpace = THREE.SRGBColorSpace;
-        configureRendererAppearance(renderer, this.presentation);
+        configureRendererAppearance(renderer, this.presentation, { shadowsEnabled: false });
         if (this.disposed || sequence !== this.rendererInitializationSequence) {
           safeDisposeRenderer(renderer);
           return false;
@@ -530,7 +533,9 @@ export class GuidedLayoutViewerController {
       const renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: false, powerPreference: "high-performance" });
       renderer.setPixelRatio(Math.min(devicePixelRatio || 1, MAX_PIXEL_RATIO));
       renderer.outputColorSpace = THREE.SRGBColorSpace;
-      configureRendererAppearance(renderer, this.presentation);
+      configureRendererAppearance(renderer, this.presentation, {
+        shadowsEnabled: ROOM2_APPEARANCE_PROFILE.renderer.shadows.enabled
+      });
       selectedRenderer = renderer;
       selectedBackend = "webgl2";
       if (!forceWebGL2 && !navigator.gpu) this.rendererFallbackReason = "WebGPU unavailable; using supported WebGL2 fallback.";
@@ -544,6 +549,8 @@ export class GuidedLayoutViewerController {
     this.camera = camera;
     this.renderer = selectedRenderer;
     this.rendererBackend = selectedBackend;
+    this.shadowRenderingEnabled = selectedBackend !== "webgpu"
+      && ROOM2_APPEARANCE_PROFILE.renderer.shadows.enabled;
     this.setupAppearance();
     this.resize();
     return true;
@@ -567,7 +574,7 @@ export class GuidedLayoutViewerController {
       profile.key.shadowProxy.intensity * this.presentation.shadowProxyScale
     );
     shadowProxy.name = "immersive-commercial-key-shadow-proxy";
-    shadowProxy.castShadow = true;
+    shadowProxy.castShadow = this.shadowRenderingEnabled;
     shadowProxy.shadow.bias = profile.shadows.bias;
     shadowProxy.shadow.normalBias = profile.shadows.normalBias;
     const fillArea = new THREE.RectAreaLight(
@@ -608,13 +615,15 @@ export class GuidedLayoutViewerController {
     this.shadowCaster.target.position.copy(target);
     position(this.directLights.get("fill-area"), definitions.fill.area.position);
     position(this.directLights.get("separation-area"), definitions.separation.area.position);
-    this.configureShadowTier(this.runtime?.getBoundingClientRect?.().width || globalThis.innerWidth || 1280);
-    fitDirectionalShadowCamera(this.shadowCaster, this.layout.nativeBounds, definitions.shadows);
-    this.requestShadowRefresh();
+    if (this.shadowRenderingEnabled) {
+      this.configureShadowTier(this.runtime?.getBoundingClientRect?.().width || globalThis.innerWidth || 1280);
+      fitDirectionalShadowCamera(this.shadowCaster, this.layout.nativeBounds, definitions.shadows);
+      this.requestShadowRefresh();
+    }
   }
 
   configureShadowTier(cssWidth) {
-    if (!this.shadowCaster) return;
+    if (!this.shadowRenderingEnabled || !this.shadowCaster) return;
     const tiers = ROOM2_APPEARANCE_PROFILE.lighting.shadows.tiers;
     const tier = tiers.find((entry) => entry.maximumCssWidth == null || cssWidth <= entry.maximumCssWidth) || tiers.at(-1);
     if (!tier || this.shadowTier?.id === tier.id) return;
@@ -626,7 +635,7 @@ export class GuidedLayoutViewerController {
   }
 
   requestShadowRefresh() {
-    if (this.renderer?.shadowMap?.enabled) this.renderer.shadowMap.needsUpdate = true;
+    if (this.shadowRenderingEnabled && this.renderer?.shadowMap?.enabled) this.renderer.shadowMap.needsUpdate = true;
   }
 
   ensureStudioEnvironment() {
@@ -1143,6 +1152,20 @@ export class GuidedLayoutViewerController {
       return;
     }
     const visiblePrimitiveCount = this.meshRecords.filter(({ object }) => object.visible).length;
+    if (!this.shadowRenderingEnabled) {
+      for (const record of this.meshRecords) record.object.castShadow = false;
+      this.shadowPrimitiveBudget = Object.freeze({
+        drawCallLimit: MAX_DRAW_CALLS,
+        reservedHeadroom: DRAW_CALL_HEADROOM,
+        visiblePrimitiveCount,
+        eligibleProvenPrimitiveCount: 0,
+        selectedShadowPrimitiveCount: 0,
+        projectedMaximumDrawCalls: visiblePrimitiveCount,
+        selection: "disabled",
+        onlyProvenBindingsSelected: true
+      });
+      return;
+    }
     const maximumShadowPrimitives = Math.max(
       0,
       MAX_DRAW_CALLS - DRAW_CALL_HEADROOM - visiblePrimitiveCount,
@@ -1301,13 +1324,65 @@ export class GuidedLayoutViewerController {
     return clamp(requiredRadius, CAMERA_LIMITS.minimumRadius, CAMERA_LIMITS.maximumRadius);
   }
 
-  moveCamera(target, animate) {
-    const next = {
-      theta: clamp(target.theta, CAMERA_LIMITS.minimumTheta, CAMERA_LIMITS.maximumTheta),
-      phi: clamp(target.phi, CAMERA_LIMITS.minimumPhi, CAMERA_LIMITS.maximumPhi),
-      radius: clamp(target.radius, CAMERA_LIMITS.minimumRadius, CAMERA_LIMITS.maximumRadius),
-      target: target.target
+  getCameraContainmentLimits(radius = this.radius, target = this.cameraTarget.toArray()) {
+    const nextRadius = clamp(radius, CAMERA_LIMITS.minimumRadius, CAMERA_LIMITS.maximumRadius);
+    let minimumPhi = CAMERA_LIMITS.minimumPhi;
+    let maximumPhi = CAMERA_LIMITS.maximumPhi;
+    const bounds = this.layout?.nativeBounds;
+    const targetY = Array.isArray(target) ? target[1] : this.cameraTarget.y;
+    if (bounds
+      && Number.isFinite(targetY)
+      && Number.isFinite(bounds.min?.[1])
+      && Number.isFinite(bounds.max?.[1])) {
+      const floorPhi = Math.asin(clamp(
+        (bounds.min[1] + ROOM_SHELL_CAMERA_CLEARANCE_METERS - targetY) / nextRadius,
+        -1,
+        1
+      ));
+      const ceilingPhi = Math.asin(clamp(
+        (bounds.max[1] - ROOM_SHELL_CAMERA_CLEARANCE_METERS - targetY) / nextRadius,
+        -1,
+        1
+      ));
+      minimumPhi = Math.max(minimumPhi, floorPhi);
+      maximumPhi = Math.min(maximumPhi, ceilingPhi);
+    }
+    if (maximumPhi < minimumPhi) maximumPhi = minimumPhi;
+    return {
+      minimumTheta: CAMERA_LIMITS.minimumTheta,
+      maximumTheta: CAMERA_LIMITS.maximumTheta,
+      minimumPhi,
+      maximumPhi
     };
+  }
+
+  constrainCameraState(state = {}) {
+    const radius = clamp(
+      Number.isFinite(state.radius) ? state.radius : this.radius,
+      CAMERA_LIMITS.minimumRadius,
+      CAMERA_LIMITS.maximumRadius
+    );
+    const target = Array.isArray(state.target) ? state.target : this.cameraTarget.toArray();
+    const limits = this.getCameraContainmentLimits(radius, target);
+    return {
+      ...state,
+      theta: clamp(
+        Number.isFinite(state.theta) ? state.theta : this.theta,
+        limits.minimumTheta,
+        limits.maximumTheta
+      ),
+      phi: clamp(
+        Number.isFinite(state.phi) ? state.phi : this.phi,
+        limits.minimumPhi,
+        limits.maximumPhi
+      ),
+      radius,
+      target
+    };
+  }
+
+  moveCamera(target, animate) {
+    const next = this.constrainCameraState(target);
     if (!animate || this.prefersReducedMotion) {
       this.cancelCameraAnimation();
       this.theta = next.theta;
@@ -1353,6 +1428,15 @@ export class GuidedLayoutViewerController {
 
   updateCamera() {
     if (!this.camera) return;
+    const contained = this.constrainCameraState({
+      theta: this.theta,
+      phi: this.phi,
+      radius: this.radius,
+      target: this.cameraTarget.toArray()
+    });
+    this.theta = contained.theta;
+    this.phi = contained.phi;
+    this.radius = contained.radius;
     const horizontal = Math.cos(this.phi) * this.radius;
     this.camera.position.set(
       this.cameraTarget.x + Math.sin(this.theta) * horizontal,
@@ -2035,7 +2119,7 @@ export class GuidedLayoutViewerController {
       }
     });
     const environmentRenderTargets = Number(Boolean(this.environmentTexture && this.rendererBackend === "webgl2"));
-    const shadowRenderTargets = Number(Boolean(this.shadowCaster?.shadow?.map));
+    const shadowRenderTargets = Number(Boolean(this.shadowRenderingEnabled && this.shadowCaster?.shadow?.map));
     return Object.freeze({
       state: this.state,
       instanceId: this.instanceId,
@@ -2086,7 +2170,7 @@ export class GuidedLayoutViewerController {
         materials: activeMaterials.size,
         textures: Number(memoryInfo.textures || this.sourceTextures.size + this.ownedTextures.size),
         renderTargets: environmentRenderTargets + shadowRenderTargets,
-        resourceLedgerMethod: "active unique scene materials; renderer memory geometry/texture counters; one renderer-managed WebGL environment target plus allocated shadow maps",
+        resourceLedgerMethod: "active unique scene materials; renderer memory geometry/texture counters",
         lastFrameMilliseconds: this.lastFrameMilliseconds
       },
       transformProof: this.readTransformProof(),
@@ -2121,10 +2205,12 @@ export class GuidedLayoutViewerController {
           profile: ROOM2_APPEARANCE_PROFILE.schema,
           directLightCount: this.directLights.size,
           rectAreaLightCount: [...this.directLights.values()].filter((light) => light.isRectAreaLight).length,
-          shadowCasterCount: this.shadowCaster ? 1 : 0,
-          shadowTier: this.shadowTier?.id || null,
-          shadowMapSize: this.shadowCaster?.shadow?.mapSize?.x || 0,
-          staticShadowUpdates: this.renderer?.shadowMap?.autoUpdate === false,
+          shadowRenderingEnabled: this.shadowRenderingEnabled,
+          shadowDisabledReason: this.shadowRenderingEnabled ? null : WEBGPU_DIRECTIONAL_SHADOWS_DISABLED,
+          shadowCasterCount: this.shadowRenderingEnabled && this.shadowCaster ? 1 : 0,
+          shadowTier: this.shadowRenderingEnabled ? this.shadowTier?.id || null : null,
+          shadowMapSize: this.shadowRenderingEnabled ? this.shadowCaster?.shadow?.mapSize?.x || 0 : 0,
+          staticShadowUpdates: this.shadowRenderingEnabled && this.renderer?.shadowMap?.autoUpdate === false,
           primitiveDrawCallBudget: this.shadowPrimitiveBudget
         },
         acceptedRoom2MaterialSystem: this.materialSystem?.getDiagnostics?.() || null
@@ -2462,16 +2548,17 @@ function disposeObjectGraph(root) {
   });
 }
 
-function configureRendererAppearance(renderer, presentation) {
+function configureRendererAppearance(renderer, presentation, options = {}) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = presentation.toneMapping === "aces-filmic"
     ? THREE.ACESFilmicToneMapping
     : THREE.NeutralToneMapping;
   renderer.toneMappingExposure = presentation.exposure;
-  renderer.shadowMap.enabled = ROOM2_APPEARANCE_PROFILE.renderer.shadows.enabled;
+  const shadowsEnabled = options.shadowsEnabled ?? ROOM2_APPEARANCE_PROFILE.renderer.shadows.enabled;
+  renderer.shadowMap.enabled = shadowsEnabled;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.shadowMap.autoUpdate = false;
-  renderer.shadowMap.needsUpdate = true;
+  renderer.shadowMap.needsUpdate = shadowsEnabled;
   renderer.setClearColor?.(ROOM2_APPEARANCE_PROFILE.renderer.clearColor, 1);
 }
 
