@@ -137,11 +137,15 @@ export function buildScenarioPlan(phase = "candidate") {
     { id: "15-mobile-dimensions-window-390x844", category: "mobile", layoutId: "window-wall", customizationMode: "dimensions", viewport: [390, 844], backend: "webgl2" },
     { id: "16-mobile-options-window-390x844", category: "mobile", layoutId: "window-wall", customizationMode: "options", viewport: [390, 844], backend: "webgl2" },
     { id: "17-loading-fireplace-1366x768", category: "loading", layoutId: "fireplace-wall", viewport: [1366, 768], backend: "webgl2" },
-    { id: "18-error-fireplace-1366x768", category: "error", layoutId: "fireplace-wall", viewport: [1366, 768], backend: "webgl2" },
-    { id: "19-zone-proof-fireplace-wall-1366x768", category: "zone-proof", layoutId: "fireplace-wall", viewport: [1366, 768], backend: "webgl2" },
-    { id: "20-zone-proof-door-wall-1366x768", category: "zone-proof", layoutId: "door-wall", viewport: [1366, 768], backend: "webgl2" },
-    { id: "21-zone-proof-window-wall-1366x768", category: "zone-proof", layoutId: "window-wall", viewport: [1366, 768], backend: "webgl2" }
+    { id: "18-error-fireplace-1366x768", category: "error", layoutId: "fireplace-wall", viewport: [1366, 768], backend: "webgl2" }
   );
+  if (phase === "candidate") {
+    plan.push(
+      { id: "19-zone-proof-fireplace-wall-1366x768", category: "zone-proof", layoutId: "fireplace-wall", viewport: [1366, 768], backend: "webgl2" },
+      { id: "20-zone-proof-door-wall-1366x768", category: "zone-proof", layoutId: "door-wall", viewport: [1366, 768], backend: "webgl2" },
+      { id: "21-zone-proof-window-wall-1366x768", category: "zone-proof", layoutId: "window-wall", viewport: [1366, 768], backend: "webgl2" }
+    );
+  }
   if (phase === "live") {
     plan.push({ id: "22-live-confirmed-fireplace-native-1440x900", category: "live-confirmation", layoutId: "fireplace-wall", viewport: [1440, 900], backend: "automatic" });
   }
@@ -400,9 +404,17 @@ async function setDimensionByHandleKey(page, layoutId, state) {
   ];
   const handle = page.locator("[data-dimension-handle]");
   const dimensionsTab = page.getByRole("button", { name: "Dimensions", exact: true });
-  if (await dimensionsTab.getAttribute("aria-pressed") !== "true") await dimensionsTab.click();
-  await handle.click();
+  if (await dimensionsTab.getAttribute("aria-pressed") !== "true") {
+    await dimensionsTab.click();
+    await waitForAttribute(dimensionsTab, "aria-pressed", "true", 12000);
+  }
+  const runtime = page.locator("[data-layout-viewer]");
+  await waitForAttribute(runtime, "data-state", "ready", 12000);
+  await waitForAttribute(runtime, "data-dimensions-visible", "true", 12000);
+  await handle.waitFor({ state: "visible" });
+  if (!await handle.isEnabled()) throw new Error("Dimension handle is not enabled for keyboard evidence.");
   await handle.focus();
+  await page.waitForFunction(() => document.activeElement?.matches("[data-dimension-handle]"), undefined, { timeout: 5000 });
   await handle.press(key);
   await page.waitForFunction(({ value }) => {
     const actual = globalThis.__JQ_LAYOUT_VIEWER_DIAGNOSTICS__?.smartDimension?.valueMillimeters;
@@ -827,13 +839,21 @@ async function runLiveConfirmation(browser, options, runDirectory, sessions, cap
     await chooseLayout(page, scenario.layoutId);
     await waitForViewerReady(page, scenario.layoutId, "automatic");
     await setDimensionByHandleKey(page, scenario.layoutId, "native");
+    const record = await page.evaluate(() => globalThis.__JQ_LAYOUT_VIEWER_DIAGNOSTICS__);
+    if (record?.appearance?.zoneProofMode === true) {
+      throw new Error("Live evidence must not activate the localhost-only false-color material-zone proof.");
+    }
     await captureEvidence({
       page,
       runDirectory,
       scenario,
       session,
       captures,
-      assertions: ["live bytes match exact revision", "exact Fireplace asset ready"]
+      assertions: [
+        "live bytes match exact revision",
+        "exact Fireplace asset ready",
+        "localhost-only false-color proof remains unavailable on the public route"
+      ]
     });
     assertSessionClean(session);
   } finally {
@@ -964,7 +984,14 @@ async function main(argv = process.argv.slice(2)) {
     await runResponsiveSession(browser, options, runDirectory, manifest.sessions, manifest.captures, "mobile");
     await runFaultSession(browser, options, runDirectory, manifest.sessions, manifest.captures, "loading");
     await runFaultSession(browser, options, runDirectory, manifest.sessions, manifest.captures, "error");
-    await runZoneProofSessions(browser, options, runDirectory, manifest.sessions, manifest.captures);
+    if (options.phase === "candidate") {
+      await runZoneProofSessions(browser, options, runDirectory, manifest.sessions, manifest.captures);
+    } else {
+      manifest.skips.push({
+        category: "zone-proof",
+        reason: "False-color material-zone proof is deliberately loopback-only; live verification proves exact deployed bytes instead."
+      });
+    }
     await runLiveConfirmation(browser, options, runDirectory, manifest.sessions, manifest.captures);
     await finalizeCoverage(manifest, webGpuProbe);
     manifest.run.status = "passed";
