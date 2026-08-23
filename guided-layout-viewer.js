@@ -119,6 +119,7 @@ export class GuidedLayoutViewerController {
     this.zoneStatusCounts = {};
     this.shadowPrimitiveBudget = null;
     this.geometryLedger = [];
+    this.premiumOwnedGeometries = new Set();
     this.ownedMaterials = new Set();
     this.ownedTextures = new Set();
     this.sourceMaterials = new Set();
@@ -170,8 +171,13 @@ export class GuidedLayoutViewerController {
     this.assetSha256 = null;
     this.assetBytes = 0;
     const proofHost = globalThis.location?.hostname || "";
+    const proofQuery = new URLSearchParams(globalThis.location?.search || "");
     this.zoneProofMode = ["localhost", "127.0.0.1", "::1"].includes(proofHost)
-      && new URLSearchParams(globalThis.location?.search || "").get("zoneProof") === "1";
+      && proofQuery.get("zoneProof") === "1";
+    this.premiumModelV1Enabled = !this.zoneProofMode
+      && proofQuery.get("modelQuality") === "premium-v1";
+    this.premiumModelV1ModulePromise = null;
+    this.premiumModelV1Diagnostics = null;
     const localTestHooks = ["localhost", "127.0.0.1", "::1"].includes(proofHost)
       ? globalThis.__JQ_IMMERSIVE_VIEWER_TEST_HOOKS__
       : null;
@@ -253,7 +259,8 @@ export class GuidedLayoutViewerController {
     };
     const nextFinishId = resolveRoom2Finish(project.finish).id;
     const layoutChanged = layoutId !== this.layoutId;
-    const finishPreviewAvailable = (layoutRecord.appearanceManifest?.provenMeshIndices?.length || 0) > 0;
+    const finishPreviewAvailable = this.premiumModelV1Enabled
+      || (layoutRecord.appearanceManifest?.provenMeshIndices?.length || 0) > 0;
     const finishChanged = finishPreviewAvailable && nextFinishId !== this.appliedFinishId;
     const dimensionsChanged = Object.entries(nextDimensions).some(([key, value]) => this.smartDimensions[key] !== value);
     this.requestedFinishId = nextFinishId;
@@ -436,6 +443,10 @@ export class GuidedLayoutViewerController {
       if (sequence !== this.loadSequence || this.disposed) return false;
       if (this.zoneProofMode) this.applyZoneProofMaterials();
       this.enforceShadowDrawCallBudget();
+      if (this.premiumModelV1Enabled) {
+        await this.applyPremiumModelV1Presentation();
+        if (sequence !== this.loadSequence || this.disposed) return false;
+      }
       this.restoreOrResetCamera();
       let rendered;
       try {
@@ -1018,6 +1029,16 @@ export class GuidedLayoutViewerController {
       this.lastError = null;
       return true;
     }
+    if (this.premiumModelV1Enabled) {
+      const sequence = ++this.finishSequence;
+      const layoutId = this.layoutId;
+      await this.applyPremiumModelV1Presentation();
+      if (sequence !== this.finishSequence || this.disposed || layoutId !== this.layoutId) return false;
+      this.appliedFinishId = resolveRoom2Finish(finishId).id;
+      this.lastError = null;
+      this.scheduleRender();
+      return true;
+    }
     if (this.materialSystem) {
       const sequence = ++this.finishSequence;
       const applied = await this.materialSystem.selectFinish(finishId);
@@ -1069,6 +1090,18 @@ export class GuidedLayoutViewerController {
     this.enforceShadowDrawCallBudget();
     this.scheduleRender();
     return true;
+  }
+
+  async applyPremiumModelV1Presentation() {
+    if (!this.premiumModelV1Enabled || this.zoneProofMode || !this.modelRoot) return null;
+    if (!this.premiumModelV1ModulePromise) {
+      this.premiumModelV1ModulePromise = import("./guided-premium-model-v1.js?v=premium-model-v1-20260823a");
+    }
+    const premiumModule = await this.premiumModelV1ModulePromise;
+    const diagnostics = await premiumModule.applyPremiumModelV1(this);
+    if (this.disposed || !this.modelRoot) return null;
+    this.premiumModelV1Diagnostics = diagnostics;
+    return diagnostics;
   }
 
   async reconcileRequestedFinishForLoad(layoutId, loadSequence, fallbackFinishId = null) {
@@ -2176,6 +2209,7 @@ export class GuidedLayoutViewerController {
       transformProof: this.readTransformProof(),
       appearance: {
         zoneProofMode: this.zoneProofMode,
+        premiumModelV1: this.premiumModelV1Diagnostics,
         materialZoneAudit: {
           schema: "jq-immersive-layout-material-zones-v1",
           primitiveCoverage: this.meshRecords.filter(({ zoneRecord }) => Boolean(zoneRecord)).length,
@@ -2243,6 +2277,8 @@ export class GuidedLayoutViewerController {
       this.runtime.dataset.assetSha256 = this.assetSha256 || "";
       this.runtime.dataset.geometryImmutable = String(diagnostics.transformProof?.sourceBuffersImmutable === true);
       this.runtime.dataset.dimensionsVisible = String(this.showDimensions);
+      this.runtime.dataset.premiumModelV1 = String(this.premiumModelV1Enabled);
+      this.runtime.dataset.premiumModelV1Ready = String(Boolean(this.premiumModelV1Diagnostics));
       this.runtime.dataset.drawCalls = String(diagnostics.rendererInfo.calls);
       this.runtime.dataset.triangles = String(diagnostics.rendererInfo.triangles);
     }
@@ -2328,6 +2364,9 @@ export class GuidedLayoutViewerController {
     this.fetchAbortController = null;
     this.finishSequence += 1;
     this.disposeActiveFinishMaterials();
+    for (const geometry of this.premiumOwnedGeometries) geometry.dispose?.();
+    this.premiumOwnedGeometries.clear();
+    this.premiumModelV1Diagnostics = null;
     const ownedByMaterialSystem = Boolean(this.materialSystem);
     this.materialSystem?.dispose?.();
     this.materialSystem = null;

@@ -1,0 +1,174 @@
+{
+  "acceptedBase": {
+    "commit": "d42dc10b929b3abf0715fe066ec7bad89760ed3b",
+    "tree": "b1c68e6cbbbc95176ee655274242b92adf890c37"
+  },
+  "activation": {
+    "absentFlagBehavior": "accepted renderer path remains unchanged",
+    "query": "modelQuality=premium-v1"
+  },
+  "files": [
+    {
+      "bytes": 120614,
+      "path": "guided-layout-viewer.js",
+      "sha256": "cc3eea8f0a9db726c442a7e3807950139b804160c224d95283d443515935adaa"
+    },
+    {
+      "bytes": 3670,
+      "path": "guided-premium-model-v1-contract.js",
+      "sha256": "58bba177bd2fb7e918f41c57645072d060175aa58568e840fd5bb537776a71c5"
+    },
+    {
+      "bytes": 23884,
+      "path": "guided-premium-model-v1.js",
+      "sha256": "0bfa215c3784447618931805ac5fd9bb1bc050fa9ab3bb81b407932ba7b6bd41"
+    },
+    {
+      "bytes": 555394,
+      "path": "config/premium-model-v1-roles.json",
+      "sha256": "4a40540a52a1c16378cfc5403d0a167886aa4a9d38d587032e5cf7c8a0ce2104"
+    },
+    {
+      "bytes": 480,
+      "path": "assets/premium-model-v1/ASSET-LICENSES.md",
+      "sha256": "febf243b64b5fa94a5a6b579e8b470be89fc7229595a78e53b8fe15c059cb6fc"
+    },
+    {
+      "bytes": 135712,
+      "path": "assets/premium-model-v1/textures/oak/base-color.webp",
+      "sha256": "3e795bbac5683fd541018f0db853b9a47fa5613f04bf695aab01d5a32c7cb66f"
+    },
+    {
+      "bytes": 100538,
+      "path": "assets/premium-model-v1/textures/oak/normal.webp",
+      "sha256": "6f512676f720950229582c236c07c9140aaac5abd093143e2e6b61c8346d01e6"
+    },
+    {
+      "bytes": 463018,
+      "path": "assets/premium-model-v1/textures/oak/roughness.webp",
+      "sha256": "0486d2c34e1ef585b0f235d38a128539bae1fbac79ee692b80e7c7b0e2f2d1cb"
+    },
+    {
+      "bytes": 6712076,
+      "path": "assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb",
+      "sha256": "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5"
+    },
+    {
+      "bytes": 6755128,
+      "path": "assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb",
+      "sha256": "4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb"
+    },
+    {
+      "bytes": 6993036,
+      "path": "assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb",
+      "sha256": "631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24"
+    }
+  ],
+  "geometry": {
+    "bevelWidthMillimeters": 0.8,
+    "derivationDeterministic": true,
+    "method": "runtime replacement of exact 12-triangle axis-aligned furniture boxes only",
+    "protectedArchitecture": true,
+    "sourceAssetsModified": false,
+    "worldBoundsPreserved": true
+  },
+  "roleCoverage": {
+    "layouts": [
+      {
+        "layoutId": "fireplace-wall",
+        "primitiveCount": 185,
+        "roleCounts": {
+          "architectural-opening": 1,
+          "back": 16,
+          "countertop": 10,
+          "door-detail": 8,
+          "filler-end": 10,
+          "fireplace": 1,
+          "floor": 1,
+          "frame-stile": 48,
+          "hardware": 8,
+          "room-shell": 8,
+          "shelf": 20,
+          "support-hardware": 48,
+          "toe-base": 2,
+          "top-rail": 4
+        }
+      },
+      {
+        "layoutId": "door-wall",
+        "primitiveCount": 127,
+        "roleCounts": {
+          "architectural-hardware": 2,
+          "architectural-opening": 1,
+          "architectural-opening-detail": 1,
+          "back": 6,
+          "countertop": 10,
+          "door-detail": 20,
+          "filler-end": 6,
+          "floor": 1,
+          "frame-stile": 13,
+          "hardware": 4,
+          "interior": 5,
+          "room-shell": 4,
+          "shelf": 10,
+          "support-hardware": 36,
+          "toe-base": 6,
+          "top-rail": 2
+        }
+      },
+      {
+        "layoutId": "window-wall",
+        "primitiveCount": 182,
+        "roleCounts": {
+          "architectural-glazing": 1,
+          "architectural-opening": 1,
+          "architectural-opening-detail": 1,
+          "back": 13,
+          "countertop": 15,
+          "door-detail": 30,
+          "filler-end": 5,
+          "floor": 1,
+          "frame-stile": 19,
+          "hardware": 6,
+          "interior": 22,
+          "room-shell": 4,
+          "shelf": 10,
+          "support-hardware": 48,
+          "toe-base": 3,
+          "top-rail": 3
+        }
+      }
+    ],
+    "schema": "jq-premium-model-v1-role-manifest-v1",
+    "totalPrimitives": 494
+  },
+  "schema": "jq-premium-model-v1-provenance-v1",
+  "scope": {
+    "excluded": [
+      "interface",
+      "navigation",
+      "customer state",
+      "pricing",
+      "backend",
+      "source GLB mutation",
+      "production default without flag"
+    ],
+    "permitted": [
+      "3D runtime materials",
+      "PBR textures",
+      "runtime-derived furniture bevel geometry",
+      "shared contact-shadow policy"
+    ]
+  },
+  "status": "ISOLATED VISUAL PREVIEW — OWNER ACCEPTANCE OPEN",
+  "textureProvenance": {
+    "oak": {
+      "asset": "Oak Veneer 01",
+      "author": "Rob Tuytel",
+      "license": "CC0 1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "source": "https://polyhaven.com/a/oak_veneer_01"
+    },
+    "paintAndWalnut": "existing accepted repository PBR assets"
+  }
+}
