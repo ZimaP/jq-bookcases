@@ -3,7 +3,7 @@ import {
   ROOM2_APPEARANCE_PROFILE,
   resolveRoom2Finish
 } from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
-import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=premium-model-v1-20260823y";
+import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=premium-model-v1-20260823za";
 
 const ROLE_MANIFEST_URL = "config/premium-model-v1-roles.json";
 const MATERIAL_ROLES = Object.freeze(Object.keys(PREMIUM_MODEL_V1_CONTRACT.roleSurface));

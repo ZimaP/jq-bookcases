@@ -9,19 +9,19 @@
   },
   "files": [
     {
-      "bytes": 120614,
+      "bytes": 120615,
       "path": "guided-layout-viewer.js",
-      "sha256": "a29e321280503ced15a7b200b26dbfb5baec94220530ceaf8d04bf3507a9ad83"
+      "sha256": "a8ded91f3465bfd62ebb4c14edd39cf47af2488739ff42bd20f1d27f58312597"
     },
     {
-      "bytes": 5896,
+      "bytes": 5895,
       "path": "guided-premium-model-v1-contract.js",
-      "sha256": "1223ac92c3dd8647091225ad1ed2f61db1020925057ecf8e849b68eeaf5e0d7f"
+      "sha256": "1417eba29317254de5c8bc99715a9aacada77f9638d4632235c38bc6724d45dd"
     },
     {
-      "bytes": 34855,
+      "bytes": 34856,
       "path": "guided-premium-model-v1.js",
-      "sha256": "d0d906a0bc64633684765485cb5ffd50ebc66c3d5be26700e1249fba67d61814"
+      "sha256": "61b83dc56e1899905648c1dc1db4e3437d24496eaaf9fc5bd112164a3e5d98eb"
     },
     {
       "bytes": 555394,
@@ -80,7 +80,7 @@
     }
   ],
   "geometry": {
-    "bevelWidthMillimeters": 3,
+    "bevelWidthMillimeters": 4,
     "derivationDeterministic": true,
     "method": "runtime replacement of exact 12-triangle axis-aligned furniture boxes only",
     "protectedArchitecture": true,

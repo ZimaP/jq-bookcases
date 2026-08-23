@@ -5,7 +5,7 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
   status: "ISOLATED VISUAL PREVIEW — OWNER ACCEPTANCE OPEN",
   scope: "3D geometry, materials, textures, shared lighting response, and shadows only",
   bevel: Object.freeze({
-    widthMeters: 0.003,
+    widthMeters: 0.004,
     curveSegments: 2,
     maximumRenderedTriangles: 45000,
     maximumWorldScaleRatio: 1.001,
@@ -44,7 +44,7 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
       finishMultipliers: Object.freeze({
         "light-walnut": "#f2dcc9",
         "medium-walnut": "#c49a7a",
-        "dark-walnut": "#92766a"
+        "dark-walnut": "#ad8d7c"
       }),
       uvProjection: "stable cabinet-scale straight-grain projection"
     }),
@@ -59,14 +59,14 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
     })
   }),
   roleSurface: Object.freeze({
-    "door-detail": Object.freeze({ roughness: 0.78, clearcoat: 0.26, clearcoatRoughness: 0.66, envMapIntensity: 0.92 }),
-    shelf: Object.freeze({ roughness: 0.83, clearcoat: 0.18, clearcoatRoughness: 0.7, envMapIntensity: 0.88 }),
-    back: Object.freeze({ roughness: 0.94, clearcoat: 0.04, clearcoatRoughness: 0.86, envMapIntensity: 0.68 }),
-    "frame-stile": Object.freeze({ roughness: 0.8, clearcoat: 0.22, clearcoatRoughness: 0.68, envMapIntensity: 0.9 }),
-    "filler-end": Object.freeze({ roughness: 0.89, clearcoat: 0.1, clearcoatRoughness: 0.8, envMapIntensity: 0.72 }),
-    countertop: Object.freeze({ roughness: 0.74, clearcoat: 0.32, clearcoatRoughness: 0.62, envMapIntensity: 0.94 }),
-    "top-rail": Object.freeze({ roughness: 0.81, clearcoat: 0.18, clearcoatRoughness: 0.7, envMapIntensity: 0.86 }),
-    "toe-base": Object.freeze({ roughness: 0.92, clearcoat: 0.04, clearcoatRoughness: 0.88, envMapIntensity: 0.64 })
+    "door-detail": Object.freeze({ roughness: 0.8, clearcoat: 0.22, clearcoatRoughness: 0.72, envMapIntensity: 0.86 }),
+    shelf: Object.freeze({ roughness: 0.85, clearcoat: 0.15, clearcoatRoughness: 0.74, envMapIntensity: 0.82 }),
+    back: Object.freeze({ roughness: 0.96, clearcoat: 0.02, clearcoatRoughness: 0.9, envMapIntensity: 0.56 }),
+    "frame-stile": Object.freeze({ roughness: 0.83, clearcoat: 0.18, clearcoatRoughness: 0.72, envMapIntensity: 0.82 }),
+    "filler-end": Object.freeze({ roughness: 0.92, clearcoat: 0.06, clearcoatRoughness: 0.84, envMapIntensity: 0.6 }),
+    countertop: Object.freeze({ roughness: 0.78, clearcoat: 0.24, clearcoatRoughness: 0.68, envMapIntensity: 0.86 }),
+    "top-rail": Object.freeze({ roughness: 0.84, clearcoat: 0.14, clearcoatRoughness: 0.75, envMapIntensity: 0.78 }),
+    "toe-base": Object.freeze({ roughness: 0.94, clearcoat: 0.02, clearcoatRoughness: 0.9, envMapIntensity: 0.52 })
   }),
   material: Object.freeze({
     type: "MeshPhysicalMaterial",
@@ -77,42 +77,42 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
   }),
   familySurface: Object.freeze({
     oak: Object.freeze({
-      roughnessScale: 1.08,
-      clearcoatScale: 0.32,
-      clearcoatRoughnessFloor: 0.74,
-      envMapIntensityScale: 0.78,
-      specularIntensity: 0.32
+      roughnessScale: 1.1,
+      clearcoatScale: 0.28,
+      clearcoatRoughnessFloor: 0.78,
+      envMapIntensityScale: 0.72,
+      specularIntensity: 0.29
     }),
     walnut: Object.freeze({
-      roughnessScale: 1.08,
-      clearcoatScale: 0.28,
-      clearcoatRoughnessFloor: 0.76,
-      envMapIntensityScale: 0.74,
-      specularIntensity: 0.3
+      roughnessScale: 1.1,
+      clearcoatScale: 0.24,
+      clearcoatRoughnessFloor: 0.8,
+      envMapIntensityScale: 0.72,
+      specularIntensity: 0.28
     }),
     paint: Object.freeze({
-      roughnessScale: 1.04,
-      clearcoatScale: 0.55,
-      clearcoatRoughnessFloor: 0.68,
-      envMapIntensityScale: 0.84,
-      specularIntensity: 0.42
+      roughnessScale: 1.06,
+      clearcoatScale: 0.45,
+      clearcoatRoughnessFloor: 0.74,
+      envMapIntensityScale: 0.76,
+      specularIntensity: 0.36
     })
   }),
   lighting: Object.freeze({
     toneMapping: "neutral",
     exposure: 0.94,
-    environmentIntensity: 0.62,
+    environmentIntensity: 0.54,
     environmentRotationRadians: 0.82,
-    keyAreaScale: 1.05,
-    fillAreaScale: 0.68,
+    keyAreaScale: 1.12,
+    fillAreaScale: 0.63,
     separationAreaScale: 1.48,
-    shadowProxyScale: 0.7,
-    keyArea: Object.freeze({ position: Object.freeze([-2.2, 4.8, 3.6]), width: 4.4, height: 3.2 }),
-    fillArea: Object.freeze({ position: Object.freeze([3.6, 2, 2.8]), width: 4.8, height: 3.6 }),
-    separationArea: Object.freeze({ position: Object.freeze([2.8, 4.5, 0.8]), width: 3, height: 1.6 }),
+    shadowProxyScale: 0.78,
+    keyArea: Object.freeze({ position: Object.freeze([-3.7, 4.1, 3]), width: 3.2, height: 2.6 }),
+    fillArea: Object.freeze({ position: Object.freeze([3.7, 3, 3]), width: 3.2, height: 2.8 }),
+    separationArea: Object.freeze({ position: Object.freeze([0.3, 4.7, 0.7]), width: 2.4, height: 1.2 }),
     shadowProxy: Object.freeze({ position: Object.freeze([-2.6, 4.8, 5.2]) }),
     shadowBias: -0.00012,
-    shadowNormalBias: 0.0085
+    shadowNormalBias: 0.0075
   }),
   hardware: Object.freeze({
     color: "#80644a",
@@ -133,8 +133,8 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
     ]),
     protectedReceivers: Object.freeze(["floor", "floor-room-shell"]),
     priority: Object.freeze([
-      "toe-base", "countertop", "door-detail", "shelf",
-      "filler-end", "frame-stile", "top-rail"
+      "toe-base", "countertop", "filler-end", "door-detail",
+      "shelf", "frame-stile", "top-rail"
     ])
   })
 });
