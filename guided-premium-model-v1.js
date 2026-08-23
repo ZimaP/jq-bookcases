@@ -3,7 +3,7 @@ import {
   ROOM2_APPEARANCE_PROFILE,
   resolveRoom2Finish
 } from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
-import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=premium-model-v1-20260823h";
+import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=premium-model-v1-20260823l";
 
 const ROLE_MANIFEST_URL = "config/premium-model-v1-roles.json";
 const MATERIAL_ROLES = Object.freeze(Object.keys(PREMIUM_MODEL_V1_CONTRACT.roleSurface));
@@ -45,8 +45,8 @@ function familyContract(familyId) {
 function finishColor(finish) {
   if (finish.family === "paint") return finish.calibratedMultiplier || finish.swatch;
   const overrides = {
-    "white-oak": "#f1ebe2",
-    "natural-oak": "#ffffff",
+    "white-oak": "#f8f4ed",
+    "natural-oak": "#fffaf4",
     "light-walnut": "#d1a27c",
     "medium-walnut": "#aa7358",
     "dark-walnut": "#765145"
@@ -72,11 +72,12 @@ function maximumAnisotropy(controller) {
   return Math.max(1, Math.min(width < 600 ? 4 : 8, capability));
 }
 
-async function loadTexture(controller, path, slot, repeat) {
+async function loadTexture(controller, path, slot, repeat, revision = "") {
   if (!path) return null;
-  const key = `premium-model-v1:${path}`;
+  const requestPath = revision ? `${path}?v=${encodeURIComponent(revision)}` : path;
+  const key = `premium-model-v1:${requestPath}`;
   if (controller.finishTextureCache.has(key)) return controller.finishTextureCache.get(key);
-  const texture = await new THREE.TextureLoader().loadAsync(path);
+  const texture = await new THREE.TextureLoader().loadAsync(requestPath);
   texture.name = key;
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
@@ -96,15 +97,17 @@ async function loadTextureSet(controller, familyId) {
   const family = familyContract(familyId);
   const repeat = familyRepeat(familyId);
   const [map, normalMap, roughnessMap] = await Promise.all([
-    loadTexture(controller, family.map, "map", repeat),
-    loadTexture(controller, family.normalMap, "normalMap", repeat),
-    loadTexture(controller, family.roughnessMap, "roughnessMap", repeat)
+    loadTexture(controller, family.map, "map", repeat, family.revision),
+    loadTexture(controller, family.normalMap, "normalMap", repeat, family.revision),
+    loadTexture(controller, family.roughnessMap, "roughnessMap", repeat, family.revision)
   ]);
   return { familyId, family, map, normalMap, roughnessMap };
 }
 
 function createCabinetMaterial(role, finish, textures) {
   const surface = PREMIUM_MODEL_V1_CONTRACT.roleSurface[role];
+  const familySurface = PREMIUM_MODEL_V1_CONTRACT.familySurface[textures.familyId]
+    || PREMIUM_MODEL_V1_CONTRACT.familySurface.paint;
   const clearcoatNormalScale = Number(textures.family.clearcoatNormalScale) || 0;
   const material = new THREE.MeshPhysicalMaterial({
     color: finishColor(finish),
@@ -112,16 +115,16 @@ function createCabinetMaterial(role, finish, textures) {
     normalMap: textures.normalMap,
     roughnessMap: textures.roughnessMap,
     normalScale: new THREE.Vector2(textures.family.normalScale, textures.family.normalScale),
-    roughness: surface.roughness,
+    roughness: surface.roughness * familySurface.roughnessScale,
     metalness: PREMIUM_MODEL_V1_CONTRACT.material.metalness,
-    clearcoat: surface.clearcoat,
-    clearcoatRoughness: surface.clearcoatRoughness,
+    clearcoat: surface.clearcoat * familySurface.clearcoatScale,
+    clearcoatRoughness: Math.max(surface.clearcoatRoughness, familySurface.clearcoatRoughnessFloor),
     clearcoatRoughnessMap: clearcoatNormalScale > 0 ? textures.roughnessMap : null,
     clearcoatNormalMap: clearcoatNormalScale > 0 ? textures.normalMap : null,
     clearcoatNormalScale: new THREE.Vector2(clearcoatNormalScale, clearcoatNormalScale),
     ior: PREMIUM_MODEL_V1_CONTRACT.material.ior,
-    specularIntensity: PREMIUM_MODEL_V1_CONTRACT.material.specularIntensity,
-    envMapIntensity: surface.envMapIntensity,
+    specularIntensity: familySurface.specularIntensity,
+    envMapIntensity: surface.envMapIntensity * familySurface.envMapIntensityScale,
     transparent: false,
     depthWrite: true,
     depthTest: true,
@@ -135,6 +138,138 @@ function createCabinetMaterial(role, finish, textures) {
     textureFamily: textures.familyId
   };
   return material;
+}
+
+function stableHash(value, salt) {
+  let hash = 2166136261 ^ salt;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function stableUnitInterval(value, salt) {
+  return stableHash(value, salt) / 4294967296;
+}
+
+function uvAttributeFingerprint(attribute) {
+  let hash = 2166136261;
+  for (let index = 0; index < attribute.array.length; index += 1) {
+    hash ^= Math.round(attribute.array[index] * 1e6);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+
+function dominantAxis(vector) {
+  const values = [Math.abs(vector.x), Math.abs(vector.y), Math.abs(vector.z)];
+  return values.indexOf(Math.max(...values));
+}
+
+function physicalGrainAxis(object, geometry, role) {
+  geometry.computeBoundingBox();
+  const localSize = geometry.boundingBox.getSize(new THREE.Vector3());
+  object.updateWorldMatrix(true, false);
+  const worldScale = new THREE.Vector3();
+  object.matrixWorld.decompose(new THREE.Vector3(), new THREE.Quaternion(), worldScale);
+  worldScale.set(Math.abs(worldScale.x), Math.abs(worldScale.y), Math.abs(worldScale.z));
+  const sizes = [localSize.x * worldScale.x, localSize.y * worldScale.y, localSize.z * worldScale.z];
+  const directions = [
+    new THREE.Vector3().setFromMatrixColumn(object.matrixWorld, 0).normalize(),
+    new THREE.Vector3().setFromMatrixColumn(object.matrixWorld, 1).normalize(),
+    new THREE.Vector3().setFromMatrixColumn(object.matrixWorld, 2).normalize()
+  ];
+  const verticalAxis = directions
+    .map((direction, axis) => ({ axis, alignment: Math.abs(direction.y) }))
+    .sort((left, right) => right.alignment - left.alignment)[0].axis;
+  const verticalRoles = new Set(["door-detail", "back", "frame-stile", "filler-end", "interior"]);
+  if (verticalRoles.has(role)) return { axis: verticalAxis, sizes, worldScale };
+  const horizontalAxes = [0, 1, 2].filter((axis) => axis !== verticalAxis);
+  horizontalAxes.sort((left, right) => sizes[right] - sizes[left]);
+  return { axis: horizontalAxes[0], sizes, worldScale };
+}
+
+function applyPremiumUvMapping(controller, roleById, finishFamily) {
+  let projectedPrimitiveCount = 0;
+  let restoredPrimitiveCount = 0;
+  const mappedStablePrimitiveIds = [];
+  const mappedFingerprints = [];
+  for (const runtimeRecord of controller.meshRecords) {
+    const manifestRecord = roleById.get(runtimeRecord.zoneRecord?.stablePrimitiveId);
+    if (!manifestRecord || (!MATERIAL_ROLE_SET.has(manifestRecord.role) && manifestRecord.role !== "interior")) continue;
+    const useOakProjection = manifestRecord.role === "interior" || finishFamily === "oak";
+    const object = runtimeRecord.object;
+    let geometry = object.geometry;
+    const existingUv = geometry?.getAttribute?.("uv");
+    const position = geometry?.getAttribute?.("position");
+    const normal = geometry?.getAttribute?.("normal");
+    if (!existingUv || !position || !normal || existingUv.count !== position.count) continue;
+
+    if (!object.userData.jqPremiumModelV1UvSource) {
+      if (!object.userData.jqPremiumModelV1Geometry) {
+        const sourceGeometry = geometry;
+        geometry = sourceGeometry.clone();
+        object.geometry = geometry;
+        controller.premiumOwnedGeometries.add(sourceGeometry);
+        controller.premiumOwnedGeometries.add(geometry);
+      }
+      object.userData.jqPremiumModelV1UvSource = new Float32Array(geometry.getAttribute("uv").array);
+    }
+    const uv = geometry.getAttribute("uv");
+    uv.array.set(object.userData.jqPremiumModelV1UvSource);
+    restoredPrimitiveCount += 1;
+    if (!useOakProjection) {
+      uv.needsUpdate = true;
+      continue;
+    }
+
+    const family = PREMIUM_MODEL_V1_CONTRACT.textures.oak;
+    const repeat = family.repeat || [1, 1];
+    const grain = physicalGrainAxis(object, geometry, manifestRecord.role);
+    const offsetU = stableUnitInterval(manifestRecord.stablePrimitiveId, 0x9e3779b9);
+    const offsetV = stableUnitInterval(manifestRecord.stablePrimitiveId, 0x85ebca6b);
+    const localPosition = new THREE.Vector3();
+    const localNormal = new THREE.Vector3();
+    for (let vertex = 0; vertex < position.count; vertex += 1) {
+      localPosition.fromBufferAttribute(position, vertex);
+      localNormal.fromBufferAttribute(normal, vertex);
+      const normalAxis = dominantAxis(localNormal);
+      let grainAxis = grain.axis;
+      if (grainAxis === normalAxis) {
+        grainAxis = [0, 1, 2]
+          .filter((axis) => axis !== normalAxis)
+          .sort((left, right) => grain.sizes[right] - grain.sizes[left])[0];
+      }
+      const crossAxis = [0, 1, 2].find((axis) => axis !== normalAxis && axis !== grainAxis);
+      const crossMeters = localPosition.getComponent(crossAxis) * grain.worldScale.getComponent(crossAxis);
+      const grainMeters = localPosition.getComponent(grainAxis) * grain.worldScale.getComponent(grainAxis);
+      uv.setXY(
+        vertex,
+        (crossMeters / family.realWorldWidthMeters + offsetU) / repeat[0],
+        (grainMeters / family.realWorldHeightMeters + offsetV) / repeat[1]
+      );
+    }
+    uv.needsUpdate = true;
+    object.userData.jqPremiumModelV1UvProjection = Object.freeze({
+      family: "oak",
+      method: family.uvProjection,
+      stableOffset: Object.freeze([offsetU, offsetV])
+    });
+    projectedPrimitiveCount += 1;
+    mappedStablePrimitiveIds.push(manifestRecord.stablePrimitiveId);
+    mappedFingerprints.push(`${manifestRecord.stablePrimitiveId}:${uvAttributeFingerprint(uv)}`);
+  }
+  return Object.freeze({
+    family: finishFamily,
+    method: PREMIUM_MODEL_V1_CONTRACT.textures.oak.uvProjection,
+    projectedPrimitiveCount,
+    restoredPrimitiveCount,
+    mappedStablePrimitiveIds: Object.freeze(mappedStablePrimitiveIds),
+    mappingFingerprintFNV1a32: mappedFingerprints.length
+      ? stableHash(mappedFingerprints.join("|"), 0xc2b2ae35).toString(16).padStart(8, "0")
+      : null
+  });
 }
 
 function applyPremiumLighting(controller) {
@@ -513,6 +648,7 @@ export async function applyPremiumModelV1(controller) {
   const exteriorTextures = await loadTextureSet(controller, finish.family);
   const interiorTextures = finish.family === "oak" ? exteriorTextures : await loadTextureSet(controller, "oak");
   const geometry = applyPremiumGeometry(controller, roleById);
+  const uvMapping = applyPremiumUvMapping(controller, roleById, finish.family);
   const lighting = applyPremiumLighting(controller);
 
   controller.disposeActiveFinishMaterials();
@@ -573,6 +709,7 @@ export async function applyPremiumModelV1(controller) {
       maximumWorldBoundsDeltaMillimeters: Math.max(0, ...geometry.changed.map(({ worldBoundsDeltaMillimeters }) => worldBoundsDeltaMillimeters)),
       skipped: geometry.skipped
     }),
+    uvMapping,
     shadowBudget,
     lighting,
     protectedRoles: Object.freeze([

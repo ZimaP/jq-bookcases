@@ -33,16 +33,16 @@ const SOURCE_ASSETS = Object.freeze({
 
 const TEXTURE_ASSETS = Object.freeze({
   "assets/premium-model-v1/textures/oak/base-color.webp": Object.freeze({
-    bytes: 135712,
-    sha256: "3e795bbac5683fd541018f0db853b9a47fa5613f04bf695aab01d5a32c7cb66f"
+    bytes: 136014,
+    sha256: "2174fedfec2d56073024ad20c27c25bad8d2eb04ccc69b9e192b02f7972a2f90"
   }),
   "assets/premium-model-v1/textures/oak/normal.webp": Object.freeze({
     bytes: 100538,
     sha256: "6f512676f720950229582c236c07c9140aaac5abd093143e2e6b61c8346d01e6"
   }),
   "assets/premium-model-v1/textures/oak/roughness.webp": Object.freeze({
-    bytes: 463018,
-    sha256: "0486d2c34e1ef585b0f235d38a128539bae1fbac79ee692b80e7c7b0e2f2d1cb"
+    bytes: 299782,
+    sha256: "e847c0cf83b9cfaf9983c520019aa591474dad123cd3707f48437de80659b934"
   })
 });
 
@@ -57,7 +57,11 @@ test("premium model V1 is an exact opt-in 3D-only preview contract", () => {
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.maximumRenderedTriangles, 45000);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.paint.repeat, [18, 18]);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.normalScale, 0.12);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 0.94);
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.repeat, [0.5, 0.5]);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.normalScale, 0.18);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.uvProjection, "stable physical-scale grain projection");
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 0.96);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.72);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.shadow.maximumDrawCalls, 250);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.material.type, "MeshPhysicalMaterial");
 });

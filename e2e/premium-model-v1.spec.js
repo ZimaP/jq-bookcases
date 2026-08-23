@@ -66,7 +66,7 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(premium.sharedLightingProfileUnchanged).toBe(false);
     expect(premium.sharedLightingOverrideApplied).toBe(true);
     expect(premium.lighting.sharedAcrossLayouts).toBe(true);
-    expect(premium.lighting.exposure).toBe(0.94);
+    expect(premium.lighting.exposure).toBe(0.96);
     expect(premium.sourcePrimitiveCount).toBe(expected.sourceMetadata.primitives);
     expect(premium.exactPrimitiveCoverage).toBe(expected.sourceMetadata.primitives);
     expect(premium.premiumMaterialPrimitiveCount).toBeGreaterThan(0);
@@ -76,6 +76,8 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(premium.geometry.wrongWindingTriangles).toBe(0);
     expect(premium.geometry.maximumNormalLengthError).toBeLessThanOrEqual(1e-6);
     expect(premium.geometry.maximumWorldBoundsDeltaMillimeters).toBeLessThanOrEqual(0.05);
+    expect(premium.uvMapping.method).toBe("stable physical-scale grain projection");
+    expect(premium.uvMapping.projectedPrimitiveCount).toBeGreaterThan(0);
     expect(premium.shadowBudget.projectedMaximumDrawCalls).toBeLessThanOrEqual(250);
     expect(record.rendererInfo.calls).toBeLessThanOrEqual(250);
     expect(record.rendererInfo.triangles).toBeLessThanOrEqual(45_000);
@@ -91,6 +93,7 @@ test("oak, warm paint, and charcoal produce distinct live PBR frames without cha
     const canvas = page.locator("canvas");
     const natural = await diagnostics(page);
     const geometryCount = natural.appearance.premiumModelV1.geometry.runtimeBeveledPrimitiveCount;
+    const naturalUvFingerprint = natural.appearance.premiumModelV1.uvMapping.mappingFingerprintFNV1a32;
     const hashes = [sha256(await canvas.screenshot())];
     for (const finishId of ["warm-white", "charcoal"]) {
       await page.getByRole("button", { name: "Finish", exact: true }).click();
@@ -105,6 +108,15 @@ test("oak, warm paint, and charcoal produce distinct live PBR frames without cha
       hashes.push(sha256(await canvas.screenshot()));
     }
     expect(new Set(hashes).size).toBe(3);
+    await page.getByRole("button", { name: "Finish", exact: true }).click();
+    await page.getByRole("button", { name: "Natural Oak", exact: true }).click();
+    await expect.poll(async () => (await diagnostics(page)).appearance.premiumModelV1?.finishId).toBe("natural-oak");
+    await page.getByRole("button", { name: "Close Finish", exact: true }).click();
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const restoredOak = await diagnostics(page);
+    expect(restoredOak.appearance.premiumModelV1.uvMapping.projectedPrimitiveCount).toBeGreaterThan(0);
+    expect(restoredOak.appearance.premiumModelV1.uvMapping.mappingFingerprintFNV1a32).toBe(naturalUvFingerprint);
+    expect(new Set([hashes[1], hashes[2], sha256(await canvas.screenshot())]).size).toBe(3);
   }
   expect(failures).toEqual([]);
 });

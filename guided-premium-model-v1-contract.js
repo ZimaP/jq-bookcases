@@ -18,11 +18,15 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
     oak: Object.freeze({
       source: "Poly Haven Oak Veneer 01, CC0",
       sourceUrl: "https://polyhaven.com/a/oak_veneer_01",
+      revision: "balanced-oak-20260823b",
       realWorldWidthMeters: 1.8,
+      realWorldHeightMeters: 1.8,
       map: "assets/premium-model-v1/textures/oak/base-color.webp",
       normalMap: "assets/premium-model-v1/textures/oak/normal.webp",
       roughnessMap: "assets/premium-model-v1/textures/oak/roughness.webp",
-      normalScale: 0.12
+      repeat: Object.freeze([0.5, 0.5]),
+      normalScale: 0.18,
+      uvProjection: "stable physical-scale grain projection"
     }),
     walnut: Object.freeze({
       source: "existing repository provisional walnut PBR family",
@@ -58,20 +62,43 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
     specularIntensity: 0.58,
     sharedByRole: true
   }),
+  familySurface: Object.freeze({
+    oak: Object.freeze({
+      roughnessScale: 0.88,
+      clearcoatScale: 0.72,
+      clearcoatRoughnessFloor: 0.58,
+      envMapIntensityScale: 1.04,
+      specularIntensity: 0.48
+    }),
+    walnut: Object.freeze({
+      roughnessScale: 0.94,
+      clearcoatScale: 0.8,
+      clearcoatRoughnessFloor: 0.54,
+      envMapIntensityScale: 1,
+      specularIntensity: 0.5
+    }),
+    paint: Object.freeze({
+      roughnessScale: 1,
+      clearcoatScale: 1,
+      clearcoatRoughnessFloor: 0,
+      envMapIntensityScale: 1,
+      specularIntensity: 0.58
+    })
+  }),
   lighting: Object.freeze({
     toneMapping: "neutral",
-    exposure: 0.94,
-    environmentIntensity: 0.68,
+    exposure: 0.96,
+    environmentIntensity: 0.72,
     environmentRotationRadians: 0.82,
-    keyAreaScale: 1.15,
-    fillAreaScale: 0.52,
-    separationAreaScale: 1.8,
-    shadowProxyScale: 1.1,
-    keyArea: Object.freeze({ position: Object.freeze([-3, 4.2, 2.7]), width: 3.2, height: 2.4 }),
-    fillArea: Object.freeze({ position: Object.freeze([4.2, 1.7, 2]), width: 4, height: 3 }),
-    separationArea: Object.freeze({ position: Object.freeze([3.4, 4.1, 0.3]), width: 2.2, height: 1.2 }),
-    shadowBias: -0.00012,
-    shadowNormalBias: 0.003
+    keyAreaScale: 1.1,
+    fillAreaScale: 0.62,
+    separationAreaScale: 1.6,
+    shadowProxyScale: 0.72,
+    keyArea: Object.freeze({ position: Object.freeze([-2.2, 4.8, 3.6]), width: 4.4, height: 3.2 }),
+    fillArea: Object.freeze({ position: Object.freeze([3.6, 2, 2.8]), width: 4.8, height: 3.6 }),
+    separationArea: Object.freeze({ position: Object.freeze([2.8, 4.5, 0.8]), width: 3, height: 1.6 }),
+    shadowBias: -0.00006,
+    shadowNormalBias: 0.006
   }),
   hardware: Object.freeze({
     color: "#80644a",

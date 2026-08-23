@@ -11,17 +11,17 @@
     {
       "bytes": 120614,
       "path": "guided-layout-viewer.js",
-      "sha256": "27e31f1836105db95ba496c99fc6930ef03bf681596a42dda0829dcb1e165557"
+      "sha256": "db5b093062f4c920ae64c75772c7678d44a47386276a8becb95d86abc846b823"
     },
     {
-      "bytes": 4384,
+      "bytes": 5163,
       "path": "guided-premium-model-v1-contract.js",
-      "sha256": "84824dc58f7f77834d9f78588cb1af062dc32ee7f87aa54246de6e256277c061"
+      "sha256": "8890eae3416aa23386fe8b31f2c98b4460003abaa839b6f54ffd5b9a76dacc31"
     },
     {
-      "bytes": 26822,
+      "bytes": 33304,
       "path": "guided-premium-model-v1.js",
-      "sha256": "8bf3469ea01bc6c70ca9c16c540ed753b4b0173a935ad8c9df6b96c366b73a90"
+      "sha256": "ef2eb80de263dab13737daff261e6dda58d9115e6f4b60da9ed2ab3385e739da"
     },
     {
       "bytes": 555394,
@@ -34,9 +34,9 @@
       "sha256": "febf243b64b5fa94a5a6b579e8b470be89fc7229595a78e53b8fe15c059cb6fc"
     },
     {
-      "bytes": 135712,
+      "bytes": 136014,
       "path": "assets/premium-model-v1/textures/oak/base-color.webp",
-      "sha256": "3e795bbac5683fd541018f0db853b9a47fa5613f04bf695aab01d5a32c7cb66f"
+      "sha256": "2174fedfec2d56073024ad20c27c25bad8d2eb04ccc69b9e192b02f7972a2f90"
     },
     {
       "bytes": 100538,
@@ -44,9 +44,9 @@
       "sha256": "6f512676f720950229582c236c07c9140aaac5abd093143e2e6b61c8346d01e6"
     },
     {
-      "bytes": 463018,
+      "bytes": 299782,
       "path": "assets/premium-model-v1/textures/oak/roughness.webp",
-      "sha256": "0486d2c34e1ef585b0f235d38a128539bae1fbac79ee692b80e7c7b0e2f2d1cb"
+      "sha256": "e847c0cf83b9cfaf9983c520019aa591474dad123cd3707f48437de80659b934"
     },
     {
       "bytes": 6712076,
