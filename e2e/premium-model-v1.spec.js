@@ -63,7 +63,10 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(record.transformProof.modelBoundsDeltaMillimeters).toBeLessThanOrEqual(0.05);
     expect(premium.schema).toBe("jq-premium-model-v1");
     expect(premium.interfaceModified).toBe(false);
-    expect(premium.sharedLightingProfileUnchanged).toBe(true);
+    expect(premium.sharedLightingProfileUnchanged).toBe(false);
+    expect(premium.sharedLightingOverrideApplied).toBe(true);
+    expect(premium.lighting.sharedAcrossLayouts).toBe(true);
+    expect(premium.lighting.exposure).toBe(0.94);
     expect(premium.sourcePrimitiveCount).toBe(expected.sourceMetadata.primitives);
     expect(premium.exactPrimitiveCoverage).toBe(expected.sourceMetadata.primitives);
     expect(premium.premiumMaterialPrimitiveCount).toBeGreaterThan(0);
@@ -75,7 +78,7 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(premium.geometry.maximumWorldBoundsDeltaMillimeters).toBeLessThanOrEqual(0.05);
     expect(premium.shadowBudget.projectedMaximumDrawCalls).toBeLessThanOrEqual(250);
     expect(record.rendererInfo.calls).toBeLessThanOrEqual(250);
-    expect(record.rendererInfo.triangles).toBeLessThanOrEqual(30_000);
+    expect(record.rendererInfo.triangles).toBeLessThanOrEqual(45_000);
   }
   expect(failures).toEqual([]);
 });

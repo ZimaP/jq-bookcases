@@ -3,6 +3,8 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { PREMIUM_MODEL_V1_CONTRACT } from "../../guided-premium-model-v1-contract.js";
+
 const toolDirectory = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(toolDirectory, "../..");
 const outputPath = "config/premium-model-v1-provenance.json";
@@ -48,7 +50,7 @@ const provenance = {
   status: "ISOLATED VISUAL PREVIEW — OWNER ACCEPTANCE OPEN",
   acceptedBase: BASE,
   scope: {
-    permitted: ["3D runtime materials", "PBR textures", "runtime-derived furniture bevel geometry", "shared contact-shadow policy"],
+    permitted: ["3D runtime materials", "PBR textures", "runtime-derived furniture bevel geometry", "shared lighting response", "shared contact-shadow policy"],
     excluded: ["interface", "navigation", "customer state", "pricing", "backend", "source GLB mutation", "production default without flag"]
   },
   activation: {
@@ -57,7 +59,7 @@ const provenance = {
   },
   geometry: {
     method: "runtime replacement of exact 12-triangle axis-aligned furniture boxes only",
-    bevelWidthMillimeters: 0.8,
+    bevelWidthMillimeters: PREMIUM_MODEL_V1_CONTRACT.bevel.widthMeters * 1000,
     sourceAssetsModified: false,
     worldBoundsPreserved: true,
     protectedArchitecture: true,

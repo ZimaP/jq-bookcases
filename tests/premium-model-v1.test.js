@@ -52,8 +52,12 @@ test("premium model V1 is an exact opt-in 3D-only preview contract", () => {
   assert.equal(isPremiumModelV1Route({ search: "?modelQuality=premium-v1" }), true);
   assert.equal(isPremiumModelV1Route({ search: "?modelQuality=premium" }), false);
   assert.equal(isPremiumModelV1Route({ search: "" }), false);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.widthMeters, 0.0008);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.curveSegments, 1);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.widthMeters, 0.003);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.curveSegments, 2);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.maximumRenderedTriangles, 45000);
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.paint.repeat, [18, 18]);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.normalScale, 0.12);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 0.94);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.shadow.maximumDrawCalls, 250);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.material.type, "MeshPhysicalMaterial");
 });
@@ -131,7 +135,7 @@ test("deterministic provenance binds the accepted base, exact sources, and 3D-on
   });
   assert.equal(provenance.activation.query, "modelQuality=premium-v1");
   assert.equal(provenance.geometry.sourceAssetsModified, false);
-  assert.equal(provenance.geometry.bevelWidthMillimeters, 0.8);
+  assert.equal(provenance.geometry.bevelWidthMillimeters, 3);
   assert.equal(provenance.roleCoverage.totalPrimitives, 494);
   assert.deepEqual(provenance.roleCoverage.layouts.map(({ primitiveCount }) => primitiveCount), [185, 127, 182]);
   assert.ok(provenance.scope.excluded.includes("interface"));

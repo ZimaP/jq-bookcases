@@ -3,7 +3,7 @@ import {
   ROOM2_APPEARANCE_PROFILE,
   resolveRoom2Finish
 } from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
-import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=premium-model-v1-20260823a";
+import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=premium-model-v1-20260823h";
 
 const ROLE_MANIFEST_URL = "config/premium-model-v1-roles.json";
 const MATERIAL_ROLES = Object.freeze(Object.keys(PREMIUM_MODEL_V1_CONTRACT.roleSurface));
@@ -55,6 +55,8 @@ function finishColor(finish) {
 }
 
 function familyRepeat(familyId) {
+  const configured = familyContract(familyId).repeat;
+  if (Array.isArray(configured) && configured.length === 2) return configured;
   if (familyId === "paint") return [8, 8];
   if (familyId === "oak") return [0.5, 0.5];
   return [0.25, 0.25];
@@ -103,6 +105,7 @@ async function loadTextureSet(controller, familyId) {
 
 function createCabinetMaterial(role, finish, textures) {
   const surface = PREMIUM_MODEL_V1_CONTRACT.roleSurface[role];
+  const clearcoatNormalScale = Number(textures.family.clearcoatNormalScale) || 0;
   const material = new THREE.MeshPhysicalMaterial({
     color: finishColor(finish),
     map: textures.map,
@@ -113,6 +116,9 @@ function createCabinetMaterial(role, finish, textures) {
     metalness: PREMIUM_MODEL_V1_CONTRACT.material.metalness,
     clearcoat: surface.clearcoat,
     clearcoatRoughness: surface.clearcoatRoughness,
+    clearcoatRoughnessMap: clearcoatNormalScale > 0 ? textures.roughnessMap : null,
+    clearcoatNormalMap: clearcoatNormalScale > 0 ? textures.normalMap : null,
+    clearcoatNormalScale: new THREE.Vector2(clearcoatNormalScale, clearcoatNormalScale),
     ior: PREMIUM_MODEL_V1_CONTRACT.material.ior,
     specularIntensity: PREMIUM_MODEL_V1_CONTRACT.material.specularIntensity,
     envMapIntensity: surface.envMapIntensity,
@@ -129,6 +135,53 @@ function createCabinetMaterial(role, finish, textures) {
     textureFamily: textures.familyId
   };
   return material;
+}
+
+function applyPremiumLighting(controller) {
+  const recipe = PREMIUM_MODEL_V1_CONTRACT.lighting;
+  const profile = ROOM2_APPEARANCE_PROFILE.lighting;
+  controller.renderer.toneMapping = THREE.NeutralToneMapping;
+  controller.renderer.toneMappingExposure = recipe.exposure;
+  controller.scene.environmentIntensity = recipe.environmentIntensity;
+  controller.scene.environmentRotation.set(0, recipe.environmentRotationRadians, 0);
+
+  const keyArea = controller.directLights.get("key-area");
+  const fillArea = controller.directLights.get("fill-area");
+  const separationArea = controller.directLights.get("separation-area");
+  const shadowProxy = controller.directLights.get("key-shadow-proxy");
+  const target = new THREE.Vector3(...controller.layout.orbitTarget);
+  const profileTarget = new THREE.Vector3(...ROOM2_APPEARANCE_PROFILE.bounds.hero.center);
+  const layoutOffset = target.clone().sub(profileTarget);
+  const configureArea = (light, definition, intensity) => {
+    if (!light) return;
+    light.intensity = intensity;
+    light.width = definition.width;
+    light.height = definition.height;
+    light.position.fromArray(definition.position).add(layoutOffset);
+    light.lookAt(target);
+  };
+  configureArea(keyArea, recipe.keyArea, profile.key.area.intensity * recipe.keyAreaScale);
+  configureArea(fillArea, recipe.fillArea, profile.fill.area.intensity * recipe.fillAreaScale);
+  configureArea(separationArea, recipe.separationArea, profile.separation.area.intensity * recipe.separationAreaScale);
+  if (shadowProxy) {
+    shadowProxy.intensity = profile.key.shadowProxy.intensity * recipe.shadowProxyScale;
+    shadowProxy.shadow.bias = recipe.shadowBias;
+    shadowProxy.shadow.normalBias = recipe.shadowNormalBias;
+  }
+  controller.requestShadowRefresh();
+  return Object.freeze({
+    sharedAcrossLayouts: true,
+    toneMapping: recipe.toneMapping,
+    exposure: recipe.exposure,
+    environmentIntensity: recipe.environmentIntensity,
+    environmentRotationRadians: recipe.environmentRotationRadians,
+    keyAreaIntensity: keyArea?.intensity ?? null,
+    fillAreaIntensity: fillArea?.intensity ?? null,
+    separationAreaIntensity: separationArea?.intensity ?? null,
+    shadowProxyIntensity: shadowProxy?.intensity ?? null,
+    shadowBias: shadowProxy?.shadow.bias ?? null,
+    shadowNormalBias: shadowProxy?.shadow.normalBias ?? null
+  });
 }
 
 function createInteriorMaterial(textures) {
@@ -460,6 +513,7 @@ export async function applyPremiumModelV1(controller) {
   const exteriorTextures = await loadTextureSet(controller, finish.family);
   const interiorTextures = finish.family === "oak" ? exteriorTextures : await loadTextureSet(controller, "oak");
   const geometry = applyPremiumGeometry(controller, roleById);
+  const lighting = applyPremiumLighting(controller);
 
   controller.disposeActiveFinishMaterials();
   const materials = new Map();
@@ -520,12 +574,14 @@ export async function applyPremiumModelV1(controller) {
       skipped: geometry.skipped
     }),
     shadowBudget,
+    lighting,
     protectedRoles: Object.freeze([
       "room-shell", "floor", "fireplace", "architectural-opening",
       "architectural-opening-detail", "architectural-hardware",
       "architectural-glazing", "support-hardware", "protected-unclassified"
     ]),
-    sharedLightingProfileUnchanged: true,
+    sharedLightingProfileUnchanged: false,
+    sharedLightingOverrideApplied: true,
     interfaceModified: false
   });
 }

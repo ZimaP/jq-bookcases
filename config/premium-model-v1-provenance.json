@@ -11,17 +11,17 @@
     {
       "bytes": 120614,
       "path": "guided-layout-viewer.js",
-      "sha256": "cc3eea8f0a9db726c442a7e3807950139b804160c224d95283d443515935adaa"
+      "sha256": "27e31f1836105db95ba496c99fc6930ef03bf681596a42dda0829dcb1e165557"
     },
     {
-      "bytes": 3670,
+      "bytes": 4384,
       "path": "guided-premium-model-v1-contract.js",
-      "sha256": "58bba177bd2fb7e918f41c57645072d060175aa58568e840fd5bb537776a71c5"
+      "sha256": "84824dc58f7f77834d9f78588cb1af062dc32ee7f87aa54246de6e256277c061"
     },
     {
-      "bytes": 23884,
+      "bytes": 26822,
       "path": "guided-premium-model-v1.js",
-      "sha256": "0bfa215c3784447618931805ac5fd9bb1bc050fa9ab3bb81b407932ba7b6bd41"
+      "sha256": "8bf3469ea01bc6c70ca9c16c540ed753b4b0173a935ad8c9df6b96c366b73a90"
     },
     {
       "bytes": 555394,
@@ -65,7 +65,7 @@
     }
   ],
   "geometry": {
-    "bevelWidthMillimeters": 0.8,
+    "bevelWidthMillimeters": 3,
     "derivationDeterministic": true,
     "method": "runtime replacement of exact 12-triangle axis-aligned furniture boxes only",
     "protectedArchitecture": true,
@@ -157,6 +157,7 @@
       "3D runtime materials",
       "PBR textures",
       "runtime-derived furniture bevel geometry",
+      "shared lighting response",
       "shared contact-shadow policy"
     ]
   },
