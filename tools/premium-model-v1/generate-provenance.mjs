@@ -72,9 +72,9 @@ const provenance = {
   },
   textureProvenance: {
     oak: {
-      asset: "Oak Veneer 01",
-      author: "Rob Tuytel",
-      source: "https://polyhaven.com/a/oak_veneer_01",
+      asset: "White Oak Veneer",
+      author: "Jenelle van Heerden",
+      source: "https://polyhaven.com/a/white_oak_veneer",
       license: "CC0 1.0",
       licenseUrl: "https://polyhaven.com/license"
     },

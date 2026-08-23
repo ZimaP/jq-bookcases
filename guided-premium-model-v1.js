@@ -3,7 +3,7 @@ import {
   ROOM2_APPEARANCE_PROFILE,
   resolveRoom2Finish
 } from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
-import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=premium-model-v1-20260823l";
+import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=premium-model-v1-20260823t";
 
 const ROLE_MANIFEST_URL = "config/premium-model-v1-roles.json";
 const MATERIAL_ROLES = Object.freeze(Object.keys(PREMIUM_MODEL_V1_CONTRACT.roleSurface));
@@ -45,8 +45,8 @@ function familyContract(familyId) {
 function finishColor(finish) {
   if (finish.family === "paint") return finish.calibratedMultiplier || finish.swatch;
   const overrides = {
-    "white-oak": "#f8f4ed",
-    "natural-oak": "#fffaf4",
+    "white-oak": "#fbfaf6",
+    "natural-oak": "#fff2e2",
     "light-walnut": "#d1a27c",
     "medium-walnut": "#aa7358",
     "dark-walnut": "#765145"
@@ -225,7 +225,10 @@ function applyPremiumUvMapping(controller, roleById, finishFamily) {
     }
 
     const family = PREMIUM_MODEL_V1_CONTRACT.textures.oak;
-    const repeat = family.repeat || [1, 1];
+    const projectionPeriod = family.projectionPeriodMeters || [
+      family.sourceTileMeters?.[0] || 1,
+      family.sourceTileMeters?.[1] || 1
+    ];
     const grain = physicalGrainAxis(object, geometry, manifestRecord.role);
     const offsetU = stableUnitInterval(manifestRecord.stablePrimitiveId, 0x9e3779b9);
     const offsetV = stableUnitInterval(manifestRecord.stablePrimitiveId, 0x85ebca6b);
@@ -246,8 +249,8 @@ function applyPremiumUvMapping(controller, roleById, finishFamily) {
       const grainMeters = localPosition.getComponent(grainAxis) * grain.worldScale.getComponent(grainAxis);
       uv.setXY(
         vertex,
-        (crossMeters / family.realWorldWidthMeters + offsetU) / repeat[0],
-        (grainMeters / family.realWorldHeightMeters + offsetV) / repeat[1]
+        crossMeters / projectionPeriod[0] + offsetU,
+        grainMeters / projectionPeriod[1] + offsetV
       );
     }
     uv.needsUpdate = true;
@@ -662,6 +665,23 @@ export async function applyPremiumModelV1(controller) {
   const hardwareMaterial = createHardwareMaterial();
   controller.ownedMaterials.add(interiorMaterial);
   controller.ownedMaterials.add(hardwareMaterial);
+  const roleResponses = Object.freeze(Object.fromEntries([...materials].map(([role, material]) => [role, Object.freeze({
+    roughness: material.roughness,
+    clearcoat: material.clearcoat,
+    clearcoatRoughness: material.clearcoatRoughness,
+    envMapIntensity: material.envMapIntensity,
+    specularIntensity: material.specularIntensity
+  })])));
+  const materialResponse = Object.freeze({
+    policy: "bounded satin highlights retain edge and panel-line visibility through orbit",
+    family: finish.family,
+    finishId: finish.id,
+    maximumClearcoat: Math.max(...Object.values(roleResponses).map(({ clearcoat }) => clearcoat)),
+    minimumClearcoatRoughness: Math.min(...Object.values(roleResponses).map(({ clearcoatRoughness }) => clearcoatRoughness)),
+    maximumEnvMapIntensity: Math.max(...Object.values(roleResponses).map(({ envMapIntensity }) => envMapIntensity)),
+    maximumSpecularIntensity: Math.max(...Object.values(roleResponses).map(({ specularIntensity }) => specularIntensity)),
+    roleResponses
+  });
 
   let appliedPrimitiveCount = 0;
   for (const runtimeRecord of controller.meshRecords) {
@@ -692,6 +712,7 @@ export async function applyPremiumModelV1(controller) {
     premiumMaterialPrimitiveCount: appliedPrimitiveCount,
     sharedMaterialCount: materials.size + 2,
     materialType: PREMIUM_MODEL_V1_CONTRACT.material.type,
+    materialResponse,
     texturePaths: [
       exteriorTextures.family.map,
       exteriorTextures.family.normalMap,

@@ -66,17 +66,22 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(premium.sharedLightingProfileUnchanged).toBe(false);
     expect(premium.sharedLightingOverrideApplied).toBe(true);
     expect(premium.lighting.sharedAcrossLayouts).toBe(true);
-    expect(premium.lighting.exposure).toBe(0.96);
+    expect(premium.lighting.exposure).toBe(0.94);
     expect(premium.sourcePrimitiveCount).toBe(expected.sourceMetadata.primitives);
     expect(premium.exactPrimitiveCoverage).toBe(expected.sourceMetadata.primitives);
     expect(premium.premiumMaterialPrimitiveCount).toBeGreaterThan(0);
+    expect(premium.materialResponse.family).toBe("oak");
+    expect(premium.materialResponse.maximumClearcoat).toBeLessThanOrEqual(0.11);
+    expect(premium.materialResponse.minimumClearcoatRoughness).toBeGreaterThanOrEqual(0.74);
+    expect(premium.materialResponse.maximumEnvMapIntensity).toBeLessThanOrEqual(0.74);
+    expect(premium.materialResponse.maximumSpecularIntensity).toBeLessThanOrEqual(0.32);
     expect(premium.geometry.sourceAssetsModified).toBe(false);
     expect(premium.geometry.runtimeBeveledPrimitiveCount).toBeGreaterThan(0);
     expect(premium.geometry.derivedDegenerateTriangles).toBe(0);
     expect(premium.geometry.wrongWindingTriangles).toBe(0);
     expect(premium.geometry.maximumNormalLengthError).toBeLessThanOrEqual(1e-6);
     expect(premium.geometry.maximumWorldBoundsDeltaMillimeters).toBeLessThanOrEqual(0.05);
-    expect(premium.uvMapping.method).toBe("stable physical-scale grain projection");
+    expect(premium.uvMapping.method).toBe("stable cabinet-scale straight-grain projection");
     expect(premium.uvMapping.projectedPrimitiveCount).toBeGreaterThan(0);
     expect(premium.shadowBudget.projectedMaximumDrawCalls).toBeLessThanOrEqual(250);
     expect(record.rendererInfo.calls).toBeLessThanOrEqual(250);
@@ -105,6 +110,11 @@ test("oak, warm paint, and charcoal produce distinct live PBR frames without cha
       const record = await diagnostics(page);
       expect(record.appearance.premiumModelV1.geometry.runtimeBeveledPrimitiveCount).toBe(geometryCount);
       expect(record.appearance.premiumModelV1.materialType).toBe("MeshPhysicalMaterial");
+      expect(record.appearance.premiumModelV1.materialResponse.family).toBe("paint");
+      expect(record.appearance.premiumModelV1.materialResponse.maximumClearcoat).toBeLessThanOrEqual(0.18);
+      expect(record.appearance.premiumModelV1.materialResponse.minimumClearcoatRoughness).toBeGreaterThanOrEqual(0.68);
+      expect(record.appearance.premiumModelV1.materialResponse.maximumEnvMapIntensity).toBeLessThanOrEqual(0.8);
+      expect(record.appearance.premiumModelV1.materialResponse.maximumSpecularIntensity).toBeLessThanOrEqual(0.42);
       hashes.push(sha256(await canvas.screenshot()));
     }
     expect(new Set(hashes).size).toBe(3);

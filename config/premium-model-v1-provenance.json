@@ -11,17 +11,17 @@
     {
       "bytes": 120614,
       "path": "guided-layout-viewer.js",
-      "sha256": "db5b093062f4c920ae64c75772c7678d44a47386276a8becb95d86abc846b823"
+      "sha256": "b5d5306ee8a8162f0989aa89cb836aed65e7596c2f46e624b9ac01a86cee0731"
     },
     {
-      "bytes": 5163,
+      "bytes": 5241,
       "path": "guided-premium-model-v1-contract.js",
-      "sha256": "8890eae3416aa23386fe8b31f2c98b4460003abaa839b6f54ffd5b9a76dacc31"
+      "sha256": "f755ef14525f75f925fede18959e99a2ef08f889b03695f740e0af863b70fda8"
     },
     {
-      "bytes": 33304,
+      "bytes": 34416,
       "path": "guided-premium-model-v1.js",
-      "sha256": "ef2eb80de263dab13737daff261e6dda58d9115e6f4b60da9ed2ab3385e739da"
+      "sha256": "3661c880565440f369316fa8d781817b1f495b2173ebc8a2473d4ae744d01e13"
     },
     {
       "bytes": 555394,
@@ -29,24 +29,24 @@
       "sha256": "4a40540a52a1c16378cfc5403d0a167886aa4a9d38d587032e5cf7c8a0ce2104"
     },
     {
-      "bytes": 480,
+      "bytes": 751,
       "path": "assets/premium-model-v1/ASSET-LICENSES.md",
-      "sha256": "febf243b64b5fa94a5a6b579e8b470be89fc7229595a78e53b8fe15c059cb6fc"
+      "sha256": "3e43d0337494984f268e254dc557d044e27d083168364c99b8cb5d37191a1963"
     },
     {
-      "bytes": 136014,
+      "bytes": 48642,
       "path": "assets/premium-model-v1/textures/oak/base-color.webp",
-      "sha256": "2174fedfec2d56073024ad20c27c25bad8d2eb04ccc69b9e192b02f7972a2f90"
+      "sha256": "adf67ddf10cd4bebb528c56c2582614c3d97d79d41af537b3e174e0231969ce8"
     },
     {
-      "bytes": 100538,
+      "bytes": 144136,
       "path": "assets/premium-model-v1/textures/oak/normal.webp",
-      "sha256": "6f512676f720950229582c236c07c9140aaac5abd093143e2e6b61c8346d01e6"
+      "sha256": "1cb0807a01f96f324f7561556ad8eeca7470c7e0ce06a072c4985b02baed5bd6"
     },
     {
-      "bytes": 299782,
+      "bytes": 102454,
       "path": "assets/premium-model-v1/textures/oak/roughness.webp",
-      "sha256": "e847c0cf83b9cfaf9983c520019aa591474dad123cd3707f48437de80659b934"
+      "sha256": "b3acfc91be21b85f60226e4533056c0930fbc94ac64526d85ea6d2fa01da6dd2"
     },
     {
       "bytes": 6712076,
@@ -164,11 +164,11 @@
   "status": "ISOLATED VISUAL PREVIEW — OWNER ACCEPTANCE OPEN",
   "textureProvenance": {
     "oak": {
-      "asset": "Oak Veneer 01",
-      "author": "Rob Tuytel",
+      "asset": "White Oak Veneer",
+      "author": "Jenelle van Heerden",
       "license": "CC0 1.0",
       "licenseUrl": "https://polyhaven.com/license",
-      "source": "https://polyhaven.com/a/oak_veneer_01"
+      "source": "https://polyhaven.com/a/white_oak_veneer"
     },
     "paintAndWalnut": "existing accepted repository PBR assets"
   }
