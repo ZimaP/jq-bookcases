@@ -24,6 +24,9 @@ const FILES = Object.freeze([
   "assets/premium-model-v1/textures/oak/base-color.webp",
   "assets/premium-model-v1/textures/oak/normal.webp",
   "assets/premium-model-v1/textures/oak/roughness.webp",
+  "assets/premium-model-v1/textures/walnut/base-color.webp",
+  "assets/premium-model-v1/textures/walnut/normal.webp",
+  "assets/premium-model-v1/textures/walnut/roughness.webp",
   "assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb",
   "assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb",
   "assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb"
@@ -78,7 +81,14 @@ const provenance = {
       license: "CC0 1.0",
       licenseUrl: "https://polyhaven.com/license"
     },
-    paintAndWalnut: "existing accepted repository PBR assets"
+    walnut: {
+      asset: "European Walnut Veneer 05",
+      author: "Jenelle van Heerden",
+      source: "https://polyhaven.com/a/european_walnut_veneer_05",
+      license: "CC0 1.0",
+      licenseUrl: "https://polyhaven.com/license"
+    },
+    paint: "existing accepted repository PBR asset family"
   },
   files: identities
 };

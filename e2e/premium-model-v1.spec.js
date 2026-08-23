@@ -131,6 +131,53 @@ test("oak, warm paint, and charcoal produce distinct live PBR frames without cha
   expect(failures).toEqual([]);
 });
 
+test("Light, Medium, and Dark Walnut use one restrained veneer PBR system across every layout", async ({ page }) => {
+  test.slow();
+  const failures = monitorFailures(page);
+  const walnutFinishes = [
+    ["light-walnut", "Light Walnut"],
+    ["medium-walnut", "Medium Walnut"],
+    ["dark-walnut", "Dark Walnut"]
+  ];
+  for (const layoutId of IMMERSIVE_LAYOUT_ORDER) {
+    await openLayout(page, layoutId);
+    const canvas = page.locator("canvas");
+    const initial = await diagnostics(page);
+    const geometryCount = initial.appearance.premiumModelV1.geometry.runtimeBeveledPrimitiveCount;
+    const hashes = [];
+    let walnutUvFingerprint = null;
+    for (const [finishId, label] of walnutFinishes) {
+      await page.getByRole("button", { name: "Finish", exact: true }).click();
+      await page.getByRole("button", { name: label, exact: true }).click();
+      await expect.poll(async () => (await diagnostics(page)).appearance.premiumModelV1?.finishId).toBe(finishId);
+      await page.getByRole("button", { name: "Close Finish", exact: true }).click();
+      await page.getByRole("button", { name: "Left", exact: true }).click();
+      await expect.poll(async () => (await diagnostics(page)).camera.animationActive).toBe(false);
+      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const record = await diagnostics(page);
+      const premium = record.appearance.premiumModelV1;
+      expect(premium.geometry.runtimeBeveledPrimitiveCount).toBe(geometryCount);
+      expect(premium.materialResponse.family).toBe("walnut");
+      expect(premium.texturePaths).toEqual([
+        "assets/premium-model-v1/textures/walnut/base-color.webp",
+        "assets/premium-model-v1/textures/walnut/normal.webp",
+        "assets/premium-model-v1/textures/walnut/roughness.webp"
+      ]);
+      expect(premium.uvMapping.method).toBe("stable cabinet-scale straight-grain projection");
+      expect(premium.uvMapping.projectedPrimitiveCount).toBeGreaterThan(0);
+      expect(premium.materialResponse.maximumClearcoat).toBeLessThanOrEqual(0.09);
+      expect(premium.materialResponse.minimumClearcoatRoughness).toBeGreaterThanOrEqual(0.76);
+      expect(premium.materialResponse.maximumEnvMapIntensity).toBeLessThanOrEqual(0.7);
+      expect(premium.materialResponse.maximumSpecularIntensity).toBeLessThanOrEqual(0.3);
+      if (walnutUvFingerprint === null) walnutUvFingerprint = premium.uvMapping.mappingFingerprintFNV1a32;
+      expect(premium.uvMapping.mappingFingerprintFNV1a32).toBe(walnutUvFingerprint);
+      hashes.push(sha256(await canvas.screenshot()));
+    }
+    expect(new Set(hashes).size).toBe(3);
+  }
+  expect(failures).toEqual([]);
+});
+
 test("production-style route remains byte-for-byte viewer behavior without the preview flag", async ({ page }) => {
   const failures = monitorFailures(page);
   const runtime = await openLayout(page, "fireplace-wall", "renderer=webgl2");

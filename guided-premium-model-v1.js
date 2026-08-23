@@ -3,7 +3,7 @@ import {
   ROOM2_APPEARANCE_PROFILE,
   resolveRoom2Finish
 } from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
-import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=premium-model-v1-20260823t";
+import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=premium-model-v1-20260823y";
 
 const ROLE_MANIFEST_URL = "config/premium-model-v1-roles.json";
 const MATERIAL_ROLES = Object.freeze(Object.keys(PREMIUM_MODEL_V1_CONTRACT.roleSurface));
@@ -47,9 +47,7 @@ function finishColor(finish) {
   const overrides = {
     "white-oak": "#fbfaf6",
     "natural-oak": "#fff2e2",
-    "light-walnut": "#d1a27c",
-    "medium-walnut": "#aa7358",
-    "dark-walnut": "#765145"
+    ...PREMIUM_MODEL_V1_CONTRACT.textures[finish.family]?.finishMultipliers
   };
   return overrides[finish.id] || finish.swatch;
 }
@@ -198,7 +196,9 @@ function applyPremiumUvMapping(controller, roleById, finishFamily) {
   for (const runtimeRecord of controller.meshRecords) {
     const manifestRecord = roleById.get(runtimeRecord.zoneRecord?.stablePrimitiveId);
     if (!manifestRecord || (!MATERIAL_ROLE_SET.has(manifestRecord.role) && manifestRecord.role !== "interior")) continue;
-    const useOakProjection = manifestRecord.role === "interior" || finishFamily === "oak";
+    const projectedFamilyId = manifestRecord.role === "interior"
+      ? "oak"
+      : (["oak", "walnut"].includes(finishFamily) ? finishFamily : null);
     const object = runtimeRecord.object;
     let geometry = object.geometry;
     const existingUv = geometry?.getAttribute?.("uv");
@@ -219,12 +219,12 @@ function applyPremiumUvMapping(controller, roleById, finishFamily) {
     const uv = geometry.getAttribute("uv");
     uv.array.set(object.userData.jqPremiumModelV1UvSource);
     restoredPrimitiveCount += 1;
-    if (!useOakProjection) {
+    if (!projectedFamilyId) {
       uv.needsUpdate = true;
       continue;
     }
 
-    const family = PREMIUM_MODEL_V1_CONTRACT.textures.oak;
+    const family = PREMIUM_MODEL_V1_CONTRACT.textures[projectedFamilyId];
     const projectionPeriod = family.projectionPeriodMeters || [
       family.sourceTileMeters?.[0] || 1,
       family.sourceTileMeters?.[1] || 1
@@ -247,15 +247,17 @@ function applyPremiumUvMapping(controller, roleById, finishFamily) {
       const crossAxis = [0, 1, 2].find((axis) => axis !== normalAxis && axis !== grainAxis);
       const crossMeters = localPosition.getComponent(crossAxis) * grain.worldScale.getComponent(crossAxis);
       const grainMeters = localPosition.getComponent(grainAxis) * grain.worldScale.getComponent(grainAxis);
-      uv.setXY(
-        vertex,
-        crossMeters / projectionPeriod[0] + offsetU,
-        grainMeters / projectionPeriod[1] + offsetV
-      );
+      const crossUv = crossMeters / projectionPeriod[0];
+      const grainUv = grainMeters / projectionPeriod[1];
+      if (family.grainTextureAxis === "u") {
+        uv.setXY(vertex, grainUv + offsetU, crossUv + offsetV);
+      } else {
+        uv.setXY(vertex, crossUv + offsetU, grainUv + offsetV);
+      }
     }
     uv.needsUpdate = true;
     object.userData.jqPremiumModelV1UvProjection = Object.freeze({
-      family: "oak",
+      family: projectedFamilyId,
       method: family.uvProjection,
       stableOffset: Object.freeze([offsetU, offsetV])
     });
@@ -265,7 +267,8 @@ function applyPremiumUvMapping(controller, roleById, finishFamily) {
   }
   return Object.freeze({
     family: finishFamily,
-    method: PREMIUM_MODEL_V1_CONTRACT.textures.oak.uvProjection,
+    method: PREMIUM_MODEL_V1_CONTRACT.textures[finishFamily]?.uvProjection
+      || PREMIUM_MODEL_V1_CONTRACT.textures.oak.uvProjection,
     projectedPrimitiveCount,
     restoredPrimitiveCount,
     mappedStablePrimitiveIds: Object.freeze(mappedStablePrimitiveIds),
@@ -303,6 +306,8 @@ function applyPremiumLighting(controller) {
   configureArea(separationArea, recipe.separationArea, profile.separation.area.intensity * recipe.separationAreaScale);
   if (shadowProxy) {
     shadowProxy.intensity = profile.key.shadowProxy.intensity * recipe.shadowProxyScale;
+    shadowProxy.position.fromArray(recipe.shadowProxy.position).add(layoutOffset);
+    shadowProxy.target.position.copy(target);
     shadowProxy.shadow.bias = recipe.shadowBias;
     shadowProxy.shadow.normalBias = recipe.shadowNormalBias;
   }

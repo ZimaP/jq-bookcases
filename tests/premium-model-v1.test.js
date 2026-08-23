@@ -43,6 +43,18 @@ const TEXTURE_ASSETS = Object.freeze({
   "assets/premium-model-v1/textures/oak/roughness.webp": Object.freeze({
     bytes: 102454,
     sha256: "b3acfc91be21b85f60226e4533056c0930fbc94ac64526d85ea6d2fa01da6dd2"
+  }),
+  "assets/premium-model-v1/textures/walnut/base-color.webp": Object.freeze({
+    bytes: 39606,
+    sha256: "6d0abfc08f6c848fc010851cfed7cde05f9ae29bab9ae94ef21cd4d0c0d5ab1c"
+  }),
+  "assets/premium-model-v1/textures/walnut/normal.webp": Object.freeze({
+    bytes: 26444,
+    sha256: "2427549eee10eff5c7d9d31f29a39b482d826e211dfa20b9dffb01a85d8c5cce"
+  }),
+  "assets/premium-model-v1/textures/walnut/roughness.webp": Object.freeze({
+    bytes: 89024,
+    sha256: "c487a1236defeb8c5f12422a1a571449b1de535b8d23629fcd330a18bdda6d7b"
   })
 });
 
@@ -61,12 +73,29 @@ test("premium model V1 is an exact opt-in 3D-only preview contract", () => {
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.sourceTileMeters, [0.5, 0.5]);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.projectionPeriodMeters, [0.52, 1.6]);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.normalScale, 0.09);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.grainTextureAxis, "v");
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.uvProjection, "stable cabinet-scale straight-grain projection");
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.repeat, [1, 1]);
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.sourceTileMeters, [1, 1]);
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.projectionPeriodMeters, [1, 2.25]);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.normalScale, 0.065);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.grainTextureAxis, "u");
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.finishMultipliers, {
+    "light-walnut": "#f2dcc9",
+    "medium-walnut": "#c49a7a",
+    "dark-walnut": "#92766a"
+  });
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.uvProjection, "stable cabinet-scale straight-grain projection");
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 0.94);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.62);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.64);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.68);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 1.48);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.7);
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxy.position, [-2.6, 4.8, 5.2]);
   assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.clearcoatScale <= 0.32);
   assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.specularIntensity <= 0.32);
+  assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.walnut.clearcoatScale <= 0.28);
+  assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.walnut.specularIntensity <= 0.3);
   assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.paint.clearcoatScale <= 0.55);
   assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.paint.specularIntensity <= 0.42);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.shadow.maximumDrawCalls, 250);
@@ -117,7 +146,7 @@ test("the role manifest exhaustively binds 494 unique audited primitives and pro
   }
 });
 
-test("the CC0 oak PBR maps are exact local WebP assets with recorded license provenance", async () => {
+test("the CC0 oak and walnut PBR maps are exact local WebP assets with recorded license provenance", async () => {
   for (const [relativePath, expected] of Object.entries(TEXTURE_ASSETS)) {
     const [metadata, bytes] = await Promise.all([
       lstat(`${root}/${relativePath}`),
@@ -133,8 +162,10 @@ test("the CC0 oak PBR maps are exact local WebP assets with recorded license pro
   const license = await readFile(`${root}/assets/premium-model-v1/ASSET-LICENSES.md`, "utf8");
   assert.match(license, /Poly Haven/);
   assert.match(license, /White Oak Veneer/);
+  assert.match(license, /European Walnut Veneer 05/);
   assert.match(license, /CC0/);
   assert.match(license, /https:\/\/polyhaven\.com\/a\/white_oak_veneer/);
+  assert.match(license, /https:\/\/polyhaven\.com\/a\/european_walnut_veneer_05/);
 });
 
 test("deterministic provenance binds the accepted base, exact sources, and 3D-only scope", async () => {

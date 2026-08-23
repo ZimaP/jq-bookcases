@@ -11,17 +11,17 @@
     {
       "bytes": 120614,
       "path": "guided-layout-viewer.js",
-      "sha256": "b5d5306ee8a8162f0989aa89cb836aed65e7596c2f46e624b9ac01a86cee0731"
+      "sha256": "a29e321280503ced15a7b200b26dbfb5baec94220530ceaf8d04bf3507a9ad83"
     },
     {
-      "bytes": 5241,
+      "bytes": 5896,
       "path": "guided-premium-model-v1-contract.js",
-      "sha256": "f755ef14525f75f925fede18959e99a2ef08f889b03695f740e0af863b70fda8"
+      "sha256": "1223ac92c3dd8647091225ad1ed2f61db1020925057ecf8e849b68eeaf5e0d7f"
     },
     {
-      "bytes": 34416,
+      "bytes": 34855,
       "path": "guided-premium-model-v1.js",
-      "sha256": "3661c880565440f369316fa8d781817b1f495b2173ebc8a2473d4ae744d01e13"
+      "sha256": "d0d906a0bc64633684765485cb5ffd50ebc66c3d5be26700e1249fba67d61814"
     },
     {
       "bytes": 555394,
@@ -29,9 +29,9 @@
       "sha256": "4a40540a52a1c16378cfc5403d0a167886aa4a9d38d587032e5cf7c8a0ce2104"
     },
     {
-      "bytes": 751,
+      "bytes": 1592,
       "path": "assets/premium-model-v1/ASSET-LICENSES.md",
-      "sha256": "3e43d0337494984f268e254dc557d044e27d083168364c99b8cb5d37191a1963"
+      "sha256": "c4048465b25b0bfe5e5d7f7fd9511860b3fc3aabf3c5df8f27a0b49995ee1f09"
     },
     {
       "bytes": 48642,
@@ -47,6 +47,21 @@
       "bytes": 102454,
       "path": "assets/premium-model-v1/textures/oak/roughness.webp",
       "sha256": "b3acfc91be21b85f60226e4533056c0930fbc94ac64526d85ea6d2fa01da6dd2"
+    },
+    {
+      "bytes": 39606,
+      "path": "assets/premium-model-v1/textures/walnut/base-color.webp",
+      "sha256": "6d0abfc08f6c848fc010851cfed7cde05f9ae29bab9ae94ef21cd4d0c0d5ab1c"
+    },
+    {
+      "bytes": 26444,
+      "path": "assets/premium-model-v1/textures/walnut/normal.webp",
+      "sha256": "2427549eee10eff5c7d9d31f29a39b482d826e211dfa20b9dffb01a85d8c5cce"
+    },
+    {
+      "bytes": 89024,
+      "path": "assets/premium-model-v1/textures/walnut/roughness.webp",
+      "sha256": "c487a1236defeb8c5f12422a1a571449b1de535b8d23629fcd330a18bdda6d7b"
     },
     {
       "bytes": 6712076,
@@ -170,6 +185,13 @@
       "licenseUrl": "https://polyhaven.com/license",
       "source": "https://polyhaven.com/a/white_oak_veneer"
     },
-    "paintAndWalnut": "existing accepted repository PBR assets"
+    "paint": "existing accepted repository PBR asset family",
+    "walnut": {
+      "asset": "European Walnut Veneer 05",
+      "author": "Jenelle van Heerden",
+      "license": "CC0 1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "source": "https://polyhaven.com/a/european_walnut_veneer_05"
+    }
   }
 }
