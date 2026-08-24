@@ -269,12 +269,12 @@ test("A→B→C→A normalization preserves independent measurements and smart d
   assert.match(smartRow.value, /proven model preview/);
 });
 
-test("the exact WebGPU vendor bundle and real renderer thumbnails are byte locked", async () => {
+test("the exact WebGPU vendor bundle and premium renderer thumbnails are byte locked", async () => {
   const files = [
     ["assets/vendor/three-webgpu-renderer-r166.bundle.js", 381458, "aaff4fd600cd14b710538473b1d3f3ac799fe34f08b74301f18f9e20e66a3b25"],
-    ["assets/photos/configurator/layout-model-thumbnails/fireplace-wall-v1.png", 357029, "9d2f88d7c7cc0dce003fb30559fdd4bd0a9418bb93910f614b890a293fd08adc"],
-    ["assets/photos/configurator/layout-model-thumbnails/door-wall-v1.png", 90613, "72a2680bcf0b0418c2d9004fd04b3a1252f32293439dfc74c3d8cf94fad0d270"],
-    ["assets/photos/configurator/layout-model-thumbnails/window-wall-v1.png", 69497, "0ea83ccd8e73ae3095ebbd7d461d8f0b124383c463e50d124842324994b915b3"]
+    ["assets/photos/configurator/layout-model-thumbnails/fireplace-wall-premium-v1.webp", 17936, "fd14c6a246b064f9391e7a21dce3e4de358e3518c18514406eb6ef972ddb8e7e"],
+    ["assets/photos/configurator/layout-model-thumbnails/door-wall-premium-v1.webp", 18006, "166fa10d530d8ff90060bfc893f8d69c9ed9f590e051094252bb1a769d357d76"],
+    ["assets/photos/configurator/layout-model-thumbnails/window-wall-premium-v1.webp", 20288, "d4426404069b51c6f998ada89dc0eb3b0db6b3e3bb56c51c279e3dcd370d1864"]
   ];
   for (const [path, bytes, digest] of files) {
     const payload = await readFile(`${root}/${path}`);

@@ -97,7 +97,7 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
     },
     orbitTarget: [0.429732, 1.2192, -0.772571],
     initialCamera: { theta: 0, phi: 0.115, fovDegrees: 39 },
-    thumbnail: "assets/photos/configurator/layout-model-thumbnails/fireplace-wall-v1.png",
+    thumbnail: "assets/photos/configurator/layout-model-thumbnails/fireplace-wall-premium-v1.webp",
     appearanceManifest: {
       initializeFromEmbeddedSource: true,
       status: "PROVISIONAL DIGITAL APPEARANCE — OWNER ACCEPTANCE OPEN",
@@ -173,7 +173,7 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
     heroBounds: { min: [-1.691894, -0.000127, -1.092873], max: [1.86417, 2.4384, -0.368031] },
     orbitTarget: [0.086138, 1.219136, -0.730452],
     initialCamera: { theta: 0, phi: 0.115, fovDegrees: 39 },
-    thumbnail: "assets/photos/configurator/layout-model-thumbnails/door-wall-v1.png",
+    thumbnail: "assets/photos/configurator/layout-model-thumbnails/door-wall-premium-v1.webp",
     semanticManifest: {
       stableIdentity: "source SHA + index-qualified node path",
       lowerAnchorPath: "/0:<unnamed>/1:Assembly-185/121:Wall Hutch/130:Adjustable Shelf",
@@ -226,7 +226,7 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
     heroBounds: { min: [-2.467993, 0, -1.194333], max: [0.580136, 2.4384, -0.46949] },
     orbitTarget: [-0.943928, 1.2192, -0.831912],
     initialCamera: { theta: 0, phi: 0.115, fovDegrees: 39 },
-    thumbnail: "assets/photos/configurator/layout-model-thumbnails/window-wall-v1.png",
+    thumbnail: "assets/photos/configurator/layout-model-thumbnails/window-wall-premium-v1.webp",
     semanticManifest: {
       stableIdentity: "source SHA + index-qualified node path",
       lowerAnchorPath: "/0:<unnamed>/1:Assembly-254/238:Wall Hutch/247:Adjustable Shelf",
