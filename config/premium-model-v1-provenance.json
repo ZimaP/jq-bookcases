@@ -9,19 +9,19 @@
   },
   "files": [
     {
-      "bytes": 119890,
+      "bytes": 119889,
       "path": "guided-layout-viewer.js",
-      "sha256": "fe28c6ba9d10b2888a26333ea86c53b6ea2f39c68b69a2110fcc942b40accac7"
+      "sha256": "12ea7a868b61ef1c5a5df63c41a450a8b98e1b71691a17b76f85c67db19a506b"
     },
     {
-      "bytes": 5973,
+      "bytes": 5977,
       "path": "guided-premium-model-v1-contract.js",
-      "sha256": "f1f801fce28948e8219217d01dc74e8da3eed1100dd1d0104f0d22225bada446"
+      "sha256": "8204705c90c9affb071d3901a18f09453ca3f66ef5ffc750001522f36df00442"
     },
     {
-      "bytes": 34953,
+      "bytes": 34952,
       "path": "guided-premium-model-v1.js",
-      "sha256": "a25dc47be13d0c58b57a9092f4e10f609570dd62177275dc384a19e075b92377"
+      "sha256": "85ad2f469128a63bd116dbfbedf87e736b84e8061823979a6d82551c9a51b2bc"
     },
     {
       "bytes": 555394,
