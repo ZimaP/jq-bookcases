@@ -4,6 +4,7 @@ import {
   IMMERSIVE_LAYOUT_ORDER,
   IMMERSIVE_LAYOUT_REGISTRY
 } from "../guided-layout-registry.js";
+import { GUIDED_DRAFT_STORAGE_KEY } from "../guided-configurator-state.js";
 
 const QUERY = "modelQuality=premium-v1&renderer=webgl2";
 
@@ -37,6 +38,22 @@ async function openLayout(page, layoutId, query = QUERY) {
 
 async function diagnostics(page) {
   return page.evaluate(() => globalThis.__JQ_LAYOUT_VIEWER_DIAGNOSTICS__);
+}
+
+async function reloadWithSavedFinish(page, finishId, query = QUERY) {
+  await expect.poll(() => page.evaluate((key) => Boolean(localStorage.getItem(key)), GUIDED_DRAFT_STORAGE_KEY)).toBe(true);
+  await page.evaluate(({ key, nextFinish, nextQuery }) => {
+    const draft = JSON.parse(localStorage.getItem(key));
+    draft.finish = nextFinish;
+    draft.updatedAt = new Date().toISOString();
+    localStorage.setItem(key, JSON.stringify(draft));
+    history.replaceState(history.state, "", `${location.pathname}?${nextQuery}#step-3`);
+  }, { key: GUIDED_DRAFT_STORAGE_KEY, nextFinish: finishId, nextQuery: query });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  const runtime = page.locator("[data-layout-viewer]");
+  await expect(runtime).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+  await expect.poll(async () => (await diagnostics(page)).appearance.premiumModelV1?.finishId).toBe(finishId);
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -101,12 +118,7 @@ test("oak, warm paint, and charcoal produce distinct live PBR frames without cha
     const naturalUvFingerprint = natural.appearance.premiumModelV1.uvMapping.mappingFingerprintFNV1a32;
     const hashes = [sha256(await canvas.screenshot())];
     for (const finishId of ["warm-white", "charcoal"]) {
-      await page.getByRole("button", { name: "Finish", exact: true }).click();
-      const label = finishId === "warm-white" ? "Warm White" : "Charcoal";
-      await page.getByRole("button", { name: label, exact: true }).click();
-      await expect.poll(async () => (await diagnostics(page)).appearance.premiumModelV1?.finishId).toBe(finishId);
-      await page.getByRole("button", { name: "Close Finish", exact: true }).click();
-      await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      await reloadWithSavedFinish(page, finishId);
       const record = await diagnostics(page);
       expect(record.appearance.premiumModelV1.geometry.runtimeBeveledPrimitiveCount).toBe(geometryCount);
       expect(record.appearance.premiumModelV1.materialType).toBe("MeshPhysicalMaterial");
@@ -118,11 +130,7 @@ test("oak, warm paint, and charcoal produce distinct live PBR frames without cha
       hashes.push(sha256(await canvas.screenshot()));
     }
     expect(new Set(hashes).size).toBe(3);
-    await page.getByRole("button", { name: "Finish", exact: true }).click();
-    await page.getByRole("button", { name: "Natural Oak", exact: true }).click();
-    await expect.poll(async () => (await diagnostics(page)).appearance.premiumModelV1?.finishId).toBe("natural-oak");
-    await page.getByRole("button", { name: "Close Finish", exact: true }).click();
-    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await reloadWithSavedFinish(page, "natural-oak");
     const restoredOak = await diagnostics(page);
     expect(restoredOak.appearance.premiumModelV1.uvMapping.projectedPrimitiveCount).toBeGreaterThan(0);
     expect(restoredOak.appearance.premiumModelV1.uvMapping.mappingFingerprintFNV1a32).toBe(naturalUvFingerprint);
@@ -134,11 +142,7 @@ test("oak, warm paint, and charcoal produce distinct live PBR frames without cha
 test("Light, Medium, and Dark Walnut use one restrained veneer PBR system across every layout", async ({ page }) => {
   test.slow();
   const failures = monitorFailures(page);
-  const walnutFinishes = [
-    ["light-walnut", "Light Walnut"],
-    ["medium-walnut", "Medium Walnut"],
-    ["dark-walnut", "Dark Walnut"]
-  ];
+  const walnutFinishes = ["light-walnut", "medium-walnut", "dark-walnut"];
   for (const layoutId of IMMERSIVE_LAYOUT_ORDER) {
     await openLayout(page, layoutId);
     const canvas = page.locator("canvas");
@@ -146,11 +150,8 @@ test("Light, Medium, and Dark Walnut use one restrained veneer PBR system across
     const geometryCount = initial.appearance.premiumModelV1.geometry.runtimeBeveledPrimitiveCount;
     const hashes = [];
     let walnutUvFingerprint = null;
-    for (const [finishId, label] of walnutFinishes) {
-      await page.getByRole("button", { name: "Finish", exact: true }).click();
-      await page.getByRole("button", { name: label, exact: true }).click();
-      await expect.poll(async () => (await diagnostics(page)).appearance.premiumModelV1?.finishId).toBe(finishId);
-      await page.getByRole("button", { name: "Close Finish", exact: true }).click();
+    for (const finishId of walnutFinishes) {
+      await reloadWithSavedFinish(page, finishId);
       await page.getByRole("button", { name: "Left", exact: true }).click();
       await expect.poll(async () => (await diagnostics(page)).camera.animationActive).toBe(false);
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));

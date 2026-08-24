@@ -7,8 +7,7 @@ import {
 } from "../guided-configurator-data.js";
 import {
   IMMERSIVE_LAYOUT_ORDER,
-  IMMERSIVE_LAYOUT_REGISTRY,
-  millimetersToInches
+  IMMERSIVE_LAYOUT_REGISTRY
 } from "../guided-layout-registry.js";
 
 const CONTROL_ID = "adjustable-shelf-clearance";
@@ -131,15 +130,13 @@ function assertGeometryProof(record, expectedMillimeters) {
   expect(record.ownership.animationLoops + record.ownership.activeRafCallbacks).toBeLessThanOrEqual(1);
 }
 
-async function setDisplayedDimension(page, millimeters) {
-  if (await page.locator(`[data-smart-dimension="${CONTROL_ID}"]`).count() === 0) {
-    await page.getByRole("button", { name: "Dimensions", exact: true }).click();
-    await page.locator("[data-dimension-handle]").click();
-  }
-  const input = page.locator(`[data-smart-dimension="${CONTROL_ID}"]`);
-  await input.fill(millimetersToInches(millimeters).toFixed(2));
+async function setCustomerMeasurement(page, fieldId, value) {
+  await page.locator("[data-edit-fit]").click();
+  const input = page.locator(`[data-measurement="${fieldId}"]`);
+  await input.fill(String(value));
   await input.blur();
-  await expect.poll(async () => (await diagnostics(page)).smartDimension.valueMillimeters).toBeCloseTo(millimeters, 5);
+  await page.locator("[data-save-fit]").click();
+  await expect(page.locator('[data-customization-view="overview"]')).toBeVisible();
 }
 
 test("Step 1 restores seven image cards and Step 2 exposes exactly three audited layouts", async ({ page }) => {
@@ -167,7 +164,7 @@ test("Step 1 restores seven image cards and Step 2 exposes exactly three audited
   expect(failures).toEqual([]);
 });
 
-test("every authoritative layout loads once and proves min/native/max plus fifty real reset cycles", async ({ page }) => {
+test("every authoritative layout loads once while shelf adjustment stays internal and off the customer UI", async ({ page }) => {
   test.slow();
   const failures = monitorUnexpectedFailures(page);
   const modelRequests = [];
@@ -193,29 +190,16 @@ test("every authoritative layout loads once and proves min/native/max plus fifty
     expect(loaded.requestCount).toBe(index + 1);
     expect(loaded.successfulRequestCount).toBe(index + 1);
     expect(loaded.appearance.materialZoneAudit.exhaustive).toBe(true);
-    for (const value of [control.minMillimeters, control.nativeMillimeters, control.maxMillimeters]) {
-      await setDisplayedDimension(page, value);
-      assertGeometryProof(await diagnostics(page), value);
-    }
-    await page.evaluate(({ maximumInches }) => {
-      const input = document.querySelector('[data-smart-dimension="adjustable-shelf-clearance"]');
-      const reset = document.querySelector('[data-smart-dimension-reset="adjustable-shelf-clearance"]');
-      for (let cycle = 0; cycle < 50; cycle += 1) {
-        input.value = maximumInches;
-        input.dispatchEvent(new Event("input", { bubbles: true }));
-        input.dispatchEvent(new Event("change", { bubbles: true }));
-        reset.click();
-      }
-    }, { maximumInches: millimetersToInches(control.maxMillimeters).toFixed(2) });
-    await expect.poll(async () => (await diagnostics(page)).smartDimension.valueMillimeters).toBeCloseTo(control.nativeMillimeters, 5);
-    const afterCycles = await diagnostics(page);
-    assertGeometryProof(afterCycles, control.nativeMillimeters);
-    expect(afterCycles.smartDimension.dimensionResetCount).toBeGreaterThanOrEqual(50);
+    assertGeometryProof(loaded, control.nativeMillimeters);
+    await expect(page.locator("[data-dimension-handle]")).toBeHidden();
+    await expect(page.locator("[data-smart-dimension], [data-smart-dimension-reset]")).toHaveCount(0);
+    await expect(page.locator('[data-customization-view="overview"]')).toBeVisible();
+    await expect(page.locator('[data-direct-choice-group="baseStyle"] .direct-choice')).toHaveCount(2);
   }
   expect(failures).toEqual([]);
 });
 
-test("per-layout dimensions survive A→B→C→A, reload, Review, and Back without cross-talk", async ({ page }) => {
+test("per-layout customer measurements survive A→B→C→A, reload, Review, and Back without cross-talk", async ({ page }) => {
   // This journey loads all three SHA-locked GLBs plus a post-reload Fireplace
   // scene. Give it the same budget as the other full layout lifecycle test on
   // software-rendered CI instead of timing out while a valid editor opens.
@@ -225,26 +209,15 @@ test("per-layout dimensions survive A→B→C→A, reload, Review, and Back with
   const fireplace = IMMERSIVE_LAYOUT_REGISTRY["fireplace-wall"].geometryControlManifest[CONTROL_ID];
   const door = IMMERSIVE_LAYOUT_REGISTRY["door-wall"].geometryControlManifest[CONTROL_ID];
   const window = IMMERSIVE_LAYOUT_REGISTRY["window-wall"].geometryControlManifest[CONTROL_ID];
-  await setDisplayedDimension(page, fireplace.minMillimeters);
-  await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
-  await page.locator('[data-measurement="lowerCabinetHeight"]').fill("35");
-  await page.locator('[data-measurement="lowerCabinetHeight"]').blur();
+  await setCustomerMeasurement(page, "wallWidth", 130);
   await switchLayout(page, "door-wall");
-  await setDisplayedDimension(page, door.maxMillimeters);
-  await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
-  await page.locator('[data-measurement="lowerCabinetHeight"]').fill("36");
-  await page.locator('[data-measurement="lowerCabinetHeight"]').blur();
+  await setCustomerMeasurement(page, "wallWidth", 132);
   await switchLayout(page, "window-wall");
-  await setDisplayedDimension(page, window.nativeMillimeters);
-  await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
-  await page.locator('[data-measurement="lowerCabinetHeight"]').fill("37");
-  await page.locator('[data-measurement="lowerCabinetHeight"]').blur();
+  await setCustomerMeasurement(page, "wallWidth", 134);
   await switchLayout(page, "fireplace-wall");
-  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
-  await page.getByRole("button", { name: "Project dimensions", exact: true }).click();
-  await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toHaveValue("0.00");
-  await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
-  await expect(page.locator('[data-measurement="lowerCabinetHeight"]')).toHaveValue("35");
+  await page.locator("[data-edit-fit]").click();
+  await expect(page.locator('[data-measurement="wallWidth"]')).toHaveValue("130");
+  await expect(page.locator('[data-measurement="lowerCabinetHeight"]')).toHaveCount(0);
   // The production store debounces draft writes. Prove all layout-scoped edits
   // reached that store before testing a reload, rather than racing the 180 ms
   // persistence boundary on a slow CI runner.
@@ -253,7 +226,7 @@ test("per-layout dimensions survive A→B→C→A, reload, Review, and Back with
     const draft = raw ? JSON.parse(raw) : null;
     const layoutState = (layoutId) => ({
       smartDimension: draft?.layoutStates?.[layoutId]?.smartDimensions?.[controlId] ?? null,
-      lowerCabinetHeight: draft?.layoutStates?.[layoutId]?.measurements?.lowerCabinetHeight ?? null
+      wallWidth: draft?.layoutStates?.[layoutId]?.measurements?.wallWidth ?? null
     });
     return {
       fireplace: layoutState("fireplace-wall"),
@@ -261,49 +234,38 @@ test("per-layout dimensions survive A→B→C→A, reload, Review, and Back with
       window: layoutState("window-wall")
     };
   }, { controlId: CONTROL_ID }), { timeout: 10_000 }).toEqual({
-    fireplace: { smartDimension: fireplace.minMillimeters, lowerCabinetHeight: 35 },
-    door: { smartDimension: door.maxMillimeters, lowerCabinetHeight: 36 },
-    window: { smartDimension: window.nativeMillimeters, lowerCabinetHeight: 37 }
+    fireplace: { smartDimension: fireplace.nativeMillimeters, wallWidth: 130 },
+    door: { smartDimension: door.nativeMillimeters, wallWidth: 132 },
+    window: { smartDimension: window.nativeMillimeters, wallWidth: 134 }
   });
+  await page.evaluate(() => history.replaceState(history.state, "", `${location.pathname}#step-3`));
   await page.reload({ waitUntil: "domcontentloaded" });
   await waitForViewerReady(page, "fireplace-wall");
-  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
-  await page.getByRole("button", { name: "Project dimensions", exact: true }).click();
-  await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toHaveValue("0.00");
-  await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
-  await expect(page.locator('[data-measurement="lowerCabinetHeight"]')).toHaveValue("35");
+  await expect(page.locator('[data-customization-view="overview"]')).toBeVisible();
+  await page.locator("[data-edit-fit]").click();
+  await expect(page.locator('[data-measurement="wallWidth"]')).toHaveValue("130");
+  await page.locator("[data-save-fit]").click();
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
-  await expect(page.getByText("Adjustable shelf clearance", { exact: true })).toBeVisible();
-  await expect(page.locator('[data-summary-value="lowerCabinetHeight"]')).toHaveText("35 in");
+  await expect(page.getByText("Adjustable shelf clearance", { exact: true })).toHaveCount(0);
+  await expect(page.locator('[data-summary-value="wallWidth"]')).toHaveText("130 in");
+  await expect(page.locator('[data-summary-value="lowerCabinetHeight"]')).toHaveCount(0);
   await expect(page.locator("[data-layout-viewer]")).toHaveAttribute("data-dimensions-visible", "false");
   await expect(page.locator("[data-dimension-handle]")).toBeHidden();
   await page.locator('[data-edit-section="dimensions"]').click();
   await waitForViewerReady(page, "fireplace-wall");
-  await expect(page.locator("[data-layout-viewer]")).toHaveAttribute("data-dimensions-visible", "true");
+  await expect(page.locator('[data-customization-view="measurements"]')).toBeVisible();
+  await expect(page.locator("[data-layout-viewer]")).toHaveAttribute("data-dimensions-visible", "false");
   expect(failures).toEqual([]);
 });
 
-test("on-model editing, orbit, wheel, keyboard, named views, Fit, and Reset share one controller", async ({ page }) => {
+test("orbit, wheel, keyboard, named views, direct choices, Fit, and Reset share one controller", async ({ page }) => {
   const failures = monitorUnexpectedFailures(page);
   const runtime = await continueToCustomization(page, "door-wall");
   const instanceId = (await diagnostics(page)).instanceId;
-  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
-  const handle = page.locator("[data-dimension-handle]");
-  await expect(handle).toBeVisible();
-  await handle.click();
-  await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toBeFocused();
-  await handle.focus();
-  await handle.press("End");
-  const maximum = IMMERSIVE_LAYOUT_REGISTRY["door-wall"].geometryControlManifest[CONTROL_ID].maxMillimeters;
-  await expect(handle).toHaveAttribute("aria-valuenow", String(maximum));
+  await expect(page.locator("[data-dimension-handle]")).toBeHidden();
+  await expect(page.locator("[data-smart-dimension]")).toHaveCount(0);
   const cameraBeforeHandle = (await diagnostics(page)).camera;
-  const handleBox = await handle.boundingBox();
-  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2 + 30, { steps: 4 });
-  await page.mouse.up();
-  expect((await diagnostics(page)).camera.theta).toBeCloseTo(cameraBeforeHandle.theta, 8);
   const canvas = runtime.locator("canvas");
   const box = await canvas.boundingBox();
   await page.mouse.move(box.x + box.width * 0.65, box.y + box.height * 0.45);
@@ -319,7 +281,7 @@ test("on-model editing, orbit, wheel, keyboard, named views, Fit, and Reset shar
   await leftView.click();
   await expect(leftView).toHaveClass(/is-active/);
   await expect(leftView).toHaveAttribute("aria-pressed", "true");
-  await page.getByRole("button", { name: "Finish", exact: true }).click();
+  await page.locator('[data-detail-key="doorStyle"][data-detail="flat-panel"]').click();
   await expect(page.getByRole("button", { name: "Left" })).toHaveAttribute("aria-pressed", "true");
   await canvas.focus();
   await canvas.press("ArrowRight");
@@ -626,25 +588,14 @@ test("asset failure is fail-closed, focusable, accessible, and Retry recovers", 
   expect(attempts).toBe(2);
 });
 
-test("initial Finish supersession keeps the parsed model and retries only the failed latest texture", async ({ page }) => {
+test("a saved Finish load failure fails closed and Retry recovers the verified scene", async ({ page }) => {
   test.slow();
   const pageErrors = [];
   const modelRequests = [];
-  let oakStarted = false;
-  let oakAttempts = 0;
   let paintNormalAttempts = 0;
-  let releaseOak;
-  const oakGate = new Promise((resolve) => { releaseOak = resolve; });
   page.on("pageerror", (error) => pageErrors.push(error.message));
   page.on("request", (request) => {
     if (MODEL_PATH_PATTERN.test(new URL(request.url()).pathname)) modelRequests.push(request.url());
-  });
-  await page.route("**/assets/room2-commercial-pbr-v1/textures/oak/base-color.webp", async (route) => {
-    oakAttempts += 1;
-    const response = await route.fetch();
-    oakStarted = true;
-    await oakGate;
-    await route.fulfill({ response });
   });
   await page.route("**/assets/room2-commercial-pbr-v1/textures/paint/normal.webp", async (route) => {
     paintNormalAttempts += 1;
@@ -655,58 +606,52 @@ test("initial Finish supersession keeps the parsed model and retries only the fa
     }
   });
 
-  await openFreshProject(page);
-  await continueToLayouts(page);
-  await chooseLayout(page, "fireplace-wall");
-  await page.locator("[data-continue]").click();
-  await expect.poll(() => oakStarted).toBe(true);
-  await page.getByRole("button", { name: "Finish", exact: true }).click();
-  await page.getByRole("button", { name: "Light Walnut" }).click();
-  await page.getByRole("button", { name: "Charcoal" }).click();
-  await expect(page.getByRole("button", { name: "Charcoal" })).toBeFocused();
-  releaseOak();
+  await continueToCustomization(page, "fireplace-wall", "renderer=webgl2");
+  await expect.poll(() => page.evaluate(() => Boolean(localStorage.getItem("jqGuidedConfiguratorDraftV1")))).toBe(true);
+  await page.evaluate(() => {
+    const key = "jqGuidedConfiguratorDraftV1";
+    const draft = JSON.parse(localStorage.getItem(key));
+    draft.finish = "charcoal";
+    draft.updatedAt = new Date().toISOString();
+    localStorage.setItem(key, JSON.stringify(draft));
+    history.replaceState(history.state, "", `${location.pathname}?renderer=webgl2#step-3`);
+  });
+  await page.reload({ waitUntil: "domcontentloaded" });
 
   const runtime = page.locator("[data-layout-viewer]");
-  const surface = page.locator(".immersive-viewer-surface");
-  await expect(runtime).toHaveAttribute("data-state", "ready", { timeout: 25_000 });
-  await expect(surface).toHaveAttribute("data-guided3d-state", "finish-error", { timeout: 25_000 });
+  await expect(runtime).toHaveAttribute("data-state", "error", { timeout: 25_000 });
   const failed = await diagnostics(page);
-  const failedMaterials = failed.appearance.acceptedRoom2MaterialSystem;
   expect(failed.requestCount).toBe(1);
-  expect(failed.parseCount).toBe(1);
+  expect(failed.parseCount).toBe(0);
   expect(failed.appearance.requestedFinishId).toBe("charcoal");
-  expect(failed.appearance.appliedFinishId).toBe("natural-oak");
-  expect(failed.lastError.code).toBe("FINISH_LOAD_FAILED");
-  expect(failedMaterials.textureRequests["assets/room2-commercial-pbr-v1/textures/paint/normal.webp"]).toBe(1);
+  expect(failed.appearance.appliedFinishId).toBeNull();
+  expect(failed.lastError.code).toBe("ROOM2_TEXTURE_REQUEST_FAILED");
   const instanceId = failed.instanceId;
-  const camera = failed.camera;
 
-  const retry = page.getByRole("button", { name: "Retry viewer" });
+  const retry = page.getByRole("button", { name: "Retry model" });
   await expect(retry).toBeVisible();
   await retry.click();
-  await expect(surface).toHaveAttribute("data-guided3d-state", "ready", { timeout: 25_000 });
-  await expect(page.getByRole("button", { name: "Charcoal" })).toBeFocused();
+  await expect(runtime).toHaveAttribute("data-state", "ready", { timeout: 25_000 });
+  await expect(runtime.locator("canvas")).toBeFocused();
   const recovered = await diagnostics(page);
   const recoveredMaterials = recovered.appearance.acceptedRoom2MaterialSystem;
   expect(recovered.instanceId).toBe(instanceId);
-  expect(recovered.requestCount).toBe(1);
+  expect(recovered.requestCount).toBe(2);
   expect(recovered.parseCount).toBe(1);
-  expect(recovered.camera).toEqual(camera);
   expect(recovered.appearance.appliedFinishId).toBe("charcoal");
   expect(recovered.lastError).toBeNull();
-  expect(recoveredMaterials.textureRequests["assets/room2-commercial-pbr-v1/textures/paint/normal.webp"]).toBe(2);
+  expect(recoveredMaterials.textureRequests["assets/room2-commercial-pbr-v1/textures/paint/normal.webp"]).toBe(1);
   expect(recoveredMaterials.textureRequests["assets/room2-commercial-pbr-v1/textures/paint/roughness.webp"]).toBe(1);
-  expect(modelRequests).toHaveLength(1);
-  expect(oakAttempts).toBe(1);
+  expect(modelRequests).toHaveLength(3);
   expect(paintNormalAttempts).toBe(2);
   expect(pageErrors).toEqual([]);
 });
 
-test("desktop, tablet, short landscape, and mobile viewer-first modes are reachable without overflow", async ({ page }) => {
+test("the direct customization and one-screen measurements remain reachable without overflow", async ({ page }) => {
   const failures = monitorUnexpectedFailures(page);
   await continueToCustomization(page, "window-wall");
-  await expect(page.getByRole("button", { name: "View", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("[data-customization-mode-panel]")).toHaveCount(0);
+  await expect(page.locator('[data-customization-view="overview"]')).toBeVisible();
+  await expect(page.locator("[data-customization-mode-control], [data-customization-mode-panel]")).toHaveCount(0);
   for (const viewport of [
     { width: 1920, height: 1080 },
     { width: 1366, height: 768 },
@@ -720,56 +665,48 @@ test("desktop, tablet, short landscape, and mobile viewer-first modes are reacha
     const clean = await page.evaluate(() => {
       const viewer = document.querySelector(".immersive-viewer-surface").getBoundingClientRect();
       const main = document.querySelector(".immersive-configurator").getBoundingClientRect();
-      const modes = document.querySelector(".immersive-mode-selector").getBoundingClientRect();
+      const panel = document.querySelector("[data-customization-direct-panel]").getBoundingClientRect();
       const footer = document.querySelector(".immersive-viewer-footer").getBoundingClientRect();
-      const back = document.querySelector(".immersive-back-action").getBoundingClientRect();
-      const review = document.querySelector(".immersive-review-action").getBoundingClientRect();
-      return { viewer, main, modes, footer, back, review, innerWidth, innerHeight, scrollWidth: document.documentElement.scrollWidth };
+      const back = document.querySelector(".direct-back-button").getBoundingClientRect();
+      const review = document.querySelector("[data-customization-direct-panel] [data-continue]").getBoundingClientRect();
+      return { viewer, main, panel, footer, back, review, innerWidth, innerHeight, scrollWidth: document.documentElement.scrollWidth };
     });
     expect(clean.scrollWidth).toBeLessThanOrEqual(clean.innerWidth + 1);
-    expect(clean.viewer.width).toBeCloseTo(clean.main.width, 0);
-    expect(clean.modes.top).toBeGreaterThanOrEqual(0);
-    expect(clean.modes.right).toBeLessThanOrEqual(clean.innerWidth + 1);
-    expect(clean.footer.bottom).toBeLessThanOrEqual(clean.innerHeight + 1);
+    expect(clean.viewer.width).toBeGreaterThan(0);
+    expect(clean.panel.width).toBeGreaterThan(0);
+    expect(clean.viewer.right).toBeLessThanOrEqual(clean.innerWidth + 1);
+    expect(clean.panel.right).toBeLessThanOrEqual(clean.innerWidth + 1);
     expect(clean.back.height).toBeGreaterThanOrEqual(44);
     expect(clean.review.height).toBeGreaterThanOrEqual(44);
+    if (viewport.width >= 900) expect(clean.footer.bottom).toBeLessThanOrEqual(clean.innerHeight + 1);
   }
 
   await page.setViewportSize({ width: 1366, height: 768 });
-  for (const mode of ["Dimensions", "Finish", "Options"]) {
-    const trigger = page.getByRole("button", { name: mode, exact: true });
-    await trigger.click();
-    await expect(trigger).toHaveAttribute("aria-pressed", "true");
-    if (mode === "Dimensions") {
-      await expect(page.locator("[data-dimension-handle]")).toBeVisible();
-      await expect(page.locator("[data-customization-mode-panel]")).toHaveCount(0);
-      await page.getByRole("button", { name: "Project dimensions", exact: true }).click();
-    }
-    const panel = page.locator("[data-customization-mode-panel]");
-    await expect(panel).toBeVisible();
-    const box = await panel.boundingBox();
-    expect(box.x).toBeGreaterThanOrEqual(0);
-    expect(box.y).toBeGreaterThanOrEqual(0);
-    expect(box.x + box.width).toBeLessThanOrEqual(1367);
-    expect(box.y + box.height).toBeLessThanOrEqual(769);
-    await page.keyboard.press("Escape");
-    await expect(panel).toHaveCount(0);
-    await expect(trigger).toBeFocused();
-    await expect(page.getByRole("button", { name: "View", exact: true })).toHaveAttribute("aria-pressed", "true");
-  }
+  const editFit = page.locator("[data-edit-fit]");
+  await editFit.click();
+  const desktopMeasurements = page.locator('[data-customization-view="measurements"]');
+  await expect(desktopMeasurements).toBeVisible();
+  const box = await desktopMeasurements.boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.y).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(1367);
+  expect(box.y + box.height).toBeLessThanOrEqual(769);
+  await page.keyboard.press("Escape");
+  await expect(page.locator('[data-customization-view="overview"]')).toBeVisible();
+  await expect(page.locator("[data-edit-fit]")).toBeFocused();
 
   await page.setViewportSize({ width: 390, height: 844 });
-  const dimensionsTrigger = page.getByRole("button", { name: "Dimensions", exact: true });
-  await dimensionsTrigger.click();
-  await page.locator("[data-dimension-handle]").click();
-  await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toBeVisible();
-  const mobilePanel = await page.locator("[data-customization-mode-panel]").boundingBox();
+  await page.locator("[data-edit-fit]").click();
+  const wallInput = page.locator('[data-measurement="wallWidth"]');
+  await wallInput.scrollIntoViewIfNeeded();
+  await expect(wallInput).toBeVisible();
+  const mobilePanel = await page.locator('[data-customization-view="measurements"]').boundingBox();
   expect(mobilePanel.x).toBeGreaterThanOrEqual(0);
-  expect(mobilePanel.y).toBeGreaterThanOrEqual(0);
   expect(mobilePanel.x + mobilePanel.width).toBeLessThanOrEqual(391);
-  expect(mobilePanel.y + mobilePanel.height).toBeLessThanOrEqual(845);
-  await page.locator("[data-customization-mode-close]").click();
-  await expect(dimensionsTrigger).toBeFocused();
+  await expect(page.locator(`[data-smart-dimension="${CONTROL_ID}"]`)).toHaveCount(0);
+  await expect(page.locator("[data-dimension-handle]")).toBeHidden();
+  await page.locator("[data-close-fit]").click();
+  await expect(page.locator("[data-edit-fit]")).toBeFocused();
   const modeAxe = await new AxeBuilder({ page }).analyze();
   expect(modeAxe.violations.filter(({ impact }) => ["serious", "critical"].includes(impact))).toEqual([]);
   expect(failures).toEqual([]);

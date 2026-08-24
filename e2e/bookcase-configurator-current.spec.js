@@ -10,7 +10,7 @@ import {
   GUIDED_PROJECT_SCHEMA_VERSION,
   GUIDED_PROJECTS_STORAGE_KEY
 } from "../guided-configurator-state.js";
-import { IMMERSIVE_LAYOUT_ORDER, IMMERSIVE_LAYOUT_REGISTRY, millimetersToInches } from "../guided-layout-registry.js";
+import { IMMERSIVE_LAYOUT_ORDER, IMMERSIVE_LAYOUT_REGISTRY } from "../guided-layout-registry.js";
 
 const CONTROL_ID = "adjustable-shelf-clearance";
 
@@ -218,7 +218,7 @@ test("schema-four drafts migrate to schema five with isolated layout state and s
       5
     );
   }
-  await page.locator('[data-edit-section="finish"]').click();
+  await page.locator('[data-edit-section="details"]').click();
   await expect(page).toHaveURL(/#step-3$/);
   await page.goBack();
   await expect(page).toHaveURL(/#step-4$/);
@@ -226,30 +226,31 @@ test("schema-four drafts migrate to schema five with isolated layout state and s
   await expect(page).toHaveURL(/#step-3$/);
 });
 
-test("character-by-character dimension input canonicalizes only on commit and reaches Review", async ({ page }) => {
+test("the one-screen measurement editor canonicalizes input and reaches Review without shelf setup", async ({ page }) => {
   const failures = monitorRuntime(page);
   await openFreshProject(page);
   await continueToCustomization(page);
-  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
-  await page.locator("[data-dimension-handle]").click();
-  const smart = page.locator(`[data-smart-dimension="${CONTROL_ID}"]`);
-  await smart.click();
-  await smart.selectText();
-  await smart.press("Backspace");
-  await smart.pressSequentially("12.5");
-  await expect(smart).toHaveValue("12.5");
-  await smart.blur();
-  await expect(smart).toHaveValue("12.45");
-  await page.locator('[data-dimension-field="wallWidth"]').click();
+  await expect(page.locator("[data-customization-direct-panel]")).toHaveAttribute("data-customization-view", "overview");
+  await expect(page.locator("[data-dimension-handle]")).toBeHidden();
+  await expect(page.locator("[data-smart-dimension], [data-customization-mode-control]")).toHaveCount(0);
+  await page.locator("[data-edit-fit]").click();
+  await expect(page.getByRole("heading", { name: "Measurements in one place." })).toBeVisible();
   const wall = page.locator('[data-measurement="wallWidth"]');
-  await wall.fill("150");
+  await wall.click();
+  await wall.selectText();
+  await wall.press("Backspace");
+  await wall.pressSequentially("128.5");
+  await expect(wall).toHaveValue("128.5");
   await wall.blur();
-  await wall.fill("152");
-  await wall.blur();
+  await expect(wall).toHaveValue("128.5");
+  await page.locator("[data-save-fit]").click();
+  await expect(page.locator("[data-customization-direct-panel]")).toHaveAttribute("data-customization-view", "overview");
   await expect(page.locator("[data-guided-engine-title]")).toHaveCount(1);
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
-  await expect(page.locator(`[data-summary-value="smartDimension:${CONTROL_ID}"]`)).toContainText("12 7/16 in");
+  await expect(page.locator('[data-summary-value="wallWidth"]')).toHaveText("128 1/2 in");
+  await expect(page.locator(`[data-summary-value="smartDimension:${CONTROL_ID}"]`)).toHaveCount(0);
+  await expect(page.getByText("Adjustable shelf clearance", { exact: true })).toHaveCount(0);
   expect(failures).toEqual([]);
 });
 
@@ -275,13 +276,18 @@ test("Step 1 uses unavailable language and exposes all seven primary image cards
   await expect(page.locator("[data-guided-toast]")).toContainText("not available yet");
 });
 
-test("contextual project dimensions and saved Finish and Options choices reach Review", async ({ page }) => {
+test("direct customization exposes only relevant dimensions and its few buildable choices", async ({ page }) => {
   const failures = monitorRuntime(page);
   await openFreshProject(page);
   const runtime = await continueToCustomization(page, "door-wall");
-  await expect(page.locator("[data-customization-mode-panel]")).toHaveCount(0);
-  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
-  await page.getByRole("button", { name: "Project dimensions", exact: true }).click();
+  await expect(page.locator("[data-customization-mode-control], [data-customization-mode-panel]")).toHaveCount(0);
+  await expect(page.locator('[data-direct-choice-group="baseStyle"] .direct-choice')).toHaveCount(2);
+  await expect(page.locator('[data-direct-choice-group="doorStyle"] .direct-choice')).toHaveCount(3);
+  await expect(page.locator('[data-direct-choice-group="topTreatment"] .direct-choice')).toHaveCount(2);
+  await expect(page.locator('[data-direct-choice-group="lighting"] .direct-choice')).toHaveCount(2);
+  await expect(page.getByRole("button", { name: /Finish/i })).toHaveCount(0);
+
+  await page.locator("[data-edit-fit]").click();
   const dimensions = page.locator("[data-room-measurements]");
   await expect(dimensions).toBeVisible();
   await expect(dimensions.locator("summary")).toHaveCount(0);
@@ -289,63 +295,58 @@ test("contextual project dimensions and saved Finish and Options choices reach R
     "wallWidth",
     "ceilingHeight",
     "desiredDepth",
-    "lowerCabinetHeight",
-    "lowerCabinetDepth",
-    "upperBookcaseDepth",
-    "toeKickHeight",
-    "topFasciaHeight",
     "doorWidth",
     "doorHeight",
     "doorLeftDistance",
     "doorTrimWidth",
     "doorSwing"
   ]) {
-    await expect(page.locator(`[data-dimension-field="${fieldId}"]`)).toBeVisible();
+    await expect(page.locator(`[data-measurement="${fieldId}"]`)).toBeVisible();
   }
-  await page.locator('[data-dimension-field="lowerCabinetHeight"]').click();
-  const lowerHeight = page.locator('[data-measurement="lowerCabinetHeight"]');
-  await lowerHeight.fill("35 1/2");
-  await lowerHeight.blur();
-  await expect(lowerHeight).toHaveValue("35.5");
-  await expect(page.locator(".automatic-engineering-note")).toContainText("1.25-inch countertop");
+  for (const hiddenFieldId of ["lowerCabinetHeight", "lowerCabinetDepth", "upperBookcaseDepth", "toeKickHeight", "topFasciaHeight"]) {
+    await expect(page.locator(`[data-measurement="${hiddenFieldId}"]`)).toHaveCount(0);
+  }
+  const doorWidth = page.locator('[data-measurement="doorWidth"]');
+  await doorWidth.fill("38 1/2");
+  await doorWidth.blur();
+  await expect(doorWidth).toHaveValue("38.5");
+  await page.locator("[data-save-fit]").click();
 
-  await page.getByRole("button", { name: "Finish", exact: true }).click();
-  await page.getByRole("button", { name: "Shop-Primed", exact: true }).click();
+  await page.locator('[data-detail-key="doorStyle"][data-detail="flat-panel"]').click();
+  await page.locator('[data-detail-key="lighting"][data-detail="warm-led"]').click();
+  await page.locator('[data-detail-key="baseStyle"][data-detail="recessed-toe-kick"]').click();
+  await expect(page.locator("[data-toe-kick-control]")).toBeVisible();
+  await page.locator('[data-measurement-adjust="toeKickHeight"][data-measurement-delta="0.5"]').click();
+  await page.locator('[data-measurement-adjust="toeKickHeight"][data-measurement-delta="0.5"]').click();
+  await expect(page.locator("[data-toe-kick-control] output")).toHaveText("5 in");
+  await page.locator('[data-detail-key="topTreatment"][data-detail="small-crown"]').click();
+  await expect(page.locator("[data-standard-change-count]")).toHaveAttribute("data-standard-change-count", "4");
   await expect(runtime).toHaveAttribute("data-state", "ready");
-  await expect(page.locator(".immersive-viewer-surface")).not.toHaveAttribute("data-guided3d-state", "finish-error");
-
-  await page.getByRole("button", { name: "Options", exact: true }).click();
-  await page.getByRole("button", { name: /Flat Panel/ }).click();
-  await page.getByRole("button", { name: /Black Pull/ }).click();
-  await page.getByRole("button", { name: /Integrated LED/ }).click();
-  await page.getByRole("button", { name: /Recessed toe kick/ }).click();
-  await page.getByRole("button", { name: /Dykes crown profile/ }).click();
   await page.locator("[data-continue]").click();
 
   await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
-  await expect(page.locator('[data-summary-value="lowerCabinetHeight"]')).toHaveText("35 1/2 in");
-  await expect(page.locator('[data-summary-value="finish"]')).toHaveText("Shop-Primed");
+  await expect(page.locator('[data-summary-value="doorWidth"]')).toHaveText("38 1/2 in");
+  await expect(page.locator('[data-summary-value="finish"]')).toHaveText("Natural Oak");
   await expect(page.locator('[data-summary-value="doorStyle"]')).toHaveText("Flat Panel");
-  await expect(page.locator('[data-summary-value="hardware"]')).toHaveText("Black Pull");
-  await expect(page.locator('[data-summary-value="lighting"]')).toHaveText("Integrated LED");
+  await expect(page.locator('[data-summary-value="hardware"]')).toHaveCount(0);
+  await expect(page.locator('[data-summary-value="lighting"]')).toHaveText("Warm LED");
   await expect(page.locator('[data-summary-value="baseStyle"]')).toContainText("Recessed toe kick");
-  await expect(page.locator('[data-summary-value="topTreatment"]')).toHaveText("Dykes crown profile");
-  await page.locator('[data-edit-section="finish"]').click();
-  await expect(page.getByRole("button", { name: "Finish", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("button", { name: "Shop-Primed", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator('[data-summary-value="topTreatment"]')).toHaveText("Small crown");
+  await expect(page.locator('[data-summary-value="toeKickHeight"]')).toHaveCount(0);
+  await page.locator('[data-edit-section="details"]').click();
+  await expect(page.locator('[data-detail-key="doorStyle"][data-detail="flat-panel"]')).toHaveAttribute("aria-pressed", "true");
   expect(failures).toEqual([]);
 });
 
-test("save and reload retain the selected layout and smart dimension", async ({ page }) => {
+test("save and reload retain the selected layout, room fit, and direct choices", async ({ page }) => {
   await openFreshProject(page);
   await continueToCustomization(page, "window-wall");
-  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
-  await page.locator("[data-dimension-handle]").click();
-  const control = IMMERSIVE_LAYOUT_REGISTRY["window-wall"].geometryControlManifest[CONTROL_ID];
-  const inches = millimetersToInches(control.maxMillimeters).toFixed(2);
-  const input = page.locator(`[data-smart-dimension="${CONTROL_ID}"]`);
-  await input.fill(inches);
-  await input.blur();
+  await page.locator("[data-edit-fit]").click();
+  await page.locator('[data-measurement="wallWidth"]').fill("132");
+  await page.locator('[data-measurement="wallWidth"]').blur();
+  await page.locator("[data-save-fit]").click();
+  await page.locator('[data-detail-key="doorStyle"][data-detail="slab"]').click();
+  await page.locator('[data-detail-key="lighting"][data-detail="warm-led"]').click();
   await page.locator("[data-continue]").click();
   await page.locator("[data-save-project]").click();
   const saveDialog = page.locator("[data-save-dialog]");
@@ -355,7 +356,10 @@ test("save and reload retain the selected layout and smart dimension", async ({ 
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
   await expect(page.locator('[data-summary-value="layout"]')).toHaveText("Window Wall");
-  await expect(page.locator(`[data-summary-value="smartDimension:${CONTROL_ID}"]`)).toContainText(`${Number(inches)} in`);
+  await expect(page.locator('[data-summary-value="wallWidth"]')).toHaveText("132 in");
+  await expect(page.locator('[data-summary-value="doorStyle"]')).toHaveText("Slab");
+  await expect(page.locator('[data-summary-value="lighting"]')).toHaveText("Warm LED");
+  await expect(page.locator(`[data-summary-value="smartDimension:${CONTROL_ID}"]`)).toHaveCount(0);
   await page.getByRole("button", { name: "My Projects", exact: true }).click();
   await expect(page.locator("[data-projects-dialog]").getByText("Park Avenue Window Wall", { exact: true })).toBeVisible();
 });
