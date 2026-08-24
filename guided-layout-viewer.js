@@ -398,9 +398,6 @@ export class GuidedLayoutViewerController {
             if (preparedFinishId !== this.requestedFinishId) continue;
             throw error;
           }
-          // A successfully prepared family is a verified appearance fallback.
-          // Bind it atomically, then let the post-parse reconciliation loop apply
-          // the latest request without turning a Finish failure into a model failure.
           break;
         }
         if (sequence !== this.loadSequence || this.disposed) {
@@ -1879,9 +1876,7 @@ export class GuidedLayoutViewerController {
     if (!pending) return;
     try {
       await pending;
-    } catch {
-      // The superseding generation owns error reporting and will ignore stale work.
-    }
+    } catch {}
   }
 
   handleRenderFailure(error, generation) {
@@ -2349,9 +2344,7 @@ export class GuidedLayoutViewerController {
   notify(state, details = {}) {
     try {
       this.onStateChange(state, details);
-    } catch {
-      // UI reporting cannot compromise the fail-closed renderer state.
-    }
+    } catch {}
   }
 
   disposeActiveFinishMaterials() {
@@ -2631,24 +2624,16 @@ function safeDisposeRenderer(renderer) {
   if (!renderer) return;
   try {
     renderer.setAnimationLoop?.(null);
-  } catch {
-    // A partially initialized WebGPU renderer may not own an animation object yet.
-  }
+  } catch {}
   try {
     renderer.renderLists?.dispose?.();
-  } catch {
-    // Renderer teardown must remain best-effort during backend fallback.
-  }
+  } catch {}
   try {
     renderer.dispose?.();
-  } catch {
-    // Three r166 WebGPU dispose dereferences internals that may be absent after init failure.
-  }
+  } catch {}
   try {
     renderer.forceContextLoss?.();
-  } catch {
-    // WebGPU has no WebGL context to lose.
-  }
+  } catch {}
 }
 
 function projectPoint(point, camera, rect) {
