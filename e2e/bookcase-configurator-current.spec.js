@@ -285,7 +285,8 @@ test("direct customization exposes only relevant dimensions and its few buildabl
   await expect(page.locator('[data-direct-choice-group="doorStyle"] .direct-choice')).toHaveCount(3);
   await expect(page.locator('[data-direct-choice-group="topTreatment"] .direct-choice')).toHaveCount(2);
   await expect(page.locator('[data-direct-choice-group="lighting"] .direct-choice')).toHaveCount(2);
-  await expect(page.getByRole("button", { name: /Finish/i })).toHaveCount(0);
+  await expect(page.locator('[data-direct-choice-group="finish"] [data-finish]')).toHaveCount(11);
+  await expect(page.locator('[data-finish="natural-oak"]')).toHaveAttribute("aria-pressed", "true");
 
   await page.locator("[data-edit-fit]").click();
   const dimensions = page.locator("[data-room-measurements]");
@@ -314,19 +315,21 @@ test("direct customization exposes only relevant dimensions and its few buildabl
 
   await page.locator('[data-detail-key="doorStyle"][data-detail="flat-panel"]').click();
   await page.locator('[data-detail-key="lighting"][data-detail="warm-led"]').click();
+  await page.locator('[data-finish="charcoal"]').click();
+  await expect(page.locator('[data-finish="charcoal"]')).toHaveAttribute("aria-pressed", "true");
   await page.locator('[data-detail-key="baseStyle"][data-detail="recessed-toe-kick"]').click();
   await expect(page.locator("[data-toe-kick-control]")).toBeVisible();
   await page.locator('[data-measurement-adjust="toeKickHeight"][data-measurement-delta="0.5"]').click();
   await page.locator('[data-measurement-adjust="toeKickHeight"][data-measurement-delta="0.5"]').click();
   await expect(page.locator("[data-toe-kick-control] output")).toHaveText("5 in");
   await page.locator('[data-detail-key="topTreatment"][data-detail="small-crown"]').click();
-  await expect(page.locator("[data-standard-change-count]")).toHaveAttribute("data-standard-change-count", "4");
+  await expect(page.locator("[data-standard-change-count]")).toHaveAttribute("data-standard-change-count", "5");
   await expect(runtime).toHaveAttribute("data-state", "ready");
   await page.locator("[data-continue]").click();
 
   await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
   await expect(page.locator('[data-summary-value="doorWidth"]')).toHaveText("38 1/2 in");
-  await expect(page.locator('[data-summary-value="finish"]')).toHaveText("Natural Oak");
+  await expect(page.locator('[data-summary-value="finish"]')).toHaveText("Charcoal");
   await expect(page.locator('[data-summary-value="doorStyle"]')).toHaveText("Flat Panel");
   await expect(page.locator('[data-summary-value="hardware"]')).toHaveCount(0);
   await expect(page.locator('[data-summary-value="lighting"]')).toHaveText("Warm LED");

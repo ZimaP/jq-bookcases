@@ -182,7 +182,7 @@ test("the vendored r166 loader cohort is byte locked", async () => {
   assert.match(await readText("assets/vendor/three.module.js"), /REVISION = '166'/);
 });
 
-test("the direct customization panel keeps shelf setup and finish choices out of the customer flow", async () => {
+test("the direct customization panel keeps shelf setup out and restores canonical live finish choices", async () => {
   const source = await readText("guided-configurator.js");
   const directFlow = source.slice(
     source.indexOf("function renderCustomizationStep()"),
@@ -193,6 +193,9 @@ test("the direct customization panel keeps shelf setup and finish choices out of
   assert.match(directFlow, /Measurements in one place\./);
   assert.match(directFlow, /Adjustable shelf positions — no setup needed here/);
   assert.match(directFlow, /data-direct-choice-group/);
+  assert.match(directFlow, /data-direct-choice-group="finish"/);
+  assert.match(directFlow, /FINISH_OPTIONS\[family\.id\]/);
+  assert.match(directFlow, /data-project-field="finish"/);
   assert.match(source, /showDimensions: false/);
   assert.doesNotMatch(directFlow, /data-smart-dimension|renderFinishChoices|renderDetailChoices/);
   assert.doesNotMatch(directFlow, /data-customization-mode-control|data-customization-mode-panel/);

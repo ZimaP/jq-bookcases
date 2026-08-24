@@ -144,5 +144,8 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
 
 export function isPremiumModelV1Route(locationLike = globalThis.location) {
   const query = new URLSearchParams(String(locationLike?.search || ""));
-  return query.get("modelQuality") === PREMIUM_MODEL_V1_QUERY_VALUE;
+  const host = String(locationLike?.hostname || "");
+  const localPreviewHost = ["localhost", "127.0.0.1", "::1"].includes(host);
+  return query.get("modelQuality") === PREMIUM_MODEL_V1_QUERY_VALUE
+    || (!localPreviewHost && query.get("modelQuality") !== "standard");
 }

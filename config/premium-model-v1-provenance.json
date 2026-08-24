@@ -4,24 +4,25 @@
     "tree": "b1c68e6cbbbc95176ee655274242b92adf890c37"
   },
   "activation": {
-    "absentFlagBehavior": "accepted renderer path remains unchanged",
+    "absentFlagBehavior": "public production hosts use premium-v1; local preview hosts retain the accepted renderer unless explicitly enabled",
+    "optOutQuery": "modelQuality=standard",
     "query": "modelQuality=premium-v1"
   },
   "files": [
     {
-      "bytes": 119889,
+      "bytes": 120046,
       "path": "guided-layout-viewer.js",
-      "sha256": "12ea7a868b61ef1c5a5df63c41a450a8b98e1b71691a17b76f85c67db19a506b"
+      "sha256": "d8542f6d5ff6a7bce3c76fd2162a54a8839d0bc733ac1368b5a39f62c09610ee"
     },
     {
-      "bytes": 5977,
+      "bytes": 6178,
       "path": "guided-premium-model-v1-contract.js",
-      "sha256": "8204705c90c9affb071d3901a18f09453ca3f66ef5ffc750001522f36df00442"
+      "sha256": "be702027cebd8e07b9a31c01a104e98a59c8b93370b97dddecc0180ab4f351b9"
     },
     {
-      "bytes": 34952,
+      "bytes": 34964,
       "path": "guided-premium-model-v1.js",
-      "sha256": "85ad2f469128a63bd116dbfbedf87e736b84e8061823979a6d82551c9a51b2bc"
+      "sha256": "53deb9e93e2324d4012c9e30ece1b70bfd8c53c4748aef70b2a09a6f8de4ba3b"
     },
     {
       "bytes": 555394,
@@ -165,15 +166,15 @@
       "customer state",
       "pricing",
       "backend",
-      "source GLB mutation",
-      "production default without flag"
+      "source GLB mutation"
     ],
     "permitted": [
       "3D runtime materials",
       "PBR textures",
       "runtime-derived furniture bevel geometry",
       "shared lighting response",
-      "shared contact-shadow policy"
+      "shared contact-shadow policy",
+      "production-default activation on public hosts"
     ]
   },
   "status": "ISOLATED VISUAL PREVIEW — OWNER ACCEPTANCE OPEN",

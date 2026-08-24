@@ -179,14 +179,27 @@ test("Light, Medium, and Dark Walnut use one restrained veneer PBR system across
   expect(failures).toEqual([]);
 });
 
-test("production-style route remains byte-for-byte viewer behavior without the preview flag", async ({ page }) => {
+test("explicit standard-mode opt-out preserves the accepted renderer path", async ({ page }) => {
   const failures = monitorFailures(page);
-  const runtime = await openLayout(page, "fireplace-wall", "renderer=webgl2");
+  const runtime = await openLayout(page, "fireplace-wall", "modelQuality=standard&renderer=webgl2");
   await expect(runtime).toHaveAttribute("data-premium-model-v1", "false");
   await expect(runtime).toHaveAttribute("data-premium-model-v1-ready", "false");
   const record = await diagnostics(page);
   expect(record.appearance.premiumModelV1).toBeNull();
   expect(record.assetSha256).toBe(record.authoritativeSha256);
   expect(record.transformProof.sourceBuffersImmutable).toBe(true);
+  expect(failures).toEqual([]);
+});
+
+test("all canonical finish colors are customer-selectable and update the premium model", async ({ page }) => {
+  const failures = monitorFailures(page);
+  await openLayout(page, "window-wall");
+  await expect(page.locator('[data-direct-choice-group="finish"] [data-finish]')).toHaveCount(11);
+  await page.locator('[data-finish="warm-white"]').click();
+  await expect(page.locator('[data-finish="warm-white"]')).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(async () => (await diagnostics(page)).appearance.premiumModelV1?.finishId).toBe("warm-white");
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(page.locator('[data-finish="warm-white"]')).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(async () => (await diagnostics(page)).appearance.premiumModelV1?.finishId).toBe("warm-white");
   expect(failures).toEqual([]);
 });

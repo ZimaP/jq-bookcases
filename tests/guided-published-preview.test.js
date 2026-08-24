@@ -186,7 +186,8 @@ test("the four-step public path always uses the immersive registry viewer while 
   assert.match(immersiveCssSource, /\.immersive-configurator/);
   assert.match(immersiveCssSource, /\.customization-direct-panel/);
   assert.match(immersiveCssSource, /\.direct-choice-grid/);
+  assert.match(immersiveCssSource, /\.direct-finish-grid/);
   assert.match(immersiveCssSource, /\.dimensions-workspace--direct/);
-  assert.match(htmlSource, /guided-immersive-configurator\.css\?v=customization-ux-v1-20260824a/);
-  assert.match(htmlSource, /guided-configurator\.js\?v=customization-ux-v1-20260824a/);
+  assert.match(htmlSource, /guided-immersive-configurator\.css\?v=finish-premium-production-v1-20260824a/);
+  assert.match(htmlSource, /guided-configurator\.js\?v=finish-premium-production-v1-20260824a/);
 });

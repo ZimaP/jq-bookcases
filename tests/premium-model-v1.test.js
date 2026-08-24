@@ -58,12 +58,14 @@ const TEXTURE_ASSETS = Object.freeze({
   })
 });
 
-test("premium model V1 is an exact opt-in 3D-only preview contract", () => {
+test("premium model V1 is the public production renderer with an explicit standard-mode opt-out", () => {
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.schema, "jq-premium-model-v1");
   assert.match(PREMIUM_MODEL_V1_CONTRACT.status, /OWNER ACCEPTANCE OPEN/);
-  assert.equal(isPremiumModelV1Route({ search: "?modelQuality=premium-v1" }), true);
-  assert.equal(isPremiumModelV1Route({ search: "?modelQuality=premium" }), false);
-  assert.equal(isPremiumModelV1Route({ search: "" }), false);
+  assert.equal(isPremiumModelV1Route({ hostname: "jq-bookcases.onrender.com", search: "?modelQuality=premium-v1" }), true);
+  assert.equal(isPremiumModelV1Route({ hostname: "jq-bookcases.onrender.com", search: "" }), true);
+  assert.equal(isPremiumModelV1Route({ hostname: "jq-bookcases.onrender.com", search: "?modelQuality=standard" }), false);
+  assert.equal(isPremiumModelV1Route({ hostname: "127.0.0.1", search: "" }), false);
+  assert.equal(isPremiumModelV1Route({ hostname: "127.0.0.1", search: "?modelQuality=premium-v1" }), true);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.widthMeters, 0.005);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.curveSegments, 2);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.maximumRenderedTriangles, 45000);
@@ -184,13 +186,15 @@ test("deterministic provenance binds the accepted base, exact sources, and 3D-on
     tree: "b1c68e6cbbbc95176ee655274242b92adf890c37"
   });
   assert.equal(provenance.activation.query, "modelQuality=premium-v1");
+  assert.equal(provenance.activation.optOutQuery, "modelQuality=standard");
+  assert.match(provenance.activation.absentFlagBehavior, /public production hosts use premium-v1/);
   assert.equal(provenance.geometry.sourceAssetsModified, false);
   assert.equal(provenance.geometry.bevelWidthMillimeters, 5);
   assert.equal(provenance.roleCoverage.totalPrimitives, 494);
   assert.deepEqual(provenance.roleCoverage.layouts.map(({ primitiveCount }) => primitiveCount), [185, 127, 182]);
   assert.ok(provenance.scope.excluded.includes("interface"));
   assert.ok(provenance.scope.excluded.includes("customer state"));
-  assert.ok(provenance.scope.excluded.includes("production default without flag"));
+  assert.ok(provenance.scope.permitted.includes("production-default activation on public hosts"));
   for (const record of provenance.files) {
     const bytes = await readFile(`${root}/${record.path}`);
     assert.equal(bytes.length, record.bytes, record.path);

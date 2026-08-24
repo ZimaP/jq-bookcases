@@ -1,6 +1,7 @@
 import { mountIcons } from "./icon-system.js?v=product-first-20260727a";
 import {
   DETAIL_OPTIONS,
+  FINISH_OPTIONS,
   PUBLIC_CONFIGURATOR_LAYOUT_CHOICES,
   PRODUCT_CHOICES,
   getCategory,
@@ -105,6 +106,7 @@ const CUSTOMER_HIDDEN_MEASUREMENT_IDS = new Set([
 ]);
 
 const CUSTOMER_CUSTOMIZATION_DEFAULTS = Object.freeze({
+  finish: "natural-oak",
   baseStyle: "flush-base",
   doorStyle: "shaker",
   topTreatment: "simple-finished-top",
@@ -1352,7 +1354,8 @@ function renderDirectCustomizationPanel(registry, mode) {
   }
 
   const groups = getDirectCustomizationGroups();
-  const changeCount = groups.filter((group) => project[group.key] !== CUSTOMER_CUSTOMIZATION_DEFAULTS[group.key]).length;
+  const changeCount = Number(project.finish !== CUSTOMER_CUSTOMIZATION_DEFAULTS.finish)
+    + groups.filter((group) => project[group.key] !== CUSTOMER_CUSTOMIZATION_DEFAULTS[group.key]).length;
   const fitValues = ["wallWidth", "ceilingHeight", "desiredDepth"].map((fieldId) => {
     const value = project.measurements?.[fieldId];
     return value === null || value === undefined ? "—" : formatInches(value);
@@ -1379,6 +1382,7 @@ function renderDirectCustomizationPanel(registry, mode) {
           <span>Fillers, clearances and installation details</span>
         </aside>
         <div class="direct-choice-list">
+          ${renderDirectFinishGroup()}
           ${groups.map(renderDirectChoiceGroup).join("")}
         </div>
       </div>
@@ -1391,6 +1395,49 @@ function renderDirectCustomizationPanel(registry, mode) {
         <button class="guided-button guided-button-primary" type="button" data-continue>Continue to Review <i data-icon="arrow-right" aria-hidden="true"></i></button>
       </footer>
     </aside>
+  `;
+}
+
+function renderDirectFinishGroup() {
+  const families = [
+    { id: "wood", label: "Wood" },
+    { id: "paint", label: "Paint" }
+  ];
+  return `
+    <section class="direct-choice-group direct-finish-group" data-direct-choice-group="finish">
+      <header>
+        <h3>Finish</h3>
+        <small>Live 3D preview</small>
+      </header>
+      <p class="direct-finish-intro">Choose a material or paint color to preview it on the model.</p>
+      <div class="direct-finish-families">
+        ${families.map((family) => `
+          <section class="direct-finish-family" aria-labelledby="finish-family-${family.id}">
+            <h4 id="finish-family-${family.id}">${family.label}</h4>
+            <div class="direct-finish-grid">
+              ${FINISH_OPTIONS[family.id].map((finish) => {
+                const selected = project.finish === finish.id;
+                return `
+                  <button
+                    class="direct-finish-choice${selected ? " is-selected" : ""}"
+                    type="button"
+                    data-finish="${escapeAttribute(finish.id)}"
+                    data-project-field="finish"
+                    data-family="${escapeAttribute(family.id)}"
+                    aria-pressed="${selected}"
+                    aria-label="${escapeAttribute(finish.label)}"
+                  >
+                    <span class="direct-finish-swatch" style="--swatch-color:${escapeAttribute(finish.color)}" aria-hidden="true"></span>
+                    <span class="direct-finish-check" aria-hidden="true">✓</span>
+                    <span>${escapeHtml(finish.label)}</span>
+                  </button>
+                `;
+              }).join("")}
+            </div>
+          </section>
+        `).join("")}
+      </div>
+    </section>
   `;
 }
 
@@ -1691,6 +1738,13 @@ function bindAppEvents() {
     }
     if (target.matches("[data-measurement-adjust]")) {
       adjustMeasurementBy(target.dataset.measurementAdjust, Number(target.dataset.measurementDelta), target);
+      return;
+    }
+    if (target.matches("[data-finish]")) {
+      const finishId = target.dataset.finish;
+      updateProject({ finish: finishId });
+      renderApp();
+      requestAnimationFrame(() => app.querySelector(`[data-project-field="finish"][data-finish="${CSS.escape(finishId)}"]`)?.focus());
       return;
     }
     if (target.matches("[data-continue]")) {
@@ -2322,7 +2376,7 @@ function syncGuidedScene() {
   }
 
   if (!guidedSceneController) updateGuidedSceneState("loading");
-  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=immersive-layout-configurator-v1");
+  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=finish-premium-production-v1-20260824a");
   importPromise
     .then(({ createGuidedLayoutViewerController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;
