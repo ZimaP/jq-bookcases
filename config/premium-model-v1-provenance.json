@@ -1,0 +1,197 @@
+{
+  "acceptedBase": {
+    "commit": "d42dc10b929b3abf0715fe066ec7bad89760ed3b",
+    "tree": "b1c68e6cbbbc95176ee655274242b92adf890c37"
+  },
+  "activation": {
+    "absentFlagBehavior": "accepted renderer path remains unchanged",
+    "query": "modelQuality=premium-v1"
+  },
+  "files": [
+    {
+      "bytes": 119890,
+      "path": "guided-layout-viewer.js",
+      "sha256": "fe28c6ba9d10b2888a26333ea86c53b6ea2f39c68b69a2110fcc942b40accac7"
+    },
+    {
+      "bytes": 5895,
+      "path": "guided-premium-model-v1-contract.js",
+      "sha256": "1417eba29317254de5c8bc99715a9aacada77f9638d4632235c38bc6724d45dd"
+    },
+    {
+      "bytes": 34856,
+      "path": "guided-premium-model-v1.js",
+      "sha256": "61b83dc56e1899905648c1dc1db4e3437d24496eaaf9fc5bd112164a3e5d98eb"
+    },
+    {
+      "bytes": 555394,
+      "path": "config/premium-model-v1-roles.json",
+      "sha256": "4a40540a52a1c16378cfc5403d0a167886aa4a9d38d587032e5cf7c8a0ce2104"
+    },
+    {
+      "bytes": 1592,
+      "path": "assets/premium-model-v1/ASSET-LICENSES.md",
+      "sha256": "c4048465b25b0bfe5e5d7f7fd9511860b3fc3aabf3c5df8f27a0b49995ee1f09"
+    },
+    {
+      "bytes": 48642,
+      "path": "assets/premium-model-v1/textures/oak/base-color.webp",
+      "sha256": "adf67ddf10cd4bebb528c56c2582614c3d97d79d41af537b3e174e0231969ce8"
+    },
+    {
+      "bytes": 144136,
+      "path": "assets/premium-model-v1/textures/oak/normal.webp",
+      "sha256": "1cb0807a01f96f324f7561556ad8eeca7470c7e0ce06a072c4985b02baed5bd6"
+    },
+    {
+      "bytes": 102454,
+      "path": "assets/premium-model-v1/textures/oak/roughness.webp",
+      "sha256": "b3acfc91be21b85f60226e4533056c0930fbc94ac64526d85ea6d2fa01da6dd2"
+    },
+    {
+      "bytes": 39606,
+      "path": "assets/premium-model-v1/textures/walnut/base-color.webp",
+      "sha256": "6d0abfc08f6c848fc010851cfed7cde05f9ae29bab9ae94ef21cd4d0c0d5ab1c"
+    },
+    {
+      "bytes": 26444,
+      "path": "assets/premium-model-v1/textures/walnut/normal.webp",
+      "sha256": "2427549eee10eff5c7d9d31f29a39b482d826e211dfa20b9dffb01a85d8c5cce"
+    },
+    {
+      "bytes": 89024,
+      "path": "assets/premium-model-v1/textures/walnut/roughness.webp",
+      "sha256": "c487a1236defeb8c5f12422a1a571449b1de535b8d23629fcd330a18bdda6d7b"
+    },
+    {
+      "bytes": 6712076,
+      "path": "assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb",
+      "sha256": "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5"
+    },
+    {
+      "bytes": 6755128,
+      "path": "assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb",
+      "sha256": "4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb"
+    },
+    {
+      "bytes": 6993036,
+      "path": "assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb",
+      "sha256": "631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24"
+    }
+  ],
+  "geometry": {
+    "bevelWidthMillimeters": 4,
+    "derivationDeterministic": true,
+    "method": "runtime replacement of exact 12-triangle axis-aligned furniture boxes only",
+    "protectedArchitecture": true,
+    "sourceAssetsModified": false,
+    "worldBoundsPreserved": true
+  },
+  "roleCoverage": {
+    "layouts": [
+      {
+        "layoutId": "fireplace-wall",
+        "primitiveCount": 185,
+        "roleCounts": {
+          "architectural-opening": 1,
+          "back": 16,
+          "countertop": 10,
+          "door-detail": 8,
+          "filler-end": 10,
+          "fireplace": 1,
+          "floor": 1,
+          "frame-stile": 48,
+          "hardware": 8,
+          "room-shell": 8,
+          "shelf": 20,
+          "support-hardware": 48,
+          "toe-base": 2,
+          "top-rail": 4
+        }
+      },
+      {
+        "layoutId": "door-wall",
+        "primitiveCount": 127,
+        "roleCounts": {
+          "architectural-hardware": 2,
+          "architectural-opening": 1,
+          "architectural-opening-detail": 1,
+          "back": 6,
+          "countertop": 10,
+          "door-detail": 20,
+          "filler-end": 6,
+          "floor": 1,
+          "frame-stile": 13,
+          "hardware": 4,
+          "interior": 5,
+          "room-shell": 4,
+          "shelf": 10,
+          "support-hardware": 36,
+          "toe-base": 6,
+          "top-rail": 2
+        }
+      },
+      {
+        "layoutId": "window-wall",
+        "primitiveCount": 182,
+        "roleCounts": {
+          "architectural-glazing": 1,
+          "architectural-opening": 1,
+          "architectural-opening-detail": 1,
+          "back": 13,
+          "countertop": 15,
+          "door-detail": 30,
+          "filler-end": 5,
+          "floor": 1,
+          "frame-stile": 19,
+          "hardware": 6,
+          "interior": 22,
+          "room-shell": 4,
+          "shelf": 10,
+          "support-hardware": 48,
+          "toe-base": 3,
+          "top-rail": 3
+        }
+      }
+    ],
+    "schema": "jq-premium-model-v1-role-manifest-v1",
+    "totalPrimitives": 494
+  },
+  "schema": "jq-premium-model-v1-provenance-v1",
+  "scope": {
+    "excluded": [
+      "interface",
+      "navigation",
+      "customer state",
+      "pricing",
+      "backend",
+      "source GLB mutation",
+      "production default without flag"
+    ],
+    "permitted": [
+      "3D runtime materials",
+      "PBR textures",
+      "runtime-derived furniture bevel geometry",
+      "shared lighting response",
+      "shared contact-shadow policy"
+    ]
+  },
+  "status": "ISOLATED VISUAL PREVIEW — OWNER ACCEPTANCE OPEN",
+  "textureProvenance": {
+    "oak": {
+      "asset": "White Oak Veneer",
+      "author": "Jenelle van Heerden",
+      "license": "CC0 1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "source": "https://polyhaven.com/a/white_oak_veneer"
+    },
+    "paint": "existing accepted repository PBR asset family",
+    "walnut": {
+      "asset": "European Walnut Veneer 05",
+      "author": "Jenelle van Heerden",
+      "license": "CC0 1.0",
+      "licenseUrl": "https://polyhaven.com/license",
+      "source": "https://polyhaven.com/a/european_walnut_veneer_05"
+    }
+  }
+}
