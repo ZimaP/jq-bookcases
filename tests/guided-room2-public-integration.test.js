@@ -182,21 +182,22 @@ test("the vendored r166 loader cohort is byte locked", async () => {
   assert.match(await readText("assets/vendor/three.module.js"), /REVISION = '166'/);
 });
 
-test("Finish mapping and the single proven geometry control are described truthfully", async () => {
+test("the direct customization panel keeps shelf setup and finish choices out of the customer flow", async () => {
   const source = await readText("guided-configurator.js");
-  assert.match(source, /data-deferred-model-disclosure=/);
-  assert.match(source, /Your \$\{escapeHtml\(groupLabel\.toLowerCase\(\)\)\} selections are saved with this project/);
-  assert.match(source, /selected Finish is previewed only on audited millwork surfaces/);
-  assert.match(source, /not a calibrated or approved physical sample/);
-  assert.match(source, /Only the proven shelf-clearance control changes preview geometry/);
-  assert.doesNotMatch(source, /Dimensions and Details do not alter the fixed Room 2 geometry or construction/);
-  for (const label of ["Finish", "Details, hardware, and lighting"]) {
-    assert.match(source, new RegExp(`renderDeferredModelDisclosure\\(\\"${label}\\"\\)`));
-  }
-  assert.match(source, /data-smart-dimension=/);
-  assert.match(source, /Preview only — final dimensions require design confirmation/);
+  const directFlow = source.slice(
+    source.indexOf("function renderCustomizationStep()"),
+    source.indexOf("function renderCustomizationModes()")
+  );
+  assert.match(directFlow, /data-customization-direct-panel/);
+  assert.match(directFlow, /Make it yours, not complicated\./);
+  assert.match(directFlow, /Measurements in one place\./);
+  assert.match(directFlow, /Adjustable shelf positions — no setup needed here/);
+  assert.match(directFlow, /data-direct-choice-group/);
+  assert.match(source, /showDimensions: false/);
+  assert.doesNotMatch(directFlow, /data-smart-dimension|renderFinishChoices|renderDetailChoices/);
+  assert.doesNotMatch(directFlow, /data-customization-mode-control|data-customization-mode-panel/);
+  assert.match(source, /Digital preview only\. Final dimensions and finishes require design confirmation\./);
   assert.doesNotMatch(source, /LIVE ACCEPTED DESIGN|see your changes live/i);
-  assert.doesNotMatch(source, /finish[^\n]*not yet shown on the fixed Room 2 reference model/i);
 });
 
 test("the release artifact explicitly copies and byte-checks every immersive runtime asset", async () => {

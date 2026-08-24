@@ -1326,6 +1326,7 @@ export const DETAIL_OPTIONS = Object.freeze({
   doorStyle: Object.freeze([
     Object.freeze({ id: "flat-panel", label: "Flat Panel", description: "A clean, minimal door face with a smooth profile." }),
     Object.freeze({ id: "shaker", label: "Shaker", description: "A classic framed door with a recessed center panel." }),
+    Object.freeze({ id: "slab", label: "Slab", description: "A minimal, uninterrupted cabinet face." }),
     Object.freeze({ id: "glass", label: "Glass Display", description: "A framed glass door for protected display storage." })
   ]),
   hardware: Object.freeze([
@@ -1360,8 +1361,8 @@ export const DETAIL_OPTIONS = Object.freeze({
     })
   ]),
   topTreatment: Object.freeze([
-    Object.freeze({ id: "simple-finished-top", label: "Finished fascia/top", shortLabel: "Finished fascia/top", description: "A clean finished top or fascia aligned to the room." }),
-    Object.freeze({ id: "small-crown", label: "Architectural top rail", shortLabel: "Architectural top rail", description: "A restrained architectural rail at the top of the installation." }),
+    Object.freeze({ id: "simple-finished-top", label: "Clean fascia", shortLabel: "Clean fascia", description: "A clean finished top or fascia aligned to the room." }),
+    Object.freeze({ id: "small-crown", label: "Small crown", shortLabel: "Small crown", description: "A restrained architectural rail at the top of the installation." }),
     Object.freeze({ id: "traditional-crown", label: "Dykes crown profile", shortLabel: "Dykes crown profile", description: "A traditional crown profile confirmed during design review." })
   ])
 });

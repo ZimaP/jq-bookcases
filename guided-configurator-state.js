@@ -13,7 +13,7 @@ import {
   isPublicConfiguratorLayout,
   isPublicConfiguratorProduct,
   resolvePreviewAsset
-} from "./guided-configurator-data.js?v=public-room2-glb-v1-20260817a";
+} from "./guided-configurator-data.js?v=customization-ux-v1-20260824a";
 import {
   getImmersiveLayout,
   getSmartDimensionDefaults,
@@ -55,9 +55,9 @@ const defaultMeasurements = (categoryId, layoutId) => Object.fromEntries(
 const defaultDetails = Object.freeze({
   doorStyle: DETAIL_OPTIONS.doorStyle[1].id,
   hardware: DETAIL_OPTIONS.hardware[1].id,
-  lighting: DETAIL_OPTIONS.lighting[1].id,
+  lighting: DETAIL_OPTIONS.lighting[0].id,
   baseStyle: DETAIL_OPTIONS.baseStyle[0].id,
-  topTreatment: DETAIL_OPTIONS.topTreatment[1].id
+  topTreatment: DETAIL_OPTIONS.topTreatment[0].id
 });
 
 const COMPACT_ACCEPTED_SNAPSHOT_SCHEMA_VERSION = 2;

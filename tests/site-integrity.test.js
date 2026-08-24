@@ -479,7 +479,9 @@ test("the public configurator source locks the four-step two-product, three-layo
   assert.match(guidedConfiguratorDataSource, /topFasciaHeight/);
   assert.match(guidedConfiguratorSource, /aria-disabled="true"/);
   assert.match(guidedConfiguratorSource, /layout-grid layout-grid--immersive/);
-  assert.match(guidedConfiguratorSource, /data-customization-mode-control/);
+  assert.match(guidedConfiguratorSource, /data-customization-direct-panel/);
+  assert.match(guidedConfiguratorSource, /data-edit-fit/);
+  assert.match(guidedConfiguratorSource, /data-measurement-adjust/);
   assert.doesNotMatch(guidedConfiguratorSource, /class="immersive-customization-panel"/);
   assert.match(guidedConfiguratorStateSource, /export const GUIDED_PROJECT_SCHEMA_VERSION = 5/);
   assert.match(guidedConfiguratorStateSource, /if \(step <= 2\) return step;/);

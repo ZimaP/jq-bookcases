@@ -67,12 +67,13 @@ async function responsiveMetrics(page) {
   return page.evaluate(() => {
     const viewer = document.querySelector(".immersive-viewer-surface").getBoundingClientRect();
     const main = document.querySelector(".immersive-configurator").getBoundingClientRect();
-    const panel = document.querySelector("[data-customization-mode-panel]")?.getBoundingClientRect();
+    const panel = document.querySelector("[data-customization-direct-panel]")?.getBoundingClientRect();
     const actions = document.querySelector(".immersive-viewer-footer").getBoundingClientRect();
     return {
       viewerWidth: viewer.width,
       viewerHeight: viewer.height,
       mainWidth: main.width,
+      panelWidth: panel?.width ?? null,
       panelTop: panel?.top ?? null,
       panelBottom: panel?.bottom ?? null,
       actionsTop: actions.top,
@@ -102,36 +103,34 @@ test("public routes stay runtime-clean and overflow-free in Firefox and WebKit",
   }
 });
 
-test("Firefox forced WebGL2 preserves one exact Door Wall controller through Review", async ({ page, browserName }) => {
+test("Firefox forced WebGL2 preserves one exact Door Wall controller through direct customization and Review", async ({ page, browserName }) => {
   test.skip(browserName !== "firefox", "Firefox-specific supported-fallback journey.");
   const failures = monitorRuntime(page);
   const runtime = await openCustomization(page, "door-wall", "renderer=webgl2");
   const initial = await expectExactReadyRuntime(page, "door-wall");
   expect(initial.rendererFallbackReason).toMatch(/explicitly forced/i);
-  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
-  const handle = page.locator("[data-dimension-handle]");
-  await handle.focus();
-  await handle.press("End");
-  await expect(handle).toHaveAttribute(
-    "aria-valuenow",
-    String(IMMERSIVE_LAYOUT_REGISTRY["door-wall"].geometryControlManifest["adjustable-shelf-clearance"].maxMillimeters)
-  );
-  await page.getByRole("button", { name: "Finish", exact: true }).click();
-  await page.getByRole("button", { name: "Charcoal", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Charcoal", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("#finish-mapping-status")).toContainText(/saved for design review/i);
+  await expect(page.locator("[data-dimension-handle]")).toBeHidden();
+  await expect(page.locator("[data-smart-dimension], [data-customization-mode-control]")).toHaveCount(0);
+  await page.locator("[data-edit-fit]").click();
+  await page.locator('[data-measurement="doorWidth"]').fill("40");
+  await page.locator('[data-measurement="doorWidth"]').blur();
+  await page.locator("[data-save-fit]").click();
+  await page.locator('[data-detail-key="doorStyle"][data-detail="slab"]').click();
+  await page.locator('[data-detail-key="lighting"][data-detail="warm-led"]').click();
   await page.locator("[data-continue]").click();
   await expect(page.getByRole("heading", { name: "Review your project details" })).toBeVisible();
   await expect(page.locator(".project-summary-card")).toContainText("Door Wall");
-  await expect(page.locator(".project-summary-card")).toContainText("Adjustable shelf clearance");
-  await expect(page.locator(".project-summary-card")).toContainText("Charcoal");
+  await expect(page.locator(".project-summary-card")).not.toContainText("Adjustable shelf clearance");
+  await expect(page.locator('[data-summary-value="doorWidth"]')).toHaveText("40 in");
+  await expect(page.locator('[data-summary-value="doorStyle"]')).toHaveText("Slab");
+  await expect(page.locator('[data-summary-value="lighting"]')).toHaveText("Warm LED");
   await expect(page.locator("[data-guided-engine-status]")).toBeHidden();
   await expect(runtime).toHaveAttribute("data-state", "ready");
   expect((await diagnostics(page)).instanceId).toBe(initial.instanceId);
   expect(failures).toEqual([]);
 });
 
-test("WebKit automatic fallback remains responsive from desktop through short mobile", async ({ page, browserName }) => {
+test("WebKit automatic fallback keeps the direct panel responsive from desktop through short mobile", async ({ page, browserName }) => {
   test.skip(browserName !== "webkit", "WebKit-specific fallback and responsive matrix.");
   const failures = monitorRuntime(page);
   let modelRequests = 0;
@@ -144,47 +143,43 @@ test("WebKit automatic fallback remains responsive from desktop through short mo
   expect(modelRequests).toBe(1);
 
   for (const viewport of [
-    { width: 1440, height: 900, widthRatio: 0.7 },
-    { width: 1024, height: 1366, heightRatio: 0.56 },
-    { width: 1024, height: 768, heightRatio: 0.56, actionsVisible: true },
-    { width: 844, height: 390, heightRatio: 0.56, actionsVisible: true }
+    { width: 1440, height: 900 },
+    { width: 1024, height: 1366 },
+    { width: 1024, height: 768 },
+    { width: 844, height: 390 }
   ]) {
     await page.setViewportSize(viewport);
     const metrics = await responsiveMetrics(page);
     expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.innerWidth + 1);
-    if (viewport.widthRatio) expect(metrics.viewerWidth / metrics.mainWidth).toBeGreaterThanOrEqual(viewport.widthRatio);
-    if (viewport.heightRatio) expect(metrics.viewerHeight / metrics.innerHeight).toBeGreaterThanOrEqual(viewport.heightRatio);
-    if (viewport.actionsVisible) {
+    expect(metrics.viewerWidth).toBeGreaterThan(0);
+    expect(metrics.panelWidth).toBeGreaterThan(0);
+    expect(metrics.viewerWidth).toBeLessThanOrEqual(metrics.mainWidth + 1);
+    expect(metrics.panelWidth).toBeLessThanOrEqual(metrics.mainWidth + 1);
+    if (viewport.width >= 900) {
       expect(metrics.actionsTop).toBeGreaterThanOrEqual(0);
       expect(metrics.actionsBottom).toBeLessThanOrEqual(metrics.innerHeight + 1);
     }
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const mode of ["Dimensions", "Finish", "Options"]) {
-    await page.getByRole("button", { name: mode, exact: true }).click();
-    if (mode === "Dimensions") {
-      await expect(page.locator("[data-dimension-handle]")).toBeVisible();
-      await page.getByRole("button", { name: "Project dimensions", exact: true }).click();
-    }
-    const metrics = await responsiveMetrics(page);
-    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.innerWidth + 1);
-    expect(metrics.panelTop).toBeGreaterThanOrEqual(0);
-    expect(metrics.panelBottom).toBeLessThanOrEqual(metrics.innerHeight + 1);
-    await page.keyboard.press("Escape");
-    await expect(page.getByRole("button", { name: "View", exact: true })).toHaveAttribute("aria-pressed", "true");
-  }
+  await expect(page.locator('[data-customization-view="overview"]')).toBeVisible();
+  await page.locator("[data-edit-fit]").click();
+  await expect(page.locator('[data-customization-view="measurements"]')).toBeVisible();
+  expect((await responsiveMetrics(page)).scrollWidth).toBeLessThanOrEqual(391);
+  await page.keyboard.press("Escape");
+  await expect(page.locator('[data-customization-view="overview"]')).toBeVisible();
 
   await page.setViewportSize({ width: 320, height: 568 });
-  await page.getByRole("button", { name: "Dimensions", exact: true }).click();
-  await page.locator("[data-dimension-handle]").click();
-  const input = page.locator('[data-smart-dimension="adjustable-shelf-clearance"]');
-  await expect(page.locator('[data-customization-mode-panel="dimensions"]')).toBeVisible();
-  await expect(input).toBeFocused();
+  await page.locator("[data-edit-fit]").click();
+  const input = page.locator('[data-measurement="wallWidth"]');
+  await input.scrollIntoViewIfNeeded();
+  await expect(input).toBeVisible();
   const inputBox = await input.boundingBox();
   expect(inputBox.height).toBeGreaterThanOrEqual(44);
   expect(inputBox.y).toBeGreaterThanOrEqual(0);
   expect(inputBox.y + inputBox.height).toBeLessThanOrEqual(568);
+  await expect(page.locator('[data-smart-dimension="adjustable-shelf-clearance"]')).toHaveCount(0);
+  await expect(page.locator("[data-dimension-handle]")).toBeHidden();
   expect((await diagnostics(page)).instanceId).toBe(initial.instanceId);
   expect(modelRequests).toBe(1);
   expect(failures).toEqual([]);
