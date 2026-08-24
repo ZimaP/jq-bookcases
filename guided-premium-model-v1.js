@@ -43,7 +43,11 @@ function familyContract(familyId) {
 }
 
 function finishColor(finish) {
-  if (finish.family === "paint") return finish.calibratedMultiplier || finish.swatch;
+  if (finish.family === "paint") {
+    return PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishMultipliers?.[finish.id]
+      || finish.calibratedMultiplier
+      || finish.swatch;
+  }
   const overrides = {
     "white-oak": "#fbfaf6",
     "natural-oak": "#fff2e2",
