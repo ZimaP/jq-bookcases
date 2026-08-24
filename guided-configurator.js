@@ -1,7 +1,6 @@
 import { mountIcons } from "./icon-system.js?v=product-first-20260727a";
 import {
   DETAIL_OPTIONS,
-  FINISH_OPTIONS,
   PUBLIC_CONFIGURATOR_LAYOUT_CHOICES,
   PRODUCT_CHOICES,
   getCategory,
@@ -28,9 +27,7 @@ import {
 } from "./guided-configurator-state.js?v=customization-ux-v1-20260824a";
 import {
   getImmersiveLayout,
-  inchesToMillimeters,
-  millimetersToInches,
-  normalizeSmartDimension
+  millimetersToInches
 } from "./guided-layout-registry.js?v=immersive-layout-configurator-v1";
 import {
   resolveProductLayoutCompatibility
@@ -135,15 +132,8 @@ const restoredAcceptedSpecification = project.acceptedSnapshot
   ? restoreGuidedAcceptedSnapshot(project, project.acceptedSnapshot)
   : null;
 let activeCustomizationTab = "view";
-let activeDimensionFieldId = "";
 let customizationModeFocusReturn = null;
 let activeNamedView = "";
-const customizationMobileQuery = window.matchMedia("(max-width: 767px)");
-const customizationTabletQuery = window.matchMedia("(max-width: 1279px)");
-let customizationSheetState = customizationMobileQuery.matches
-  ? "collapsed"
-  : customizationTabletQuery.matches ? "half" : "expanded";
-let customizationSheetFocusReturn = null;
 let previewScale = 1;
 let saveDialogMode = "save";
 let renamingProjectId = null;
@@ -176,8 +166,6 @@ if (app) {
   bindAppEvents();
   bindDialogEvents();
   bindHistory();
-  customizationMobileQuery.addEventListener("change", handleCustomizationBreakpointChange);
-  customizationTabletQuery.addEventListener("change", handleCustomizationBreakpointChange);
   window.addEventListener("pagehide", (event) => {
     if (event.persisted) return;
     window.clearTimeout(guidedSceneMeasurementTimer);
@@ -387,7 +375,6 @@ function renderApp(options = {}) {
   syncSaveControlState();
   applyPreviewScale();
   syncGuidedScene();
-  syncCustomizationSheetAccessibility();
   scheduleDraftSave();
   scheduleLikelyNextStepImages();
 
@@ -1457,180 +1444,6 @@ function renderToeKickControl() {
   `;
 }
 
-function renderCustomizationModes() {
-  const mode = getActiveCustomizationMode();
-  const panelOpen = mode !== "view" && !(mode === "dimensions" && !activeDimensionFieldId);
-  const modes = [
-    { id: "view", label: "View" },
-    { id: "dimensions", label: "Dimensions" },
-    { id: "finish", label: "Finish" },
-    { id: "options", label: "Options" }
-  ];
-  return `
-    <div class="immersive-mode-selector" role="group" aria-label="Customization mode">
-      ${modes.map((item) => `
-        <button
-          class="immersive-mode-button${mode === item.id ? " is-active" : ""}"
-          type="button"
-          data-customization-mode-control="${item.id}"
-          aria-pressed="${mode === item.id}"
-          ${!panelOpen || item.id === "view" ? "" : `aria-controls="customization-mode-panel"`}
-        >${escapeHtml(item.label)}</button>
-      `).join("")}
-    </div>
-  `;
-}
-
-function renderDimensionModeHint() {
-  return `
-    <div class="immersive-dimension-hint" role="status">
-      <span>Select the on-model shelf-clearance control to edit it.</span>
-      <button type="button" data-dimension-inventory-open>Project dimensions</button>
-    </div>
-  `;
-}
-
-function renderCustomizationOverlay(mode, registry) {
-  const title = { dimensions: "Dimensions", finish: "Finish", options: "Options" }[mode];
-  return `
-    <aside
-      class="immersive-mode-panel immersive-mode-panel--${escapeAttribute(mode)}"
-      id="customization-mode-panel"
-      data-customization-mode-panel="${escapeAttribute(mode)}"
-      aria-labelledby="customization-mode-title"
-    >
-      <header class="immersive-mode-panel-header">
-        <span><small>${escapeHtml(registry?.label || "Layout")}</small><strong id="customization-mode-title">${escapeHtml(title)}</strong></span>
-        <button type="button" data-customization-mode-close aria-label="Close ${escapeAttribute(title)}"><i data-icon="close" aria-hidden="true"></i></button>
-      </header>
-      <div class="immersive-mode-panel-content">
-        ${mode === "dimensions" ? renderDimensionsChoices() : mode === "finish" ? renderFinishChoices() : renderDetailChoices()}
-      </div>
-      <p class="immersive-preview-disclaimer">Digital preview only. Final dimensions and finishes require design confirmation.</p>
-    </aside>
-  `;
-}
-
-function renderFinishChoices() {
-  const appearance = getImmersiveLayout(project.layout)?.appearanceManifest;
-  const canPreviewFinish = (appearance?.provenMeshIndices?.length || 0) > 0;
-  const referencePaintFinishes = ["shop-primed", "warm-white", "soft-ivory", "sage-gray", "charcoal"]
-    .map((finishId) => FINISH_OPTIONS.paint.find((finish) => finish.id === finishId))
-    .filter(Boolean);
-  return `
-    <h3 class="customization-group-heading">Finish</h3>
-    ${renderDeferredModelDisclosure("Finish")}
-    ${renderFinishGroup("White Oak and walnut", "wood", FINISH_OPTIONS.wood)}
-    ${renderFinishGroup("Shop-primed and cabinet paint", "paint", referencePaintFinishes)}
-    <p class="finish-design-note">Final Sherwin-Williams cabinet-grade color and code are confirmed during design review.${canPreviewFinish ? " The on-screen Fireplace finish is a provisional digital preview." : " This layout keeps its embedded model materials on screen."}</p>
-  `;
-}
-
-function renderFinishGroup(label, key, options) {
-  const selectedId = key === "accentFinish" ? project.accentFinish : project.finish;
-  return `
-    <section class="choice-section">
-      <h3>${escapeHtml(label)}</h3>
-      <div class="finish-grid">
-        ${options.map((finish) => `
-          <button
-            class="finish-choice${selectedId === finish.id ? " is-selected" : ""}"
-            type="button"
-            data-finish-key="${key}"
-            data-project-field="${key === "accentFinish" ? "accentFinish" : "finish"}"
-            data-finish="${finish.id}"
-            data-family="${finish.family}"
-            aria-pressed="${selectedId === finish.id}"
-            aria-describedby="finish-mapping-status"
-            title="${escapeAttribute(finish.label)}"
-          >
-            <span class="finish-swatch" style="--swatch-color:${escapeAttribute(finish.color)}" aria-hidden="true"></span>
-            <span class="finish-label">${escapeHtml(finish.label)}</span>
-          </button>
-        `).join("")}
-      </div>
-    </section>
-  `;
-}
-
-function renderDetailChoices({ compact = false } = {}) {
-  const compatible = getCompatibleDetails(project.category, project.style);
-  const groups = [
-    { key: "doorStyle", label: "Door style", options: compatible.doorStyle },
-    { key: "hardware", label: "Hardware", options: compatible.hardware },
-    { key: "lighting", label: "Lighting", options: compatible.lighting },
-    { key: "baseStyle", label: "Installation", options: compatible.baseStyle, expanded: true },
-    { key: "topTreatment", label: "Top treatment", options: compatible.topTreatment }
-  ]
-    .map((group) => ({
-      ...group,
-      options: compact && group.key === "hardware"
-        ? group.options.filter((option) => option.id !== "none")
-        : group.options
-    }))
-    .filter((group) => group.options.length && (!compact || ["hardware", "lighting"].includes(group.key)));
-
-  if (!groups.length) {
-    return `<p class="guided-dialog-note">This concept has no additional details to choose. Our design team will finish the construction details with you.</p>`;
-  }
-
-  return `
-    <h3 class="customization-group-heading">Details</h3>
-    ${renderDeferredModelDisclosure("Details, hardware, and lighting")}
-    ${groups.map((group) => `
-      <section class="choice-section choice-section--${escapeAttribute(group.key)}">
-        <h3>${escapeHtml(group.label)}</h3>
-        <div class="detail-choice-grid detail-choice-grid--${escapeAttribute(group.key)}${group.expanded ? " detail-choice-grid--expanded" : ""}">
-          ${group.options.map((option) => {
-            const selected = project[group.key] === option.id;
-            const hardwareIcon = option.id === "knob"
-              ? "hardware-knob"
-              : option.id === "none"
-              ? "minus"
-              : "handle-pull";
-            return `
-              <button
-                class="detail-choice${selected ? " is-selected" : ""}"
-                type="button"
-                data-detail-key="${group.key}"
-                data-detail="${option.id}"
-                aria-pressed="${selected}"
-                style="--detail-color:${escapeAttribute(option.color || "#262626")}"
-              >
-                ${group.key === "hardware" ? `
-                  <span class="detail-option-icon detail-option-icon--${escapeAttribute(option.id)}" aria-hidden="true">
-                    <i data-icon="${hardwareIcon}" aria-hidden="true"></i>
-                  </span>
-                ` : ""}
-                <span class="detail-choice-copy">
-                  <span class="detail-choice-title">${escapeHtml(option.shortLabel || option.label)}</span>
-                  ${option.description ? `<span class="detail-choice-description">${escapeHtml(option.description)}</span>` : ""}
-                </span>
-              </button>
-            `;
-          }).join("")}
-        </div>
-      </section>
-    `).join("")}
-  `;
-}
-
-function renderDeferredModelDisclosure(groupLabel) {
-  const isFinish = groupLabel === "Finish";
-  const appearance = getImmersiveLayout(project.layout)?.appearanceManifest;
-  const finishMappingAvailable = (appearance?.provenMeshIndices?.length || 0) > 0;
-  return `
-    <aside class="fixed-reference-disclosure" role="note" data-deferred-model-disclosure="${escapeAttribute(groupLabel.toLowerCase())}" ${isFinish ? 'id="finish-mapping-status"' : ""}>
-      <i data-icon="information" aria-hidden="true"></i>
-      <span>${isFinish
-        ? finishMappingAvailable
-          ? `<strong>The selected Finish is previewed only on audited millwork surfaces.</strong> This provisional digital appearance is not a calibrated or approved physical sample.`
-          : `<strong>Your Finish selection is saved for design review.</strong> This layout retains its embedded source materials because runtime finish mapping is not audited.`
-        : `<strong>Your ${escapeHtml(groupLabel.toLowerCase())} selections are saved with this project.</strong> Final construction details require design confirmation.`}</span>
-    </aside>
-  `;
-}
-
 function renderConceptPreview(options = {}) {
   const category = getCategory(project.category);
   const layout = getLayout(project.category, project.layout);
@@ -1815,15 +1628,7 @@ function bindAppEvents() {
   }, true);
   app.addEventListener("click", (event) => {
     const target = event.target.closest("button, a");
-    if (!target) {
-      const clickedViewer = event.target.closest?.(".immersive-viewer-surface");
-      const clickedPanel = event.target.closest?.("[data-customization-mode-panel]");
-      const clickedSelector = event.target.closest?.(".immersive-mode-selector");
-      if (clickedViewer && !clickedPanel && !clickedSelector && getActiveCustomizationMode() !== "view") {
-        closeCustomizationMode();
-      }
-      return;
-    }
+    if (!target) return;
 
     if (target.matches("[data-step]")) {
       navigateToStep(Number(target.dataset.step));
@@ -1858,10 +1663,6 @@ function bindAppEvents() {
       guidedSceneController?.zoom?.(target.dataset.viewerCommand);
       return;
     }
-    if (target.matches("[data-smart-dimension-reset]")) {
-      guidedSceneController?.resetSmartDimension?.();
-      return;
-    }
     if (target.matches("[data-edit-fit]")) {
       customizationModeFocusReturn = target;
       activeCustomizationTab = "measurements";
@@ -1892,46 +1693,12 @@ function bindAppEvents() {
       adjustMeasurementBy(target.dataset.measurementAdjust, Number(target.dataset.measurementDelta), target);
       return;
     }
-    if (target.matches("[data-customization-mode-control]")) {
-      setCustomizationMode(target.dataset.customizationModeControl, target);
-      return;
-    }
-    if (target.matches("[data-customization-mode-close]")) {
-      closeCustomizationMode();
-      return;
-    }
-    if (target.matches("[data-dimension-field]")) {
-      activeDimensionFieldId = target.dataset.dimensionField;
-      renderApp();
-      requestAnimationFrame(() => app.querySelector("[data-dimension-context] input, [data-dimension-context] select")?.focus());
-      return;
-    }
-    if (target.matches("[data-dimension-inventory-open]")) {
-      activeDimensionFieldId = "__inventory";
-      renderApp();
-      requestAnimationFrame(() => app.querySelector("[data-dimension-inventory] button")?.focus());
-      return;
-    }
-    if (target.matches("[data-dimension-list]")) {
-      activeDimensionFieldId = "__inventory";
-      renderApp();
-      requestAnimationFrame(() => app.querySelector("[data-dimension-inventory] button")?.focus());
-      return;
-    }
     if (target.matches("[data-continue]")) {
       continueFromStep();
       return;
     }
     if (target.matches("[data-back]")) {
       navigateToStep(Math.max(1, project.currentStep - 1));
-      return;
-    }
-    if (target.matches("[data-finish]")) {
-      const key = target.dataset.finishKey === "accentFinish" ? "accentFinish" : "finish";
-      const finishId = target.dataset.finish;
-      updateProject({ [key]: finishId });
-      renderApp();
-      requestAnimationFrame(() => app.querySelector(`[data-project-field="${CSS.escape(key)}"][data-finish="${CSS.escape(finishId)}"]`)?.focus());
       return;
     }
     if (target.matches("[data-detail]")) {
@@ -1969,10 +1736,6 @@ function bindAppEvents() {
   });
 
   app.addEventListener("input", (event) => {
-    if (event.target.matches("[data-smart-dimension]")) {
-      updateSmartDimensionFromControl(event.target);
-      return;
-    }
     if (event.target.matches("[data-measurement]")) {
       updateMeasurementFromControl(event.target);
       return;
@@ -1987,10 +1750,6 @@ function bindAppEvents() {
   });
 
   app.addEventListener("change", (event) => {
-    if (event.target.matches("[data-smart-dimension]")) {
-      updateSmartDimensionFromControl(event.target, { finalize: true });
-      return;
-    }
     if (event.target.matches("[data-measurement]")) updateMeasurementFromControl(event.target, { finalize: true });
   });
 
@@ -2011,19 +1770,7 @@ function bindAppEvents() {
     if (event.key === "Escape" && getActiveCustomizationMode() !== "view") {
       event.preventDefault();
       closeCustomizationMode();
-      return;
     }
-    const tab = event.target.closest("[data-customization-mode-control]");
-    if (!tab || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-    event.preventDefault();
-    const tabs = [...app.querySelectorAll("[data-customization-mode-control]")];
-    const currentIndex = tabs.indexOf(tab);
-    const nextIndex = event.key === "Home"
-      ? 0
-      : event.key === "End"
-        ? tabs.length - 1
-        : (currentIndex + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
-    tabs[nextIndex].click();
   });
 
   app.addEventListener("pointerdown", (event) => {
@@ -2043,21 +1790,9 @@ function setNamedViewButtonState(activeView = "") {
   }
 }
 
-function setCustomizationMode(mode, trigger = null) {
-  const nextMode = ["dimensions", "measurements"].includes(mode) ? "measurements" : "view";
-  if (nextMode !== "view" && trigger) customizationModeFocusReturn = trigger;
-  activeCustomizationTab = nextMode;
-  activeDimensionFieldId = "";
-  renderApp();
-  requestAnimationFrame(() => {
-    app.querySelector(nextMode === "measurements" ? "[data-close-fit]" : "[data-edit-fit]")?.focus({ preventScroll: true });
-  });
-}
-
 function closeCustomizationMode() {
   const focusReturn = customizationModeFocusReturn;
   activeCustomizationTab = "view";
-  activeDimensionFieldId = "";
   customizationModeFocusReturn = null;
   renderApp();
   requestAnimationFrame(() => {
@@ -2103,7 +1838,6 @@ function selectProductChoice(productId) {
     updatedAt: new Date().toISOString()
   });
   activeCustomizationTab = "view";
-  activeDimensionFieldId = "";
   previewScale = 1;
   renderApp();
   requestAnimationFrame(() => app.querySelector(`[data-product-choice="${CSS.escape(choice.id)}"]`)?.focus());
@@ -2122,7 +1856,6 @@ function selectLayout(layoutId) {
   if (compatibility.status === "unavailable") return;
   if (layoutId !== project.layout) {
     activeNamedView = "";
-    activeDimensionFieldId = "";
   }
   const layoutStates = JSON.parse(JSON.stringify(project.layoutStates || {}));
   if (project.layout && layoutStates[project.layout]) {
@@ -2226,9 +1959,6 @@ function navigateToStep(step, options = {}) {
   project.maxVisitedStep = Math.max(project.maxVisitedStep, targetStep);
   project.updatedAt = new Date().toISOString();
   previewScale = 1;
-  if (targetStep !== 3 && customizationMobileQuery.matches && customizationSheetState === "expanded") {
-    customizationSheetState = "half";
-  }
   hideToast();
   renderApp({ focusHeading: true });
 
@@ -2388,29 +2118,6 @@ function syncTransactionDiagnostic(transaction = guidedProjectTransaction) {
   }
 }
 
-function updateSmartDimensionFromControl(control, options = {}) {
-  const definition = getImmersiveLayout(project.layout)?.geometryControlManifest?.[control.dataset.smartDimension];
-  if (!definition) return;
-  const inches = Number(control.value);
-  const minimumInches = millimetersToInches(definition.minMillimeters);
-  const maximumInches = millimetersToInches(definition.maxMillimeters);
-  const displayedEndpointToleranceInches = 0.005001;
-  const valid = Number.isFinite(inches)
-    && inches >= minimumInches - displayedEndpointToleranceInches
-    && inches <= maximumInches + displayedEndpointToleranceInches;
-  control.toggleAttribute("aria-invalid", !valid);
-  const error = control.closest("[data-smart-dimension-control]")?.querySelector("[data-smart-dimension-error]");
-  if (error) error.hidden = valid;
-  if (!valid) return;
-  const clampedInches = Math.min(maximumInches, Math.max(minimumInches, inches));
-  const millimeters = normalizeSmartDimension(project.layout, definition.id, inchesToMillimeters(clampedInches));
-  const source = options.finalize ? "panel-change" : "panel-input";
-  if (!guidedSceneController?.commitDimension?.(millimeters, source)) {
-    persistSmartDimension({ layoutId: project.layout, controlId: definition.id, value: millimeters, source });
-  }
-  if (options.finalize) control.value = millimetersToInches(millimeters).toFixed(2);
-}
-
 function persistSmartDimension({ layoutId, controlId, value }) {
   if (!layoutId || !controlId || !project.layoutStates?.[layoutId]) return;
   project.layoutStates[layoutId].smartDimensions = {
@@ -2427,105 +2134,6 @@ function persistSmartDimension({ layoutId, controlId, value }) {
 
 function focusSmartDimensionEditor() {
   showToast("Adjustable shelves are repositioned after installation, so no shelf-height setup is needed here.");
-}
-
-function setCustomizationSheetState(state, trigger = null) {
-  if (!["collapsed", "half", "expanded"].includes(state)) return;
-  const leavingExpanded = customizationSheetState === "expanded" && state !== "expanded";
-  if (state === "expanded" && trigger) customizationSheetFocusReturn = trigger;
-  customizationSheetState = state;
-  const sheet = app?.querySelector("[data-customization-sheet]");
-  if (!sheet) return;
-  sheet.dataset.sheetState = state;
-  sheet.querySelector("[data-sheet-cycle]")?.setAttribute("aria-expanded", String(state === "expanded"));
-  sheet.querySelectorAll("[data-sheet-state-control]").forEach((button) => {
-    button.setAttribute("aria-pressed", String(button.dataset.sheetStateControl === state));
-  });
-  syncCustomizationSheetAccessibility();
-  if (state === "expanded" && customizationMobileQuery.matches) {
-    requestAnimationFrame(() => sheet.querySelector('[role="tab"][aria-selected="true"]')?.focus({ preventScroll: true }));
-  } else if (leavingExpanded && customizationSheetFocusReturn?.isConnected) {
-    customizationSheetFocusReturn.focus({ preventScroll: true });
-  }
-  requestAnimationFrame(() => {
-    guidedSceneController?.resize?.();
-    guidedSceneController?.fitCamera?.({ preserveOrientation: true, animate: !prefersReducedMotion() });
-  });
-}
-
-function syncCustomizationSheetAccessibility() {
-  const sheet = app?.querySelector("[data-customization-sheet]");
-  const mobile = customizationMobileQuery.matches;
-  const expanded = Boolean(sheet) && mobile && customizationSheetState === "expanded";
-  const outsideSheet = [
-    document.querySelector("[data-site-header]"),
-    document.querySelector(".skip-link"),
-    app?.querySelector(".guided-stepper"),
-    app?.querySelector(".immersive-viewer-surface")
-  ].filter(Boolean);
-  for (const element of outsideSheet) element.inert = expanded;
-  if (!sheet) return;
-  const collapsed = mobile && customizationSheetState === "collapsed";
-  const panel = sheet.querySelector(".customization-panel");
-  const actions = sheet.querySelector(".immersive-sticky-actions");
-  const grip = sheet.querySelector("[data-sheet-cycle]");
-  const focusWasInsideCollapsedRegion = collapsed
-    && (panel?.contains(document.activeElement) || actions?.contains(document.activeElement));
-  if (panel) panel.inert = collapsed;
-  if (actions) actions.inert = collapsed;
-  if (focusWasInsideCollapsedRegion) {
-    requestAnimationFrame(() => grip?.focus({ preventScroll: true }));
-  }
-  if (expanded) {
-    sheet.setAttribute("role", "dialog");
-    sheet.setAttribute("aria-modal", "true");
-    sheet.setAttribute("aria-labelledby", "customization-sheet-title");
-  } else {
-    sheet.removeAttribute("role");
-    sheet.removeAttribute("aria-modal");
-    sheet.removeAttribute("aria-labelledby");
-  }
-  sheet.toggleAttribute("data-focus-contained", expanded);
-  grip?.setAttribute("aria-label", `Customization sheet is ${customizationSheetState}; change height`);
-}
-
-function handleCustomizationBreakpointChange() {
-  const nextState = customizationMobileQuery.matches
-    ? "collapsed"
-    : customizationTabletQuery.matches ? "half" : "expanded";
-  setCustomizationSheetState(nextState);
-}
-
-function trapExpandedSheetFocus(event) {
-  if (event.key === "Escape" && customizationSheetState === "expanded" && customizationMobileQuery.matches) {
-    event.preventDefault();
-    setCustomizationSheetState("half");
-    return true;
-  }
-  if (event.key !== "Tab" || customizationSheetState !== "expanded" || !customizationMobileQuery.matches) return false;
-  const sheet = app?.querySelector("[data-customization-sheet]");
-  if (!sheet) return false;
-  const focusable = [...sheet.querySelectorAll('button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])')]
-    .filter((element) => !element.closest("[inert]") && element.getClientRects().length);
-  if (!focusable.length) return false;
-  const first = focusable[0];
-  const last = focusable[focusable.length - 1];
-  if (!sheet.contains(document.activeElement)) {
-    event.preventDefault();
-    first.focus();
-    return true;
-  }
-  if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault();
-    last.focus();
-    return true;
-  }
-  if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault();
-    first.focus();
-    return true;
-  }
-  return false;
 }
 
 function updateDimensionChip(field, value) {
@@ -2949,7 +2557,6 @@ function handleProjectListAction(event) {
     document.querySelector("[data-projects-dialog]")?.close();
     previewScale = 1;
     activeCustomizationTab = "view";
-    activeDimensionFieldId = "";
     renderApp({ focusHeading: true });
     history.replaceState({ step: project.currentStep }, "", `${window.location.pathname}?project=${encodeURIComponent(project.projectId)}#step-${project.currentStep}`);
     showToast(project.productAvailability === "unavailable" || project.layoutAvailability === "unavailable"
@@ -3000,7 +2607,6 @@ function startNewProject() {
   }
   document.querySelector("[data-projects-dialog]")?.close();
   activeCustomizationTab = "view";
-  activeDimensionFieldId = "";
   previewScale = 1;
   renderApp({ focusHeading: true });
   history.replaceState({ step: 1 }, "", `${window.location.pathname}#step-1`);

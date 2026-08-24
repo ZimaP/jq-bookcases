@@ -186,7 +186,7 @@ test("the direct customization panel keeps shelf setup and finish choices out of
   const source = await readText("guided-configurator.js");
   const directFlow = source.slice(
     source.indexOf("function renderCustomizationStep()"),
-    source.indexOf("function renderCustomizationModes()")
+    source.indexOf("function renderConceptPreview(")
   );
   assert.match(directFlow, /data-customization-direct-panel/);
   assert.match(directFlow, /Make it yours, not complicated\./);
