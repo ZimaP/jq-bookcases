@@ -5,7 +5,7 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
   status: "ISOLATED VISUAL PREVIEW — OWNER ACCEPTANCE OPEN",
   scope: "3D geometry, materials, textures, shared lighting response, and shadows only",
   bevel: Object.freeze({
-    widthMeters: 0.004,
+    widthMeters: 0.005,
     curveSegments: 2,
     maximumRenderedTriangles: 45000,
     maximumWorldScaleRatio: 1.001,
@@ -54,8 +54,11 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
       normalMap: "assets/room2-commercial-pbr-v1/textures/paint/normal.webp",
       roughnessMap: "assets/room2-commercial-pbr-v1/textures/paint/roughness.webp",
       repeat: Object.freeze([18, 18]),
-      normalScale: 0.12,
-      clearcoatNormalScale: 0.035
+      normalScale: 0.095,
+      clearcoatNormalScale: 0.025,
+      finishMultipliers: Object.freeze({
+        charcoal: "#484b4e"
+      })
     })
   }),
   roleSurface: Object.freeze({
@@ -91,28 +94,28 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
       specularIntensity: 0.28
     }),
     paint: Object.freeze({
-      roughnessScale: 1.06,
-      clearcoatScale: 0.45,
-      clearcoatRoughnessFloor: 0.74,
-      envMapIntensityScale: 0.76,
-      specularIntensity: 0.36
+      roughnessScale: 1.1,
+      clearcoatScale: 0.38,
+      clearcoatRoughnessFloor: 0.78,
+      envMapIntensityScale: 0.7,
+      specularIntensity: 0.32
     })
   }),
   lighting: Object.freeze({
     toneMapping: "neutral",
-    exposure: 0.94,
-    environmentIntensity: 0.54,
+    exposure: 0.96,
+    environmentIntensity: 0.5,
     environmentRotationRadians: 0.82,
-    keyAreaScale: 1.12,
-    fillAreaScale: 0.63,
-    separationAreaScale: 1.48,
-    shadowProxyScale: 0.78,
-    keyArea: Object.freeze({ position: Object.freeze([-3.7, 4.1, 3]), width: 3.2, height: 2.6 }),
-    fillArea: Object.freeze({ position: Object.freeze([3.7, 3, 3]), width: 3.2, height: 2.8 }),
+    keyAreaScale: 1.04,
+    fillAreaScale: 0.78,
+    separationAreaScale: 1.36,
+    shadowProxyScale: 0.88,
+    keyArea: Object.freeze({ position: Object.freeze([-3.7, 4.1, 3]), width: 3.6, height: 2.9 }),
+    fillArea: Object.freeze({ position: Object.freeze([3.7, 2.8, 3.2]), width: 3.5, height: 3 }),
     separationArea: Object.freeze({ position: Object.freeze([0.3, 4.7, 0.7]), width: 2.4, height: 1.2 }),
     shadowProxy: Object.freeze({ position: Object.freeze([-2.6, 4.8, 5.2]) }),
     shadowBias: -0.00012,
-    shadowNormalBias: 0.0075
+    shadowNormalBias: 0.005
   }),
   hardware: Object.freeze({
     color: "#80644a",

@@ -64,11 +64,14 @@ test("premium model V1 is an exact opt-in 3D-only preview contract", () => {
   assert.equal(isPremiumModelV1Route({ search: "?modelQuality=premium-v1" }), true);
   assert.equal(isPremiumModelV1Route({ search: "?modelQuality=premium" }), false);
   assert.equal(isPremiumModelV1Route({ search: "" }), false);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.widthMeters, 0.004);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.widthMeters, 0.005);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.curveSegments, 2);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.maximumRenderedTriangles, 45000);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.paint.repeat, [18, 18]);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.normalScale, 0.12);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.normalScale, 0.095);
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishMultipliers, {
+    charcoal: "#484b4e"
+  });
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.repeat, [1, 1]);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.sourceTileMeters, [0.5, 0.5]);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.projectionPeriodMeters, [0.52, 1.6]);
@@ -86,11 +89,11 @@ test("premium model V1 is an exact opt-in 3D-only preview contract", () => {
     "dark-walnut": "#ad8d7c"
   });
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.uvProjection, "stable cabinet-scale straight-grain projection");
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 0.94);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.54);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.63);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 1.48);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.78);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 0.96);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.5);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.78);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 1.36);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.88);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxy.position, [-2.6, 4.8, 5.2]);
   assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.clearcoatScale <= 0.32);
   assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.specularIntensity <= 0.32);
@@ -177,7 +180,7 @@ test("deterministic provenance binds the accepted base, exact sources, and 3D-on
   });
   assert.equal(provenance.activation.query, "modelQuality=premium-v1");
   assert.equal(provenance.geometry.sourceAssetsModified, false);
-  assert.equal(provenance.geometry.bevelWidthMillimeters, 4);
+  assert.equal(provenance.geometry.bevelWidthMillimeters, 5);
   assert.equal(provenance.roleCoverage.totalPrimitives, 494);
   assert.deepEqual(provenance.roleCoverage.layouts.map(({ primitiveCount }) => primitiveCount), [185, 127, 182]);
   assert.ok(provenance.scope.excluded.includes("interface"));
