@@ -80,40 +80,40 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
   }),
   familySurface: Object.freeze({
     oak: Object.freeze({
-      roughnessScale: 1.1,
-      clearcoatScale: 0.28,
-      clearcoatRoughnessFloor: 0.78,
-      envMapIntensityScale: 0.72,
-      specularIntensity: 0.29
-    }),
-    walnut: Object.freeze({
-      roughnessScale: 1.1,
+      roughnessScale: 1.12,
       clearcoatScale: 0.24,
       clearcoatRoughnessFloor: 0.8,
-      envMapIntensityScale: 0.72,
-      specularIntensity: 0.28
+      envMapIntensityScale: 0.65,
+      specularIntensity: 0.27
+    }),
+    walnut: Object.freeze({
+      roughnessScale: 1.12,
+      clearcoatScale: 0.21,
+      clearcoatRoughnessFloor: 0.82,
+      envMapIntensityScale: 0.65,
+      specularIntensity: 0.26
     }),
     paint: Object.freeze({
-      roughnessScale: 1.1,
-      clearcoatScale: 0.38,
-      clearcoatRoughnessFloor: 0.78,
-      envMapIntensityScale: 0.7,
-      specularIntensity: 0.32
+      roughnessScale: 1.13,
+      clearcoatScale: 0.26,
+      clearcoatRoughnessFloor: 0.82,
+      envMapIntensityScale: 0.62,
+      specularIntensity: 0.27
     })
   }),
   lighting: Object.freeze({
     toneMapping: "neutral",
-    exposure: 0.96,
-    environmentIntensity: 0.5,
-    environmentRotationRadians: 0.82,
-    keyAreaScale: 1.04,
-    fillAreaScale: 0.78,
-    separationAreaScale: 1.36,
-    shadowProxyScale: 0.88,
-    keyArea: Object.freeze({ position: Object.freeze([-3.7, 4.1, 3]), width: 3.6, height: 2.9 }),
-    fillArea: Object.freeze({ position: Object.freeze([3.7, 2.8, 3.2]), width: 3.5, height: 3 }),
-    separationArea: Object.freeze({ position: Object.freeze([0.3, 4.7, 0.7]), width: 2.4, height: 1.2 }),
-    shadowProxy: Object.freeze({ position: Object.freeze([-2.6, 4.8, 5.2]) }),
+    exposure: 0.93,
+    environmentIntensity: 0.4,
+    environmentRotationRadians: 1.12,
+    keyAreaScale: 0.9,
+    fillAreaScale: 0.74,
+    separationAreaScale: 1.25,
+    shadowProxyScale: 0.98,
+    keyArea: Object.freeze({ position: Object.freeze([-4.2, 3.9, 2.5]), width: 4.2, height: 3.2 }),
+    fillArea: Object.freeze({ position: Object.freeze([4.2, 2.4, 2.7]), width: 3, height: 3 }),
+    separationArea: Object.freeze({ position: Object.freeze([0.43, 4.2, -2.25]), width: 5.4, height: 2 }),
+    shadowProxy: Object.freeze({ position: Object.freeze([-3.6, 5.4, 4.3]) }),
     shadowBias: -0.00012,
     shadowNormalBias: 0.005
   }),

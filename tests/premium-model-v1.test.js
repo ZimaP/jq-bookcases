@@ -89,18 +89,23 @@ test("premium model V1 is an exact opt-in 3D-only preview contract", () => {
     "dark-walnut": "#ad8d7c"
   });
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.uvProjection, "stable cabinet-scale straight-grain projection");
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 0.96);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.5);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.78);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 1.36);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.88);
-  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxy.position, [-2.6, 4.8, 5.2]);
-  assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.clearcoatScale <= 0.32);
-  assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.specularIntensity <= 0.32);
-  assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.walnut.clearcoatScale <= 0.28);
-  assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.walnut.specularIntensity <= 0.3);
-  assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.paint.clearcoatScale <= 0.55);
-  assert.ok(PREMIUM_MODEL_V1_CONTRACT.familySurface.paint.specularIntensity <= 0.42);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 0.93);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.4);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentRotationRadians, 1.12);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.keyAreaScale, 0.9);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.74);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 1.25);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.98);
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.separationArea, {
+    position: [0.43, 4.2, -2.25], width: 5.4, height: 2
+  });
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxy.position, [-3.6, 5.4, 4.3]);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.clearcoatScale, 0.24);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.specularIntensity, 0.27);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.walnut.clearcoatScale, 0.21);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.walnut.specularIntensity, 0.26);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.paint.clearcoatScale, 0.26);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.paint.specularIntensity, 0.27);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.shadow.maximumDrawCalls, 250);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.material.type, "MeshPhysicalMaterial");
 });

@@ -1092,7 +1092,7 @@ export class GuidedLayoutViewerController {
   async applyPremiumModelV1Presentation() {
     if (!this.premiumModelV1Enabled || this.zoneProofMode || !this.modelRoot) return null;
     if (!this.premiumModelV1ModulePromise) {
-      this.premiumModelV1ModulePromise = import("./guided-premium-model-v1.js?v=premium-model-v1-20260823za");
+      this.premiumModelV1ModulePromise = import("./guided-premium-model-v1.js?v=premium-model-v1-20260824b");
     }
     const premiumModule = await this.premiumModelV1ModulePromise;
     const diagnostics = await premiumModule.applyPremiumModelV1(this);
