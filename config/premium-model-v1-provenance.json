@@ -12,17 +12,17 @@
     {
       "bytes": 120046,
       "path": "guided-layout-viewer.js",
-      "sha256": "d8542f6d5ff6a7bce3c76fd2162a54a8839d0bc733ac1368b5a39f62c09610ee"
+      "sha256": "00352b99f4089ecb24e74af504b57b96b8b62c53ca87c5b7d5830400505e9b80"
     },
     {
-      "bytes": 6178,
+      "bytes": 6288,
       "path": "guided-premium-model-v1-contract.js",
-      "sha256": "be702027cebd8e07b9a31c01a104e98a59c8b93370b97dddecc0180ab4f351b9"
+      "sha256": "007adf7c3c7634fd37e82c798f3986bde03ea3afd9457ff2e5d53282aa6f4b24"
     },
     {
-      "bytes": 34964,
+      "bytes": 36461,
       "path": "guided-premium-model-v1.js",
-      "sha256": "53deb9e93e2324d4012c9e30ece1b70bfd8c53c4748aef70b2a09a6f8de4ba3b"
+      "sha256": "ae3d84d14292668bed4d279f94d08159a15b15efc20d7aec64976d9e23118cc7"
     },
     {
       "bytes": 555394,
@@ -174,6 +174,7 @@
       "runtime-derived furniture bevel geometry",
       "shared lighting response",
       "shared contact-shadow policy",
+      "floor measurement grid",
       "production-default activation on public hosts"
     ]
   },

@@ -70,20 +70,20 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.curveSegments, 2);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.maximumRenderedTriangles, 45000);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.paint.repeat, [18, 18]);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.normalScale, 0.095);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.normalScale, 0.135);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishMultipliers, {
     charcoal: "#484b4e"
   });
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.repeat, [1, 1]);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.sourceTileMeters, [0.5, 0.5]);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.projectionPeriodMeters, [0.52, 1.6]);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.normalScale, 0.09);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.normalScale, 0.135);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.grainTextureAxis, "v");
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.uvProjection, "stable cabinet-scale straight-grain projection");
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.repeat, [1, 1]);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.sourceTileMeters, [1, 1]);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.projectionPeriodMeters, [1, 2.25]);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.normalScale, 0.065);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.normalScale, 0.1);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.grainTextureAxis, "u");
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.finishMultipliers, {
     "light-walnut": "#f2dcc9",
@@ -91,13 +91,14 @@ test("premium model V1 is the public production renderer with an explicit standa
     "dark-walnut": "#ad8d7c"
   });
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.uvProjection, "stable cabinet-scale straight-grain projection");
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 0.93);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.4);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 0.9);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.32);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentRotationRadians, 1.12);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.keyAreaScale, 0.9);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.74);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 1.25);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.98);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.keyAreaScale, 0.82);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.5);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 1.08);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 1.08);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.floorGrid.spacingMeters, 0.3048);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.separationArea, {
     position: [0.43, 4.2, -2.25], width: 5.4, height: 2
   });
