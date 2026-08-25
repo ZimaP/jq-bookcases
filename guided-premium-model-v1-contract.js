@@ -144,8 +144,8 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
     "toe-base": Object.freeze({ roughness: 0.94, clearcoat: 0.02, clearcoatRoughness: 0.9, envMapIntensity: 0.52 })
   }),
   architecturalSurface: Object.freeze({
-    wall: Object.freeze({ color: "#f6f5f2", roughness: 0.96, clearcoat: 0, clearcoatRoughness: 1, envMapIntensity: 0.4, specularIntensity: 0.16, usePaintMicroSurface: false }),
-    ceiling: Object.freeze({ color: "#fbfaf7", roughness: 0.98, clearcoat: 0, clearcoatRoughness: 1, envMapIntensity: 0.36, specularIntensity: 0.14, usePaintMicroSurface: false }),
+    wall: Object.freeze({ color: "#faf9f6", emissive: "#f2efe9", emissiveIntensity: 0.07, roughness: 0.97, clearcoat: 0, clearcoatRoughness: 1, envMapIntensity: 0.48, specularIntensity: 0.14, usePaintMicroSurface: false }),
+    ceiling: Object.freeze({ color: "#fffefb", emissive: "#fffdf8", emissiveIntensity: 0.72, roughness: 0.99, clearcoat: 0, clearcoatRoughness: 1, envMapIntensity: 0.52, specularIntensity: 0.1, usePaintMicroSurface: false }),
     door: Object.freeze({ color: "#c5c7c5", roughness: 0.9, clearcoat: 0.03, clearcoatRoughness: 0.9, envMapIntensity: 0.38, specularIntensity: 0.18, usePaintMicroSurface: true, normalScale: 0.07 }),
     doorDetail: Object.freeze({ color: "#aeb1af", roughness: 0.86, clearcoat: 0.04, clearcoatRoughness: 0.88, envMapIntensity: 0.4, specularIntensity: 0.2, usePaintMicroSurface: true, normalScale: 0.08 })
   }),
@@ -182,10 +182,10 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
   lighting: Object.freeze({
     toneMapping: "neutral",
     exposure: 1.03,
-    environmentIntensity: 0.3,
+    environmentIntensity: 0.32,
     environmentRotationRadians: 0.92,
     keyAreaScale: 0.94,
-    fillAreaScale: 0.78,
+    fillAreaScale: 0.82,
     separationAreaScale: 0.9,
     shadowProxyScale: 0.9,
     shadowFilter: "pcf-radius",
@@ -197,6 +197,19 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
     shadowProxy: Object.freeze({ position: Object.freeze([-1.6, 6.4, 5.8]) }),
     shadowBias: -0.00006,
     shadowNormalBias: 0.012
+  }),
+  roomShellVisibility: Object.freeze({
+    strategy: "camera-to-cabinet occlusion with elevation-aware ceiling fade",
+    minimumWallOpacity: 0.035,
+    minimumCeilingOpacity: 0.02,
+    heroInsetMeters: 0.12,
+    intersectionEpsilonMeters: 0.025,
+    minimumOcclusionSamples: 2,
+    occlusionGain: 4,
+    ceilingProximityFadeStartMeters: 0.72,
+    ceilingProximityFadeEndMeters: 0.16,
+    ceilingElevationFadeStartRadians: 0.2,
+    ceilingElevationFadeEndRadians: 0.42
   }),
   exteriorGround: Object.freeze({
     spacingMeters: 0.3048,

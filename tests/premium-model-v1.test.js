@@ -173,10 +173,10 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishVariants.charcoal.materialResponse.envMapIntensityScale, 0.75);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.uvProjection, "stable cabinet-scale straight-grain projection");
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 1.03);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.3);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.32);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentRotationRadians, 0.92);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.keyAreaScale, 0.94);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.78);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.82);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 0.9);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.9);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowFilter, "pcf-radius");
@@ -195,6 +195,22 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxy.position, [-1.6, 6.4, 5.8]);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.door.color, "#c5c7c5");
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.doorDetail.color, "#aeb1af");
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.ceiling.color, "#fffefb");
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.ceiling.emissiveIntensity, 0.72);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.wall.color, "#faf9f6");
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.roomShellVisibility, {
+    strategy: "camera-to-cabinet occlusion with elevation-aware ceiling fade",
+    minimumWallOpacity: 0.035,
+    minimumCeilingOpacity: 0.02,
+    heroInsetMeters: 0.12,
+    intersectionEpsilonMeters: 0.025,
+    minimumOcclusionSamples: 2,
+    occlusionGain: 4,
+    ceilingProximityFadeStartMeters: 0.72,
+    ceilingProximityFadeEndMeters: 0.16,
+    ceilingElevationFadeStartRadians: 0.2,
+    ceilingElevationFadeEndRadians: 0.42
+  });
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.clearcoatScale, 0.24);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.specularIntensity, 0.27);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.walnut.clearcoatScale, 0.21);
