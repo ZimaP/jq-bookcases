@@ -399,12 +399,6 @@ test("public sources contain no retired routes, newsletter UI, or fake backend c
 
 test("every public page uses the shared JQ Bookcases lockup and canonical product vocabulary", () => {
   const publicSource = [...pageSource.values(), siteSource, configuratorSource].join("\n");
-  const nonConfiguratorSource = [
-    ...[...pageSource]
-      .filter(([file]) => file !== "configurator.html")
-      .map(([, html]) => html),
-    siteSource,
-  ].join("\n");
 
   for (const [file, html] of pageSource) {
     const title = normalizedText(html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] || "");
@@ -419,11 +413,13 @@ test("every public page uses the shared JQ Bookcases lockup and canonical produc
   assert.match(siteSource, /class="brand-mark"/);
   assert.match(siteSource, /class="brand-copy"/);
   assert.match(siteSource, /aria-label="\$\{officialBrand\.shortName\} home"/);
-  assert.doesNotMatch(nonConfiguratorSource, /John Quinn Bookcases|JOHN QUINN/);
+  assert.doesNotMatch(publicSource, /John Quinn Bookcases|JOHN QUINN/);
   assert.match(
     pageSource.get("configurator.html"),
-    /class="guided-brand-copy"[^>]*>JOHN QUINN</,
+    /class="guided-brand brand brand--header"/,
   );
+  assert.match(pageSource.get("configurator.html"), /class="brand-main">BOOKCASES</);
+  assert.match(pageSource.get("configurator.html"), /class="brand-sub">BUILT-INS &amp; MILLWORK</);
 
   const retiredVocabulary = [
     [/\bJQ Woodworking\b/i, "JQ Woodworking"],
