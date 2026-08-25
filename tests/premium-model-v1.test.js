@@ -44,6 +44,18 @@ const TEXTURE_ASSETS = Object.freeze({
     bytes: 102454,
     sha256: "b3acfc91be21b85f60226e4533056c0930fbc94ac64526d85ea6d2fa01da6dd2"
   }),
+  "assets/premium-model-v1/textures/oak/base-color-worksite-reference-v1.webp": Object.freeze({
+    bytes: 98880,
+    sha256: "08bbd34b355d71466d9dd0281f67ba33286b79a901b68a7d6c2a259119d21c2f"
+  }),
+  "assets/premium-model-v1/textures/oak/normal-worksite-reference-v1.webp": Object.freeze({
+    bytes: 198420,
+    sha256: "6231d6f61d23c46c9291a894d1fd4f8347cf7a629c77dd19d07cc0a2e465352f"
+  }),
+  "assets/premium-model-v1/textures/oak/roughness-worksite-reference-v1.webp": Object.freeze({
+    bytes: 30356,
+    sha256: "fe5b0cbebb5a0118ede577ca74088cda6d9a5c34d583fe9476e027c352c672d4"
+  }),
   "assets/premium-model-v1/textures/walnut/base-color.webp": Object.freeze({
     bytes: 39606,
     sha256: "6d0abfc08f6c848fc010851cfed7cde05f9ae29bab9ae94ef21cd4d0c0d5ab1c"
@@ -68,6 +80,8 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.equal(isPremiumModelV1Route({ hostname: "127.0.0.1", search: "?modelQuality=premium-v1" }), true);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.widthMeters, 0.005);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.curveSegments, 2);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.defaultRadiusFraction, 0.18);
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.bevel.roleRadiusFraction, { "door-detail": 0.28 });
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.bevel.maximumRenderedTriangles, 45000);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.paint.repeat, [18, 18]);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.normalScale, 0.135);
@@ -79,6 +93,15 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.projectionPeriodMeters, [0.52, 1.6]);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.normalScale, 0.135);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.grainTextureAxis, "v");
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.finishVariants["natural-oak"], {
+    source: "User-supplied workplace oak appearance references with generated seamless synthesis",
+    revision: "worksite-reference-oak-20260825a",
+    map: "assets/premium-model-v1/textures/oak/base-color-worksite-reference-v1.webp",
+    normalMap: "assets/premium-model-v1/textures/oak/normal-worksite-reference-v1.webp",
+    roughnessMap: "assets/premium-model-v1/textures/oak/roughness-worksite-reference-v1.webp",
+    normalScale: 0.085,
+    calibrationStatus: "appearance reference only — not manufacturer calibrated"
+  });
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.uvProjection, "stable cabinet-scale straight-grain projection");
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.repeat, [1, 1]);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.sourceTileMeters, [1, 1]);
@@ -91,12 +114,12 @@ test("premium model V1 is the public production renderer with an explicit standa
     "dark-walnut": "#ad8d7c"
   });
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.uvProjection, "stable cabinet-scale straight-grain projection");
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 1.04);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.32);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 1.03);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.3);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentRotationRadians, 0.92);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.keyAreaScale, 0.92);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.88);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 1.08);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.keyAreaScale, 0.94);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.78);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 0.9);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.9);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowFilter, "pcf-radius");
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowStrength, 0.48);
@@ -109,7 +132,7 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.exteriorGround.fogFarMeters, 58);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.floorSurface.bumpScale, 0.004);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.separationArea, {
-    position: [0.6, 4.8, -1.2], width: 5.5, height: 2.5
+    position: [0, 5.2, -0.8], width: 5.5, height: 2.5
   });
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxy.position, [-1.6, 6.4, 5.8]);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.door.color, "#c5c7c5");
@@ -120,6 +143,8 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.walnut.specularIntensity, 0.26);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.paint.clearcoatScale, 0.26);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.paint.specularIntensity, 0.27);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.roleSurface["door-detail"].colorScale, 0.94);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.roleSurface["frame-stile"].colorScale, 0.985);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.shadow.maximumDrawCalls, 250);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.material.type, "MeshPhysicalMaterial");
 });
@@ -168,7 +193,7 @@ test("the role manifest exhaustively binds 494 unique audited primitives and pro
   }
 });
 
-test("the CC0 oak and walnut PBR maps are exact local WebP assets with recorded license provenance", async () => {
+test("the oak and walnut PBR maps are exact local WebP assets with recorded provenance", async () => {
   for (const [relativePath, expected] of Object.entries(TEXTURE_ASSETS)) {
     const [metadata, bytes] = await Promise.all([
       lstat(`${root}/${relativePath}`),
@@ -186,6 +211,8 @@ test("the CC0 oak and walnut PBR maps are exact local WebP assets with recorded 
   assert.match(license, /White Oak Veneer/);
   assert.match(license, /European Walnut Veneer 05/);
   assert.match(license, /CC0/);
+  assert.match(license, /Natural Oak workplace-reference synthesis/);
+  assert.match(license, /not identified as a manufacturer product/);
   assert.match(license, /https:\/\/polyhaven\.com\/a\/white_oak_veneer/);
   assert.match(license, /https:\/\/polyhaven\.com\/a\/european_walnut_veneer_05/);
 });

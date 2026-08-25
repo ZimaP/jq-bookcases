@@ -83,7 +83,7 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(premium.sharedLightingProfileUnchanged).toBe(false);
     expect(premium.sharedLightingOverrideApplied).toBe(true);
     expect(premium.lighting.sharedAcrossLayouts).toBe(true);
-    expect(premium.lighting.exposure).toBe(1.04);
+    expect(premium.lighting.exposure).toBe(1.03);
     expect(premium.lighting.shadowFilter).toBe("pcf-radius");
     expect(premium.lighting.shadowStrength).toBe(0.48);
     expect(premium.lighting.shadowRadius).toBe(4);
@@ -117,6 +117,8 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(premium.geometry.wrongWindingTriangles).toBe(0);
     expect(premium.geometry.maximumNormalLengthError).toBeLessThanOrEqual(1e-6);
     expect(premium.geometry.maximumWorldBoundsDeltaMillimeters).toBeLessThanOrEqual(0.05);
+    expect(premium.materialResponse.roleResponses["door-detail"].colorHex)
+      .not.toBe(premium.materialResponse.roleResponses["frame-stile"].colorHex);
     expect(premium.uvMapping.method).toBe("stable cabinet-scale straight-grain projection");
     expect(premium.uvMapping.projectedPrimitiveCount).toBeGreaterThan(0);
     expect(premium.shadowBudget.projectedMaximumDrawCalls).toBeLessThanOrEqual(250);
@@ -151,6 +153,11 @@ test("oak, warm paint, and charcoal produce distinct live PBR frames without cha
     expect(new Set(hashes).size).toBe(3);
     await reloadWithSavedFinish(page, "natural-oak");
     const restoredOak = await diagnostics(page);
+    expect(restoredOak.appearance.premiumModelV1.texturePaths).toEqual([
+      "assets/premium-model-v1/textures/oak/base-color-worksite-reference-v1.webp",
+      "assets/premium-model-v1/textures/oak/normal-worksite-reference-v1.webp",
+      "assets/premium-model-v1/textures/oak/roughness-worksite-reference-v1.webp"
+    ]);
     expect(restoredOak.appearance.premiumModelV1.uvMapping.projectedPrimitiveCount).toBeGreaterThan(0);
     expect(restoredOak.appearance.premiumModelV1.uvMapping.mappingFingerprintFNV1a32).toBe(naturalUvFingerprint);
     expect(new Set([hashes[1], hashes[2], sha256(await canvas.screenshot())]).size).toBe(3);

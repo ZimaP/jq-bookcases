@@ -10,19 +10,19 @@
   },
   "files": [
     {
-      "bytes": 120037,
+      "bytes": 120044,
       "path": "guided-layout-viewer.js",
-      "sha256": "ffda08308cf15fab565af6cf6d8342a6faa575ca0fb460b43607b93f8a695dc0"
+      "sha256": "edb021c9527e654315f9ce78a8b421781a0dda5583238b63f58adf6431e59993"
     },
     {
-      "bytes": 7673,
+      "bytes": 8483,
       "path": "guided-premium-model-v1-contract.js",
-      "sha256": "364bc4f1fc619e022b07d3485297e10250087dbb6e3877a34644c8409d1a2584"
+      "sha256": "99ab24b04b8f3f0cb7c2856d0dfe8032513c3eadfac3072a77668067438ef089"
     },
     {
-      "bytes": 43192,
+      "bytes": 43764,
       "path": "guided-premium-model-v1.js",
-      "sha256": "562dc1d6b7af480bfb248ba8813f79261c19052e684ab6b59026801765ce1554"
+      "sha256": "98c76239e1d870cc46f7710f6034e3a11baafa26d272b9734c235b819abc0d96"
     },
     {
       "bytes": 555394,
@@ -30,9 +30,9 @@
       "sha256": "4a40540a52a1c16378cfc5403d0a167886aa4a9d38d587032e5cf7c8a0ce2104"
     },
     {
-      "bytes": 1592,
+      "bytes": 2571,
       "path": "assets/premium-model-v1/ASSET-LICENSES.md",
-      "sha256": "c4048465b25b0bfe5e5d7f7fd9511860b3fc3aabf3c5df8f27a0b49995ee1f09"
+      "sha256": "c84ca299d1e4c02b1e3296ac3a40634622769af3d1c4aab1a6514043d6335b5c"
     },
     {
       "bytes": 48642,
@@ -48,6 +48,21 @@
       "bytes": 102454,
       "path": "assets/premium-model-v1/textures/oak/roughness.webp",
       "sha256": "b3acfc91be21b85f60226e4533056c0930fbc94ac64526d85ea6d2fa01da6dd2"
+    },
+    {
+      "bytes": 98880,
+      "path": "assets/premium-model-v1/textures/oak/base-color-worksite-reference-v1.webp",
+      "sha256": "08bbd34b355d71466d9dd0281f67ba33286b79a901b68a7d6c2a259119d21c2f"
+    },
+    {
+      "bytes": 198420,
+      "path": "assets/premium-model-v1/textures/oak/normal-worksite-reference-v1.webp",
+      "sha256": "6231d6f61d23c46c9291a894d1fd4f8347cf7a629c77dd19d07cc0a2e465352f"
+    },
+    {
+      "bytes": 30356,
+      "path": "assets/premium-model-v1/textures/oak/roughness-worksite-reference-v1.webp",
+      "sha256": "fe5b0cbebb5a0118ede577ca74088cda6d9a5c34d583fe9476e027c352c672d4"
     },
     {
       "bytes": 39606,
@@ -83,7 +98,7 @@
   "geometry": {
     "bevelWidthMillimeters": 5,
     "derivationDeterministic": true,
-    "method": "runtime replacement of exact 12-triangle axis-aligned furniture boxes only",
+    "method": "runtime replacement of exact 12-triangle axis-aligned furniture boxes only; door-detail thin panels use a 0.28 minimum-axis radius cap while all other eligible roles retain the 0.18 cap",
     "protectedArchitecture": true,
     "sourceAssetsModified": false,
     "worldBoundsPreserved": true
@@ -181,6 +196,12 @@
   },
   "status": "ISOLATED VISUAL PREVIEW — OWNER ACCEPTANCE OPEN",
   "textureProvenance": {
+    "naturalOakReference": {
+      "calibrationStatus": "appearance reference only — not manufacturer calibrated",
+      "derivation": "AI-generated seamless albedo synthesis from five user-supplied visual references; deterministic luminance-gradient normal and roughness maps; WebP encoding",
+      "scope": "Natural Oak exterior cabinetry only; White Oak and clear-maple interior maps unchanged",
+      "source": "five project-owner-supplied workplace photographs dated 2026-08-25"
+    },
     "oak": {
       "asset": "White Oak Veneer",
       "author": "Jenelle van Heerden",
