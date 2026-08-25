@@ -2376,7 +2376,7 @@ function syncGuidedScene() {
   }
 
   if (!guidedSceneController) updateGuidedSceneState("loading");
-  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=finish-premium-production-v1-20260824a");
+  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=infinite-studio-production-v1-20260824a");
   importPromise
     .then(({ createGuidedLayoutViewerController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;

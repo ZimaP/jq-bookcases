@@ -3,7 +3,7 @@ import {
   ROOM2_APPEARANCE_PROFILE,
   resolveRoom2Finish
 } from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
-import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=ground-readability-production-v1-20260824a";
+import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=infinite-studio-production-v1-20260824a";
 
 const ROLE_MANIFEST_URL = "config/premium-model-v1-roles.json";
 const MATERIAL_ROLES = Object.freeze(Object.keys(PREMIUM_MODEL_V1_CONTRACT.roleSurface));
@@ -706,24 +706,34 @@ function applyExteriorGround(controller, roleById) {
   }
   const group = new THREE.Group();
   group.name = "jq-premium-exterior-ground";
+  const priorBackground = controller.scene.background;
+  const priorFog = controller.scene.fog;
+  const studioColor = new THREE.Color(recipe.planeColor);
+  const studioFog = new THREE.Fog(recipe.planeColor, recipe.fogNearMeters, recipe.fogFarMeters);
+  controller.scene.background = studioColor;
+  controller.scene.fog = studioFog;
   const planeGeometry = new THREE.PlaneGeometry(x1 - x0, z1 - z0);
-  const planeMaterial = new THREE.MeshStandardMaterial({
+  const planeMaterial = new THREE.MeshBasicMaterial({
     color: recipe.planeColor,
-    roughness: 1,
-    metalness: 0,
     transparent: false,
     depthWrite: true,
     depthTest: true,
-    toneMapped: true
+    toneMapped: false
   });
   const plane = new THREE.Mesh(planeGeometry, planeMaterial);
   plane.name = "jq-premium-exterior-ground-plane";
   plane.rotation.x = -Math.PI / 2;
   plane.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
-  plane.receiveShadow = true;
   group.add(plane);
+  const shadowMaterial = new THREE.ShadowMaterial({ color: recipe.shadowColor, opacity: recipe.shadowOpacity, transparent: true, depthWrite: false, toneMapped: false });
+  const shadow = new THREE.Mesh(planeGeometry, shadowMaterial);
+  shadow.name = "jq-premium-exterior-ground-shadow";
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.set((x0 + x1) / 2, y + recipe.gridLiftMeters / 2, (z0 + z1) / 2);
+  shadow.receiveShadow = true;
+  group.add(shadow);
   const geometry = new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
-  const material = new THREE.LineBasicMaterial({ color: recipe.gridColor, transparent: true, opacity: recipe.gridOpacity, depthWrite: false, toneMapped: false });
+  const material = new THREE.LineBasicMaterial({ color: recipe.gridColor, transparent: true, opacity: recipe.gridOpacity, depthWrite: false, toneMapped: false, fog: true });
   const grid = new THREE.LineSegments(geometry, material);
   grid.name = "jq-premium-exterior-grid-lines";
   grid.position.y = recipe.gridLiftMeters;
@@ -732,6 +742,8 @@ function applyExteriorGround(controller, roleById) {
     spacingMillimeters: recipe.spacingMeters * 1000,
     lineCount: points.length / 6,
     marginMeters: recipe.marginMeters,
+    fogNearMeters: recipe.fogNearMeters,
+    fogFarMeters: recipe.fogFarMeters,
     sourceFloorBounds: false,
     excludesInteriorFloor: true,
     parent: "scene"
@@ -740,13 +752,34 @@ function applyExteriorGround(controller, roleById) {
   const removeGround = () => {
     controller.modelRoot?.removeEventListener("removed", removeGround);
     controller.scene?.remove(group);
+    if (controller.scene?.background === studioColor) controller.scene.background = priorBackground;
+    if (controller.scene?.fog === studioFog) controller.scene.fog = priorFog;
   };
   controller.modelRoot.addEventListener("removed", removeGround);
   controller.premiumOwnedGeometries.add(planeGeometry);
   controller.premiumOwnedGeometries.add(planeMaterial);
+  controller.premiumOwnedGeometries.add(shadowMaterial);
   controller.premiumOwnedGeometries.add(geometry);
   controller.premiumOwnedGeometries.add(material);
   return group.userData.jqPremiumExteriorGround;
+}
+
+function applyFloorSurface(controller, roleById) {
+  const recipe = PREMIUM_MODEL_V1_CONTRACT.floorSurface;
+  let count = 0;
+  for (const runtimeRecord of controller.meshRecords) {
+    if (roleById.get(runtimeRecord.zoneRecord?.stablePrimitiveId)?.role !== "floor") continue;
+    const material = runtimeRecord.object.material;
+    if (!material?.isMeshStandardMaterial || !material.map) continue;
+    material.bumpMap = material.map;
+    material.bumpScale = recipe.bumpScale;
+    material.roughness = recipe.roughness;
+    material.metalness = 0;
+    material.envMapIntensity = recipe.envMapIntensity;
+    material.needsUpdate = true;
+    count += 1;
+  }
+  return Object.freeze({ primitiveCount: count, sourceColorMapReusedAsMicroBump: true, bumpScale: recipe.bumpScale });
 }
 
 export async function applyPremiumModelV1(controller) {
@@ -839,6 +872,7 @@ export async function applyPremiumModelV1(controller) {
     runtimeRecord.object.userData.jqPremiumModelV1Role = manifestRecord.role;
   }
   const shadowBudget = applyPremiumShadows(controller, roleById);
+  const floorSurface = applyFloorSurface(controller, roleById);
   controller.appliedFinishId = finish.id;
   controller.scheduleRender();
   return Object.freeze({
@@ -874,6 +908,7 @@ export async function applyPremiumModelV1(controller) {
     shadowBudget,
     lighting,
     exteriorGround,
+    floorSurface,
     architecturalMaterialScope: Object.freeze({
       roomShells: true,
       doorWallOpening: controller.layoutId === "door-wall",

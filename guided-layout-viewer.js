@@ -1096,7 +1096,7 @@ export class GuidedLayoutViewerController {
   async applyPremiumModelV1Presentation() {
     if (!this.premiumModelV1Enabled || this.zoneProofMode || !this.modelRoot) return null;
     if (!this.premiumModelV1ModulePromise) {
-      this.premiumModelV1ModulePromise = import("./guided-premium-model-v1.js?v=ground-readability-production-v1-20260824a");
+      this.premiumModelV1ModulePromise = import("./guided-premium-model-v1.js?v=infinite-studio-production-v1-20260824a");
     }
     const premiumModule = await this.premiumModelV1ModulePromise;
     const diagnostics = await premiumModule.applyPremiumModelV1(this);

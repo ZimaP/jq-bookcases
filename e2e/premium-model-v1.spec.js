@@ -83,13 +83,20 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(premium.sharedLightingProfileUnchanged).toBe(false);
     expect(premium.sharedLightingOverrideApplied).toBe(true);
     expect(premium.lighting.sharedAcrossLayouts).toBe(true);
-    expect(premium.lighting.exposure).toBe(1.02);
+    expect(premium.lighting.exposure).toBe(1.04);
     expect(premium.exteriorGround.spacingMillimeters).toBe(304.8);
     expect(premium.exteriorGround.lineCount).toBeGreaterThan(0);
-    expect(premium.exteriorGround.marginMeters).toBe(3.2);
+    expect(premium.exteriorGround.marginMeters).toBe(36);
+    expect(premium.exteriorGround.fogNearMeters).toBe(24);
+    expect(premium.exteriorGround.fogFarMeters).toBe(58);
     expect(premium.exteriorGround.sourceFloorBounds).toBe(false);
     expect(premium.exteriorGround.excludesInteriorFloor).toBe(true);
     expect(premium.exteriorGround.parent).toBe("scene");
+    expect(premium.floorSurface).toEqual({
+      primitiveCount: 1,
+      sourceColorMapReusedAsMicroBump: true,
+      bumpScale: 0.004
+    });
     expect(premium.architecturalMaterialScope.roomShells).toBe(true);
     expect(premium.architecturalMaterialScope.doorWallOpening).toBe(layoutId === "door-wall");
     expect(premium.sourcePrimitiveCount).toBe(expected.sourceMetadata.primitives);

@@ -91,17 +91,20 @@ test("premium model V1 is the public production renderer with an explicit standa
     "dark-walnut": "#ad8d7c"
   });
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.uvProjection, "stable cabinet-scale straight-grain projection");
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 1.02);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.36);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 1.04);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.32);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentRotationRadians, 0.92);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.keyAreaScale, 1);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.65);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 0.95);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.keyAreaScale, 0.92);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.88);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 1.08);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.9);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.exteriorGround.spacingMeters, 0.3048);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.exteriorGround.marginMeters, 3.2);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.exteriorGround.marginMeters, 36);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.exteriorGround.fogNearMeters, 24);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.exteriorGround.fogFarMeters, 58);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.floorSurface.bumpScale, 0.004);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.separationArea, {
-    position: [0.5, 4.6, -1.4], width: 5.2, height: 2.2
+    position: [0.6, 4.8, -1.2], width: 5.5, height: 2.5
   });
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxy.position, [-3.8, 5.6, 4.2]);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.door.color, "#c5c7c5");
