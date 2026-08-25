@@ -72,8 +72,8 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
     "toe-base": Object.freeze({ roughness: 0.94, clearcoat: 0.02, clearcoatRoughness: 0.9, envMapIntensity: 0.52 })
   }),
   architecturalSurface: Object.freeze({
-    wall: Object.freeze({ color: "#f1f0ec", roughness: 0.96, clearcoat: 0, clearcoatRoughness: 1, envMapIntensity: 0.34, specularIntensity: 0.16, usePaintMicroSurface: false }),
-    ceiling: Object.freeze({ color: "#f7f6f2", roughness: 0.98, clearcoat: 0, clearcoatRoughness: 1, envMapIntensity: 0.3, specularIntensity: 0.14, usePaintMicroSurface: false }),
+    wall: Object.freeze({ color: "#f6f5f2", roughness: 0.96, clearcoat: 0, clearcoatRoughness: 1, envMapIntensity: 0.4, specularIntensity: 0.16, usePaintMicroSurface: false }),
+    ceiling: Object.freeze({ color: "#fbfaf7", roughness: 0.98, clearcoat: 0, clearcoatRoughness: 1, envMapIntensity: 0.36, specularIntensity: 0.14, usePaintMicroSurface: false }),
     door: Object.freeze({ color: "#c5c7c5", roughness: 0.9, clearcoat: 0.03, clearcoatRoughness: 0.9, envMapIntensity: 0.38, specularIntensity: 0.18, usePaintMicroSurface: true, normalScale: 0.07 }),
     doorDetail: Object.freeze({ color: "#aeb1af", roughness: 0.86, clearcoat: 0.04, clearcoatRoughness: 0.88, envMapIntensity: 0.4, specularIntensity: 0.2, usePaintMicroSurface: true, normalScale: 0.08 })
   }),
@@ -109,29 +109,38 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
   }),
   lighting: Object.freeze({
     toneMapping: "neutral",
-    exposure: 1.02,
-    environmentIntensity: 0.36,
+    exposure: 1.04,
+    environmentIntensity: 0.32,
     environmentRotationRadians: 0.92,
-    keyAreaScale: 1,
-    fillAreaScale: 0.65,
-    separationAreaScale: 0.95,
+    keyAreaScale: 0.92,
+    fillAreaScale: 0.88,
+    separationAreaScale: 1.08,
     shadowProxyScale: 0.9,
-    keyArea: Object.freeze({ position: Object.freeze([-4.5, 5, 3.5]), width: 4.2, height: 3.2 }),
-    fillArea: Object.freeze({ position: Object.freeze([4.7, 2.9, 2.6]), width: 3.2, height: 3.6 }),
-    separationArea: Object.freeze({ position: Object.freeze([0.5, 4.6, -1.4]), width: 5.2, height: 2.2 }),
+    keyArea: Object.freeze({ position: Object.freeze([-4.8, 5.4, 4.2]), width: 4.8, height: 3.8 }),
+    fillArea: Object.freeze({ position: Object.freeze([4.8, 3.4, 4]), width: 4, height: 4 }),
+    separationArea: Object.freeze({ position: Object.freeze([0.6, 4.8, -1.2]), width: 5.5, height: 2.5 }),
     shadowProxy: Object.freeze({ position: Object.freeze([-3.8, 5.6, 4.2]) }),
     shadowBias: -0.00012,
     shadowNormalBias: 0.0025
   }),
   exteriorGround: Object.freeze({
     spacingMeters: 0.3048,
-    marginMeters: 3.2,
+    marginMeters: 36,
     floorClearanceMeters: 0.02,
     planeDropMeters: 0.006,
     gridLiftMeters: 0.001,
-    planeColor: 0xf4f2ee,
-    gridColor: 0xc4beb5,
-    gridOpacity: 0.2
+    planeColor: 0xfaf9f7,
+    gridColor: 0xcac8c3,
+    gridOpacity: 0.1,
+    shadowColor: 0x716d66,
+    shadowOpacity: 0.08,
+    fogNearMeters: 24,
+    fogFarMeters: 58
+  }),
+  floorSurface: Object.freeze({
+    roughness: 0.78,
+    envMapIntensity: 0.34,
+    bumpScale: 0.004
   }),
   hardware: Object.freeze({
     color: "#80644a",
