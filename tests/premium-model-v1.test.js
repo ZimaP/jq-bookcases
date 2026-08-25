@@ -91,18 +91,21 @@ test("premium model V1 is the public production renderer with an explicit standa
     "dark-walnut": "#ad8d7c"
   });
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.uvProjection, "stable cabinet-scale straight-grain projection");
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 0.9);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.32);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentRotationRadians, 1.12);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.keyAreaScale, 0.82);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.5);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 1.08);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 1.08);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.floorGrid.spacingMeters, 0.3048);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 1.02);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.36);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentRotationRadians, 0.92);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.keyAreaScale, 1);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.65);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 0.95);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.9);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.exteriorGround.spacingMeters, 0.3048);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.exteriorGround.marginMeters, 3.2);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.separationArea, {
-    position: [0.43, 4.2, -2.25], width: 5.4, height: 2
+    position: [0.5, 4.6, -1.4], width: 5.2, height: 2.2
   });
-  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxy.position, [-3.6, 5.4, 4.3]);
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxy.position, [-3.8, 5.6, 4.2]);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.door.color, "#c5c7c5");
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.doorDetail.color, "#aeb1af");
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.clearcoatScale, 0.24);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.specularIntensity, 0.27);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.walnut.clearcoatScale, 0.21);
