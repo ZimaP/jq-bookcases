@@ -1096,7 +1096,7 @@ export class GuidedLayoutViewerController {
   async applyPremiumModelV1Presentation() {
     if (!this.premiumModelV1Enabled || this.zoneProofMode || !this.modelRoot) return null;
     if (!this.premiumModelV1ModulePromise) {
-      this.premiumModelV1ModulePromise = import("./guided-premium-model-v1.js?v=oak-profile-readability-v1-20260825a");
+      this.premiumModelV1ModulePromise = import("./guided-premium-model-v1.js?v=catalog-materials-pbr-v2-20260825a");
     }
     const premiumModule = await this.premiumModelV1ModulePromise;
     const diagnostics = await premiumModule.applyPremiumModelV1(this);

@@ -189,5 +189,5 @@ test("the four-step public path always uses the immersive registry viewer while 
   assert.match(immersiveCssSource, /\.direct-finish-grid/);
   assert.match(immersiveCssSource, /\.dimensions-workspace--direct/);
   assert.match(htmlSource, /guided-immersive-configurator\.css\?v=finish-premium-production-v1-20260824a/);
-  assert.match(htmlSource, /guided-configurator\.js\?v=oak-profile-readability-v1-20260825a/);
+  assert.match(htmlSource, /guided-configurator\.js\?v=catalog-materials-pbr-v2-20260825a/);
 });

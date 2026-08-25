@@ -56,6 +56,18 @@ const TEXTURE_ASSETS = Object.freeze({
     bytes: 30356,
     sha256: "fe5b0cbebb5a0118ede577ca74088cda6d9a5c34d583fe9476e027c352c672d4"
   }),
+  "assets/premium-model-v1/textures/oak/base-color-white-oak-reference-v2.webp": Object.freeze({
+    bytes: 65664,
+    sha256: "d552f25a4a3bebfe0b2cdc2adbdd2f46345810d28b0747978db673fecdbf200e"
+  }),
+  "assets/premium-model-v1/textures/oak/normal-white-oak-reference-v2.webp": Object.freeze({
+    bytes: 239512,
+    sha256: "8155e28d160377c394dc2a09017106971bf6c186bb4e8faa0af146a6326bcbce"
+  }),
+  "assets/premium-model-v1/textures/oak/roughness-white-oak-reference-v2.webp": Object.freeze({
+    bytes: 3990,
+    sha256: "5675b9cb586745ee04cdd657ca3df1ca858a4f5853f05f5d366d60692ecadc73"
+  }),
   "assets/premium-model-v1/textures/walnut/base-color.webp": Object.freeze({
     bytes: 39606,
     sha256: "6d0abfc08f6c848fc010851cfed7cde05f9ae29bab9ae94ef21cd4d0c0d5ab1c"
@@ -67,6 +79,26 @@ const TEXTURE_ASSETS = Object.freeze({
   "assets/premium-model-v1/textures/walnut/roughness.webp": Object.freeze({
     bytes: 89024,
     sha256: "c487a1236defeb8c5f12422a1a571449b1de535b8d23629fcd330a18bdda6d7b"
+  }),
+  "assets/premium-model-v1/textures/walnut/base-color-light-reference-v2.webp": Object.freeze({
+    bytes: 109242,
+    sha256: "1b533c548dab9ebed8d7880a2ca69b869d1d6a84431b65e555c6b121e12b30a0"
+  }),
+  "assets/premium-model-v1/textures/walnut/base-color-medium-reference-v2.webp": Object.freeze({
+    bytes: 118652,
+    sha256: "66d53d1e964da1c8837e5ad02320aec3a226db6d8dd79746a4ac1d1816a98ca0"
+  }),
+  "assets/premium-model-v1/textures/walnut/base-color-dark-reference-v2.webp": Object.freeze({
+    bytes: 122620,
+    sha256: "84a1ca0300978e8f19375f2edf184d06fc8dfe786f6072dbafefeba17326f5ef"
+  }),
+  "assets/premium-model-v1/textures/walnut/normal-reference-v2.webp": Object.freeze({
+    bytes: 339310,
+    sha256: "75b16b128a5cbd626ac65a7c99b7b3f8ebc52e1ac99fd86ecf8846c1dd6abf24"
+  }),
+  "assets/premium-model-v1/textures/walnut/roughness-reference-v2.webp": Object.freeze({
+    bytes: 8404,
+    sha256: "86fd29b735f5489409defbaa9fbec834acef76bb4430ee6a769b4687418c9cef"
   })
 });
 
@@ -93,6 +125,17 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.projectionPeriodMeters, [0.52, 1.6]);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.normalScale, 0.135);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.grainTextureAxis, "v");
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.finishVariants["white-oak"], {
+    source: "Poly Haven White Oak Veneer CC0 appearance reference with generated seamless synthesis",
+    sourceUrl: "https://polyhaven.com/a/white_oak_veneer",
+    revision: "catalog-materials-reference-v2-20260825a",
+    map: "assets/premium-model-v1/textures/oak/base-color-white-oak-reference-v2.webp",
+    normalMap: "assets/premium-model-v1/textures/oak/normal-white-oak-reference-v2.webp",
+    roughnessMap: "assets/premium-model-v1/textures/oak/roughness-white-oak-reference-v2.webp",
+    normalScale: 0.07,
+    colorMultiplier: "#ffffff",
+    calibrationStatus: "appearance reference only — not manufacturer calibrated"
+  });
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.oak.finishVariants["natural-oak"], {
     source: "User-supplied workplace oak appearance references with generated seamless synthesis",
     revision: "worksite-reference-oak-20260825a",
@@ -105,14 +148,29 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.oak.uvProjection, "stable cabinet-scale straight-grain projection");
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.repeat, [1, 1]);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.sourceTileMeters, [1, 1]);
-  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.projectionPeriodMeters, [1, 2.25]);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.normalScale, 0.1);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.grainTextureAxis, "u");
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.projectionPeriodMeters, [0.72, 2.25]);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.normalScale, 0.07);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.grainTextureAxis, "v");
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.finishMultipliers, {
     "light-walnut": "#f2dcc9",
     "medium-walnut": "#c49a7a",
     "dark-walnut": "#ad8d7c"
   });
+  assert.deepEqual(Object.keys(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.finishVariants), [
+    "light-walnut", "medium-walnut", "dark-walnut"
+  ]);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.finishVariants["light-walnut"].map,
+    "assets/premium-model-v1/textures/walnut/base-color-light-reference-v2.webp");
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.finishVariants["medium-walnut"].map,
+    "assets/premium-model-v1/textures/walnut/base-color-medium-reference-v2.webp");
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.finishVariants["dark-walnut"].map,
+    "assets/premium-model-v1/textures/walnut/base-color-dark-reference-v2.webp");
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.finishVariants["dark-walnut"].materialResponse.envMapIntensityScale, 0.74);
+  assert.deepEqual(Object.keys(PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishVariants), [
+    "shop-primed", "warm-white", "soft-ivory", "light-greige", "sage-gray", "charcoal"
+  ]);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishVariants.charcoal.normalScale, 0.065);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishVariants.charcoal.materialResponse.envMapIntensityScale, 0.75);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.uvProjection, "stable cabinet-scale straight-grain projection");
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 1.03);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.3);
@@ -209,12 +267,13 @@ test("the oak and walnut PBR maps are exact local WebP assets with recorded prov
   const license = await readFile(`${root}/assets/premium-model-v1/ASSET-LICENSES.md`, "utf8");
   assert.match(license, /Poly Haven/);
   assert.match(license, /White Oak Veneer/);
-  assert.match(license, /European Walnut Veneer 05/);
+  assert.match(license, /Natural Walnut Veneer/);
   assert.match(license, /CC0/);
   assert.match(license, /Natural Oak workplace-reference synthesis/);
+  assert.match(license, /Cabinet paint micro-surface/);
   assert.match(license, /not identified as a manufacturer product/);
   assert.match(license, /https:\/\/polyhaven\.com\/a\/white_oak_veneer/);
-  assert.match(license, /https:\/\/polyhaven\.com\/a\/european_walnut_veneer_05/);
+  assert.match(license, /https:\/\/polyhaven\.com\/a\/natural_walnut_veneer/);
 });
 
 test("deterministic provenance binds the accepted base, exact sources, and 3D-only scope", async () => {

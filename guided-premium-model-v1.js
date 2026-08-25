@@ -3,7 +3,7 @@ import {
   ROOM2_APPEARANCE_PROFILE,
   resolveRoom2Finish
 } from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
-import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=oak-profile-readability-v1-20260825a";
+import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=catalog-materials-pbr-v2-20260825a";
 
 const ROLE_MANIFEST_URL = "config/premium-model-v1-roles.json";
 const MATERIAL_ROLES = Object.freeze(Object.keys(PREMIUM_MODEL_V1_CONTRACT.roleSurface));
@@ -42,7 +42,8 @@ function familyContract(familyId) {
     || PREMIUM_MODEL_V1_CONTRACT.textures.paint;
 }
 
-function finishColor(finish) {
+function finishColor(finish, textures) {
+  if (textures?.family?.colorMultiplier) return textures.family.colorMultiplier;
   if (finish.family === "paint") {
     return PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishMultipliers?.[finish.id]
       || finish.calibratedMultiplier
@@ -112,23 +113,27 @@ function createCabinetMaterial(role, finish, textures) {
   const surface = PREMIUM_MODEL_V1_CONTRACT.roleSurface[role];
   const familySurface = PREMIUM_MODEL_V1_CONTRACT.familySurface[textures.familyId]
     || PREMIUM_MODEL_V1_CONTRACT.familySurface.paint;
+  const materialResponse = Object.freeze({
+    ...familySurface,
+    ...(textures.family.materialResponse || {})
+  });
   const clearcoatNormalScale = Number(textures.family.clearcoatNormalScale) || 0;
   const material = new THREE.MeshPhysicalMaterial({
-    color: finishColor(finish),
+    color: finishColor(finish, textures),
     map: textures.map,
     normalMap: textures.normalMap,
     roughnessMap: textures.roughnessMap,
     normalScale: new THREE.Vector2(textures.family.normalScale, textures.family.normalScale),
-    roughness: surface.roughness * familySurface.roughnessScale,
+    roughness: Math.min(1, surface.roughness * materialResponse.roughnessScale),
     metalness: PREMIUM_MODEL_V1_CONTRACT.material.metalness,
-    clearcoat: surface.clearcoat * familySurface.clearcoatScale,
-    clearcoatRoughness: Math.max(surface.clearcoatRoughness, familySurface.clearcoatRoughnessFloor),
+    clearcoat: surface.clearcoat * materialResponse.clearcoatScale,
+    clearcoatRoughness: Math.max(surface.clearcoatRoughness, materialResponse.clearcoatRoughnessFloor),
     clearcoatRoughnessMap: clearcoatNormalScale > 0 ? textures.roughnessMap : null,
     clearcoatNormalMap: clearcoatNormalScale > 0 ? textures.normalMap : null,
     clearcoatNormalScale: new THREE.Vector2(clearcoatNormalScale, clearcoatNormalScale),
     ior: PREMIUM_MODEL_V1_CONTRACT.material.ior,
-    specularIntensity: familySurface.specularIntensity,
-    envMapIntensity: surface.envMapIntensity * familySurface.envMapIntensityScale,
+    specularIntensity: materialResponse.specularIntensity,
+    envMapIntensity: surface.envMapIntensity * materialResponse.envMapIntensityScale,
     transparent: false,
     depthWrite: true,
     depthTest: true,
@@ -817,9 +822,7 @@ export async function applyPremiumModelV1(controller) {
 
   const finish = resolveRoom2Finish(controller.requestedFinishId);
   const exteriorTextures = await loadTextureSet(controller, finish.family, finish.id);
-  const interiorTextures = finish.family === "oak" && finish.id !== "natural-oak"
-    ? exteriorTextures
-    : await loadTextureSet(controller, "oak");
+  const interiorTextures = await loadTextureSet(controller, "oak");
   const architecturalTextures = finish.family === "paint" ? exteriorTextures : await loadTextureSet(controller, "paint");
   const geometry = applyPremiumGeometry(controller, roleById);
   const uvMapping = applyPremiumUvMapping(controller, roleById, finish.family);
