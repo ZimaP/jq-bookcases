@@ -2376,7 +2376,7 @@ function syncGuidedScene() {
   }
 
   if (!guidedSceneController) updateGuidedSceneState("loading");
-  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=oak-profile-readability-v1-20260825a");
+  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=catalog-materials-pbr-v2-20260825a");
   importPromise
     .then(({ createGuidedLayoutViewerController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;

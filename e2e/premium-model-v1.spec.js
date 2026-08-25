@@ -161,6 +161,14 @@ test("oak, warm paint, and charcoal produce distinct live PBR frames without cha
     expect(restoredOak.appearance.premiumModelV1.uvMapping.projectedPrimitiveCount).toBeGreaterThan(0);
     expect(restoredOak.appearance.premiumModelV1.uvMapping.mappingFingerprintFNV1a32).toBe(naturalUvFingerprint);
     expect(new Set([hashes[1], hashes[2], sha256(await canvas.screenshot())]).size).toBe(3);
+    await reloadWithSavedFinish(page, "white-oak");
+    const whiteOak = await diagnostics(page);
+    expect(whiteOak.appearance.premiumModelV1.texturePaths).toEqual([
+      "assets/premium-model-v1/textures/oak/base-color-white-oak-reference-v2.webp",
+      "assets/premium-model-v1/textures/oak/normal-white-oak-reference-v2.webp",
+      "assets/premium-model-v1/textures/oak/roughness-white-oak-reference-v2.webp"
+    ]);
+    expect(whiteOak.appearance.premiumModelV1.uvMapping.mappingFingerprintFNV1a32).toBe(naturalUvFingerprint);
   }
   expect(failures).toEqual([]);
 });
@@ -186,9 +194,9 @@ test("Light, Medium, and Dark Walnut use one restrained veneer PBR system across
       expect(premium.geometry.runtimeBeveledPrimitiveCount).toBe(geometryCount);
       expect(premium.materialResponse.family).toBe("walnut");
       expect(premium.texturePaths).toEqual([
-        "assets/premium-model-v1/textures/walnut/base-color.webp",
-        "assets/premium-model-v1/textures/walnut/normal.webp",
-        "assets/premium-model-v1/textures/walnut/roughness.webp"
+        `assets/premium-model-v1/textures/walnut/base-color-${finishId.replace("-walnut", "")}-reference-v2.webp`,
+        "assets/premium-model-v1/textures/walnut/normal-reference-v2.webp",
+        "assets/premium-model-v1/textures/walnut/roughness-reference-v2.webp"
       ]);
       expect(premium.uvMapping.method).toBe("stable cabinet-scale straight-grain projection");
       expect(premium.uvMapping.projectedPrimitiveCount).toBeGreaterThan(0);
@@ -217,13 +225,26 @@ test("explicit standard-mode opt-out preserves the accepted renderer path", asyn
   expect(failures).toEqual([]);
 });
 
-test("all canonical finish colors are customer-selectable and update the premium model", async ({ page }) => {
+test("all canonical paint colors are customer-selectable and retain a bounded satin response", async ({ page }) => {
+  test.slow();
   const failures = monitorFailures(page);
   await openLayout(page, "window-wall");
   await expect(page.locator('[data-direct-choice-group="finish"] [data-finish]')).toHaveCount(11);
-  await page.locator('[data-finish="warm-white"]').click();
-  await expect(page.locator('[data-finish="warm-white"]')).toHaveAttribute("aria-pressed", "true");
-  await expect.poll(async () => (await diagnostics(page)).appearance.premiumModelV1?.finishId).toBe("warm-white");
+  const paintFinishes = ["shop-primed", "warm-white", "soft-ivory", "light-greige", "sage-gray", "charcoal"];
+  const hashes = [];
+  for (const finishId of paintFinishes) {
+    await reloadWithSavedFinish(page, finishId);
+    await expect(page.locator(`[data-finish="${finishId}"]`)).toHaveAttribute("aria-pressed", "true");
+    const record = await diagnostics(page);
+    expect(record.appearance.premiumModelV1.finishId).toBe(finishId);
+    expect(record.appearance.premiumModelV1.materialResponse.family).toBe("paint");
+    expect(record.appearance.premiumModelV1.materialResponse.maximumClearcoat).toBeLessThanOrEqual(0.18);
+    expect(record.appearance.premiumModelV1.materialResponse.minimumClearcoatRoughness).toBeGreaterThanOrEqual(0.68);
+    expect(record.appearance.premiumModelV1.materialResponse.maximumEnvMapIntensity).toBeLessThanOrEqual(0.8);
+    hashes.push(sha256(await page.locator("canvas").screenshot()));
+  }
+  expect(new Set(hashes).size).toBe(paintFinishes.length);
+  await reloadWithSavedFinish(page, "warm-white");
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(page.locator('[data-finish="warm-white"]')).toHaveAttribute("aria-pressed", "true");
   await expect.poll(async () => (await diagnostics(page)).appearance.premiumModelV1?.finishId).toBe("warm-white");

@@ -32,6 +32,17 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
       normalScale: 0.135,
       grainTextureAxis: "v",
       finishVariants: Object.freeze({
+        "white-oak": Object.freeze({
+          source: "Poly Haven White Oak Veneer CC0 appearance reference with generated seamless synthesis",
+          sourceUrl: "https://polyhaven.com/a/white_oak_veneer",
+          revision: "catalog-materials-reference-v2-20260825a",
+          map: "assets/premium-model-v1/textures/oak/base-color-white-oak-reference-v2.webp",
+          normalMap: "assets/premium-model-v1/textures/oak/normal-white-oak-reference-v2.webp",
+          roughnessMap: "assets/premium-model-v1/textures/oak/roughness-white-oak-reference-v2.webp",
+          normalScale: 0.07,
+          colorMultiplier: "#ffffff",
+          calibrationStatus: "appearance reference only — not manufacturer calibrated"
+        }),
         "natural-oak": Object.freeze({
           source: "User-supplied workplace oak appearance references with generated seamless synthesis",
           revision: "worksite-reference-oak-20260825a",
@@ -45,17 +56,55 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
       uvProjection: "stable cabinet-scale straight-grain projection"
     }),
     walnut: Object.freeze({
-      source: "Poly Haven European Walnut Veneer 05, CC0",
-      sourceUrl: "https://polyhaven.com/a/european_walnut_veneer_05",
-      revision: "cabinet-satin-walnut-20260823b",
+      source: "Poly Haven Natural Walnut Veneer, CC0",
+      sourceUrl: "https://polyhaven.com/a/natural_walnut_veneer",
+      revision: "catalog-materials-reference-v2-20260825a",
       sourceTileMeters: Object.freeze([1, 1]),
-      projectionPeriodMeters: Object.freeze([1, 2.25]),
+      projectionPeriodMeters: Object.freeze([0.72, 2.25]),
       map: "assets/premium-model-v1/textures/walnut/base-color.webp",
       normalMap: "assets/premium-model-v1/textures/walnut/normal.webp",
       roughnessMap: "assets/premium-model-v1/textures/walnut/roughness.webp",
       repeat: Object.freeze([1, 1]),
-      normalScale: 0.1,
-      grainTextureAxis: "u",
+      normalScale: 0.07,
+      grainTextureAxis: "v",
+      finishVariants: Object.freeze({
+        "light-walnut": Object.freeze({
+          source: "Poly Haven Natural Walnut Veneer CC0 appearance reference with generated seamless synthesis",
+          sourceUrl: "https://polyhaven.com/a/natural_walnut_veneer",
+          revision: "catalog-materials-reference-v2-20260825a",
+          map: "assets/premium-model-v1/textures/walnut/base-color-light-reference-v2.webp",
+          normalMap: "assets/premium-model-v1/textures/walnut/normal-reference-v2.webp",
+          roughnessMap: "assets/premium-model-v1/textures/walnut/roughness-reference-v2.webp",
+          normalScale: 0.065,
+          colorMultiplier: "#ffffff",
+          materialResponse: Object.freeze({ roughnessScale: 1.08, clearcoatScale: 0.28, clearcoatRoughnessFloor: 0.78, envMapIntensityScale: 0.67, specularIntensity: 0.28 }),
+          calibrationStatus: "appearance reference only — not manufacturer calibrated"
+        }),
+        "medium-walnut": Object.freeze({
+          source: "Poly Haven Natural Walnut Veneer CC0 appearance reference with generated seamless synthesis",
+          sourceUrl: "https://polyhaven.com/a/natural_walnut_veneer",
+          revision: "catalog-materials-reference-v2-20260825a",
+          map: "assets/premium-model-v1/textures/walnut/base-color-medium-reference-v2.webp",
+          normalMap: "assets/premium-model-v1/textures/walnut/normal-reference-v2.webp",
+          roughnessMap: "assets/premium-model-v1/textures/walnut/roughness-reference-v2.webp",
+          normalScale: 0.065,
+          colorMultiplier: "#ffffff",
+          materialResponse: Object.freeze({ roughnessScale: 1.07, clearcoatScale: 0.28, clearcoatRoughnessFloor: 0.78, envMapIntensityScale: 0.69, specularIntensity: 0.29 }),
+          calibrationStatus: "appearance reference only — not manufacturer calibrated"
+        }),
+        "dark-walnut": Object.freeze({
+          source: "Poly Haven Natural Walnut Veneer CC0 appearance reference with generated seamless synthesis",
+          sourceUrl: "https://polyhaven.com/a/natural_walnut_veneer",
+          revision: "catalog-materials-reference-v2-20260825a",
+          map: "assets/premium-model-v1/textures/walnut/base-color-dark-reference-v2.webp",
+          normalMap: "assets/premium-model-v1/textures/walnut/normal-reference-v2.webp",
+          roughnessMap: "assets/premium-model-v1/textures/walnut/roughness-reference-v2.webp",
+          normalScale: 0.06,
+          colorMultiplier: "#ffffff",
+          materialResponse: Object.freeze({ roughnessScale: 1.05, clearcoatScale: 0.3, clearcoatRoughnessFloor: 0.77, envMapIntensityScale: 0.74, specularIntensity: 0.3 }),
+          calibrationStatus: "appearance reference only — not manufacturer calibrated"
+        })
+      }),
       finishMultipliers: Object.freeze({
         "light-walnut": "#f2dcc9",
         "medium-walnut": "#c49a7a",
@@ -71,6 +120,14 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
       repeat: Object.freeze([18, 18]),
       normalScale: 0.135,
       clearcoatNormalScale: 0.04,
+      finishVariants: Object.freeze({
+        "shop-primed": Object.freeze({ normalScale: 0.075, materialResponse: Object.freeze({ roughnessScale: 1.12, clearcoatScale: 0.12, clearcoatRoughnessFloor: 0.9, envMapIntensityScale: 0.58, specularIntensity: 0.24 }) }),
+        "warm-white": Object.freeze({ normalScale: 0.07, materialResponse: Object.freeze({ roughnessScale: 1.06, clearcoatScale: 0.32, clearcoatRoughnessFloor: 0.78, envMapIntensityScale: 0.66, specularIntensity: 0.29 }) }),
+        "soft-ivory": Object.freeze({ normalScale: 0.07, materialResponse: Object.freeze({ roughnessScale: 1.06, clearcoatScale: 0.32, clearcoatRoughnessFloor: 0.78, envMapIntensityScale: 0.66, specularIntensity: 0.29 }) }),
+        "light-greige": Object.freeze({ normalScale: 0.07, materialResponse: Object.freeze({ roughnessScale: 1.06, clearcoatScale: 0.32, clearcoatRoughnessFloor: 0.78, envMapIntensityScale: 0.67, specularIntensity: 0.29 }) }),
+        "sage-gray": Object.freeze({ normalScale: 0.07, materialResponse: Object.freeze({ roughnessScale: 1.05, clearcoatScale: 0.33, clearcoatRoughnessFloor: 0.77, envMapIntensityScale: 0.69, specularIntensity: 0.29 }) }),
+        charcoal: Object.freeze({ normalScale: 0.065, materialResponse: Object.freeze({ roughnessScale: 1.03, clearcoatScale: 0.34, clearcoatRoughnessFloor: 0.76, envMapIntensityScale: 0.75, specularIntensity: 0.3 }) })
+      }),
       finishMultipliers: Object.freeze({
         charcoal: "#484b4e"
       })

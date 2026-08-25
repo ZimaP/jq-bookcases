@@ -6,8 +6,11 @@
 - Source: https://polyhaven.com/a/white_oak_veneer
 - License: CC0 1.0 Universal
 - License page: https://polyhaven.com/license
-- Source resolution used: 1K JPEG diffuse, OpenGL normal, and roughness maps
-- Runtime derivative: local 1024 × 1024 WebP encodes. The base color has a deterministic low-contrast cabinet-finish tone balance; no AI generation or painted seam detail.
+- Source resolution reviewed: official 1K JPEG diffuse, OpenGL normal, and roughness maps
+- Runtime derivative: the official diffuse was used as an appearance reference for a new seamless, vertically grained furniture-veneer albedo synthesis. A deterministic 1024 × 1024 luminance-gradient normal and bounded roughness map were derived locally with FFmpeg and encoded with `cwebp`.
+- Generated source SHA-256: `ddcc79814ed38b7b7da1b7d55f7be035772640fd5f606a1464a853b9d6ab594c`
+- Scope: `white-oak` exterior cabinetry only. Clear-maple/interior construction retains the accepted repository oak map.
+- Calibration status: visual appearance reference only; not a manufacturer-calibrated finish, certified species sample, or approved SKU.
 - Cabinet projection: the original 0.5 m tile is mapped with a deterministic 0.52 m cross-grain × 1.6 m long-grain period to avoid short repeating cathedral patterns on tall casework.
 
 The source maps are used only by the isolated `modelQuality=premium-v1` 3D preview.
@@ -21,14 +24,23 @@ The source maps are used only by the isolated `modelQuality=premium-v1` 3D previ
 - Calibration status: visual appearance reference only. The material is not identified as a manufacturer product, exact oak species, approved SKU, or manufacturer-calibrated finish.
 - Exclusions: no room background, wall, floor, tape, outlet, panel edge, baked highlight, or baked shadow from the photographs is present in the runtime asset.
 
-## European Walnut Veneer 05
+## Natural Walnut Veneer
 
 - Creator: Jenelle van Heerden / Poly Haven
-- Source: https://polyhaven.com/a/european_walnut_veneer_05
+- Source: https://polyhaven.com/a/natural_walnut_veneer
 - License: CC0 1.0 Universal
 - License page: https://polyhaven.com/license
-- Source resolution used: 1K JPEG diffuse, OpenGL normal, and roughness maps
-- Runtime derivative: local 1024 × 1024 WebP encodes. The base color has a deterministic low-contrast neutral cabinet-finish tone balance so Light, Medium, and Dark Walnut remain distinct without becoming a noisy board pattern.
-- Cabinet projection: the original 1 m tile keeps its 1 m cross-grain scale and uses a deterministic 2.25 m long-grain period. The texture's horizontal grain axis is explicitly mapped to the authored long axis of each audited cabinet part.
+- Source resolution reviewed: official 1K JPEG diffuse, OpenGL normal, and roughness maps
+- Runtime derivative: the official diffuse was used as an appearance reference for one seamless, vertically grained furniture-veneer albedo synthesis. Light, Medium, and Dark Walnut receive separate deterministic base-color derivatives instead of a runtime tint overlay; they share aligned deterministic normal and bounded roughness maps.
+- Generated source SHA-256: `a65dac230796d654aa861b87cc54302aa67e6cf9dccff5442dba3d547f030c7f`
+- Cabinet projection: deterministic 0.72 m cross-grain × 2.25 m long-grain period, with the texture V axis mapped to the authored long axis of each audited cabinet part.
+- Calibration status: visual appearance references only; the three tones are not manufacturer-calibrated products, certified species samples, or approved SKUs.
 
 The source maps are used only by the isolated `modelQuality=premium-v1` 3D preview.
+
+## Cabinet paint micro-surface
+
+- Source: existing accepted repository sprayed-paint normal and roughness maps.
+- Runtime derivative: no new color catalog or remote texture. Each existing paint color keeps its canonical state value while receiving a bounded finish-specific satin response, subtle micro-normal scale, and highlight energy selected to preserve door/profile readability on light and dark colors.
+- Scope: Shop-Primed, Warm White, Soft Ivory, Light Greige, Sage Gray, and Charcoal only.
+- Calibration status: visual rendering response only; no manufacturer, paint code, color standard, or SKU calibration is claimed.

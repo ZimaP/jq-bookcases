@@ -10,19 +10,19 @@
   },
   "files": [
     {
-      "bytes": 120044,
+      "bytes": 120042,
       "path": "guided-layout-viewer.js",
-      "sha256": "edb021c9527e654315f9ce78a8b421781a0dda5583238b63f58adf6431e59993"
+      "sha256": "c007e1ae2ce2ca8276a85c383a23af897f796ad7dd3102c44683f8ee55dbcdf4"
     },
     {
-      "bytes": 8483,
+      "bytes": 13386,
       "path": "guided-premium-model-v1-contract.js",
-      "sha256": "99ab24b04b8f3f0cb7c2856d0dfe8032513c3eadfac3072a77668067438ef089"
+      "sha256": "f4caae44a8f7c91a4b492fd99d50e71d76c4ad8127e29436129b3d35e2eeec04"
     },
     {
-      "bytes": 43764,
+      "bytes": 43926,
       "path": "guided-premium-model-v1.js",
-      "sha256": "98c76239e1d870cc46f7710f6034e3a11baafa26d272b9734c235b819abc0d96"
+      "sha256": "c77b7563e1e4c5d859680b68f2a79e2fe6ff4db362914f108442e443aa089c15"
     },
     {
       "bytes": 555394,
@@ -30,9 +30,9 @@
       "sha256": "4a40540a52a1c16378cfc5403d0a167886aa4a9d38d587032e5cf7c8a0ce2104"
     },
     {
-      "bytes": 2571,
+      "bytes": 3989,
       "path": "assets/premium-model-v1/ASSET-LICENSES.md",
-      "sha256": "c84ca299d1e4c02b1e3296ac3a40634622769af3d1c4aab1a6514043d6335b5c"
+      "sha256": "20f037e78328fd5abeacbb06fb896bcaa9dc92310cfafa31caf7ddddee021b0a"
     },
     {
       "bytes": 48642,
@@ -65,6 +65,21 @@
       "sha256": "fe5b0cbebb5a0118ede577ca74088cda6d9a5c34d583fe9476e027c352c672d4"
     },
     {
+      "bytes": 65664,
+      "path": "assets/premium-model-v1/textures/oak/base-color-white-oak-reference-v2.webp",
+      "sha256": "d552f25a4a3bebfe0b2cdc2adbdd2f46345810d28b0747978db673fecdbf200e"
+    },
+    {
+      "bytes": 239512,
+      "path": "assets/premium-model-v1/textures/oak/normal-white-oak-reference-v2.webp",
+      "sha256": "8155e28d160377c394dc2a09017106971bf6c186bb4e8faa0af146a6326bcbce"
+    },
+    {
+      "bytes": 3990,
+      "path": "assets/premium-model-v1/textures/oak/roughness-white-oak-reference-v2.webp",
+      "sha256": "5675b9cb586745ee04cdd657ca3df1ca858a4f5853f05f5d366d60692ecadc73"
+    },
+    {
       "bytes": 39606,
       "path": "assets/premium-model-v1/textures/walnut/base-color.webp",
       "sha256": "6d0abfc08f6c848fc010851cfed7cde05f9ae29bab9ae94ef21cd4d0c0d5ab1c"
@@ -78,6 +93,31 @@
       "bytes": 89024,
       "path": "assets/premium-model-v1/textures/walnut/roughness.webp",
       "sha256": "c487a1236defeb8c5f12422a1a571449b1de535b8d23629fcd330a18bdda6d7b"
+    },
+    {
+      "bytes": 109242,
+      "path": "assets/premium-model-v1/textures/walnut/base-color-light-reference-v2.webp",
+      "sha256": "1b533c548dab9ebed8d7880a2ca69b869d1d6a84431b65e555c6b121e12b30a0"
+    },
+    {
+      "bytes": 118652,
+      "path": "assets/premium-model-v1/textures/walnut/base-color-medium-reference-v2.webp",
+      "sha256": "66d53d1e964da1c8837e5ad02320aec3a226db6d8dd79746a4ac1d1816a98ca0"
+    },
+    {
+      "bytes": 122620,
+      "path": "assets/premium-model-v1/textures/walnut/base-color-dark-reference-v2.webp",
+      "sha256": "84a1ca0300978e8f19375f2edf184d06fc8dfe786f6072dbafefeba17326f5ef"
+    },
+    {
+      "bytes": 339310,
+      "path": "assets/premium-model-v1/textures/walnut/normal-reference-v2.webp",
+      "sha256": "75b16b128a5cbd626ac65a7c99b7b3f8ebc52e1ac99fd86ecf8846c1dd6abf24"
+    },
+    {
+      "bytes": 8404,
+      "path": "assets/premium-model-v1/textures/walnut/roughness-reference-v2.webp",
+      "sha256": "86fd29b735f5489409defbaa9fbec834acef76bb4430ee6a769b4687418c9cef"
     },
     {
       "bytes": 6712076,
@@ -205,17 +245,30 @@
     "oak": {
       "asset": "White Oak Veneer",
       "author": "Jenelle van Heerden",
+      "derivation": "AI-generated seamless appearance synthesis from the official 1K CC0 diffuse reference; deterministic luminance-gradient normal and bounded roughness maps; WebP encoding",
+      "generatedSourceSha256": "ddcc79814ed38b7b7da1b7d55f7be035772640fd5f606a1464a853b9d6ab594c",
       "license": "CC0 1.0",
       "licenseUrl": "https://polyhaven.com/license",
-      "source": "https://polyhaven.com/a/white_oak_veneer"
+      "scope": "White Oak exterior only; clear-maple/interior retains the accepted base oak map",
+      "source": "https://polyhaven.com/a/white_oak_veneer",
+      "status": "appearance reference only — not manufacturer calibrated"
     },
-    "paint": "existing accepted repository PBR asset family",
+    "paint": {
+      "derivation": "existing accepted sprayed-paint normal/roughness maps with bounded finish-specific satin response",
+      "scope": "existing six canonical paint identifiers only; no catalog additions or state changes",
+      "source": "existing accepted repository PBR asset family",
+      "status": "visual rendering response only — not manufacturer calibrated"
+    },
     "walnut": {
-      "asset": "European Walnut Veneer 05",
+      "asset": "Natural Walnut Veneer",
       "author": "Jenelle van Heerden",
+      "derivation": "AI-generated seamless appearance synthesis from the official 1K CC0 diffuse reference; three deterministic tone-preserving albedo derivatives share aligned luminance-gradient normal and bounded roughness maps",
+      "generatedSourceSha256": "a65dac230796d654aa861b87cc54302aa67e6cf9dccff5442dba3d547f030c7f",
       "license": "CC0 1.0",
       "licenseUrl": "https://polyhaven.com/license",
-      "source": "https://polyhaven.com/a/european_walnut_veneer_05"
+      "scope": "Light, Medium, and Dark Walnut exterior cabinetry",
+      "source": "https://polyhaven.com/a/natural_walnut_veneer",
+      "status": "appearance reference only — not manufacturer calibrated"
     }
   }
 }
