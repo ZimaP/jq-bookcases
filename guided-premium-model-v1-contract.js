@@ -116,12 +116,15 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
     fillAreaScale: 0.88,
     separationAreaScale: 1.08,
     shadowProxyScale: 0.9,
+    shadowFilter: "pcf-radius",
+    shadowStrength: 0.48,
+    shadowRadius: 4,
     keyArea: Object.freeze({ position: Object.freeze([-4.8, 5.4, 4.2]), width: 4.8, height: 3.8 }),
     fillArea: Object.freeze({ position: Object.freeze([4.8, 3.4, 4]), width: 4, height: 4 }),
     separationArea: Object.freeze({ position: Object.freeze([0.6, 4.8, -1.2]), width: 5.5, height: 2.5 }),
-    shadowProxy: Object.freeze({ position: Object.freeze([-3.8, 5.6, 4.2]) }),
-    shadowBias: -0.00012,
-    shadowNormalBias: 0.0025
+    shadowProxy: Object.freeze({ position: Object.freeze([-1.6, 6.4, 5.8]) }),
+    shadowBias: -0.00006,
+    shadowNormalBias: 0.012
   }),
   exteriorGround: Object.freeze({
     spacingMeters: 0.3048,
