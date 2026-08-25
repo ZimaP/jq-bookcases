@@ -346,9 +346,12 @@ function applyPremiumLighting(controller) {
   configureArea(fillArea, recipe.fillArea, profile.fill.area.intensity * recipe.fillAreaScale);
   configureArea(separationArea, recipe.separationArea, profile.separation.area.intensity * recipe.separationAreaScale);
   if (shadowProxy) {
+    controller.renderer.shadowMap.type = THREE.PCFShadowMap;
     shadowProxy.intensity = profile.key.shadowProxy.intensity * recipe.shadowProxyScale;
     shadowProxy.position.fromArray(recipe.shadowProxy.position).add(layoutOffset);
     shadowProxy.target.position.copy(target);
+    shadowProxy.shadow.intensity = recipe.shadowStrength;
+    shadowProxy.shadow.radius = recipe.shadowRadius;
     shadowProxy.shadow.bias = recipe.shadowBias;
     shadowProxy.shadow.normalBias = recipe.shadowNormalBias;
   }
@@ -363,6 +366,9 @@ function applyPremiumLighting(controller) {
     fillAreaIntensity: fillArea?.intensity ?? null,
     separationAreaIntensity: separationArea?.intensity ?? null,
     shadowProxyIntensity: shadowProxy?.intensity ?? null,
+    shadowFilter: controller.renderer.shadowMap.type === THREE.PCFShadowMap ? "pcf-radius" : "unexpected",
+    shadowStrength: shadowProxy?.shadow.intensity ?? null,
+    shadowRadius: shadowProxy?.shadow.radius ?? null,
     shadowBias: shadowProxy?.shadow.bias ?? null,
     shadowNormalBias: shadowProxy?.shadow.normalBias ?? null
   });

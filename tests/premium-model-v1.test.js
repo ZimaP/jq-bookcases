@@ -98,6 +98,11 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.88);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 1.08);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.9);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowFilter, "pcf-radius");
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowStrength, 0.48);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowRadius, 4);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowBias, -0.00006);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowNormalBias, 0.012);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.exteriorGround.spacingMeters, 0.3048);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.exteriorGround.marginMeters, 36);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.exteriorGround.fogNearMeters, 24);
@@ -106,7 +111,7 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.separationArea, {
     position: [0.6, 4.8, -1.2], width: 5.5, height: 2.5
   });
-  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxy.position, [-3.8, 5.6, 4.2]);
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxy.position, [-1.6, 6.4, 5.8]);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.door.color, "#c5c7c5");
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.doorDetail.color, "#aeb1af");
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.clearcoatScale, 0.24);

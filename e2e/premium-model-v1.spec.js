@@ -84,6 +84,10 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(premium.sharedLightingOverrideApplied).toBe(true);
     expect(premium.lighting.sharedAcrossLayouts).toBe(true);
     expect(premium.lighting.exposure).toBe(1.04);
+    expect(premium.lighting.shadowFilter).toBe("pcf-radius");
+    expect(premium.lighting.shadowStrength).toBe(0.48);
+    expect(premium.lighting.shadowRadius).toBe(4);
+    expect(premium.lighting.shadowNormalBias).toBe(0.012);
     expect(premium.exteriorGround.spacingMillimeters).toBe(304.8);
     expect(premium.exteriorGround.lineCount).toBeGreaterThan(0);
     expect(premium.exteriorGround.marginMeters).toBe(36);
