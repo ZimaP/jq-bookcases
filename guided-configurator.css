@@ -219,9 +219,11 @@ body.guided-page {
   justify-content: space-between;
   min-height: var(--guided-header-height);
   padding: 0 29px 0 45px;
-  border-bottom: 1px solid #f2f0ee;
+  border-bottom: 1px solid rgba(246, 238, 228, 0.16);
   border-radius: 14px 14px 0 0;
-  background: #fdfcfc;
+  color: #fffaf3;
+  background: linear-gradient(180deg, rgba(39, 34, 29, 0.98), rgba(31, 27, 23, 0.96));
+  box-shadow: 0 10px 28px rgba(48, 37, 26, 0.14);
 }
 
 .guided-brand {
@@ -311,6 +313,14 @@ body.guided-page {
 .guided-menu-button:hover,
 .guided-icon-button:hover {
   background: var(--guided-surface-soft);
+}
+
+.guided-header :is(.guided-header-action, .guided-menu-button) {
+  color: inherit;
+}
+
+.guided-header :is(.guided-header-action, .guided-menu-button):hover {
+  background: rgba(255, 250, 243, 0.09);
 }
 
 .guided-menu {
