@@ -25,7 +25,7 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
       normalMap: "assets/premium-model-v1/textures/oak/normal.webp",
       roughnessMap: "assets/premium-model-v1/textures/oak/roughness.webp",
       repeat: Object.freeze([1, 1]),
-      normalScale: 0.09,
+      normalScale: 0.135,
       grainTextureAxis: "v",
       uvProjection: "stable cabinet-scale straight-grain projection"
     }),
@@ -39,7 +39,7 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
       normalMap: "assets/premium-model-v1/textures/walnut/normal.webp",
       roughnessMap: "assets/premium-model-v1/textures/walnut/roughness.webp",
       repeat: Object.freeze([1, 1]),
-      normalScale: 0.065,
+      normalScale: 0.1,
       grainTextureAxis: "u",
       finishMultipliers: Object.freeze({
         "light-walnut": "#f2dcc9",
@@ -54,8 +54,8 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
       normalMap: "assets/room2-commercial-pbr-v1/textures/paint/normal.webp",
       roughnessMap: "assets/room2-commercial-pbr-v1/textures/paint/roughness.webp",
       repeat: Object.freeze([18, 18]),
-      normalScale: 0.095,
-      clearcoatNormalScale: 0.025,
+      normalScale: 0.135,
+      clearcoatNormalScale: 0.04,
       finishMultipliers: Object.freeze({
         charcoal: "#484b4e"
       })
@@ -103,20 +103,21 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
   }),
   lighting: Object.freeze({
     toneMapping: "neutral",
-    exposure: 0.93,
-    environmentIntensity: 0.4,
+    exposure: 0.9,
+    environmentIntensity: 0.32,
     environmentRotationRadians: 1.12,
-    keyAreaScale: 0.9,
-    fillAreaScale: 0.74,
-    separationAreaScale: 1.25,
-    shadowProxyScale: 0.98,
-    keyArea: Object.freeze({ position: Object.freeze([-4.2, 3.9, 2.5]), width: 4.2, height: 3.2 }),
-    fillArea: Object.freeze({ position: Object.freeze([4.2, 2.4, 2.7]), width: 3, height: 3 }),
+    keyAreaScale: 0.82,
+    fillAreaScale: 0.5,
+    separationAreaScale: 1.08,
+    shadowProxyScale: 1.08,
+    keyArea: Object.freeze({ position: Object.freeze([-4.8, 4.1, 2.15]), width: 3.8, height: 3 }),
+    fillArea: Object.freeze({ position: Object.freeze([5.1, 3.1, 1.15]), width: 2.6, height: 3.4 }),
     separationArea: Object.freeze({ position: Object.freeze([0.43, 4.2, -2.25]), width: 5.4, height: 2 }),
     shadowProxy: Object.freeze({ position: Object.freeze([-3.6, 5.4, 4.3]) }),
     shadowBias: -0.00012,
-    shadowNormalBias: 0.005
+    shadowNormalBias: 0.0035
   }),
+  floorGrid: Object.freeze({ spacingMeters: 0.3048, color: 0xc8bdae, opacity: 0.12, liftMeters: 0.0015 }),
   hardware: Object.freeze({
     color: "#80644a",
     metalness: 1,

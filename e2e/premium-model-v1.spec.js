@@ -83,7 +83,9 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(premium.sharedLightingProfileUnchanged).toBe(false);
     expect(premium.sharedLightingOverrideApplied).toBe(true);
     expect(premium.lighting.sharedAcrossLayouts).toBe(true);
-    expect(premium.lighting.exposure).toBe(0.93);
+    expect(premium.lighting.exposure).toBe(0.9);
+    expect(premium.floorGrid.spacingMillimeters).toBe(304.8);
+    expect(premium.floorGrid.lineCount).toBeGreaterThan(0);
     expect(premium.sourcePrimitiveCount).toBe(expected.sourceMetadata.primitives);
     expect(premium.exactPrimitiveCoverage).toBe(expected.sourceMetadata.primitives);
     expect(premium.premiumMaterialPrimitiveCount).toBeGreaterThan(0);

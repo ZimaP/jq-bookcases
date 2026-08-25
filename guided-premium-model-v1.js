@@ -3,7 +3,7 @@ import {
   ROOM2_APPEARANCE_PROFILE,
   resolveRoom2Finish
 } from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
-import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=finish-premium-production-v1-20260824a";
+import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=finish-premium-production-v1-20260824b";
 
 const ROLE_MANIFEST_URL = "config/premium-model-v1-roles.json";
 const MATERIAL_ROLES = Object.freeze(Object.keys(PREMIUM_MODEL_V1_CONTRACT.roleSurface));
@@ -635,6 +635,30 @@ function applyPremiumShadows(controller, roleById) {
   return controller.shadowPrimitiveBudget;
 }
 
+function applyFloorGrid(controller, roleById) {
+  const prior = controller.modelRoot.getObjectByName("jq-premium-floor-grid");
+  if (prior) return prior.userData.jqPremiumFloorGrid;
+  const floor = [...roleById.values()].find(({ role }) => role === "floor");
+  const recipe = PREMIUM_MODEL_V1_CONTRACT.floorGrid;
+  if (!floor) return null;
+  const [x0, y, z0] = floor.worldBounds.min;
+  const [x1] = floor.worldBounds.max;
+  const z1 = floor.worldBounds.max[2];
+  const points = [];
+  for (let x = x0; x <= x1 + 1e-6; x += recipe.spacingMeters) points.push(x, y, z0, x, y, z1);
+  for (let z = z0; z <= z1 + 1e-6; z += recipe.spacingMeters) points.push(x0, y, z, x1, y, z);
+  const geometry = new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
+  const material = new THREE.LineBasicMaterial({ color: recipe.color, transparent: true, opacity: recipe.opacity, depthWrite: false, toneMapped: false });
+  const grid = new THREE.LineSegments(geometry, material);
+  grid.name = "jq-premium-floor-grid";
+  grid.position.y = recipe.liftMeters;
+  grid.userData.jqPremiumFloorGrid = Object.freeze({ spacingMillimeters: recipe.spacingMeters * 1000, lineCount: points.length / 6, sourceFloorBounds: true });
+  controller.modelRoot.add(grid);
+  controller.premiumOwnedGeometries.add(geometry);
+  controller.premiumOwnedGeometries.add(material);
+  return grid.userData.jqPremiumFloorGrid;
+}
+
 export async function applyPremiumModelV1(controller) {
   if (!controller?.modelRoot || !controller.layoutId || !controller.meshRecords.length) {
     throw new Error("Premium model V1 requires a verified loaded layout.");
@@ -662,6 +686,7 @@ export async function applyPremiumModelV1(controller) {
   const geometry = applyPremiumGeometry(controller, roleById);
   const uvMapping = applyPremiumUvMapping(controller, roleById, finish.family);
   const lighting = applyPremiumLighting(controller);
+  const floorGrid = applyFloorGrid(controller, roleById);
 
   controller.disposeActiveFinishMaterials();
   const materials = new Map();
@@ -742,6 +767,7 @@ export async function applyPremiumModelV1(controller) {
     uvMapping,
     shadowBudget,
     lighting,
+    floorGrid,
     protectedRoles: Object.freeze([
       "room-shell", "floor", "fireplace", "architectural-opening",
       "architectural-opening-detail", "architectural-hardware",
