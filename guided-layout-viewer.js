@@ -182,6 +182,7 @@ export class GuidedLayoutViewerController {
       );
     this.premiumModelV1ModulePromise = null;
     this.premiumModelV1Diagnostics = null;
+    this.premiumRoomShellVisibility = null;
     const localTestHooks = ["localhost", "127.0.0.1", "::1"].includes(proofHost)
       ? globalThis.__JQ_IMMERSIVE_VIEWER_TEST_HOOKS__
       : null;
@@ -1096,7 +1097,7 @@ export class GuidedLayoutViewerController {
   async applyPremiumModelV1Presentation() {
     if (!this.premiumModelV1Enabled || this.zoneProofMode || !this.modelRoot) return null;
     if (!this.premiumModelV1ModulePromise) {
-      this.premiumModelV1ModulePromise = import("./guided-premium-model-v1.js?v=catalog-materials-pbr-v2-20260825a");
+      this.premiumModelV1ModulePromise = import("./guided-premium-model-v1.js?v=room-shell-visibility-v1-20260825a");
     }
     const premiumModule = await this.premiumModelV1ModulePromise;
     const diagnostics = await premiumModule.applyPremiumModelV1(this);
@@ -1373,13 +1374,7 @@ export class GuidedLayoutViewerController {
         -1,
         1
       ));
-      const ceilingPhi = Math.asin(clamp(
-        (bounds.max[1] - ROOM_SHELL_CAMERA_CLEARANCE_METERS - targetY) / nextRadius,
-        -1,
-        1
-      ));
       minimumPhi = Math.max(minimumPhi, floorPhi);
-      maximumPhi = Math.min(maximumPhi, ceilingPhi);
     }
     if (maximumPhi < minimumPhi) maximumPhi = minimumPhi;
     return {
@@ -1479,6 +1474,7 @@ export class GuidedLayoutViewerController {
     );
     this.camera.lookAt(this.cameraTarget);
     this.camera.updateMatrixWorld();
+    this.premiumRoomShellVisibility?.update?.();
     this.updateDimensionOverlay();
   }
 
@@ -2209,6 +2205,7 @@ export class GuidedLayoutViewerController {
       appearance: {
         zoneProofMode: this.zoneProofMode,
         premiumModelV1: this.premiumModelV1Diagnostics,
+        roomShellVisibility: this.premiumRoomShellVisibility?.getDiagnostics?.() || null,
         materialZoneAudit: {
           schema: "jq-immersive-layout-material-zones-v1",
           primitiveCoverage: this.meshRecords.filter(({ zoneRecord }) => Boolean(zoneRecord)).length,
@@ -2364,6 +2361,7 @@ export class GuidedLayoutViewerController {
     for (const geometry of this.premiumOwnedGeometries) geometry.dispose?.();
     this.premiumOwnedGeometries.clear();
     this.premiumModelV1Diagnostics = null;
+    this.premiumRoomShellVisibility = null;
     const ownedByMaterialSystem = Boolean(this.materialSystem);
     this.materialSystem?.dispose?.();
     this.materialSystem = null;

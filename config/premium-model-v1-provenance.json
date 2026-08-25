@@ -10,19 +10,19 @@
   },
   "files": [
     {
-      "bytes": 120042,
+      "bytes": 120057,
       "path": "guided-layout-viewer.js",
-      "sha256": "c007e1ae2ce2ca8276a85c383a23af897f796ad7dd3102c44683f8ee55dbcdf4"
+      "sha256": "1f2c7eb42bc5bc1c43c7d71b0ad308fca04f86bb3631a50f7ba4629bac5be91c"
     },
     {
-      "bytes": 13386,
+      "bytes": 13954,
       "path": "guided-premium-model-v1-contract.js",
-      "sha256": "f4caae44a8f7c91a4b492fd99d50e71d76c4ad8127e29436129b3d35e2eeec04"
+      "sha256": "2418f5c6c08f38dab75aff7a944755a8940b10fc1afdf118ba5a843ae1afacab"
     },
     {
-      "bytes": 43926,
+      "bytes": 49404,
       "path": "guided-premium-model-v1.js",
-      "sha256": "c77b7563e1e4c5d859680b68f2a79e2fe6ff4db362914f108442e443aa089c15"
+      "sha256": "f0d37b5184ccd179b979e763b5c1d408f3294fe98da01b698f4c65f1d61e3f8e"
     },
     {
       "bytes": 555394,
@@ -228,6 +228,7 @@
       "PBR textures",
       "runtime-derived furniture bevel geometry",
       "finish-independent room-shell and Door Wall architectural materials",
+      "camera-dependent room-shell occlusion visibility without source geometry mutation",
       "shared lighting response",
       "shared contact-shadow policy",
       "exterior scene ground plane and grid outside the authoritative room floor",

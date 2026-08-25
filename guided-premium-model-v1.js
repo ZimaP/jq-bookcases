@@ -3,7 +3,7 @@ import {
   ROOM2_APPEARANCE_PROFILE,
   resolveRoom2Finish
 } from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
-import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=catalog-materials-pbr-v2-20260825a";
+import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=room-shell-visibility-v1-20260825a";
 
 const ROLE_MANIFEST_URL = "config/premium-model-v1-roles.json";
 const MATERIAL_ROLES = Object.freeze(Object.keys(PREMIUM_MODEL_V1_CONTRACT.roleSurface));
@@ -167,6 +167,8 @@ function createArchitecturalMaterial(surfaceId, paintTextures) {
   const normalScale = Number(recipe.normalScale) || 0;
   const material = new THREE.MeshPhysicalMaterial({
     color: recipe.color,
+    emissive: recipe.emissive || "#000000",
+    emissiveIntensity: Number(recipe.emissiveIntensity) || 0,
     normalMap: useMicroSurface ? paintTextures.normalMap : null,
     roughnessMap: useMicroSurface ? paintTextures.roughnessMap : null,
     normalScale: new THREE.Vector2(normalScale, normalScale),
@@ -177,6 +179,7 @@ function createArchitecturalMaterial(surfaceId, paintTextures) {
     ior: 1.5,
     specularIntensity: recipe.specularIntensity,
     envMapIntensity: recipe.envMapIntensity,
+    side: ["wall", "ceiling"].includes(surfaceId) ? THREE.DoubleSide : THREE.FrontSide,
     transparent: false,
     depthWrite: true,
     depthTest: true,
@@ -185,6 +188,108 @@ function createArchitecturalMaterial(surfaceId, paintTextures) {
   material.name = `jq-premium-model-v1:architecture:${surfaceId}`;
   material.userData = { jqPremiumModelV1: true, architecturalSurface: surfaceId };
   return material;
+}
+
+function roomShellHeroPoints(bounds, inset) {
+  const minimum = new THREE.Vector3(...bounds.min);
+  const maximum = new THREE.Vector3(...bounds.max);
+  const safeInset = Math.min(
+    inset,
+    Math.max(0, (maximum.x - minimum.x) / 4),
+    Math.max(0, (maximum.y - minimum.y) / 4),
+    Math.max(0, (maximum.z - minimum.z) / 4)
+  );
+  minimum.addScalar(safeInset);
+  maximum.subScalar(safeInset);
+  const center = minimum.clone().add(maximum).multiplyScalar(0.5);
+  const points = [center];
+  for (const x of [minimum.x, maximum.x]) {
+    for (const y of [minimum.y, maximum.y]) {
+      for (const z of [minimum.z, maximum.z]) points.push(new THREE.Vector3(x, y, z));
+    }
+  }
+  return points;
+}
+
+function segmentIntersectsShell(origin, target, box, epsilon) {
+  const direction = target.clone().sub(origin);
+  const distance = direction.length();
+  if (distance <= epsilon) return false;
+  const hit = new THREE.Ray(origin, direction.normalize()).intersectBox(box, new THREE.Vector3());
+  return Boolean(hit && hit.distanceTo(origin) < distance - epsilon);
+}
+
+function createRoomShellVisibilityController(controller, records) {
+  const recipe = PREMIUM_MODEL_V1_CONTRACT.roomShellVisibility;
+  const heroPoints = roomShellHeroPoints(controller.layout.heroBounds, recipe.heroInsetMeters);
+  let lastDiagnostics = Object.freeze({
+    strategy: recipe.strategy,
+    primitiveCount: records.length,
+    fadedPrimitiveCount: 0,
+    fadedStablePrimitiveIds: Object.freeze([]),
+    minimumAppliedOpacity: 1,
+    ceilingColor: PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.ceiling.color,
+    cameraOutsideCeiling: false
+  });
+
+  const update = () => {
+    if (!controller.camera) return lastDiagnostics;
+    const cameraPosition = controller.camera.position;
+    const fadedStablePrimitiveIds = [];
+    let minimumAppliedOpacity = 1;
+    let cameraOutsideCeiling = false;
+    for (const record of records) {
+      const blocked = record.occlusionEligible
+        ? heroPoints.reduce((count, point) => (
+          count + Number(segmentIntersectsShell(cameraPosition, point, record.box, recipe.intersectionEpsilonMeters))
+        ), 0)
+        : 0;
+      const occlusionFade = blocked < recipe.minimumOcclusionSamples
+        ? 0
+        : THREE.MathUtils.clamp(blocked / heroPoints.length * recipe.occlusionGain, 0, 1);
+      let fade = occlusionFade;
+      if (record.surfaceId === "ceiling") {
+        const ceilingY = record.box.min.y;
+        const proximity = THREE.MathUtils.smoothstep(
+          recipe.ceilingProximityFadeStartMeters - Math.abs(ceilingY - cameraPosition.y),
+          0,
+          recipe.ceilingProximityFadeStartMeters - recipe.ceilingProximityFadeEndMeters
+        );
+        const elevation = THREE.MathUtils.smoothstep(
+          controller.phi,
+          recipe.ceilingElevationFadeStartRadians,
+          recipe.ceilingElevationFadeEndRadians
+        );
+        fade = Math.max(fade, proximity * elevation);
+        cameraOutsideCeiling ||= cameraPosition.y > record.box.max.y;
+      }
+      const minimumOpacity = record.surfaceId === "ceiling"
+        ? recipe.minimumCeilingOpacity
+        : recipe.minimumWallOpacity;
+      const opacity = 1 - fade * (1 - minimumOpacity);
+      const faded = opacity < 0.995;
+      record.material.opacity = opacity;
+      record.material.transparent = faded;
+      record.material.depthWrite = !faded;
+      record.material.needsUpdate = record.transparent !== faded;
+      record.transparent = faded;
+      record.object.renderOrder = faded ? 20 : 0;
+      if (faded) fadedStablePrimitiveIds.push(record.stablePrimitiveId);
+      minimumAppliedOpacity = Math.min(minimumAppliedOpacity, opacity);
+    }
+    lastDiagnostics = Object.freeze({
+      strategy: recipe.strategy,
+      primitiveCount: records.length,
+      fadedPrimitiveCount: fadedStablePrimitiveIds.length,
+      fadedStablePrimitiveIds: Object.freeze(fadedStablePrimitiveIds),
+      minimumAppliedOpacity,
+      ceilingColor: PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.ceiling.color,
+      cameraOutsideCeiling
+    });
+    return lastDiagnostics;
+  };
+
+  return Object.freeze({ update, getDiagnostics: () => lastDiagnostics });
 }
 
 function stableHash(value, salt) {
@@ -829,6 +934,7 @@ export async function applyPremiumModelV1(controller) {
   const lighting = applyPremiumLighting(controller);
   const exteriorGround = applyExteriorGround(controller, roleById);
 
+  controller.premiumRoomShellVisibility = null;
   controller.disposeActiveFinishMaterials();
   const materials = new Map();
   for (const role of MATERIAL_ROLES) {
@@ -839,14 +945,8 @@ export async function applyPremiumModelV1(controller) {
   const interiorMaterial = createInteriorMaterial(interiorTextures);
   const hardwareMaterial = createHardwareMaterial();
   const architecturalMaterials = new Map();
-  for (const manifestRecord of roleById.values()) {
-    const surfaceId = architecturalSurfaceId(controller.layoutId, manifestRecord);
-    if (surfaceId && !architecturalMaterials.has(surfaceId)) {
-      const material = createArchitecturalMaterial(surfaceId, architecturalTextures);
-      architecturalMaterials.set(surfaceId, material);
-      controller.ownedMaterials.add(material);
-    }
-  }
+  const architecturalSurfaceIds = new Set();
+  const roomShellRecords = [];
   controller.ownedMaterials.add(interiorMaterial);
   controller.ownedMaterials.add(hardwareMaterial);
   const roleResponses = Object.freeze(Object.fromEntries([...materials].map(([role, material]) => [role, Object.freeze({
@@ -883,7 +983,32 @@ export async function applyPremiumModelV1(controller) {
     } else {
       const surfaceId = architecturalSurfaceId(controller.layoutId, manifestRecord);
       if (surfaceId) {
-        runtimeRecord.object.material = architecturalMaterials.get(surfaceId);
+        architecturalSurfaceIds.add(surfaceId);
+        if (manifestRecord.role === "room-shell") {
+          const material = createArchitecturalMaterial(surfaceId, architecturalTextures);
+          runtimeRecord.object.material = material;
+          controller.ownedMaterials.add(material);
+          roomShellRecords.push({
+            object: runtimeRecord.object,
+            material,
+            surfaceId,
+            stablePrimitiveId: manifestRecord.stablePrimitiveId,
+            box: new THREE.Box3(
+              new THREE.Vector3(...manifestRecord.worldBounds.min),
+              new THREE.Vector3(...manifestRecord.worldBounds.max)
+            ),
+            occlusionEligible: surfaceId === "ceiling"
+              || manifestRecord.worldBounds.size[0] < manifestRecord.worldBounds.size[2],
+            transparent: false
+          });
+        } else {
+          if (!architecturalMaterials.has(surfaceId)) {
+            const material = createArchitecturalMaterial(surfaceId, architecturalTextures);
+            architecturalMaterials.set(surfaceId, material);
+            controller.ownedMaterials.add(material);
+          }
+          runtimeRecord.object.material = architecturalMaterials.get(surfaceId);
+        }
         appliedPrimitiveCount += 1;
       }
     }
@@ -891,6 +1016,8 @@ export async function applyPremiumModelV1(controller) {
   }
   const shadowBudget = applyPremiumShadows(controller, roleById);
   const floorSurface = applyFloorSurface(controller, roleById);
+  controller.premiumRoomShellVisibility = createRoomShellVisibilityController(controller, roomShellRecords);
+  controller.premiumRoomShellVisibility.update();
   controller.appliedFinishId = finish.id;
   controller.scheduleRender();
   return Object.freeze({
@@ -903,6 +1030,7 @@ export async function applyPremiumModelV1(controller) {
     sourcePrimitiveCount: controller.meshRecords.length,
     premiumMaterialPrimitiveCount: appliedPrimitiveCount,
     sharedMaterialCount: materials.size + architecturalMaterials.size + 2,
+    roomShellMaterialCount: roomShellRecords.length,
     materialType: PREMIUM_MODEL_V1_CONTRACT.material.type,
     materialResponse,
     texturePaths: [
@@ -931,7 +1059,8 @@ export async function applyPremiumModelV1(controller) {
       roomShells: true,
       doorWallOpening: controller.layoutId === "door-wall",
       finishIndependent: true,
-      surfaceIds: Object.freeze([...architecturalMaterials.keys()])
+      surfaceIds: Object.freeze([...architecturalSurfaceIds]),
+      dynamicOcclusion: true
     }),
     protectedRoles: Object.freeze([
       "room-shell", "floor", "fireplace", "architectural-opening",

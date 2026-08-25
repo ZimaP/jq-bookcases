@@ -296,7 +296,7 @@ test("orbit, wheel, keyboard, named views, direct choices, Fit, and Reset share 
   expect(failures).toEqual([]);
 });
 
-test("camera containment keeps every layout inside its authored room shell", async ({ page }) => {
+test("camera containment protects the floor while allowing overhead room-shell visibility", async ({ page }) => {
   const failures = monitorUnexpectedFailures(page);
   let runtime = await continueToCustomization(page, "fireplace-wall");
   for (const layoutId of IMMERSIVE_LAYOUT_ORDER) {
@@ -322,13 +322,11 @@ test("camera containment keeps every layout inside its authored room shell", asy
     const bounds = IMMERSIVE_LAYOUT_REGISTRY[layoutId].nativeBounds;
     const clampUnit = (value) => Math.max(-1, Math.min(1, value));
     const minimumPhi = Math.max(-0.05, Math.asin(clampUnit((bounds.min[1] + 0.1 - camera.target[1]) / camera.radius)));
-    const maximumPhi = Math.min(0.72, Math.asin(clampUnit((bounds.max[1] - 0.1 - camera.target[1]) / camera.radius)));
     expect(camera.theta).toBeGreaterThanOrEqual(-0.52 - 1e-8);
     expect(camera.theta).toBeLessThanOrEqual(0.52 + 1e-8);
     expect(camera.phi).toBeGreaterThanOrEqual(minimumPhi - 1e-8);
-    expect(camera.phi).toBeLessThanOrEqual(maximumPhi + 1e-8);
+    expect(camera.phi).toBeLessThanOrEqual(0.72 + 1e-8);
     expect(camera.position[1]).toBeGreaterThanOrEqual(bounds.min[1] + 0.1 - 1e-7);
-    expect(camera.position[1]).toBeLessThanOrEqual(bounds.max[1] - 0.1 + 1e-7);
   }
   expect(failures).toEqual([]);
 });

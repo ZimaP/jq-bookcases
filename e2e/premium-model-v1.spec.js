@@ -102,6 +102,10 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
       bumpScale: 0.004
     });
     expect(premium.architecturalMaterialScope.roomShells).toBe(true);
+    expect(premium.architecturalMaterialScope.dynamicOcclusion).toBe(true);
+    expect(premium.roomShellMaterialCount).toBeGreaterThan(0);
+    expect(record.appearance.roomShellVisibility.ceilingColor).toBe("#fffefb");
+    expect(record.appearance.roomShellVisibility.primitiveCount).toBeGreaterThan(0);
     expect(premium.architecturalMaterialScope.doorWallOpening).toBe(layoutId === "door-wall");
     expect(premium.sourcePrimitiveCount).toBe(expected.sourceMetadata.primitives);
     expect(premium.exactPrimitiveCoverage).toBe(expected.sourceMetadata.primitives);
@@ -124,6 +128,30 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(premium.shadowBudget.projectedMaximumDrawCalls).toBeLessThanOrEqual(250);
     expect(record.rendererInfo.calls).toBeLessThanOrEqual(250);
     expect(record.rendererInfo.triangles).toBeLessThanOrEqual(45_000);
+  }
+  expect(failures).toEqual([]);
+});
+
+test("ceiling and side walls fade only when the camera crosses their sight lines", async ({ page }) => {
+  test.slow();
+  const failures = monitorFailures(page);
+  for (const layoutId of IMMERSIVE_LAYOUT_ORDER) {
+    const runtime = await openLayout(page, layoutId);
+    const canvas = runtime.locator("canvas");
+    await canvas.focus();
+    for (let index = 0; index < 12; index += 1) await page.keyboard.press("ArrowUp");
+    await expect.poll(async () => (await diagnostics(page)).appearance.roomShellVisibility.cameraOutsideCeiling).toBe(true);
+    const elevated = await diagnostics(page);
+    expect(elevated.camera.position[1]).toBeGreaterThan(IMMERSIVE_LAYOUT_REGISTRY[layoutId].nativeBounds.max[1]);
+    expect(elevated.appearance.roomShellVisibility.fadedPrimitiveCount).toBeGreaterThan(0);
+    expect(elevated.appearance.roomShellVisibility.minimumAppliedOpacity).toBeLessThanOrEqual(0.05);
+
+    await page.getByRole("button", { name: "Reset view" }).click();
+    await expect.poll(async () => (await diagnostics(page)).appearance.roomShellVisibility.cameraOutsideCeiling).toBe(false);
+    await expect.poll(async () => (await diagnostics(page)).camera.animationActive).toBe(false);
+    const reset = await diagnostics(page);
+    expect(reset.appearance.roomShellVisibility.cameraOutsideCeiling).toBe(false);
+    expect(reset.appearance.roomShellVisibility.minimumAppliedOpacity).toBeGreaterThan(0.95);
   }
   expect(failures).toEqual([]);
 });
