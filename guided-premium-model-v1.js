@@ -3,7 +3,7 @@ import {
   ROOM2_APPEARANCE_PROFILE,
   resolveRoom2Finish
 } from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
-import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=finish-premium-production-v1-20260824b";
+import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=ground-readability-production-v1-20260824a";
 
 const ROLE_MANIFEST_URL = "config/premium-model-v1-roles.json";
 const MATERIAL_ROLES = Object.freeze(Object.keys(PREMIUM_MODEL_V1_CONTRACT.roleSurface));
@@ -139,6 +139,43 @@ function createCabinetMaterial(role, finish, textures) {
     finishId: finish.id,
     textureFamily: textures.familyId
   };
+  return material;
+}
+
+function architecturalSurfaceId(layoutId, manifestRecord) {
+  if (manifestRecord.role === "room-shell") {
+    return manifestRecord.originalZone === "ceiling-room-shell" ? "ceiling" : "wall";
+  }
+  if (layoutId === "door-wall" && manifestRecord.originalZone === "architectural-interior-door") {
+    if (manifestRecord.role === "architectural-opening") return "door";
+    if (manifestRecord.role === "architectural-opening-detail") return "doorDetail";
+  }
+  return null;
+}
+
+function createArchitecturalMaterial(surfaceId, paintTextures) {
+  const recipe = PREMIUM_MODEL_V1_CONTRACT.architecturalSurface[surfaceId];
+  const useMicroSurface = Boolean(recipe.usePaintMicroSurface);
+  const normalScale = Number(recipe.normalScale) || 0;
+  const material = new THREE.MeshPhysicalMaterial({
+    color: recipe.color,
+    normalMap: useMicroSurface ? paintTextures.normalMap : null,
+    roughnessMap: useMicroSurface ? paintTextures.roughnessMap : null,
+    normalScale: new THREE.Vector2(normalScale, normalScale),
+    roughness: recipe.roughness,
+    metalness: 0,
+    clearcoat: recipe.clearcoat,
+    clearcoatRoughness: recipe.clearcoatRoughness,
+    ior: 1.5,
+    specularIntensity: recipe.specularIntensity,
+    envMapIntensity: recipe.envMapIntensity,
+    transparent: false,
+    depthWrite: true,
+    depthTest: true,
+    toneMapped: true
+  });
+  material.name = `jq-premium-model-v1:architecture:${surfaceId}`;
+  material.userData = { jqPremiumModelV1: true, architecturalSurface: surfaceId };
   return material;
 }
 
@@ -635,28 +672,81 @@ function applyPremiumShadows(controller, roleById) {
   return controller.shadowPrimitiveBudget;
 }
 
-function applyFloorGrid(controller, roleById) {
-  const prior = controller.modelRoot.getObjectByName("jq-premium-floor-grid");
-  if (prior) return prior.userData.jqPremiumFloorGrid;
+function applyExteriorGround(controller, roleById) {
+  const prior = controller.scene.getObjectByName("jq-premium-exterior-ground");
+  if (prior) return prior.userData.jqPremiumExteriorGround;
   const floor = [...roleById.values()].find(({ role }) => role === "floor");
-  const recipe = PREMIUM_MODEL_V1_CONTRACT.floorGrid;
+  const recipe = PREMIUM_MODEL_V1_CONTRACT.exteriorGround;
   if (!floor) return null;
-  const [x0, y, z0] = floor.worldBounds.min;
-  const [x1] = floor.worldBounds.max;
-  const z1 = floor.worldBounds.max[2];
+  const [floorX0, floorY, floorZ0] = floor.worldBounds.min;
+  const floorX1 = floor.worldBounds.max[0];
+  const floorZ1 = floor.worldBounds.max[2];
+  const x0 = floorX0 - recipe.marginMeters;
+  const x1 = floorX1 + recipe.marginMeters;
+  const z0 = floorZ0 - recipe.marginMeters;
+  const z1 = floorZ1 + recipe.marginMeters;
+  const y = floorY - recipe.planeDropMeters;
+  const clearance = recipe.floorClearanceMeters;
   const points = [];
-  for (let x = x0; x <= x1 + 1e-6; x += recipe.spacingMeters) points.push(x, y, z0, x, y, z1);
-  for (let z = z0; z <= z1 + 1e-6; z += recipe.spacingMeters) points.push(x0, y, z, x1, y, z);
+  for (let x = x0; x <= x1 + 1e-6; x += recipe.spacingMeters) {
+    if (x > floorX0 - clearance && x < floorX1 + clearance) {
+      points.push(x, y, z0, x, y, floorZ0 - clearance);
+      points.push(x, y, floorZ1 + clearance, x, y, z1);
+    } else {
+      points.push(x, y, z0, x, y, z1);
+    }
+  }
+  for (let z = z0; z <= z1 + 1e-6; z += recipe.spacingMeters) {
+    if (z > floorZ0 - clearance && z < floorZ1 + clearance) {
+      points.push(x0, y, z, floorX0 - clearance, y, z);
+      points.push(floorX1 + clearance, y, z, x1, y, z);
+    } else {
+      points.push(x0, y, z, x1, y, z);
+    }
+  }
+  const group = new THREE.Group();
+  group.name = "jq-premium-exterior-ground";
+  const planeGeometry = new THREE.PlaneGeometry(x1 - x0, z1 - z0);
+  const planeMaterial = new THREE.MeshStandardMaterial({
+    color: recipe.planeColor,
+    roughness: 1,
+    metalness: 0,
+    transparent: false,
+    depthWrite: true,
+    depthTest: true,
+    toneMapped: true
+  });
+  const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+  plane.name = "jq-premium-exterior-ground-plane";
+  plane.rotation.x = -Math.PI / 2;
+  plane.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
+  plane.receiveShadow = true;
+  group.add(plane);
   const geometry = new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(points, 3));
-  const material = new THREE.LineBasicMaterial({ color: recipe.color, transparent: true, opacity: recipe.opacity, depthWrite: false, toneMapped: false });
+  const material = new THREE.LineBasicMaterial({ color: recipe.gridColor, transparent: true, opacity: recipe.gridOpacity, depthWrite: false, toneMapped: false });
   const grid = new THREE.LineSegments(geometry, material);
-  grid.name = "jq-premium-floor-grid";
-  grid.position.y = recipe.liftMeters;
-  grid.userData.jqPremiumFloorGrid = Object.freeze({ spacingMillimeters: recipe.spacingMeters * 1000, lineCount: points.length / 6, sourceFloorBounds: true });
-  controller.modelRoot.add(grid);
+  grid.name = "jq-premium-exterior-grid-lines";
+  grid.position.y = recipe.gridLiftMeters;
+  group.add(grid);
+  group.userData.jqPremiumExteriorGround = Object.freeze({
+    spacingMillimeters: recipe.spacingMeters * 1000,
+    lineCount: points.length / 6,
+    marginMeters: recipe.marginMeters,
+    sourceFloorBounds: false,
+    excludesInteriorFloor: true,
+    parent: "scene"
+  });
+  controller.scene.add(group);
+  const removeGround = () => {
+    controller.modelRoot?.removeEventListener("removed", removeGround);
+    controller.scene?.remove(group);
+  };
+  controller.modelRoot.addEventListener("removed", removeGround);
+  controller.premiumOwnedGeometries.add(planeGeometry);
+  controller.premiumOwnedGeometries.add(planeMaterial);
   controller.premiumOwnedGeometries.add(geometry);
   controller.premiumOwnedGeometries.add(material);
-  return grid.userData.jqPremiumFloorGrid;
+  return group.userData.jqPremiumExteriorGround;
 }
 
 export async function applyPremiumModelV1(controller) {
@@ -683,10 +773,11 @@ export async function applyPremiumModelV1(controller) {
   const finish = resolveRoom2Finish(controller.requestedFinishId);
   const exteriorTextures = await loadTextureSet(controller, finish.family);
   const interiorTextures = finish.family === "oak" ? exteriorTextures : await loadTextureSet(controller, "oak");
+  const architecturalTextures = finish.family === "paint" ? exteriorTextures : await loadTextureSet(controller, "paint");
   const geometry = applyPremiumGeometry(controller, roleById);
   const uvMapping = applyPremiumUvMapping(controller, roleById, finish.family);
   const lighting = applyPremiumLighting(controller);
-  const floorGrid = applyFloorGrid(controller, roleById);
+  const exteriorGround = applyExteriorGround(controller, roleById);
 
   controller.disposeActiveFinishMaterials();
   const materials = new Map();
@@ -697,6 +788,15 @@ export async function applyPremiumModelV1(controller) {
   }
   const interiorMaterial = createInteriorMaterial(interiorTextures);
   const hardwareMaterial = createHardwareMaterial();
+  const architecturalMaterials = new Map();
+  for (const manifestRecord of roleById.values()) {
+    const surfaceId = architecturalSurfaceId(controller.layoutId, manifestRecord);
+    if (surfaceId && !architecturalMaterials.has(surfaceId)) {
+      const material = createArchitecturalMaterial(surfaceId, architecturalTextures);
+      architecturalMaterials.set(surfaceId, material);
+      controller.ownedMaterials.add(material);
+    }
+  }
   controller.ownedMaterials.add(interiorMaterial);
   controller.ownedMaterials.add(hardwareMaterial);
   const roleResponses = Object.freeze(Object.fromEntries([...materials].map(([role, material]) => [role, Object.freeze({
@@ -729,6 +829,12 @@ export async function applyPremiumModelV1(controller) {
     } else if (manifestRecord.role === "hardware") {
       runtimeRecord.object.material = hardwareMaterial;
       appliedPrimitiveCount += 1;
+    } else {
+      const surfaceId = architecturalSurfaceId(controller.layoutId, manifestRecord);
+      if (surfaceId) {
+        runtimeRecord.object.material = architecturalMaterials.get(surfaceId);
+        appliedPrimitiveCount += 1;
+      }
     }
     runtimeRecord.object.userData.jqPremiumModelV1Role = manifestRecord.role;
   }
@@ -744,7 +850,7 @@ export async function applyPremiumModelV1(controller) {
     exactPrimitiveCoverage: roleById.size,
     sourcePrimitiveCount: controller.meshRecords.length,
     premiumMaterialPrimitiveCount: appliedPrimitiveCount,
-    sharedMaterialCount: materials.size + 2,
+    sharedMaterialCount: materials.size + architecturalMaterials.size + 2,
     materialType: PREMIUM_MODEL_V1_CONTRACT.material.type,
     materialResponse,
     texturePaths: [
@@ -767,7 +873,13 @@ export async function applyPremiumModelV1(controller) {
     uvMapping,
     shadowBudget,
     lighting,
-    floorGrid,
+    exteriorGround,
+    architecturalMaterialScope: Object.freeze({
+      roomShells: true,
+      doorWallOpening: controller.layoutId === "door-wall",
+      finishIndependent: true,
+      surfaceIds: Object.freeze([...architecturalMaterials.keys()])
+    }),
     protectedRoles: Object.freeze([
       "room-shell", "floor", "fireplace", "architectural-opening",
       "architectural-opening-detail", "architectural-hardware",
