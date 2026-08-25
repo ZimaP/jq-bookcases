@@ -12,6 +12,15 @@
 
 The source maps are used only by the isolated `modelQuality=premium-v1` 3D preview.
 
+## Natural Oak workplace-reference synthesis
+
+- Reference source: five project-owner-supplied workplace photographs captured on August 25, 2026.
+- Reference role: appearance, grain language, pore scale, and neutral oak color only; the photographs themselves are not shipped.
+- Runtime derivative: a new seamless square base-color texture was synthesized from the reference set, then deterministic 1024 × 1024 normal and roughness maps were derived locally with FFmpeg and encoded to WebP with `cwebp`.
+- Scope: selected only for the `natural-oak` finish; the existing White Oak and clear-maple/interior texture path remains unchanged.
+- Calibration status: visual appearance reference only. The material is not identified as a manufacturer product, exact oak species, approved SKU, or manufacturer-calibrated finish.
+- Exclusions: no room background, wall, floor, tape, outlet, panel edge, baked highlight, or baked shadow from the photographs is present in the runtime asset.
+
 ## European Walnut Veneer 05
 
 - Creator: Jenelle van Heerden / Poly Haven

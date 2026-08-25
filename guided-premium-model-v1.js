@@ -3,7 +3,7 @@ import {
   ROOM2_APPEARANCE_PROFILE,
   resolveRoom2Finish
 } from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
-import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=infinite-studio-production-v1-20260824a";
+import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=oak-profile-readability-v1-20260825a";
 
 const ROLE_MANIFEST_URL = "config/premium-model-v1-roles.json";
 const MATERIAL_ROLES = Object.freeze(Object.keys(PREMIUM_MODEL_V1_CONTRACT.roleSurface));
@@ -50,7 +50,7 @@ function finishColor(finish) {
   }
   const overrides = {
     "white-oak": "#fbfaf6",
-    "natural-oak": "#fff2e2",
+    "natural-oak": "#fffdf9",
     ...PREMIUM_MODEL_V1_CONTRACT.textures[finish.family]?.finishMultipliers
   };
   return overrides[finish.id] || finish.swatch;
@@ -95,15 +95,17 @@ async function loadTexture(controller, path, slot, repeat, revision = "") {
   return texture;
 }
 
-async function loadTextureSet(controller, familyId) {
+async function loadTextureSet(controller, familyId, finishId = null) {
   const family = familyContract(familyId);
+  const variant = family.finishVariants?.[finishId] || null;
+  const resolvedFamily = variant ? { ...family, ...variant } : family;
   const repeat = familyRepeat(familyId);
   const [map, normalMap, roughnessMap] = await Promise.all([
-    loadTexture(controller, family.map, "map", repeat, family.revision),
-    loadTexture(controller, family.normalMap, "normalMap", repeat, family.revision),
-    loadTexture(controller, family.roughnessMap, "roughnessMap", repeat, family.revision)
+    loadTexture(controller, resolvedFamily.map, "map", repeat, resolvedFamily.revision),
+    loadTexture(controller, resolvedFamily.normalMap, "normalMap", repeat, resolvedFamily.revision),
+    loadTexture(controller, resolvedFamily.roughnessMap, "roughnessMap", repeat, resolvedFamily.revision)
   ]);
-  return { familyId, family, map, normalMap, roughnessMap };
+  return { familyId, family: resolvedFamily, map, normalMap, roughnessMap };
 }
 
 function createCabinetMaterial(role, finish, textures) {
@@ -132,6 +134,7 @@ function createCabinetMaterial(role, finish, textures) {
     depthTest: true,
     toneMapped: true
   });
+  material.color.multiplyScalar(Number(surface.colorScale) || 1);
   material.name = `jq-premium-model-v1:${finish.id}:${role}`;
   material.userData = {
     jqPremiumModelV1: true,
@@ -589,9 +592,11 @@ function applyPremiumGeometry(controller, roleById) {
       continue;
     }
     const sourceWorldBounds = new THREE.Box3().setFromObject(runtimeRecord.object);
+    const radiusFraction = PREMIUM_MODEL_V1_CONTRACT.bevel.roleRadiusFraction[manifestRecord.role]
+      || PREMIUM_MODEL_V1_CONTRACT.bevel.defaultRadiusFraction;
     const radius = Math.min(
       PREMIUM_MODEL_V1_CONTRACT.bevel.widthMeters / minimumScale,
-      Math.min(box.size.x, box.size.y, box.size.z) * 0.18
+      Math.min(box.size.x, box.size.y, box.size.z) * radiusFraction
     );
     const replacement = new PremiumRoundedBoxGeometry(
       box.size.x,
@@ -624,6 +629,7 @@ function applyPremiumGeometry(controller, roleById) {
       sourceTriangles: triangleCount(sourceGeometry),
       derivedTriangles: triangleCount(replacement),
       bevelWidthMillimeters: PREMIUM_MODEL_V1_CONTRACT.bevel.widthMeters * 1000,
+      radiusFraction,
       worldBoundsDeltaMillimeters: boundsDeltaMillimeters,
       derivedDegenerateTriangles: derivedInspection.degenerateTriangles,
       wrongWindingTriangles: derivedInspection.wrongWindingTriangles,
@@ -810,8 +816,10 @@ export async function applyPremiumModelV1(controller) {
   }
 
   const finish = resolveRoom2Finish(controller.requestedFinishId);
-  const exteriorTextures = await loadTextureSet(controller, finish.family);
-  const interiorTextures = finish.family === "oak" ? exteriorTextures : await loadTextureSet(controller, "oak");
+  const exteriorTextures = await loadTextureSet(controller, finish.family, finish.id);
+  const interiorTextures = finish.family === "oak" && finish.id !== "natural-oak"
+    ? exteriorTextures
+    : await loadTextureSet(controller, "oak");
   const architecturalTextures = finish.family === "paint" ? exteriorTextures : await loadTextureSet(controller, "paint");
   const geometry = applyPremiumGeometry(controller, roleById);
   const uvMapping = applyPremiumUvMapping(controller, roleById, finish.family);
@@ -839,6 +847,7 @@ export async function applyPremiumModelV1(controller) {
   controller.ownedMaterials.add(interiorMaterial);
   controller.ownedMaterials.add(hardwareMaterial);
   const roleResponses = Object.freeze(Object.fromEntries([...materials].map(([role, material]) => [role, Object.freeze({
+    colorHex: `#${material.color.getHexString()}`,
     roughness: material.roughness,
     clearcoat: material.clearcoat,
     clearcoatRoughness: material.clearcoatRoughness,
