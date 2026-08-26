@@ -1,5 +1,5 @@
-import { test, expect } from "@playwright/test";
-import { IMMERSIVE_LAYOUT_REGISTRY } from "../guided-layout-registry.js";
+import { devices, test, expect } from "@playwright/test";
+import { IMMERSIVE_LAYOUT_REGISTRY, getImmersiveLayout } from "../guided-layout-registry.js";
 
 const PUBLIC_ROUTES = [
   "index.html",
@@ -183,4 +183,45 @@ test("WebKit automatic fallback keeps the direct panel responsive from desktop t
   expect((await diagnostics(page)).instanceId).toBe(initial.instanceId);
   expect(modelRequests).toBe(1);
   expect(failures).toEqual([]);
+});
+
+test("iPhone WebKit completes Window Wall parsing with the bounded mobile GLB and survives reload", async ({ browser, browserName }) => {
+  test.skip(browserName !== "webkit", "WebKit-specific iPhone model-load regression.");
+  const context = await browser.newContext({ ...devices["iPhone 13"] });
+  const page = await context.newPage();
+  const failures = monitorRuntime(page);
+  let mobileRequests = 0;
+  let authoritativeRequests = 0;
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path.endsWith("/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb")) mobileRequests += 1;
+    if (path.endsWith("/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb")) authoritativeRequests += 1;
+  });
+
+  const runtime = await openCustomization(page, "window-wall", "modelQuality=premium-v1&renderer=webgl2");
+  const expected = getImmersiveLayout("window-wall", { userAgent: "iPhone" });
+  let record = await diagnostics(page);
+  expect(record.state).toBe("ready");
+  expect(record.backend).toBe("webgl2");
+  expect(record.assetPath).toBe(expected.runtimeAsset.path);
+  expect(record.assetSha256).toBe(expected.runtimeAsset.sha256);
+  expect(record.assetBytes).toBe(expected.runtimeAsset.bytes);
+  expect(record.authoritativeSha256).toBe(expected.authoritativeSource.sha256);
+  expect(record.transformProof.sourceBuffersImmutable).toBe(true);
+  expect(record.transformProof.geometryMutationCount).toBe(0);
+  expect(record.ownership.canvases).toBe(1);
+  expect(mobileRequests).toBe(1);
+  expect(authoritativeRequests).toBe(0);
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(runtime).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+  record = await diagnostics(page);
+  expect(record.assetSha256).toBe(expected.runtimeAsset.sha256);
+  expect(record.assetBytes).toBe(expected.runtimeAsset.bytes);
+  expect(record.ownership.canvases).toBe(1);
+  expect(mobileRequests).toBe(2);
+  expect(authoritativeRequests).toBe(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+  expect(failures).toEqual([]);
+  await context.close();
 });
