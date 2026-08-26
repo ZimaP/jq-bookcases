@@ -12,12 +12,12 @@
     {
       "bytes": 120029,
       "path": "guided-layout-viewer.js",
-      "sha256": "1aceea57cff7329552d9876010ddb41177476df994ec5fc2c6897508f3c492d7"
+      "sha256": "fd9aa7b03b4386262e745c9f5f2e777f08ec70ac1ed708a6ce82ef5ca33c358a"
     },
     {
-      "bytes": 14909,
+      "bytes": 14696,
       "path": "guided-layout-registry.js",
-      "sha256": "23c04c58f73c04d03ab7d998bf8c83b7b0053c3c09042b1ff4f65931d1c76cbb"
+      "sha256": "1c6772b6da9720c2973eb518cddce0a09b023ba2fcb075c1af0367ea9b4ac918"
     },
     {
       "bytes": 5614,
