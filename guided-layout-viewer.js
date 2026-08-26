@@ -14,7 +14,7 @@ import {
   getSmartDimensionDefaults,
   millimetersToInches,
   normalizeSmartDimension
-} from "./guided-layout-registry.js?v=immersive-layout-configurator-v1";
+} from "./guided-layout-registry.js?v=ios-mobile-decode-v1-20260825a";
 import { getImmersiveMaterialZone } from "./guided-layout-material-zones.generated.js?v=immersive-layout-configurator-v1";
 
 const CONTROL_ID = "adjustable-shelf-clearance";
@@ -38,6 +38,30 @@ const TEXTURE_SLOTS = Object.freeze([
 
 let instanceSequence = 0;
 let rectAreaUniformsInitialized = false;
+
+export function isIosTextureDecodeRuntime(navigatorLike = globalThis.navigator) {
+  const userAgent = String(navigatorLike?.userAgent || "");
+  const platform = String(navigatorLike?.platform || "");
+  return /iPad|iPhone|iPod/i.test(userAgent)
+    || (platform === "MacIntel" && Number(navigatorLike?.maxTouchPoints) > 1);
+}
+
+export function createIosTextureDecodeGltfJson(sourceJson, definition, binaryUri, floorTextureUri) {
+  const json = JSON.parse(JSON.stringify(sourceJson));
+  if ((json.buffers || []).length !== 1 || !json.buffers[0] || json.buffers[0].uri != null) {
+    throw codedError("IOS_MODEL_BUFFER_CONTRACT_MISMATCH", "The verified iOS model buffer contract differs.");
+  }
+  const image = json.images?.[definition?.floorImageIndex];
+  const view = image && json.bufferViews?.[image.bufferView];
+  if (!image || !view || view.byteLength !== definition.sourceBytes) {
+    throw codedError("IOS_FLOOR_TEXTURE_CONTRACT_MISMATCH", "The verified iOS floor texture binding differs.");
+  }
+  json.buffers[0].uri = binaryUri;
+  delete image.bufferView;
+  delete image.mimeType;
+  image.uri = floorTextureUri;
+  return json;
+}
 
 export function createGuidedLayoutViewerController(options = {}) {
   return new GuidedLayoutViewerController(options);
@@ -78,6 +102,7 @@ export class GuidedLayoutViewerController {
     this.modelRoot = null;
     this.gltf = null;
     this.glbInspection = null;
+    this.iosTextureDecodeDiagnostics = null;
     this.materialSystem = null;
     this.directLights = new Map();
     this.shadowCaster = null;
@@ -412,7 +437,13 @@ export class GuidedLayoutViewerController {
         }
       }
       const basePath = new URL(layoutRecord.runtimeAsset.path, document.baseURI).href.replace(/[^/]+$/, "");
-      const gltf = await new GLTFLoader().parseAsync(bytes, basePath);
+      const parseInput = await this.prepareGltfParseInput(layoutRecord, bytes, glbInspection, this.fetchAbortController.signal);
+      let gltf;
+      try {
+        gltf = await new GLTFLoader().parseAsync(parseInput.source, basePath);
+      } finally {
+        parseInput.dispose();
+      }
       this.parseCount += 1;
       if (sequence !== this.loadSequence || this.disposed) {
         pendingMaterialSystem?.dispose?.();
@@ -789,6 +820,74 @@ export class GuidedLayoutViewerController {
     this.assetBytes = bytes.byteLength;
     onProgress(0.92);
     return bytes.buffer;
+  }
+
+  async prepareGltfParseInput(layoutRecord, source, inspection, signal) {
+    const definition = layoutRecord.iosTextureDecode;
+    if (!definition || !isIosTextureDecodeRuntime()) {
+      this.iosTextureDecodeDiagnostics = Object.freeze({ active: false, mode: "authoritative-glb" });
+      return Object.freeze({ source, dispose() {} });
+    }
+    const sourceImage = inspection.json.images?.[definition.floorImageIndex];
+    const sourceView = sourceImage && inspection.json.bufferViews?.[sourceImage.bufferView];
+    if (!sourceImage || !sourceView || sourceView.byteLength !== definition.sourceBytes) {
+      throw codedError("IOS_FLOOR_TEXTURE_CONTRACT_MISMATCH", `${layoutRecord.label} floor texture binding differs from the iOS decode contract.`);
+    }
+    const sourcePayload = inspection.binary.subarray(
+      sourceView.byteOffset || 0,
+      (sourceView.byteOffset || 0) + sourceView.byteLength
+    );
+    if (await sha256Bytes(sourcePayload) !== definition.sourceSha256) {
+      throw codedError("IOS_FLOOR_TEXTURE_SOURCE_MISMATCH", `${layoutRecord.label} floor texture bytes differ from the iOS decode contract.`);
+    }
+    const requestedUrl = new URL(definition.path, document.baseURI);
+    if (requestedUrl.origin !== location.origin) {
+      throw codedError("IOS_FLOOR_TEXTURE_CROSS_ORIGIN", "The verified iOS floor texture is not same-origin.");
+    }
+    const response = await fetch(requestedUrl.href, {
+      signal,
+      cache: "default",
+      credentials: "same-origin",
+      redirect: "error"
+    });
+    if (!response.ok || !response.url || new URL(response.url).href !== requestedUrl.href) {
+      throw codedError("IOS_FLOOR_TEXTURE_HTTP_ERROR", "The verified iOS floor texture could not be loaded.");
+    }
+    const declaredLength = Number(response.headers.get("content-length"));
+    if (Number.isFinite(declaredLength) && declaredLength > 0 && declaredLength !== definition.bytes) {
+      throw codedError("IOS_FLOOR_TEXTURE_CONTENT_LENGTH_MISMATCH", "The verified iOS floor texture Content-Length differs.");
+    }
+    const floorBytes = await response.arrayBuffer();
+    if (floorBytes.byteLength !== definition.bytes || await sha256Bytes(floorBytes) !== definition.sha256) {
+      throw codedError("IOS_FLOOR_TEXTURE_INTEGRITY_MISMATCH", "The verified iOS floor texture bytes differ.");
+    }
+    if (signal.aborted) throw new DOMException("The model load was aborted.", "AbortError");
+    const binaryUri = URL.createObjectURL(new Blob([inspection.binary], { type: "application/octet-stream" }));
+    const floorTextureUri = URL.createObjectURL(new Blob([floorBytes], { type: "image/jpeg" }));
+    let disposed = false;
+    const dispose = () => {
+      if (disposed) return;
+      disposed = true;
+      URL.revokeObjectURL(binaryUri);
+      URL.revokeObjectURL(floorTextureUri);
+    };
+    try {
+      const json = createIosTextureDecodeGltfJson(inspection.json, definition, binaryUri, floorTextureUri);
+      this.iosTextureDecodeDiagnostics = Object.freeze({
+        active: true,
+        mode: "ios-external-floor-texture",
+        floorImageIndex: definition.floorImageIndex,
+        sourceBytes: definition.sourceBytes,
+        decodeBytes: definition.bytes,
+        compressedByteReduction: definition.sourceBytes - definition.bytes,
+        sourcePixels: [...definition.sourcePixels],
+        decodePixels: [...definition.pixels]
+      });
+      return Object.freeze({ source: JSON.stringify(json), dispose });
+    } catch (error) {
+      dispose();
+      throw error;
+    }
   }
 
   validateSourceInspection() {
@@ -2169,6 +2268,7 @@ export class GuidedLayoutViewerController {
       parseCount: this.parseCount,
       renderCount: this.renderCount,
       firstUsableMilliseconds: this.firstUsableAt && this.loadStartedAt ? Number((this.firstUsableAt - this.loadStartedAt).toFixed(1)) : null,
+      iosTextureDecode: this.iosTextureDecodeDiagnostics,
       source: this.layout?.sourceMetadata || null,
       smartDimension: definition ? {
         id: CONTROL_ID,
@@ -2380,6 +2480,7 @@ export class GuidedLayoutViewerController {
     this.modelRoot = null;
     this.gltf = null;
     this.glbInspection = null;
+    this.iosTextureDecodeDiagnostics = null;
     this.targetNode = null;
     this.lowerAnchorNode = null;
     this.upperAnchorNode = null;

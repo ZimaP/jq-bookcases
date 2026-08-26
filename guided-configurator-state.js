@@ -19,7 +19,7 @@ import {
   getSmartDimensionDefaults,
   millimetersToInches,
   normalizeSmartDimension
-} from "./guided-layout-registry.js?v=immersive-layout-configurator-v1";
+} from "./guided-layout-registry.js?v=ios-mobile-decode-v1-20260825a";
 
 export const GUIDED_PROJECT_SCHEMA_VERSION = 5;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";

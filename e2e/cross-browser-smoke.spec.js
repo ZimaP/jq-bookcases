@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { devices, test, expect } from "@playwright/test";
 import { IMMERSIVE_LAYOUT_REGISTRY } from "../guided-layout-registry.js";
 
 const PUBLIC_ROUTES = [
@@ -183,4 +183,44 @@ test("WebKit automatic fallback keeps the direct panel responsive from desktop t
   expect((await diagnostics(page)).instanceId).toBe(initial.instanceId);
   expect(modelRequests).toBe(1);
   expect(failures).toEqual([]);
+});
+
+test("iPhone WebKit completes Window Wall with the verified bounded floor decode", async ({ browser, browserName }) => {
+  test.skip(browserName !== "webkit", "iPhone WebKit-specific texture-decode regression.");
+  const context = await browser.newContext({ ...devices["iPhone 13"] });
+  const page = await context.newPage();
+  const failures = monitorRuntime(page);
+  let floorTextureRequests = 0;
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.endsWith("/assets/premium-model-v1/textures/floor/source-maple-floor-ios-v1.jpg")) {
+      floorTextureRequests += 1;
+    }
+  });
+  try {
+    const runtime = await openCustomization(page, "window-wall", "modelQuality=premium-v1&renderer=webgl2");
+    const record = await expectExactReadyRuntime(page, "window-wall");
+    expect(record.iosTextureDecode).toEqual({
+      active: true,
+      mode: "ios-external-floor-texture",
+      floorImageIndex: 6,
+      sourceBytes: 5990740,
+      decodeBytes: 266509,
+      compressedByteReduction: 5724231,
+      sourcePixels: [2000, 2000],
+      decodePixels: [1024, 1024]
+    });
+    expect(floorTextureRequests).toBe(1);
+    await expect(runtime).toHaveAttribute("data-state", "ready");
+    await expect(page.locator("[data-viewer-status]" )).toBeHidden();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.locator("[data-layout-viewer]")).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+    const reloaded = await expectExactReadyRuntime(page, "window-wall");
+    expect(reloaded.iosTextureDecode.active).toBe(true);
+    expect(reloaded.iosTextureDecode.mode).toBe("ios-external-floor-texture");
+    expect(floorTextureRequests).toBe(2);
+    expect(failures).toEqual([]);
+  } finally {
+    await context.close();
+  }
 });
