@@ -208,8 +208,7 @@ test("runtime source enforces atomic lazy Finish loading without geometry or top
   assert.match(viewer, /renderer\.setAnimationLoop\?\.\(null\)/);
   assert.match(viewer, /new URL\(layoutRecord\.runtimeAsset\.path, document\.baseURI\)/);
   assert.match(viewer, /new URL\(definition\.url, document\.baseURI\)/);
-  assert.equal((viewer.match(/fetch\(requestedUrl\.href/g) || []).length, 3);
-  assert.match(viewer, /IOS_FLOOR_TEXTURE_INTEGRITY_MISMATCH/);
+  assert.equal((viewer.match(/fetch\(requestedUrl\.href/g) || []).length, 2);
 });
 
 test("the selected studio rig, camera fit, output conversion, and cold payload stay within gates", async () => {

@@ -10,9 +10,9 @@
   },
   "files": [
     {
-      "bytes": 125092,
+      "bytes": 120057,
       "path": "guided-layout-viewer.js",
-      "sha256": "9b90069fa72f6ea7c5cf979524f9dd43fd66a90d8ddd3a7ecf4ba45b96c4f247"
+      "sha256": "1f2c7eb42bc5bc1c43c7d71b0ad308fca04f86bb3631a50f7ba4629bac5be91c"
     },
     {
       "bytes": 13954,
@@ -30,14 +30,9 @@
       "sha256": "4a40540a52a1c16378cfc5403d0a167886aa4a9d38d587032e5cf7c8a0ce2104"
     },
     {
-      "bytes": 4927,
+      "bytes": 3989,
       "path": "assets/premium-model-v1/ASSET-LICENSES.md",
-      "sha256": "27d836dd367306e24350aa352e6a251341c6dcc3294257761eda9e7f5516ab3c"
-    },
-    {
-      "bytes": 266509,
-      "path": "assets/premium-model-v1/textures/floor/source-maple-floor-ios-v1.jpg",
-      "sha256": "b00f0d09491740919a22fd86b9e1cb3b77c5bc5d3110f25f880707007b5b18cd"
+      "sha256": "20f037e78328fd5abeacbb06fb896bcaa9dc92310cfafa31caf7ddddee021b0a"
     },
     {
       "bytes": 48642,

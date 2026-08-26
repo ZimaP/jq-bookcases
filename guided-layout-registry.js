@@ -72,16 +72,6 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
       bytes: 6712076,
       sha256: "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5"
     },
-    iosTextureDecode: {
-      floorImageIndex: 4,
-      sourceBytes: 5990740,
-      sourceSha256: "2b44ffa512f19f55d6f48ee153173affd1234ce1911ecd52256635ec6daf39f9",
-      sourcePixels: [2000, 2000],
-      path: "assets/premium-model-v1/textures/floor/source-maple-floor-ios-v1.jpg",
-      bytes: 266509,
-      sha256: "b00f0d09491740919a22fd86b9e1cb3b77c5bc5d3110f25f880707007b5b18cd",
-      pixels: [1024, 1024]
-    },
     sourceMetadata: {
       generator: "SimLab GLTF",
       gltfVersion: "2.0",
@@ -174,16 +164,6 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
       bytes: 6755128,
       sha256: "4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb"
     },
-    iosTextureDecode: {
-      floorImageIndex: 5,
-      sourceBytes: 5990740,
-      sourceSha256: "2b44ffa512f19f55d6f48ee153173affd1234ce1911ecd52256635ec6daf39f9",
-      sourcePixels: [2000, 2000],
-      path: "assets/premium-model-v1/textures/floor/source-maple-floor-ios-v1.jpg",
-      bytes: 266509,
-      sha256: "b00f0d09491740919a22fd86b9e1cb3b77c5bc5d3110f25f880707007b5b18cd",
-      pixels: [1024, 1024]
-    },
     sourceMetadata: {
       generator: "SimLab GLTF", gltfVersion: "2.0", nodes: 317, meshes: 127,
       primitives: 127, materials: 10, images: 7, textures: 7, accessors: 368, vertices: 29281,
@@ -236,16 +216,6 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
       path: "assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb",
       bytes: 6993036,
       sha256: "631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24"
-    },
-    iosTextureDecode: {
-      floorImageIndex: 6,
-      sourceBytes: 5990740,
-      sourceSha256: "2b44ffa512f19f55d6f48ee153173affd1234ce1911ecd52256635ec6daf39f9",
-      sourcePixels: [2000, 2000],
-      path: "assets/premium-model-v1/textures/floor/source-maple-floor-ios-v1.jpg",
-      bytes: 266509,
-      sha256: "b00f0d09491740919a22fd86b9e1cb3b77c5bc5d3110f25f880707007b5b18cd",
-      pixels: [1024, 1024]
     },
     sourceMetadata: {
       generator: "SimLab GLTF", gltfVersion: "2.0", nodes: 442, meshes: 182,

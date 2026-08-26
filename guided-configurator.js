@@ -29,7 +29,7 @@ import {
 import {
   getImmersiveLayout,
   millimetersToInches
-} from "./guided-layout-registry.js?v=ios-mobile-decode-v1-20260825a";
+} from "./guided-layout-registry.js?v=immersive-layout-configurator-v1";
 import {
   resolveProductLayoutCompatibility
 } from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
@@ -2376,7 +2376,7 @@ function syncGuidedScene() {
   }
 
   if (!guidedSceneController) updateGuidedSceneState("loading");
-  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=ios-mobile-decode-v1-20260825a");
+  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=room-shell-visibility-v1-20260825a");
   importPromise
     .then(({ createGuidedLayoutViewerController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;

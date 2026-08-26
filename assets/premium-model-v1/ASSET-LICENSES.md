@@ -15,16 +15,6 @@
 
 The source maps are used only by the isolated `modelQuality=premium-v1` 3D preview.
 
-## iOS floor decode derivative
-
-- Source: the identical embedded maple floor PNG carried by all three verified authoritative GLBs.
-- Source payload SHA-256: `2b44ffa512f19f55d6f48ee153173affd1234ce1911ecd52256635ec6daf39f9`.
-- Runtime derivative: `source-maple-floor-ios-v1.jpg`, downsampled from 2000 × 2000 to 1024 × 1024 and encoded as bounded-quality JPEG for iOS/WebKit texture decoding.
-- Runtime SHA-256: `b00f0d09491740919a22fd86b9e1cb3b77c5bc5d3110f25f880707007b5b18cd`.
-- Scope: iOS/WebKit parsing only. Nodes, meshes, accessors, buffer views, material bindings, transforms, bounds, and every non-floor embedded image remain the exact verified source data.
-- Purpose: remove the single largest decoded GLB texture allocation before Three.js r166 creates the scene on memory-constrained iPhones and iPads.
-- Visual policy: the same floor image and aspect ratio are retained; only decode resolution and encoding change on iOS.
-
 ## Natural Oak workplace-reference synthesis
 
 - Reference source: five project-owner-supplied workplace photographs captured on August 25, 2026.
