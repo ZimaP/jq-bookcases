@@ -12,17 +12,17 @@
     {
       "bytes": 120029,
       "path": "guided-layout-viewer.js",
-      "sha256": "e17acdf8cee90dfa5553afc1c27e9daf655a2caed1236da3e73ec84dabd67c6a"
+      "sha256": "1aceea57cff7329552d9876010ddb41177476df994ec5fc2c6897508f3c492d7"
     },
     {
       "bytes": 14909,
       "path": "guided-layout-registry.js",
-      "sha256": "76d8843a6df299f407e9ef3d9fcc4ebf00ff9acc6b88ddc48915a66f09aaa877"
+      "sha256": "23c04c58f73c04d03ab7d998bf8c83b7b0053c3c09042b1ff4f65931d1c76cbb"
     },
     {
-      "bytes": 5081,
+      "bytes": 5614,
       "path": "tools/generate-ios-mobile-models.mjs",
-      "sha256": "a47ea7501a17df0cec1a303b449cf278683bcbb2b7d3134639e353bee7811a65"
+      "sha256": "2ef1ecab50bbfcb95223676510eea9df5daef27edb922f4768bc687de5eb5111"
     },
     {
       "bytes": 5373,
@@ -145,9 +145,9 @@
       "sha256": "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5"
     },
     {
-      "bytes": 980940,
+      "bytes": 980628,
       "path": "assets/models/room2/Room2-Fireplace-bookcases-source-v1-ios-v1.glb",
-      "sha256": "7a3f0e5a4e015e0b8247649c095f49b8023eb59315c65caebbba6484d238ad42"
+      "sha256": "9c1f2733e3ff23dc73dbf1ec0a769a498281c70b408a25bf65b14dcc96b6ebda"
     },
     {
       "bytes": 6755128,
@@ -155,9 +155,9 @@
       "sha256": "4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb"
     },
     {
-      "bytes": 1026208,
+      "bytes": 1025836,
       "path": "assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01-ios-v1.glb",
-      "sha256": "37cb0ce5c5d005be95f66492023de8ecd04337a21c01dda8ea2ca14b2081c3ba"
+      "sha256": "85232d0ade82cd4ba01141c724575b0d1266dea518735478900dcc5162f9072d"
     },
     {
       "bytes": 6993036,
@@ -165,9 +165,9 @@
       "sha256": "631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24"
     },
     {
-      "bytes": 1262204,
+      "bytes": 1261768,
       "path": "assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb",
-      "sha256": "70d9e53d980243f9725017fa12e371cfeb1ee03c8b39fcdad34c0baad155f25b"
+      "sha256": "c647eae766541e344f5e4428125557c88af12ce8c42940cde44f060335fcb2b5"
     }
   ],
   "geometry": {

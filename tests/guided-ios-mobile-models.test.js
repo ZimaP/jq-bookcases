@@ -22,20 +22,20 @@ const EXPECTED = Object.freeze({
   "fireplace-wall": Object.freeze({
     floorImageIndex: 4,
     path: "assets/models/room2/Room2-Fireplace-bookcases-source-v1-ios-v1.glb",
-    bytes: 980940,
-    sha256: "7a3f0e5a4e015e0b8247649c095f49b8023eb59315c65caebbba6484d238ad42"
+    bytes: 980628,
+    sha256: "9c1f2733e3ff23dc73dbf1ec0a769a498281c70b408a25bf65b14dcc96b6ebda"
   }),
   "door-wall": Object.freeze({
     floorImageIndex: 5,
     path: "assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01-ios-v1.glb",
-    bytes: 1026208,
-    sha256: "37cb0ce5c5d005be95f66492023de8ecd04337a21c01dda8ea2ca14b2081c3ba"
+    bytes: 1025836,
+    sha256: "85232d0ade82cd4ba01141c724575b0d1266dea518735478900dcc5162f9072d"
   }),
   "window-wall": Object.freeze({
     floorImageIndex: 6,
     path: "assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb",
-    bytes: 1262204,
-    sha256: "70d9e53d980243f9725017fa12e371cfeb1ee03c8b39fcdad34c0baad155f25b"
+    bytes: 1261768,
+    sha256: "c647eae766541e344f5e4428125557c88af12ce8c42940cde44f060335fcb2b5"
   })
 });
 
@@ -81,10 +81,20 @@ test("the committed iOS GLBs are deterministic floor-image-only derivatives of t
     const sourceInspection = inspectRoom2Glb(asArrayBuffer(source));
     const mobileInspection = inspectRoom2Glb(asArrayBuffer(committed));
     assert.deepEqual(mobileInspection.counts, sourceInspection.counts, `${layoutId} geometry counts`);
-    for (const key of ["scenes", "scene", "nodes", "meshes", "accessors", "materials", "textures", "samplers", "animations", "skins", "cameras"]) {
+    for (const key of ["scenes", "scene", "nodes", "meshes", "accessors", "textures", "samplers", "animations", "skins", "cameras"]) {
       assert.equal(JSON.stringify(mobileInspection.json[key]), JSON.stringify(sourceInspection.json[key]), `${layoutId} ${key}`);
     }
     assert.equal(mobileInspection.json.asset.extras.jqIosFloorDerivative, "ios-v1");
+    assert.equal(mobileInspection.json.asset.extras.jqIosMaterialDecodeProfile, "external-pbr-v1");
+    for (const material of mobileInspection.json.materials || []) {
+      assert.equal(material.normalTexture, undefined);
+      assert.equal(material.occlusionTexture, undefined);
+      assert.equal(material.emissiveTexture, undefined);
+      assert.equal(material.pbrMetallicRoughness?.baseColorTexture, undefined);
+      assert.equal(material.pbrMetallicRoughness?.metallicRoughnessTexture, undefined);
+      assert.equal(material.extensions?.KHR_materials_pbrSpecularGlossiness?.diffuseTexture, undefined);
+      assert.equal(material.extensions?.KHR_materials_pbrSpecularGlossiness?.specularGlossinessTexture, undefined);
+    }
     assert.equal(sourceInspection.json.images[expected.floorImageIndex].mimeType, "image/png");
     assert.equal(mobileInspection.json.images[expected.floorImageIndex].mimeType, "image/jpeg");
     assert.equal(mobileInspection.json.images[expected.floorImageIndex].bufferView, sourceInspection.json.images[expected.floorImageIndex].bufferView);

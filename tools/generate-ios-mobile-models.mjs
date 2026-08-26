@@ -79,8 +79,21 @@ export function deriveIosGlb(source, floorJpeg, floorImageIndex) {
   }
   floorView.byteLength = floorJpeg.length;
   image.mimeType = "image/jpeg";
+  for (const material of json.materials || []) {
+    delete material.normalTexture;
+    delete material.occlusionTexture;
+    delete material.emissiveTexture;
+    delete material.pbrMetallicRoughness?.baseColorTexture;
+    delete material.pbrMetallicRoughness?.metallicRoughnessTexture;
+    delete material.extensions?.KHR_materials_pbrSpecularGlossiness?.diffuseTexture;
+    delete material.extensions?.KHR_materials_pbrSpecularGlossiness?.specularGlossinessTexture;
+  }
   json.buffers[0].byteLength = nextBinary.length;
-  json.asset.extras = { ...(json.asset.extras || {}), jqIosFloorDerivative: "ios-v1" };
+  json.asset.extras = {
+    ...(json.asset.extras || {}),
+    jqIosFloorDerivative: "ios-v1",
+    jqIosMaterialDecodeProfile: "external-pbr-v1"
+  };
   return encodeGlb(json, nextBinary);
 }
 
