@@ -72,7 +72,7 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
       bytes: 6712076,
       sha256: "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5"
     },
-    iosRuntimeAsset: [980628, "9c1f2733e3ff23dc73dbf1ec0a769a498281c70b408a25bf65b14dcc96b6ebda"],
+    iosRuntimeAsset: [980656, "d36dc25e23c794912ced16f6ffa3322847c1c7d93c03222f82240f198421f7ab"],
     sourceMetadata: {
       generator: "SimLab GLTF",
       gltfVersion: "2.0",
@@ -165,7 +165,7 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
       bytes: 6755128,
       sha256: "4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb"
     },
-    iosRuntimeAsset: [1025836, "85232d0ade82cd4ba01141c724575b0d1266dea518735478900dcc5162f9072d"],
+    iosRuntimeAsset: [1025864, "2f65aa4be1189d33c02248dc31cdb13f375b1a55dfef639759c89fa55aeaa4b1"],
     sourceMetadata: {
       generator: "SimLab GLTF", gltfVersion: "2.0", nodes: 317, meshes: 127,
       primitives: 127, materials: 10, images: 7, textures: 7, accessors: 368, vertices: 29281,
@@ -219,7 +219,7 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
       bytes: 6993036,
       sha256: "631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24"
     },
-    iosRuntimeAsset: [1261768, "c647eae766541e344f5e4428125557c88af12ce8c42940cde44f060335fcb2b5"],
+    iosRuntimeAsset: [1261800, "4bbdc30ff4619aa06f989f012117912b8836547b0fdd645774fb7b9407c575cd"],
     sourceMetadata: {
       generator: "SimLab GLTF", gltfVersion: "2.0", nodes: 442, meshes: 182,
       primitives: 182, materials: 10, images: 8, textures: 8, accessors: 544, vertices: 36916,

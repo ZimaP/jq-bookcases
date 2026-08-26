@@ -10,19 +10,19 @@
   },
   "files": [
     {
-      "bytes": 120029,
+      "bytes": 120058,
       "path": "guided-layout-viewer.js",
-      "sha256": "fd9aa7b03b4386262e745c9f5f2e777f08ec70ac1ed708a6ce82ef5ca33c358a"
+      "sha256": "19cf93d8abe4459046bf41b14ca0e2c0f3cbc69f1aebf81631c1fb3d42855318"
     },
     {
       "bytes": 14696,
       "path": "guided-layout-registry.js",
-      "sha256": "1c6772b6da9720c2973eb518cddce0a09b023ba2fcb075c1af0367ea9b4ac918"
+      "sha256": "81c5664b5650af493fb0df03208878731213cac97401d870f1771966bfc2cdf4"
     },
     {
-      "bytes": 5614,
+      "bytes": 6216,
       "path": "tools/generate-ios-mobile-models.mjs",
-      "sha256": "2ef1ecab50bbfcb95223676510eea9df5daef27edb922f4768bc687de5eb5111"
+      "sha256": "e89c20f592545bdbbd1d2fa9c8bf65fcb2e631af79cb71e28e53b1ccbc91c668"
     },
     {
       "bytes": 5373,
@@ -145,9 +145,9 @@
       "sha256": "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5"
     },
     {
-      "bytes": 980628,
+      "bytes": 980656,
       "path": "assets/models/room2/Room2-Fireplace-bookcases-source-v1-ios-v1.glb",
-      "sha256": "9c1f2733e3ff23dc73dbf1ec0a769a498281c70b408a25bf65b14dcc96b6ebda"
+      "sha256": "d36dc25e23c794912ced16f6ffa3322847c1c7d93c03222f82240f198421f7ab"
     },
     {
       "bytes": 6755128,
@@ -155,9 +155,9 @@
       "sha256": "4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb"
     },
     {
-      "bytes": 1025836,
+      "bytes": 1025864,
       "path": "assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01-ios-v1.glb",
-      "sha256": "85232d0ade82cd4ba01141c724575b0d1266dea518735478900dcc5162f9072d"
+      "sha256": "2f65aa4be1189d33c02248dc31cdb13f375b1a55dfef639759c89fa55aeaa4b1"
     },
     {
       "bytes": 6993036,
@@ -165,9 +165,9 @@
       "sha256": "631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24"
     },
     {
-      "bytes": 1261768,
+      "bytes": 1261800,
       "path": "assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb",
-      "sha256": "c647eae766541e344f5e4428125557c88af12ce8c42940cde44f060335fcb2b5"
+      "sha256": "4bbdc30ff4619aa06f989f012117912b8836547b0fdd645774fb7b9407c575cd"
     }
   ],
   "geometry": {

@@ -19,7 +19,7 @@ import {
   getSmartDimensionDefaults,
   millimetersToInches,
   normalizeSmartDimension
-} from "./guided-layout-registry.js?v=ios3";
+} from "./guided-layout-registry.js?v=mobile-detail-floor-v1";
 
 export const GUIDED_PROJECT_SCHEMA_VERSION = 5;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";

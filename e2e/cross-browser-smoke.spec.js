@@ -213,6 +213,15 @@ test("iPhone WebKit completes Window Wall parsing with the bounded mobile GLB an
   expect(mobileRequests).toBe(1);
   expect(authoritativeRequests).toBe(0);
 
+  const fittedRadius = record.camera.radius;
+  const zoomIn = page.getByRole("button", { name: "Zoom in" });
+  await expect(zoomIn).toBeVisible();
+  for (let index = 0; index < 16; index += 1) await zoomIn.click();
+  record = await diagnostics(page);
+  expect(record.camera.radius).toBeLessThan(fittedRadius);
+  expect(record.camera.radius).toBeGreaterThanOrEqual(1.249);
+  expect(record.camera.radius).toBeLessThanOrEqual(1.251);
+
   await page.reload({ waitUntil: "domcontentloaded" });
   await expect(runtime).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
   record = await diagnostics(page);

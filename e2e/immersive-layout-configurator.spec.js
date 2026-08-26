@@ -337,6 +337,10 @@ test("touch orbit and two-pointer pinch update the same camera without changing 
   await page.setViewportSize({ width: 390, height: 844 });
   const runtime = await continueToCustomization(page, "door-wall", "renderer=webgl2");
   const canvas = runtime.locator("canvas");
+  const authority = runtime.locator('[id^="immersive-viewer-authority-"]');
+  await expect(authority).toHaveClass("sr-only");
+  await expect(authority).toBeHidden();
+  await expect(runtime.locator(".immersive-viewer-authority")).toHaveCount(0);
   const box = await canvas.boundingBox();
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 2 });
@@ -363,6 +367,10 @@ test("touch orbit and two-pointer pinch update the same camera without changing 
   await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: pinchEnd });
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await expect.poll(async () => (await diagnostics(page)).camera.radius).toBeLessThan(beforePinch.camera.radius);
+  const zoomIn = page.getByRole("button", { name: "Zoom in" });
+  for (let index = 0; index < 16; index += 1) await zoomIn.click();
+  await expect.poll(async () => (await diagnostics(page)).camera.radius).toBeLessThanOrEqual(1.251);
+  expect((await diagnostics(page)).camera.radius).toBeGreaterThanOrEqual(1.249);
   const final = await diagnostics(page);
   expect(final.smartDimension.valueMillimeters).toBe(initial.smartDimension.valueMillimeters);
   expect(final.instanceId).toBe(initial.instanceId);
