@@ -25,11 +25,11 @@ import {
   parseInches,
   prepareMeasurementsForLayout,
   validateMeasurements
-} from "./guided-configurator-state.js?v=customization-ux-v1-20260824a";
+} from "./guided-configurator-state.js?v=mobile-detail-floor-v1";
 import {
   getImmersiveLayout,
   millimetersToInches
-} from "./guided-layout-registry.js?v=ios3";
+} from "./guided-layout-registry.js?v=mobile-detail-floor-v1";
 import {
   resolveProductLayoutCompatibility
 } from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
@@ -2370,7 +2370,7 @@ function syncGuidedScene() {
   }
 
   if (!guidedSceneController) updateGuidedSceneState("loading");
-  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=ios3");
+  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=mobile-detail-floor-v1");
   importPromise
     .then(({ createGuidedLayoutViewerController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;

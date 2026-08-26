@@ -98,7 +98,7 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(premium.exteriorGround.excludesInteriorFloor).toBe(true);
     expect(premium.exteriorGround.parent).toBe("scene");
     expect(premium.floorSurface).toEqual({
-      primitiveCount: 0,
+      primitiveCount: 1,
       sourceColorMapReusedAsMicroBump: true,
       bumpScale: 0.004
     });

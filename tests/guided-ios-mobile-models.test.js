@@ -22,20 +22,20 @@ const EXPECTED = Object.freeze({
   "fireplace-wall": Object.freeze({
     floorImageIndex: 4,
     path: "assets/models/room2/Room2-Fireplace-bookcases-source-v1-ios-v1.glb",
-    bytes: 980628,
-    sha256: "9c1f2733e3ff23dc73dbf1ec0a769a498281c70b408a25bf65b14dcc96b6ebda"
+    bytes: 980656,
+    sha256: "d36dc25e23c794912ced16f6ffa3322847c1c7d93c03222f82240f198421f7ab"
   }),
   "door-wall": Object.freeze({
     floorImageIndex: 5,
     path: "assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01-ios-v1.glb",
-    bytes: 1025836,
-    sha256: "85232d0ade82cd4ba01141c724575b0d1266dea518735478900dcc5162f9072d"
+    bytes: 1025864,
+    sha256: "2f65aa4be1189d33c02248dc31cdb13f375b1a55dfef639759c89fa55aeaa4b1"
   }),
   "window-wall": Object.freeze({
     floorImageIndex: 6,
     path: "assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb",
-    bytes: 1261768,
-    sha256: "c647eae766541e344f5e4428125557c88af12ce8c42940cde44f060335fcb2b5"
+    bytes: 1261800,
+    sha256: "4bbdc30ff4619aa06f989f012117912b8836547b0fdd645774fb7b9407c575cd"
   })
 });
 
@@ -84,17 +84,25 @@ test("the committed iOS GLBs are deterministic floor-image-only derivatives of t
     for (const key of ["scenes", "scene", "nodes", "meshes", "accessors", "textures", "samplers", "animations", "skins", "cameras"]) {
       assert.equal(JSON.stringify(mobileInspection.json[key]), JSON.stringify(sourceInspection.json[key]), `${layoutId} ${key}`);
     }
-    assert.equal(mobileInspection.json.asset.extras.jqIosFloorDerivative, "ios-v1");
+    assert.equal(mobileInspection.json.asset.extras.jqIosFloorDerivative, "ios-v2");
     assert.equal(mobileInspection.json.asset.extras.jqIosMaterialDecodeProfile, "external-pbr-v1");
+    const floorTextureIndices = new Set((mobileInspection.json.textures || [])
+      .map((texture, index) => texture?.source === expected.floorImageIndex ? index : null)
+      .filter(Number.isInteger));
+    assert.equal(floorTextureIndices.size, 1, `${layoutId} exact floor texture`);
+    let floorMaterialCount = 0;
     for (const material of mobileInspection.json.materials || []) {
       assert.equal(material.normalTexture, undefined);
       assert.equal(material.occlusionTexture, undefined);
       assert.equal(material.emissiveTexture, undefined);
-      assert.equal(material.pbrMetallicRoughness?.baseColorTexture, undefined);
+      const baseColorTexture = material.pbrMetallicRoughness?.baseColorTexture;
+      if (floorTextureIndices.has(baseColorTexture?.index)) floorMaterialCount += 1;
+      else assert.equal(baseColorTexture, undefined);
       assert.equal(material.pbrMetallicRoughness?.metallicRoughnessTexture, undefined);
       assert.equal(material.extensions?.KHR_materials_pbrSpecularGlossiness?.diffuseTexture, undefined);
       assert.equal(material.extensions?.KHR_materials_pbrSpecularGlossiness?.specularGlossinessTexture, undefined);
     }
+    assert.equal(floorMaterialCount, 1, `${layoutId} exact floor material`);
     assert.equal(sourceInspection.json.images[expected.floorImageIndex].mimeType, "image/png");
     assert.equal(mobileInspection.json.images[expected.floorImageIndex].mimeType, "image/jpeg");
     assert.equal(mobileInspection.json.images[expected.floorImageIndex].bufferView, sourceInspection.json.images[expected.floorImageIndex].bufferView);

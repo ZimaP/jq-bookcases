@@ -79,19 +79,27 @@ export function deriveIosGlb(source, floorJpeg, floorImageIndex) {
   }
   floorView.byteLength = floorJpeg.length;
   image.mimeType = "image/jpeg";
+  const floorTextureIndices = new Set((json.textures || [])
+    .map((texture, index) => texture?.source === floorImageIndex ? index : null)
+    .filter(Number.isInteger));
+  if (floorTextureIndices.size !== 1) throw new Error("The authoritative floor texture binding changed.");
+  let retainedFloorMaterialCount = 0;
   for (const material of json.materials || []) {
     delete material.normalTexture;
     delete material.occlusionTexture;
     delete material.emissiveTexture;
-    delete material.pbrMetallicRoughness?.baseColorTexture;
+    const baseColorTexture = material.pbrMetallicRoughness?.baseColorTexture;
+    if (floorTextureIndices.has(baseColorTexture?.index)) retainedFloorMaterialCount += 1;
+    else delete material.pbrMetallicRoughness?.baseColorTexture;
     delete material.pbrMetallicRoughness?.metallicRoughnessTexture;
     delete material.extensions?.KHR_materials_pbrSpecularGlossiness?.diffuseTexture;
     delete material.extensions?.KHR_materials_pbrSpecularGlossiness?.specularGlossinessTexture;
   }
+  if (retainedFloorMaterialCount !== 1) throw new Error("The authoritative floor material binding changed.");
   json.buffers[0].byteLength = nextBinary.length;
   json.asset.extras = {
     ...(json.asset.extras || {}),
-    jqIosFloorDerivative: "ios-v1",
+    jqIosFloorDerivative: "ios-v2",
     jqIosMaterialDecodeProfile: "external-pbr-v1"
   };
   return encodeGlb(json, nextBinary);

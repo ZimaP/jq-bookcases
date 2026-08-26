@@ -14,7 +14,7 @@ import {
   getSmartDimensionDefaults,
   millimetersToInches,
   normalizeSmartDimension
-} from "./guided-layout-registry.js?v=ios3";
+} from "./guided-layout-registry.js?v=mobile-detail-floor-v1";
 import { getImmersiveMaterialZone } from "./guided-layout-material-zones.generated.js?v=immersive-layout-configurator-v1";
 
 const CONTROL_ID = "adjustable-shelf-clearance";
@@ -28,7 +28,7 @@ const CAMERA_LIMITS = Object.freeze({
   maximumTheta: 0.52,
   minimumPhi: -0.05,
   maximumPhi: 0.72,
-  minimumRadius: 2.8,
+  minimumRadius: 1.25,
   maximumRadius: 24
 });
 const TEXTURE_SLOTS = Object.freeze([
@@ -1500,7 +1500,8 @@ export class GuidedLayoutViewerController {
 
     const authority = document.createElement("p");
     authority.id = `immersive-viewer-authority-${this.instanceId}`;
-    authority.className = "immersive-viewer-authority";
+    authority.className = "sr-only";
+    authority.hidden = true;
     authority.textContent = "Preview only — final dimensions require design confirmation.";
     runtime.append(authority);
     canvas.setAttribute("aria-describedby", `${instructions.id} ${authority.id}`);
