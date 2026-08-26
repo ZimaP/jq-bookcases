@@ -1,5 +1,5 @@
 import { devices, test, expect } from "@playwright/test";
-import { IMMERSIVE_LAYOUT_REGISTRY, getImmersiveLayout } from "../guided-layout-registry.js";
+import { getImmersiveLayout } from "../guided-layout-registry.js";
 
 const PUBLIC_ROUTES = [
   "index.html",
@@ -47,7 +47,7 @@ async function openCustomization(page, layoutId, query = "") {
 }
 
 async function expectExactReadyRuntime(page, layoutId) {
-  const expected = IMMERSIVE_LAYOUT_REGISTRY[layoutId];
+  const expected = getImmersiveLayout(layoutId);
   const record = await diagnostics(page);
   expect(record.state).toBe("ready");
   expect(record.backend).toBe("webgl2");
@@ -135,7 +135,7 @@ test("WebKit automatic fallback keeps the direct panel responsive from desktop t
   const failures = monitorRuntime(page);
   let modelRequests = 0;
   page.on("request", (request) => {
-    if (new URL(request.url()).pathname.endsWith("/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb")) modelRequests += 1;
+    if (new URL(request.url()).pathname.endsWith("/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb")) modelRequests += 1;
   });
   await openCustomization(page, "window-wall");
   const initial = await expectExactReadyRuntime(page, "window-wall");

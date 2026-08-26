@@ -259,11 +259,9 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
   })
 });
 
-export function getImmersiveLayout(layoutId, navigatorLike = globalThis.navigator) {
+export function getImmersiveLayout(layoutId) {
   const record = IMMERSIVE_LAYOUT_REGISTRY[layoutId];
-  const ios = /iPad|iPhone|iPod/i.test(navigatorLike?.userAgent || "")
-    || (navigatorLike?.platform === "MacIntel" && navigatorLike?.maxTouchPoints > 1);
-  if (!record || !ios) return record || null;
+  if (!record) return null;
   const [bytes, sha256] = record.iosRuntimeAsset;
   return { ...record, runtimeAsset: {
     path: record.runtimeAsset.path.replace(/\.glb$/u, "-ios-v1.glb"), bytes, sha256

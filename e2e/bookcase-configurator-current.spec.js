@@ -10,7 +10,7 @@ import {
   GUIDED_PROJECT_SCHEMA_VERSION,
   GUIDED_PROJECTS_STORAGE_KEY
 } from "../guided-configurator-state.js";
-import { IMMERSIVE_LAYOUT_ORDER, IMMERSIVE_LAYOUT_REGISTRY } from "../guided-layout-registry.js";
+import { IMMERSIVE_LAYOUT_ORDER, IMMERSIVE_LAYOUT_REGISTRY, getImmersiveLayout } from "../guided-layout-registry.js";
 
 const CONTROL_ID = "adjustable-shelf-clearance";
 
@@ -145,7 +145,7 @@ test("authorization exposes seven products, three layouts, and four steps withou
 
 test("Window Storage preselects only Window Wall and preserves its exact authoritative journey", async ({ page }) => {
   const failures = monitorRuntime(page);
-  const expected = IMMERSIVE_LAYOUT_REGISTRY["window-wall"];
+  const expected = getImmersiveLayout("window-wall");
   const modelRequests = [];
   page.on("request", (request) => {
     if (new URL(request.url()).pathname.endsWith(expected.runtimeAsset.path)) modelRequests.push(request.url());
@@ -426,7 +426,7 @@ test("the complete flow stays same-origin and never loads retired renderers", as
   await openFreshProject(page);
   await continueToReview(page);
   expect(remote).toEqual([]);
-  expect(models).toEqual([IMMERSIVE_LAYOUT_REGISTRY["fireplace-wall"].runtimeAsset.path]);
+  expect(models).toEqual([getImmersiveLayout("fireplace-wall").runtimeAsset.path]);
   expect(forbidden).toEqual([]);
   expect(failures).toEqual([]);
 });

@@ -65,9 +65,9 @@ test("the shared registry exposes exactly the retained Fireplace parent and two 
     assert.equal(layout.layoutId, layoutId);
     assert.equal(layout.roomId, expected.roomId);
     assert.deepEqual(layout.runtimeAsset, {
-      path: expected.path,
-      bytes: expected.bytes,
-      sha256: expected.sha256
+      path: expected.path.replace(/\.glb$/u, "-ios-v1.glb"),
+      bytes: IMMERSIVE_LAYOUT_REGISTRY[layoutId].iosRuntimeAsset[0],
+      sha256: IMMERSIVE_LAYOUT_REGISTRY[layoutId].iosRuntimeAsset[1]
     });
     assert.equal(layout.runtimeDerivative, null);
     assert.equal(layout.authoritativeSource.path, expected.path);

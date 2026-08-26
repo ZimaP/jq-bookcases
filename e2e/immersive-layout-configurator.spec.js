@@ -7,7 +7,8 @@ import {
 } from "../guided-configurator-data.js";
 import {
   IMMERSIVE_LAYOUT_ORDER,
-  IMMERSIVE_LAYOUT_REGISTRY
+  IMMERSIVE_LAYOUT_REGISTRY,
+  getImmersiveLayout
 } from "../guided-layout-registry.js";
 
 const CONTROL_ID = "adjustable-shelf-clearance";
@@ -102,7 +103,7 @@ function createConfiguredPage(browser, baseURL) {
 function assertGeometryProof(record, expectedMillimeters) {
   const proof = record.transformProof;
   expect(record.state).toBe("ready");
-  expect(record.assetSha256).toBe(record.authoritativeSha256);
+  expect(record.assetSha256).not.toBe(record.authoritativeSha256);
   expect(record.smartDimension.status).toBe("PROVEN");
   expect(record.smartDimension.valueMillimeters).toBeCloseTo(expectedMillimeters, 5);
   expect(proof.sourceBuffersImmutable).toBe(true);
@@ -176,7 +177,7 @@ test("every authoritative layout loads once while shelf adjustment stays interna
   await continueToLayouts(page);
   expect(modelRequests).toEqual([]);
   for (const [index, layoutId] of IMMERSIVE_LAYOUT_ORDER.entries()) {
-    const layout = IMMERSIVE_LAYOUT_REGISTRY[layoutId];
+    const layout = getImmersiveLayout(layoutId);
     const control = layout.geometryControlManifest[CONTROL_ID];
     if (index === 0) {
       await chooseLayout(page, layoutId);
@@ -382,7 +383,8 @@ test("WebGPU is genuine when available, forced WebGL2 works, and an import failu
       expect(record.backend).toBe("webgpu");
       expect(record.rendererFallbackReason).toBeNull();
       expect(record.rendererRenderFailureCount).toBe(0);
-      expect(record.assetSha256).toBe(record.authoritativeSha256);
+      expect(record.assetSha256).toBe(getImmersiveLayout(layoutId).runtimeAsset.sha256);
+      expect(record.authoritativeSha256).toBe(getImmersiveLayout(layoutId).authoritativeSource.sha256);
       expect(record.transformProof.sourceBuffersImmutable).toBe(true);
       expect(record.ownership.animationLoops).toBe(1);
       expect(lighting.shadowRenderingEnabled).toBe(false);
@@ -465,8 +467,8 @@ test("a new layout supersedes a WebGPU fallback reload already in flight", async
     globalThis.__JQ_IMMERSIVE_VIEWER_TEST_HOOKS__ = { renderFailureMode: "late" };
   });
 
-  const doorPath = IMMERSIVE_LAYOUT_REGISTRY["door-wall"].runtimeAsset.path;
-  const windowLayout = IMMERSIVE_LAYOUT_REGISTRY["window-wall"];
+  const doorPath = getImmersiveLayout("door-wall").runtimeAsset.path;
+  const windowLayout = getImmersiveLayout("window-wall");
   let doorAttempts = 0;
   let windowAttempts = 0;
   let heldRequest = null;
@@ -561,7 +563,7 @@ test("a new layout supersedes a WebGPU fallback reload already in flight", async
 
 test("asset failure is fail-closed, focusable, accessible, and Retry recovers", async ({ page }) => {
   let attempts = 0;
-  await page.route("**/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb", async (route) => {
+  await page.route("**/assets/models/room2/Room2-Fireplace-bookcases-source-v1-ios-v1.glb", async (route) => {
     attempts += 1;
     if (attempts === 1) await route.fulfill({ status: 503, contentType: "application/octet-stream", body: "" });
     else await route.continue();

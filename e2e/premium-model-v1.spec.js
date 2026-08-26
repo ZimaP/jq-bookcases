@@ -2,7 +2,8 @@ import { test, expect } from "@playwright/test";
 import { createHash } from "node:crypto";
 import {
   IMMERSIVE_LAYOUT_ORDER,
-  IMMERSIVE_LAYOUT_REGISTRY
+  IMMERSIVE_LAYOUT_REGISTRY,
+  getImmersiveLayout
 } from "../guided-layout-registry.js";
 import { GUIDED_DRAFT_STORAGE_KEY } from "../guided-configurator-state.js";
 
@@ -67,12 +68,12 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     await expect(runtime).toHaveAttribute("data-premium-model-v1-ready", "true");
     await expect(page.locator("canvas")).toHaveCount(1);
     const record = await diagnostics(page);
-    const expected = IMMERSIVE_LAYOUT_REGISTRY[layoutId];
+    const expected = getImmersiveLayout(layoutId);
     const premium = record.appearance.premiumModelV1;
     expect(record.state).toBe("ready");
     expect(record.backend).toBe("webgl2");
-    expect(record.assetSha256).toBe(expected.authoritativeSource.sha256);
-    expect(record.assetSha256).toBe(record.authoritativeSha256);
+    expect(record.assetSha256).toBe(expected.runtimeAsset.sha256);
+    expect(record.authoritativeSha256).toBe(expected.authoritativeSource.sha256);
     expect(record.ownership.canvases).toBe(1);
     expect(record.ownership.renderers).toBe(1);
     expect(record.ownership.parsedRoots).toBe(1);
@@ -97,7 +98,7 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(premium.exteriorGround.excludesInteriorFloor).toBe(true);
     expect(premium.exteriorGround.parent).toBe("scene");
     expect(premium.floorSurface).toEqual({
-      primitiveCount: 1,
+      primitiveCount: 0,
       sourceColorMapReusedAsMicroBump: true,
       bumpScale: 0.004
     });
@@ -248,7 +249,8 @@ test("explicit standard-mode opt-out preserves the accepted renderer path", asyn
   await expect(runtime).toHaveAttribute("data-premium-model-v1-ready", "false");
   const record = await diagnostics(page);
   expect(record.appearance.premiumModelV1).toBeNull();
-  expect(record.assetSha256).toBe(record.authoritativeSha256);
+  expect(record.assetSha256).toBe(getImmersiveLayout("fireplace-wall").runtimeAsset.sha256);
+  expect(record.authoritativeSha256).toBe(getImmersiveLayout("fireplace-wall").authoritativeSource.sha256);
   expect(record.transformProof.sourceBuffersImmutable).toBe(true);
   expect(failures).toEqual([]);
 });

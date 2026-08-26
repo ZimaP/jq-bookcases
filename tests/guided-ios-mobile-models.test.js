@@ -39,22 +39,22 @@ const EXPECTED = Object.freeze({
   })
 });
 
-test("iPhone and touch-iPad select exact bounded mobile model assets without changing desktop selection", () => {
+test("every browser selects the exact bounded decode-safe model assets", () => {
   for (const layoutId of IMMERSIVE_LAYOUT_ORDER) {
-    const desktop = getImmersiveLayout(layoutId, { userAgent: "Mozilla/5.0 Macintosh", platform: "MacIntel", maxTouchPoints: 0 });
-    assert.equal(desktop, IMMERSIVE_LAYOUT_REGISTRY[layoutId]);
     for (const navigatorLike of [
+      { userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", platform: "Win32", maxTouchPoints: 0 },
+      { userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15)", platform: "MacIntel", maxTouchPoints: 0 },
       { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X)", platform: "iPhone", maxTouchPoints: 5 },
       { userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15)", platform: "MacIntel", maxTouchPoints: 5 }
     ]) {
-      const mobile = getImmersiveLayout(layoutId, navigatorLike);
-      assert.notEqual(mobile, IMMERSIVE_LAYOUT_REGISTRY[layoutId]);
-      assert.deepEqual(mobile.runtimeAsset, {
+      const runtime = getImmersiveLayout(layoutId, navigatorLike);
+      assert.notEqual(runtime, IMMERSIVE_LAYOUT_REGISTRY[layoutId]);
+      assert.deepEqual(runtime.runtimeAsset, {
         path: EXPECTED[layoutId].path,
         bytes: EXPECTED[layoutId].bytes,
         sha256: EXPECTED[layoutId].sha256
       });
-      assert.deepEqual(mobile.authoritativeSource, IMMERSIVE_LAYOUT_REGISTRY[layoutId].authoritativeSource);
+      assert.deepEqual(runtime.authoritativeSource, IMMERSIVE_LAYOUT_REGISTRY[layoutId].authoritativeSource);
     }
   }
   assert.equal(getImmersiveLayout("missing", { userAgent: "iPhone" }), null);
