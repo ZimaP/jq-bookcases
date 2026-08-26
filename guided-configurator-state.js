@@ -19,7 +19,7 @@ import {
   getSmartDimensionDefaults,
   millimetersToInches,
   normalizeSmartDimension
-} from "./guided-layout-registry.js?v=immersive-layout-configurator-v1";
+} from "./guided-layout-registry.js?v=ios1";
 
 export const GUIDED_PROJECT_SCHEMA_VERSION = 5;
 export const GUIDED_DRAFT_STORAGE_KEY = "jqGuidedConfiguratorDraftV1";
@@ -478,8 +478,6 @@ export function normalizeProject(candidate, options = {}) {
     if (sourceSchemaVersion >= 4) return Math.min(4, step);
     if (sourceSchemaVersion >= 2) return mapFiveStepPosition(step);
 
-    // Schema 1 predated the product-first five-step flow. Compose its original
-    // category/layout migration with the new five-to-four-step position map.
     const productFirstStep = step === 1
       ? layout ? 2 : 1
       : Math.min(5, step + 1);

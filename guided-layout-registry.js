@@ -72,6 +72,7 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
       bytes: 6712076,
       sha256: "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5"
     },
+    iosRuntimeAsset: [980940, "7a3f0e5a4e015e0b8247649c095f49b8023eb59315c65caebbba6484d238ad42"],
     sourceMetadata: {
       generator: "SimLab GLTF",
       gltfVersion: "2.0",
@@ -164,6 +165,7 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
       bytes: 6755128,
       sha256: "4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb"
     },
+    iosRuntimeAsset: [1026208, "37cb0ce5c5d005be95f66492023de8ecd04337a21c01dda8ea2ca14b2081c3ba"],
     sourceMetadata: {
       generator: "SimLab GLTF", gltfVersion: "2.0", nodes: 317, meshes: 127,
       primitives: 127, materials: 10, images: 7, textures: 7, accessors: 368, vertices: 29281,
@@ -217,6 +219,7 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
       bytes: 6993036,
       sha256: "631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24"
     },
+    iosRuntimeAsset: [1262204, "70d9e53d980243f9725017fa12e371cfeb1ee03c8b39fcdad34c0baad155f25b"],
     sourceMetadata: {
       generator: "SimLab GLTF", gltfVersion: "2.0", nodes: 442, meshes: 182,
       primitives: 182, materials: 10, images: 8, textures: 8, accessors: 544, vertices: 36916,
@@ -256,8 +259,15 @@ export const IMMERSIVE_LAYOUT_REGISTRY = deepFreeze({
   })
 });
 
-export function getImmersiveLayout(layoutId) {
-  return IMMERSIVE_LAYOUT_REGISTRY[layoutId] || null;
+export function getImmersiveLayout(layoutId, navigatorLike = globalThis.navigator) {
+  const record = IMMERSIVE_LAYOUT_REGISTRY[layoutId];
+  const ios = /iPad|iPhone|iPod/i.test(navigatorLike?.userAgent || "")
+    || (navigatorLike?.platform === "MacIntel" && navigatorLike?.maxTouchPoints > 1);
+  if (!record || !ios) return record || null;
+  const [bytes, sha256] = record.iosRuntimeAsset;
+  return { ...record, runtimeAsset: {
+    path: record.runtimeAsset.path.replace(/\.glb$/u, "-ios-v1.glb"), bytes, sha256
+  } };
 }
 
 export function getSmartDimensionDefaults(layoutId) {

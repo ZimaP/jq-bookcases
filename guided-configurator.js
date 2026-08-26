@@ -29,7 +29,7 @@ import {
 import {
   getImmersiveLayout,
   millimetersToInches
-} from "./guided-layout-registry.js?v=immersive-layout-configurator-v1";
+} from "./guided-layout-registry.js?v=ios1";
 import {
   resolveProductLayoutCompatibility
 } from "./guided-product-adapter.js?v=tv-drawing-4-geometry-v1-20260802a";
@@ -218,15 +218,9 @@ function initializeProject() {
   if (hashStep >= 1 && hashStep <= Math.max(1, initial.maxVisitedStep || 1)) initial.currentStep = hashStep;
 
   if (initial.productAvailability === "unavailable") {
-    // This is only the active working copy. The saved record in My Projects is
-    // left untouched until the customer explicitly renames, duplicates, or
-    // deletes it.
     initial.currentStep = 1;
     initial.maxVisitedStep = 1;
   } else if (initial.layoutAvailability === "unavailable") {
-    // Preserve the unsupported layout and its measurements in the working
-    // copy, but never let a stale draft, project, preset, or hash enter the
-    // audited immersive viewer path.
     initial.currentStep = 2;
     initial.maxVisitedStep = Math.min(2, Math.max(2, initial.maxVisitedStep || 2));
   }
@@ -2376,7 +2370,7 @@ function syncGuidedScene() {
   }
 
   if (!guidedSceneController) updateGuidedSceneState("loading");
-  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=room-shell-visibility-v1-20260825a");
+  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=ios1");
   importPromise
     .then(({ createGuidedLayoutViewerController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;

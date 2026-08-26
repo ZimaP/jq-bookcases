@@ -44,3 +44,12 @@ The source maps are used only by the isolated `modelQuality=premium-v1` 3D previ
 - Runtime derivative: no new color catalog or remote texture. Each existing paint color keeps its canonical state value while receiving a bounded finish-specific satin response, subtle micro-normal scale, and highlight energy selected to preserve door/profile readability on light and dark colors.
 - Scope: Shop-Primed, Warm White, Soft Ivory, Light Greige, Sage Gray, and Charcoal only.
 - Calibration status: visual rendering response only; no manufacturer, paint code, color standard, or SKU calibration is claimed.
+
+## iOS floor-image derivatives
+
+- Source: the exact embedded maple-floor PNG already present in each authoritative Fireplace, Door Wall, and Window Wall GLB.
+- Runtime derivative: a deterministic 1024 × 1024 JPEG (`source-maple-floor-ios-v1.jpg`) made from that embedded source image at quality 82. It is used only inside the three `-ios-v1.glb` mobile delivery assets.
+- Scope: iPhone and touch-iPad model loading only. Desktop selects the original authoritative GLBs.
+- Geometry contract: nodes, meshes, accessors, materials, texture bindings, transforms, pivots, bounds, and every non-floor buffer view remain byte-equivalent to their authoritative source. Only the embedded floor image payload, its MIME type, required later buffer offsets, buffer length, and a provenance marker differ.
+- Purpose: reduce per-scene transfer by about 5.7 MB and floor decode memory from about 16 MB to about 4 MB so iOS WebKit can complete parsing without changing the visible model design.
+- License: project-owned derivative of an existing project asset; no remote or third-party content was added.

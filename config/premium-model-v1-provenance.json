@@ -10,9 +10,24 @@
   },
   "files": [
     {
-      "bytes": 120057,
+      "bytes": 120029,
       "path": "guided-layout-viewer.js",
-      "sha256": "1f2c7eb42bc5bc1c43c7d71b0ad308fca04f86bb3631a50f7ba4629bac5be91c"
+      "sha256": "e17acdf8cee90dfa5553afc1c27e9daf655a2caed1236da3e73ec84dabd67c6a"
+    },
+    {
+      "bytes": 14909,
+      "path": "guided-layout-registry.js",
+      "sha256": "76d8843a6df299f407e9ef3d9fcc4ebf00ff9acc6b88ddc48915a66f09aaa877"
+    },
+    {
+      "bytes": 5081,
+      "path": "tools/generate-ios-mobile-models.mjs",
+      "sha256": "a47ea7501a17df0cec1a303b449cf278683bcbb2b7d3134639e353bee7811a65"
+    },
+    {
+      "bytes": 5373,
+      "path": "tools/premium-model-v1/prepare-preview-site.mjs",
+      "sha256": "d6c31f6ee67683d7d71d981bbbbc7a4a1b2c17742b780ee949eafd8e4d7ab9c7"
     },
     {
       "bytes": 13954,
@@ -30,9 +45,14 @@
       "sha256": "4a40540a52a1c16378cfc5403d0a167886aa4a9d38d587032e5cf7c8a0ce2104"
     },
     {
-      "bytes": 3989,
+      "bytes": 5079,
       "path": "assets/premium-model-v1/ASSET-LICENSES.md",
-      "sha256": "20f037e78328fd5abeacbb06fb896bcaa9dc92310cfafa31caf7ddddee021b0a"
+      "sha256": "05174202b094134455072c1968be880d3d7b7a8fc0381a144d24987b9613e9d7"
+    },
+    {
+      "bytes": 266509,
+      "path": "assets/premium-model-v1/textures/floor/source-maple-floor-ios-v1.jpg",
+      "sha256": "b00f0d09491740919a22fd86b9e1cb3b77c5bc5d3110f25f880707007b5b18cd"
     },
     {
       "bytes": 48642,
@@ -125,14 +145,29 @@
       "sha256": "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5"
     },
     {
+      "bytes": 980940,
+      "path": "assets/models/room2/Room2-Fireplace-bookcases-source-v1-ios-v1.glb",
+      "sha256": "7a3f0e5a4e015e0b8247649c095f49b8023eb59315c65caebbba6484d238ad42"
+    },
+    {
       "bytes": 6755128,
       "path": "assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb",
       "sha256": "4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb"
     },
     {
+      "bytes": 1026208,
+      "path": "assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01-ios-v1.glb",
+      "sha256": "37cb0ce5c5d005be95f66492023de8ecd04337a21c01dda8ea2ca14b2081c3ba"
+    },
+    {
       "bytes": 6993036,
       "path": "assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb",
       "sha256": "631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24"
+    },
+    {
+      "bytes": 1262204,
+      "path": "assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb",
+      "sha256": "70d9e53d980243f9725017fa12e371cfeb1ee03c8b39fcdad34c0baad155f25b"
     }
   ],
   "geometry": {
