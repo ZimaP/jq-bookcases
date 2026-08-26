@@ -14,7 +14,7 @@ import {
   getSmartDimensionDefaults,
   millimetersToInches,
   normalizeSmartDimension
-} from "./guided-layout-registry.js?v=ios1";
+} from "./guided-layout-registry.js?v=ios2";
 import { getImmersiveMaterialZone } from "./guided-layout-material-zones.generated.js?v=immersive-layout-configurator-v1";
 
 const CONTROL_ID = "adjustable-shelf-clearance";

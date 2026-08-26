@@ -190,10 +190,15 @@ jobs:
           mkdir -p _site/assets/models/room2
           cp \
             assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb \
+            assets/models/room2/Room2-Fireplace-bookcases-source-v1-ios-v1.glb \
             assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb \
+            assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01-ios-v1.glb \
             _site/assets/models/room2/
           mkdir -p _site/assets/models/room4
-          cp assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb _site/assets/models/room4/
+          cp \
+            assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb \
+            assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb \
+            _site/assets/models/room4/
           cp -R assets/environments _site/assets/
           cp -R assets/room2-commercial-pbr-v1 _site/assets/
           cp -R assets/textures _site/assets/
@@ -281,16 +286,31 @@ jobs:
           test "$(wc -c < _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb | tr -d ' ')" = "6712076"
           test "$(shasum -a 256 _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb | cut -d ' ' -f 1)" = "251af4f7cb669976dec9dcaa46905982f9ae085b7bfb30e27e1bf9900a01a8d5"
           ! head -c 128 _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1.glb | grep -q "version https://git-lfs.github.com/spec"
+          test -f _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1-ios-v1.glb
+          test ! -L _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1-ios-v1.glb
+          test "$(wc -c < _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1-ios-v1.glb | tr -d ' ')" = "980628"
+          test "$(shasum -a 256 _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1-ios-v1.glb | cut -d ' ' -f 1)" = "9c1f2733e3ff23dc73dbf1ec0a769a498281c70b408a25bf65b14dcc96b6ebda"
+          ! head -c 128 _site/assets/models/room2/Room2-Fireplace-bookcases-source-v1-ios-v1.glb | grep -q "version https://git-lfs.github.com/spec"
           test -f _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb
           test ! -L _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb
           test "$(wc -c < _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb | tr -d ' ')" = "6755128"
           test "$(shasum -a 256 _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb | cut -d ' ' -f 1)" = "4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb"
           ! head -c 128 _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01.glb | grep -q "version https://git-lfs.github.com/spec"
+          test -f _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01-ios-v1.glb
+          test ! -L _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01-ios-v1.glb
+          test "$(wc -c < _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01-ios-v1.glb | tr -d ' ')" = "1025836"
+          test "$(shasum -a 256 _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01-ios-v1.glb | cut -d ' ' -f 1)" = "85232d0ade82cd4ba01141c724575b0d1266dea518735478900dcc5162f9072d"
+          ! head -c 128 _site/assets/models/room2/jq-door-wall-bookcase-room2-authoritative-v01-ios-v1.glb | grep -q "version https://git-lfs.github.com/spec"
           test -f _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb
           test ! -L _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb
           test "$(wc -c < _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb | tr -d ' ')" = "6993036"
           test "$(shasum -a 256 _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb | cut -d ' ' -f 1)" = "631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24"
           ! head -c 128 _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb | grep -q "version https://git-lfs.github.com/spec"
+          test -f _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb
+          test ! -L _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb
+          test "$(wc -c < _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb | tr -d ' ')" = "1261768"
+          test "$(shasum -a 256 _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb | cut -d ' ' -f 1)" = "c647eae766541e344f5e4428125557c88af12ce8c42940cde44f060335fcb2b5"
+          ! head -c 128 _site/assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb | grep -q "version https://git-lfs.github.com/spec"
           test -f _site/assets/photos/configurator/layout-model-thumbnails/fireplace-wall-v1.png
           test "$(wc -c < _site/assets/photos/configurator/layout-model-thumbnails/fireplace-wall-v1.png | tr -d ' ')" = "357029"
           test "$(shasum -a 256 _site/assets/photos/configurator/layout-model-thumbnails/fireplace-wall-v1.png | cut -d ' ' -f 1)" = "9d2f88d7c7cc0dce003fb30559fdd4bd0a9418bb93910f614b890a293fd08adc"

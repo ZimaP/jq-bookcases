@@ -213,6 +213,15 @@ test("the release artifact explicitly copies and byte-checks every immersive run
   assert.match(workflow, /4969169cb29bcf51a72a2db6c4cd83631cd94c7d78154bc37558ee9adaba98cb/);
   assert.match(workflow, /6993036/);
   assert.match(workflow, /631005c025324c5162de6e414267101d6260d58c6198d561e6799568cef1fd24/);
+  assert.match(workflow, /Room2-Fireplace-bookcases-source-v1-ios-v1\.glb/);
+  assert.match(workflow, /980628/);
+  assert.match(workflow, /9c1f2733e3ff23dc73dbf1ec0a769a498281c70b408a25bf65b14dcc96b6ebda/);
+  assert.match(workflow, /jq-door-wall-bookcase-room2-authoritative-v01-ios-v1\.glb/);
+  assert.match(workflow, /1025836/);
+  assert.match(workflow, /85232d0ade82cd4ba01141c724575b0d1266dea518735478900dcc5162f9072d/);
+  assert.match(workflow, /jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1\.glb/);
+  assert.match(workflow, /1261768/);
+  assert.match(workflow, /c647eae766541e344f5e4428125557c88af12ce8c42940cde44f060335fcb2b5/);
   assert.match(workflow, /guided-layout-registry\.js/);
   assert.match(workflow, /guided-layout-material-zones\.generated\.js/);
   assert.match(workflow, /guided-layout-viewer\.js/);
