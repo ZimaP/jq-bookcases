@@ -1,0 +1,1050 @@
+{
+  "schemaVersion": 1,
+  "kind": "jq-golden-hero-phase1d-j-owner-clay-sanitized-validation-report",
+  "phase": "1D-J",
+  "status": "pass",
+  "previewOnly": true,
+  "ownerApproved": false,
+  "productionAuthority": false,
+  "fabricationAuthority": false,
+  "scope": "isolated decision-grade neutral-clay owner-review evidence; no production, fabrication, configurator, Review, or publication authority",
+  "source": {
+    "repository": "ZimaP/jq-bookcases",
+    "branch": "codex/golden-hero-authoritative-drawings-v1",
+    "head": "9f289165e4d52dc27c792b36acdccfe1d37c9e17",
+    "original_validation_report_sha256": "2865c3c3e234dd2301de2f2245a9935cdb6e68953876a625802475b04ce7aae5",
+    "source_document_withheld": true,
+    "scene_container_withheld": true
+  },
+  "protectedScope": {
+    "unchanged": true,
+    "protectedPathCount": 78,
+    "modifiedTracked": 7,
+    "untracked": 71,
+    "staged": 0,
+    "protectedPorcelainSha256": "c4dc88406baf8542a07c6ddcff903a3a5182c816b6f213afab43f395986649c2",
+    "pathHashAggregateSha256": "9a78d717705d93f80c91927ddcbd2657acd7a8e755693cb7fb14a3d3bf87b99f",
+    "trackedBinaryDiffSha256": "27fe2c41d6d591579bc27422bb389f2d4a9cdc8db2e609fcdd332c1d36d51b10"
+  },
+  "protectedPhase1DI": {
+    "unchanged": true,
+    "exactFileCount": 25,
+    "manifestSha256": "df41f2cd70a4fba1204d8614be915488d5943ed3461c68d87ebbd43a53885d35",
+    "geometryFingerprint": "jq-phase1d-i-preview-v1-351588ce11922cf3be35c309d8e0ae07df7f81d1eab04ad40337d93e391b9ec1"
+  },
+  "handoffPngRecords": [
+    {
+      "filename": "neutral-front-full-orthographic.png",
+      "width": 1600,
+      "height": 1200,
+      "mode": "RGB",
+      "sanitizedContainerSha256": "b70803e7a6908030b8b022f92942380e146fb9e6921e44a13fc845ec3cba8372",
+      "decodedRgbaSha256": "a218cdf8fabc724453a480a03d11fc7fcbee075641d6291b39666429185ae133",
+      "decodedPixelsUnchanged": true,
+      "ancillaryMetadataRemoved": true
+    },
+    {
+      "filename": "neutral-front-empty-tv-opening.png",
+      "width": 2400,
+      "height": 1600,
+      "mode": "RGB",
+      "sanitizedContainerSha256": "300a583d36cace8e99125dd5321ea197dc05be16799867fde370905c6b1897cf",
+      "decodedRgbaSha256": "12e08896cdecc9af74c9d09bedd054698e9f3dc18d19cc1923526237c7b34073",
+      "decodedPixelsUnchanged": true,
+      "ancillaryMetadataRemoved": true
+    },
+    {
+      "filename": "neutral-three-quarter-eye-level.png",
+      "width": 1600,
+      "height": 1200,
+      "mode": "RGB",
+      "sanitizedContainerSha256": "4c7af7f19307d96d89f00c230f5f29f1a736ed55f5f68759eaf315f2a7fc1ae0",
+      "decodedRgbaSha256": "88ec55c1ece8612d513dd9f28ef76f11a4bf458a9584d38f4505539cae7c6f7d",
+      "decodedPixelsUnchanged": true,
+      "ancillaryMetadataRemoved": true
+    },
+    {
+      "filename": "neutral-s2-actual-section.png",
+      "width": 2400,
+      "height": 1600,
+      "mode": "RGB",
+      "sanitizedContainerSha256": "aa6c839dcb74dfe11e593e6bca5b7125f5584953369fd43d3366b7a55a2ea037",
+      "decodedRgbaSha256": "67620ad153d285dc9732d4f5b263186307a50185a6f02f74fbc81a8ea27a8184",
+      "decodedPixelsUnchanged": true,
+      "ancillaryMetadataRemoved": true
+    },
+    {
+      "filename": "front-registered-overlay.png",
+      "width": 2400,
+      "height": 1600,
+      "mode": "RGB",
+      "sanitizedContainerSha256": "8432e6432f40d6a949ba81790d137f8b5d5e457c60cd24d5502c80da4ee40000",
+      "decodedRgbaSha256": "e8c3b3cf1c89fc796f541630aac3d55a9c2e3308b36db05804e8f11d2e33e5dc",
+      "decodedPixelsUnchanged": true,
+      "ancillaryMetadataRemoved": true
+    },
+    {
+      "filename": "s2-registered-overlay.png",
+      "width": 2400,
+      "height": 1600,
+      "mode": "RGB",
+      "sanitizedContainerSha256": "572d0451ab5b2d2d0c1e75fa7b0e6188c64c58c301f4d54019ad69251e796e09",
+      "decodedRgbaSha256": "38ae06470ba728525dbf362a5d60c6e78553012d279a815a413b4656d5440336",
+      "decodedPixelsUnchanged": true,
+      "ancillaryMetadataRemoved": true
+    },
+    {
+      "filename": "component-separation-front.png",
+      "width": 2400,
+      "height": 1600,
+      "mode": "RGB",
+      "sanitizedContainerSha256": "d9318eaa8d2b02f3a9f871f4a30933cccbbb750a872ad56a5cbe95350d563973",
+      "decodedRgbaSha256": "159f276d933a88a59c6f1844e9fb2623847158a1bc5ca05c30041e4476694e94",
+      "decodedPixelsUnchanged": true,
+      "ancillaryMetadataRemoved": true
+    },
+    {
+      "filename": "depth-plane-evidence.png",
+      "width": 2400,
+      "height": 1600,
+      "mode": "RGB",
+      "sanitizedContainerSha256": "18fdac20ce03511cfdd2839070326507d6803a025ee0dc05dc85221e5fd5af7c",
+      "decodedRgbaSha256": "7ccfca8da1cad925756e7716d8c96103e1e93879565146f2a705d3e01a1417bf",
+      "decodedPixelsUnchanged": true,
+      "ancillaryMetadataRemoved": true
+    }
+  ],
+  "sceneSummary": {
+    "geometryFingerprint": "jq-phase1d-j-owner-clay-v1-65b68a61694e0e197bd41edc85306b196a5c3e6abda2928c786e16e0d465de3f",
+    "physicalMeshes": 152,
+    "evidenceMeshes": 25,
+    "actualSectionBodies": 25,
+    "lockedTopology": {
+      "outerShelves": 8,
+      "bridgeShelves": 2,
+      "lowerShelves": 12,
+      "doorAssemblies": 8,
+      "a104Bodies": 8
+    },
+    "tvOpeningFromNamedPhysicalBounds": {
+      "left": -30.000001,
+      "right": 30.000001,
+      "bottom": 35.999999,
+      "top": 73
+    },
+    "unauthorizedSourceAabbPositiveOverlaps": 0,
+    "authorizedHardwareAabbUnions": 48
+  },
+  "cameraSummary": {
+    "reports": {
+      "frontFull": {
+        "camera": "P1DJ_CAM_FRONTFULL",
+        "locationMeters": [
+          0,
+          -4.572,
+          1.2192
+        ],
+        "rotationEuler": [
+          1.570796,
+          0,
+          0
+        ],
+        "type": "ORTHO",
+        "sensorFit": "HORIZONTAL",
+        "resolution": [
+          1600,
+          1200
+        ],
+        "effectiveViewSpanInches": {
+          "horizontal": 143.999997,
+          "vertical": 107.999998
+        },
+        "normalizedBounds": [
+          0.083333,
+          0.916667,
+          0.055555,
+          0.944444
+        ],
+        "margins": {
+          "left": 0.083333,
+          "right": 0.083333,
+          "bottom": 0.055555,
+          "top": 0.055556
+        },
+        "minimumRequiredMarginFraction": 0.05,
+        "allCornersInFront": true,
+        "completeBoundsVisible": true,
+        "worstObjects": [
+          {
+            "name": "p1dj/main/base-plinth::mesh",
+            "bounds": [
+              0.09375,
+              0.90625,
+              0.055555,
+              0.092592,
+              4.1021,
+              4.5593
+            ]
+          },
+          {
+            "name": "p1dj/main/upper-top-panel::mesh",
+            "bounds": [
+              0.09375,
+              0.90625,
+              0.9375,
+              0.944444,
+              4.249738,
+              4.545013
+            ]
+          },
+          {
+            "name": "p1dj/main/slim-cap::mesh",
+            "bounds": [
+              0.092014,
+              0.907986,
+              0.933333,
+              0.944444,
+              4.219575,
+              4.249738
+            ]
+          },
+          {
+            "name": "p1dj/main/upper-panel-01::mesh",
+            "bounds": [
+              0.09375,
+              0.098958,
+              0.388889,
+              0.9375,
+              4.249738,
+              4.545013
+            ]
+          },
+          {
+            "name": "p1dj/main/upper-panel-02::mesh",
+            "bounds": [
+              0.286458,
+              0.291667,
+              0.388889,
+              0.9375,
+              4.249738,
+              4.545013
+            ]
+          }
+        ]
+      },
+      "threeQuarterEyeLevel": {
+        "camera": "P1DJ_CAM_THREEQUARTEREYELEVEL",
+        "locationMeters": [
+          -3.683,
+          -6.223,
+          1.524
+        ],
+        "rotationEuler": [
+          1.5275,
+          0,
+          -0.550945
+        ],
+        "type": "PERSP",
+        "sensorFit": "AUTO",
+        "resolution": [
+          1600,
+          1200
+        ],
+        "effectiveViewSpanInches": {
+          "horizontal": null,
+          "vertical": null
+        },
+        "normalizedBounds": [
+          0.148597,
+          0.805762,
+          0.056955,
+          0.915198
+        ],
+        "margins": {
+          "left": 0.148597,
+          "right": 0.194238,
+          "bottom": 0.056955,
+          "top": 0.084802
+        },
+        "minimumRequiredMarginFraction": 0.03,
+        "allCornersInFront": true,
+        "completeBoundsVisible": true,
+        "worstObjects": [
+          {
+            "name": "p1dj/main/base-plinth::mesh",
+            "bounds": [
+              0.158029,
+              0.792769,
+              0.056955,
+              0.213203,
+              6.107874,
+              8.055713
+            ]
+          },
+          {
+            "name": "p1dj/main/slim-cap::mesh",
+            "bounds": [
+              0.178673,
+              0.780896,
+              0.840172,
+              0.915198,
+              6.103408,
+              7.691303
+            ]
+          },
+          {
+            "name": "p1dj/main/upper-top-panel::mesh",
+            "bounds": [
+              0.153847,
+              0.775635,
+              0.835563,
+              0.913675,
+              6.132404,
+              7.938835
+            ]
+          },
+          {
+            "name": "p1dj/main/left-filler-lower::mesh",
+            "bounds": [
+              0.186251,
+              0.199371,
+              0.090697,
+              0.366638,
+              6.054142,
+              6.12409
+            ]
+          },
+          {
+            "name": "p1dj/main/lower-frame-stile-01::mesh",
+            "bounds": [
+              0.195865,
+              0.208884,
+              0.092336,
+              0.367376,
+              6.074068,
+              6.144016
+            ]
+          }
+        ]
+      },
+      "frontEmptyOpening": {
+        "camera": "P1DJ_CAM_FRONTEMPTYOPENING",
+        "locationMeters": [
+          0,
+          -4.572,
+          1.2192
+        ],
+        "rotationEuler": [
+          1.570796,
+          0,
+          0
+        ],
+        "type": "ORTHO",
+        "sensorFit": "HORIZONTAL",
+        "resolution": [
+          1600,
+          1200
+        ],
+        "effectiveViewSpanInches": {
+          "horizontal": 143.999997,
+          "vertical": 107.999998
+        },
+        "normalizedBounds": [
+          0.083333,
+          0.916667,
+          0.055555,
+          0.944444
+        ],
+        "margins": {
+          "left": 0.083333,
+          "right": 0.083333,
+          "bottom": 0.055555,
+          "top": 0.055556
+        },
+        "minimumRequiredMarginFraction": 0.05,
+        "allCornersInFront": true,
+        "completeBoundsVisible": true,
+        "worstObjects": [
+          {
+            "name": "p1dj/main/base-plinth::mesh",
+            "bounds": [
+              0.09375,
+              0.90625,
+              0.055555,
+              0.092592,
+              4.1021,
+              4.5593
+            ]
+          },
+          {
+            "name": "p1dj/main/upper-top-panel::mesh",
+            "bounds": [
+              0.09375,
+              0.90625,
+              0.9375,
+              0.944444,
+              4.249738,
+              4.545013
+            ]
+          },
+          {
+            "name": "p1dj/main/slim-cap::mesh",
+            "bounds": [
+              0.092014,
+              0.907986,
+              0.933333,
+              0.944444,
+              4.219575,
+              4.249738
+            ]
+          },
+          {
+            "name": "p1dj/main/upper-panel-01::mesh",
+            "bounds": [
+              0.09375,
+              0.098958,
+              0.388889,
+              0.9375,
+              4.249738,
+              4.545013
+            ]
+          },
+          {
+            "name": "p1dj/main/upper-panel-02::mesh",
+            "bounds": [
+              0.286458,
+              0.291667,
+              0.388889,
+              0.9375,
+              4.249738,
+              4.545013
+            ]
+          }
+        ]
+      },
+      "actualSection": {
+        "camera": "P1DJ_CAM_ACTUALSECTION",
+        "locationMeters": [
+          -5.356225,
+          -0.254,
+          1.2192
+        ],
+        "rotationEuler": [
+          1.570796,
+          0,
+          -1.570796
+        ],
+        "type": "ORTHO",
+        "sensorFit": "HORIZONTAL",
+        "resolution": [
+          900,
+          1800
+        ],
+        "effectiveViewSpanInches": {
+          "horizontal": 54.000001,
+          "vertical": 108.000003
+        },
+        "normalizedBounds": [
+          0.314815,
+          0.697917,
+          0.055555,
+          0.944444
+        ],
+        "margins": {
+          "left": 0.314815,
+          "right": 0.302083,
+          "bottom": 0.055555,
+          "top": 0.055556
+        },
+        "minimumRequiredMarginFraction": 0.05,
+        "allCornersInFront": true,
+        "completeBoundsVisible": true,
+        "worstObjects": [
+          {
+            "name": "p1dj/section/lower/BASE_PLINTH::actual-cut",
+            "bounds": [
+              0.324074,
+              0.657407,
+              0.055555,
+              0.092593,
+              4.221163,
+              4.230688
+            ]
+          },
+          {
+            "name": "p1dj/section/upper/UPPER_STRUCTURAL_TOP_PANEL::actual-cut",
+            "bounds": [
+              0.334491,
+              0.549768,
+              0.9375,
+              0.944444,
+              4.567237,
+              4.576763
+            ]
+          },
+          {
+            "name": "p1dj/section/upper/SLIM_CAP_PLAIN_FASCIA::actual-cut",
+            "bounds": [
+              0.549768,
+              0.571759,
+              0.933333,
+              0.944444,
+              4.567238,
+              4.576763
+            ]
+          },
+          {
+            "name": "p1dj/section/upper/UPPER_CARCASS_PANEL_02::actual-cut",
+            "bounds": [
+              0.334491,
+              0.549768,
+              0.388889,
+              0.9375,
+              4.575175,
+              4.576763
+            ]
+          },
+          {
+            "name": "p1dj/section/upper/UPPER_BACK_LEFT::actual-cut",
+            "bounds": [
+              0.325231,
+              0.334491,
+              0.388889,
+              0.9375,
+              4.567237,
+              4.575175
+            ]
+          }
+        ]
+      }
+    },
+    "downwardAngleDegrees": 2.480705778007655
+  },
+  "targetVersusActual": {
+    "schemaVersion": 1,
+    "kind": "jq-preview-target-versus-actual-dimensions",
+    "status": "pass",
+    "previewOnly": true,
+    "qaToleranceNotice": "Computational checks only; not fabrication, shop, field, or manufacturer tolerances.",
+    "geometryFingerprint": "jq-phase1d-j-owner-clay-v1-65b68a61694e0e197bd41edc85306b196a5c3e6abda2928c786e16e0d465de3f",
+    "exactAnchors": [
+      {
+        "element": "casework width",
+        "fieldId": "WIDTH_CASEWORK",
+        "classification": "JQ_CONFIRMED",
+        "target": 117,
+        "actual": 117.000004,
+        "delta": 4e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "installed width",
+        "fieldId": "WIDTH_INSTALLED",
+        "classification": "JQ_CONFIRMED",
+        "target": 120,
+        "actual": 120.000004,
+        "delta": 4e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "total height",
+        "fieldId": "HEIGHT_TOTAL",
+        "classification": "CANONICAL_SELECTION",
+        "target": 96,
+        "actual": 96.000001,
+        "delta": 1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "counter top AFF",
+        "fieldId": "VERT_COUNTER_TOP",
+        "classification": "INDUSTRY_DEFAULT_PREVIEW",
+        "target": 36,
+        "actual": 35.999999,
+        "delta": -1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "counter thickness",
+        "fieldId": "COUNTER_THICKNESS",
+        "classification": "DRAWING_DIRECT",
+        "target": 1.25,
+        "actual": 1.249998000000005,
+        "delta": -2e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "TV opening width",
+        "fieldId": "TV_OPENING",
+        "classification": "CANONICAL_SELECTION",
+        "target": 60,
+        "actual": 60.000002,
+        "delta": 2e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "TV opening height",
+        "fieldId": "TV_OPENING",
+        "classification": "CANONICAL_SELECTION",
+        "target": 37,
+        "actual": 37.000001,
+        "delta": 1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "carcass thickness",
+        "fieldId": "CONSTRUCTION_CARCASS_THICKNESS",
+        "classification": "DRAWING_DIRECT",
+        "target": 0.75,
+        "actual": 0.75,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "visible face-frame width",
+        "fieldId": "CONSTRUCTION_FACE_FRAME_WIDTH",
+        "classification": "DRAWING_DIRECT",
+        "target": 1.5,
+        "actual": 1.5,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "upper finished depth",
+        "fieldId": "DEPTH_UPPER_FINISHED",
+        "classification": "DRAWING_DIRECT",
+        "target": 11.625,
+        "actual": 11.625,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "base height",
+        "fieldId": "BASE_FLUSH_PLINTH",
+        "classification": "CANONICAL_SELECTION",
+        "target": 4,
+        "actual": 4,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      }
+    ],
+    "registeredPreviewValues": [
+      {
+        "element": "counter width",
+        "fieldId": "WIDTH_COUNTER",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 119.125,
+        "actual": 119.124998,
+        "delta": -2e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 119.106667,
+        "roundingMethod": "NEAREST_1_16_PER_SIDE_OVERHANG"
+      },
+      {
+        "element": "counter maximum projection",
+        "fieldId": "DEPTH_COUNTER_MAX",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 20.5,
+        "actual": 20.499999,
+        "delta": -1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 20.533333,
+        "roundingMethod": "EXPLICIT_PREVIEW_LOCK_OVERRIDE"
+      },
+      {
+        "element": "physical door top AFF",
+        "fieldId": "VERT_DOOR_LIMITS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 34.625,
+        "actual": 34.625,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "roundingMethod": "LOCKED_OPENING_PLUS_PREVIEW_REVEAL"
+      },
+      {
+        "element": "outer shelf 1 center",
+        "fieldId": "VERT_OUTER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 48.25,
+        "actual": 48.25,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 48.27504264227012,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "outer shelf 2 center",
+        "fieldId": "VERT_OUTER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 61,
+        "actual": 61.000001,
+        "delta": 1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 61.01252132113507,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "outer shelf 3 center",
+        "fieldId": "VERT_OUTER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 73.75,
+        "actual": 73.7500005,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 73.75,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "outer shelf 4 center",
+        "fieldId": "VERT_OUTER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 84.5625,
+        "actual": 84.562499,
+        "delta": -1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 84.5644313679795,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "lower shelf 1 center",
+        "fieldId": "VERT_LOWER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 12.375,
+        "actual": 12.374999500000001,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 12.366967509025272,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "lower shelf 2 center",
+        "fieldId": "VERT_LOWER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 19.375,
+        "actual": 19.3750005,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 19.371480144404334,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "lower shelf 3 center",
+        "fieldId": "VERT_LOWER_SHELF_CENTERS",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 26.375,
+        "actual": 26.3750005,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass",
+        "rawRegistered": 26.347833935018052,
+        "roundingMethod": "NEAREST_1_16"
+      },
+      {
+        "element": "lower case face",
+        "fieldId": "DEPTH_LOWER_CASE_FACE",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 18.5,
+        "actual": 18.5,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "lower door face",
+        "fieldId": "DEPTH_LOWER_DOOR_FACE",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 19.4375,
+        "actual": 19.437501,
+        "delta": 1e-06,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      },
+      {
+        "element": "hardware maximum projection",
+        "fieldId": "DEPTH_HARDWARE_MAX",
+        "classification": "DRAWING_DERIVED_PREVIEW",
+        "target": 20.6875,
+        "actual": 20.6875,
+        "delta": 0,
+        "computationalToleranceInches": 0.0001,
+        "toleranceIsFabricationTolerance": false,
+        "status": "pass"
+      }
+    ],
+    "topology": {
+      "status": "pass",
+      "outerShelfCount": {
+        "target": 8,
+        "actual": 8
+      },
+      "bridgeShelfCount": {
+        "target": 2,
+        "actual": 2
+      },
+      "lowerShelfCount": {
+        "target": 12,
+        "actual": 12
+      },
+      "doorLeafCount": {
+        "target": 8,
+        "actual": 8
+      },
+      "hardwarePullCount": {
+        "target": 8,
+        "actual": 8
+      },
+      "physicalLightingGeometry": {
+        "target": 0,
+        "actual": 0
+      }
+    },
+    "shelfSpanChecks": [
+      {
+        "group": "outer",
+        "supportSpan": 27,
+        "thickness": 1,
+        "maximumSpan": 27,
+        "status": "pass"
+      },
+      {
+        "group": "bridge",
+        "supportSpan": 29.625,
+        "thickness": 1.25,
+        "maximumSpan": 31,
+        "status": "pass"
+      },
+      {
+        "group": "lower",
+        "supportSpan": 28.3125,
+        "thickness": 1.25,
+        "maximumSpan": 31,
+        "status": "pass"
+      }
+    ],
+    "verticalMinimumException": {
+      "fieldId": "SHELF_VERTICAL_MINIMUM_EXCEPTION",
+      "genericRule": 12,
+      "classification": "NOT_APPLICABLE",
+      "reason": "Phase 1D-I explicitly locks Drawing-4 shelf counts and registered positions; the generic engine minimum is not a requested drawing rule and is overridden for this isolated preview only.",
+      "productionEffect": "none"
+    },
+    "a104Reference": {
+      "status": "pass",
+      "manufacturerCad": false,
+      "drillTemplate": false,
+      "nominalChecks": [
+        {
+          "element": "A104 overall length",
+          "fieldId": "A104_OSKAR_REFERENCE",
+          "classification": "MANUFACTURER_VERIFIED",
+          "target": 7.125,
+          "actual": 7.1249980000000015,
+          "delta": -2e-06,
+          "computationalToleranceInches": 0.0001,
+          "toleranceIsFabricationTolerance": false,
+          "status": "pass"
+        },
+        {
+          "element": "A104 mounting centers",
+          "fieldId": "A104_OSKAR_REFERENCE",
+          "classification": "MANUFACTURER_VERIFIED",
+          "target": 6.3125,
+          "actual": 6.312498999999999,
+          "delta": -1e-06,
+          "computationalToleranceInches": 0.0001,
+          "toleranceIsFabricationTolerance": false,
+          "status": "pass"
+        },
+        {
+          "element": "A104 projection",
+          "fieldId": "A104_OSKAR_REFERENCE",
+          "classification": "MANUFACTURER_VERIFIED",
+          "target": 1.25,
+          "actual": 1.249998999999999,
+          "delta": -1e-06,
+          "computationalToleranceInches": 0.0001,
+          "toleranceIsFabricationTolerance": false,
+          "status": "pass"
+        },
+        {
+          "element": "A104 bar width",
+          "fieldId": "A104_OSKAR_REFERENCE",
+          "classification": "MANUFACTURER_VERIFIED",
+          "target": 0.40625,
+          "actual": 0.40625,
+          "delta": 0,
+          "computationalToleranceInches": 0.0001,
+          "toleranceIsFabricationTolerance": false,
+          "status": "pass"
+        },
+        {
+          "element": "A104 transverse base reference",
+          "fieldId": "A104_OSKAR_REFERENCE",
+          "classification": "MANUFACTURER_VERIFIED",
+          "target": 0.875,
+          "actual": 0.8750009999999975,
+          "delta": 1e-06,
+          "computationalToleranceInches": 0.0001,
+          "toleranceIsFabricationTolerance": false,
+          "status": "pass"
+        }
+      ],
+      "proxyBaseLongitudinal": {
+        "value": 0.8125,
+        "classification": "DRAWING_DERIVED_PREVIEW"
+      },
+      "fastenerReference": "M4 nominal only; no hole or thread geometry"
+    },
+    "productionAuthority": false
+  },
+  "determinism": {
+    "runs": 2,
+    "geometry": {
+      "runAFingerprint": "jq-phase1d-j-owner-clay-v1-65b68a61694e0e197bd41edc85306b196a5c3e6abda2928c786e16e0d465de3f",
+      "runBFingerprint": "jq-phase1d-j-owner-clay-v1-65b68a61694e0e197bd41edc85306b196a5c3e6abda2928c786e16e0d465de3f",
+      "match": true
+    },
+    "canonicalReports": 7,
+    "decodedRenderComparisons": 11,
+    "blendContainers": 2
+  },
+  "overlayRegistration": {
+    "sourceTransforms": 4,
+    "canvasTransforms": 4,
+    "ownerApproved": false
+  },
+  "intersectionAudit": {
+    "remainingDefectRecords": [
+      {
+        "key": "remainingVisibleGeometryDefects",
+        "path": "$.counts.remainingVisibleGeometryDefects",
+        "value": 0
+      },
+      {
+        "key": "unresolvedGeometryDefects",
+        "path": "$.counts.unresolvedGeometryDefects",
+        "value": 0
+      },
+      {
+        "key": "undeclaredGeometryDefects",
+        "path": "$.counts.undeclaredGeometryDefects",
+        "value": 0
+      }
+    ]
+  },
+  "geometryDelta": {
+    "lockedChanges": [
+      {
+        "key": "lockedAnchorChangeCount",
+        "path": "$.lockedAnchorChangeCount",
+        "value": 0
+      }
+    ],
+    "undeclared": [
+      {
+        "key": "undeclaredDeltaCount",
+        "path": "$.undeclaredDeltaCount",
+        "value": 0
+      }
+    ]
+  },
+  "focusedTests": [
+    {
+      "group": "geometry-construction-hardware-render",
+      "command": "node --test tests/guided-product-engine.test.js tests/tv-drawing-4-geometry.test.js tests/bookcase-construction-standard.test.js tests/hardware-catalog.test.js tests/hardware-proxy-geometry.test.js tests/guided-render-contract.test.js",
+      "expectedTests": 74,
+      "tests": 74,
+      "passed": 74,
+      "failed": 0,
+      "status": "pass"
+    },
+    {
+      "group": "canonical-review-state",
+      "command": "node --test tests/guided-configurator-state.test.js",
+      "expectedTests": 25,
+      "tests": 25,
+      "passed": 25,
+      "failed": 0,
+      "status": "pass"
+    },
+    {
+      "group": "authority-solver-project-scene-hardware-integration",
+      "command": "node --test tests/golden-hero-tv-right-niche-authority.test.js tests/golden-hero-tv-right-niche-geometry.test.js tests/guided-installation-solver.test.js tests/guided-project-engine.test.js tests/guided-scene-plan.test.js tests/hardware-selection-integration.test.js",
+      "expectedTests": 76,
+      "tests": 76,
+      "passed": 76,
+      "failed": 0,
+      "status": "pass",
+      "authorityBoundary": "legacy/right-niche suites are regression coverage only and are not Phase 1D-J geometry authority"
+    }
+  ],
+  "checkSummary": {
+    "checks": 338,
+    "passed": 338,
+    "failed": 0
+  },
+  "failures": [],
+  "authorityBoundary": {
+    "ownerApprovalRequiredAfterReview": true,
+    "ownerApproved": false,
+    "productionEffect": "none",
+    "fabricationEffect": "none",
+    "configuratorOrReviewIntegration": "none",
+    "commitPushMergePublishDeploy": "none"
+  },
+  "handoffSanitization": {
+    "status": "pass",
+    "source_package_modified": false,
+    "transfer_copy_only": true,
+    "local_absolute_paths_removed": true,
+    "source_document_paths_and_hashes_removed": true,
+    "scene_container_names_and_hashes_removed": true,
+    "unrelated_dirty_path_inventory_removed": true,
+    "geometry_findings_changed": false,
+    "validation_conclusion_changed": false
+  },
+  "terminalStatus": "OWNER CLAY REVIEW READY — evidence is decision-grade"
+}

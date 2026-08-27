@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "project": "JQ Bookcases",
+  "handoff_branch": "agent/jq-review-handoff",
+  "draft_pr": 44,
+  "state": "READY_FOR_OWNER_REVIEW",
+  "latest_phase": "phase-1d-j",
+  "latest_commit": null,
+  "package_path": "agent-handoff/phase-1d-j",
+  "owner_review_status": "PENDING",
+  "instructions": "Resolve the exact handoff commit from the READY_FOR_REVIEW comment on PR #44, verify manifest.json, and review the preview-only evidence."
+}
