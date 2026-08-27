@@ -84,10 +84,12 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
     expect(premium.sharedLightingProfileUnchanged).toBe(false);
     expect(premium.sharedLightingOverrideApplied).toBe(true);
     expect(premium.lighting.sharedAcrossLayouts).toBe(true);
-    expect(premium.lighting.exposure).toBe(1.03);
+    expect(premium.lighting.exposure).toBe(1.08);
+    expect(premium.lighting.environmentIntensity).toBe(0.46);
+    expect(premium.lighting.separationAreaIntensity).toBeGreaterThan(premium.lighting.fillAreaIntensity);
     expect(premium.lighting.shadowFilter).toBe("pcf-radius");
-    expect(premium.lighting.shadowStrength).toBe(0.48);
-    expect(premium.lighting.shadowRadius).toBe(4);
+    expect(premium.lighting.shadowStrength).toBe(0.62);
+    expect(premium.lighting.shadowRadius).toBe(2.5);
     expect(premium.lighting.shadowNormalBias).toBe(0.012);
     expect(premium.exteriorGround.spacingMillimeters).toBe(304.8);
     expect(premium.exteriorGround.lineCount).toBeGreaterThan(0);
@@ -126,6 +128,14 @@ test("premium model preview is exact, bounded, shared by all three layouts, and 
       .not.toBe(premium.materialResponse.roleResponses["frame-stile"].colorHex);
     expect(premium.uvMapping.method).toBe("stable cabinet-scale straight-grain projection");
     expect(premium.uvMapping.projectedPrimitiveCount).toBeGreaterThan(0);
+    expect(premium.edgeDefinition.enabled).toBe(true);
+    expect(premium.edgeDefinition.method).toBe("single merged hard-edge pass");
+    expect(premium.edgeDefinition.drawCalls).toBe(1);
+    expect(premium.edgeDefinition.opacity).toBe(0.13);
+    expect(premium.edgeDefinition.sourcePrimitiveCount).toBeGreaterThan(0);
+    expect(premium.edgeDefinition.sourceSegmentCount).toBeGreaterThan(0);
+    expect(premium.edgeDefinition.roleCounts["door-detail"]).toBeGreaterThan(0);
+    expect(premium.shadowBudget.edgeDefinitionDrawCalls).toBe(1);
     expect(premium.shadowBudget.projectedMaximumDrawCalls).toBeLessThanOrEqual(250);
     expect(record.rendererInfo.calls).toBeLessThanOrEqual(250);
     expect(record.rendererInfo.triangles).toBeLessThanOrEqual(45_000);
@@ -173,10 +183,10 @@ test("oak, warm paint, and charcoal produce distinct live PBR frames without cha
       expect(record.appearance.premiumModelV1.geometry.runtimeBeveledPrimitiveCount).toBe(geometryCount);
       expect(record.appearance.premiumModelV1.materialType).toBe("MeshPhysicalMaterial");
       expect(record.appearance.premiumModelV1.materialResponse.family).toBe("paint");
-      expect(record.appearance.premiumModelV1.materialResponse.maximumClearcoat).toBeLessThanOrEqual(0.18);
-      expect(record.appearance.premiumModelV1.materialResponse.minimumClearcoatRoughness).toBeGreaterThanOrEqual(0.68);
-      expect(record.appearance.premiumModelV1.materialResponse.maximumEnvMapIntensity).toBeLessThanOrEqual(0.8);
-      expect(record.appearance.premiumModelV1.materialResponse.maximumSpecularIntensity).toBeLessThanOrEqual(0.42);
+      expect(record.appearance.premiumModelV1.materialResponse.maximumClearcoat).toBeLessThanOrEqual(0.21);
+      expect(record.appearance.premiumModelV1.materialResponse.minimumClearcoatRoughness).toBeGreaterThanOrEqual(0.5);
+      expect(record.appearance.premiumModelV1.materialResponse.maximumEnvMapIntensity).toBeLessThanOrEqual(0.95);
+      expect(record.appearance.premiumModelV1.materialResponse.maximumSpecularIntensity).toBeLessThanOrEqual(0.52);
       hashes.push(sha256(await canvas.screenshot()));
     }
     expect(new Set(hashes).size).toBe(3);
@@ -268,9 +278,11 @@ test("all canonical paint colors are customer-selectable and retain a bounded sa
     const record = await diagnostics(page);
     expect(record.appearance.premiumModelV1.finishId).toBe(finishId);
     expect(record.appearance.premiumModelV1.materialResponse.family).toBe("paint");
-    expect(record.appearance.premiumModelV1.materialResponse.maximumClearcoat).toBeLessThanOrEqual(0.18);
-    expect(record.appearance.premiumModelV1.materialResponse.minimumClearcoatRoughness).toBeGreaterThanOrEqual(0.68);
-    expect(record.appearance.premiumModelV1.materialResponse.maximumEnvMapIntensity).toBeLessThanOrEqual(0.8);
+    expect(record.appearance.premiumModelV1.materialResponse.maximumClearcoat).toBeLessThanOrEqual(0.21);
+    expect(record.appearance.premiumModelV1.materialResponse.minimumClearcoatRoughness).toBeGreaterThanOrEqual(0.5);
+    expect(record.appearance.premiumModelV1.materialResponse.maximumEnvMapIntensity).toBeLessThanOrEqual(0.95);
+    expect(record.appearance.premiumModelV1.materialResponse.maximumSpecularIntensity).toBeLessThanOrEqual(0.52);
+    expect(record.appearance.premiumModelV1.edgeDefinition.roleCounts["door-detail"]).toBeGreaterThan(0);
     hashes.push(sha256(await page.locator("canvas").screenshot()));
   }
   expect(new Set(hashes).size).toBe(paintFinishes.length);
