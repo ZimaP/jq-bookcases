@@ -7,7 +7,7 @@ import {
   resolveRoom2Finish,
   resolveRoom2Presentation
 } from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
-import { createRoom2MaterialSystem } from "./guided-room2-materials.js?v=room2-commercial-pbr-v1-20260817g";
+import { createRoom2MaterialSystem } from "./guided-room2-materials.js?v=runtime-fallback-recovery-v1";
 import { inspectRoom2Glb, sha256Bytes } from "./guided-room2-integrity.js?v=room2-commercial-pbr-v1-20260817g";
 import {
   getImmersiveLayout,
@@ -507,11 +507,12 @@ export class GuidedLayoutViewerController {
     const camera = new THREE.PerspectiveCamera(39, 1, 0.05, 80);
 
     const preference = new URLSearchParams(location.search).get("renderer");
+    const explicitlyRequestedWebGpu = preference === "webgpu";
     const explicitlyForcedWebGL2 = preference === "webgl2";
-    const forceWebGL2 = explicitlyForcedWebGL2 || this.forceWebGL2AfterFailure;
+    const attemptWebGpu = explicitlyRequestedWebGpu && !this.forceWebGL2AfterFailure;
     let selectedRenderer = null;
     let selectedBackend = null;
-    if (!forceWebGL2 && navigator.gpu) {
+    if (attemptWebGpu && navigator.gpu) {
       let attemptedRenderer = null;
       try {
         const { default: WebGPURenderer } = await import("./assets/vendor/three-webgpu-renderer-r166.bundle.js?v=immersive-v1");
@@ -551,8 +552,13 @@ export class GuidedLayoutViewerController {
       });
       selectedRenderer = renderer;
       selectedBackend = "webgl2";
-      if (!forceWebGL2 && !navigator.gpu) this.rendererFallbackReason = "WebGPU unavailable; using supported WebGL2 fallback.";
-      if (explicitlyForcedWebGL2) this.rendererFallbackReason = "WebGL2 explicitly forced for backend validation.";
+      if (explicitlyForcedWebGL2) {
+        this.rendererFallbackReason = "WebGL2 explicitly forced for backend validation.";
+      } else if (explicitlyRequestedWebGpu && !navigator.gpu) {
+        this.rendererFallbackReason = "WebGPU unavailable; using supported WebGL2 fallback.";
+      } else if (!explicitlyRequestedWebGpu && !this.forceWebGL2AfterFailure) {
+        this.rendererFallbackReason = "Stable WebGL2 production runtime selected.";
+      }
     }
     if (this.disposed || sequence !== this.rendererInitializationSequence) {
       safeDisposeRenderer(selectedRenderer);
@@ -1908,19 +1914,20 @@ export class GuidedLayoutViewerController {
     this.loadSequence += 1;
     this.fetchAbortController?.abort();
     const layoutId = this.layoutId;
+    const failedRenderer = this.renderer;
+    this.renderer = null;
+    this.rendererBackend = null;
+    safeDisposeRenderer(failedRenderer);
     this.disposeModel();
     if (this.scene) {
       this.scene.environment = null;
       this.scene.clear();
     }
-    this.shadowCaster?.shadow?.map?.dispose?.();
+    safeDisposeResource(this.shadowCaster?.shadow?.map);
     if (this.shadowCaster?.shadow) this.shadowCaster.shadow.map = null;
     this.shadowCaster = null;
     this.shadowTier = null;
     this.directLights.clear();
-    safeDisposeRenderer(this.renderer);
-    this.renderer = null;
-    this.rendererBackend = null;
     this.scene = null;
     this.camera = null;
     if (this.canvas?.isConnected) {
@@ -2350,7 +2357,7 @@ export class GuidedLayoutViewerController {
   }
 
   disposeActiveFinishMaterials() {
-    for (const material of this.ownedMaterials) material.dispose?.();
+    for (const material of this.ownedMaterials) safeDisposeResource(material);
     this.ownedMaterials.clear();
   }
 
@@ -2359,23 +2366,23 @@ export class GuidedLayoutViewerController {
     this.fetchAbortController = null;
     this.finishSequence += 1;
     this.disposeActiveFinishMaterials();
-    for (const geometry of this.premiumOwnedGeometries) geometry.dispose?.();
+    for (const geometry of this.premiumOwnedGeometries) safeDisposeResource(geometry);
     this.premiumOwnedGeometries.clear();
     this.premiumModelV1Diagnostics = null;
     this.premiumRoomShellVisibility = null;
     const ownedByMaterialSystem = Boolean(this.materialSystem);
-    this.materialSystem?.dispose?.();
+    safeDisposeResource(this.materialSystem);
     this.materialSystem = null;
     if (!ownedByMaterialSystem) {
-      for (const material of this.sourceMaterials) material?.dispose?.();
-      for (const texture of this.sourceTextures) texture?.dispose?.();
+      for (const material of this.sourceMaterials) safeDisposeResource(material);
+      for (const texture of this.sourceTextures) safeDisposeResource(texture);
     }
-    for (const texture of this.ownedTextures) texture?.dispose?.();
+    for (const texture of this.ownedTextures) safeDisposeResource(texture);
     this.sourceMaterials.clear();
     this.sourceTextures.clear();
     this.ownedTextures.clear();
     this.finishTextureCache.clear();
-    for (const entry of this.geometryLedger) entry.geometry?.dispose?.();
+    for (const entry of this.geometryLedger) safeDisposeResource(entry.geometry);
     if (this.modelRoot) this.scene?.remove(this.modelRoot);
     if (this.modelRoot) this.resourceDisposalCount += 1;
     this.modelRoot = null;
@@ -2426,9 +2433,9 @@ export class GuidedLayoutViewerController {
     const release = () => {
       this.disposeModel();
       if (this.scene) this.scene.environment = null;
-      this.environmentTexture?.dispose?.();
+      safeDisposeResource(this.environmentTexture);
       this.environmentTexture = null;
-      this.shadowCaster?.shadow?.map?.dispose?.();
+      safeDisposeResource(this.shadowCaster?.shadow?.map);
       if (this.shadowCaster?.shadow) this.shadowCaster.shadow.map = null;
       this.shadowCaster = null;
       this.shadowTier = null;
@@ -2574,11 +2581,11 @@ function quaternionAngle(left, right) {
 
 function disposeObjectGraph(root) {
   root?.traverse?.((object) => {
-    object.geometry?.dispose?.();
+    safeDisposeResource(object.geometry);
     for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
       if (!material) continue;
-      for (const slot of TEXTURE_SLOTS) material[slot]?.dispose?.();
-      material.dispose?.();
+      for (const slot of TEXTURE_SLOTS) safeDisposeResource(material[slot]);
+      safeDisposeResource(material);
     }
   });
 }
@@ -2637,6 +2644,18 @@ function safeDisposeRenderer(renderer) {
   try {
     renderer.forceContextLoss?.();
   } catch {}
+}
+
+function safeDisposeResource(resource) {
+  if (!resource) return false;
+  try {
+    resource.dispose?.();
+    return true;
+  } catch {
+    // A failed WebGPU frame can leave Three.js disposal listeners partially
+    // initialized. Cleanup is best-effort while the renderer is discarded.
+    return false;
+  }
 }
 
 function projectPoint(point, camera, rect) {

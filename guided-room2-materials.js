@@ -840,7 +840,14 @@ function texturesInMaterial(material) {
 }
 
 function disposeSet(values) {
-  for (const value of values || []) value?.dispose?.();
+  for (const value of values || []) {
+    try {
+      value?.dispose?.();
+    } catch {
+      // WebGPU can fail mid-frame with partially initialized disposal
+      // listeners. Continue releasing the remaining owned resources.
+    }
+  }
   values?.clear?.();
 }
 

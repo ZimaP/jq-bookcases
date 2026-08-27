@@ -136,6 +136,9 @@ test("the shipped immersive viewer uses local verified backends, exact layout au
   assert.match(viewer, /three-webgpu-renderer-r166\.bundle\.js/);
   assert.match(viewer, /renderer\.backend\?\.isWebGPUBackend !== true/);
   assert.match(viewer, /new THREE\.WebGLRenderer/);
+  assert.match(viewer, /const explicitlyRequestedWebGpu = preference === "webgpu"/);
+  assert.match(viewer, /Stable WebGL2 production runtime selected/);
+  assert.match(viewer, /safeDisposeResource\(this\.materialSystem\)/);
   assert.match(viewer, /credentials: "same-origin"/);
   assert.match(viewer, /MODEL_SHA256_MISMATCH/);
   assert.match(viewer, /MODEL_BYTE_LENGTH_MISMATCH/);
