@@ -160,6 +160,8 @@ jobs:
             guided-render-contract.js \
             guided-render-primitives.js \
             guided-materials.js \
+            guided-premium-model-v1-contract.js \
+            guided-premium-model-v1.js \
             guided-project-engine.js \
             guided-room2-appearance.js \
             guided-room2-integrity.js \
@@ -200,6 +202,7 @@ jobs:
             assets/models/room4/jq-window-wall-bookcases-cabinets-room4-authoritative-v01-ios-v1.glb \
             _site/assets/models/room4/
           cp -R assets/environments _site/assets/
+          cp -R assets/premium-model-v1 _site/assets/
           cp -R assets/room2-commercial-pbr-v1 _site/assets/
           cp -R assets/textures _site/assets/
           cp -R assets/photos _site/assets/
@@ -219,6 +222,8 @@ jobs:
           test -f _site/guided-layout-registry.js
           test -f _site/guided-layout-material-zones.generated.js
           test -f _site/guided-layout-viewer.js
+          test -f _site/guided-premium-model-v1-contract.js
+          test -f _site/guided-premium-model-v1.js
           for legacy_asset in \
             _site/configurator-3d.js \
             _site/configurator-experience.js \
@@ -324,6 +329,9 @@ jobs:
           test -f _site/assets/environments/jq-warm-interior.jpg
           test -f _site/assets/environments/jq-neutral-studio.hdr
           test -f _site/assets/environments/jq-neutral-studio.jpg
+          test -f _site/assets/premium-model-v1/ASSET-LICENSES.md
+          test -f _site/assets/premium-model-v1/textures/oak/base-color.webp
+          test -f _site/assets/premium-model-v1/textures/walnut/base-color.webp
           test -f _site/assets/textures/paint/sprayed-normal.png
           test -f _site/assets/textures/paint/sprayed-roughness.png
           test -f _site/assets/textures/wood/white-oak/albedo.jpg
