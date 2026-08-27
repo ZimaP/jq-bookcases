@@ -3,7 +3,7 @@ import {
   ROOM2_APPEARANCE_PROFILE,
   resolveRoom2Finish
 } from "./guided-room2-appearance.js?v=room2-commercial-pbr-v1-20260817g";
-import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=paint-lighting-definition-v1";
+import { PREMIUM_MODEL_V1_CONTRACT } from "./guided-premium-model-v1-contract.js?v=room-shell-visibility-v1-20260825a";
 
 const ROLE_MANIFEST_URL = "config/premium-model-v1-roles.json";
 const MATERIAL_ROLES = Object.freeze(Object.keys(PREMIUM_MODEL_V1_CONTRACT.roleSurface));
@@ -12,7 +12,6 @@ const BEVEL_ROLE_SET = new Set(PREMIUM_MODEL_V1_CONTRACT.bevel.roles);
 const SHADOW_CAST_ROLE_SET = new Set(PREMIUM_MODEL_V1_CONTRACT.shadow.castRoles);
 const SHADOW_RECEIVE_ROLE_SET = new Set(PREMIUM_MODEL_V1_CONTRACT.shadow.receiveRoles);
 const SHADOW_PROTECTED_RECEIVERS = new Set(PREMIUM_MODEL_V1_CONTRACT.shadow.protectedReceivers);
-const EDGE_DEFINITION_ROLE_SET = new Set(PREMIUM_MODEL_V1_CONTRACT.edgeDefinition.roles);
 const _roundedNormal = new THREE.Vector3();
 const _triangleA = new THREE.Vector3();
 const _triangleB = new THREE.Vector3();
@@ -119,7 +118,6 @@ function createCabinetMaterial(role, finish, textures) {
     ...(textures.family.materialResponse || {})
   });
   const clearcoatNormalScale = Number(textures.family.clearcoatNormalScale) || 0;
-  const clearcoatRoughnessScale = Number(materialResponse.clearcoatRoughnessScale) || 1;
   const material = new THREE.MeshPhysicalMaterial({
     color: finishColor(finish, textures),
     map: textures.map,
@@ -129,10 +127,7 @@ function createCabinetMaterial(role, finish, textures) {
     roughness: Math.min(1, surface.roughness * materialResponse.roughnessScale),
     metalness: PREMIUM_MODEL_V1_CONTRACT.material.metalness,
     clearcoat: surface.clearcoat * materialResponse.clearcoatScale,
-    clearcoatRoughness: Math.max(
-      surface.clearcoatRoughness * clearcoatRoughnessScale,
-      materialResponse.clearcoatRoughnessFloor
-    ),
+    clearcoatRoughness: Math.max(surface.clearcoatRoughness, materialResponse.clearcoatRoughnessFloor),
     clearcoatRoughnessMap: clearcoatNormalScale > 0 ? textures.roughnessMap : null,
     clearcoatNormalMap: clearcoatNormalScale > 0 ? textures.normalMap : null,
     clearcoatNormalScale: new THREE.Vector2(clearcoatNormalScale, clearcoatNormalScale),
@@ -492,103 +487,6 @@ function applyPremiumLighting(controller) {
   });
 }
 
-function createPremiumEdgeGeometry(controller, roleById) {
-  const recipe = PREMIUM_MODEL_V1_CONTRACT.edgeDefinition;
-  const positions = [];
-  const roleCounts = {};
-  let sourcePrimitiveCount = 0;
-  let sourceSegmentCount = 0;
-  controller.modelRoot.updateMatrixWorld(true);
-  const rootInverse = new THREE.Matrix4().copy(controller.modelRoot.matrixWorld).invert();
-  const toRoot = new THREE.Matrix4();
-  const point = new THREE.Vector3();
-  for (const runtimeRecord of controller.meshRecords) {
-    const manifestRecord = roleById.get(runtimeRecord.zoneRecord?.stablePrimitiveId);
-    if (!manifestRecord || !EDGE_DEFINITION_ROLE_SET.has(manifestRecord.role) || !runtimeRecord.object.visible) continue;
-    const edgeGeometry = new THREE.EdgesGeometry(
-      runtimeRecord.object.geometry,
-      recipe.thresholdAngleDegrees
-    );
-    const attribute = edgeGeometry.getAttribute("position");
-    toRoot.multiplyMatrices(rootInverse, runtimeRecord.object.matrixWorld);
-    for (let index = 0; index < attribute.count; index += 1) {
-      point.fromBufferAttribute(attribute, index).applyMatrix4(toRoot);
-      positions.push(point.x, point.y, point.z);
-    }
-    sourcePrimitiveCount += 1;
-    sourceSegmentCount += attribute.count / 2;
-    roleCounts[manifestRecord.role] = (roleCounts[manifestRecord.role] || 0) + 1;
-    edgeGeometry.dispose();
-  }
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
-  geometry.computeBoundingSphere();
-  return {
-    geometry,
-    sourcePrimitiveCount,
-    sourceSegmentCount,
-    roleCounts: Object.freeze(roleCounts)
-  };
-}
-
-function applyPremiumEdgeDefinition(controller, roleById, finish, textures) {
-  controller.premiumEdgeDefinition?.dispose?.();
-  controller.premiumEdgeDefinition = null;
-  const recipe = PREMIUM_MODEL_V1_CONTRACT.edgeDefinition;
-  if (!recipe.enabled) return null;
-
-  const edgeColor = new THREE.Color(finishColor(finish, textures))
-    .lerp(new THREE.Color(0x171512), recipe.darkenMix);
-  const material = new THREE.LineBasicMaterial({
-    color: edgeColor,
-    transparent: true,
-    opacity: recipe.opacity,
-    depthTest: true,
-    depthWrite: false,
-    toneMapped: true
-  });
-  material.name = "jq-premium-model-v1:edge-definition";
-  const line = new THREE.LineSegments(new THREE.BufferGeometry(), material);
-  line.name = "jq-premium-edge-definition";
-  line.renderOrder = 4;
-  line.frustumCulled = false;
-  line.userData.jqPremiumModelV1 = true;
-  controller.modelRoot.add(line);
-
-  let diagnostics = null;
-  const update = () => {
-    if (!controller.modelRoot || !line.parent) return diagnostics;
-    const previousGeometry = line.geometry;
-    const built = createPremiumEdgeGeometry(controller, roleById);
-    line.geometry = built.geometry;
-    previousGeometry?.dispose?.();
-    diagnostics = Object.freeze({
-      enabled: true,
-      method: recipe.method,
-      drawCalls: recipe.drawCalls,
-      opacity: recipe.opacity,
-      thresholdAngleDegrees: recipe.thresholdAngleDegrees,
-      colorHex: `#${edgeColor.getHexString()}`,
-      sourcePrimitiveCount: built.sourcePrimitiveCount,
-      sourceSegmentCount: built.sourceSegmentCount,
-      roleCounts: built.roleCounts
-    });
-    return diagnostics;
-  };
-  const dispose = () => {
-    line.parent?.remove(line);
-    line.geometry?.dispose?.();
-    material.dispose?.();
-  };
-  controller.premiumEdgeDefinition = Object.freeze({
-    drawCalls: recipe.drawCalls,
-    update,
-    dispose,
-    getDiagnostics: () => diagnostics
-  });
-  return update();
-}
-
 function createInteriorMaterial(textures) {
   const material = new THREE.MeshPhysicalMaterial({
     color: "#e0d2bb",
@@ -855,13 +753,11 @@ function applyPremiumGeometry(controller, roleById) {
 
 function applyPremiumShadows(controller, roleById) {
   const visiblePrimitiveCount = controller.meshRecords.filter(({ object }) => object.visible).length;
-  const edgeDefinitionDrawCalls = controller.premiumEdgeDefinition?.drawCalls || 0;
   const maximumCasters = Math.max(
     0,
     PREMIUM_MODEL_V1_CONTRACT.shadow.maximumDrawCalls
       - PREMIUM_MODEL_V1_CONTRACT.shadow.reservedHeadroom
       - visiblePrimitiveCount
-      - edgeDefinitionDrawCalls
   );
   const priority = new Map(PREMIUM_MODEL_V1_CONTRACT.shadow.priority.map((role, index) => [role, index]));
   const candidates = [];
@@ -888,10 +784,9 @@ function applyPremiumShadows(controller, roleById) {
     drawCallLimit: PREMIUM_MODEL_V1_CONTRACT.shadow.maximumDrawCalls,
     reservedHeadroom: PREMIUM_MODEL_V1_CONTRACT.shadow.reservedHeadroom,
     visiblePrimitiveCount,
-    edgeDefinitionDrawCalls,
     eligiblePremiumPrimitiveCount: candidates.length,
     selectedShadowPrimitiveCount: selected.length,
-    projectedMaximumDrawCalls: visiblePrimitiveCount + edgeDefinitionDrawCalls + selected.length,
+    projectedMaximumDrawCalls: visiblePrimitiveCount + selected.length,
     selection: "premium role priority, audited world-bound surface area, stable primitive ID",
     exactRoleManifest: true
   });
@@ -1119,7 +1014,6 @@ export async function applyPremiumModelV1(controller) {
     }
     runtimeRecord.object.userData.jqPremiumModelV1Role = manifestRecord.role;
   }
-  const edgeDefinition = applyPremiumEdgeDefinition(controller, roleById, finish, exteriorTextures);
   const shadowBudget = applyPremiumShadows(controller, roleById);
   const floorSurface = applyFloorSurface(controller, roleById);
   controller.premiumRoomShellVisibility = createRoomShellVisibilityController(controller, roomShellRecords);
@@ -1158,7 +1052,6 @@ export async function applyPremiumModelV1(controller) {
     }),
     uvMapping,
     shadowBudget,
-    edgeDefinition,
     lighting,
     exteriorGround,
     floorSurface,
