@@ -2370,7 +2370,7 @@ function syncGuidedScene() {
   }
 
   if (!guidedSceneController) updateGuidedSceneState("loading");
-  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=runtime-fallback-recovery-v1");
+  const importPromise = guidedSceneImportPromise ||= import("./guided-layout-viewer.js?v=cdn-encoding-recovery-v1");
   importPromise
     .then(({ createGuidedLayoutViewerController }) => {
       if (token !== guidedSceneSyncToken || !mount.isConnected) return;
