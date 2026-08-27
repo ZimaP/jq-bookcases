@@ -843,10 +843,7 @@ function disposeSet(values) {
   for (const value of values || []) {
     try {
       value?.dispose?.();
-    } catch {
-      // WebGPU can fail mid-frame with partially initialized disposal
-      // listeners. Continue releasing the remaining owned resources.
-    }
+    } catch {}
   }
   values?.clear?.();
 }

@@ -2647,15 +2647,9 @@ function safeDisposeRenderer(renderer) {
 }
 
 function safeDisposeResource(resource) {
-  if (!resource) return false;
   try {
-    resource.dispose?.();
-    return true;
-  } catch {
-    // A failed WebGPU frame can leave Three.js disposal listeners partially
-    // initialized. Cleanup is best-effort while the renderer is discarded.
-    return false;
-  }
+    resource?.dispose?.();
+  } catch {}
 }
 
 function projectPoint(point, camera, rect) {
