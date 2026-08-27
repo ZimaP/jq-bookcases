@@ -31,6 +31,8 @@ export const PRODUCTION_JAVASCRIPT_AND_CSS_ALLOWLIST = Object.freeze([
   "guided-layout-registry.js",
   "guided-layout-viewer.js",
   "guided-materials.js",
+  "guided-premium-model-v1-contract.js",
+  "guided-premium-model-v1.js",
   "guided-product-adapter.js",
   "guided-product-engine.js",
   "guided-project-engine.js",

@@ -212,7 +212,10 @@ test("the direct customization panel keeps shelf setup out and restores canonica
 });
 
 test("the release artifact explicitly copies and byte-checks every immersive runtime asset", async () => {
-  const workflow = await readText(".github/workflows/deploy-pages-production.yml");
+  const [workflow, payload] = await Promise.all([
+    readText(".github/workflows/deploy-pages-production.yml"),
+    readText("scripts/prepare-immersive-payload-artifact.mjs")
+  ]);
   assert.match(workflow, /assets\/models\/room2\/Room2-Fireplace-bookcases-source-v1\.glb/);
   assert.match(workflow, /test ! -L _site\/assets\/models\/room2\/Room2-Fireplace-bookcases-source-v1\.glb/);
   assert.match(workflow, new RegExp(String(expected.bytes)));
@@ -233,6 +236,10 @@ test("the release artifact explicitly copies and byte-checks every immersive run
   assert.match(workflow, /guided-layout-registry\.js/);
   assert.match(workflow, /guided-layout-material-zones\.generated\.js/);
   assert.match(workflow, /guided-layout-viewer\.js/);
+  assert.match(workflow, /guided-premium-model-v1-contract\.js/);
+  assert.match(workflow, /guided-premium-model-v1\.js/);
+  assert.match(payload, /guided-premium-model-v1-contract\.js/);
+  assert.match(payload, /guided-premium-model-v1\.js/);
   assert.match(workflow, /three-webgpu-renderer-r166\.bundle\.js/);
   assert.match(workflow, /immersive-layout-model-audit-v1\.json/);
   assert.match(workflow, /immersive-layout-material-zones-v1\.json/);
@@ -240,6 +247,7 @@ test("the release artifact explicitly copies and byte-checks every immersive run
   assert.match(workflow, /cp assets\/vendor\/three-addons\/loaders\/RGBELoader\.js/);
   assert.match(workflow, /cp assets\/vendor\/three-addons\/lights\/RectAreaLightUniformsLib\.js/);
   assert.match(workflow, /cp -R assets\/room2-commercial-pbr-v1 _site\/assets\//);
+  assert.match(workflow, /cp -R assets\/premium-model-v1 _site\/assets\//);
   assert.match(workflow, /9d868390072a01f89eddc0f9aeeee73135feefdd1496ca2cccef8efe828fe496/);
   assert.match(workflow, /caf5e2eddf95b3699766bae7c2f96d7384b4d28c0cd9ddea41fc7d17ce738092/);
   assert.match(workflow, /0126bb4a12727c128af5f5e94edeb5857d14035b2c99346312bc59e02c88864a/);

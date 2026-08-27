@@ -3,9 +3,9 @@ import { lstat, readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 
-const LOCKED_RELEASE_BASE_SHA = "7d961711dfc0b39f6d708699bcf145c8bb7eebd1";
-const LOCKED_BASELINE_GZIP_BYTES = 732_539;
-const LOCKED_BASELINE_FILE_COUNT = 47;
+const LOCKED_RELEASE_BASE_SHA = "01ef95b2be567e0160a1c12e6c76fc0f68a1a430";
+const LOCKED_BASELINE_GZIP_BYTES = 882_497;
+const LOCKED_BASELINE_FILE_COUNT = 51;
 const LOCKED_BASELINE_SCHEMA_VERSION = 1;
 const LOCKED_GZIP_LEVEL = 9;
 const LOCKED_NODE_VERSION = "22.23.2";
