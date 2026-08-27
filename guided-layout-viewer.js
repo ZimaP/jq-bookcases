@@ -695,7 +695,7 @@ export class GuidedLayoutViewerController {
       throw codedError("ENVIRONMENT_HTTP_ERROR", "The verified studio environment could not be loaded from its registered URL.");
     }
     const declaredLength = Number(response.headers.get("content-length"));
-    if (Number.isFinite(declaredLength) && declaredLength > 0 && declaredLength !== definition.bytes) {
+    if (!response.headers.has("content-encoding") && Number.isFinite(declaredLength) && declaredLength > 0 && declaredLength !== definition.bytes) {
       throw codedError("ENVIRONMENT_CONTENT_LENGTH_MISMATCH", "The studio environment Content-Length differs from its manifest.");
     }
     const buffer = await response.arrayBuffer();
@@ -749,7 +749,7 @@ export class GuidedLayoutViewerController {
     const expectedLength = layoutRecord.runtimeAsset.bytes;
     const declaredLengthHeader = response.headers.get("content-length");
     const declaredLength = declaredLengthHeader == null ? null : Number(declaredLengthHeader);
-    if (declaredLength !== null && Number.isFinite(declaredLength) && declaredLength !== expectedLength) {
+    if (!response.headers.has("content-encoding") && declaredLength !== null && Number.isFinite(declaredLength) && declaredLength !== expectedLength) {
       throw codedError("MODEL_CONTENT_LENGTH_MISMATCH", `${layoutRecord.label} Content-Length differs from the authoritative registry.`);
     }
     const contentType = (response.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();

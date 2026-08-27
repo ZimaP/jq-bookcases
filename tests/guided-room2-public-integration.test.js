@@ -140,6 +140,7 @@ test("the shipped immersive viewer uses local verified backends, exact layout au
   assert.match(viewer, /Stable WebGL2 production runtime selected/);
   assert.match(viewer, /safeDisposeResource\(this\.materialSystem\)/);
   assert.match(viewer, /credentials: "same-origin"/);
+  assert.equal((viewer.match(/!response\.headers\.has\("content-encoding"\)/g) || []).length, 2);
   assert.match(viewer, /MODEL_SHA256_MISMATCH/);
   assert.match(viewer, /MODEL_BYTE_LENGTH_MISMATCH/);
   assert.match(viewer, /\["model\/gltf-binary", "application\/octet-stream", "binary\/octet-stream"\]/);
