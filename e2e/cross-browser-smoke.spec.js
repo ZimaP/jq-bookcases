@@ -103,6 +103,18 @@ test("public routes stay runtime-clean and overflow-free in Firefox and WebKit",
   }
 });
 
+test("ordinary configurator URL reaches a ready Window Wall scene on every browser", async ({ page }) => {
+  const failures = monitorRuntime(page);
+  const runtime = await openCustomization(page, "window-wall");
+  const initial = await expectExactReadyRuntime(page, "window-wall");
+  expect(initial.rendererFallbackReason).toMatch(/Stable WebGL2 production runtime selected/i);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(runtime).toHaveAttribute("data-state", "ready", { timeout: 30_000 });
+  const reloaded = await expectExactReadyRuntime(page, "window-wall");
+  expect(reloaded.rendererFallbackReason).toMatch(/Stable WebGL2 production runtime selected/i);
+  expect(failures).toEqual([]);
+});
+
 test("Firefox forced WebGL2 preserves one exact Door Wall controller through direct customization and Review", async ({ page, browserName }) => {
   test.skip(browserName !== "firefox", "Firefox-specific supported-fallback journey.");
   const failures = monitorRuntime(page);
@@ -130,7 +142,7 @@ test("Firefox forced WebGL2 preserves one exact Door Wall controller through dir
   expect(failures).toEqual([]);
 });
 
-test("WebKit automatic fallback keeps the direct panel responsive from desktop through short mobile", async ({ page, browserName }) => {
+test("WebKit production WebGL2 keeps the direct panel responsive from desktop through short mobile", async ({ page, browserName }) => {
   test.skip(browserName !== "webkit", "WebKit-specific fallback and responsive matrix.");
   const failures = monitorRuntime(page);
   let modelRequests = 0;
@@ -139,7 +151,7 @@ test("WebKit automatic fallback keeps the direct panel responsive from desktop t
   });
   await openCustomization(page, "window-wall");
   const initial = await expectExactReadyRuntime(page, "window-wall");
-  expect(initial.rendererFallbackReason).toMatch(/WebGPU unavailable|initialization failed/i);
+  expect(initial.rendererFallbackReason).toMatch(/Stable WebGL2 production runtime selected/i);
   expect(modelRequests).toBe(1);
 
   for (const viewport of [
@@ -198,7 +210,7 @@ test("iPhone WebKit completes Window Wall parsing with the bounded mobile GLB an
     if (path.endsWith("/jq-window-wall-bookcases-cabinets-room4-authoritative-v01.glb")) authoritativeRequests += 1;
   });
 
-  const runtime = await openCustomization(page, "window-wall", "modelQuality=premium-v1&renderer=webgl2");
+  const runtime = await openCustomization(page, "window-wall");
   const expected = getImmersiveLayout("window-wall", { userAgent: "iPhone" });
   let record = await diagnostics(page);
   expect(record.state).toBe("ready");

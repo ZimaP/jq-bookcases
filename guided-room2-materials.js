@@ -840,7 +840,11 @@ function texturesInMaterial(material) {
 }
 
 function disposeSet(values) {
-  for (const value of values || []) value?.dispose?.();
+  for (const value of values || []) {
+    try {
+      value?.dispose?.();
+    } catch {}
+  }
   values?.clear?.();
 }
 

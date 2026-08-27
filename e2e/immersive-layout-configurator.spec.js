@@ -378,11 +378,11 @@ test("touch orbit and two-pointer pinch update the same camera without changing 
   expect(final.ownership.controlListenerSets).toBe(1);
 });
 
-test("WebGPU is genuine when available, forced WebGL2 works, and an import failure demotes safely", async ({ browser, baseURL }) => {
+test("opt-in WebGPU is genuine when available, forced WebGL2 works, and an import failure demotes safely", async ({ browser, baseURL }) => {
   const webgpuPage = await createConfiguredPage(browser, baseURL);
   const hasWebGpu = await hasGenuineWebGpuAdapter(webgpuPage);
   if (hasWebGpu) {
-    let runtime = await continueToCustomization(webgpuPage, "fireplace-wall");
+    let runtime = await continueToCustomization(webgpuPage, "fireplace-wall", "renderer=webgpu");
     for (const layoutId of IMMERSIVE_LAYOUT_ORDER) {
       if (layoutId !== "fireplace-wall") runtime = await switchLayout(webgpuPage, layoutId);
       const record = await diagnostics(webgpuPage);
@@ -423,7 +423,7 @@ test("WebGPU is genuine when available, forced WebGL2 works, and an import failu
   if (hasWebGpu) {
     const failedImportPage = await createConfiguredPage(browser, baseURL);
     await failedImportPage.route("**/assets/vendor/three-webgpu-renderer-r166.bundle.js*", (route) => route.abort("failed"));
-    await continueToCustomization(failedImportPage, "window-wall");
+    await continueToCustomization(failedImportPage, "window-wall", "renderer=webgpu");
     const fallback = await diagnostics(failedImportPage);
     expect(fallback.backend).toBe("webgl2");
     expect(fallback.rendererFallbackReason).toMatch(/WebGPU.*failed|fallback/i);
@@ -445,7 +445,7 @@ test("first-frame and late WebGPU failures preserve the journey timer and recove
     await page.addInitScript((renderFailureMode) => {
       globalThis.__JQ_IMMERSIVE_VIEWER_TEST_HOOKS__ = { renderFailureMode };
     }, mode);
-    await continueToCustomization(page, "fireplace-wall");
+    await continueToCustomization(page, "fireplace-wall", "renderer=webgpu");
     if (mode === "late") await page.getByRole("button", { name: "Zoom in" }).click();
     await expect(page.locator("[data-layout-viewer]")).toHaveAttribute("data-renderer-backend", "webgl2", { timeout: 25_000 });
     const record = await diagnostics(page);
@@ -515,7 +515,7 @@ test("a new layout supersedes a WebGPU fallback reload already in flight", async
   });
 
   try {
-    await continueToCustomization(page, "door-wall");
+    await continueToCustomization(page, "door-wall", "renderer=webgpu");
     const initial = await diagnostics(page);
     expect(initial.backend).toBe("webgpu");
     expect(initial.requestCount).toBe(1);
