@@ -183,6 +183,7 @@ export class GuidedLayoutViewerController {
     this.premiumModelV1ModulePromise = null;
     this.premiumModelV1Diagnostics = null;
     this.premiumRoomShellVisibility = null;
+    this.premiumEdgeDefinition = null;
     const localTestHooks = ["localhost", "127.0.0.1", "::1"].includes(proofHost)
       ? globalThis.__JQ_IMMERSIVE_VIEWER_TEST_HOOKS__
       : null;
@@ -1004,6 +1005,7 @@ export class GuidedLayoutViewerController {
     if (!this.geometryContentImmutable) this.geometryMutationCount += 1;
     this.syncDimensionDom();
     this.updateDimensionOverlay();
+    this.premiumEdgeDefinition?.update?.();
     this.requestShadowRefresh();
     return true;
   }
@@ -1103,7 +1105,7 @@ export class GuidedLayoutViewerController {
   async applyPremiumModelV1Presentation() {
     if (!this.premiumModelV1Enabled || this.zoneProofMode || !this.modelRoot) return null;
     if (!this.premiumModelV1ModulePromise) {
-      this.premiumModelV1ModulePromise = import("./guided-premium-model-v1.js?v=room-shell-visibility-v1-20260825a");
+      this.premiumModelV1ModulePromise = import("./guided-premium-model-v1.js?v=paint-lighting-definition-v1");
     }
     const premiumModule = await this.premiumModelV1ModulePromise;
     const diagnostics = await premiumModule.applyPremiumModelV1(this);
@@ -2365,6 +2367,8 @@ export class GuidedLayoutViewerController {
     this.fetchAbortController?.abort();
     this.fetchAbortController = null;
     this.finishSequence += 1;
+    this.premiumEdgeDefinition?.dispose?.();
+    this.premiumEdgeDefinition = null;
     this.disposeActiveFinishMaterials();
     for (const geometry of this.premiumOwnedGeometries) safeDisposeResource(geometry);
     this.premiumOwnedGeometries.clear();

@@ -121,12 +121,12 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
       normalScale: 0.135,
       clearcoatNormalScale: 0.04,
       finishVariants: Object.freeze({
-        "shop-primed": Object.freeze({ normalScale: 0.075, materialResponse: Object.freeze({ roughnessScale: 1.12, clearcoatScale: 0.12, clearcoatRoughnessFloor: 0.9, envMapIntensityScale: 0.58, specularIntensity: 0.24 }) }),
-        "warm-white": Object.freeze({ normalScale: 0.07, materialResponse: Object.freeze({ roughnessScale: 1.06, clearcoatScale: 0.32, clearcoatRoughnessFloor: 0.78, envMapIntensityScale: 0.66, specularIntensity: 0.29 }) }),
-        "soft-ivory": Object.freeze({ normalScale: 0.07, materialResponse: Object.freeze({ roughnessScale: 1.06, clearcoatScale: 0.32, clearcoatRoughnessFloor: 0.78, envMapIntensityScale: 0.66, specularIntensity: 0.29 }) }),
-        "light-greige": Object.freeze({ normalScale: 0.07, materialResponse: Object.freeze({ roughnessScale: 1.06, clearcoatScale: 0.32, clearcoatRoughnessFloor: 0.78, envMapIntensityScale: 0.67, specularIntensity: 0.29 }) }),
-        "sage-gray": Object.freeze({ normalScale: 0.07, materialResponse: Object.freeze({ roughnessScale: 1.05, clearcoatScale: 0.33, clearcoatRoughnessFloor: 0.77, envMapIntensityScale: 0.69, specularIntensity: 0.29 }) }),
-        charcoal: Object.freeze({ normalScale: 0.065, materialResponse: Object.freeze({ roughnessScale: 1.03, clearcoatScale: 0.34, clearcoatRoughnessFloor: 0.76, envMapIntensityScale: 0.75, specularIntensity: 0.3 }) })
+        "shop-primed": Object.freeze({ normalScale: 0.08, materialResponse: Object.freeze({ roughnessScale: 1.08, clearcoatScale: 0.16, clearcoatRoughnessScale: 0.96, clearcoatRoughnessFloor: 0.86, envMapIntensityScale: 0.62, specularIntensity: 0.26 }) }),
+        "warm-white": Object.freeze({ normalScale: 0.095, materialResponse: Object.freeze({ roughnessScale: 0.86, clearcoatScale: 0.78, clearcoatRoughnessScale: 0.72, clearcoatRoughnessFloor: 0.54, envMapIntensityScale: 0.86, specularIntensity: 0.48 }) }),
+        "soft-ivory": Object.freeze({ normalScale: 0.095, materialResponse: Object.freeze({ roughnessScale: 0.86, clearcoatScale: 0.78, clearcoatRoughnessScale: 0.72, clearcoatRoughnessFloor: 0.54, envMapIntensityScale: 0.86, specularIntensity: 0.48 }) }),
+        "light-greige": Object.freeze({ normalScale: 0.095, materialResponse: Object.freeze({ roughnessScale: 0.85, clearcoatScale: 0.8, clearcoatRoughnessScale: 0.7, clearcoatRoughnessFloor: 0.53, envMapIntensityScale: 0.88, specularIntensity: 0.49 }) }),
+        "sage-gray": Object.freeze({ normalScale: 0.1, materialResponse: Object.freeze({ roughnessScale: 0.84, clearcoatScale: 0.82, clearcoatRoughnessScale: 0.68, clearcoatRoughnessFloor: 0.52, envMapIntensityScale: 0.9, specularIntensity: 0.5 }) }),
+        charcoal: Object.freeze({ normalScale: 0.09, materialResponse: Object.freeze({ roughnessScale: 0.82, clearcoatScale: 0.86, clearcoatRoughnessScale: 0.66, clearcoatRoughnessFloor: 0.5, envMapIntensityScale: 0.96, specularIntensity: 0.52 }) })
       }),
       finishMultipliers: Object.freeze({
         charcoal: "#484b4e"
@@ -172,31 +172,44 @@ export const PREMIUM_MODEL_V1_CONTRACT = Object.freeze({
       specularIntensity: 0.26
     }),
     paint: Object.freeze({
-      roughnessScale: 1.13,
-      clearcoatScale: 0.26,
-      clearcoatRoughnessFloor: 0.82,
-      envMapIntensityScale: 0.62,
-      specularIntensity: 0.27
+      roughnessScale: 0.9,
+      clearcoatScale: 0.72,
+      clearcoatRoughnessScale: 0.78,
+      clearcoatRoughnessFloor: 0.58,
+      envMapIntensityScale: 0.82,
+      specularIntensity: 0.45
     })
   }),
   lighting: Object.freeze({
     toneMapping: "neutral",
-    exposure: 1.03,
-    environmentIntensity: 0.32,
+    exposure: 1.08,
+    environmentIntensity: 0.46,
     environmentRotationRadians: 0.92,
-    keyAreaScale: 0.94,
-    fillAreaScale: 0.82,
-    separationAreaScale: 0.9,
-    shadowProxyScale: 0.9,
+    keyAreaScale: 1.08,
+    fillAreaScale: 0.72,
+    separationAreaScale: 1.36,
+    shadowProxyScale: 0.96,
     shadowFilter: "pcf-radius",
-    shadowStrength: 0.48,
-    shadowRadius: 4,
+    shadowStrength: 0.62,
+    shadowRadius: 2.5,
     keyArea: Object.freeze({ position: Object.freeze([-4.2, 5.8, 4.8]), width: 4.8, height: 3.8 }),
     fillArea: Object.freeze({ position: Object.freeze([4.6, 3.8, 4.6]), width: 4, height: 4 }),
-    separationArea: Object.freeze({ position: Object.freeze([0, 5.2, -0.8]), width: 5.5, height: 2.5 }),
+    separationArea: Object.freeze({ position: Object.freeze([4.8, 5.1, 1.1]), width: 4.2, height: 1.8 }),
     shadowProxy: Object.freeze({ position: Object.freeze([-1.6, 6.4, 5.8]) }),
     shadowBias: -0.00006,
     shadowNormalBias: 0.012
+  }),
+  edgeDefinition: Object.freeze({
+    enabled: true,
+    method: "single merged hard-edge pass",
+    roles: Object.freeze([
+      "door-detail", "shelf", "frame-stile", "countertop", "top-rail",
+      "architectural-opening-detail"
+    ]),
+    thresholdAngleDegrees: 32,
+    opacity: 0.13,
+    darkenMix: 0.56,
+    drawCalls: 1
   }),
   roomShellVisibility: Object.freeze({
     strategy: "camera-to-cabinet occlusion with elevation-aware ceiling fade",

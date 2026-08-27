@@ -169,19 +169,21 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.deepEqual(Object.keys(PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishVariants), [
     "shop-primed", "warm-white", "soft-ivory", "light-greige", "sage-gray", "charcoal"
   ]);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishVariants.charcoal.normalScale, 0.065);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishVariants.charcoal.materialResponse.envMapIntensityScale, 0.75);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishVariants["sage-gray"].normalScale, 0.1);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishVariants["sage-gray"].materialResponse.roughnessScale, 0.84);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishVariants.charcoal.normalScale, 0.09);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.paint.finishVariants.charcoal.materialResponse.envMapIntensityScale, 0.96);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.textures.walnut.uvProjection, "stable cabinet-scale straight-grain projection");
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 1.03);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.32);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.exposure, 1.08);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentIntensity, 0.46);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.environmentRotationRadians, 0.92);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.keyAreaScale, 0.94);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.82);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 0.9);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.9);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.keyAreaScale, 1.08);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.fillAreaScale, 0.72);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.separationAreaScale, 1.36);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxyScale, 0.96);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowFilter, "pcf-radius");
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowStrength, 0.48);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowRadius, 4);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowStrength, 0.62);
+  assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowRadius, 2.5);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowBias, -0.00006);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowNormalBias, 0.012);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.exteriorGround.spacingMeters, 0.3048);
@@ -190,7 +192,7 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.exteriorGround.fogFarMeters, 58);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.floorSurface.bumpScale, 0.004);
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.separationArea, {
-    position: [0, 5.2, -0.8], width: 5.5, height: 2.5
+    position: [4.8, 5.1, 1.1], width: 4.2, height: 1.8
   });
   assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.lighting.shadowProxy.position, [-1.6, 6.4, 5.8]);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.architecturalSurface.door.color, "#c5c7c5");
@@ -215,10 +217,28 @@ test("premium model V1 is the public production renderer with an explicit standa
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.oak.specularIntensity, 0.27);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.walnut.clearcoatScale, 0.21);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.walnut.specularIntensity, 0.26);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.paint.clearcoatScale, 0.26);
-  assert.equal(PREMIUM_MODEL_V1_CONTRACT.familySurface.paint.specularIntensity, 0.27);
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.familySurface.paint, {
+    roughnessScale: 0.9,
+    clearcoatScale: 0.72,
+    clearcoatRoughnessScale: 0.78,
+    clearcoatRoughnessFloor: 0.58,
+    envMapIntensityScale: 0.82,
+    specularIntensity: 0.45
+  });
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.roleSurface["door-detail"].colorScale, 0.94);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.roleSurface["frame-stile"].colorScale, 0.985);
+  assert.deepEqual(PREMIUM_MODEL_V1_CONTRACT.edgeDefinition, {
+    enabled: true,
+    method: "single merged hard-edge pass",
+    roles: [
+      "door-detail", "shelf", "frame-stile", "countertop", "top-rail",
+      "architectural-opening-detail"
+    ],
+    thresholdAngleDegrees: 32,
+    opacity: 0.13,
+    darkenMix: 0.56,
+    drawCalls: 1
+  });
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.shadow.maximumDrawCalls, 250);
   assert.equal(PREMIUM_MODEL_V1_CONTRACT.material.type, "MeshPhysicalMaterial");
 });
